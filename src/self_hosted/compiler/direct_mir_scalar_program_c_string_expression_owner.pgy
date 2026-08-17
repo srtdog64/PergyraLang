@@ -6,6 +6,13 @@ func DirectMirScalarProgramCStringExpression(
     kind: Int, left: String, right: String, arguments: Array<String>,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> Option<String> {
+    if kind == DirectMirScalarProgramExprPrintString() {
+        if !CompilerRuntimeCallAbiPrintFactReady(runtime.string_print) {
+            Die("direct MIR scalar program Print ABI is invalid");
+        }
+        return Some(Concat(runtime.string_print.symbol,
+            Concat("(", Concat(left, ")"))));
+    }
     let special: Option<String> = DirectMirScalarProgramCStringSpecialExpression(kind, left, right, runtime);
     if IsSome(special) { return special; }
     let window: Option<String> = DirectMirScalarProgramCStringWindowExpression(
@@ -33,6 +40,7 @@ func DirectMirScalarProgramCStringExpression(
         return Some(Concat(runtime.string_concat.symbol, Concat("(",
             Concat(left, Concat(", ", Concat(right, ")"))))));
     }
+    if kind == DirectMirScalarProgramExprToStringString() { return Some(left); }
     let builtin_symbol: String = runtime.string_to_string.symbol;
     let ready: Bool = false;
     if kind == DirectMirScalarProgramExprToStringInt() {

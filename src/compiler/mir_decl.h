@@ -205,6 +205,10 @@ typedef struct
      * cross-seal nominal or enum facts must never recover this identity from
      * a declaration name or inventory position. */
     uint32_t     source_syntax_id;
+    /* Borrowed parser provenance. The AST owns this path for the full MIR
+     * lifetime; the JSON wire preserves it so MIR-to-AST reconstruction does
+     * not weaken module-scoped semantic admission. */
+    const char  *source_module_path;
     const char  *name;
     char        *type_alias_target_type_name;
     int          intent_retry_count;

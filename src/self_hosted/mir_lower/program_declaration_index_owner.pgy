@@ -14,6 +14,7 @@ struct MirProgramDeclarationIndex {
     let kinds: Array<String>;
     let nominal_kinds: Array<String>;
     let names: Array<String>;
+    let source_module_paths: Array<String>;
     let field_identities: MirProgramDeclarationFieldIdentityIndex;
     let enum_variants: MirProgramEnumVariantIndex;
 }
@@ -39,19 +40,18 @@ func BuildMirProgramDeclarationIndexFromTable(
     let kinds: Array<String> = [];
     let nominal_kinds: Array<String> = [];
     let names: Array<String> = [];
-    let field_identities: MirProgramDeclarationFieldIdentityIndex =
-        EmptyMirProgramDeclarationFieldIdentityIndex();
-    let enum_variants: MirProgramEnumVariantIndex =
-        EmptyMirProgramEnumVariantIndex();
+    let source_module_paths: Array<String> = [];
+    let field_identities: MirProgramDeclarationFieldIdentityIndex = EmptyMirProgramDeclarationFieldIdentityIndex();
+    let enum_variants: MirProgramEnumVariantIndex = EmptyMirProgramEnumVariantIndex();
+    let valid: Bool = true;
     if !JsonArrayObjectFactTableReady(declarations) ||
         JsonCharCodeAt(json, declaration_end, declaration_start) !=
             JsonAsciiCode("[") {
         return MirProgramDeclarationIndex(
-            false, starts, ends, kinds, nominal_kinds, names, field_identities,
-            enum_variants
+            false, starts, ends, kinds, nominal_kinds, names,
+            source_module_paths, field_identities, enum_variants
         );
     }
-
     let cursor: Int = declaration_start + 1;
     let bounds: Array<Int> = [0, 0];
     while JsonArrayNextObjectBounds(
@@ -68,14 +68,17 @@ func BuildMirProgramDeclarationIndexFromTable(
         ArrayPush(names, MirObjectStringFactAtBounds(
             json, bounds[0], bounds[1], "name"
         ));
+        let source_module_path: String = MirObjectStringFactAtBounds(json, bounds[0], bounds[1], "source_module_path");
+        valid = valid && source_module_path != "";
+        ArrayPush(source_module_paths, source_module_path);
         cursor = bounds[1];
     }
-    let valid: Bool = MirProgramDeclarationIndexCursorAtEnd(
+    valid = valid && MirProgramDeclarationIndexCursorAtEnd(
         json, cursor, declaration_end
     ) && ArrayLength(starts) == ArrayLength(ends) &&
         ArrayLength(starts) == ArrayLength(kinds) &&
         ArrayLength(starts) == ArrayLength(nominal_kinds) &&
-        ArrayLength(starts) == ArrayLength(names);
+        ArrayLength(starts) == ArrayLength(names) && ArrayLength(starts) == ArrayLength(source_module_paths);
     field_identities =
         BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
             json, starts, ends, names, kinds, nominal_kinds
@@ -84,8 +87,7 @@ func BuildMirProgramDeclarationIndexFromTable(
         json, starts, ends, kinds, names
     );
     return MirProgramDeclarationIndex(
-        valid && enum_variants.valid, starts, ends, kinds, nominal_kinds,
-        names, field_identities, enum_variants
+        valid && enum_variants.valid, starts, ends, kinds, nominal_kinds, names, source_module_paths, field_identities, enum_variants
     );
 }
 

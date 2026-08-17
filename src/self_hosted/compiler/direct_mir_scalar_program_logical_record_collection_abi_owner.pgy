@@ -1,0 +1,40 @@
+// Joins collection-bearing logical fields to their existing ABI receipts.
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
+import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+func DirectMirScalarProgramLogicalRecordCollectionAbiReady(
+    ref record: DirectMirScalarProgramLogicalRecordFact,
+    ref array_int: DirectMirScalarProgramArrayIntValueResultFact,
+    ref array_bool: DirectMirScalarProgramArrayBoolAbiFact,
+    ref array_string: DirectMirScalarProgramArrayStringAbiFact
+) -> Bool {
+    if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        !DirectMirScalarProgramArrayIntValueResultFactReady(array_int) ||
+        !DirectMirScalarProgramArrayBoolAbiFactReady(array_bool) {
+        return false;
+    }
+    let needs_int: Bool = false;
+    let needs_bool: Bool = false;
+    let needs_string: Bool = false;
+    let field: Int = 0;
+    while field < ArrayLength(record.field_types) {
+        if record.field_types[field] == CompilerAbiLayoutArrayIntTypeName() {
+            needs_int = true;
+        } else if record.field_types[field] ==
+                CompilerAbiLayoutArrayBoolTypeName() {
+            needs_bool = true;
+        } else if record.field_types[field] ==
+                CompilerAbiLayoutArrayStringTypeName() {
+            needs_string = true;
+        }
+        field = field + 1;
+    }
+    if needs_int && !array_int.present { return false; }
+    if needs_bool && !array_bool.present { return false; }
+    if needs_string {
+        return DirectMirScalarProgramArrayStringAbiFactReady(array_string);
+    }
+    return DirectMirScalarProgramArrayStringAbiFactReady(array_string) ||
+        DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(array_string);
+}

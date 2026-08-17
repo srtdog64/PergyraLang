@@ -1,7 +1,6 @@
 // Exact normalized shape of caller-frame Array<String> literal values.
-
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
-
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 func DirectMirScalarProgramArrayStringLiteralOperandRows(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Array<Int> {
@@ -21,6 +20,7 @@ func DirectMirScalarProgramArrayStringLiteralNodeReady(
         facts.node_types[node] != CompilerAbiLayoutArrayStringTypeName() ||
         facts.node_local_rows[node] != -1 ||
         facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_member_ordinals[node] != -1 ||
         facts.node_literals[node] != "" ||
         facts.node_callable_rows[node] != -1 { return false; }
     let operands: Array<Int> =
@@ -30,15 +30,76 @@ func DirectMirScalarProgramArrayStringLiteralNodeReady(
     if nary && (facts.node_lefts[node] != -1 ||
             facts.node_rights[node] != -1) { return false; }
     if !nary && ArrayLength(operands) > 2 { return false; }
+    let dynamic_count: Int = 0;
+    let parameter_count: Int = 0;
     let row: Int = 0;
     while row < ArrayLength(operands) {
         let operand: Int = operands[row];
-        if operand < 0 || operand >= node || facts.node_kinds[operand] !=
-                DirectMirScalarProgramExprStringLiteral() ||
+        if operand < 0 || operand >= node ||
             facts.node_types[operand] != CompilerAbiLayoutStringTypeName() {
             return false;
         }
+        if facts.node_kinds[operand] ==
+                DirectMirScalarProgramExprStringLiteral() {
+            if facts.node_lefts[operand] != -1 ||
+                facts.node_rights[operand] != -1 ||
+                facts.node_local_rows[operand] != -1 ||
+                facts.node_parameter_ordinals[operand] != -1 ||
+                facts.node_member_ordinals[operand] != -1 ||
+                facts.node_callable_rows[operand] != -1 {
+                return false;
+            }
+        } else if facts.node_kinds[operand] ==
+                DirectMirScalarProgramExprParameter() {
+            dynamic_count = dynamic_count + 1;
+            parameter_count = parameter_count + 1;
+            if facts.node_parameter_ordinals[operand] < 0 ||
+                facts.node_lefts[operand] != -1 ||
+                facts.node_rights[operand] != -1 ||
+                facts.node_local_rows[operand] != -1 ||
+                facts.node_member_ordinals[operand] != -1 ||
+                facts.node_literals[operand] != "" ||
+                facts.node_callable_rows[operand] != -1 {
+                return false;
+            }
+        } else if facts.node_kinds[operand] ==
+                DirectMirScalarProgramExprLocal() {
+            dynamic_count = dynamic_count + 1;
+            if facts.node_local_rows[operand] < 0 ||
+                facts.node_parameter_ordinals[operand] != -1 ||
+                facts.node_lefts[operand] != -1 ||
+                facts.node_rights[operand] != -1 ||
+                facts.node_member_ordinals[operand] != -1 ||
+                facts.node_literals[operand] != "" ||
+                facts.node_callable_rows[operand] != -1 {
+                return false;
+            }
+        } else if facts.node_types[operand] ==
+                CompilerAbiLayoutStringTypeName() {
+            dynamic_count = dynamic_count + 1;
+        } else { return false; }
         row = row + 1;
     }
-    return true;
+    return dynamic_count == 0 || ArrayLength(operands) == 1 ||
+        parameter_count == 0;
+}
+func DirectMirScalarProgramArrayStringLiteralOwnsElements(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int
+) -> Bool {
+    if !DirectMirScalarProgramArrayStringLiteralNodeReady(facts, node) ||
+        routine < 0 || routine >= ArrayLength(routines.parameter_starts) {
+        return false;
+    }
+    let operands: Array<Int> =
+        DirectMirScalarProgramArrayStringLiteralOperandRows(facts, node);
+    if ArrayLength(operands) != 1 || facts.node_kinds[operands[0]] !=
+            DirectMirScalarProgramExprParameter() { return false; }
+    let ordinal: Int = facts.node_parameter_ordinals[operands[0]];
+    if ordinal < 0 || ordinal >= routines.parameter_counts[routine] {
+        return false;
+    }
+    let parameter: Int = routines.parameter_starts[routine] + ordinal;
+    return routines.parameter_carriages[parameter] == "owner-handle" &&
+        routines.parameter_types[parameter] == CompilerAbiLayoutStringTypeName();
 }

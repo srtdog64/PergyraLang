@@ -13,6 +13,7 @@ import "direct_mir_scalar_cfg_collection_operation_shape_owner.pgy";
 import "direct_mir_scalar_cfg_minimum_plan_shape_owner.pgy";
 import "direct_mir_scalar_cfg_operand_shape_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_operation_shape_owner.pgy";
 func DirectMirScalarCfgGraphPlanReady(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
@@ -35,8 +36,8 @@ func DirectMirScalarCfgGraphPlanReady(
             plan.local_names, plan.local_ref_kinds,
             plan.local_ref_value_ids, plan.local_ref_syntax_ids,
             plan.value_names, plan.value_local_rows,
-            plan.value_definition_blocks, block_count, plan.range_iterations,
-            plan.foreach_iterations
+            plan.value_definition_blocks, block_count, plan.routines,
+            plan.range_iterations, plan.foreach_iterations
         ) ||
         operation_count < 1 ||
         block_count != ArrayLength(plan.block_succ_false) ||
@@ -139,6 +140,8 @@ func DirectMirScalarCfgGraphPlanReady(
         let right_count: Int = DirectMirScalarCfgOperandCount(
             right, right_local, right_literal
         );
+        let parameter_target: Bool =
+            DirectMirScalarProgramArrayMutationParameterTargetKind(kind);
         let phi_count: Int = plan.operation_phi_counts[operation];
         let indexed_row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
             plan.string_arrays, operation
@@ -150,27 +153,29 @@ func DirectMirScalarCfgGraphPlanReady(
             plan.string_arrays.accesses.kinds[indexed_row] ==
                 DirectMirScalarCfgStringArrayAccessLogRead();
         if kind < DirectMirScalarCfgOpConstInt() ||
-            kind > DirectMirScalarCfgOpExpressionLog() || result < -1 ||
+            kind > DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() ||
+            result < -1 ||
             left < -1 || right < -1 || left_local < -1 ||
             right_local < -1 || result >= value_count ||
             left >= value_count || right >= value_count ||
-            left_local >= local_count || right_local >= local_count ||
+            left_local >= local_count ||
+            (right_local >= local_count && !parameter_target &&
+                kind != DirectMirScalarCfgOpLogicalRecordMemberRebind()) ||
             plan.operation_phi_starts[operation] != expected_phi ||
             phi_count < 0 {
             return false;
         }
         if kind == DirectMirScalarCfgOpPhiInt() ||
-                kind == DirectMirScalarCfgOpPhiString() {
+                kind == DirectMirScalarCfgOpPhiString() ||
+                kind == DirectMirScalarCfgOpPhiValue() {
             if result < 0 || phi_count < 2 || left_count != 0 ||
                 right_count != 0 {
                 return false;
             }
-        } else if kind == DirectMirScalarCfgOpExpressionDefinition() ||
-                kind == DirectMirScalarCfgOpExpressionLog() {
-            if !plan.program.valid || phi_count != 0 || left_count != 0 ||
-                right_count != 0 ||
-                (kind == DirectMirScalarCfgOpExpressionDefinition() && result < 0) ||
-                (kind == DirectMirScalarCfgOpExpressionLog() && result != -1) {
+        } else if DirectMirScalarCfgProgramOperationKind(kind) {
+            if !DirectMirScalarCfgProgramOperationShapeReady(
+                    kind, result, left_count, right_count,
+                    phi_count, plan.program.valid) {
                 return false;
             }
         } else if phi_count != 0 ||

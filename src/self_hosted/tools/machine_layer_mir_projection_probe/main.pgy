@@ -179,7 +179,8 @@ func MachineProbeFacts(
         declaration
     );
     let routines: SelfMirRoutineRows = SelfMirRoutineRows(
-        [1], ["Main"], ["function"], [""], ["none"], ["Void"],
+        [1], ["Main"], ["function"], [""], ["probe.pgy"],
+        ["none"], ["Void"],
         [0], [0], no_uses, [0], [0], no_uses, no_uses, no_ints,
         no_ints,
         [0], [1], [0], [2], ["dev", "current"],

@@ -19,8 +19,10 @@ struct DirectMirScalarProgramExpressionSet {
     let node_rights: Array<Int>;
     let node_local_rows: Array<Int>;
     let node_parameter_ordinals: Array<Int>;
+    let node_member_ordinals: Array<Int>;
     let node_literals: Array<String>;
     let node_callable_rows: Array<Int>;
+    let node_runtime_call_abi_ids: Array<Int>;
     let nary_operands: DirectMirScalarProgramNaryOperands;
 }
 
@@ -30,7 +32,7 @@ func DirectMirScalarProgramExpressionSetEmpty(
     let strings: Array<String> = [];
     return DirectMirScalarProgramExpressionSet(
         true, 0, ints, ints, ints, ints, ints, strings,
-        ints, ints, ints, ints, strings, ints,
+        ints, ints, ints, ints, ints, strings, ints, ints,
         DirectMirScalarProgramNaryOperandsEmpty()
     );
 }
@@ -49,8 +51,10 @@ func DirectMirScalarProgramExpressionSetCanonicalEmpty(
         ArrayLength(facts.node_rights) == 0 &&
         ArrayLength(facts.node_local_rows) == 0 &&
         ArrayLength(facts.node_parameter_ordinals) == 0 &&
+        ArrayLength(facts.node_member_ordinals) == 0 &&
         ArrayLength(facts.node_literals) == 0 &&
         ArrayLength(facts.node_callable_rows) == 0 &&
+        ArrayLength(facts.node_runtime_call_abi_ids) == 0 &&
         DirectMirScalarProgramNaryOperandsCanonicalEmpty(
             facts.nary_operands);
 }
@@ -73,8 +77,11 @@ func DirectMirScalarProgramExpressionSetDigest(
     hash = DirectMirScalarCfgHashInts(
         hash, facts.node_parameter_ordinals
     );
+    hash = DirectMirScalarCfgHashInts(hash, facts.node_member_ordinals);
     hash = DirectMirScalarCfgHashStrings(hash, facts.node_literals);
     hash = DirectMirScalarCfgHashInts(hash, facts.node_callable_rows);
+    hash = DirectMirScalarCfgHashInts(
+        hash, facts.node_runtime_call_abi_ids);
     hash = DirectMirScalarCfgHashInts(hash, facts.nary_operands.node_rows);
     hash = DirectMirScalarCfgHashInts(hash, facts.nary_operands.starts);
     hash = DirectMirScalarCfgHashInts(hash, facts.nary_operands.counts);
@@ -91,7 +98,9 @@ func DirectMirScalarProgramExpressionSetWithDigest(
         facts.graph_counts, facts.graph_roots, facts.node_kinds,
         facts.node_types, facts.node_lefts, facts.node_rights,
         facts.node_local_rows, facts.node_parameter_ordinals,
-        facts.node_literals, facts.node_callable_rows, facts.nary_operands
+        facts.node_member_ordinals, facts.node_literals,
+        facts.node_callable_rows, facts.node_runtime_call_abi_ids,
+        facts.nary_operands
     );
 }
 
@@ -99,7 +108,8 @@ func DirectMirScalarProgramLiteralEmbeddable(value: String) -> Bool {
     let row: Int = 0;
     while row < StringLength(value) {
         let code: Int = JsonCharCodeAt(value, StringLength(value), row);
-        if code < 32 || code > 126 || code == 34 || code == 92 {
+        if code != 9 && code != 10 && code != 13 &&
+            (code < 32 || code > 126) {
             return false;
         }
         row = row + 1;
@@ -121,8 +131,10 @@ func DirectMirScalarProgramExpressionSetShapeReady(
         node_count != ArrayLength(facts.node_rights) ||
         node_count != ArrayLength(facts.node_local_rows) ||
         node_count != ArrayLength(facts.node_parameter_ordinals) ||
+        node_count != ArrayLength(facts.node_member_ordinals) ||
         node_count != ArrayLength(facts.node_literals) ||
         node_count != ArrayLength(facts.node_callable_rows) ||
+        node_count != ArrayLength(facts.node_runtime_call_abi_ids) ||
         !DirectMirScalarProgramNaryOperandsShapeReady(
             facts.nary_operands, node_count) {
         return false;
@@ -148,13 +160,18 @@ func DirectMirScalarProgramExpressionSetShapeReady(
         let right: Int = facts.node_rights[node];
         let local_binding: Int = facts.node_local_rows[node];
         let param: Int = facts.node_parameter_ordinals[node];
+        let member: Int = facts.node_member_ordinals[node];
         let literal: String = facts.node_literals[node];
         let callable: Int = facts.node_callable_rows[node];
+        let runtime_call_abi_id: Int =
+            facts.node_runtime_call_abi_ids[node];
         if kind < DirectMirScalarProgramExprLocal() ||
             kind > DirectMirScalarProgramExpressionKindLast() ||
             facts.node_types[node] == "" || left >= node || right >= node ||
             left < -1 || right < -1 || local_binding < -1 || param < -1 ||
-            callable < -1 || !DirectMirScalarProgramLiteralEmbeddable(literal) {
+            member < -1 ||
+            callable < -1 || runtime_call_abi_id < -1 ||
+            !DirectMirScalarProgramLiteralEmbeddable(literal) {
             return false;
         }
         node = node + 1;

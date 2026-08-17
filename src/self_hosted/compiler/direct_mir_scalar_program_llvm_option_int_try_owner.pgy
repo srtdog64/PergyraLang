@@ -1,0 +1,66 @@
+// LLVM control-flow projection for one admitted Option<Int> try definition.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+import "direct_mir_scalar_program_option_int_try_admission_owner.pgy";
+
+func DirectMirScalarProgramLlvmOptionIntTryDefinition(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    target: CompilerTargetProjectionFact
+) -> String {
+    let result: Int = plan.operation_result_values[operation];
+    let expression_row: Int = plan.program.operation_expression_rows[operation];
+    if !DirectMirScalarProgramOptionIntTryRoutineReady(
+            plan.routines, routine) || result < 0 ||
+        result >= ArrayLength(plan.value_types) ||
+        plan.value_types[result] != CompilerAbiLayoutIntTypeName() {
+        Die("direct MIR scalar LLVM Option<Int> try definition is invalid");
+    }
+    let operand: DirectMirScalarProgramLlvmExpression =
+        DirectMirScalarProgramLlvmExpressionAt(
+            plan.program.expressions, expression_row, runtime,
+            plan.program.logical_record, plan.routines, routine, target);
+    if !operand.valid || operand.type_name !=
+            CompilerAbiLayoutOptionIntTypeName() {
+        Die("direct MIR scalar LLVM Option<Int> try operand is invalid");
+    }
+    let suffix: String = Concat(ToString(routine), Concat(".", ToString(operation)));
+    let present_name: String = Concat("%pgy.try.present.", suffix);
+    let none_name: String = Concat("%pgy.try.none.value.", suffix);
+    let payload_name: String = Concat("%pgy.try.payload.", suffix);
+    let present: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmOptionIntExpressionAt(
+            DirectMirScalarProgramExprIsSomeInt(), present_name, operand.value);
+    let absent: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmOptionIntExpressionAt(
+            DirectMirScalarProgramExprNoneInt(), none_name, "");
+    let payload: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmOptionIntExpressionAt(
+            DirectMirScalarProgramExprUnwrapOptionInt(), payload_name,
+            operand.value);
+    if !present.matched || !absent.matched || !payload.matched {
+        Die("direct MIR scalar LLVM Option<Int> try ABI projection is missing");
+    }
+    let output: String = Concat(operand.instructions, present.instructions);
+    output = Concat(output, "  br i1 ");
+    output = Concat(output, present.value);
+    output = Concat(output, ", label %pgy.try.some.");
+    output = Concat(output, suffix);
+    output = Concat(output, ", label %pgy.try.none.");
+    output = Concat(output, Concat(suffix, "\n"));
+    output = Concat(output, Concat("pgy.try.none.", Concat(suffix, ":\n")));
+    output = Concat(output, absent.instructions);
+    output = Concat(output, "  ret ");
+    output = Concat(output, DirectMirScalarProgramLlvmOptionIntTypeName());
+    output = Concat(output, Concat(" ", Concat(absent.value, "\n")));
+    output = Concat(output, Concat("pgy.try.some.", Concat(suffix, ":\n")));
+    output = Concat(output, payload.instructions);
+    output = Concat(output, "  store i64 ");
+    output = Concat(output, payload.value);
+    output = Concat(output, ", ptr %pgy.local.");
+    output = Concat(output, ToString(plan.value_local_rows[result]));
+    output = Concat(output, ", align 8\n");
+    return output;
+}

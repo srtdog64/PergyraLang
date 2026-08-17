@@ -1,0 +1,53 @@
+// Persists one typed array-mutation target and its admitted expression rows.
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+
+func DirectMirScalarCfgProgramOperationsAppendArrayMutation(
+    storage: DirectMirScalarCfgProgramOperationStorage,
+    kind: Int, target_local: Int, target_parameter: Int,
+    value_expression_row: Int, index_expression_row: Int
+) -> DirectMirScalarCfgProgramOperationStorage {
+    let set: Bool = DirectMirScalarProgramArraySetKind(kind);
+    let pop: Bool = DirectMirScalarProgramArrayPopKind(kind);
+    if !storage.valid ||
+        ((target_local < 0) == (target_parameter < 0)) ||
+        !DirectMirScalarProgramArrayMutationKind(kind) ||
+        (!pop && value_expression_row < 0) ||
+        (pop && value_expression_row != -1) ||
+        (set && index_expression_row < 0) ||
+        (!set && index_expression_row != -1) {
+        return DirectMirScalarCfgProgramOperationStorage(
+            false, storage.kinds, storage.result_values,
+            storage.left_values, storage.right_values,
+            storage.left_locals, storage.right_locals,
+            storage.left_literals, storage.right_literals,
+            storage.phi_starts, storage.phi_counts,
+            storage.phi_predecessor_blocks, storage.phi_incoming_values,
+            storage.expression_rows, storage.secondary_expression_rows);
+    }
+    let kinds: Array<Int> = storage.kinds;
+    let results: Array<Int> = storage.result_values;
+    let left_values: Array<Int> = storage.left_values;
+    let right_values: Array<Int> = storage.right_values;
+    let left_locals: Array<Int> = storage.left_locals;
+    let right_locals: Array<Int> = storage.right_locals;
+    let left_literals: Array<String> = storage.left_literals;
+    let right_literals: Array<String> = storage.right_literals;
+    let phi_starts: Array<Int> = storage.phi_starts;
+    let phi_counts: Array<Int> = storage.phi_counts;
+    let expression_rows: Array<Int> = storage.expression_rows;
+    let secondary_rows: Array<Int> = storage.secondary_expression_rows;
+    ArrayPush(kinds, kind); ArrayPush(results, -1);
+    ArrayPush(left_values, -1); ArrayPush(right_values, -1);
+    ArrayPush(left_locals, target_local);
+    ArrayPush(right_locals, target_parameter);
+    ArrayPush(left_literals, ""); ArrayPush(right_literals, "");
+    ArrayPush(phi_starts, ArrayLength(storage.phi_predecessor_blocks));
+    ArrayPush(phi_counts, 0); ArrayPush(expression_rows, value_expression_row);
+    ArrayPush(secondary_rows, index_expression_row);
+    return DirectMirScalarCfgProgramOperationStorage(
+        true, kinds, results, left_values, right_values,
+        left_locals, right_locals, left_literals, right_literals,
+        phi_starts, phi_counts, storage.phi_predecessor_blocks,
+        storage.phi_incoming_values, expression_rows, secondary_rows);
+}

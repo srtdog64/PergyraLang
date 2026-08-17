@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Fingerprinted parser-tool build owner shared by parser parity and bootstrap.
 
-# v2: the parser tool is now built through --native-pipeline. It is bootstrap
+# v3: the parser tool is built through --native-pipeline and fingerprints the
+# complete source set with a bounded batch of sha256sum processes. It is bootstrap
 # scaffolding -- codegen_bootstrap.sh uses it to produce the AST that seeds
 # gen0 -- so it has to exist before the self-host driver does. The schema bump
 # invalidates caches from the delegated build so the two never mix.
-PARSER_TOOL_CACHE_SCHEMA="pgy.selfhost.parser-tool-build.v2-native"
+PARSER_TOOL_CACHE_SCHEMA="pgy.selfhost.parser-tool-build.v3-batched-native"
 
 parser_tool_sha256_file() {
     sha256sum "$1" | cut -d' ' -f1
@@ -14,19 +15,21 @@ parser_tool_sha256_file() {
 parser_tool_source_set_fingerprint() {
     local cache_dir="$1"
     local fingerprint_input="$cache_dir/source_set_fingerprint.txt"
+    local source_paths="$cache_dir/source_set_paths.bin"
+    local source_hash
     local source_path
 
-    : >"$fingerprint_input"
-    while IFS= read -r source_path; do
-        printf '%s\t%s\n' "${source_path#"$ROOT_DIR"/}" \
-            "$(parser_tool_sha256_file "$source_path")" \
-            >>"$fingerprint_input"
-    done < <(find "$ROOT_DIR/src/self_hosted" -type f -name '*.pgy' -print \
-        | LC_ALL=C sort)
-    if [[ ! -s "$fingerprint_input" ]]; then
+    find "$ROOT_DIR/src/self_hosted" -type f -name '*.pgy' -print0 \
+        | LC_ALL=C sort -z >"$source_paths"
+    if [[ ! -s "$source_paths" ]]; then
         echo "[self-host-parser-build] empty parser source-set fingerprint" >&2
         return 1
     fi
+    : >"$fingerprint_input"
+    while read -r source_hash source_path; do
+        source_path="${source_path#\*}"
+        printf '%s\t%s\n' "${source_path#"$ROOT_DIR"/}" "$source_hash"
+    done < <(xargs -0 sha256sum <"$source_paths") >"$fingerprint_input"
     parser_tool_sha256_file "$fingerprint_input"
 }
 

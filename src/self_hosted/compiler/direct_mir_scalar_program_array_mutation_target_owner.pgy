@@ -1,0 +1,223 @@
+// Resolves one collection-mutation receiver from the producer-owned LocalRef.
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+
+struct DirectMirScalarProgramArrayMutationTarget {
+    let valid: Bool;
+    let operation_kind: Int;
+    let local_row: Int;
+    let parameter_ordinal: Int;
+    let element_type: String;
+}
+
+func DirectMirScalarProgramArrayMutationTargetInvalid() -> DirectMirScalarProgramArrayMutationTarget { return DirectMirScalarProgramArrayMutationTarget(false, 0, -1, -1, ""); }
+
+func DirectMirScalarProgramArrayPushKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpArrayIntPush() || kind == DirectMirScalarCfgOpLocalArrayStringPush() || kind == DirectMirScalarCfgOpArrayBoolPush() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultPush(); }
+
+func DirectMirScalarProgramArraySetKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpLocalArrayIntSet() || kind == DirectMirScalarCfgOpArrayStringSet() || kind == DirectMirScalarCfgOpArrayBoolSet() || kind == DirectMirScalarCfgOpArrayIntValueResultSet() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet(); }
+
+func DirectMirScalarProgramArrayPopKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpArrayIntPop() || kind == DirectMirScalarCfgOpArrayStringPop(); }
+
+func DirectMirScalarProgramArrayMutationKind(kind: Int) -> Bool {
+    return DirectMirScalarProgramArrayPushKind(kind) ||
+        DirectMirScalarProgramArraySetKind(kind) ||
+        DirectMirScalarProgramArrayPopKind(kind) ||
+        kind == DirectMirScalarCfgOpArrayStringValueResultPush();
+}
+
+func DirectMirScalarProgramArrayMutationParameterTargetKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpArrayIntPush() || kind == DirectMirScalarCfgOpArrayIntValueResultSet() || kind == DirectMirScalarCfgOpArrayIntPop() || kind == DirectMirScalarCfgOpArrayBoolPush() || kind == DirectMirScalarCfgOpArrayBoolSet() || kind == DirectMirScalarCfgOpArrayStringValueResultPush() || kind == DirectMirScalarCfgOpArrayStringSet() || kind == DirectMirScalarCfgOpArrayStringPop() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultPush() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet(); }
+
+func DirectMirScalarProgramLogicalRecordArrayMutationKind(kind: Int) -> Bool { return kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultPush() || kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet(); }
+
+func DirectMirScalarProgramLogicalRecordArrayMutationRequired(
+    ref kinds: Array<Int>
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(kinds) {
+        if DirectMirScalarProgramLogicalRecordArrayMutationKind(kinds[row]) {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramLogicalRecordArraySetRequired(
+    ref kinds: Array<Int>
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(kinds) {
+        if kinds[row] == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet() {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramArrayBoolPushRequired(ref kinds: Array<Int>) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(kinds) {
+        if kinds[row] == DirectMirScalarCfgOpArrayBoolPush() { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramLocalArrayMutationKind(kind: Int) -> Bool {
+    return kind == DirectMirScalarCfgOpArrayIntPush() ||
+        kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+        kind == DirectMirScalarCfgOpArrayBoolPush() ||
+        kind == DirectMirScalarCfgOpArrayBoolSet() ||
+        kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+        kind == DirectMirScalarCfgOpArrayStringSet() ||
+        DirectMirScalarProgramArrayPopKind(kind);
+}
+
+func DirectMirScalarProgramLocalArrayMutationTargetTypeReady(kind: Int, type_name: String) -> Bool {
+    return ((kind == DirectMirScalarCfgOpArrayIntPush() ||
+             kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+             kind == DirectMirScalarCfgOpArrayIntPop()) &&
+            type_name == CompilerAbiLayoutArrayIntTypeName()) ||
+        ((kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+          kind == DirectMirScalarCfgOpArrayStringSet() ||
+          kind == DirectMirScalarCfgOpArrayStringPop()) &&
+            type_name == CompilerAbiLayoutArrayStringTypeName()) ||
+        ((kind == DirectMirScalarCfgOpArrayBoolPush() ||
+          kind == DirectMirScalarCfgOpArrayBoolSet()) &&
+            type_name == CompilerAbiLayoutArrayBoolTypeName());
+}
+
+func DirectMirScalarProgramArrayMutationTargetFromOwners(
+    operation_name: String,
+    ref wire: DirectMirScalarCfgWireLocalRefs, instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact,
+    ref array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    routine_ordinal: Int
+) -> DirectMirScalarProgramArrayMutationTarget {
+    let invalid: DirectMirScalarProgramArrayMutationTarget = DirectMirScalarProgramArrayMutationTargetInvalid();
+    if (operation_name != "ArrayPush" && operation_name != "ArraySet" &&
+        operation_name != "ArrayPop") || !wire.valid || !wire.required ||
+        instruction < 0 || instruction >= ArrayLength(wire.primary_refs) ||
+        !locals.valid || !types.valid ||
+        !DirectMirRoutineSignatureFactReady(signature) { return invalid; }
+    let receiver_ref: String = wire.primary_refs[instruction];
+    if !SelfMirLocalRefValid(receiver_ref) { return invalid; }
+    let parts: Array<String> = Split(receiver_ref, ":");
+    if ArrayLength(parts) != 3 { return invalid; }
+    let receiver_ordinal: Int = ToInt(parts[2]);
+    if parts[0] == "parameter" {
+        if ToInt(parts[1]) != signature.source_syntax_id ||
+            receiver_ordinal < 0 || receiver_ordinal >= signature.param_count {
+            return invalid;
+        }
+        let formal_type: String = signature.parameters.type_names[receiver_ordinal];
+        if formal_type == CompilerAbiLayoutArrayIntTypeName() &&
+            DirectMirScalarProgramArrayIntValueResultAt(
+                array_int_value_result, routine_ordinal, receiver_ordinal) {
+            let kind: Int = DirectMirScalarCfgOpArrayIntPush();
+            if operation_name == "ArraySet" {
+                kind = DirectMirScalarCfgOpArrayIntValueResultSet();
+            } else if operation_name == "ArrayPop" {
+                kind = DirectMirScalarCfgOpArrayIntPop();
+            } else if operation_name != "ArrayPush" { return invalid; }
+            return DirectMirScalarProgramArrayMutationTarget(
+                true, kind, -1,
+                receiver_ordinal, CompilerAbiLayoutIntTypeName());
+        }
+        if operation_name == "ArrayPush" &&
+            formal_type == CompilerAbiLayoutArrayBoolTypeName() &&
+            DirectMirScalarProgramArrayBoolValueResultAt(
+                array_bool_abi, routine_ordinal, receiver_ordinal) {
+            return DirectMirScalarProgramArrayMutationTarget(
+                true, DirectMirScalarCfgOpArrayBoolPush(), -1,
+                receiver_ordinal, CompilerAbiLayoutBoolTypeName());
+        }
+        if operation_name == "ArraySet" &&
+            formal_type == CompilerAbiLayoutArrayBoolTypeName() &&
+            DirectMirScalarProgramArrayBoolValueResultAt(
+                array_bool_abi, routine_ordinal, receiver_ordinal) {
+            return DirectMirScalarProgramArrayMutationTarget(
+                true, DirectMirScalarCfgOpArrayBoolSet(), -1,
+                receiver_ordinal, CompilerAbiLayoutBoolTypeName());
+        }
+        if (operation_name == "ArrayPush" || operation_name == "ArraySet" ||
+            operation_name == "ArrayPop") &&
+            formal_type == CompilerAbiLayoutArrayStringTypeName() &&
+            DirectMirScalarProgramArrayStringValueResultAt(
+                array_string_abi, routine_ordinal, receiver_ordinal) {
+            let kind: Int = DirectMirScalarCfgOpArrayStringValueResultPush();
+            if operation_name == "ArraySet" {
+                kind = DirectMirScalarCfgOpArrayStringSet();
+            } else if operation_name == "ArrayPop" {
+                kind = DirectMirScalarCfgOpArrayStringPop();
+            }
+            return DirectMirScalarProgramArrayMutationTarget(
+                true, kind, -1,
+                receiver_ordinal, CompilerAbiLayoutStringTypeName());
+        }
+        let record_element: Option<String> =
+            DirectMirScalarProgramLogicalRecordArrayElementType(
+                logical_record, formal_type);
+        if (operation_name == "ArrayPush" || operation_name == "ArraySet") &&
+            IsSome(record_element) &&
+            DirectMirScalarProgramLogicalRecordArrayValueResultParameterReady(
+                signature, receiver_ordinal, logical_record) {
+            let kind: Int = DirectMirScalarCfgOpLogicalRecordArrayValueResultPush();
+            if operation_name == "ArraySet" { kind = DirectMirScalarCfgOpLogicalRecordArrayValueResultSet(); }
+            return DirectMirScalarProgramArrayMutationTarget(
+                true, kind,
+                -1, receiver_ordinal, UnwrapOption(record_element));
+        }
+        return invalid;
+    }
+    let local_row: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(locals.local_ref_value_ids) {
+        if locals.local_ref_value_ids[row] == receiver_ref {
+            if local_row >= 0 { return invalid; }
+            local_row = row;
+        }
+        row = row + 1;
+    }
+    if local_row < 0 || local_row >= ArrayLength(types.local_types) { return invalid; }
+    let local_type: String = types.local_types[local_row];
+    let set: Bool = operation_name == "ArraySet";
+    let pop: Bool = operation_name == "ArrayPop";
+    if local_type == CompilerAbiLayoutArrayIntTypeName() {
+        let kind: Int = DirectMirScalarCfgOpArrayIntPush();
+        if set { kind = DirectMirScalarCfgOpLocalArrayIntSet(); }
+        if pop { kind = DirectMirScalarCfgOpArrayIntPop(); }
+        return DirectMirScalarProgramArrayMutationTarget(
+            true, kind, local_row, -1, CompilerAbiLayoutIntTypeName());
+    }
+    if local_type == CompilerAbiLayoutArrayStringTypeName() {
+        let kind: Int = DirectMirScalarCfgOpLocalArrayStringPush();
+        if set { kind = DirectMirScalarCfgOpArrayStringSet(); }
+        if pop { kind = DirectMirScalarCfgOpArrayStringPop(); }
+        return DirectMirScalarProgramArrayMutationTarget(
+            true, kind, local_row, -1, CompilerAbiLayoutStringTypeName());
+    }
+    if (operation_name == "ArrayPush" || operation_name == "ArraySet") &&
+        local_type == CompilerAbiLayoutArrayBoolTypeName() {
+        let kind: Int = DirectMirScalarCfgOpArrayBoolPush();
+        if set { kind = DirectMirScalarCfgOpArrayBoolSet(); }
+        return DirectMirScalarProgramArrayMutationTarget(
+            true, kind, local_row, -1,
+            CompilerAbiLayoutBoolTypeName());
+    }
+    return invalid;
+}

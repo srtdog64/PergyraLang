@@ -1,4 +1,4 @@
-// C StringReplace/math calls from one sealed runtime projection.
+// C StringReplace/checked numeric calls from one sealed runtime projection.
 import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 
@@ -27,6 +27,15 @@ func DirectMirScalarProgramCCaseMathExpression(
     } else if kind == DirectMirScalarProgramExprMaxInt() {
         symbol = runtime.case_math.max.symbol;
         ready = runtime.case_math.max.ok;
+        ArrayPush(values, left); ArrayPush(values, right);
+    } else if kind == DirectMirScalarProgramExprModuloInt() ||
+            kind == DirectMirScalarProgramExprModuloLong() {
+        symbol = runtime.case_math.long_modulo.symbol;
+        ready = runtime.case_math.long_modulo.ok;
+        ArrayPush(values, left); ArrayPush(values, right);
+    } else if kind == DirectMirScalarProgramExprDivideLong() {
+        symbol = runtime.case_math.long_division.symbol;
+        ready = runtime.case_math.long_division.ok;
         ArrayPush(values, left); ArrayPush(values, right);
     } else { return None; }
     if !ready || ArrayLength(values) < 1 { return None; }

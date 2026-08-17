@@ -1,0 +1,51 @@
+// C copy lifecycle for declaration-keyed logical-record value-result formals.
+
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramLogicalRecordValueResultAt(
+                plan, routine, ordinal) {
+            let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+            output = Concat(output,
+                DirectMirScalarProgramCLogicalRecordTypeName(
+                    plan.program.logical_record,
+                    plan.routines.parameter_types[row]));
+            output = Concat(output, Concat(" pgy_param_", ToString(ordinal)));
+            output = Concat(output, Concat(" = *pgy_param_", ToString(ordinal)));
+            output = Concat(output, "_mutref;\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCLogicalRecordValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramLogicalRecordValueResultAt(
+                plan, routine, ordinal) {
+            let local_row: Int =
+                DirectMirScalarProgramLogicalRecordValueResultLocalRow(
+                    plan, routine, ordinal);
+            output = Concat(output, Concat("    *pgy_param_", ToString(ordinal)));
+            output = Concat(output, "_mutref = ");
+            if local_row >= 0 {
+                output = Concat(output, Concat("pgy_local_", ToString(local_row)));
+            } else {
+                output = Concat(output, Concat("pgy_param_", ToString(ordinal)));
+            }
+            output = Concat(output, ";\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}

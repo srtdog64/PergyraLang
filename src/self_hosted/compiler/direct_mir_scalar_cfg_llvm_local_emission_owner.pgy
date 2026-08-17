@@ -5,39 +5,186 @@
 // carried the owner past its line cap.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
 
 func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
-    ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int
+    ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int,
+    routine: Int
 ) -> String {
     if start < 0 || count < 0 ||
-        start + count > ArrayLength(plan.local_names) {
+        start + count > ArrayLength(plan.local_names) || routine < 0 ||
+        routine >= ArrayLength(plan.routines.roles) ||
+        start != plan.routines.local_starts[routine] ||
+        count != plan.routines.local_counts[routine] {
         Die("direct MIR scalar CFG LLVM local range is invalid");
     }
     let output: String = "";
     let row: Int = start;
     while row < start + count {
+        let llvm_type: String = "i64";
+        let runtime_value: CompilerRuntimeValueRepresentation =
+            CompilerRuntimeValueRepresentationFor(
+                plan.local_types[row]);
         output = Concat(output, "  %pgy.local.");
         output = Concat(output, ToString(row));
-        if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
+        if runtime_value.valid {
+            llvm_type = runtime_value.llvm_type;
+            output = Concat(output, Concat(" = alloca ", llvm_type));
+            output = Concat(output, Concat(", align 8\n  store ", llvm_type));
+            output = Concat(output,
+                " zeroinitializer, ptr %pgy.local.");
+        } else if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
+            llvm_type = "ptr";
             output = Concat(output,
                 " = alloca ptr, align 8\n  store ptr null, ptr %pgy.local."
             );
         } else if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
+            llvm_type = "i1";
             output = Concat(output,
                 " = alloca i1, align 1\n  store i1 false, ptr %pgy.local."
             );
         } else if plan.local_types[row] ==
                 CompilerAbiLayoutArrayStringTypeName() {
+            llvm_type = "%pgy.array.string";
             output = Concat(output,
                 " = alloca %pgy.array.string, align 8\n  store %pgy.array.string zeroinitializer, ptr %pgy.local."
             );
+        } else if plan.local_types[row] ==
+                CompilerAbiLayoutArrayIntTypeName() {
+            llvm_type = "%pgy.array.int";
+            output = Concat(output,
+                " = alloca %pgy.array.int, align 8\n  store %pgy.array.int zeroinitializer, ptr %pgy.local."
+            );
+        } else if plan.local_types[row] ==
+                CompilerAbiLayoutArrayBoolTypeName() {
+            llvm_type = "%pgy.array.bool";
+            output = Concat(output,
+                " = alloca %pgy.array.bool, align 8\n  store %pgy.array.bool zeroinitializer, ptr %pgy.local."
+            );
+        } else if plan.local_types[row] == CompilerAbiLayoutSetStringTypeName() { llvm_type = DirectMirScalarProgramLlvmSetStringTypeName(); output = Concat(output, Concat(" = alloca ", Concat(llvm_type, Concat(", align 8\n  store ", Concat(llvm_type, " zeroinitializer, ptr %pgy.local.")))));
+        } else if plan.local_types[row] ==
+                CompilerAbiLayoutOptionIntTypeName() {
+            llvm_type = DirectMirScalarProgramLlvmOptionIntTypeName();
+            output = Concat(output, " = alloca ");
+            output = Concat(output,
+                DirectMirScalarProgramLlvmOptionIntTypeName());
+            output = Concat(output, ", align 4\n  store ");
+            output = Concat(output,
+                DirectMirScalarProgramLlvmOptionIntTypeName());
+            output = Concat(output,
+                " zeroinitializer, ptr %pgy.local.");
+        } else if plan.local_types[row] ==
+                CompilerAbiLayoutOptionStringTypeName() {
+            llvm_type = DirectMirScalarProgramLlvmOptionStringTypeName();
+            output = Concat(output, " = alloca ");
+            output = Concat(output,
+                DirectMirScalarProgramLlvmOptionStringTypeName());
+            output = Concat(output, ", align 8\n  store ");
+            output = Concat(output,
+                DirectMirScalarProgramLlvmOptionStringTypeName());
+            output = Concat(output,
+                " zeroinitializer, ptr %pgy.local.");
+        } else if plan.local_types[row] ==
+                CompilerAbiLayoutOptionBoolTypeName() {
+            llvm_type = DirectMirScalarProgramLlvmOptionBoolTypeName();
+            output = Concat(output, " = alloca ");
+            output = Concat(output,
+                DirectMirScalarProgramLlvmOptionBoolTypeName());
+            output = Concat(output, ", align 4\n  store ");
+            output = Concat(output,
+                DirectMirScalarProgramLlvmOptionBoolTypeName());
+            output = Concat(output,
+                " zeroinitializer, ptr %pgy.local.");
+        } else if DirectMirScalarProgramLogicalRecordArrayTypeReady(
+                plan.program.logical_record, plan.local_types[row]) {
+            llvm_type = DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+                plan.program.logical_record, plan.local_types[row]);
+            output = Concat(output, Concat(" = alloca ", llvm_type));
+            output = Concat(output, Concat(", align 8\n  store ", llvm_type));
+            output = Concat(output,
+                " zeroinitializer, ptr %pgy.local.");
+        } else if DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record, plan.local_types[row]) {
+            llvm_type = DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                plan.program.logical_record, plan.local_types[row]);
+            output = Concat(output, " = alloca ");
+            output = Concat(output,
+                DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                    plan.program.logical_record, plan.local_types[row]));
+            output = Concat(output, ", align 8\n  store ");
+            output = Concat(output,
+                DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                    plan.program.logical_record, plan.local_types[row]));
+            output = Concat(output,
+                " zeroinitializer, ptr %pgy.local.");
+        } else if DirectMirScalarProgramLogicalRecordOptionTypeReady(
+                plan.program.logical_record, plan.local_types[row]) {
+            let option_type: String =
+                DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+                    plan.program.logical_record, plan.local_types[row]);
+            llvm_type = option_type;
+            output = Concat(output, Concat(" = alloca ", option_type));
+            output = Concat(output, Concat(", align 8\n  store ",
+                option_type));
+            output = Concat(output,
+                " zeroinitializer, ptr %pgy.local.");
         } else { output = Concat(output,
             " = alloca i64, align 8\n  store i64 0, ptr %pgy.local."
         ); }
         output = Concat(output, ToString(row));
         if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
             output = Concat(output, ", align 1\n");
+        } else if plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() ||
+                plan.local_types[row] == CompilerAbiLayoutOptionBoolTypeName() {
+            output = Concat(output, ", align 4\n");
         } else { output = Concat(output, ", align 8\n"); }
+        let parameter_ordinal: Int =
+            SelfMirLocalRefParameterOrdinalForOwner(
+                plan.local_ref_value_ids[row],
+                plan.routines.source_syntax_ids[routine]);
+        if parameter_ordinal >= 0 {
+            if parameter_ordinal >= plan.routines.parameter_counts[routine] {
+                Die("direct MIR scalar CFG LLVM parameter local is invalid");
+            }
+            let carriage: String = plan.routines.parameter_carriages[
+                plan.routines.parameter_starts[routine] + parameter_ordinal];
+            let owned_string: Bool = carriage == "owner-handle" &&
+                plan.local_types[row] == CompilerAbiLayoutStringTypeName();
+            if carriage != "value" && carriage != "value-result" &&
+                !owned_string {
+                Die("direct MIR scalar CFG LLVM parameter local is invalid");
+            }
+            let parameter_value: String = Concat(
+                "%pgy.param.", ToString(parameter_ordinal));
+            if carriage == "value-result" {
+                let loaded: String = Concat(parameter_value,
+                    Concat(".local.value.", ToString(row)));
+                output = Concat(output, Concat("  ", loaded));
+                output = Concat(output, Concat(" = load ", llvm_type));
+                output = Concat(output, Concat(", ptr ", parameter_value));
+                output = Concat(output, ".local, align 8\n");
+                parameter_value = loaded;
+            }
+            output = Concat(output, Concat("  store ", llvm_type));
+            output = Concat(output, Concat(" ", parameter_value));
+            output = Concat(output, Concat(", ptr %pgy.local.",
+                ToString(row)));
+            if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
+                output = Concat(output, ", align 1\n");
+            } else if plan.local_types[row] ==
+                    CompilerAbiLayoutOptionIntTypeName() ||
+                    plan.local_types[row] ==
+                    CompilerAbiLayoutOptionBoolTypeName() {
+                output = Concat(output, ", align 4\n");
+            } else { output = Concat(output, ", align 8\n"); }
+        }
         row = row + 1;
     }
     return output;
@@ -48,6 +195,6 @@ func DirectMirScalarCfgLlvmLocalDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
     return DirectMirScalarCfgLlvmLocalDeclarationsInRange(
-        plan, 0, ArrayLength(plan.local_names)
+        plan, 0, ArrayLength(plan.local_names), 0
     );
 }

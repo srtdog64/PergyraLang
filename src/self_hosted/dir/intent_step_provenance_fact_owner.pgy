@@ -2,6 +2,8 @@
 // The resolver records how a value was obtained; renderers never infer
 // defaults again from the final value spelling.
 
+import "../hir/ast_text_scan_owner.pgy";
+
 struct SelfDirIntentStepProvenanceRow {
     who_from_intent: Bool;
     who_from_action: Bool;

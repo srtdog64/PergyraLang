@@ -1,3 +1,80 @@
+    TEST("MIR validator rejects predecessor without forward edge");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *purchase = NULL;
+        char *mir_error = NULL;
+        bool rejected = false;
+        bool corrupted = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL) {
+            for (size_t target = 0; target < purchase->block_count && !corrupted; target++) {
+                MIRBasicBlock *block = &purchase->blocks[target];
+                if (block->predecessor_count == 0)
+                    continue;
+                for (size_t pred = 0; pred < purchase->block_count; pred++) {
+                    size_t next_count;
+                    size_t *grown;
+                    if (pred == target)
+                        continue;
+                    if (!test_block_has_forward_edge_to(&purchase->blocks[pred], target)) {
+                        next_count = block->predecessor_count + 1;
+                        grown = realloc(block->predecessors,
+                                        next_count * sizeof(size_t));
+                        if (grown == NULL)
+                            break;
+                        block->predecessors = grown;
+                        block->predecessors[block->predecessor_count] = pred;
+                        block->predecessor_count = next_count;
+                        block->predecessor_capacity = next_count;
+                        corrupted = true;
+                        break;
+                    }
+                }
+            }
+        }
+        rejected = ok
+                   && purchase != NULL
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "predecessor") != NULL
+                   && strstr(mir_error, "no matching forward edge") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects predecessor count without inventory");
     {
         const char *src =

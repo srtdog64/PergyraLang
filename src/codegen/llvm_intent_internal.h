@@ -115,7 +115,8 @@ void        llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                                                   const char *zone_alias,
                                                   const char *from_alias,
                                                   const char **who_aliases,
-                                                  size_t who_alias_count);
+                                                  size_t who_alias_count,
+                                                  bool emit_observability);
 bool        llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
                                                             ASTNode *intent,
                                                             const char *zone_type_name,

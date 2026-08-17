@@ -1,0 +1,168 @@
+// LLVM three-field Array<Record> type and value-result copy lifecycle.
+
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
+
+func DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    let output: String = "";
+    let record: Int = 0;
+    while record < ArrayLength(plan.program.logical_record.names) {
+        let array_type: String = Concat("Array<", Concat(
+            plan.program.logical_record.names[record], ">"));
+        let referenced: Bool = false;
+        let parameter: Int = 0;
+        while parameter < ArrayLength(plan.routines.parameter_types) {
+            if plan.routines.parameter_types[parameter] == array_type {
+                referenced = true;
+            }
+            parameter = parameter + 1;
+        }
+        let local_row: Int = 0;
+        while local_row < ArrayLength(plan.local_types) {
+            if plan.local_types[local_row] == array_type { referenced = true; }
+            local_row = local_row + 1;
+        }
+        if referenced {
+            let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+                DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+                    plan.program.logical_record, array_type, target);
+            output = Concat(output, Concat(projected.llvm_type_name,
+                Concat(" = type ", Concat(
+                    projected.llvm_aggregate_type, "\n"))));
+            let element_type: String =
+                DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                    plan.program.logical_record, projected.element_type);
+            let symbol: String = Concat(
+                "@pgy.scalar.logical.record.array.push.",
+                ToString(projected.record_row));
+            output = Concat(output, Concat("define internal void ", symbol));
+            output = Concat(output, Concat("(ptr %array, ", element_type));
+            output = Concat(output, " %value) {\nentry:\n  %data.ptr = getelementptr inbounds ");
+            output = Concat(output, Concat(projected.llvm_type_name,
+                ", ptr %array, i32 0, i32 0\n  %length.ptr = getelementptr inbounds "));
+            output = Concat(output, Concat(projected.llvm_type_name,
+                ", ptr %array, i32 0, i32 1\n  %capacity.ptr = getelementptr inbounds "));
+            output = Concat(output, Concat(projected.llvm_type_name,
+                ", ptr %array, i32 0, i32 2\n  %length = load i64, ptr %length.ptr, align 8\n  %capacity = load i64, ptr %capacity.ptr, align 8\n  %full = icmp eq i64 %length, %capacity\n  br i1 %full, label %grow, label %append\n\ngrow:\n  %empty = icmp eq i64 %capacity, 0\n  %doubled = mul i64 %capacity, 2\n  %next.capacity = select i1 %empty, i64 4, i64 %doubled\n  %next.end = getelementptr "));
+            output = Concat(output, Concat(element_type,
+                ", ptr null, i64 %next.capacity\n  %bytes = ptrtoint ptr %next.end to i64\n  %old.data = load ptr, ptr %data.ptr, align 8\n  %next.data = call ptr @realloc(ptr %old.data, i64 %bytes)\n  %failed = icmp eq ptr %next.data, null\n  br i1 %failed, label %abort, label %grown\n\nabort:\n  call void @abort()\n  unreachable\n\ngrown:\n  store ptr %next.data, ptr %data.ptr, align 8\n  store i64 %next.capacity, ptr %capacity.ptr, align 8\n  br label %append\n\nappend:\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds "));
+            output = Concat(output, Concat(element_type,
+                ", ptr %data, i64 %length\n  store "));
+            output = Concat(output, Concat(element_type,
+                " %value, ptr %slot, align 8\n  %next.length = add i64 %length, 1\n  store i64 %next.length, ptr %length.ptr, align 8\n  ret void\n}\n\n"));
+            if DirectMirScalarProgramLogicalRecordArraySetRequired(
+                    plan.operation_kinds) {
+                let set_symbol: String = Concat(
+                    "@pgy.scalar.logical.record.array.set.",
+                    ToString(projected.record_row));
+                output = Concat(output, "define internal void ${set_symbol}(ptr %array, i64 %index, ${element_type} %value) {\nentry:\n  %length.ptr = getelementptr inbounds ${projected.llvm_type_name}, ptr %array, i32 0, i32 1\n  %length = load i64, ptr %length.ptr, align 8\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %write\n\npanic:\n  call void @${CollectionRuntimeLlvmBoundsPanicFn()}(ptr null)\n  unreachable\n\nwrite:\n  %data.ptr = getelementptr inbounds ${projected.llvm_type_name}, ptr %array, i32 0, i32 0\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds ${element_type}, ptr %data, i64 %index\n  store ${element_type} %value, ptr %slot, align 8\n  ret void\n}\n\n");
+            }
+        }
+        record = record + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+                plan, routine, ordinal) {
+            let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+            let type_name: String =
+                DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+                    plan.program.logical_record,
+                    plan.routines.parameter_types[row]);
+            let spelling: String = ToString(ordinal);
+            output = Concat(output, Concat("  %pgy.param.", spelling));
+            output = Concat(output, Concat(".local = alloca ", type_name));
+            output = Concat(output, ", align 8\n");
+            output = Concat(output, Concat("  %pgy.param.", spelling));
+            output = Concat(output, Concat(".array.copyin = load ", type_name));
+            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
+            output = Concat(output, ".mutref, align 8\n");
+            output = Concat(output, Concat("  store ", type_name));
+            output = Concat(output, Concat(" %pgy.param.", spelling));
+            output = Concat(output, Concat(".array.copyin, ptr %pgy.param.",
+                spelling));
+            output = Concat(output, ".local, align 8\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+                plan, routine, ordinal) {
+            let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+            let type_name: String =
+                DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+                    plan.program.logical_record,
+                    plan.routines.parameter_types[row]);
+            let spelling: String = ToString(ordinal);
+            let suffix: String = ToString(exit_block);
+            output = Concat(output, Concat("  %pgy.param.", spelling));
+            output = Concat(output, Concat(".array.copyout.", suffix));
+            output = Concat(output, Concat(" = load ", type_name));
+            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
+            output = Concat(output, ".local, align 8\n");
+            output = Concat(output, Concat("  store ", type_name));
+            output = Concat(output, Concat(" %pgy.param.", spelling));
+            output = Concat(output, Concat(".array.copyout.", suffix));
+            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
+            output = Concat(output, ".mutref, align 8\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordArrayValueResultMutation(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    parameter: Int, index: String, value_type: String, value: String,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+            plan, routine, parameter) || value == "" {
+        Die("direct MIR LLVM logical-record Array mutation identity is invalid");
+    }
+    let parameter_row: Int = plan.routines.parameter_starts[routine] +
+        parameter;
+    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+            plan.program.logical_record,
+            plan.routines.parameter_types[parameter_row], target);
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
+            projected, CompilerTargetCpuLlvmProjection()) ||
+        projected.element_type != value_type {
+        Die("direct MIR LLVM logical-record Array mutation type is invalid");
+    }
+    let element_type: String =
+        DirectMirScalarProgramLlvmLogicalRecordTypeName(
+            plan.program.logical_record, projected.element_type);
+    let operation: String = "push.";
+    if index != "" { operation = "set."; }
+    let output: String = Concat(
+        "  call void @pgy.scalar.logical.record.array.", operation);
+    output = Concat(output, Concat(
+        ToString(projected.record_row), "(ptr %pgy.param."));
+    output = Concat(output, Concat(ToString(parameter), ".local, "));
+    if index != "" { output = Concat(output, Concat("i64 ", Concat(index, ", "))); }
+    output = Concat(output, Concat(element_type, " "));
+    return Concat(output, Concat(value, ")\n"));
+}

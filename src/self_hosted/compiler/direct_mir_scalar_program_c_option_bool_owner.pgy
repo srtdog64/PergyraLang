@@ -1,0 +1,98 @@
+// C representation and expression projection from the admitted Option<Bool> ABI.
+
+import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+func DirectMirScalarProgramCOptionBoolTypeName() -> String {
+    return "pgy_scalar_option_bool";
+}
+
+func DirectMirScalarProgramCOptionBoolExpression(
+    kind: Int, left: String
+) -> Option<String> {
+    if kind == DirectMirScalarProgramExprSomeBool() {
+        return Some(Concat("pgy_scalar_option_bool_some(", Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprNoneBool() {
+        return Some("pgy_scalar_option_bool_none()");
+    }
+    if kind == DirectMirScalarProgramExprIsSomeBool() {
+        return Some(Concat(
+            "pgy_scalar_option_bool_is_some(", Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprUnwrapOptionBool() {
+        return Some(Concat(
+            "pgy_scalar_option_bool_unwrap(", Concat(left, ")")));
+    }
+    return None;
+}
+
+func DirectMirScalarProgramCOptionBoolPreamble(
+    ref fact: DirectMirOptionMatchAbiFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarProgramOptionBoolAbiCanonicalEmpty(fact) { return ""; }
+    if !DirectMirOptionBoolAbiFactReady(fact) ||
+        !CompilerTargetProjectionFactReadyFor(
+            target, CompilerTargetCpuCProjection()) {
+        Die("direct MIR scalar program C Option<Bool> ABI is invalid");
+    }
+    let t: String = DirectMirScalarProgramCOptionBoolTypeName();
+    let output: String = "#include <stddef.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include <stdlib.h>\n";
+    output = Concat(output, "typedef struct { int32_t ");
+    output = Concat(output, fact.tag_name);
+    output = Concat(output, "; bool ");
+    output = Concat(output, fact.value_name);
+    output = Concat(output, "; } ");
+    output = Concat(output, t);
+    output = Concat(output, ";\n_Static_assert(sizeof(");
+    output = Concat(output, t);
+    output = Concat(output, ") == ");
+    output = Concat(output, ToString(fact.size));
+    output = Concat(output, ", \"Option<Bool> size\");\n");
+    output = Concat(output, "_Static_assert(_Alignof(");
+    output = Concat(output, t);
+    output = Concat(output, ") == ");
+    output = Concat(output, ToString(fact.align));
+    output = Concat(output, ", \"Option<Bool> align\");\n");
+    output = Concat(output, "_Static_assert(offsetof(");
+    output = Concat(output, t);
+    output = Concat(output, ", ");
+    output = Concat(output, fact.value_name);
+    output = Concat(output, ") == ");
+    output = Concat(output, ToString(fact.value_offset));
+    output = Concat(output, ", \"Option<Bool> value offset\");\n");
+    output = Concat(output, "static ");
+    output = Concat(output, t);
+    output = Concat(output,
+        " pgy_scalar_option_bool_some(bool value) {\n    ");
+    output = Concat(output, t);
+    output = Concat(output, " result = {");
+    output = Concat(output, fact.some_tag);
+    output = Concat(output, ", value};\n    return result;\n}\nstatic ");
+    output = Concat(output, t);
+    output = Concat(output,
+        " pgy_scalar_option_bool_none(void) {\n    ");
+    output = Concat(output, t);
+    output = Concat(output, " result = {");
+    output = Concat(output, fact.none_tag);
+    output = Concat(output, ", false};\n    return result;\n}\n");
+    output = Concat(output, "static bool pgy_scalar_option_bool_is_some(");
+    output = Concat(output, t);
+    output = Concat(output, " value) { return value.");
+    output = Concat(output, fact.tag_name);
+    output = Concat(output, " == ");
+    output = Concat(output, fact.some_tag);
+    output = Concat(output, "; }\nstatic bool pgy_scalar_option_bool_unwrap(");
+    output = Concat(output, t);
+    output = Concat(output, " value) {\n    if (value.");
+    output = Concat(output, fact.tag_name);
+    output = Concat(output, " != ");
+    output = Concat(output, fact.some_tag);
+    output = Concat(output,
+        ") { abort(); }\n    return value.");
+    output = Concat(output, fact.value_name);
+    output = Concat(output, ";\n}\n");
+    return output;
+}

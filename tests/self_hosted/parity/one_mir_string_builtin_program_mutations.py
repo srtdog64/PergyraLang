@@ -29,6 +29,17 @@ def graph_with_target(program: dict, target: str) -> dict:
     raise RuntimeError(f"missing call target: {target}")
 
 
+def graphs_with_target(program: dict, target: str) -> list[dict]:
+    rows = []
+    for instruction in instructions(program):
+        graph = instruction.get("expr0_graph")
+        if graph and any(
+            node.get("call_target_name") == target for node in graph["nodes"]
+        ):
+            rows.append(graph)
+    return rows
+
+
 def literal(program: dict, spelling: str, replacement: str) -> None:
     for instruction in instructions(program):
         graph = instruction.get("expr0_graph")
@@ -87,6 +98,12 @@ def main() -> int:
     bad = clone(program)
     graph_with_target(bad, "ToString")["nodes"][4]["right"] = 0
     write(output, "bad-to-string-argument-type", bad)
+
+    bad = clone(program)
+    string_to_string = graphs_with_target(bad, "ToString")[1]
+    string_to_string["nodes"][2]["kind"] = "boolean_literal"
+    string_to_string["nodes"][2]["text"] = "true"
+    write(output, "bad-to-string-string-argument-type", bad)
 
     bad = clone(program)
     upper = graph_with_target(bad, "ToUpper")

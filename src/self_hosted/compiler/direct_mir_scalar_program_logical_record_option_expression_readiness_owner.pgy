@@ -1,0 +1,38 @@
+// Semantic shape checks for normalized Option<logical-record> nodes.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
+import "../semantic/wrapper_type_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordOptionExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind < DirectMirScalarProgramExprSomeLogicalRecord() ||
+        kind > DirectMirScalarProgramExprUnwrapOptionLogicalRecord() {
+        return None;
+    }
+    let left: Int = facts.node_lefts[node];
+    if facts.node_rights[node] != -1 ||
+        facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 { return Some(false); }
+    if kind == DirectMirScalarProgramExprNoneLogicalRecord() {
+        return Some(left == -1 && IsOptionType(facts.node_types[node]));
+    }
+    if left < 0 || left >= node { return Some(false); }
+    if kind == DirectMirScalarProgramExprSomeLogicalRecord() {
+        let payload: Option<String> = OptionPayloadTypeOpt(
+            facts.node_types[node]);
+        return Some(IsSome(payload) &&
+            UnwrapOption(payload) == facts.node_types[left]);
+    }
+    let payload: Option<String> = OptionPayloadTypeOpt(
+        facts.node_types[left]);
+    if !IsSome(payload) { return Some(false); }
+    if kind == DirectMirScalarProgramExprIsSomeLogicalRecord() {
+        return Some(facts.node_types[node] == CompilerAbiLayoutBoolTypeName());
+    }
+    return Some(facts.node_types[node] == UnwrapOption(payload));
+}

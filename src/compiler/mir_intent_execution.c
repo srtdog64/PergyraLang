@@ -309,6 +309,10 @@ mir_materialize_intent_execution_plan(MIRRoutine *routine,
         row->routine_syntax_id = routine->source_syntax_id;
         row->step_syntax_id = step->syntax_id;
         row->step_name = step->name;
+        row->where_zone_name = step->where_type_name;
+        row->where_zone_syntax_id =
+            step->where_type_node_id < dir->node_count
+                ? dir->nodes[step->where_type_node_id].source_syntax_id : 0;
         row->has_predecessor = step->predecessor_step_syntax_id != 0;
         row->predecessor_transition_id = step->predecessor_step_syntax_id;
         row->predecessor_step_syntax_id = step->predecessor_step_syntax_id;
@@ -531,6 +535,8 @@ intent_execution_digest_rows(uint32_t hash, const MIRRoutine *routine)
             hash = intent_execution_hash_int(
                 hash, fact->call_target_syntax_id);
         }
+        hash = intent_execution_hash_string(hash, row->where_zone_name);
+        hash = intent_execution_hash_int(hash, row->where_zone_syntax_id);
     }
     for (size_t i = 0; i < routine->intent_terminal_transition_count; i++) {
         const MIRIntentTerminalTransitionFact *row =

@@ -52,7 +52,7 @@ with open(valid_path, encoding="utf-8") as stream:
 with open(multi_valid_path, encoding="utf-8") as stream:
     multi = json.load(stream)
 
-INTENT_SCHEMA = "pgy.selfhost.mir-intent-execution-plan.v2"
+INTENT_SCHEMA = "pgy.selfhost.mir-intent-execution-plan.v3"
 INTENT_KEYS = {"schema", "plan_digest", "steps", "terminals"}
 STEP_KEYS = {
     "transition_id", "routine_syntax_id", "step_syntax_id", "step_name",
@@ -69,6 +69,7 @@ STEP_KEYS = {
     "failure_payload_type_name", "failure_payload_decl_syntax_id",
     "failure_successor_block_id",
     "completion_block_id", "completion_instruction_id", "compensations",
+    "where_zone_name", "where_zone_syntax_id",
 }
 COMPENSATION_KEYS = {
     "transition_id", "expression_syntax_id", "instruction_block_id",
@@ -172,6 +173,8 @@ def hash_step(hash_value, row):
         ):
             hash_value = hash_int(hash_value, fact[key]) if kind == "int" \
                 else hash_string(hash_value, fact[key])
+    hash_value = hash_string(hash_value, row["where_zone_name"])
+    hash_value = hash_int(hash_value, row["where_zone_syntax_id"])
     return hash_value
 
 def hash_terminal(hash_value, row):
@@ -369,6 +372,16 @@ for row in execution["steps"]:
     routine = routines_by_id[routine_id]
     assert routine["kind"] == "intent", routine
     step_name = nonempty_string(row["step_name"], "step_name")
+    where_zone_name = nonempty_string(
+        row["where_zone_name"], "where_zone_name"
+    )
+    where_zone_id = positive_int(
+        row["where_zone_syntax_id"], "where_zone_syntax_id"
+    )
+    where_zone = declarations_by_id[where_zone_id]
+    assert where_zone["kind"] == "class", where_zone
+    assert where_zone.get("nominal_kind") == "zone", where_zone
+    assert where_zone["name"] == where_zone_name, (where_zone, row)
     action_id = positive_int(row["action_syntax_id"], "action_syntax_id")
     action = routines_by_id[action_id]
     assert action["kind"] == "method" and action.get("owner"), action
@@ -381,6 +394,9 @@ for row in execution["steps"]:
         and method.get("return") == action.get("return")
     ]
     assert len(method_rows) == 1, (owner["name"], action["name"])
+    assert method_rows[0]["contract"]["within"] == where_zone_name, (
+        method_rows[0], row
+    )
 
     has_predecessor = row["has_predecessor"]
     predecessor_id = row["predecessor_transition_id"]
@@ -551,7 +567,7 @@ for transition_id, counts in coverage.items():
 
 JOIN_MAP = [
     ("intent_execution.schema", "native schema owner",
-     "exact pgy.selfhost.mir-intent-execution-plan.v2"),
+     "exact pgy.selfhost.mir-intent-execution-plan.v3"),
     ("intent_execution.plan_digest", "native program digest",
      "schema seed; routine inventory order; steps then terminals per routine"),
     ("step.transition_id", "step syntax identity",
@@ -564,6 +580,8 @@ JOIN_MAP = [
      "transition_id + step_syntax_id + step_name in the same routine; no row-order fallback"),
     ("step.action_syntax_id", "method routine source identity",
      "unique kind=method; owner method is action; return equals outcome type"),
+    ("step.where_zone_*", "zone declaration identity",
+     "exact zone source_syntax_id + name; equals action contract within"),
     ("step.outcome_instruction_*", "intent routine block/instruction",
      "unique IntentEval(on), exact step/result/type and action graph target"),
     ("step.outcome_enum_*", "decls enum identity",
@@ -638,6 +656,27 @@ add_mutation(
     lambda document: document["intent_execution"]["steps"][0].pop(
         "step_syntax_id"
     ), rehash=False,
+)
+add_mutation(
+    "missing-step-zone-id", "missing-stable-id",
+    lambda document: document["intent_execution"]["steps"][0].pop(
+        "where_zone_syntax_id"
+    ), rehash=False,
+)
+add_mutation(
+    "empty-step-zone-name", "crosswired-stable-id",
+    lambda document: document["intent_execution"]["steps"][0].__setitem__(
+        "where_zone_name", ""
+    ),
+)
+add_mutation(
+    "crosswired-step-zone-id", "crosswired-stable-id",
+    lambda document: document["intent_execution"]["steps"][0].__setitem__(
+        "where_zone_syntax_id",
+        document["intent_execution"]["steps"][0][
+            "success_payload_decl_syntax_id"
+        ],
+    ),
 )
 add_mutation(
     "zero-action-syntax-id", "missing-stable-id",

@@ -3,6 +3,7 @@
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "runtime_value_representation_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 
 func DirectMirScalarBuiltinProgramRouteClaimed(
@@ -23,12 +24,12 @@ func DirectMirScalarBuiltinProgramRouteClaimed(
         signature.param_count != 0 { return false; }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, 0);
-    if !index.valid || ArrayLength(index.source_local_types) < 1 {
-        return false;
-    }
+    if !index.valid { return false; }
     let local_binding: Int = 0;
     while local_binding < ArrayLength(index.source_local_types) {
         if !DirectMirScalarCfgSourceLocalTypeSupported(
+                index.source_local_types[local_binding]) &&
+            !CompilerRuntimeValueTypeReady(
                 index.source_local_types[local_binding]) { return false; }
         local_binding = local_binding + 1;
     }

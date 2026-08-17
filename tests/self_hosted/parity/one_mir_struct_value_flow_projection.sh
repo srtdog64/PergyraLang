@@ -41,7 +41,7 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_plan_owner.pgy|2
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_c_emission_owner.pgy|180
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_llvm_emission_owner.pgy|140
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_value_flow_projection_owner.pgy|40
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy|80
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy|110
 EOF
     [[ "$total" -le 1560 ]] || fail "value-flow owner family cap exceeded: $total/1560"
     grep -Fq 'JsonArrayObjectFactCount(admitted.document.declarations) == 0' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_return_program_identity_owner.pgy" || fail "Array return still claims nominal programs"

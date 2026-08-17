@@ -87,6 +87,9 @@ func DirectMirNominalLiteralDeclarationFactFromIndex(
     let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
         json, declaration.start, declaration.end, "source_syntax_id"
     );
+    let source_path: Option<String> = MirObjectUniqueStringFactAtBounds(
+        json, declaration.start, declaration.end, "source_module_path"
+    );
     let fields: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
         declaration, "fields"
     );
@@ -94,8 +97,10 @@ func DirectMirNominalLiteralDeclarationFactFromIndex(
         declaration, "methods"
     );
     if !JsonObjectFactTableReady(declaration) ||
-        JsonObjectFactCount(declaration) != 6 || !IsSome(kind) ||
+        JsonObjectFactCount(declaration) != 7 || !IsSome(kind) ||
         !IsSome(nominal_kind) || !IsSome(name) || !IsSome(syntax) ||
+        !IsSome(source_path) || UnwrapOption(source_path) !=
+            declarations.source_module_paths[0] ||
         UnwrapOption(kind) != UnwrapOption(nominal_kind) ||
         UnwrapOption(kind) != declarations.kinds[0] ||
         UnwrapOption(nominal_kind) != declarations.nominal_kinds[0] ||

@@ -1,22 +1,116 @@
 // Broad typed claimant envelope; final callable support remains a later gate.
-
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
-
+import "direct_mir_scalar_program_callable_signature_owner.pgy";
+import "direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy";
+struct DirectMirScalarProgramCallableRouteEnvelopeAssessment {
+    let valid: Bool;
+    let supported: Bool;
+    let stage: String;
+    let parameter_ordinal: Int;
+    let type_name: String;
+    let carriage: String;
+}
+func DirectMirScalarProgramCallableRouteEnvelopeAssessmentReady(
+    ref assessment: DirectMirScalarProgramCallableRouteEnvelopeAssessment
+) -> Bool {
+    if !assessment.valid { return false; }
+    if assessment.supported {
+        return assessment.stage == "ready" &&
+            assessment.parameter_ordinal == -1 &&
+            assessment.type_name == "" && assessment.carriage == "";
+    }
+    if assessment.stage == "signature" ||
+        assessment.stage == "parameter-count" {
+        return assessment.parameter_ordinal == -1 &&
+            assessment.type_name == "" && assessment.carriage == "";
+    }
+    if assessment.stage == "return-type" {
+        return assessment.parameter_ordinal == -1 &&
+            assessment.type_name != "" && assessment.carriage == "";
+    }
+    return assessment.stage == "parameter-type-or-carriage" &&
+        assessment.parameter_ordinal >= 0 && assessment.type_name != "" &&
+        assessment.carriage != "";
+}
+func DirectMirScalarProgramCallableRouteEnvelopeAssess(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> DirectMirScalarProgramCallableRouteEnvelopeAssessment {
+    if !DirectMirRoutineSignatureFactReady(signature) {
+        return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
+            true, false, "signature", -1, "", "");
+    }
+    if signature.param_count == 0 {
+        if DirectMirScalarProgramComposableCallableSignatureReady(
+                signature, logical_record, payload_free_enum) ||
+            DirectMirScalarProgramZeroParameterReturnTypeSupportedWithFacts(
+                signature.return_type, logical_record) ||
+            DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(
+                signature) {
+            return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
+                true, true, "ready", -1, "", "");
+        }
+        return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
+            true, false, "return-type", -1, signature.return_type, "");
+    }
+    if signature.param_count < 0 {
+        return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
+            true, false, "parameter-count", -1, "", "");
+    }
+    let array_string_value_result: Bool =
+        DirectMirScalarProgramArrayStringValueResultSignatureReady(
+            signature);
+    let owned_array_string_return: Bool =
+        DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(signature);
+    let logical_record_array_value_result: Bool =
+        DirectMirScalarProgramLogicalRecordArrayValueResultSignatureReady(
+            signature, logical_record);
+    let void_logical_record_array_int: Bool =
+        DirectMirScalarProgramVoidLogicalRecordArrayIntValueResultSignatureReady(
+            signature, logical_record);
+    let readonly_record_array_bool_return: Bool =
+        DirectMirScalarProgramReadonlyLogicalRecordArrayBoolReturnSignatureReady(
+            signature, logical_record);
+    if !DirectMirScalarProgramComposableCallableSignatureReady(
+            signature, logical_record, payload_free_enum) &&
+        !array_string_value_result && !owned_array_string_return &&
+        !logical_record_array_value_result &&
+        !void_logical_record_array_int &&
+        !readonly_record_array_bool_return &&
+        !DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady(signature, logical_record) &&
+        !DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(
+            signature.return_type, nominal, logical_record) {
+        return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
+            true, false, "return-type", -1, signature.return_type, "");
+    }
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        if !DirectMirScalarProgramCallableParameterSupportedWithFacts(
+                signature, ordinal, nominal, logical_record,
+                payload_free_enum) {
+            return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
+                true, false, "parameter-type-or-carriage", ordinal,
+                signature.parameters.type_names[ordinal],
+                signature.parameters.carriages[ordinal]);
+        }
+        ordinal = ordinal + 1;
+    }
+    return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
+        true, true, "ready", -1, "", "");
+}
 func DirectMirScalarProgramCallableRouteEnvelopeSupported(
     ref signature: DirectMirRoutineSignatureFact,
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
 ) -> Bool {
-    if !DirectMirRoutineSignatureFactReady(signature) ||
-        signature.param_count < 1 ||
-        !DirectMirScalarProgramCallableReturnTypeSupportedWithNominal(
-            signature.return_type, nominal) {
-        return false;
-    }
-    let ordinal: Int = 0;
-    while ordinal < signature.param_count {
-        if !DirectMirScalarProgramCallableParameterSupportedWithNominal(
-                signature, ordinal, nominal) { return false; }
-        ordinal = ordinal + 1;
-    }
-    return true;
+    let logical_record: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFactCanonicalEmpty();
+    let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact =
+        DirectMirScalarProgramPayloadFreeEnumFactCanonicalEmpty();
+    let assessment: DirectMirScalarProgramCallableRouteEnvelopeAssessment =
+        DirectMirScalarProgramCallableRouteEnvelopeAssess(
+            signature, nominal, logical_record, payload_free_enum);
+    return DirectMirScalarProgramCallableRouteEnvelopeAssessmentReady(
+            assessment) && assessment.supported;
 }

@@ -1,0 +1,119 @@
+// Declaration-keyed logical-record value-result with collection fields.
+struct ValidationSession {
+    let keys: Array<String>;
+    let ids: Array<Int>;
+    let layouts: Array<String>;
+}
+
+struct IntentCompensationProbe {
+    let transition_ids: Array<Int>;
+    let expression_syntax_ids: Array<Int>;
+    let instruction_block_ids: Array<Int>;
+    let instruction_ids: Array<Int>;
+    let graph_root_ids: Array<Int>;
+    let graph_digests: Array<Int>;
+    let call_target_names: Array<String>;
+    let call_target_syntax_ids: Array<Int>;
+}
+
+struct ExpressionGraphProbe {
+    let rows: Array<Int>;
+}
+
+struct ExpressionSurfaceProbe {
+    let expression_graph: ExpressionGraphProbe;
+}
+
+struct AnalysisProbe {
+    let expression_surfaces: ExpressionSurfaceProbe;
+}
+
+func SessionReady(session: ValidationSession) -> Bool {
+    return ArrayLength(session.keys) == 1 &&
+        ArrayLength(session.ids) == 1 &&
+        ArrayLength(session.layouts) == 1;
+}
+
+func RememberSession(
+    inout session: ValidationSession,
+    key: String, id: Int, layout: String
+) -> Bool {
+    if id < 0 {
+        return false;
+    }
+    let keys: Array<String> = [];
+    let ids: Array<Int> = [];
+    let layouts: Array<String> = [];
+    ArrayPush(keys, key);
+    ArrayPush(ids, id);
+    ArrayPush(layouts, layout);
+    session.keys = keys;
+    session = ValidationSession(keys, ids, layouts);
+    session.keys = keys;
+    session.ids = ids;
+    session.layouts = layouts;
+    let local_session: ValidationSession =
+        ValidationSession(keys, ids, layouts);
+    local_session.keys = keys;
+    let scalar: Int = id;
+    scalar = scalar + 1;
+    return scalar == id + 1 &&
+        SessionReady(session) && SessionReady(local_session);
+}
+
+func CaptureCompensations(
+    json: String, array_start: Int, array_end: Int,
+    owner_transition_id: Int, inout rows: IntentCompensationProbe
+) -> Int {
+    return owner_transition_id;
+}
+
+func ReplaceNestedGraph(inout analysis: AnalysisProbe, seed: Int) -> Int {
+    let root_id: Int = seed;
+    let rows: Array<Int> = [root_id];
+    let graph: ExpressionGraphProbe = ExpressionGraphProbe(rows);
+    analysis.expression_surfaces.expression_graph = graph;
+    return seed;
+}
+
+func IntentStepLines(
+    ref routines: ValidationSession, row: Int, typed: Bool,
+    ref plan: ValidationSession, syntax_id: Int, topology: Array<Int>,
+    ref carriers: ValidationSession, ref bindings: ValidationSession,
+    names: Array<String>, ref phase: ValidationSession,
+    inout order: IntentCompensationProbe
+) -> String {
+    order.transition_ids = topology;
+    if !typed || row + syntax_id < 0 || !SessionReady(routines) ||
+        !SessionReady(plan) || !SessionReady(carriers) ||
+        !SessionReady(bindings) || !SessionReady(phase) { return "invalid"; }
+    return names[0];
+}
+
+func Main() -> Void {
+    let keys: Array<String> = [];
+    let ids: Array<Int> = [];
+    let layouts: Array<String> = [];
+    let session: ValidationSession = ValidationSession(keys, ids, layouts);
+    let remembered: Bool = RememberSession(
+        session, "Array<Int>", 7, "layout");
+    if remembered && SessionReady(session) {
+        Log("record-copyout-ready");
+    } else {
+        Log("record-copyout-failed");
+    }
+    let topology: Array<Int> = [1]; let names: Array<String> = [];
+    ArrayPush(names, Concat("", "intent-step-ready"));
+    let order: IntentCompensationProbe = IntentCompensationProbe(
+        ids, ids, ids, ids, ids, ids, names, ids);
+    Log(IntentStepLines(session, 1, true, session, 2, topology, session,
+        session, names, session, order));
+    Log(ArrayLength(order.transition_ids));
+    let old_rows: Array<Int> = [];
+    let old_graph: ExpressionGraphProbe = ExpressionGraphProbe(old_rows);
+    let surfaces: ExpressionSurfaceProbe = ExpressionSurfaceProbe(old_graph);
+    let analysis: AnalysisProbe = AnalysisProbe(surfaces);
+    Log(ToString(ReplaceNestedGraph(analysis, 7)));
+    Log(ToString(ArrayLength(
+        analysis.expression_surfaces.expression_graph.rows)));
+}

@@ -1,7 +1,6 @@
 // C composition of responsibility-specific generated runtime bodies.
 
 import "direct_mir_scalar_program_c_string_window_materialization_owner.pgy";
-import "direct_mir_scalar_program_c_string_collection_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_case_math_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_string_scalar_materialization_owner.pgy";
 
@@ -13,8 +12,6 @@ func DirectMirScalarProgramCAdditionalMaterialization(
         plan.program.runtime_abi);
     output = Concat(output, DirectMirScalarProgramCStringScalarMaterialization(
         plan.program.runtime_abi));
-    output = Concat(output,
-        DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime));
     return Concat(output,
         DirectMirScalarProgramCCaseMathMaterialization(plan, runtime));
 }

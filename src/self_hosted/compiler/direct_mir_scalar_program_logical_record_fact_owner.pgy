@@ -1,0 +1,599 @@
+// Callable-return logical records carried by declaration identity.
+//
+// The declaration index owns record and field identity. This inventory keeps
+// distinct declaration rows distinct even when their ordered field types are
+// equal. No row carries a physical ABI layout.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_instruction_abi_absence_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir_lower/machine_layer_fact_owner.pgy";
+import "../mir_lower/abi_layout_fact_owner.pgy";
+import "../semantic/array_type_shape_owner.pgy";
+import "../semantic/wrapper_type_owner.pgy";
+
+struct DirectMirScalarProgramLogicalRecordFact {
+    let valid: Bool;
+    let digest: Int;
+    let present: Bool;
+    let declaration_rows: Array<Int>;
+    let names: Array<String>;
+    let source_syntax_ids: Array<Int>;
+    let field_starts: Array<Int>;
+    let field_counts: Array<Int>;
+    let field_names: Array<String>;
+    let field_types: Array<String>;
+    let field_source_syntax_ids: Array<Int>;
+    let physical_abi_absent: Bool;
+}
+
+func DirectMirScalarProgramLogicalRecordFactInvalid(
+) -> DirectMirScalarProgramLogicalRecordFact {
+    let ints: Array<Int> = [];
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    return DirectMirScalarProgramLogicalRecordFact(
+        false, 0, false, ints, names, ints, ints, ints,
+        names, types, ints, false);
+}
+
+func DirectMirScalarProgramLogicalRecordFactDigest(
+    ref fact: DirectMirScalarProgramLogicalRecordFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        263L, ArrayLength(fact.declaration_rows));
+    hash = DirectMirScalarCfgHashInts(hash, fact.declaration_rows);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.names);
+    hash = DirectMirScalarCfgHashInts(hash, fact.source_syntax_ids);
+    hash = DirectMirScalarCfgHashInts(hash, fact.field_starts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.field_counts);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.field_names);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.field_types);
+    hash = DirectMirScalarCfgHashInts(hash, fact.field_source_syntax_ids);
+    if fact.present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    if fact.physical_abi_absent { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramLogicalRecordFactCanonicalEmpty(
+) -> DirectMirScalarProgramLogicalRecordFact {
+    let ints: Array<Int> = [];
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let source: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFact(
+            true, 0, false, ints, names, ints, ints, ints,
+            names, types, ints, true);
+    return DirectMirScalarProgramLogicalRecordFact(
+        true, DirectMirScalarProgramLogicalRecordFactDigest(source),
+        false, ints, names, ints, ints, ints, names, types, ints, true);
+}
+
+func DirectMirScalarProgramLogicalRecordScalarFieldTypeReady(
+    type_name: String
+) -> Bool {
+    return type_name == CompilerAbiLayoutBoolTypeName() ||
+        type_name == CompilerAbiLayoutIntTypeName() ||
+        type_name == CompilerAbiLayoutStringTypeName();
+}
+
+func DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(
+    type_name: String
+) -> Bool {
+    return DirectMirScalarProgramLogicalRecordScalarFieldTypeReady(type_name) ||
+        type_name == CompilerAbiLayoutArrayIntTypeName() ||
+        type_name == CompilerAbiLayoutArrayBoolTypeName() ||
+        type_name == CompilerAbiLayoutArrayStringTypeName();
+}
+
+func DirectMirScalarProgramLogicalRecordCandidateReady(
+    ref fact: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || !fact.present ||
+        !fact.physical_abi_absent ||
+        fact.digest != DirectMirScalarProgramLogicalRecordFactDigest(fact) ||
+        ArrayLength(fact.declaration_rows) != 1 ||
+        ArrayLength(fact.names) != 1 ||
+        ArrayLength(fact.source_syntax_ids) != 1 ||
+        ArrayLength(fact.field_starts) != 1 ||
+        ArrayLength(fact.field_counts) != 1 ||
+        fact.declaration_rows[0] < 0 || fact.names[0] == "" ||
+        fact.source_syntax_ids[0] <= 0 || fact.field_starts[0] != 0 ||
+        fact.field_counts[0] <= 0 || fact.field_counts[0] !=
+            ArrayLength(fact.field_names) || fact.field_counts[0] !=
+            ArrayLength(fact.field_types) || fact.field_counts[0] !=
+            ArrayLength(fact.field_source_syntax_ids) {
+        return false;
+    }
+    let field: Int = 0;
+    while field < fact.field_counts[0] {
+        if fact.field_names[field] == "" || fact.field_types[field] == "" ||
+            fact.field_source_syntax_ids[field] <= 0 ||
+            fact.field_source_syntax_ids[field] == fact.source_syntax_ids[0] {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < field {
+            if fact.field_names[prior] == fact.field_names[field] ||
+                fact.field_source_syntax_ids[prior] ==
+                    fact.field_source_syntax_ids[field] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        field = field + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramLogicalRecordFactReady(
+    ref fact: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    let count: Int = ArrayLength(fact.declaration_rows);
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramLogicalRecordFactDigest(fact) ||
+        !fact.physical_abi_absent || fact.present != (count > 0) ||
+        count != ArrayLength(fact.names) ||
+        count != ArrayLength(fact.source_syntax_ids) ||
+        count != ArrayLength(fact.field_starts) ||
+        count != ArrayLength(fact.field_counts) {
+        return false;
+    }
+    let expected_field: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        if fact.declaration_rows[row] < 0 || fact.names[row] == "" ||
+            fact.source_syntax_ids[row] <= 0 ||
+            fact.field_starts[row] != expected_field ||
+            fact.field_counts[row] <= 0 ||
+            expected_field + fact.field_counts[row] >
+                ArrayLength(fact.field_names) {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.declaration_rows[prior] == fact.declaration_rows[row] ||
+                fact.names[prior] == fact.names[row] ||
+                fact.source_syntax_ids[prior] == fact.source_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        let field: Int = expected_field;
+        while field < expected_field + fact.field_counts[row] {
+            if fact.field_names[field] == "" ||
+                fact.field_types[field] == "" ||
+                fact.field_source_syntax_ids[field] <= 0 ||
+                fact.field_source_syntax_ids[field] ==
+                    fact.source_syntax_ids[row] {
+                return false;
+            }
+            if !DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(
+                    fact.field_types[field]) {
+                let dependency: Int = 0;
+                let dependency_found: Bool = false;
+                while dependency < row {
+                    if fact.names[dependency] == fact.field_types[field] {
+                        dependency_found = true;
+                    }
+                    dependency = dependency + 1;
+                }
+                if !dependency_found { return false; }
+            }
+            let field_prior: Int = expected_field;
+            while field_prior < field {
+                if fact.field_names[field_prior] == fact.field_names[field] ||
+                    fact.field_source_syntax_ids[field_prior] ==
+                        fact.field_source_syntax_ids[field] {
+                    return false;
+                }
+                field_prior = field_prior + 1;
+            }
+            field = field + 1;
+        }
+        expected_field = expected_field + fact.field_counts[row];
+        row = row + 1;
+    }
+    return expected_field == ArrayLength(fact.field_names) &&
+        expected_field == ArrayLength(fact.field_types) &&
+        expected_field == ArrayLength(fact.field_source_syntax_ids);
+}
+
+func DirectMirScalarProgramLogicalRecordCandidateAt(
+    json: String, ref declarations: MirProgramDeclarationIndex,
+    declaration_row: Int
+) -> DirectMirScalarProgramLogicalRecordFact {
+    let invalid: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFactInvalid();
+    if !declarations.valid || declaration_row < 0 || declaration_row >=
+            MirProgramDeclarationIndexCount(declarations) ||
+        declarations.kinds[declaration_row] != "struct" ||
+        declarations.nominal_kinds[declaration_row] != "struct" {
+        return invalid;
+    }
+    let start: Int = declarations.starts[declaration_row];
+    let end: Int = declarations.ends[declaration_row];
+    let declaration_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, start, end);
+    let keys: Array<String> = [
+        "kind", "nominal_kind", "name", "source_syntax_id", "source_module_path", "fields",
+        "abi_layout_id", "abi_layout_required", "abi_layout"
+    ];
+    let starts: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
+    let ends: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
+    if !JsonObjectFactTableReady(declaration_table) ||
+        JsonObjectFactCount(declaration_table) != 9 ||
+        !MirAbiSelectedObjectBoundsWithin(json, start, end, keys, starts, ends) ||
+        !MirAbiAllBoundsPresent(starts, ends) {
+        return invalid;
+    }
+    let name: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[2], ends[2], false);
+    let syntax: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[3], ends[3]);
+    let source_path: Option<String> = MirAbiStringValueAtBounds(json, starts[4], ends[4], false);
+    let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[6], ends[6]);
+    if !IsSome(name) || !IsSome(syntax) || !IsSome(source_path) || !IsSome(abi_id) ||
+        UnwrapOption(name) != declarations.names[declaration_row] ||
+        UnwrapOption(source_path) != declarations.source_module_paths[declaration_row] ||
+        ToInt(UnwrapOption(syntax)) <= 0 || ToInt(UnwrapOption(abi_id)) != 0 ||
+        !SubEqualsWithLen(json, ends[7], starts[7], 5, "false") ||
+        !SubEqualsWithLen(json, ends[8], starts[8], 4, "null") {
+        return invalid;
+    }
+    if MirProgramDeclarationFieldIdentityDeclarationIndex(
+            declarations.field_identities, UnwrapOption(name)) !=
+            declaration_row {
+        return invalid;
+    }
+    let field_names: Array<String> = [];
+    let field_types: Array<String> = [];
+    let field_ids: Array<Int> = [];
+    let field: Int = 0;
+    while field < ArrayLength(declarations.field_identities.field_names) {
+        if declarations.field_identities.field_owner_indices[field] ==
+                declaration_row {
+            if declarations.field_identities.field_kinds[field] != "field" ||
+                !MirProgramDeclarationFieldIdentityPositiveDecimal(
+                    declarations.field_identities.field_source_syntax_ids[
+                        field]) {
+                return invalid;
+            }
+            ArrayPush(field_names,
+                declarations.field_identities.field_names[field]);
+            ArrayPush(field_types,
+                declarations.field_identities.field_type_names[field]);
+            ArrayPush(field_ids,
+                ToInt(declarations.field_identities.field_source_syntax_ids[
+                    field]));
+        }
+        field = field + 1;
+    }
+    let rows: Array<Int> = [declaration_row];
+    let names: Array<String> = [UnwrapOption(name)];
+    let syntax_ids: Array<Int> = [ToInt(UnwrapOption(syntax))];
+    let field_starts: Array<Int> = [0];
+    let field_counts: Array<Int> = [ArrayLength(field_names)];
+    let source: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFact(
+            true, 0, true, rows, names, syntax_ids, field_starts,
+            field_counts, field_names, field_types, field_ids, true);
+    let sealed: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFact(
+            true, DirectMirScalarProgramLogicalRecordFactDigest(source),
+            true, rows, names, syntax_ids, field_starts, field_counts,
+            field_names, field_types, field_ids, true);
+    if !DirectMirScalarProgramLogicalRecordCandidateReady(sealed) {
+        return invalid;
+    }
+    return sealed;
+}
+
+func DirectMirScalarProgramLogicalRecordAppendCandidate(
+    current: DirectMirScalarProgramLogicalRecordFact,
+    ref candidate: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramLogicalRecordFact {
+    if !DirectMirScalarProgramLogicalRecordFactReady(current) ||
+        !DirectMirScalarProgramLogicalRecordCandidateReady(candidate) {
+        return DirectMirScalarProgramLogicalRecordFactInvalid();
+    }
+    let rows: Array<Int> = current.declaration_rows;
+    let names: Array<String> = current.names;
+    let syntax_ids: Array<Int> = current.source_syntax_ids;
+    let field_starts: Array<Int> = current.field_starts;
+    let field_counts: Array<Int> = current.field_counts;
+    let field_names: Array<String> = current.field_names;
+    let field_types: Array<String> = current.field_types;
+    let field_ids: Array<Int> = current.field_source_syntax_ids;
+    ArrayPush(rows, candidate.declaration_rows[0]);
+    ArrayPush(names, candidate.names[0]);
+    ArrayPush(syntax_ids, candidate.source_syntax_ids[0]);
+    ArrayPush(field_starts, ArrayLength(field_names));
+    ArrayPush(field_counts, candidate.field_counts[0]);
+    let field: Int = 0;
+    while field < candidate.field_counts[0] {
+        ArrayPush(field_names, candidate.field_names[field]);
+        ArrayPush(field_types, candidate.field_types[field]);
+        ArrayPush(field_ids, candidate.field_source_syntax_ids[field]);
+        field = field + 1;
+    }
+    let source: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFact(
+            true, 0, true, rows, names, syntax_ids, field_starts,
+            field_counts, field_names, field_types, field_ids, true);
+    let sealed: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFact(
+        true, DirectMirScalarProgramLogicalRecordFactDigest(source),
+        true, rows, names, syntax_ids, field_starts, field_counts,
+        field_names, field_types, field_ids, true);
+    if !DirectMirScalarProgramLogicalRecordFactReady(sealed) {
+        return DirectMirScalarProgramLogicalRecordFactInvalid();
+    }
+    return sealed;
+}
+
+func DirectMirScalarProgramLogicalRecordCandidateDependenciesReady(
+    ref selected: DirectMirScalarProgramLogicalRecordFact,
+    ref candidate: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if !DirectMirScalarProgramLogicalRecordFactReady(selected) ||
+        !DirectMirScalarProgramLogicalRecordCandidateReady(candidate) {
+        return false;
+    }
+    let field: Int = 0;
+    while field < candidate.field_counts[0] {
+        let type_name: String = candidate.field_types[field];
+        if !DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(type_name) {
+            let found: Bool = false;
+            let row: Int = 0;
+            while row < ArrayLength(selected.names) {
+                if selected.names[row] == type_name { found = true; }
+                row = row + 1;
+            }
+            if !found { return false; }
+        }
+        field = field + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramLogicalRecordReferenceAdd(
+    ref declarations: MirProgramDeclarationIndex,
+    type_name: String, inout referenced_rows: Array<Int>
+) -> Bool {
+    let referenced_type: String = type_name;
+    let unwrapped: Bool = true;
+    while unwrapped {
+        unwrapped = false;
+        let array_element: Option<String> =
+            SemanticArrayElementType(referenced_type);
+        if IsSome(array_element) &&
+                UnwrapOption(array_element) != referenced_type {
+            referenced_type = UnwrapOption(array_element);
+            unwrapped = true;
+        } else {
+            let option_payload: Option<String> =
+                OptionPayloadTypeOpt(referenced_type);
+            if IsSome(option_payload) &&
+                    UnwrapOption(option_payload) != referenced_type {
+                referenced_type = UnwrapOption(option_payload);
+                unwrapped = true;
+            }
+        }
+    }
+    let declaration_row: Int =
+        MirProgramDeclarationFieldIdentityDeclarationIndex(
+            declarations.field_identities, referenced_type);
+    if declaration_row < 0 { return true; }
+    let prior: Int = 0;
+    while prior < ArrayLength(referenced_rows) {
+        if referenced_rows[prior] == declaration_row { return true; }
+        prior = prior + 1;
+    }
+    ArrayPush(referenced_rows, declaration_row);
+    return referenced_rows[ArrayLength(referenced_rows) - 1] ==
+        declaration_row;
+}
+
+func DirectMirScalarProgramLogicalRecordFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirScalarProgramLogicalRecordFact {
+    if !admitted.domain_runtime_admission.declarations.valid {
+        return DirectMirScalarProgramLogicalRecordFactInvalid();
+    }
+    let referenced_rows: Array<Int> = [];
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(admitted.routines) {
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineSignatureFactAt(
+                admitted.routines, row,
+                MirProgramRoutineIndexBlockInstructionCountAt(
+                    admitted.routines, row, 0));
+        if !DirectMirRoutineSignatureFactReady(signature) {
+            return DirectMirScalarProgramLogicalRecordFactInvalid();
+        }
+        if !DirectMirScalarProgramLogicalRecordReferenceAdd(
+                admitted.domain_runtime_admission.declarations,
+                signature.return_type, referenced_rows) {
+            return DirectMirScalarProgramLogicalRecordFactInvalid();
+        }
+        let parameter: Int = 0;
+        while parameter < signature.param_count {
+            if !DirectMirScalarProgramLogicalRecordReferenceAdd(
+                    admitted.domain_runtime_admission.declarations,
+                    signature.parameters.type_names[parameter],
+                    referenced_rows) {
+                return DirectMirScalarProgramLogicalRecordFactInvalid();
+            }
+            parameter = parameter + 1;
+        }
+        row = row + 1;
+    }
+    if ArrayLength(admitted.routines.instruction_abi_type_names) !=
+            ArrayLength(admitted.routines.instruction_starts) {
+        return DirectMirScalarProgramLogicalRecordFactInvalid();
+    }
+    let instruction: Int = 0;
+    while instruction <
+            ArrayLength(admitted.routines.instruction_abi_type_names) {
+        if !DirectMirScalarProgramLogicalRecordReferenceAdd(
+                admitted.domain_runtime_admission.declarations,
+                admitted.routines.instruction_abi_type_names[instruction],
+                referenced_rows) {
+            return DirectMirScalarProgramLogicalRecordFactInvalid();
+        }
+        instruction = instruction + 1;
+    }
+    let reference: Int = 0;
+    while reference < ArrayLength(referenced_rows) {
+        let candidate: DirectMirScalarProgramLogicalRecordFact =
+            DirectMirScalarProgramLogicalRecordCandidateAt(
+                admitted.document.root.json,
+                admitted.domain_runtime_admission.declarations,
+                referenced_rows[reference]);
+        if candidate.valid {
+            let field: Int = 0;
+            while field < candidate.field_counts[0] {
+                if !DirectMirScalarProgramLogicalRecordReferenceAdd(
+                        admitted.domain_runtime_admission.declarations,
+                        candidate.field_types[field],
+                        referenced_rows) {
+                    return DirectMirScalarProgramLogicalRecordFactInvalid();
+                }
+                field = field + 1;
+            }
+        }
+        reference = reference + 1;
+    }
+    let selected: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFactCanonicalEmpty();
+    let progress: Bool = true;
+    while progress {
+        progress = false;
+        reference = 0;
+        while reference < ArrayLength(referenced_rows) {
+            let candidate: DirectMirScalarProgramLogicalRecordFact =
+                DirectMirScalarProgramLogicalRecordCandidateAt(
+                    admitted.document.root.json,
+                    admitted.domain_runtime_admission.declarations,
+                    referenced_rows[reference]);
+            let already_selected: Bool = false;
+            if candidate.valid {
+                let selected_row: Int = 0;
+                while selected_row < ArrayLength(selected.names) {
+                    if selected.names[selected_row] == candidate.names[0] {
+                        already_selected = true;
+                    }
+                    selected_row = selected_row + 1;
+                }
+            }
+            if candidate.valid && !already_selected &&
+                DirectMirScalarProgramLogicalRecordCandidateDependenciesReady(
+                    selected, candidate) {
+                selected = DirectMirScalarProgramLogicalRecordAppendCandidate(
+                    selected, candidate);
+                if !DirectMirScalarProgramLogicalRecordFactReady(selected) {
+                    return DirectMirScalarProgramLogicalRecordFactInvalid();
+                }
+                progress = true;
+            }
+            reference = reference + 1;
+        }
+    }
+    return selected;
+}
+
+func DirectMirScalarProgramLogicalRecordRow(
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> Int {
+    if !DirectMirScalarProgramLogicalRecordFactReady(fact) ||
+        type_name == "" { return -1; }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        if fact.names[row] == type_name {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramLogicalRecordTypeReady(
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> Bool {
+    return DirectMirScalarProgramLogicalRecordRow(fact, type_name) >= 0;
+}
+
+func DirectMirScalarProgramLogicalRecordOptionPayloadType(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    option_type: String
+) -> String {
+    let payload: Option<String> = OptionPayloadTypeOpt(option_type);
+    if !IsSome(payload) || !DirectMirScalarProgramLogicalRecordTypeReady(
+            fact, UnwrapOption(payload)) {
+        return "";
+    }
+    return UnwrapOption(payload);
+}
+
+func DirectMirScalarProgramLogicalRecordOptionTypeReady(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    option_type: String
+) -> Bool {
+    return DirectMirScalarProgramLogicalRecordOptionPayloadType(
+        fact, option_type) != "";
+}
+
+func DirectMirScalarProgramLogicalRecordFieldTypeReady(
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> Bool {
+    return DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(type_name) ||
+        DirectMirScalarProgramLogicalRecordTypeReady(fact, type_name);
+}
+
+func DirectMirScalarProgramLogicalRecordFieldOrdinal(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    type_name: String, field_name: String
+) -> Int {
+    let record: Int = DirectMirScalarProgramLogicalRecordRow(fact, type_name);
+    if record < 0 || field_name == "" { return -1; }
+    let found: Int = -1;
+    let ordinal: Int = 0;
+    let start: Int = fact.field_starts[record];
+    while ordinal < fact.field_counts[record] {
+        if fact.field_names[start + ordinal] == field_name {
+            if found >= 0 { return -1; }
+            found = ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramLogicalRecordFieldType(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    type_name: String, ordinal: Int
+) -> String {
+    let record: Int = DirectMirScalarProgramLogicalRecordRow(fact, type_name);
+    if record < 0 || ordinal < 0 || ordinal >= fact.field_counts[record] {
+        return "";
+    }
+    return fact.field_types[fact.field_starts[record] + ordinal];
+}
+
+func DirectMirScalarProgramLogicalRecordInstructionReady(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    json: String, ref capture: MirRoutineInstructionScalarCapture
+) -> Bool {
+    if !DirectMirScalarProgramLogicalRecordFactReady(fact) { return false; }
+    if DirectMirScalarProgramLogicalRecordRow(
+            fact, capture.abi_type_name) < 0 { return true; }
+    return DirectMirInstructionHasNoPhysicalAbi(
+        json, capture, capture.abi_type_name);
+}

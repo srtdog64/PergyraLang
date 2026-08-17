@@ -1,0 +1,30 @@
+// Void scalar callable and ordered Log/Exit process effect.
+
+func ProbeReady() -> Bool {
+    return true;
+}
+
+func RequireProbe() -> Void {
+    if !ProbeReady() {
+        Log("probe is not ready");
+        Exit(1);
+    }
+}
+
+func FailClosed(message: String) -> Void {
+    Log(Concat("fail-closed: ", message));
+    Exit(7);
+}
+
+func RequiredName(ready: Bool) -> String {
+    if !ready {
+        Log("name is not ready");
+        Exit(9);
+    }
+    return "ready";
+}
+
+func Main() -> Void {
+    FailClosed("probe");
+    Log("unreachable");
+}

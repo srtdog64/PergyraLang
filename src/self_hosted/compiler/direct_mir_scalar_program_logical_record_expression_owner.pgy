@@ -1,0 +1,141 @@
+// Constructor and member identity for admitted logical records.
+
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
+
+struct DirectMirScalarProgramLogicalRecordExpressionFact {
+    let recognized: Bool;
+    let valid: Bool;
+    let complete: Bool;
+    let kind: Int;
+    let type_name: String;
+    let argument_rows: Array<Int>;
+    let call_node: Int;
+    let left_row: Int;
+    let member_ordinal: Int;
+}
+
+func DirectMirScalarProgramLogicalRecordExpressionMissing(
+) -> DirectMirScalarProgramLogicalRecordExpressionFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramLogicalRecordExpressionFact(
+        false, false, false, 0, "", rows, -1, -1, -1);
+}
+
+func DirectMirScalarProgramLogicalRecordConstructorFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    source_rows: Array<Int>, normalized_types: Array<String>,
+    ref record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramLogicalRecordExpressionFact {
+    let missing: DirectMirScalarProgramLogicalRecordExpressionFact =
+        DirectMirScalarProgramLogicalRecordExpressionMissing();
+    if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeCallArgument() {
+        return missing;
+    }
+    let chain: DirectMirScalarProgramBuiltinArgumentChain =
+        DirectMirScalarProgramBuiltinArgumentChainFromGraph(
+            sequence, node, source_rows, normalized_types);
+    if !chain.valid { return missing; }
+    let record_type: String =
+        sequence.arena.call_target_names[chain.call_node];
+    let record_row: Int = DirectMirScalarProgramLogicalRecordRow(
+        record, record_type);
+    if sequence.arena.identities.call_target_syntax_ids[chain.call_node] != 0 ||
+        sequence.arena.call_target_kinds[chain.call_node] !=
+            SemanticCallTargetDirect() ||
+        record_row < 0 ||
+        record_type != record.names[record_row] {
+        return missing;
+    }
+    let count: Int = ArrayLength(chain.argument_rows);
+    if count > record.field_counts[record_row] {
+        return DirectMirScalarProgramLogicalRecordExpressionFact(
+            true, false, false, 0, "", chain.argument_rows,
+            chain.call_node, -1, -1);
+    }
+    let ordinal: Int = 0;
+    while ordinal < count {
+        if normalized_types[chain.argument_rows[ordinal]] !=
+                DirectMirScalarProgramLogicalRecordFieldType(
+                    record, record_type, ordinal) {
+            return DirectMirScalarProgramLogicalRecordExpressionFact(
+                true, false, false, 0, "", chain.argument_rows,
+                chain.call_node, -1, -1);
+        }
+        ordinal = ordinal + 1;
+    }
+    return DirectMirScalarProgramLogicalRecordExpressionFact(
+        true, true, count == record.field_counts[record_row],
+        DirectMirScalarProgramExprLogicalRecordConstructor(), record_type,
+        chain.argument_rows, chain.call_node, -1, -1);
+}
+
+func DirectMirScalarProgramLogicalRecordMemberMarkerReady(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    record_type: String,
+    ref record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        !record.present || node < 0 ||
+        node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeLeaf() {
+        return false;
+    }
+    let field_ready: Bool = record_type == "";
+    if record_type != "" {
+        field_ready = DirectMirScalarProgramLogicalRecordFieldOrdinal(
+            record, record_type, sequence.arena.node_texts[node]) >= 0;
+    }
+    if !field_ready { return false; }
+    let parent: Int = node + 1;
+    return parent < ArrayLength(sequence.arena.topology.node_kinds) &&
+        sequence.arena.topology.node_kinds[parent] ==
+            AstExpressionNodeMemberAccess() &&
+        sequence.arena.topology.right_children[parent] == node;
+}
+
+func DirectMirScalarProgramLogicalRecordMemberFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    source_rows: Array<Int>, normalized_types: Array<String>,
+    ref record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramLogicalRecordExpressionFact {
+    let missing: DirectMirScalarProgramLogicalRecordExpressionFact =
+        DirectMirScalarProgramLogicalRecordExpressionMissing();
+    if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        !record.present || node < 0 ||
+        node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeMemberAccess() {
+        return missing;
+    }
+    let source_left: Int = sequence.arena.topology.left_children[node];
+    let source_right: Int = sequence.arena.topology.right_children[node];
+    let record_type: String = "";
+    if source_left >= 0 && source_left < node && source_rows[source_left] >= 0 {
+        record_type = normalized_types[source_rows[source_left]];
+    }
+    if source_left < 0 || source_left >= node || source_right < 0 ||
+        source_right >= node || source_rows[source_left] < 0 ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(record, record_type) ||
+        !DirectMirScalarProgramLogicalRecordMemberMarkerReady(
+            sequence, source_right, record_type, record) {
+        return DirectMirScalarProgramLogicalRecordExpressionFact(
+            true, false, false, 0, "", missing.argument_rows,
+            -1, -1, -1);
+    }
+    let ordinal: Int = DirectMirScalarProgramLogicalRecordFieldOrdinal(
+        record, record_type, sequence.arena.node_texts[source_right]);
+    let field_type: String = DirectMirScalarProgramLogicalRecordFieldType(
+        record, record_type, ordinal);
+    if ordinal < 0 || field_type == "" {
+        return DirectMirScalarProgramLogicalRecordExpressionFact(
+            true, false, false, 0, "", missing.argument_rows,
+            -1, -1, -1);
+    }
+    return DirectMirScalarProgramLogicalRecordExpressionFact(
+        true, true, true, DirectMirScalarProgramExprLogicalRecordMember(),
+        field_type, missing.argument_rows, -1,
+        source_rows[source_left], ordinal);
+}

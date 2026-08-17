@@ -1,0 +1,21 @@
+struct ProbeFact {
+    let text: String;
+    let label: String;
+}
+
+func WrapProbe(text: String) -> Option<ProbeFact> {
+    if text == "" { return None; }
+    let fact: ProbeFact = ProbeFact(text, "wrapped");
+    let wrapped: Option<ProbeFact> = Some(fact);
+    if IsSome(wrapped) { return Some(UnwrapOption(wrapped)); }
+    return None;
+}
+
+func Main() -> Void {
+    let wrapped: Option<ProbeFact> = WrapProbe("record-option");
+    if IsSome(wrapped) {
+        let fact: ProbeFact = UnwrapOption(wrapped);
+        Log(fact.text);
+        Log(fact.label);
+    }
+}

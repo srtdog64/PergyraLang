@@ -1,0 +1,15 @@
+func Maybe(value: Bool, take: Bool) -> Option<Bool> {
+    if take { return Some(value); }
+    return None;
+}
+
+func Matches(value: Bool, take: Bool, expected: Bool) -> Bool {
+    let wrapped: Option<Bool> = Maybe(value, take);
+    return IsSome(wrapped) && UnwrapOption(wrapped) == expected;
+}
+
+func Main() -> Void {
+    if Matches(true, true, true) { Log("1"); } else { Log("0"); }
+    if Matches(false, true, true) { Log("1"); } else { Log("0"); }
+    if Matches(true, false, true) { Log("1"); } else { Log("0"); }
+}

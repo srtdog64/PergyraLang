@@ -1,0 +1,38 @@
+// Appends one canonical Int literal row to the normalized expression arena.
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+
+func DirectMirScalarCfgProgramAppendIntLiteralExpression(
+    inout expressions: DirectMirScalarProgramExpressionSet,
+    global_row: Int, literal: String
+) -> Option<Int> {
+    if !expressions.valid ||
+        !DirectMirScalarCfgCanonicalInt(literal) { return None; }
+    let graph_rows: Array<Int> = expressions.graph_global_rows;
+    let starts: Array<Int> = expressions.graph_starts;
+    let counts: Array<Int> = expressions.graph_counts;
+    let roots: Array<Int> = expressions.graph_roots;
+    let kinds: Array<Int> = expressions.node_kinds;
+    let types: Array<String> = expressions.node_types;
+    let lefts: Array<Int> = expressions.node_lefts;
+    let rights: Array<Int> = expressions.node_rights;
+    let locals: Array<Int> = expressions.node_local_rows;
+    let params: Array<Int> = expressions.node_parameter_ordinals;
+    let members: Array<Int> = expressions.node_member_ordinals;
+    let literals: Array<String> = expressions.node_literals;
+    let callables: Array<Int> = expressions.node_callable_rows;
+    let runtime_ids: Array<Int> = expressions.node_runtime_call_abi_ids;
+    let start: Int = ArrayLength(kinds);
+    DirectMirScalarProgramAppendExpressionNode(
+        kinds, types, lefts, rights, locals, params, members, literals,
+        callables, runtime_ids, DirectMirScalarProgramExprIntLiteral(),
+        CompilerAbiLayoutIntTypeName(), -1, -1, -1, -1, -1, literal, -1,
+        -1);
+    ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
+    ArrayPush(counts, 1); ArrayPush(roots, start);
+    expressions = DirectMirScalarProgramExpressionSet(
+        true, 0, graph_rows, starts, counts, roots, kinds, types, lefts,
+        rights, locals, params, members, literals, callables, runtime_ids,
+        expressions.nary_operands);
+    return Some(ArrayLength(graph_rows) - 1);
+}

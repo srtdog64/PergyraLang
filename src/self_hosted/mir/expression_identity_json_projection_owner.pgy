@@ -1,41 +1,44 @@
 // Persisted expression identity fields shared by String and file writers.
-
 import "../semantic/ast_expression_graph_fact_owner.pgy";
 import "../compiler/artifact_zone_owner.pgy";
 import "../lib/json_emit.pgy";
 import "../semantic/ast_expression_graph_node_view_owner.pgy";
-
 struct SelfMirJsonExpressionIdentityProjection {
     ready: Bool;
     call_target_syntax_id: Int;
+    runtime_call_abi_id: Int;
     binding_kind: String;
     binding_ordinal: Int;
 }
-
 func SelfMirJsonExpressionIdentityProjectionForNode(
     ref graph: SemanticExpressionGraphFacts, node: Int
 ) -> SelfMirJsonExpressionIdentityProjection {
     let target: Option<Int> =
         SemanticExpressionGraphCallTargetSyntaxId(graph, node);
+    let runtime_id: Option<Int> =
+        SemanticExpressionGraphRuntimeCallAbiId(graph, node);
     let kind: Option<Int> = SemanticExpressionGraphBindingKind(graph, node);
     let ordinal: Option<Int> =
         SemanticExpressionGraphBindingOrdinal(graph, node);
-    if !IsSome(target) || !IsSome(kind) || !IsSome(ordinal) {
-        return SelfMirJsonExpressionIdentityProjection(false, 0, "", -1);
+    if !IsSome(target) || !IsSome(runtime_id) || !IsSome(kind) ||
+        !IsSome(ordinal) {
+        return SelfMirJsonExpressionIdentityProjection(
+            false, 0, 0, "", -1);
     }
     let kind_name: String =
         SemanticExpressionBindingKindName(UnwrapOption(kind));
     if kind_name == "" {
-        return SelfMirJsonExpressionIdentityProjection(false, 0, "", -1);
+        return SelfMirJsonExpressionIdentityProjection(
+            false, 0, 0, "", -1);
     }
     return SelfMirJsonExpressionIdentityProjection(
         true,
         UnwrapOption(target),
+        UnwrapOption(runtime_id),
         kind_name,
         UnwrapOption(ordinal)
     );
 }
-
 func SelfMirJsonExpressionIdentityFields(
     ref graph: SemanticExpressionGraphFacts, node: Int
 ) -> Array<String> {
@@ -48,6 +51,10 @@ func SelfMirJsonExpressionIdentityFields(
         JsonEmitFieldNumber(
             "call_target_syntax_id",
             ToString(projection.call_target_syntax_id)
+        ),
+        JsonEmitFieldNumber(
+            "runtime_call_abi_id",
+            ToString(projection.runtime_call_abi_id)
         ),
         JsonEmitFieldString(
             "binding_kind",
@@ -63,7 +70,6 @@ func SelfMirJsonExpressionIdentityFields(
     }
     return fields;
 }
-
 func SelfMirJsonExpressionIdentityWriteFile(
     ref graph: SemanticExpressionGraphFacts, node: Int, output: Int
 ) -> Bool {
@@ -73,6 +79,10 @@ func SelfMirJsonExpressionIdentityWriteFile(
     CompilerArtifactWrite(output, ",\"call_target_syntax_id\":");
     JsonOwnedFragmentWriteFile(
         output, ToString(projection.call_target_syntax_id)
+    );
+    CompilerArtifactWrite(output, ",\"runtime_call_abi_id\":");
+    JsonOwnedFragmentWriteFile(
+        output, ToString(projection.runtime_call_abi_id)
     );
     CompilerArtifactWrite(output, ",\"binding_kind\":");
     if !JsonStringLiteralWriteFile(output, projection.binding_kind) {

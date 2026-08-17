@@ -8,6 +8,7 @@ typedef struct {
     char *text;
     const char *call_target_kind;
     const char *call_target_name;
+    uint32_t runtime_call_abi_id;
     int left;
     int right;
 } MIRJsonExpressionGraphNode;

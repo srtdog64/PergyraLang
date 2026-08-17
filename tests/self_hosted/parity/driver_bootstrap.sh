@@ -2,9 +2,9 @@
 # Integrated parser/codegen driver fixed-point gate.
 #
 # The codegen bootstrap is the seed producer and must run first. This runner
-# consumes its Pergyra-built gen2 codegen and self-parser artifacts, builds the
-# shared driver pipeline, then proves the Pergyra producer matches the C oracle
-# and gen2/gen3 consume that one Pergyra-owned MIR fact.
+# consumes its Pergyra-built gen2 codegen through the typed source-artifact
+# path, builds the shared driver pipeline, then proves the Pergyra producer
+# matches the C oracle and gen2/gen3 consume that one Pergyra-owned MIR fact.
 
 set -euo pipefail
 
@@ -41,7 +41,8 @@ CODEGEN_BUILD="${PGY_SELFHOST_CODEGEN_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/code
 BUILD_DIR="${PGY_SELFHOST_DRIVER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/bootstrap}"
 PATHS_FILE="$BUILD_DIR/driver_bootstrap_paths.txt"
 CODEGEN_BIN="$CODEGEN_BUILD/gen2.exe"
-PARSER_BIN="$CODEGEN_BUILD/parser_ast_producer.exe"
+DRIVER_SEED_C="$BUILD_DIR/driver_seed.c"
+DRIVER_SEED_C_RAW="$BUILD_DIR/driver_seed.c.raw"
 mkdir -p "$BUILD_DIR"
 
 pgy_selfhost_read_test_harness_manifest \
@@ -62,7 +63,7 @@ fi
 
 DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"
 SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"
-for path in "$DRIVER_SOURCE" "$SAMPLE_SOURCE" "$CODEGEN_BIN" "$PARSER_BIN"; do
+for path in "$DRIVER_SOURCE" "$SAMPLE_SOURCE" "$CODEGEN_BIN"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-driver-bootstrap] missing bootstrap input: $path" >&2
         exit 1
@@ -73,7 +74,7 @@ done
 # behind, and a later Windows run then dies mid-gate with "Exec format error"
 # -- or worse, the mismatch is read as compiler drift. Existence is not
 # enough; the seed must be runnable on THIS host, else the fix is a reseed.
-for seed_bin in "$CODEGEN_BIN" "$PARSER_BIN"; do
+for seed_bin in "$CODEGEN_BIN"; do
     if ! pgy_binary_is_runnable_here "$seed_bin"; then
         echo "[self-host-driver-bootstrap] seed binary is not runnable on this host: $seed_bin" >&2
         echo "[self-host-driver-bootstrap] it was likely produced on another platform (WSL<->Windows .tmp reuse)" >&2
@@ -170,31 +171,25 @@ run_driver_mode_to_file() {
 }
 
 driver_rel="$(pgy_selfhost_path_relative_to_root "$DRIVER_SOURCE")"
-# Derived from BUILD_DIR, not spelled out: with the isolation override active a
-# hardcoded path here would silently write into the shared cache anyway.
-ast_rel="$(pgy_selfhost_path_relative_to_root "$BUILD_DIR")/driver_bootstrap.ast.txt"
-ast_abs="$ROOT_DIR/$ast_rel"
-echo "[self-host-driver-bootstrap] parsing integrated driver"
-if ! (cd "$ROOT_DIR" && "$PARSER_BIN" "$driver_rel" 2>"$BUILD_DIR/parser.err" | tr -d '\r' >"$ast_abs"); then
-    echo "[self-host-driver-bootstrap] self-parser failed for $driver_rel" >&2
-    cat "$BUILD_DIR/parser.err" >&2 || true
-    exit 1
-fi
-
-! grep -Eq '^[[:space:]]*IntentBinding:' "$ast_abs" || { echo "[self-host-driver-bootstrap] unresolved intent parameter role" >&2; exit 1; }
-
 echo "[self-host-driver-bootstrap] emitting integrated driver seed"
-if ! (cd "$ROOT_DIR" && "$CODEGEN_BIN" "$ast_rel" 2>"$BUILD_DIR/seed_emit.err" | tr -d '\r' >"$BUILD_DIR/driver_seed.c"); then
+rm -f "$DRIVER_SEED_C_RAW" "$DRIVER_SEED_C"
+if ! (cd "$ROOT_DIR" && "$CODEGEN_BIN" --source "$driver_rel" \
+    >"$DRIVER_SEED_C_RAW" 2>"$BUILD_DIR/seed_emit.err"); then
     echo "[self-host-driver-bootstrap] Pergyra-built codegen failed to emit driver seed" >&2
     cat "$BUILD_DIR/seed_emit.err" >&2 || true
     exit 1
 fi
-if grep -q '^CODEGEN ERROR' "$BUILD_DIR/driver_seed.c"; then
-    echo "[self-host-driver-bootstrap] integrated driver is outside the codegen subset" >&2
-    grep '^CODEGEN ERROR' "$BUILD_DIR/driver_seed.c" | head -3 >&2
+if ! tr -d '\r' <"$DRIVER_SEED_C_RAW" >"$DRIVER_SEED_C"; then
+    echo "[self-host-driver-bootstrap] driver seed C normalization failed" >&2
     exit 1
 fi
-compile_c "driver_seed" "$BUILD_DIR/driver_seed.c" "$BUILD_DIR/driver_seed.exe"
+rm -f "$DRIVER_SEED_C_RAW"
+if grep -q '^CODEGEN ERROR' "$DRIVER_SEED_C"; then
+    echo "[self-host-driver-bootstrap] integrated driver is outside the codegen subset" >&2
+    grep '^CODEGEN ERROR' "$DRIVER_SEED_C" | head -3 >&2
+    exit 1
+fi
+compile_c "driver_seed" "$DRIVER_SEED_C" "$BUILD_DIR/driver_seed.exe"
 
 echo "[self-host-driver-bootstrap] emitting native oracle C"
 # Keep native compilation and host C compilation in separate lifetimes.

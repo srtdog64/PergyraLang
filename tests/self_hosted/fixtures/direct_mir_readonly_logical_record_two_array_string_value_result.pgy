@@ -1,0 +1,28 @@
+// Readonly logical record plus two Array<String> copyouts.
+
+struct NullableNameTable {
+    let valid: Bool;
+    let json: String;
+}
+
+func CaptureNullableNames(
+    ref table: NullableNameTable,
+    prefix: String, suffix: String,
+    inout names: Array<String>, inout ids: Array<String>
+) -> Bool {
+    if !table.valid { return false; }
+    return prefix != "" && suffix != "";
+}
+
+func Main() -> Void {
+    let table: NullableNameTable = NullableNameTable(true, "{}");
+    let names: Array<String> = [];
+    let ids: Array<String> = [];
+    if CaptureNullableNames(table, "name", "id", names, ids) {
+        Log("readonly-record-two-copyouts-ready");
+    } else {
+        Log("readonly-record-two-copyouts-failed");
+    }
+    Log(ArrayLength(names));
+    Log(ArrayLength(ids));
+}

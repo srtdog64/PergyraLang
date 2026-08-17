@@ -1,0 +1,120 @@
+// Local expression invariants for admitted logical record families.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_index_expression_owner.pgy";
+func DirectMirScalarProgramLogicalRecordArgumentRows(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Array<Int> {
+    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+        facts.nary_operands, node);
+    if ArrayLength(rows) != 0 { return rows; }
+    if facts.node_lefts[node] >= 0 { ArrayPush(rows, facts.node_lefts[node]); }
+    if facts.node_rights[node] >= 0 { ArrayPush(rows, facts.node_rights[node]); }
+    return rows;
+}
+func DirectMirScalarProgramLogicalRecordExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
+        return facts.node_types[node] != "" &&
+            facts.node_lefts[node] == -1 &&
+            facts.node_rights[node] == -1 &&
+            facts.node_local_rows[node] == -1 &&
+            facts.node_parameter_ordinals[node] == -1 &&
+            facts.node_member_ordinals[node] == -1 &&
+            facts.node_literals[node] == "" &&
+            facts.node_callable_rows[node] == -1;
+    }
+    if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
+        let arguments: Array<Int> =
+            DirectMirScalarProgramLogicalRecordArgumentRows(facts, node);
+        let nary: Bool = DirectMirScalarProgramNaryOperandEntry(facts.nary_operands, node) >= 0;
+        if ArrayLength(arguments) == 0 { return false; }
+        if facts.node_types[node] == "" ||
+            (nary && (facts.node_lefts[node] != -1 || facts.node_rights[node] != -1)) ||
+            facts.node_local_rows[node] != -1 ||
+            facts.node_parameter_ordinals[node] != -1 ||
+            facts.node_member_ordinals[node] != -1 ||
+            facts.node_literals[node] != "" ||
+            facts.node_callable_rows[node] != -1 {
+            return false;
+        }
+        let ordinal: Int = 0;
+        while ordinal < ArrayLength(arguments) {
+            if arguments[ordinal] < 0 || arguments[ordinal] >= node ||
+                facts.node_types[arguments[ordinal]] == "" { return false; }
+            ordinal = ordinal + 1;
+        }
+        return true;
+    }
+    if kind != DirectMirScalarProgramExprLogicalRecordMember() {
+        return false;
+    }
+    let left: Int = facts.node_lefts[node];
+    let ordinal: Int = facts.node_member_ordinals[node];
+    return left >= 0 && left < node && ordinal >= 0 &&
+        facts.node_types[left] != "" && facts.node_types[node] != "" &&
+        facts.node_rights[node] == -1 &&
+        facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        facts.node_callable_rows[node] == -1;
+}
+func DirectMirScalarProgramLogicalRecordReadyForExpressions(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    if !DirectMirScalarProgramLogicalRecordFactReady(fact) { return false; }
+    let node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        let kind: Int = expressions.node_kinds[node];
+        if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
+            let record_type: String = expressions.node_types[node];
+            let record: Int = DirectMirScalarProgramLogicalRecordRow(
+                fact, record_type);
+            let arguments: Array<Int> =
+                DirectMirScalarProgramLogicalRecordArgumentRows(
+                    expressions, node);
+            if record < 0 || ArrayLength(arguments) !=
+                    fact.field_counts[record] {
+                return false;
+            }
+            let ordinal: Int = 0;
+            while ordinal < ArrayLength(arguments) {
+                if expressions.node_types[arguments[ordinal]] !=
+                        DirectMirScalarProgramLogicalRecordFieldType(
+                            fact, record_type, ordinal) {
+                    return false;
+                }
+                ordinal = ordinal + 1;
+            }
+        } else if kind == DirectMirScalarProgramExprLogicalRecordMember() {
+            let left: Int = expressions.node_lefts[node];
+            let ordinal: Int = expressions.node_member_ordinals[node];
+            if !fact.present || left < 0 ||
+                !DirectMirScalarProgramLogicalRecordTypeReady(
+                    fact, expressions.node_types[left]) ||
+                expressions.node_types[node] !=
+                    DirectMirScalarProgramLogicalRecordFieldType(
+                        fact, expressions.node_types[left], ordinal) {
+                return false;
+            }
+        } else if kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() &&
+                !DirectMirScalarProgramLogicalRecordArrayTypeReady(
+                    fact, expressions.node_types[node]) { return false;
+        } else if kind == DirectMirScalarProgramExprLogicalRecordArrayIndex() && !DirectMirScalarProgramLogicalRecordArrayIndexIdentityReady(fact, expressions, node) {
+            return false;
+        } else if kind == DirectMirScalarProgramExprArrayStringLength() {
+            let left: Int = expressions.node_lefts[node];
+            if left < 0 || left >= node { return false; }
+            let left_type: String = expressions.node_types[left];
+            let builtin_array: Bool = left_type == CompilerAbiLayoutArrayStringTypeName() ||
+                left_type == CompilerAbiLayoutArrayIntTypeName() || left_type == CompilerAbiLayoutArrayBoolTypeName();
+            if !builtin_array && !DirectMirScalarProgramLogicalRecordArrayTypeReady(
+                    fact, left_type) { return false; }
+        }
+        node = node + 1;
+    }
+    return true;
+}

@@ -143,6 +143,9 @@ llvm_emit_typed_intent_execution(ASTNode *node,
     LLVMFuncEntry *entry;
     LLVMFuncEntry *enter_fn;
     LLVMFuncEntry *exit_fn;
+    LLVMFuncEntry *trace_step_fn;
+    LLVMFuncEntry *trace_step_ok_fn;
+    LLVMFuncEntry *trace_fail_fn;
     LLVMFuncEntry *panic_fn;
     LLVMValueRef fn;
     LLVMValueRef saved_fn;
@@ -241,10 +244,18 @@ llvm_emit_typed_intent_execution(ASTNode *node,
     entry = llvm_lookup_function(ctx, mir_routine_name(routine));
     enter_fn = llvm_lookup_function(ctx, "pgy_intent_enter_export");
     exit_fn = llvm_lookup_function(ctx, "pgy_intent_exit_export");
+    trace_step_fn = ctx->uses_intent_observability
+        ? llvm_lookup_function(ctx, "pgy_intent_trace_step_export") : NULL;
+    trace_step_ok_fn = ctx->uses_intent_observability
+        ? llvm_lookup_function(ctx, "pgy_intent_trace_step_ok_export") : NULL;
+    trace_fail_fn = ctx->uses_intent_observability
+        ? llvm_lookup_function(ctx, "pgy_intent_trace_fail_export") : NULL;
     panic_fn = llvm_lookup_function(
         ctx, "pgy_runtime_panic_internal_invariant_export");
     if (entry == NULL || enter_fn == NULL || exit_fn == NULL
-        || panic_fn == NULL) {
+        || panic_fn == NULL || (ctx->uses_intent_observability
+            && (trace_step_fn == NULL || trace_step_ok_fn == NULL
+                || trace_fail_fn == NULL))) {
         llvm_set_mir_inventory_missing(ctx,
             "typed intent runtime function inventory is incomplete");
         return false;
@@ -458,6 +469,10 @@ llvm_emit_typed_intent_execution(ASTNode *node,
         }
 
         LLVMPositionBuilderAtEnd(ctx->builder, transition_bbs[i]);
+        if (ctx->uses_intent_observability) {
+            llvm_emit_intent_trace_step(ctx, trace_step_fn, handle_alloca,
+                row->step_name, row->where_zone_name);
+        }
         {
             const char *saved_expected = ctx->expected_type_name;
             ctx->expected_type_name = row->outcome_type_name;
@@ -501,6 +516,10 @@ llvm_emit_typed_intent_execution(ASTNode *node,
                 success_payload_allocas[i]);
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(ctx->type_i1, 1, 0), completed_allocas[i]);
+            if (ctx->uses_intent_observability) {
+                llvm_emit_intent_trace_step_ok(ctx, trace_step_ok_fn,
+                    handle_alloca, row->step_name);
+            }
             LLVMBuildBr(ctx->builder,
                 child != NULL
                     ? transition_bbs[child_index]
@@ -517,6 +536,19 @@ llvm_emit_typed_intent_execution(ASTNode *node,
                 variant_payload, 0, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, payload,
                 failure_payload_allocas[i]);
+            if (ctx->uses_intent_observability) {
+                const char *reason = pgy_arena_fmt(&ctx->scratch,
+                    "outcome:%s", row->step_name);
+                LLVMValueRef handle = LLVMBuildLoad2(ctx->builder,
+                    ctx->type_i32, handle_alloca, llvm_tmp_name(ctx));
+                LLVMValueRef args[] = {
+                    handle,
+                    LLVMBuildGlobalStringPtr(ctx->builder, reason,
+                        llvm_tmp_name(ctx))
+                };
+                LLVMBuildCall2(ctx->builder, trace_fail_fn->fn_type,
+                    trace_fail_fn->fn, args, 2, "");
+            }
             LLVMBuildBr(ctx->builder,
                 terminal_bbs[failure_terminal_index]);
         }

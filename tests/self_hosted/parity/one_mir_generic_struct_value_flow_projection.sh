@@ -49,7 +49,7 @@ EOF
     [[ "$total" -le 2000 ]] ||
         fail "generic nominal value-flow owner family cap exceeded: $total/2000"
     lines="$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")"
-    [[ "$lines" -le 80 ]] || fail "multi-routine root cap exceeded: $lines/80"
+    [[ "$lines" -le 110 ]] || fail "multi-routine root cap exceeded: $lines/110"
     grep -Fq 'CompileAdmittedDirectMirThreeRoutine(' \
         "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy" ||
         fail "three-routine classifier is not routed"

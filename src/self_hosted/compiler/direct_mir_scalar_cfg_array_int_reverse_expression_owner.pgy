@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_array_int_reverse_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
 
 func DirectMirScalarCfgArrayIntReverseExpressionFact(
     ref fact: DirectMirScalarCfgArrayIntReverseFact, global_row: Int

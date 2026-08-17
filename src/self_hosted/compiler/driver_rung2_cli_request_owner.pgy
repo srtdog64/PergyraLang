@@ -30,6 +30,8 @@ enum DriverRung2CliRequest {
     DriverCliMissingProjectionManifestProbe(String, String),
     DriverCliDirectMirCArtifact(String, String),
     DriverCliDirectMirLlvmArtifact(String, String),
+    DriverCliDirectMirCObservedArtifact(String, String),
+    DriverCliDirectMirLlvmObservedArtifact(String, String),
 }
 func DriverRung2CliPathOperandOrDie(
     path: String,
@@ -228,18 +230,33 @@ func DriverRung2CliRequestFromArgsOrDie(
     }
     if args[0] == "--mir-json-backend=c" ||
         args[0] == "--mir-json-backend=llvm" {
-        if count != 4 || args[2] != "-o" {
-            Die("direct MIR backend mode requires input and -o output");
+        let observe_pressure: Bool = count == 5 &&
+            args[2] == "--observe-mir-consumer-stages" && args[3] == "-o";
+        if !observe_pressure && (count != 4 || args[2] != "-o") {
+            Die("direct MIR backend mode requires input, optional observation, and -o output");
         }
         let input_path: String = DriverRung2CliPathOperandOrDie(
             args[1], "direct MIR input path"
         );
+        let output_index: Int = 3;
+        if observe_pressure { output_index = 4; }
         let output_path: String = DriverRung2CliPathOperandOrDie(
-            args[3], "direct MIR artifact output path"
+            args[output_index],
+            "direct MIR artifact output path"
         );
         DriverRung2CliArtifactPathsOrDie(input_path, output_path);
         if args[0] == "--mir-json-backend=llvm" {
+            if observe_pressure {
+                return DriverCliDirectMirLlvmObservedArtifact(
+                    input_path, output_path
+                );
+            }
             return DriverCliDirectMirLlvmArtifact(input_path, output_path);
+        }
+        if observe_pressure {
+            return DriverCliDirectMirCObservedArtifact(
+                input_path, output_path
+            );
         }
         return DriverCliDirectMirCArtifact(input_path, output_path);
     }

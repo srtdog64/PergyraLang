@@ -1,0 +1,36 @@
+// Semantic shape checks for normalized Option<Bool> expression nodes.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramOptionBoolExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind < DirectMirScalarProgramExprSomeBool() ||
+        kind > DirectMirScalarProgramExprUnwrapOptionBool() { return None; }
+    let left: Int = facts.node_lefts[node];
+    if facts.node_rights[node] != -1 ||
+        facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 { return Some(false); }
+    if kind == DirectMirScalarProgramExprNoneBool() {
+        return Some(left == -1 && facts.node_types[node] ==
+            CompilerAbiLayoutOptionBoolTypeName());
+    }
+    if left < 0 || left >= node { return Some(false); }
+    if kind == DirectMirScalarProgramExprSomeBool() {
+        return Some(facts.node_types[node] ==
+            CompilerAbiLayoutOptionBoolTypeName() &&
+            facts.node_types[left] == CompilerAbiLayoutBoolTypeName());
+    }
+    if facts.node_types[left] != CompilerAbiLayoutOptionBoolTypeName() {
+        return Some(false);
+    }
+    if kind == DirectMirScalarProgramExprIsSomeBool() {
+        return Some(facts.node_types[node] == CompilerAbiLayoutBoolTypeName());
+    }
+    return Some(facts.node_types[node] == CompilerAbiLayoutBoolTypeName());
+}

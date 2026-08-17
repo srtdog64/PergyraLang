@@ -1,0 +1,223 @@
+// Typed indexed-array assignments rooted in one logical-record local identity.
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_member_rebind_owner.pgy";
+import "direct_mir_scalar_program_logical_record_member_path_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_mutation_owner.pgy";
+
+struct DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFact {
+    let valid: Bool;
+    let use_prefix_count: Int;
+    let element_type: String;
+}
+
+struct DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactSet {
+    let valid: Bool;
+    let global_rows: Array<Int>;
+    let use_prefix_counts: Array<Int>;
+    let element_types: Array<String>;
+}
+
+func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactInvalid(
+) -> DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFact {
+    return DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFact(
+        false, 0, "");
+}
+
+func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactSetInvalid(
+) -> DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactSet {
+    let rows: Array<Int> = [];
+    let types: Array<String> = [];
+    return DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactSet(
+        false, rows, rows, types);
+}
+
+func DirectMirScalarProgramLogicalRecordArrayIndexedTargetElementType(
+    ref graph: MirExpressionGraphSequence,
+    target_name: String, target_type: String, target_carriage: String,
+    parameter_ordinal: Int,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref record: DirectMirScalarProgramLogicalRecordFact
+) -> String {
+    if !graph.ok || ArrayLength(graph.roots) != 1 ||
+        target_name == "" || target_type == "" ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(record, target_type) {
+        return "";
+    }
+    let root: Int = graph.roots[0];
+    if root < 3 || root + 1 != graph.ready_node_count ||
+        graph.arena.topology.node_kinds[root] != AstExpressionNodeIndex() ||
+        graph.arena.call_target_kinds[root] != SemanticCallTargetNone() ||
+        graph.arena.call_target_names[root] != "" ||
+        graph.arena.identities.call_target_syntax_ids[root] != 0 ||
+        graph.arena.identities.binding_kinds[root] !=
+            SemanticExpressionBindingNone() ||
+        graph.arena.identities.binding_ordinals[root] != -1 {
+        return "";
+    }
+    let path: DirectMirScalarProgramLogicalRecordMemberPathFact =
+        DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
+            graph, graph.arena.topology.left_children[root], target_name,
+            target_type, target_carriage, parameter_ordinal,
+            signature, record);
+    if !path.valid { return ""; }
+    let index_root: Int = graph.arena.topology.right_children[root];
+    if index_root < 0 || index_root >= root { return ""; }
+    if path.final_type == CompilerAbiLayoutArrayStringTypeName() {
+        return CompilerAbiLayoutStringTypeName();
+    }
+    if path.final_type == CompilerAbiLayoutArrayIntTypeName() {
+        return CompilerAbiLayoutIntTypeName();
+    }
+    return "";
+}
+
+func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactsFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref record: DirectMirScalarProgramLogicalRecordFact,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan
+) -> DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactSet {
+    let invalid:
+        DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactSet =
+            DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactSetInvalid();
+    if !index.valid || !DirectMirRoutineSignatureFactReady(signature) ||
+        !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        !locals.valid || !types.valid ||
+        ArrayLength(locals.local_names) != ArrayLength(types.local_types) ||
+        ArrayLength(locals.value_names) != ArrayLength(types.value_types) ||
+        signature.source_syntax_id != ToInt(index.source_syntax_id) {
+        return invalid;
+    }
+    let globals: Array<Int> = [];
+    let prefixes: Array<Int> = [];
+    let element_types: Array<String> = [];
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global);
+        if !capture.valid { return invalid; }
+        if admitted.routines.instruction_kinds[global] == "def" &&
+                admitted.routines.instruction_source_types[global] ==
+                    "AST_ASSIGNMENT" &&
+                (capture.arg1 == "local" ||
+                 capture.arg1 == "inout_param") &&
+                capture.name == "ssa-def" &&
+                capture.arg0 != "" && capture.result != "" &&
+                DirectMirScalarProgramLogicalRecordTypeReady(
+                    record, capture.abi_type_name) &&
+                MirSsaNameMatches(capture.result, capture.arg0, false) {
+            let ordinal: Int = -1;
+            let parameter: Int = 0;
+            while parameter < signature.param_count {
+                if signature.parameters.names[parameter] == capture.arg0 {
+                    if ordinal >= 0 { return invalid; }
+                    ordinal = parameter;
+                }
+                parameter = parameter + 1;
+            }
+            if (capture.arg1 == "inout_param" && ordinal < 0) ||
+                (capture.arg1 == "local" && ordinal >= 0) {
+                return invalid;
+            }
+            let result: Int = DirectMirScalarCfgGraphValueRow(
+                locals.value_names, capture.result);
+            if result < 0 { return invalid; }
+            let local_row: Int = locals.value_local_rows[result];
+            if local_row < 0 ||
+                local_row >= ArrayLength(locals.local_names) ||
+                locals.local_names[local_row] != capture.arg0 ||
+                types.local_types[local_row] != capture.abi_type_name ||
+                types.value_types[result] != capture.abi_type_name {
+                return invalid;
+            }
+            let instruction_object: JsonObjectFactTable =
+                JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                admitted.routines.instruction_starts[global],
+                admitted.routines.instruction_ends[global]);
+            let target: MirExpressionGraphSequence =
+                DirectMirScalarCfgInstructionGraphAt(
+                    instruction_object, "expr1_graph");
+            if target.ok && ArrayLength(target.roots) == 1 &&
+                    target.arena.topology.node_kinds[target.roots[0]] ==
+                        AstExpressionNodeIndex() {
+                let element_type: String =
+                    DirectMirScalarProgramLogicalRecordArrayIndexedTargetElementType(
+                        target, capture.arg0, capture.abi_type_name,
+                        capture.arg1, ordinal, signature, record);
+                if element_type == "" {
+                    return invalid;
+                }
+                let prefix: Int = 0;
+                if capture.arg1 == "inout_param" {
+                    prefix = DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(
+                        index, uses, global, capture.result, local_row, false,
+                        locals, types);
+                    if prefix < 0 { return invalid; }
+                }
+                ArrayPush(globals, global);
+                ArrayPush(prefixes, prefix);
+                ArrayPush(element_types, element_type);
+            }
+        }
+        instruction = instruction + 1;
+    }
+    return DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactSet(
+        true, globals, prefixes, element_types);
+}
+
+func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentAtGlobal(
+    ref facts: DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactSet,
+    global: Int
+) -> DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFact {
+    let invalid:
+        DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFact =
+            DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactInvalid();
+    if !facts.valid || ArrayLength(facts.global_rows) !=
+            ArrayLength(facts.use_prefix_counts) ||
+        ArrayLength(facts.global_rows) != ArrayLength(facts.element_types) {
+        return invalid;
+    }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(facts.global_rows) {
+        if facts.global_rows[row] == global {
+            if found >= 0 { return invalid; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { return invalid; }
+    return DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFact(
+        true, facts.use_prefix_counts[found], facts.element_types[found]);
+}
+
+func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentAppendOperation(
+    storage: DirectMirScalarCfgProgramOperationStorage,
+    result: Int, value_expression: Int, target_expression: Int
+) -> DirectMirScalarCfgProgramOperationStorage {
+    let appended: DirectMirScalarCfgProgramOperationStorage =
+        DirectMirScalarCfgProgramOperationsAppendExpression(
+            storage,
+            DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment(),
+            result, value_expression);
+    let targets: Array<Int> = appended.secondary_expression_rows;
+    ArraySet(targets, ArrayLength(targets) - 1, target_expression);
+    return DirectMirScalarCfgProgramOperationStorage(
+        appended.valid, appended.kinds, appended.result_values,
+        appended.left_values, appended.right_values, appended.left_locals,
+        appended.right_locals, appended.left_literals,
+        appended.right_literals, appended.phi_starts, appended.phi_counts,
+        appended.phi_predecessor_blocks, appended.phi_incoming_values,
+        appended.expression_rows, targets);
+}

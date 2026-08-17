@@ -4,6 +4,9 @@ import "direct_mir_scalar_cfg_foreach_element_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "runtime_value_representation_owner.pgy";
 
 struct DirectMirScalarCfgValueTypePlan {
     let valid: Bool;
@@ -20,7 +23,9 @@ func DirectMirScalarCfgValueTypePlanInvalid(
 func DirectMirScalarCfgValueTypePlanFromOwners(
     ref index: MirRoutineFactIndex,
     ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref foreach_elements: DirectMirScalarCfgForEachElementFacts
+    ref foreach_elements: DirectMirScalarCfgForEachElementFacts,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref parameters: DirectMirRoutineParameterSetFact
 ) -> DirectMirScalarCfgValueTypePlan {
     let invalid: DirectMirScalarCfgValueTypePlan =
         DirectMirScalarCfgValueTypePlanInvalid();
@@ -37,6 +42,18 @@ func DirectMirScalarCfgValueTypePlanFromOwners(
             let value: Int = 0;
             while value < ArrayLength(locals.value_names) {
                 if locals.value_local_rows[value] == local_binding {
+                    let parameter_type: String =
+                        DirectMirRoutineLocalParameterTypeAtName(
+                            parameters, locals.local_names[local_binding]);
+                    if parameter_type != "" && locals.value_names[value] ==
+                            Concat(locals.local_names[local_binding], ".0") {
+                        if type_name != "" && type_name != parameter_type {
+                            return invalid;
+                        }
+                        type_name = parameter_type;
+                        value = value + 1;
+                        continue;
+                    }
                     let definition: MirRoutineResultDefinitionFact =
                         MirRoutineFactIndexUniqueResultDefinition(
                             index, locals.value_names[value]
@@ -68,9 +85,19 @@ func DirectMirScalarCfgValueTypePlanFromOwners(
                 foreach_elements, locals.local_ref_syntax_ids[local_binding]
             );
         }
-        if !DirectMirScalarCfgSourceLocalTypeSupported(type_name) {
+        if !DirectMirScalarCfgSourceLocalTypeSupported(type_name) &&
+            !CompilerRuntimeValueTypeReady(type_name) &&
+            !DirectMirScalarProgramLogicalRecordTypeReady(
+                logical_record, type_name) &&
+            !DirectMirScalarProgramLogicalRecordArrayTypeReady(
+                logical_record, type_name) &&
+            !DirectMirScalarProgramLogicalRecordOptionTypeReady(
+                logical_record, type_name) {
             return invalid;
         }
+        let parameter_type: String = DirectMirRoutineLocalParameterTypeAtName(
+            parameters, locals.local_names[local_binding]);
+        if parameter_type != "" && parameter_type != type_name { return invalid; }
         ArrayPush(local_types, type_name);
         local_binding = local_binding + 1;
     }

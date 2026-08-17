@@ -1,0 +1,89 @@
+// LLVM value-result copy boundary for admitted Array<Bool> parameters.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmArrayBoolMutationTarget(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, parameter: Int
+) -> Bool {
+    let offset: Int = 0;
+    while offset < plan.routines.operation_counts[routine] {
+        let operation: Int = plan.routines.operation_starts[routine] + offset;
+        let kind: Int = plan.operation_kinds[operation];
+        if (kind == DirectMirScalarCfgOpArrayBoolPush() ||
+            kind == DirectMirScalarCfgOpArrayBoolSet()) &&
+            plan.operation_right_locals[operation] == parameter {
+            return true;
+        }
+        offset = offset + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayBoolValueResultAt(
+                plan.program.array_bool_abi, routine, parameter) {
+            let mutated: Bool =
+                DirectMirScalarProgramLlvmArrayBoolMutationTarget(
+                    plan, routine, parameter);
+            if mutated {
+                output = Concat(output, "  %pgy.param.");
+                output = Concat(output, ToString(parameter));
+                output = Concat(output,
+                    ".local = alloca %pgy.array.bool, align 8\n");
+            }
+            output = Concat(output, "  %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output,
+                " = load %pgy.array.bool, ptr %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ".mutref, align 8\n");
+            if mutated {
+                output = Concat(output,
+                    "  store %pgy.array.bool %pgy.param.");
+                output = Concat(output, ToString(parameter));
+                output = Concat(output, ", ptr %pgy.param.");
+                output = Concat(output, ToString(parameter));
+                output = Concat(output, ".local, align 8\n");
+            }
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmArrayBoolValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayBoolValueResultAt(
+                plan.program.array_bool_abi, routine, parameter) {
+            let spelling: String = ToString(parameter);
+            let value: String = Concat("%pgy.param.", spelling);
+            if DirectMirScalarProgramLlvmArrayBoolMutationTarget(
+                    plan, routine, parameter) {
+                let copyout: String = Concat(
+                    Concat(value, ".copyout."), ToString(exit_block));
+                output = Concat(output, Concat("  ", Concat(
+                    copyout, " = load %pgy.array.bool, ptr ")));
+                output = Concat(output, Concat(
+                    value, ".local, align 8\n"));
+                value = copyout;
+            }
+            output = Concat(output,
+                "  store %pgy.array.bool ");
+            output = Concat(output, value);
+            output = Concat(output, ", ptr %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ".mutref, align 8\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}

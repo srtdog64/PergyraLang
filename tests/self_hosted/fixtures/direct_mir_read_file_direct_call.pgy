@@ -1,0 +1,7 @@
+func DirectMirReadFileFixturePath() -> String {
+    return ".tmp/self_hosted/direct_mir_scalar_read_file_direct_call/payload.txt";
+}
+
+func Main() -> Void {
+    Log(ReadFile(DirectMirReadFileFixturePath()));
+}

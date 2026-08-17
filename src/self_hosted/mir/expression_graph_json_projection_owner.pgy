@@ -70,7 +70,7 @@ func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: Sem
         ];
         let identity_fields: Array<String> =
             SelfMirJsonExpressionIdentityFields(graph, node);
-        if ArrayLength(identity_fields) != 3 { return "null"; }
+        if ArrayLength(identity_fields) != 4 { return "null"; }
         let identity_row: Int = 0;
         while identity_row < ArrayLength(identity_fields) {
             ArrayPush(fields, identity_fields[identity_row]);

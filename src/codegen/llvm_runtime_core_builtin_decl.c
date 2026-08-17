@@ -27,6 +27,11 @@ llvm_declare_text_builder_builtins(LLVMGenCtx *ctx)
 
         if (row == NULL)
             continue;
+        /* Allocator declarations remain owned by llvm_runtime.c.  Their rows
+         * live here only so MIR carries the same runtime-value ABI receipt. */
+        if (row->owner_name != NULL
+            && strcmp(row->owner_name, "Allocator") == 0)
+            continue;
         params[0] = builder_ptr;
         if (row->llvm_call_shape
             == MIR_TEXT_BUILDER_CALL_BUILDER_STRING_TO_VOID) {

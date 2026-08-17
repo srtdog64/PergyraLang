@@ -15,15 +15,16 @@ while IFS='|' read -r owner cap; do
 done <<'EOF'
 src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy|80
 src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy|210
-src/self_hosted/mir/expression_identity_json_projection_owner.pgy|70
+src/self_hosted/mir/expression_identity_json_projection_owner.pgy|100
 src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy|450
 src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy|300
 src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy|340
-src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy|225
+src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy|445
 src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy|125
 EOF
 
 FACT="src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy"
+GRAPH_FACT="src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy"
 RESOLVE="src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy"
 WRITE="src/self_hosted/mir/expression_identity_json_projection_owner.pgy"
 READ="src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy"
@@ -32,16 +33,22 @@ NODE_READ="src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.
 BIND_CONSUME="src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy"
 CALL_CONSUME="src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy"
 
-for field in call_target_syntax_ids binding_kinds binding_ordinals; do
+for field in call_target_syntax_ids runtime_call_abi_ids binding_kinds binding_ordinals; do
     require_text "$FACT" "$field"
 done
 require_text "$RESOLVE" 'SemanticExpressionDirectTargetSyntaxId('
+require_text "$RESOLVE" 'SemanticCallTargetNamespace()'
+require_text "$GRAPH_FACT" 'call_target_kind != SemanticCallTargetNamespace()'
 require_text "$RESOLVE" 'SemanticExpressionFormalParameterOrdinal('
 require_text "$WRITE" '"call_target_syntax_id"'
+require_text "$WRITE" '"runtime_call_abi_id"'
 require_text "$WRITE" '"binding_kind"'
 require_text "$WRITE" '"binding_ordinal"'
 require_text "$NODE_READ" 'member_count == 6'
 require_text "$NODE_READ" 'member_count == 9'
+require_text "$NODE_READ" 'member_count == 7'
+require_text "$NODE_READ" 'member_count == 10'
+require_text "$NODE_READ" 'target_kind != SemanticCallTargetNamespace()'
 require_text "$CALL_CONSUME" 'call_target_syntax_ids[chain.call_node]'
 require_text "$BIND_CONSUME" 'SemanticExpressionBindingFormalParameter()'
 reject_text "$BIND_CONSUME" 'sequence.arena.node_texts[node] == parameter_name'

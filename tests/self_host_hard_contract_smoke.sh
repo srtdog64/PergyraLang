@@ -312,7 +312,7 @@ forbid_function_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" 
     "CompilerTargetCapabilityEnvelopeReady()"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     "MirResourceRuntimeRowFactReady(routines, instruction)"
-require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+require_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" \
     "CompilerRuntimeCallAbiFactForNativeResource("
 require_file "src/self_hosted/mir/routine_local_inventory_owner.pgy"
 require_text "src/self_hosted/mir/routine_local_inventory_owner.pgy" \
@@ -333,19 +333,19 @@ forbid_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
     "SelfMirExpressionUses(build, target_text)"
 forbid_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
     "SelfMirExpressionUses(build, expression)"
-require_text "src/self_hosted/mir/routine_build_owner.pgy" \
-    "SelfMirSsaBaseName(cfg.instructions.results[instruction_index])"
+require_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" \
+    "SelfMirRoutineExpressionRuntimeAbiSsaBaseName("
 forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "return cfg.instructions.expr1s[instruction_index];"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "cfg.instructions.expr0_graphs"
-require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+require_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" \
     "AstExpressionNodeCallArgument()"
-require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+require_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" \
     "SemanticExpressionGraphLeftChild("
-forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
+forbid_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" \
     "cfg.instructions.uses[cfg.instructions.use_starts[instruction_index]]"
-forbid_text "src/self_hosted/mir/routine_build_owner.pgy" \
+forbid_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" \
     "SelfMirTextContainsIdentifier("
 require_text "src/self_hosted/mir/routine_let_owner.pgy" \
     "SelfMirRoutineAttachLastAbiTypeName(build, local_type)"
@@ -466,9 +466,13 @@ require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
 require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
     'bad-call-argument-type'
 require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
-    'bad-modulo-zero'
-require_text "tests/self_hosted/parity/one_mir_bool_logic_projection.sh" \
-    'bad-add-unbounded'
+    'modulo-zero modulo-minus-one'
+require_text "tests/self_hosted/parity/direct_mir_scalar_long_remainder_owner.sh" \
+    'int-zero-divisor'
+require_text "tests/self_hosted/parity/direct_mir_scalar_long_remainder_owner.sh" \
+    'class=divide-by-zero reason=integer division or modulo by zero'
+require_text "tests/self_hosted/parity/direct_mir_scalar_long_addition_owner.sh" \
+    'add nsw i64'
 require_text "Makefile" '$(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE)'
 require_text "Makefile" \
     "self-host-one-mir-struct-argument-projection-test-smoke: self-host-compiler"
@@ -1005,6 +1009,10 @@ require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_own
     'printf '\''7\n11\n5\n'\'''
 require_text "src/compiler/llvm_runner.c" \
     "compiler_compile_link_self_host_llvm_artifact("
+require_text "src/compiler/compiler_self_host_artifact.c" \
+    "compiler_llvm_runtime_object_ensure("
+require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
+    'src/self_hosted/codegen/fixture/io_probe.pgy'
 require_text "src/pgy_driver.c" \
     "driver_self_host_llvm_ir_file_request_supported"
 require_text "src/pgy_driver.c" \
@@ -1063,13 +1071,17 @@ require_text "Makefile" \
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'CODEGEN_BIN="${PGY_SELFHOST_CODEGEN_SEED:-$CODEGEN_BUILD/gen2.exe}"'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
-    'PARSER_BIN="${PGY_SELFHOST_PARSER_SEED:-$CODEGEN_BUILD/parser_ast_producer.exe}"'
-require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'Pergyra-built DRV-2 installed'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
-    '"composed_ast=$(hash_file "$AST_FILE")"'
+    '"$CODEGEN_BIN" --source "$DRIVER_SOURCE"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"source_artifact_c=$(hash_file "$C_NEXT")"'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '"machine_manifest=$(hash_file "$MANIFEST_SOURCE")"'
+forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'PARSER_BIN='
+forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'driver.ast.txt'
 require_text "src/pgy_driver.c" \
     "driver_write_self_host_machine_manifest(argv[0])"
 require_text "src/compiler/self_host_machine_manifest_artifact_owner.c" \

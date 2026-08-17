@@ -2,6 +2,82 @@
 
 import "../../../src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy";
 
+func MirCfgGraphBackedgeFactsReady() -> Bool {
+    let entry_block: Int = 0;
+    // Strictly forward edges prove an acyclic routine without target-major
+    // avoiding traversals. Every header must remain zero.
+    let forward_true: Array<Int> = [1, 2, 0 - 1];
+    let forward_false: Array<Int> = [0 - 1, 0 - 1, 0 - 1];
+    let forward_headers: Array<Int> = MirRoutineBackedgeHeaders(
+        forward_true, forward_false
+    );
+    if forward_headers[entry_block] != 0 || forward_headers[1] != 0 ||
+        forward_headers[2] != 0 {
+        return false;
+    }
+
+    // Backedge headers are admitted only in the entry-reachable component.
+    let detached_true: Array<Int> = [0 - 1, 0 - 1, 3, 2];
+    let detached_false: Array<Int> = [
+        0 - 1, 0 - 1, 0 - 1, 0 - 1
+    ];
+    let detached_headers: Array<Int> = MirRoutineBackedgeHeaders(
+        detached_true, detached_false
+    );
+    if detached_headers[2] != 0 || detached_headers[3] != 0 { return false; }
+
+    let self_loop_true: Array<Int> = [0];
+    let self_loop_false: Array<Int> = [0 - 1];
+    let self_loop_headers: Array<Int> = MirRoutineBackedgeHeaders(
+        self_loop_true, self_loop_false
+    );
+    if self_loop_headers[0] != 1 { return false; }
+
+    // Target 1 has two incoming edges. The entry edge is not a backedge, but
+    // the edge from block 2 closes the ordinary loop and marks it once.
+    let ordinary_loop_true: Array<Int> = [1, 2, 1];
+    let ordinary_loop_false: Array<Int> = [0 - 1, 0 - 1, 0 - 1];
+    let ordinary_loop_headers: Array<Int> = MirRoutineBackedgeHeaders(
+        ordinary_loop_true, ordinary_loop_false
+    );
+    if ordinary_loop_headers[0] != 0 || ordinary_loop_headers[1] != 1 ||
+        ordinary_loop_headers[2] != 0 {
+        return false;
+    }
+
+    // A numerically backward edge does not prove a loop. Exact reachability
+    // remains the fallback whenever the strict-forward proof does not apply.
+    let earlier_merge_true: Array<Int> = [2, 3, 1, 0 - 1];
+    let earlier_merge_false: Array<Int> = [1, 0 - 1, 0 - 1, 0 - 1];
+    let earlier_merge_headers: Array<Int> = MirRoutineBackedgeHeaders(
+        earlier_merge_true, earlier_merge_false
+    );
+    if earlier_merge_headers[0] != 0 || earlier_merge_headers[1] != 0 ||
+        earlier_merge_headers[2] != 0 || earlier_merge_headers[3] != 0 {
+        return false;
+    }
+
+    // Malformed successor facts fail closed rather than exposing a partial
+    // batch result.
+    let invalid_true: Array<Int> = [1, 2];
+    let invalid_false: Array<Int> = [0 - 1, 0 - 1];
+    let invalid_headers: Array<Int> = MirRoutineBackedgeHeaders(
+        invalid_true, invalid_false
+    );
+    if ArrayLength(invalid_headers) != 0 { return false; }
+
+    let no_successors: Array<Int> = [];
+    let one_successor: Array<Int> = [0];
+    let empty_headers: Array<Int> = MirRoutineBackedgeHeaders(
+        no_successors, no_successors
+    );
+    let mismatched_headers: Array<Int> = MirRoutineBackedgeHeaders(
+        one_successor, no_successors
+    );
+    return ArrayLength(empty_headers) == 0 &&
+        ArrayLength(mismatched_headers) == 0;
+}
+
 func Main() -> Void {
     let failures: Int = 0;
 
@@ -57,6 +133,14 @@ func Main() -> Void {
         fallback_true, fallback_false, 0, 1, 2
     ) != 2 { failures = failures + 1; }
 
+    // A terminal true arm that is also reached from the false arm remains the
+    // shared merge. The terminal fast proof must require unique incoming.
+    let shared_terminal_true: Array<Int> = [1, 0 - 1, 1];
+    let shared_terminal_false: Array<Int> = [2, 0 - 1, 0 - 1];
+    if MirRoutineGraphStructuralMerge(
+        shared_terminal_true, shared_terminal_false, 0, 1, 2
+    ) != 1 { failures = failures + 1; }
+
     // Structural merge selection intentionally preserves disconnected CFG
     // component behavior; entry reachability belongs to backedge admission.
     let detached_true: Array<Int> = [0 - 1, 0 - 1, 3, 5, 5, 0 - 1];
@@ -66,60 +150,7 @@ func Main() -> Void {
     if MirRoutineGraphStructuralMerge(
         detached_true, detached_false, 2, 3, 4
     ) != 5 { failures = failures + 1; }
-
-    // Backedge headers are admitted only in the entry-reachable component.
-    let detached_headers: Array<Int> = MirRoutineBackedgeHeaders(
-        [0 - 1, 0 - 1, 3, 2], [0 - 1, 0 - 1, 0 - 1, 0 - 1]
-    );
-    if detached_headers[2] != 0 || detached_headers[3] != 0 {
-        failures = failures + 1;
-    }
-
-    let self_loop_headers: Array<Int> = MirRoutineBackedgeHeaders(
-        [0], [0 - 1]
-    );
-    if self_loop_headers[0] != 1 { failures = failures + 1; }
-
-    // Target 1 has two incoming edges. The entry edge is not a backedge, but
-    // the edge from block 2 closes the ordinary loop and marks it once.
-    let ordinary_loop_headers: Array<Int> = MirRoutineBackedgeHeaders(
-        [1, 2, 1], [0 - 1, 0 - 1, 0 - 1]
-    );
-    if ordinary_loop_headers[0] != 0 || ordinary_loop_headers[1] != 1 ||
-        ordinary_loop_headers[2] != 0 {
-        failures = failures + 1;
-    }
-
-    // The edge 2 -> 1 is numerically backward but block 1 does not dominate
-    // block 2, so this acyclic earlier merge is not a loop header.
-    let earlier_merge_headers: Array<Int> = MirRoutineBackedgeHeaders(
-        [2, 3, 1, 0 - 1], [1, 0 - 1, 0 - 1, 0 - 1]
-    );
-    if earlier_merge_headers[0] != 0 || earlier_merge_headers[1] != 0 ||
-        earlier_merge_headers[2] != 0 || earlier_merge_headers[3] != 0 {
-        failures = failures + 1;
-    }
-
-    // Malformed successor facts fail closed rather than exposing a partial
-    // batch result.
-    let invalid_headers: Array<Int> = MirRoutineBackedgeHeaders(
-        [1, 2], [0 - 1, 0 - 1]
-    );
-    if ArrayLength(invalid_headers) != 0 {
-        failures = failures + 1;
-    }
-    let no_successors: Array<Int> = [];
-    let one_successor: Array<Int> = [0];
-    let empty_headers: Array<Int> = MirRoutineBackedgeHeaders(
-        no_successors, no_successors
-    );
-    let mismatched_headers: Array<Int> = MirRoutineBackedgeHeaders(
-        one_successor, no_successors
-    );
-    if ArrayLength(empty_headers) != 0 ||
-        ArrayLength(mismatched_headers) != 0 {
-        failures = failures + 1;
-    }
+    if !MirCfgGraphBackedgeFactsReady() { failures = failures + 1; }
 
     if failures == 0 {
         Log("mir-cfg-graph-query-ok");

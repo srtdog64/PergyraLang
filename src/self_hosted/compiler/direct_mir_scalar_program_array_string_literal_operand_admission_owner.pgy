@@ -1,0 +1,101 @@
+// One exact formal or local String operand for a populated Array<String> literal.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+
+struct DirectMirScalarProgramArrayStringLiteralOperandAdmission {
+    let valid: Bool;
+    let kind: Int;
+    let parameter_ordinal: Int;
+    let local_row: Int;
+    let consumed_uses: Int;
+}
+
+func DirectMirScalarProgramArrayStringSingleElementFromOwners(
+    ref sequence: MirExpressionGraphSequence,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, use_row: Int, local_instruction: Int, local_offset: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref value_types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref signature: DirectMirRoutineSignatureFact
+) -> DirectMirScalarProgramArrayStringLiteralOperandAdmission {
+    let invalid: DirectMirScalarProgramArrayStringLiteralOperandAdmission =
+        DirectMirScalarProgramArrayStringLiteralOperandAdmission(
+            false, 0, -1, -1, 0);
+    let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    if !sequence.ok || !locals.valid || !value_types.valid || !wire.valid ||
+        sequence.ready_node_count != count || count != 3 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 2 ||
+        sequence.arena.topology.node_kinds[0] !=
+            AstExpressionNodeArrayLiteral() ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[2] !=
+            AstExpressionNodeArrayElement() ||
+        sequence.arena.topology.left_children[2] != 0 ||
+        sequence.arena.topology.right_children[2] != 1 ||
+        sequence.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_kinds[1] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_kinds[2] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_names[0] != "" ||
+        sequence.arena.call_target_names[1] != "" ||
+        sequence.arena.call_target_names[2] != "" ||
+        sequence.arena.identities.binding_kinds[0] !=
+            SemanticExpressionBindingNone() ||
+        sequence.arena.identities.binding_kinds[2] !=
+            SemanticExpressionBindingNone() {
+        return invalid;
+    }
+    let binding: Int = sequence.arena.identities.binding_kinds[1];
+    if binding == SemanticExpressionBindingNone() {
+        let operand: DirectMirScalarCfgLeafOperand =
+            DirectMirScalarCfgLeafOperandFromOwners(
+                uses, global_row, use_row, local_instruction, 1,
+                sequence.arena.node_texts[1], locals.value_names,
+                locals, wire, true);
+        let local_row: Int = operand.local_row;
+        if operand.value_row >= 0 && operand.value_row <
+                ArrayLength(locals.value_local_rows) {
+            local_row = locals.value_local_rows[operand.value_row];
+        }
+        if !operand.valid || local_row < 0 ||
+            local_row >= ArrayLength(value_types.local_types) ||
+            value_types.local_types[local_row] !=
+                CompilerAbiLayoutStringTypeName() {
+            return invalid;
+        }
+        return DirectMirScalarProgramArrayStringLiteralOperandAdmission(
+            true, DirectMirScalarProgramExprLocal(), -1,
+            local_row + local_offset, operand.use_count);
+    }
+    if binding != SemanticExpressionBindingFormalParameter() {
+        return invalid;
+    }
+    let ordinal: Int = sequence.arena.identities.binding_ordinals[1];
+    let name: String = sequence.arena.node_texts[1];
+    let value_parameter: Bool = DirectMirRoutineValueParameterOrdinalAtName(
+        signature.parameters, name) == ordinal;
+    let owned_parameter: Bool =
+        DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal);
+    if !wire.valid || !DirectMirRoutineSignatureFactReady(signature) ||
+        ordinal < 0 || ordinal >= signature.param_count ||
+        signature.parameters.names[ordinal] != name ||
+        (!value_parameter && !owned_parameter) ||
+        signature.parameters.type_names[ordinal] !=
+            CompilerAbiLayoutStringTypeName() {
+        return invalid;
+    }
+    let wire_ref: String = DirectMirScalarCfgWireExprRefAt(
+        wire, local_instruction, 1);
+    let expected_ref: String = SelfMirLocalRef(
+        "parameter", signature.source_syntax_id, ordinal);
+    if (wire.required && wire_ref != expected_ref) ||
+        (!wire.required && wire_ref != "") { return invalid; }
+    return DirectMirScalarProgramArrayStringLiteralOperandAdmission(
+        true, DirectMirScalarProgramExprParameter(), ordinal, -1, 0);
+}

@@ -5,6 +5,7 @@
 // row from source text, emitted code, or backend spelling.
 
 import "../compiler/runtime_call_abi_structured_fact_owner.pgy";
+import "runtime_value_call_abi_fact_owner.pgy";
 
 struct SelfMirRuntimeCallAbiRows {
     present: Array<Int>;
@@ -27,6 +28,7 @@ struct SelfMirRuntimeCallAbiRows {
     aux_materializations: Array<String>;
     aux_call_shapes: Array<String>;
     aux_runtime_call_abi_ids: Array<Int>;
+    runtime_values: SelfMirRuntimeValueCallAbiRows;
 }
 
 func SelfMirRuntimeCallAbiRowsEmpty() -> SelfMirRuntimeCallAbiRows {
@@ -36,7 +38,8 @@ func SelfMirRuntimeCallAbiRowsEmpty() -> SelfMirRuntimeCallAbiRows {
     return SelfMirRuntimeCallAbiRows(
         ints, strings, strings, strings, strings, strings, strings, strings,
         strings, ids, ints, strings, strings, strings, strings, strings,
-        strings, strings, strings, ids
+        strings, strings, strings, ids,
+        SelfMirRuntimeValueCallAbiRowsEmpty()
     );
 }
 
@@ -63,13 +66,15 @@ func SelfMirRuntimeCallAbiRowsAppendInstruction(
     ArrayPush(materializations, "");
     ArrayPush(call_shapes, "");
     ArrayPush(runtime_call_abi_ids, 0);
+    let runtime_values: SelfMirRuntimeValueCallAbiRows =
+        SelfMirRuntimeValueCallAbiRowsAppendInstruction(rows.runtime_values);
     return SelfMirRuntimeCallAbiRows(
         present, owners, domains, type_names, operations, symbols,
         target_kinds, materializations, call_shapes, runtime_call_abi_ids,
         rows.aux_instruction_indices, rows.aux_owners, rows.aux_domains,
         rows.aux_type_names, rows.aux_operations, rows.aux_symbols,
         rows.aux_target_kinds, rows.aux_materializations,
-        rows.aux_call_shapes, rows.aux_runtime_call_abi_ids
+        rows.aux_call_shapes, rows.aux_runtime_call_abi_ids, runtime_values
     );
 }
 
@@ -146,12 +151,16 @@ func SelfMirRuntimeCallAbiRowsAppendRows(
         );
         i = i + 1;
     }
+    let runtime_values: SelfMirRuntimeValueCallAbiRows =
+        SelfMirRuntimeValueCallAbiRowsAppendRows(
+            target.runtime_values, source.runtime_values);
     return SelfMirRuntimeCallAbiRows(
         present, owners, domains, type_names, operations, symbols,
         target_kinds, materializations, call_shapes, runtime_call_abi_ids,
         aux_instruction_indices, aux_owners, aux_domains, aux_type_names,
         aux_operations, aux_symbols, aux_target_kinds,
-        aux_materializations, aux_call_shapes, aux_runtime_call_abi_ids
+        aux_materializations, aux_call_shapes, aux_runtime_call_abi_ids,
+        runtime_values
     );
 }
 
@@ -191,7 +200,8 @@ func SelfMirRuntimeCallAbiRowsAttachLast(
         rows.aux_instruction_indices, rows.aux_owners, rows.aux_domains,
         rows.aux_type_names, rows.aux_operations, rows.aux_symbols,
         rows.aux_target_kinds, rows.aux_materializations,
-        rows.aux_call_shapes, rows.aux_runtime_call_abi_ids
+        rows.aux_call_shapes, rows.aux_runtime_call_abi_ids,
+        rows.runtime_values
     );
 }
 
@@ -229,7 +239,8 @@ func SelfMirRuntimeCallAbiRowsAttachLastAux(
         rows.materializations, rows.call_shapes, rows.runtime_call_abi_ids,
         aux_instruction_indices, aux_owners, aux_domains, aux_type_names,
         aux_operations, aux_symbols, aux_target_kinds,
-        aux_materializations, aux_call_shapes, aux_runtime_call_abi_ids
+        aux_materializations, aux_call_shapes, aux_runtime_call_abi_ids,
+        rows.runtime_values
     );
 }
 
@@ -264,7 +275,9 @@ func SelfMirRuntimeCallAbiRowsReady(
         ArrayLength(rows.aux_call_shapes) ==
             ArrayLength(rows.aux_instruction_indices) &&
         ArrayLength(rows.aux_runtime_call_abi_ids) ==
-            ArrayLength(rows.aux_instruction_indices);
+            ArrayLength(rows.aux_instruction_indices) &&
+        SelfMirRuntimeValueCallAbiRowsReady(
+            rows.runtime_values, instruction_count);
 }
 
 func SelfMirRuntimeCallAbiRowValidationError(
@@ -272,6 +285,23 @@ func SelfMirRuntimeCallAbiRowValidationError(
     instruction_index: Int,
     expected_operation: String
 ) -> String {
+    let runtime_value_error: String =
+        SelfMirRuntimeValueCallAbiRowValidationError(
+            rows.runtime_values, instruction_index);
+    if runtime_value_error != "" { return runtime_value_error; }
+    if rows.runtime_values.present[instruction_index] == 1 {
+        if expected_operation != "" || rows.present[instruction_index] != 0 {
+            return "runtime-value and resource call ABI rows overlap";
+        }
+        let aux_index: Int = 0;
+        while aux_index < ArrayLength(rows.aux_instruction_indices) {
+            if rows.aux_instruction_indices[aux_index] == instruction_index {
+                return "runtime-value and resource auxiliary ABI rows overlap";
+            }
+            aux_index = aux_index + 1;
+        }
+        return "";
+    }
     if expected_operation == "" && rows.present[instruction_index] == 1 {
         expected_operation = rows.operations[instruction_index];
     }

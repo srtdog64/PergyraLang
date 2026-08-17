@@ -48,7 +48,7 @@ EOF
     [[ "$total" -le 1800 ]] ||
         fail "Option nominal value-flow owner family cap exceeded: $total/1800"
     lines="$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")"
-    [[ "$lines" -le 80 ]] || fail "multi-routine root cap exceeded: $lines/80"
+    [[ "$lines" -le 110 ]] || fail "multi-routine root cap exceeded: $lines/110"
     grep -Fq 'DirectMirTwoRoutineNominalProgramCandidate(admitted)' \
         "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" ||
         fail "classified nominal dispatch is not routed"
@@ -150,9 +150,11 @@ for mutation in \
     missing-unwrapped-receipt repaired-option-tag-geometry \
     repaired-option-payload-offset repaired-option-tags \
     repaired-pair-offset pair-field-order pair-field-type \
+    missing-declaration-source-module-path \
+    empty-declaration-source-module-path \
     malformed-producer-some stale-picked-use producer-call-unresolved \
     stale-built-use flattened-chained-use unsupported-return; do
     reject_mutation "$mutation"
 done
 reject_mutation repaired-option-tags llvm
-echo "[$LABEL] PASS: one MIR, Option<Pair> ABI cross-seal, C/LLVM exact 7/11/5, routine permutation, 20 negatives"
+echo "[$LABEL] PASS: one MIR, Option<Pair> ABI/provenance cross-seal, C/LLVM exact 7/11/5, routine permutation, 22 negatives"

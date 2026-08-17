@@ -422,7 +422,7 @@ func SelfMirRoutineRowsReady(
     if !SelfMirParallelStringCount(count, rows.names) ||
         !SelfMirParallelStringCount(count, rows.kinds) ||
         !SelfMirParallelStringCount(count, rows.owners) ||
-        !SelfMirParallelStringCount(count, rows.receiver_carriages) ||
+        !SelfMirParallelStringCount(count, rows.source_module_paths) || !SelfMirParallelStringCount(count, rows.receiver_carriages) ||
         !SelfMirParallelStringCount(count, rows.return_types) ||
         !SelfMirParallelCount(count, rows.generic_starts) ||
         !SelfMirParallelCount(count, rows.generic_counts) ||
@@ -458,7 +458,7 @@ func SelfMirRoutineRowsReady(
             receiver_ready = rows.owners[i] == "" &&
                 rows.receiver_carriages[i] == "none";
         }
-        if rows.names[i] == "" || rows.return_types[i] == "" ||
+        if rows.names[i] == "" || rows.source_module_paths[i] == "" || rows.return_types[i] == "" ||
             (rows.kinds[i] != "function" && rows.kinds[i] != "method" &&
              rows.kinds[i] != "intent") ||
             (rows.kinds[i] == "method" && rows.owners[i] == "") ||
@@ -530,46 +530,44 @@ func SelfMirRoutineRowsReady(
         local_cursor == ArrayLength(rows.local_names);
 }
 
-func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
+func SelfMirProgramFactsValidationErrorObserved(facts: SelfMirProgramFacts, observe_pressure: Bool) -> String {
     if !facts.ok {
         if facts.diagnostic_message != "" { return facts.diagnostic_message; }
         return "MIR producer status is not ok";
     }
     if facts.artifact_node_count <= 0 { return "MIR artifact node count is empty"; }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:declarations:start"); }
     if !SelfMirDeclarationRowsReady(facts.declarations) {
         return "MIR declaration rows are invalid";
     }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:domain-topology:start"); }
     if !SelfMirDomainTopologyFactsReady(facts.domain_topology) {
         return "MIR domain topology facts are invalid";
     }
-    if !SelfMirDomainRuntimeAssignmentFactsReady(
-        facts.domain_runtime_assignments
-    ) {
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:domain-runtime:start"); }
+    if !SelfMirDomainRuntimeAssignmentFactsReady(facts.domain_runtime_assignments) {
         return "MIR domain runtime assignment facts are invalid";
     }
-    if !SelfMirGenericSpecializationRowsReady(
-        facts.generic_specializations
-    ) {
-        return "MIR generic specialization rows are invalid";
-    }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:generic:start"); }
+    if !SelfMirGenericSpecializationRowsReady(facts.generic_specializations) {
+        return "MIR generic specialization rows are invalid"; }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:parallel:start"); }
     if !SelfMirParallelCaptureRowsReady(facts.parallel_captures) {
         return "MIR parallel capture rows are invalid";
     }
-    if !SelfMirInstructionRowsReady(facts.cfg.instructions, facts.expression_graph) {
-        return Concat(
-            "MIR instruction rows are invalid: ",
-            SelfMirInstructionRowsValidationError(
-                facts.cfg.instructions, facts.expression_graph)
-        );
-    }
-    if !SelfMirInstructionLocalRefRowsReady(
-        facts.cfg.local_refs, facts.cfg.instructions.expr0_graphs,
-        ArrayLength(facts.cfg.instructions.ids)
-    ) { return "MIR instruction LocalRef rows are invalid"; }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instructions:start"); }
+    let instruction_error: String = SelfMirInstructionRowsValidationErrorObserved(
+        facts.cfg.instructions, facts.expression_graph, observe_pressure);
+    if instruction_error != "" {
+        return Concat("MIR instruction rows are invalid: ", instruction_error); }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:local-refs:start"); }
+    if !SelfMirInstructionLocalRefRowsReady(facts.cfg.local_refs,
+        facts.cfg.instructions.expr0_graphs, ArrayLength(facts.cfg.instructions.ids)) {
+        return "MIR instruction LocalRef rows are invalid"; }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instruction-abi:start"); }
     if !SelfMirInstructionAbiReceiptRowsReady(facts.instruction_abi_receipts, facts.cfg.instructions.abi_type_names, facts.declarations) { return "MIR instruction ABI receipt rows are invalid"; }
-    if !SelfMirBlockRowsReady(
-        facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)
-    ) {
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:blocks:start"); }
+    if !SelfMirBlockRowsReady(facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)) {
         let block_error: String = SelfMirBlockRowsValidationError(
             facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)
         );
@@ -585,6 +583,7 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
         }
         return block_error;
     }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:routines:start"); }
     if !SelfMirRoutineRowsReady(
         facts.routines, facts.cfg.blocks, facts.declarations
     ) {
@@ -595,6 +594,7 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
     }
     return "";
 }
+func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String { return SelfMirProgramFactsValidationErrorObserved(facts, false); }
 func SelfMirProgramFactsReady(facts: SelfMirProgramFacts) -> Bool {
     return SelfMirProgramFactsValidationError(facts) == "";
 }

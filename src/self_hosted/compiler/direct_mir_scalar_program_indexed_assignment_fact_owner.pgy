@@ -1,0 +1,220 @@
+// Routine-local indexed assignments whose SSA result versions one value-result Array formal.
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+struct DirectMirScalarProgramIndexedAssignmentFact {
+    let valid: Bool; let global_row: Int;
+    let parameter_ordinal: Int; let element_type: String;
+    let index_root: Int; let index_literal: String;
+    let use_prefix_count: Int;
+}
+struct DirectMirScalarProgramIndexedAssignmentFactSet {
+    let valid: Bool; let global_rows: Array<Int>;
+    let parameter_ordinals: Array<Int>; let element_types: Array<String>;
+    let index_roots: Array<Int>; let index_literals: Array<String>;
+    let use_prefix_counts: Array<Int>;
+}
+func DirectMirScalarProgramIndexedAssignmentFactInvalid() -> DirectMirScalarProgramIndexedAssignmentFact {
+    return DirectMirScalarProgramIndexedAssignmentFact(
+        false, -1, -1, "", -1, "", 0);
+}
+func DirectMirScalarProgramIndexedAssignmentFactSetInvalid() -> DirectMirScalarProgramIndexedAssignmentFactSet {
+    let ints: Array<Int> = []; let strings: Array<String> = [];
+    return DirectMirScalarProgramIndexedAssignmentFactSet(
+        false, ints, ints, strings, ints, strings, ints);
+}
+func DirectMirScalarProgramIndexedAssignmentFactSetCanonicalEmpty() -> DirectMirScalarProgramIndexedAssignmentFactSet {
+    let ints: Array<Int> = []; let strings: Array<String> = [];
+    return DirectMirScalarProgramIndexedAssignmentFactSet(
+        true, ints, ints, strings, ints, strings, ints);
+}
+struct DirectMirScalarProgramIndexedAssignmentTargetFact {
+    let valid: Bool; let parameter_ordinal: Int;
+    let index_root: Int; let index_literal: String;
+}
+func DirectMirScalarProgramIndexedAssignmentTargetFactFrom(
+    ref graph: MirExpressionGraphSequence, parameter_name: String) -> DirectMirScalarProgramIndexedAssignmentTargetFact {
+    let invalid: DirectMirScalarProgramIndexedAssignmentTargetFact =
+        DirectMirScalarProgramIndexedAssignmentTargetFact(false, -1, -1, "");
+    if !graph.ok || ArrayLength(graph.roots) != 1 { return invalid; }
+    let root: Int = graph.roots[0];
+    if root < 2 || root >= graph.ready_node_count ||
+        graph.arena.topology.node_kinds[root] != AstExpressionNodeIndex() ||
+        graph.arena.topology.left_children[root] != 0 ||
+        graph.arena.node_texts[0] != parameter_name ||
+        graph.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        graph.arena.identities.binding_kinds[0] !=
+            SemanticExpressionBindingFormalParameter() ||
+        graph.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
+        graph.arena.call_target_kinds[root] != SemanticCallTargetNone() {
+        return invalid;
+    }
+    let index_root: Int = graph.arena.topology.right_children[root];
+    if index_root < 1 || index_root >= root { return invalid; }
+    let literal: String = "";
+    if graph.arena.topology.node_kinds[index_root] ==
+            AstExpressionNodeIntegerLiteral() {
+        literal = graph.arena.node_texts[index_root];
+        if !DirectMirScalarCfgCanonicalInt(literal) { return invalid; }
+    }
+    return DirectMirScalarProgramIndexedAssignmentTargetFact(
+        true, graph.arena.identities.binding_ordinals[0], index_root, literal);
+}
+func DirectMirScalarProgramIndexedAssignmentFactSetFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    routine_ordinal: Int
+) -> DirectMirScalarProgramIndexedAssignmentFactSet {
+    let invalid: DirectMirScalarProgramIndexedAssignmentFactSet =
+        DirectMirScalarProgramIndexedAssignmentFactSetInvalid();
+    if !index.valid || !DirectMirRoutineSignatureFactReady(signature) ||
+        !DirectMirScalarProgramArrayIntValueResultFactReady(
+            array_int_value_result) ||
+        (!DirectMirScalarProgramArrayStringAbiFactReady(array_string_abi) &&
+         !DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
+            array_string_abi)) ||
+        signature.source_syntax_id != ToInt(index.source_syntax_id) {
+        return invalid;
+    }
+    let globals: Array<Int> = []; let parameters: Array<Int> = [];
+    let element_types: Array<String> = []; let index_roots: Array<Int> = [];
+    let indices: Array<String> = []; let prefixes: Array<Int> = [];
+    let previous_results: Array<String> = [];
+    let parameter: Int = 0;
+    while parameter < signature.param_count {
+        ArrayPush(previous_results, ""); parameter = parameter + 1;
+    }
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let kind: String = admitted.routines.instruction_kinds[global];
+        let source: String = admitted.routines.instruction_source_types[global];
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global);
+        if !capture.valid { return invalid; }
+        if kind == "def" && source == "AST_ASSIGNMENT" &&
+                capture.arg1 == "inout_param" &&
+                (capture.abi_type_name == CompilerAbiLayoutArrayIntTypeName() ||
+                 capture.abi_type_name == CompilerAbiLayoutArrayStringTypeName()) {
+            let instruction_fact: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                admitted.routines.instruction_starts[global],
+                admitted.routines.instruction_ends[global]);
+            let target: MirExpressionGraphSequence =
+                DirectMirScalarCfgInstructionGraphAt(
+                    instruction_fact, "expr1_graph");
+            let target_fact:
+                DirectMirScalarProgramIndexedAssignmentTargetFact =
+                DirectMirScalarProgramIndexedAssignmentTargetFactFrom(
+                    target, capture.arg0);
+            let ordinal: Int = target_fact.parameter_ordinal;
+            if capture.name != "ssa-def" || capture.result == "" ||
+                capture.arg0 == "" ||
+                !target_fact.valid ||
+                ordinal < 0 || ordinal >= signature.param_count ||
+                signature.parameters.names[ordinal] != capture.arg0 ||
+                capture.abi_type_name !=
+                    signature.parameters.type_names[ordinal] ||
+                signature.parameters.carriages[ordinal] != "value-result" ||
+                signature.parameters.resources[ordinal] != "none" ||
+                signature.parameters.pass_shapes[ordinal] != "direct" ||
+                !signature.parameters.abi_required[ordinal] ||
+                !MirSsaNameMatches(capture.result, capture.arg0, false) ||
+                (signature.parameters.type_names[ordinal] !=
+                    CompilerAbiLayoutArrayIntTypeName() &&
+                 signature.parameters.type_names[ordinal] !=
+                    CompilerAbiLayoutArrayStringTypeName()) {
+                return invalid;
+            }
+            let element_type: String = CompilerAbiLayoutIntTypeName();
+            if signature.parameters.type_names[ordinal] ==
+                    CompilerAbiLayoutArrayIntTypeName() {
+                if !DirectMirScalarProgramArrayIntValueResultAt(
+                        array_int_value_result, routine_ordinal, ordinal) {
+                    return invalid;
+                }
+            } else {
+                element_type = CompilerAbiLayoutStringTypeName();
+                if !DirectMirScalarProgramArrayStringValueResultAt(
+                        array_string_abi, routine_ordinal, ordinal) {
+                    return invalid;
+                }
+            }
+            let prefix: Int = 0;
+            let previous: String = previous_results[ordinal];
+            if previous != "" {
+                let first: Option<String> =
+                    MirRoutineInstructionUseAtGlobal(uses, global, 0);
+                if !IsSome(first) || UnwrapOption(first) != previous {
+                    return invalid;
+                }
+                prefix = 1;
+            }
+            let repeated_previous: Int = 0;
+            let use_row: Int = 0;
+            while use_row < MirRoutineInstructionUseCountAtGlobal(
+                    uses, global) {
+                let use_fact: Option<String> =
+                    MirRoutineInstructionUseAtGlobal(uses, global, use_row);
+                if !IsSome(use_fact) { return invalid; }
+                if previous != "" && UnwrapOption(use_fact) == previous {
+                    repeated_previous = repeated_previous + 1;
+                }
+                use_row = use_row + 1;
+            }
+            if (previous == "" && repeated_previous != 0) ||
+                (previous != "" && repeated_previous != 1) {
+                return invalid;
+            }
+            ArrayPush(globals, global); ArrayPush(parameters, ordinal);
+            ArrayPush(element_types, element_type);
+            ArrayPush(index_roots, target_fact.index_root);
+            ArrayPush(indices, target_fact.index_literal);
+            ArrayPush(prefixes, prefix);
+            previous_results[ordinal] = capture.result;
+        }
+        instruction = instruction + 1;
+    }
+    return DirectMirScalarProgramIndexedAssignmentFactSet(
+        true, globals, parameters, element_types, index_roots,
+        indices, prefixes);
+}
+func DirectMirScalarProgramIndexedAssignmentFactAtGlobal(
+    ref facts: DirectMirScalarProgramIndexedAssignmentFactSet, global: Int
+) -> DirectMirScalarProgramIndexedAssignmentFact {
+    let invalid: DirectMirScalarProgramIndexedAssignmentFact =
+        DirectMirScalarProgramIndexedAssignmentFactInvalid();
+    if !facts.valid || ArrayLength(facts.global_rows) !=
+            ArrayLength(facts.parameter_ordinals) ||
+        ArrayLength(facts.global_rows) != ArrayLength(facts.element_types) ||
+        ArrayLength(facts.global_rows) != ArrayLength(facts.index_roots) ||
+        ArrayLength(facts.global_rows) != ArrayLength(facts.index_literals) ||
+        ArrayLength(facts.global_rows) !=
+            ArrayLength(facts.use_prefix_counts) { return invalid; }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(facts.global_rows) {
+        if facts.global_rows[row] == global {
+            if found >= 0 { return invalid; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { return invalid; }
+    return DirectMirScalarProgramIndexedAssignmentFact(
+        true, global, facts.parameter_ordinals[found],
+        facts.element_types[found], facts.index_roots[found],
+        facts.index_literals[found], facts.use_prefix_counts[found]);
+}
+func DirectMirScalarProgramIndexedAssignmentOwnsDefinition(ref facts:
+    DirectMirScalarProgramIndexedAssignmentFactSet, global: Int) -> Bool {
+    return DirectMirScalarProgramIndexedAssignmentFactAtGlobal(
+        facts, global).valid;
+}

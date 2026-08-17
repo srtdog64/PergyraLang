@@ -103,6 +103,10 @@ assert projection.count("if index ==") == 51
 assert "struct IntentObservabilityAbiRow" in projection
 assert "IntentObservabilityAbiRowAt(-1).valid" in projection
 assert "IntentObservabilityAbiRowAt(IntentObservabilityAbiCount()).valid" in projection
+assert "func IntentObservabilityAbiRowForSource(" in projection
+assert "if row.source_name == source_name { return row; }" in projection
+assert "func IntentObservabilityAbiRowForId(" in projection
+assert "if row.runtime_call_abi_id == runtime_call_abi_id { return row; }" in projection
 assert "runtime_call_abi_id != i + 1" not in projection
 for retired in (
     "IntentObservabilityAbiStableIdAt",

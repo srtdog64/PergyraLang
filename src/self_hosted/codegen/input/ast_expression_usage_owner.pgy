@@ -6,6 +6,7 @@
 // runtime/header usage can consume a fact row instead of reopening payloads.
 
 import "../../semantic/ast_expression_surface_query_owner.pgy";
+import "../../lib/intent_observability_abi_projection_owner.pgy";
 import "../text/text_owner.pgy";
 
 struct CodegenExpressionUsageFacts {
@@ -31,6 +32,7 @@ struct CodegenExpressionUsageFacts {
     let has_random_value: Bool;
     let has_seed_random: Bool;
     let has_artifact_transaction: Bool;
+    let has_intent_observability: Bool;
     let has_none: Bool;
     let has_checked_int_cast: Bool;
     let has_checked_long_cast: Bool;
@@ -79,6 +81,7 @@ func CodegenUsageBuiltinGroupFloat() -> Int { return 19; }
 func CodegenUsageBuiltinGroupRandomValue() -> Int { return 20; }
 func CodegenUsageBuiltinGroupSeedRandom() -> Int { return 21; }
 func CodegenUsageBuiltinGroupArtifactTransaction() -> Int { return 22; }
+func CodegenUsageBuiltinGroupIntentObservability() -> Int { return 23; }
 
 func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     if group == CodegenUsageBuiltinGroupArgs() { return 1; }
@@ -103,6 +106,9 @@ func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     if group == CodegenUsageBuiltinGroupRandomValue() { return 1; }
     if group == CodegenUsageBuiltinGroupSeedRandom() { return 1; }
     if group == CodegenUsageBuiltinGroupArtifactTransaction() { return 4; }
+    if group == CodegenUsageBuiltinGroupIntentObservability() {
+        return IntentObservabilityAbiCount();
+    }
     return 0;
 }
 
@@ -205,6 +211,10 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
         if index == 2 { return "CompilerArtifactCommit"; }
         if index == 3 { return "CompilerArtifactWrite"; }
     }
+    if group == CodegenUsageBuiltinGroupIntentObservability() {
+        let row: IntentObservabilityAbiRow = IntentObservabilityAbiRowAt(index);
+        if row.valid { return row.source_name; }
+    }
     return "";
 }
 
@@ -256,7 +266,7 @@ func CodegenExpressionSurfaceUsagePresenceFromSemantic(
 ) -> CodegenExpressionSurfaceUsagePresence {
     let groups: Array<Bool> = [];
     let group: Int = 0;
-    while group <= CodegenUsageBuiltinGroupArtifactTransaction() {
+    while group <= CodegenUsageBuiltinGroupIntentObservability() {
         ArrayPush(groups, false);
         group = group + 1;
     }
@@ -268,7 +278,7 @@ func CodegenExpressionSurfaceUsagePresenceFromSemantic(
             has_none = true;
         }
         group = CodegenUsageBuiltinGroupArgs();
-        while group <= CodegenUsageBuiltinGroupArtifactTransaction() {
+        while group <= CodegenUsageBuiltinGroupIntentObservability() {
             if !groups[group] {
                 let callee_index: Int = 0;
                 while callee_index < CodegenUsageBuiltinGroupCalleeCount(group) &&
@@ -353,6 +363,7 @@ func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurface
         surface.groups[CodegenUsageBuiltinGroupRandomValue()],
         surface.groups[CodegenUsageBuiltinGroupSeedRandom()],
         surface.groups[CodegenUsageBuiltinGroupArtifactTransaction()],
+        surface.groups[CodegenUsageBuiltinGroupIntentObservability()],
         surface.has_none,
         graph.has_checked_int_cast,
         graph.has_checked_long_cast,
@@ -361,7 +372,7 @@ func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurface
 }
 
 func CodegenExpressionUsageKnownGroup(group: Int) -> Result<Int> {
-    if group >= CodegenUsageBuiltinGroupArgs() && group <= CodegenUsageBuiltinGroupArtifactTransaction() {
+    if group >= CodegenUsageBuiltinGroupArgs() && group <= CodegenUsageBuiltinGroupIntentObservability() {
         return Ok(group);
     }
     return Err("unknown expression usage builtin group");
@@ -395,6 +406,7 @@ func CodegenExpressionUsageGroupPresent(facts: CodegenExpressionUsageFacts, grou
     if known_group == CodegenUsageBuiltinGroupRandomValue() { return facts.has_random_value; }
     if known_group == CodegenUsageBuiltinGroupSeedRandom() { return facts.has_seed_random; }
     if known_group == CodegenUsageBuiltinGroupArtifactTransaction() { return facts.has_artifact_transaction; }
+    if known_group == CodegenUsageBuiltinGroupIntentObservability() { return facts.has_intent_observability; }
     return false;
 }
 

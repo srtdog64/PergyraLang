@@ -1,0 +1,85 @@
+import "../../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
+import "../../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../../src/self_hosted/compiler/canonical_mir_source_module_epoch_owner.pgy";
+
+func Main() -> Void with caps io_read {
+    let wrong_path: String = "tests/self_hosted/semantic/fixture/compiler_retire_array_storage_owner_impersonation_rejected.pgy";
+    let wrong_artifact: AstTreeArtifact = ParseRootProgramArtifact(wrong_path);
+    let wrong_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(wrong_artifact, false);
+    if !wrong_analysis.verdict.ok {
+        Log(Concat("wrong-analysis:", wrong_analysis.verdict.diagnostic_code));
+        Exit(1);
+    }
+    let wrong_body: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAdmittedAnalysis(
+            wrong_artifact, wrong_analysis
+        );
+    if wrong_body.verdict.ok ||
+        wrong_body.verdict.diagnostic_code != "compiler_internal_builtin" {
+        Log(Concat("wrong-body:", wrong_body.verdict.diagnostic_code));
+        Exit(1);
+    }
+
+    let owner_path: String = "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy";
+    let owner_artifact: AstTreeArtifact = ParseRootProgramArtifact(owner_path);
+    let owner_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(owner_artifact, false);
+    if !owner_analysis.verdict.ok {
+        Log(Concat("owner-analysis:", owner_analysis.verdict.diagnostic_code));
+        Exit(1);
+    }
+    let index: Int = 0;
+    let found: Bool = false;
+    while index < SemanticAstFunctionSignatureCount(owner_analysis.signatures) {
+        let name: Option<String> = SemanticAstFunctionNameAt(
+            owner_analysis.signatures, index
+        );
+        if IsSome(name) && UnwrapOption(name) ==
+            "SelfMirRoutineBuildStorageRetireAfterLastConsumer" {
+            let module_path: Option<String> = SemanticAstFunctionModulePathAt(
+                owner_analysis.signatures, index
+            );
+            if !IsSome(module_path) || UnwrapOption(module_path) != owner_path {
+                Log("owner-module-path-mismatch");
+                Exit(1);
+            }
+            found = true;
+        }
+        index = index + 1;
+    }
+    if !found {
+        Log("owner-signature-missing");
+        Exit(1);
+    }
+    let mir_artifact: AstTreeArtifact =
+        CanonicalMirIdentityArtifactBindSourceModules(
+            AstTreeArtifactFromText(owner_artifact.tree_text),
+            owner_artifact.source_modules.module_paths
+        );
+    let mir_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(mir_artifact, false);
+    if !mir_analysis.verdict.ok {
+        Log(Concat("mir-analysis:", mir_analysis.verdict.diagnostic_code));
+        Exit(1);
+    }
+    let mir_body: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAdmittedAnalysis(
+            mir_artifact, mir_analysis
+        );
+    if !mir_body.verdict.ok {
+        Log(Concat("mir-body:", mir_body.verdict.diagnostic_code));
+        Exit(1);
+    }
+    let missing_paths: Array<String> = [];
+    let missing_artifact: AstTreeArtifact =
+        CanonicalMirIdentityArtifactBindSourceModules(
+            AstTreeArtifactFromText(owner_artifact.tree_text), missing_paths
+        );
+    if AstTreeArtifactReady(missing_artifact) {
+        Log("mir-missing-module-path-admitted");
+        Exit(1);
+    }
+    Log("compiler-internal artifact provenance: ok");
+}

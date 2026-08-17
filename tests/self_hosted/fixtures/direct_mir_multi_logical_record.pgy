@@ -1,0 +1,162 @@
+// Three callable-referenced logical records retain declaration identity.
+
+struct ProbeFact {
+    valid: Bool;
+    count: Int;
+    target_found: Bool;
+    target_value: String;
+}
+
+// An unreferenced same-shape declaration is not admitted into the inventory.
+struct UnusedFact {
+    ready: Bool;
+    ordinal: Int;
+    present: Bool;
+    text: String;
+}
+
+// This declaration appears only as a source-local/instruction ABI type. The
+// program inventory must discover it from the admitted instruction receipt,
+// not from a callable signature or constructor spelling.
+struct LocalTableFact {
+    valid: Bool;
+    json: String;
+    start: Int;
+    end: Int;
+}
+
+struct LocalDocumentFact {
+    declarations: LocalTableFact;
+    // This field intentionally collides with the local spelling used below.
+    // Marker classification must use member topology first and declaration
+    // identity at the member node, never a program-global field spelling scan.
+    document: Int;
+}
+
+// These two declarations intentionally have identical field spelling and
+// types. Their declaration rows, target types, constructors, and member reads
+// must remain distinct.
+struct ObjectTableFact {
+    valid: Bool;
+    json: String;
+    start: Int;
+    end: Int;
+}
+
+struct ArrayObjectTableFact {
+    valid: Bool;
+    json: String;
+    start: Int;
+    end: Int;
+}
+
+// A zero-parameter signature may return an admitted logical record. This does
+// not authorize zero-argument call expressions, which have their own owner.
+func EmptyObjectTable() -> ObjectTableFact {
+    return ObjectTableFact(false, "", 0, 0);
+}
+
+func MakeProbe(value: String, count: Int) -> ProbeFact {
+    return ProbeFact(true, count, true, value);
+}
+
+func ProbeText(value: String) -> String {
+    let fact: ProbeFact = MakeProbe(value, 3);
+    if !fact.valid || !fact.target_found {
+        return "missing";
+    }
+    return fact.target_value;
+}
+
+func ProbeCount(wanted_count: Int) -> Int {
+    let count_fact: ProbeFact = MakeProbe("ok", wanted_count);
+    if !count_fact.valid { return 0; }
+    return count_fact.count;
+}
+
+func MakeObjectTable(json: String, start: Int) -> ObjectTableFact {
+    return ObjectTableFact(true, json, start, 7);
+}
+
+func ObjectTableReady(ref table: ObjectTableFact) -> Bool {
+    return table.valid;
+}
+
+func ObjectTableJson(json: String) -> String {
+    let object_table: ObjectTableFact = MakeObjectTable(json, 5);
+    if !ObjectTableReady(object_table) { return "missing"; }
+    return object_table.json;
+}
+
+func ObjectTableEnd(table: ObjectTableFact) -> Int { return table.end; }
+
+func NestedObjectTableEnd(json: String) -> Int {
+    return ObjectTableEnd(MakeObjectTable(json, 5));
+}
+
+func ConstructedObjectTableEnd(json: String) -> Int {
+    return ObjectTableEnd(ObjectTableFact(true, json, 5, 8));
+}
+
+func MakeArrayObjectTable(json: String, end: Int) -> ArrayObjectTableFact {
+    return ArrayObjectTableFact(true, json, 6, end);
+}
+
+func ArrayObjectTableReady(ref table: ArrayObjectTableFact) -> Bool {
+    return table.valid;
+}
+
+func ArrayObjectTableEnd(end: Int) -> Int {
+    let array_table: ArrayObjectTableFact = MakeArrayObjectTable("array", end);
+    if !ArrayObjectTableReady(array_table) { return 0; }
+    return array_table.end;
+}
+
+func LocalTableJson(json: String) -> String {
+    let table: LocalTableFact = LocalTableFact(true, json, 2, 8);
+    if !table.valid { return "missing"; }
+    return table.json;
+}
+
+func LocalTableReady(ref table: LocalTableFact) -> Bool {
+    return table.valid;
+}
+
+func NestedLocalTableReady(value: String) -> Bool {
+    let document: LocalDocumentFact = LocalDocumentFact(
+        LocalTableFact(true, value, 2, 8), 0);
+    return LocalTableReady(document.declarations);
+}
+
+func NestedLocalTableEnd(value: String) -> Int {
+    // A source local deliberately shares the spelling of the member selector
+    // below. Only the receiver is an SSA use of that member expression.
+    let json: String = value;
+    let base: LocalTableFact = LocalTableFact(true, json, 2, 8);
+    let document: LocalDocumentFact = LocalDocumentFact(base, 0);
+    let extended: LocalTableFact = LocalTableFact(
+        true, document.declarations.json, document.declarations.start,
+        document.declarations.end + 1);
+    return extended.end;
+}
+
+func InlineNestedLocalTableEnd(value: String) -> Int {
+    let json: String = value;
+    let document: LocalDocumentFact = LocalDocumentFact(
+        LocalTableFact(true, json, 2, 8), 0);
+    return document.declarations.end;
+}
+
+func Main() -> Void {
+    Log(ProbeText("ok"));
+    Log(ToString(ProbeCount(3)));
+    Log(ObjectTableJson("object"));
+    Log(ToString(NestedObjectTableEnd("nested-object")));
+    Log(ToString(ConstructedObjectTableEnd("constructed-object")));
+    Log(ToString(ArrayObjectTableEnd(9)));
+    Log(LocalTableJson("local"));
+    Log(ToString(NestedLocalTableEnd("nested")));
+    Log(ToString(InlineNestedLocalTableEnd("inline")));
+    if NestedLocalTableReady("member") { Log("member-ref"); }
+    else { Log("missing-member-ref"); }
+}

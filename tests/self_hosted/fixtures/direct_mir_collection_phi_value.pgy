@@ -1,0 +1,26 @@
+func SelectCollections(choose: Bool) -> Int {
+    let names: Array<String> = ["a"];
+    let numbers: Array<Int> = [1];
+    if choose {
+        names = ["b"];
+        numbers = [2];
+    }
+    Log(names[0]);
+    return numbers[0];
+}
+
+func UpdateNames(inout names: Array<String>, limit: Int) -> Void {
+    let index: Int = 0;
+    while index < limit {
+        let value: String = Concat("", "b");
+        names[index] = value;
+        index = index + 1;
+    }
+}
+
+func Main() -> Void {
+    let names: Array<String> = StringSplit("a", ",");
+    UpdateNames(names, 1);
+    Log(names[0]);
+    Log(ToString(SelectCollections(true)));
+}

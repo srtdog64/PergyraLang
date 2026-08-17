@@ -1,0 +1,102 @@
+// Option<Int> try-let admission from semantic graph and callable facts.
+import "direct_mir_scalar_program_expression_admission_owner.pgy";
+import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+
+func DirectMirScalarProgramInstructionExpressionRootKind(
+    ref instruction: JsonObjectFactTable
+) -> Int {
+    let sequence: MirExpressionGraphSequence =
+        DirectMirScalarCfgExpressionSequence(instruction);
+    if !sequence.ok || ArrayLength(sequence.roots) != 1 { return -1; }
+    let root: Int = sequence.roots[0];
+    if root < 0 || root >= ArrayLength(
+            sequence.arena.topology.node_kinds) { return -1; }
+    return sequence.arena.topology.node_kinds[root];
+}
+func DirectMirScalarProgramInstructionHasTryRoot(
+    ref instruction: JsonObjectFactTable
+) -> Bool {
+    return DirectMirScalarProgramInstructionExpressionRootKind(instruction) ==
+        AstExpressionNodeTry();
+}
+
+func DirectMirScalarProgramOptionIntTrySignatureReady(
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.return_type != CompilerAbiLayoutOptionIntTypeName() {
+        return false;
+    }
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        if signature.parameters.carriages[ordinal] == "value-result" {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramOptionIntTryRoutineReady(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(routines.return_types) ||
+        routines.return_types[routine] != CompilerAbiLayoutOptionIntTypeName() {
+        return false;
+    }
+    let parameter: Int = routines.parameter_starts[routine];
+    let end: Int = parameter + routines.parameter_counts[routine];
+    while parameter < end {
+        if routines.parameter_carriages[parameter] == "value-result" {
+            return false;
+        }
+        parameter = parameter + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramAppendOptionIntTryOperand(
+    inout expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, parameter_types: Array<String>,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref signature: DirectMirRoutineSignatureFact,
+    result_type: String
+) -> Option<Int> {
+    if result_type != CompilerAbiLayoutIntTypeName() ||
+        !DirectMirScalarProgramOptionIntTrySignatureReady(signature) {
+        return None;
+    }
+    let expression_row: Int = ArrayLength(expressions.graph_starts); let use_offset: Int = 0;
+    let admission: DirectMirScalarProgramExpressionAdmission =
+        DirectMirScalarProgramAppendExpression(
+            expressions, instruction, uses, global_row, local_instruction,
+            locals, types, wire, local_offset, parameter_types, signature,
+            callables, logical_record, payload_free_enum,
+            "expr0_graph", use_offset, true,
+            CompilerAbiLayoutOptionIntTypeName(), true, -1
+        );
+    if !admission.valid {
+        if !failure.present { failure = admission.failure; } return None;
+    }
+    let appended: DirectMirScalarProgramExpressionSet = admission.facts;
+    if ArrayLength(appended.graph_starts) != expression_row + 1 {
+        if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("try-cardinality", -1); }
+        return None;
+    }
+    if appended.node_types[appended.graph_roots[expression_row]] !=
+            CompilerAbiLayoutOptionIntTypeName() {
+        if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("try-type", appended.graph_roots[expression_row]); }
+        return None;
+    }
+    expressions = appended;
+    return Some(expression_row);
+}

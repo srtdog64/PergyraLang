@@ -508,6 +508,7 @@ func EmitCanonicalDeclRow(
 func EmitStructDecls(
     ref routines: MirProgramRoutineIndex,
     observe_pressure: Bool,
+    inout source_module_paths: Array<String>,
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
@@ -574,6 +575,10 @@ func EmitStructDecls(
                     expression_order, abi_validation
                 );
                 ArrayPush(chunks, decl_text);
+                ArrayPush(
+                    source_module_paths,
+                    routines.declarations.source_module_paths[row]
+                );
                 if observe_pressure {
                     Log(Concat(
                         "[driver-pressure-stage] consumer:mir-to-ast:declaration:done:",

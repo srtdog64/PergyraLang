@@ -10,11 +10,23 @@ func DirectMirScalarProgramCStringWindowMaterialization(
     if abi.string_length_id != 0 {
         output = Concat(output, StringRuntimeCStringLengthBlock());
     }
+    if abi.string_char_code_id != 0 {
+        output = Concat(output, StringRuntimeCCharCodeBlock());
+    }
+    if abi.string_char_at_n_id != 0 {
+        output = Concat(output, StringRuntimeCCharAtNBlock());
+    }
     if abi.string_substring_id != 0 {
         output = Concat(output, StringRuntimeCSubstringBlock());
     }
     if abi.string_substring_with_len_id != 0 {
         output = Concat(output, StringRuntimeCSubstringWithLenBlock());
+    }
+    if abi.string_sub_index_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubIndexOfWithLenBlock());
+    }
+    if abi.string_sub_equals_with_len_id != 0 {
+        output = Concat(output, StringRuntimeCSubEqualsWithLenBlock());
     }
     return output;
 }

@@ -10,6 +10,8 @@ native_writer = root / "src/compiler/mir_json_dump_intent_execution.c"
 native_digest = root / "src/compiler/mir_intent_execution.c"
 native_graph = root / "src/compiler/mir_intent_execution_graph.c"
 native_validator = root / "src/compiler/mir_intent_execution_validate.c"
+native_c_consumer = root / "src/codegen/transpiler_intent_typed_execution.c"
+native_llvm_consumer = root / "src/codegen/llvm_intent_typed_execution.c"
 self_root = root / "src/self_hosted"
 self_schema = self_root / "mir/intent_execution_schema_owner.pgy"
 self_fact = self_root / "mir/intent_execution_fact_owner.pgy"
@@ -21,7 +23,7 @@ def require_terms(path, terms):
     assert not missing, (path, missing)
     return text
 
-require_terms(native_schema, ["pgy.selfhost.mir-intent-execution-plan.v2"])
+require_terms(native_schema, ["pgy.selfhost.mir-intent-execution-plan.v3"])
 require_terms(native_writer, [
     r'\"has_predecessor\":%s',
     r'\"compensations\":[',
@@ -30,6 +32,8 @@ require_terms(native_writer, [
     "failure_payload_decl_syntax_id",
     "source_payload_decl_syntax_id",
     "result_payload_decl_syntax_id",
+    "where_zone_name",
+    "where_zone_syntax_id",
     "mir_intent_execution_program_digest(mir)",
 ])
 native_execution_text = require_terms(native_digest, [
@@ -42,6 +46,7 @@ native_execution_text = require_terms(native_digest, [
     "intent_execution_materialize_step(",
     "intent_execution_set_branch(",
     "intent_execution_set_goto(",
+    "dir->nodes[step->where_type_node_id].source_syntax_id",
 ])
 require_terms(native_graph, [
     "intent_execution_materialize_step",
@@ -64,19 +69,32 @@ for forbidden in (
 validator_text = require_terms(native_validator, [
     "intent_execution_tobject_by_identity", "branch->payload_decl_syntax_id",
     "row->result_payload_decl_syntax_id",
+    "step->where_zone_syntax_id", "AST_ZONE_DECL",
 ])
 assert "intent_execution_tobject_by_name" not in validator_text
+require_terms(native_c_consumer, [
+    "pgy_intent_trace_step_export",
+    "row->step_name, row->where_zone_name",
+])
+require_terms(native_llvm_consumer, [
+    'llvm_lookup_function(ctx, "pgy_intent_trace_step_export")',
+    "row->step_name, row->where_zone_name",
+])
 require_terms(self_schema, [
-    "pgy.selfhost.mir-intent-execution-plan.v2",
+    "pgy.selfhost.mir-intent-execution-plan.v3",
     "success_payload_decl_syntax_ids",
     "failure_payload_decl_syntax_ids",
     "source_payload_decl_syntax_ids",
     "result_payload_decl_syntax_ids",
+    "where_zone_names",
+    "where_zone_syntax_ids",
 ])
 identity_text = require_terms(self_identity, [
     "name: String, source_syntax_id: Int",
     "declarations.source_syntax_ids[row] == source_syntax_id",
     "payload_decl_syntax_id: Int",
+    "MirIntentExecutionZoneDeclarationReady",
+    'declarations.nominal_kinds[row] == "zone"',
 ])
 assert "name: String\n) -> Bool" not in identity_text
 for term in (
@@ -117,6 +135,12 @@ assert calls[0][0].name == "machine_layer_fact_owner.pgy", calls
 
 admission_owner = self_root / "mir_lower/intent_execution_plan_fact_owner.pgy"
 admission_text = admission_owner.read_text(encoding="utf-8")
+for required in (
+    "MirIntentExecutionZoneDeclarationReady(",
+    "plan.steps.where_zone_names[step]",
+    "plan.steps.where_zone_syntax_ids[step]",
+):
+    assert required in admission_text, required
 for forbidden in (
     "MirIntentExecutionPlanFromFacts(",
     "MirIntentExecutionPlanDigest(",

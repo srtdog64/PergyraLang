@@ -1,6 +1,7 @@
 // LLVM cleanup selected by sealed Array<String> element ownership.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 
 func DirectMirScalarProgramLlvmStringArrayCleanup(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
@@ -14,9 +15,9 @@ func DirectMirScalarProgramLlvmStringArrayCleanup(
             let borrowed: Bool = plan.program.array_string_boundary.valid &&
                 plan.program.array_string_boundary.literal_local_row == row;
             if !borrowed {
-                output = Concat(output, Concat(
-                    "  call void @pgy_as_drop(ptr %pgy.local.",
-                    Concat(ToString(row), ")\n")));
+                output = Concat(output, Concat("  call void @", Concat(
+                    CollectionRuntimeCOwnedStringDropFn(),
+                    Concat("(ptr %pgy.local.", Concat(ToString(row), ")\n")))));
             }
         }
         row = row + 1;

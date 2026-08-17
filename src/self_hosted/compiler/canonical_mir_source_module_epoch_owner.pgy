@@ -1,0 +1,26 @@
+// Canonical MIR source-module provenance reconstruction.
+//
+// MIR rows carry parser-owned module paths across the wire. This owner binds
+// those paths to the reconstructed top-level declarations and reseals the AST
+// identity digest; callers never invent an unknown or name-derived module.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_source_module_fact_owner.pgy";
+
+func CanonicalMirIdentityArtifactBindSourceModules(
+    artifact: AstTreeArtifact,
+    source_module_paths: Array<String>
+) -> AstTreeArtifact {
+    let source_modules: AstSourceModuleFacts =
+        AstSourceModuleFactsFromTopLevelPaths(
+            artifact.arena, source_module_paths
+        );
+    return AstTreeArtifact(
+        artifact.tree_text, artifact.arena, artifact.count,
+        artifact.expression_graphs, source_modules,
+        AstTreeArtifactIdentityDigest(
+            artifact.tree_text, artifact.count, artifact.expression_graphs,
+            source_modules
+        )
+    );
+}

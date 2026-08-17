@@ -8,12 +8,39 @@ func DirectMirScalarProgramRuntimeRequiresMaterialization(
 ) -> Bool {
     return abi.string_to_string_id != 0 || abi.string_to_upper_id != 0 ||
         abi.string_to_lower_id != 0 || abi.string_length_id != 0 ||
+        abi.string_char_code_id != 0 ||
+        abi.string_char_at_n_id != 0 ||
         abi.string_substring_id != 0 ||
         abi.string_substring_with_len_id != 0 ||
+        abi.string_sub_equals_with_len_id != 0 ||
+        abi.string_sub_index_with_len_id != 0 ||
         abi.string_index.runtime_call_abi_id != 0 ||
         abi.string_trim.runtime_call_abi_id != 0 ||
         abi.string_contains_id != 0 || abi.string_split_id != 0 ||
+        abi.string_join_id != 0 ||
         abi.string_to_int_id != 0 || abi.array_string_length_id != 0 ||
         abi.array_string_get_id != 0 ||
         DirectMirScalarProgramCaseMathRuntimeRequired(abi.case_math);
+}
+
+func DirectMirScalarProgramSetStringRuntimeHeaderRequired(
+    local_types: Array<String>, parameter_types: Array<String>,
+    return_types: Array<String>
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(local_types) {
+        if local_types[row] == CompilerAbiLayoutSetStringTypeName() { return true; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(parameter_types) {
+        if parameter_types[row] == CompilerAbiLayoutSetStringTypeName() { return true; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(return_types) {
+        if return_types[row] == CompilerAbiLayoutSetStringTypeName() { return true; }
+        row = row + 1;
+    }
+    return false;
 }

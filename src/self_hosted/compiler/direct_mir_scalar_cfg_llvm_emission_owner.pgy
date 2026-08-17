@@ -21,6 +21,7 @@ func DirectMirScalarCfgEmitLlvm(
     formatted_print: CompilerRuntimeCallAbiFact,
     concat: CompilerRuntimeCallAbiFact,
     compare: CompilerRuntimeCallAbiFact,
+    process_exit: CompilerRuntimeCallAbiFact,
     int_line_format: String,
     string_line_format: String,
     target: CompilerTargetProjectionFact
@@ -40,7 +41,7 @@ func DirectMirScalarCfgEmitLlvm(
             Die("direct MIR scalar CFG program LLVM runtime ABI is invalid");
         }
         return DirectMirScalarCfgEmitProgramLlvm(
-            plan, formatted_print, runtime, int_line_format,
+            plan, formatted_print, process_exit, runtime, int_line_format,
             string_line_format, target
         );
     }

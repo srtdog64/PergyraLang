@@ -1,0 +1,8 @@
+func ConsumeArgs(args: Array<String>) -> Void {
+    Log(args[0]);
+    Log(ToString(ArrayLength(args)));
+}
+
+func Main() -> Void {
+    ConsumeArgs(Args());
+}

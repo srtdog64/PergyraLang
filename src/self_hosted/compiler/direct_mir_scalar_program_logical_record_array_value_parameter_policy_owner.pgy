@@ -1,0 +1,57 @@
+// Exact by-value Array<Record> parameter policy for admitted value producers.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    let return_ready: Bool = signature.return_type ==
+            CompilerAbiLayoutArrayIntTypeName() ||
+        signature.return_type == CompilerAbiLayoutBoolTypeName() ||
+        DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, signature.return_type);
+    if !DirectMirRoutineSignatureFactReady(signature) || !return_ready ||
+        signature.param_count < 2 {
+        return false;
+    }
+    let record_array_count: Int = 0;
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        let type_name: String = signature.parameters.type_names[ordinal];
+        if DirectMirScalarProgramLogicalRecordArrayTypeReady(
+                logical_record, type_name) {
+            if signature.parameters.carriages[ordinal] != "value" ||
+                signature.parameters.resources[ordinal] != "none" ||
+                signature.parameters.pass_shapes[ordinal] != "direct" ||
+                signature.parameters.abi_required[ordinal] ||
+                signature.parameters.abi_layout_ids[ordinal] != 0 {
+                return false;
+            }
+            record_array_count = record_array_count + 1;
+        } else if !DirectMirScalarCfgScalarTypeSupported(type_name) ||
+            signature.parameters.carriages[ordinal] != "value" ||
+            signature.parameters.resources[ordinal] != "none" ||
+            signature.parameters.pass_shapes[ordinal] != "direct" ||
+            signature.parameters.abi_required[ordinal] ||
+            signature.parameters.abi_layout_ids[ordinal] != 0 {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return record_array_count == 1;
+}
+
+func DirectMirScalarProgramLogicalRecordArrayValueParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            logical_record, signature.parameters.type_names[ordinal]) &&
+        signature.parameters.carriages[ordinal] == "value" &&
+        DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(
+            signature, logical_record);
+}

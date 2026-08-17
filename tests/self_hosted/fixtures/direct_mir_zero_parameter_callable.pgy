@@ -1,0 +1,13 @@
+// An unreachable zero-parameter scalar callable remains part of the program.
+
+func Schema() -> String {
+    return "schema";
+}
+
+func Echo(value: String) -> String {
+    return value;
+}
+
+func Main() -> Void {
+    Log(Echo("ok"));
+}

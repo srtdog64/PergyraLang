@@ -1,0 +1,14 @@
+// Namespace-internal short spelling resolves by carried SyntaxNodeId.
+namespace InternalNames {
+    export func Fact1(key: String, value: String) -> String {
+        return "${key}:${value}";
+    }
+
+    export func Fact2(key: String, value: String) -> String {
+        return Fact1(key, value);
+    }
+}
+
+func Main() -> Void {
+    Log(InternalNames.Fact2("namespace", "internal-ready"));
+}

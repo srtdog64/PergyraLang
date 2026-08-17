@@ -282,6 +282,27 @@ func MirIntentExecutionTobjectDeclarationReady(
     return matches == 1;
 }
 
+func MirIntentExecutionZoneDeclarationReady(
+    ref declarations: MirIntentExecutionDeclarationIndex,
+    name: String, source_syntax_id: Int
+) -> Bool {
+    if !declarations.valid || name == "" || source_syntax_id <= 0 {
+        return false;
+    }
+    let matches: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(declarations.names) {
+        if declarations.kinds[row] == "class" &&
+            declarations.nominal_kinds[row] == "zone" &&
+            declarations.names[row] == name &&
+            declarations.source_syntax_ids[row] == source_syntax_id {
+            matches = matches + 1;
+        }
+        row = row + 1;
+    }
+    return matches == 1;
+}
+
 func MirIntentExecutionEnumVariantReady(
     ref declarations: MirIntentExecutionDeclarationIndex,
     enum_name: String, enum_syntax_id: Int, variant_index: Int,

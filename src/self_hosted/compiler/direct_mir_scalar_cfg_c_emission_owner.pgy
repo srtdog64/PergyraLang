@@ -18,6 +18,7 @@ func DirectMirScalarCfgEmitC(
     formatted_print: CompilerRuntimeCallAbiFact,
     concat: CompilerRuntimeCallAbiFact,
     compare: CompilerRuntimeCallAbiFact,
+    process_exit: CompilerRuntimeCallAbiFact,
     int_line_format: String,
     string_line_format: String,
     int_c_type: String,
@@ -39,7 +40,7 @@ func DirectMirScalarCfgEmitC(
             Die("direct MIR scalar CFG program C runtime ABI is invalid");
         }
         return DirectMirScalarCfgEmitProgramC(
-            plan, formatted_print, runtime, int_line_format,
+            plan, formatted_print, process_exit, runtime, int_line_format,
             string_line_format, int_c_type, target
         );
     }

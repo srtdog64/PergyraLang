@@ -1,0 +1,204 @@
+// Exact populated Array<Int> literal with ordered admitted Int operands.
+
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+import "direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy";
+import "direct_mir_scalar_program_nested_array_literal_seed_owner.pgy";
+
+func DirectMirScalarProgramNestedArrayIntLiteralOperandRows(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    ref source_rows: Array<Int>,
+    ref normalized_types: Array<String>
+) -> Array<Int> {
+    let reverse_rows: Array<Int> = [];
+    if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeArrayElement() { return reverse_rows; }
+    let cursor: Int = node;
+    while sequence.arena.topology.node_kinds[cursor] ==
+            AstExpressionNodeArrayElement() {
+        let source_left: Int = sequence.arena.topology.left_children[cursor];
+        let source_right: Int = sequence.arena.topology.right_children[cursor];
+        if source_left < 0 || source_left >= cursor || source_right < 0 ||
+            source_right >= cursor || source_right >= ArrayLength(source_rows) ||
+            sequence.arena.call_target_kinds[cursor] != SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[cursor] != "" ||
+            sequence.arena.identities.binding_kinds[cursor] !=
+                SemanticExpressionBindingNone() { return []; }
+        let operand: Int = source_rows[source_right];
+        if operand < 0 || operand >= ArrayLength(normalized_types) ||
+            normalized_types[operand] != CompilerAbiLayoutIntTypeName() {
+            return [];
+        }
+        ArrayPush(reverse_rows, operand);
+        cursor = source_left;
+    }
+    if !DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(
+            sequence, cursor) { return []; }
+    let rows: Array<Int> = [];
+    let row: Int = ArrayLength(reverse_rows);
+    while row > 0 { row = row - 1; ArrayPush(rows, reverse_rows[row]); }
+    return rows;
+}
+
+struct DirectMirScalarProgramArrayIntPopulatedLiteralAdmission {
+    let recognized: Bool;
+    let facts: DirectMirScalarProgramExpressionSet;
+}
+
+func DirectMirScalarProgramAppendArrayIntPopulatedLiteral(
+    facts: DirectMirScalarProgramExpressionSet,
+    ref sequence: MirExpressionGraphSequence,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, local_instruction: Int, local_offset: Int,
+    inout use_offset: Int, expected_type: String,
+    ref locals_plan: DirectMirScalarCfgLocalRefPlan,
+    ref value_types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramArrayIntPopulatedLiteralAdmission {
+    let root: Int = sequence.roots[0];
+    let recognized: Bool = expected_type ==
+            CompilerAbiLayoutArrayIntTypeName() &&
+        sequence.arena.topology.node_kinds[root] ==
+            AstExpressionNodeArrayElement();
+    if !recognized {
+        return DirectMirScalarProgramArrayIntPopulatedLiteralAdmission(
+            false, facts);
+    }
+    let invalid: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetInvalid(facts);
+    let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    if !sequence.ok || sequence.ready_node_count != count || count < 3 ||
+        root != count - 1 ||
+        sequence.arena.topology.node_kinds[0] !=
+            AstExpressionNodeArrayLiteral() ||
+        sequence.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_names[0] != "" ||
+        sequence.arena.identities.binding_kinds[0] !=
+            SemanticExpressionBindingNone() {
+        return DirectMirScalarProgramArrayIntPopulatedLiteralAdmission(
+            true, invalid);
+    }
+    let graph_rows: Array<Int> = facts.graph_global_rows;
+    let starts: Array<Int> = facts.graph_starts;
+    let counts: Array<Int> = facts.graph_counts;
+    let roots: Array<Int> = facts.graph_roots;
+    let kinds: Array<Int> = facts.node_kinds;
+    let types: Array<String> = facts.node_types;
+    let lefts: Array<Int> = facts.node_lefts;
+    let rights: Array<Int> = facts.node_rights;
+    let locals: Array<Int> = facts.node_local_rows;
+    let params: Array<Int> = facts.node_parameter_ordinals;
+    let members: Array<Int> = facts.node_member_ordinals;
+    let literals: Array<String> = facts.node_literals;
+    let callable_rows: Array<Int> = facts.node_callable_rows;
+    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    let nary: DirectMirScalarProgramNaryOperands = facts.nary_operands;
+    let start: Int = ArrayLength(kinds);
+    let operands: Array<Int> = [];
+    let consumed_uses: Int = 0;
+    let prior_spine: Int = 0;
+    let source: Int = 1;
+    while source < count {
+        let operand: DirectMirScalarProgramArrayIntLiteralOperandAdmission =
+            DirectMirScalarProgramArrayIntLiteralOperandFromOwners(
+                sequence, source, uses, global_row,
+                use_offset + consumed_uses, local_instruction, locals_plan,
+                value_types, wire, signature, callables, logical_record);
+        if !operand.valid {
+            return DirectMirScalarProgramArrayIntPopulatedLiteralAdmission(
+                true, invalid);
+        }
+        let normalized_operand: Int = -1;
+        if operand.binary_literal {
+            let left_source: Int = operand.operand_source - 2;
+            let right_source: Int = operand.operand_source - 1;
+            DirectMirScalarProgramAppendExpressionNode(
+                kinds, types, lefts, rights, locals, params, members,
+                literals, callable_rows, runtime_ids,
+                DirectMirScalarProgramExprIntLiteral(),
+                CompilerAbiLayoutIntTypeName(), -1, -1, -1, -1, -1,
+                sequence.arena.node_texts[left_source], -1, -1);
+            let normalized_left: Int = ArrayLength(kinds) - 1;
+            DirectMirScalarProgramAppendExpressionNode(
+                kinds, types, lefts, rights, locals, params, members,
+                literals, callable_rows, runtime_ids,
+                DirectMirScalarProgramExprIntLiteral(),
+                CompilerAbiLayoutIntTypeName(), -1, -1, -1, -1, -1,
+                sequence.arena.node_texts[right_source], -1, -1);
+            let normalized_right: Int = ArrayLength(kinds) - 1;
+            DirectMirScalarProgramAppendExpressionNode(
+                kinds, types, lefts, rights, locals, params, members,
+                literals, callable_rows, runtime_ids, operand.kind,
+                CompilerAbiLayoutIntTypeName(), normalized_left,
+                normalized_right, -1, -1, -1, "", -1, -1);
+            normalized_operand = ArrayLength(kinds) - 1;
+        } else {
+            let normalized_local: Int = -1;
+            if operand.local_row >= 0 {
+                normalized_local = operand.local_row + local_offset;
+            }
+            DirectMirScalarProgramAppendExpressionNode(
+                kinds, types, lefts, rights, locals, params, members,
+                literals, callable_rows, runtime_ids, operand.kind,
+                CompilerAbiLayoutIntTypeName(), -1, -1, normalized_local,
+                operand.parameter_ordinal, -1, operand.literal,
+                operand.callable_ordinal, -1);
+            normalized_operand = ArrayLength(kinds) - 1;
+        }
+        let operand_source: Int = operand.operand_source;
+        let spine_node: Int = operand.spine_node;
+        source = operand.next_source;
+        consumed_uses = consumed_uses + operand.consumed_uses;
+        if sequence.arena.topology.node_kinds[spine_node] !=
+                AstExpressionNodeArrayElement() ||
+            sequence.arena.topology.left_children[spine_node] != prior_spine ||
+            sequence.arena.topology.right_children[spine_node] !=
+                operand_source ||
+            sequence.arena.call_target_kinds[spine_node] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[spine_node] != "" ||
+            sequence.arena.identities.binding_kinds[spine_node] !=
+                SemanticExpressionBindingNone() {
+            return DirectMirScalarProgramArrayIntPopulatedLiteralAdmission(
+                true, invalid);
+        }
+        ArrayPush(operands, normalized_operand);
+        prior_spine = spine_node;
+    }
+    if prior_spine != root ||
+        MirRoutineInstructionUseCountAtGlobal(uses, global_row) !=
+            use_offset + consumed_uses {
+        return DirectMirScalarProgramArrayIntPopulatedLiteralAdmission(
+            true, invalid);
+    }
+    let normalized_left: Int = -1;
+    let normalized_right: Int = -1;
+    if ArrayLength(operands) == 1 { normalized_left = operands[0]; }
+    if ArrayLength(operands) == 2 {
+        normalized_left = operands[0]; normalized_right = operands[1];
+    }
+    DirectMirScalarProgramAppendExpressionNode(
+        kinds, types, lefts, rights, locals, params, members,
+        literals, callable_rows, runtime_ids,
+        DirectMirScalarProgramExprArrayIntPopulatedLiteral(),
+        CompilerAbiLayoutArrayIntTypeName(), normalized_left,
+        normalized_right, -1, -1, -1, "", -1, -1);
+    let normalized_root: Int = ArrayLength(kinds) - 1;
+    if ArrayLength(operands) >= 3 {
+        nary = DirectMirScalarProgramNaryOperandsAppend(
+            nary, normalized_root, operands);
+    }
+    ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
+    ArrayPush(counts, ArrayLength(kinds) - start);
+    ArrayPush(roots, normalized_root);
+    use_offset = use_offset + consumed_uses;
+    return DirectMirScalarProgramArrayIntPopulatedLiteralAdmission(
+        true, DirectMirScalarProgramExpressionSet(
+            true, 0, graph_rows, starts, counts, roots, kinds, types,
+            lefts, rights, locals, params, members, literals, callable_rows,
+            runtime_ids,
+            nary));
+}

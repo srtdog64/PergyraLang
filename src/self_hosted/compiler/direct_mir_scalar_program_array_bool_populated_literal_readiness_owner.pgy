@@ -1,0 +1,72 @@
+// Ordered canonical Bool operands carried by a populated Array<Bool> literal.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayBoolPopulatedLiteralOperandRows(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Array<Int> {
+    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+        facts.nary_operands, node);
+    if ArrayLength(rows) != 0 { return rows; }
+    if facts.node_lefts[node] >= 0 { ArrayPush(rows, facts.node_lefts[node]); }
+    if facts.node_rights[node] >= 0 {
+        ArrayPush(rows, facts.node_rights[node]);
+    }
+    return rows;
+}
+
+func DirectMirScalarProgramArrayBoolPopulatedLiteralNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if facts.node_kinds[node] !=
+            DirectMirScalarProgramExprArrayBoolPopulatedLiteral() ||
+        facts.node_types[node] != CompilerAbiLayoutArrayBoolTypeName() ||
+        facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_member_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 { return false; }
+    let operands: Array<Int> =
+        DirectMirScalarProgramArrayBoolPopulatedLiteralOperandRows(
+            facts, node);
+    if ArrayLength(operands) < 1 { return false; }
+    let nary: Bool = DirectMirScalarProgramNaryOperandEntry(
+        facts.nary_operands, node) >= 0;
+    if nary && (ArrayLength(operands) < 3 ||
+            facts.node_lefts[node] != -1 ||
+            facts.node_rights[node] != -1) { return false; }
+    if !nary && (ArrayLength(operands) > 2 ||
+            facts.node_lefts[node] < 0) { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(operands) {
+        let operand: Int = operands[row];
+        if operand < 0 || operand >= node ||
+            facts.node_kinds[operand] !=
+                DirectMirScalarProgramExprBoolLiteral() ||
+            facts.node_types[operand] != CompilerAbiLayoutBoolTypeName() ||
+            (facts.node_literals[operand] != "true" &&
+             facts.node_literals[operand] != "false") ||
+            facts.node_lefts[operand] != -1 ||
+            facts.node_rights[operand] != -1 ||
+            facts.node_local_rows[operand] != -1 ||
+            facts.node_parameter_ordinals[operand] != -1 ||
+            facts.node_member_ordinals[operand] != -1 ||
+            facts.node_callable_rows[operand] != -1 { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramHasArrayBoolPopulatedLiteral(
+    ref facts: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    let node: Int = 0;
+    while node < ArrayLength(facts.node_kinds) {
+        if facts.node_kinds[node] ==
+                DirectMirScalarProgramExprArrayBoolPopulatedLiteral() {
+            return true;
+        }
+        node = node + 1;
+    }
+    return false;
+}

@@ -1,0 +1,117 @@
+// One typed logical-record member path rooted in an admitted local or parameter.
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+struct DirectMirScalarProgramLogicalRecordMemberPathFact {
+    let valid: Bool;
+    let member_count: Int;
+    let terminal_member_ordinal: Int;
+    let final_type: String;
+}
+
+func DirectMirScalarProgramLogicalRecordMemberPathInvalid(
+) -> DirectMirScalarProgramLogicalRecordMemberPathFact {
+    return DirectMirScalarProgramLogicalRecordMemberPathFact(
+        false, 0, -1, "");
+}
+
+func DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
+    ref graph: MirExpressionGraphSequence, member_root: Int,
+    target_name: String, target_type: String, target_carriage: String,
+    parameter_ordinal: Int,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramLogicalRecordMemberPathFact {
+    let invalid: DirectMirScalarProgramLogicalRecordMemberPathFact =
+        DirectMirScalarProgramLogicalRecordMemberPathInvalid();
+    if !graph.ok || member_root < 0 ||
+        member_root >= graph.ready_node_count || target_name == "" ||
+        target_type == "" || !DirectMirScalarProgramLogicalRecordTypeReady(
+            record, target_type) {
+        return invalid;
+    }
+    let members: Array<Int> = [];
+    let base: Int = member_root;
+    while base >= 0 && base <= member_root &&
+            graph.arena.topology.node_kinds[base] ==
+                AstExpressionNodeMemberAccess() {
+        ArrayPush(members, base);
+        base = graph.arena.topology.left_children[base];
+    }
+    if ArrayLength(members) == 0 || base < 0 || base >= member_root ||
+        graph.arena.topology.node_kinds[base] != AstExpressionNodeLeaf() ||
+        graph.arena.node_texts[base] != target_name ||
+        graph.arena.call_target_kinds[base] != SemanticCallTargetNone() ||
+        graph.arena.call_target_names[base] != "" ||
+        graph.arena.identities.call_target_syntax_ids[base] != 0 {
+        return invalid;
+    }
+    if parameter_ordinal >= 0 {
+        let required_carriage: String = "";
+        if target_carriage == "inout_param" {
+            required_carriage = "value-result";
+        } else if target_carriage == "default_param" {
+            required_carriage = "value";
+        } else { return invalid; }
+        if parameter_ordinal >= signature.param_count ||
+            graph.arena.identities.binding_kinds[base] !=
+                SemanticExpressionBindingFormalParameter() ||
+            graph.arena.identities.binding_ordinals[base] !=
+                parameter_ordinal ||
+            signature.parameters.names[parameter_ordinal] != target_name ||
+            signature.parameters.type_names[parameter_ordinal] != target_type ||
+            signature.parameters.carriages[parameter_ordinal] !=
+                required_carriage ||
+            signature.parameters.resources[parameter_ordinal] != "none" ||
+            signature.parameters.pass_shapes[parameter_ordinal] != "direct" {
+            return invalid;
+        }
+    } else if target_carriage != "local" ||
+        graph.arena.identities.binding_kinds[base] !=
+            SemanticExpressionBindingNone() ||
+        graph.arena.identities.binding_ordinals[base] != -1 {
+        return invalid;
+    }
+    let resolved_type: String = target_type;
+    let expected_receiver: Int = base;
+    let terminal_ordinal: Int = -1;
+    let member_index: Int = ArrayLength(members);
+    while member_index > 0 {
+        member_index = member_index - 1;
+        let member: Int = members[member_index];
+        let receiver: Int = graph.arena.topology.left_children[member];
+        let name_node: Int = graph.arena.topology.right_children[member];
+        if receiver != expected_receiver || name_node < 0 ||
+            name_node >= member ||
+            graph.arena.topology.node_kinds[name_node] !=
+                AstExpressionNodeLeaf() ||
+            graph.arena.identities.binding_kinds[name_node] !=
+                SemanticExpressionBindingNone() ||
+            graph.arena.identities.binding_ordinals[name_node] != -1 ||
+            graph.arena.call_target_kinds[name_node] !=
+                SemanticCallTargetNone() ||
+            graph.arena.call_target_names[name_node] != "" ||
+            graph.arena.identities.call_target_syntax_ids[name_node] != 0 ||
+            graph.arena.call_target_kinds[member] != SemanticCallTargetNone() ||
+            graph.arena.call_target_names[member] != "" ||
+            graph.arena.identities.call_target_syntax_ids[member] != 0 ||
+            graph.arena.identities.binding_kinds[member] !=
+                SemanticExpressionBindingNone() ||
+            graph.arena.identities.binding_ordinals[member] != -1 ||
+            graph.arena.node_texts[member] != Concat(
+                graph.arena.node_texts[receiver],
+                Concat(".", graph.arena.node_texts[name_node])) {
+            return invalid;
+        }
+        terminal_ordinal = DirectMirScalarProgramLogicalRecordFieldOrdinal(
+            record, resolved_type, graph.arena.node_texts[name_node]);
+        resolved_type = DirectMirScalarProgramLogicalRecordFieldType(
+            record, resolved_type, terminal_ordinal);
+        if terminal_ordinal < 0 || resolved_type == "" { return invalid; }
+        expected_receiver = member;
+    }
+    if expected_receiver != member_root { return invalid; }
+    return DirectMirScalarProgramLogicalRecordMemberPathFact(
+        true, ArrayLength(members), terminal_ordinal, resolved_type);
+}

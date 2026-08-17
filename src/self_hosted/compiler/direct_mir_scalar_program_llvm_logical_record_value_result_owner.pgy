@@ -1,0 +1,74 @@
+// LLVM copy lifecycle for declaration-keyed logical-record value-result formals.
+
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
+
+func DirectMirScalarProgramLlvmLogicalRecordValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramLogicalRecordValueResultAt(
+                plan, routine, ordinal) {
+            let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+            let type_name: String =
+                DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                    plan.program.logical_record,
+                    plan.routines.parameter_types[row]);
+            let spelling: String = ToString(ordinal);
+            output = Concat(output, Concat("  %pgy.param.", spelling));
+            output = Concat(output, Concat(".local = alloca ", type_name));
+            output = Concat(output, ", align 8\n");
+            output = Concat(output, Concat("  %pgy.param.", spelling));
+            output = Concat(output, Concat(".copyin = load ", type_name));
+            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
+            output = Concat(output, ".mutref, align 8\n");
+            output = Concat(output, Concat("  store ", type_name));
+            output = Concat(output, Concat(" %pgy.param.", spelling));
+            output = Concat(output, Concat(".copyin, ptr %pgy.param.", spelling));
+            output = Concat(output, ".local, align 8\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramLogicalRecordValueResultAt(
+                plan, routine, ordinal) {
+            let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+            let type_name: String =
+                DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                    plan.program.logical_record,
+                    plan.routines.parameter_types[row]);
+            let spelling: String = ToString(ordinal);
+            let suffix: String = ToString(exit_block);
+            let local_row: Int =
+                DirectMirScalarProgramLogicalRecordValueResultLocalRow(
+                    plan, routine, ordinal);
+            let source_ptr: String = Concat(
+                "%pgy.param.", Concat(spelling, ".local"));
+            if local_row >= 0 {
+                source_ptr = Concat("%pgy.local.", ToString(local_row));
+            }
+            output = Concat(output, Concat("  %pgy.param.", spelling));
+            output = Concat(output, Concat(".record.copyout.", suffix));
+            output = Concat(output, Concat(" = load ", type_name));
+            output = Concat(output, Concat(", ptr ", source_ptr));
+            output = Concat(output, ", align 8\n");
+            output = Concat(output, Concat("  store ", type_name));
+            output = Concat(output, Concat(" %pgy.param.", spelling));
+            output = Concat(output, Concat(".record.copyout.", suffix));
+            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
+            output = Concat(output, ".mutref, align 8\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}

@@ -7,10 +7,18 @@ func DirectMirScalarProgramLlvmIntMathMaterialization(
     ref ids: DirectMirScalarProgramCaseMathRuntimeIds
 ) -> String {
     let output: String = "";
+    if ids.long_modulo_id != 0 {
+        output = Concat(output, Concat("declare i64 @",
+            Concat(projection.long_modulo.symbol, "(i64, i64)\n\n")));
+    }
+    if ids.long_division_id != 0 {
+        output = Concat(output, Concat("declare i64 @",
+            Concat(projection.long_division.symbol, "(i64, i64)\n\n")));
+    }
     if ids.abs_id != 0 {
         output = Concat(output, Concat("define internal i64 @",
             Concat(projection.abs.symbol,
-            "(i64 %value) {\nentry:\n  %negative = icmp slt i64 %value, 0\n  %negated = sub nsw i64 0, %value\n  %result = select i1 %negative, i64 %negated, i64 %value\n  ret i64 %result\n}\n\n")));
+            "(i64 %value) {\nentry:\n  %negative = icmp slt i64 %value, 0\n  %negated = sub i64 0, %value\n  %result = select i1 %negative, i64 %negated, i64 %value\n  ret i64 %result\n}\n\n")));
     }
     if ids.min_id != 0 {
         output = Concat(output, Concat("define internal i64 @",

@@ -123,6 +123,10 @@ func DriverRung2ExecuteReadRequest(
             Die("driver rung-2 artifact request requires installed composition root");
         case DriverCliDirectMirLlvmArtifact(input_path, output_path):
             Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliDirectMirCObservedArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliDirectMirLlvmObservedArtifact(input_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
     }
 }
 

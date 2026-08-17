@@ -1,0 +1,28 @@
+// One source array-literal seed consumed by exactly one array-element spine.
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+func DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    if node < 0 || node >= count ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeArrayLiteral() ||
+        sequence.arena.topology.left_children[node] != 0 ||
+        sequence.arena.topology.right_children[node] != 0 ||
+        sequence.arena.call_target_kinds[node] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_names[node] != "" ||
+        sequence.arena.identities.binding_kinds[node] !=
+            SemanticExpressionBindingNone() { return false; }
+    let parents: Int = 0;
+    let candidate: Int = node + 1;
+    while candidate < count {
+        if sequence.arena.topology.node_kinds[candidate] ==
+                AstExpressionNodeArrayElement() &&
+            sequence.arena.topology.left_children[candidate] == node {
+            parents = parents + 1;
+        }
+        candidate = candidate + 1;
+    }
+    return parents == 1;
+}

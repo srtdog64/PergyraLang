@@ -1,0 +1,9 @@
+func KeepStringArrayValue(values: Array<String>) -> Int {
+    let copy: Array<String> = values;
+    return 8;
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    Log(ToString(KeepStringArrayValue(values)));
+}

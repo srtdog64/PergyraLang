@@ -1,16 +1,17 @@
 // Canonical empty and sealed readiness for the optional program extension.
-
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
+import "direct_mir_scalar_program_array_string_boundary_admission_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy";
 
-func DirectMirScalarCfgProgramExtensionFactReady(
-    ref fact: DirectMirScalarCfgProgramExtensionFact
-) -> Bool {
+func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Int {
     if !fact.valid {
-        return fact.digest == 0 && !fact.callable.valid &&
+        if fact.digest == 0 && !fact.callable.valid &&
             DirectMirScalarProgramExpressionSetCanonicalEmpty(
                 fact.expressions) &&
             ArrayLength(fact.block_condition_expression_rows) == 0 &&
             ArrayLength(fact.operation_expression_rows) == 0 &&
+            ArrayLength(fact.operation_secondary_expression_rows) == 0 &&
             ArrayLength(fact.block_return_expression_rows) == 0 &&
             DirectMirClosedModuleCallAbiFactCanonicalEmpty(
                 fact.closed_call_abi) &&
@@ -18,41 +19,82 @@ func DirectMirScalarCfgProgramExtensionFactReady(
                 fact.runtime_abi) &&
             DirectMirScalarProgramOptionIntAbiReadyForExpressions(
                 fact.option_int_abi, fact.expressions) &&
+            DirectMirScalarProgramOptionStringAbiReadyForExpressions(
+                fact.option_string_abi, fact.expressions) &&
+            DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
+                fact.option_bool_abi, fact.expressions) &&
             DirectMirScalarProgramTwoIntNominalAbiFactReady(
                 fact.nominal_abi) &&
+            DirectMirScalarProgramLogicalRecordReadyForExpressions(
+                fact.logical_record, fact.expressions) &&
+            DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
+                fact.payload_free_enum, fact.expressions) &&
+            DirectMirScalarProgramArrayIntValueResultFactReady(
+                fact.array_int_value_result) &&
+            DirectMirScalarProgramArrayBoolAbiFactReady(
+                fact.array_bool_abi) &&
+            DirectMirScalarProgramLogicalRecordCollectionAbiReady(
+                fact.logical_record, fact.array_int_value_result,
+                fact.array_bool_abi,
+                fact.array_string_abi) &&
             DirectMirScalarProgramArrayStringAbiReadyForExpressions(
                 fact.array_string_abi, fact.expressions) &&
             DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
-                fact.array_string_boundary);
+                fact.array_string_boundary) { return 0; }
+        return 1;
     }
     let callable_ready: Bool =
-        (DirectMirScalarCfgProgramCallableFactReady(fact.callable) &&
+        (DirectMirScalarCfgProgramCallableFactReadyWithFacts(
+             fact.callable, fact.nominal_abi, fact.logical_record,
+             fact.payload_free_enum) &&
          DirectMirClosedModuleCallAbiFactReady(fact.closed_call_abi)) ||
         (DirectMirScalarCfgProgramCallableFactCanonicalEmpty(fact.callable) &&
          DirectMirClosedModuleCallAbiFactCanonicalEmpty(fact.closed_call_abi));
     let array_boundary_ready: Bool =
         DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
             fact.array_string_boundary);
-    if fact.callable.valid && fact.callable.signature.param.type_name ==
-            CompilerAbiLayoutArrayStringTypeName() {
+    if fact.callable.valid &&
+        DirectMirScalarProgramArrayStringBoundarySignatureReady(
+            fact.callable.signature) {
         array_boundary_ready =
             DirectMirScalarProgramArrayStringBoundaryFactReady(
                 fact.array_string_boundary);
     }
-    return fact.digest != 0 &&
-        fact.digest == DirectMirScalarCfgProgramExtensionFactDigest(fact) &&
-        callable_ready &&
-        (!fact.callable.valid ||
-         DirectMirScalarProgramArrayStringAbiMatchesCallable(
-            fact.array_string_abi, fact.callable.signature)) &&
-        DirectMirScalarProgramExpressionSetSemanticallyReady(
-            fact.expressions) &&
-        DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
-            fact.runtime_abi, fact.expressions) &&
-        DirectMirScalarProgramOptionIntAbiReadyForExpressions(
-            fact.option_int_abi, fact.expressions) &&
-        DirectMirScalarProgramTwoIntNominalAbiFactReady(
-            fact.nominal_abi) &&
-        DirectMirScalarProgramArrayStringAbiReadyForExpressions(
-            fact.array_string_abi, fact.expressions) && array_boundary_ready;
+    if fact.digest == 0 || fact.digest !=
+            DirectMirScalarCfgProgramExtensionFactDigest(fact) { return 2; }
+    if !callable_ready { return 3; }
+    if fact.callable.valid &&
+        !DirectMirScalarProgramArrayStringAbiMatchesCallable(
+            fact.array_string_abi, fact.callable.signature) { return 4; }
+    if !DirectMirScalarProgramExpressionSetSemanticallyReady(
+            fact.expressions) { return 5; }
+    if !DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
+            fact.runtime_abi, fact.expressions) { return 6; }
+    if !DirectMirScalarProgramOptionIntAbiReadyForExpressions(
+            fact.option_int_abi, fact.expressions) { return 7; }
+    if !DirectMirScalarProgramOptionStringAbiReadyForExpressions(
+            fact.option_string_abi, fact.expressions) { return 8; }
+    if !DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
+            fact.option_bool_abi, fact.expressions) { return 9; }
+    if !DirectMirScalarProgramTwoIntNominalAbiFactReady(
+            fact.nominal_abi) { return 10; }
+    if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
+            fact.logical_record, fact.expressions) { return 11; }
+    if !DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
+            fact.payload_free_enum, fact.expressions) { return 12; }
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(
+            fact.array_int_value_result) { return 13; }
+    if !DirectMirScalarProgramArrayBoolAbiFactReady(
+            fact.array_bool_abi) { return 14; }
+    if !DirectMirScalarProgramLogicalRecordCollectionAbiReady(
+            fact.logical_record, fact.array_int_value_result,
+            fact.array_bool_abi, fact.array_string_abi) { return 15; }
+    if !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
+            fact.array_string_abi, fact.expressions) { return 16; }
+    if !array_boundary_ready { return 17; }
+    return 0;
+}
+
+func DirectMirScalarCfgProgramExtensionFactReady(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Bool {
+    return DirectMirScalarCfgProgramExtensionFactReadinessCode(fact) == 0;
 }

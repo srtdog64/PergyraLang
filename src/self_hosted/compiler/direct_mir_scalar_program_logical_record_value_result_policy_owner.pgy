@@ -1,0 +1,57 @@
+// Composed signature policy for one-or-more logical-record copyouts.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_inputs_value_result_policy_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordValueResultSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        !DirectMirScalarCfgScalarTypeSupported(signature.return_type) ||
+        signature.param_count < 1 { return false; }
+    let copyout_count: Int = 0;
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        let type_name: String = signature.parameters.type_names[ordinal];
+        if DirectMirScalarProgramLogicalRecordTypeReady(
+                logical_record, type_name) {
+            let carriage: String = signature.parameters.carriages[ordinal];
+            let copyout: Bool = carriage == "value-result" &&
+                signature.parameters.pass_shapes[ordinal] == "direct";
+            let readonly: Bool = carriage == "readonly-ref" &&
+                signature.parameters.pass_shapes[ordinal] == "indirect";
+            if (!copyout && !readonly) ||
+                signature.parameters.resources[ordinal] != "none" ||
+                signature.parameters.abi_required[ordinal] ||
+                signature.parameters.abi_layout_ids[ordinal] != 0 {
+                return false;
+            }
+            if copyout { copyout_count = copyout_count + 1; }
+        } else if !DirectMirScalarCfgScalarTypeSupported(type_name) ||
+            signature.parameters.carriages[ordinal] != "value" ||
+            signature.parameters.resources[ordinal] != "none" ||
+            signature.parameters.pass_shapes[ordinal] != "direct" ||
+            signature.parameters.abi_required[ordinal] {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return copyout_count >= 1;
+}
+
+func DirectMirScalarProgramLogicalRecordValueResultParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        DirectMirScalarProgramLogicalRecordTypeReady(logical_record,
+            signature.parameters.type_names[ordinal]) &&
+        signature.parameters.carriages[ordinal] == "value-result" &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0;
+}

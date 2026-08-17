@@ -1,0 +1,13 @@
+// Signature admission must not invent a dummy argument for a zero-arg call.
+
+func Schema() -> String {
+    return "schema";
+}
+
+func Echo(value: String) -> String {
+    return value;
+}
+
+func Main() -> Void {
+    Log(Echo(Schema()));
+}

@@ -1,0 +1,60 @@
+// Declaration-keyed identity for indexed reads from Array<Record>.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordArrayIndexKindFact(
+    source_kind: Int, left_type: String, right_type: String, arity: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramExpressionKindFact {
+    let invalid: DirectMirScalarProgramExpressionKindFact =
+        DirectMirScalarProgramExpressionKindFactInvalid();
+    let element: Option<String> =
+        DirectMirScalarProgramLogicalRecordArrayElementType(
+            logical_record, left_type);
+    if source_kind != AstExpressionNodeIndex() || arity != 2 ||
+        right_type != CompilerAbiLayoutIntTypeName() || !IsSome(element) {
+        return invalid;
+    }
+    return DirectMirScalarProgramExpressionKindFact(
+        true, DirectMirScalarProgramExprLogicalRecordArrayIndex(),
+        UnwrapOption(element), "");
+}
+
+func DirectMirScalarProgramLogicalRecordArrayIndexNodeShapeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) ||
+        facts.node_kinds[node] !=
+            DirectMirScalarProgramExprLogicalRecordArrayIndex() {
+        return false;
+    }
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    return left >= 0 && left < node && right >= 0 && right < node &&
+        facts.node_types[node] != "" &&
+        facts.node_types[left] != "" &&
+        facts.node_types[right] == CompilerAbiLayoutIntTypeName() &&
+        facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_member_ordinals[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        facts.node_callable_rows[node] == -1;
+}
+
+func DirectMirScalarProgramLogicalRecordArrayIndexIdentityReady(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if !DirectMirScalarProgramLogicalRecordArrayIndexNodeShapeReady(
+            facts, node) {
+        return false;
+    }
+    let element: Option<String> =
+        DirectMirScalarProgramLogicalRecordArrayElementType(
+            logical_record, facts.node_types[facts.node_lefts[node]]);
+    return IsSome(element) &&
+        UnwrapOption(element) == facts.node_types[node];
+}

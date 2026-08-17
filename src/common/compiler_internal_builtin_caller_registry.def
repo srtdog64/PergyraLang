@@ -1,0 +1,10 @@
+/* Canonical compiler-internal builtin caller registry.
+ *
+ * Rows own the complete admitted caller identity. Consumers may normalize a
+ * source path for comparison, but may not recreate function/signature tuples.
+ * PGY_COMPILER_INTERNAL_BUILTIN_CALLER_ROWS_OWNER
+ */
+PGY_COMPILER_INTERNAL_BUILTIN_CALLER("CompilerRetireArrayStorage", "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy", "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection", PGY_COMPILER_INTERNAL_PARAM_OWN, "AstTreeArtifact", "AstTreeArtifact")
+PGY_COMPILER_INTERNAL_BUILTIN_CALLER("CompilerRetireArrayStorage", "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy", "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts", PGY_COMPILER_INTERNAL_PARAM_OWN, "AstTreeArtifact", "Void")
+PGY_COMPILER_INTERNAL_BUILTIN_CALLER("CompilerRetireArrayStorage", "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy", "SelfMirBodyTypeBundleStorageRetireAfterProgramFacts", PGY_COMPILER_INTERNAL_PARAM_OWN, "SemanticAstBodyTypeBundle", "Void")
+PGY_COMPILER_INTERNAL_BUILTIN_CALLER("CompilerRetireArrayStorage", "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy", "SelfMirRoutineBuildStorageRetireAfterLastConsumer", PGY_COMPILER_INTERNAL_PARAM_OWN, "SelfMirRoutineBuild", "Void")

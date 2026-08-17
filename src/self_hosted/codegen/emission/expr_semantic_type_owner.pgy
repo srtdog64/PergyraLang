@@ -59,15 +59,11 @@ func CodegenExpressionMemberTypeFromGraph(
         IsSome(receiver_text) &&
         IsIdentifier(UnwrapOption(receiver_text)) {
         let enum_owner: String = UnwrapOption(receiver_text);
-        let enum_value: String = LookupKindType(
-            env, Concat(enum_owner, Concat(
-                ".", UnwrapOption(member_text)
-            )), "e"
+        let enum_value: String = LookupQualifiedKindType(
+            env, enum_owner, UnwrapOption(member_text), "e"
         );
-        let tagged_enum_type: String = LookupKindType(
-            env, Concat(enum_owner, Concat(
-                ".", UnwrapOption(member_text)
-            )), "etype"
+        let tagged_enum_type: String = LookupQualifiedKindType(
+            env, enum_owner, UnwrapOption(member_text), "etype"
         );
         if enum_value != "" &&
             LookupKindType(env, enum_owner, "enum") == "payload_free" {
@@ -83,13 +79,15 @@ func CodegenExpressionMemberTypeFromGraph(
     );
     if IsSome(receiver_type) {
         let enum_type: String = UnwrapOption(receiver_type);
-        let variant_key: String = Concat(
-            enum_type, Concat(".", UnwrapOption(member_text))
+        let variant_key: String = CodegenTypeOwnedQualifiedKey(
+            enum_type, UnwrapOption(member_text)
         );
         if LookupKindType(env, enum_type, "enum") == "tagged" &&
             LookupKindType(env, variant_key, "etype") == enum_type {
             return Some(variant_key);
         }
+        let retired_variant_key: Array<String> = [variant_key];
+        ArrayDropOwnedStrings(retired_variant_key);
     }
     return CodegenExpressionMemberFieldTypeFromGraph(graph, node_id, env);
 }

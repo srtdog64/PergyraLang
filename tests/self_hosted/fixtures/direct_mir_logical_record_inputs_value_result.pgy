@@ -1,0 +1,30 @@
+// Three declaration-keyed records: two values and one value-result.
+
+struct StatementView {
+    let valid: Bool;
+    let start: Int;
+}
+
+struct StatementCapture {
+    let valid: Bool;
+    let name: String;
+}
+
+struct StatementOrder {
+    let ok: Bool;
+    let rows: Array<Int>;
+}
+
+func AppendStatementFacts(
+    instruction: StatementView,
+    scalar: StatementCapture,
+    inout order: StatementOrder
+) -> Bool {
+    if !instruction.valid { return false; }
+    return scalar.valid && order.ok;
+}
+
+func Main() -> Void {
+    let rows: Array<Int> = [];
+    Log("record-inputs-copyout-ready");
+}

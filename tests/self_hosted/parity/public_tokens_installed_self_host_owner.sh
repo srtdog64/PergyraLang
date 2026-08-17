@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Public token dumping is owned by the installed Pergyra lexer. The native
 # lexer remains reachable only through the declared --native-pipeline oracle.
-# Registry forbidden-fallback inventory exercised below:
-# public_token_native_fallback, public_token_oracle_self_compare.
+# Registry forbidden-fallback inventory exercised below: public_token_native_fallback, public_token_oracle_self_compare.
 
 set -euo pipefail
 
@@ -105,7 +104,9 @@ grep -Fq "source token mode requires exactly one input path" \
     fail "installed token arity lost its typed diagnostic"
 
 require_text "$LAUNCHER_OWNER" \
-    'if (flags.dump_tokens || flags.dump_ast || flags.dump_capability_manifest) {'
+    'if (flags.dump_tokens || flags.dump_ast'
+require_text "$LAUNCHER_OWNER" \
+    '|| flags.dump_capability_manifest || flags.dump_dir) {'
 require_text "$LAUNCHER_OWNER" 'driver_self_host_source_stdout_mode(&flags)'
 require_text "$LAUNCHER_OWNER" 'driver_run_self_host_source_stdout('
 require_text "$SELECTION_OWNER" 'driver_self_host_source_stdout_mode('

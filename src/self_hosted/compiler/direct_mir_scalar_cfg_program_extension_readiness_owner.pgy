@@ -1,60 +1,15 @@
 // Cross-links between typed program expressions and routine-owned GraphPlan ranges.
-
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
-import "direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_plan_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy";
-
-func DirectMirScalarCfgProgramRoutineForBlock(
-    ref plan: DirectMirScalarCfgGraphPlan, block: Int
-) -> Int {
-    let routine: Int = 0;
-    while routine < ArrayLength(plan.routines.block_starts) {
-        let start: Int = plan.routines.block_starts[routine];
-        if block >= start && block < start +
-                plan.routines.block_counts[routine] { return routine; }
-        routine = routine + 1;
-    }
-    return -1;
-}
-
-func DirectMirScalarCfgProgramRoutineForOperation(
-    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
-) -> Int {
-    let routine: Int = 0;
-    while routine < ArrayLength(plan.routines.operation_starts) {
-        let start: Int = plan.routines.operation_starts[routine];
-        if operation >= start && operation < start +
-                plan.routines.operation_counts[routine] { return routine; }
-        routine = routine + 1;
-    }
-    return -1;
-}
-
-func DirectMirScalarCfgProgramExpressionRowReady(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    expression_row: Int, expected_type: String, routine: Int
-) -> Bool {
-    if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
-        expression_row < 0 ||
-        expression_row >= ArrayLength(plan.program.expressions.graph_roots) {
-        return false;
-    }
-    let start: Int = plan.program.expressions.graph_starts[expression_row];
-    let count: Int = plan.program.expressions.graph_counts[expression_row];
-    let root: Int = plan.program.expressions.graph_roots[expression_row];
-    if plan.program.expressions.node_types[root] !=
-            expected_type { return false; }
-    let node: Int = start;
-    while node < start + count {
-        if !DirectMirScalarCfgProgramExpressionIdentityReady(
-                plan, plan.program.expressions, node, routine, start
-        ) { return false; }
-        node = node + 1;
-    }
-    return true;
-}
-
+import "direct_mir_scalar_program_array_mutation_readiness_owner.pgy";
+import "direct_mir_scalar_program_option_int_try_admission_owner.pgy";
+import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_runtime_value_lifecycle_owner.pgy";
+import "direct_mir_scalar_cfg_program_statement_admission_owner.pgy";
+import "direct_mir_scalar_program_process_exit_owner.pgy";
+import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
 func DirectMirScalarCfgProgramExpressionUseCount(
     ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
 ) -> Int {
@@ -71,6 +26,8 @@ func DirectMirScalarCfgProgramExpressionUseCount(
     while row < ArrayLength(plan.program.operation_expression_rows) {
         if plan.program.operation_expression_rows[row] ==
                 expression_row { count = count + 1; }
+        if plan.program.operation_secondary_expression_rows[row] ==
+                expression_row { count = count + 1; }
         row = row + 1;
     }
     return count;
@@ -81,7 +38,8 @@ func DirectMirScalarCfgProgramRoutineEdgesReady(
 ) -> Bool {
     let block: Int = 0;
     while block < ArrayLength(plan.block_succ_true) {
-        let routine: Int = DirectMirScalarCfgProgramRoutineForBlock(plan, block);
+        let routine: Int = DirectMirScalarCfgRoutinePartitionBlockOwner(
+            plan.routines, block);
         if routine < 0 { return false; }
         let start: Int = plan.routines.block_starts[routine];
         let end: Int = start + plan.routines.block_counts[routine];
@@ -114,6 +72,8 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
             block_count ||
         ArrayLength(plan.program.operation_expression_rows) !=
             operation_count ||
+        ArrayLength(plan.program.operation_secondary_expression_rows) !=
+            operation_count ||
         !DirectMirScalarCfgProgramRoutineEdgesReady(plan) { return 2; }
     if routine_count == 1 {
         if !DirectMirScalarCfgProgramCallableFactCanonicalEmpty(
@@ -134,7 +94,8 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     }
     let block: Int = 0;
     while block < block_count {
-        let routine: Int = DirectMirScalarCfgProgramRoutineForBlock(plan, block);
+        let routine: Int = DirectMirScalarCfgRoutinePartitionBlockOwner(
+            plan.routines, block);
         let condition_row: Int =
             plan.program.block_condition_expression_rows[block];
         let return_row: Int = plan.program.block_return_expression_rows[block];
@@ -148,9 +109,21 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
         let terminal: Bool = plan.block_succ_true[block] < 0 &&
             plan.block_succ_false[block] < 0;
         if routine == plan.routines.entrypoint_ordinal {
-            if return_row != -1 { return 5; }
+            if return_row != -1 &&
+                return_row != DirectMirScalarCfgVoidReturnExpressionRow() {
+                return 5;
+            }
         } else if terminal {
-            if !DirectMirScalarCfgProgramExpressionRowReady(
+            let exits: Bool = return_row == -1 &&
+                DirectMirScalarProgramBlockEndsWithProcessExit(
+                    plan.operation_kinds,
+                    plan.block_operation_starts[block],
+                    plan.block_operation_counts[block]);
+            if !exits && plan.routines.return_types[routine] == "Void" {
+                if return_row != DirectMirScalarCfgVoidReturnExpressionRow() {
+                    return 6;
+                }
+            } else if !exits && !DirectMirScalarCfgProgramExpressionRowReady(
                     plan, return_row, plan.routines.return_types[routine],
                     routine) { return 6; }
         } else if return_row != -1 { return 7; }
@@ -161,9 +134,26 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
         let kind: Int = plan.operation_kinds[operation];
         let expression_row: Int =
             plan.program.operation_expression_rows[operation];
-        let routine: Int =
-            DirectMirScalarCfgProgramRoutineForOperation(plan, operation);
-        if kind == DirectMirScalarCfgOpExpressionDefinition() {
+        let routine: Int = DirectMirScalarCfgRoutinePartitionOperationOwner(
+            plan.routines, operation);
+        if kind == DirectMirScalarCfgOpOptionIntTryDefinition() {
+            let result: Int = plan.operation_result_values[operation];
+            if result < 0 || result >= ArrayLength(plan.value_types) ||
+                plan.value_types[result] != CompilerAbiLayoutIntTypeName() ||
+                !DirectMirScalarProgramOptionIntTryRoutineReady(
+                    plan.routines, routine) ||
+                !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, expression_row,
+                    CompilerAbiLayoutOptionIntTypeName(), routine) {
+                return 15;
+            }
+        } else if kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() ||
+                kind == DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() {
+            let code: Int =
+                DirectMirScalarProgramLogicalRecordAssignmentReadinessCode(
+                    plan, operation, routine);
+            if code != 0 { return code; }
+        } else if kind == DirectMirScalarCfgOpExpressionDefinition() {
             let result: Int = plan.operation_result_values[operation];
             if result < 0 || result >= ArrayLength(plan.value_types) ||
                 !DirectMirScalarCfgProgramExpressionRowReady(
@@ -176,6 +166,21 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
                 log_type != CompilerAbiLayoutIntTypeName()) ||
                 !DirectMirScalarCfgProgramExpressionRowReady(
                     plan, expression_row, log_type, routine) { return 9; }
+        } else if kind == DirectMirScalarCfgOpExpressionStatement() {
+            let root: Int = plan.program.expressions.graph_roots[expression_row];
+            let statement_type: String =
+                plan.program.expressions.node_types[root];
+            if !DirectMirScalarCfgProgramDiscardedCallExpressionReady(
+                    plan.program.expressions, expression_row) ||
+                !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, expression_row, statement_type, routine) { return 9; }
+        } else if kind == DirectMirScalarCfgOpProcessExit() {
+            if !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, expression_row,
+                    CompilerAbiLayoutIntTypeName(), routine) { return 9; }
+        } else if DirectMirScalarProgramArrayMutationKind(kind) {
+            if !DirectMirScalarProgramArrayMutationOperationReady(
+                    plan, operation, routine) { return 9; }
         } else if expression_row != -1 { return 10; }
         operation = operation + 1;
     }
@@ -188,6 +193,7 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     if !DirectMirScalarProgramArrayStringBoundaryReadyForPlan(plan) {
         return 14;
     }
+    if !DirectMirScalarProgramRuntimeValueLifecycleReady(plan) { return 22; }
     return 0;
 }
 

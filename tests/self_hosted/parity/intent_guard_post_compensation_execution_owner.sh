@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Executable legacy intent contract: an On action completes before its
-# guard/expect/post predicates. Failure runs completed steps in reverse and
-# each step's compensate expressions in reverse. Typed variant success-only
-# completion is a later rung and is not claimed here.
+# Executable intent contract: an On action completes before its guard/expect/
+# post predicates. Failure runs completed steps in reverse, each step's
+# compensate expressions in reverse, and the installed self-host path must
+# publish the same completed-step/failure history as native C and LLVM.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
@@ -75,6 +75,10 @@ assert body.count("__intent_step_completed[0] = true;") == 1, body
 assert body.count("__intent_step_completed[1] = true;") == 1, body
 assert body.count("goto __intent_cleanup;") >= 3, body
 assert body.count("if (__intent_failed)") == 1, body
+assert body.count("pgy_intent_trace_step_export(__intent_handle") == 2, body
+assert body.count("pgy_intent_trace_step_ok_export(__intent_handle") == 2, body
+assert body.count("pgy_intent_trace_fail_export(__intent_handle") >= 3, body
+assert body.count("pgy_intent_exit_export(__intent_handle)") >= 1, body
 cleanup = body.index("__intent_cleanup:")
 second = body.index("WorkflowActor_UndoBSecond", cleanup)
 first = body.index("WorkflowActor_UndoBFirst", second)
@@ -135,7 +139,18 @@ printf '%s\n' \
     'post.b_calls=1' \
     'post.undo_a=1' \
     'post.undo_b_first=1' \
-    'post.undo_b_second=1' >"$BUILD_DIR/expected.run"
+    'post.undo_b_second=1' \
+    'post.history.count=2' \
+    'post.history.name0=ForwardA' \
+    'post.history.phase0=ok' \
+    'post.history.ok0=true' \
+    'post.history.name1=ForwardB' \
+    'post.history.phase1=fail' \
+    'post.history.ok1=false' \
+    'post.history.failure1=post:ForwardB' \
+    'post.last.failed=true' \
+    'post.last.failure=post:ForwardB' \
+    'post.active.after=0' >"$BUILD_DIR/expected.run"
 cmp -s "$BUILD_DIR/expected.run" "$BUILD_DIR/self.run" \
     || { cat "$BUILD_DIR/self.run" >&2; fail "self runtime output drifted"; }
 cmp -s "$BUILD_DIR/self.run" "$BUILD_DIR/native.c.run" \
@@ -143,4 +158,4 @@ cmp -s "$BUILD_DIR/self.run" "$BUILD_DIR/native.c.run" \
 cmp -s "$BUILD_DIR/self.run" "$BUILD_DIR/native.llvm.run" \
     || fail "self/native LLVM compensation execution differs"
 
-echo "[self-host-intent-compensation] guard/expect/post failure + future-step exclusion + ordered compensation parity: PASS"
+echo "[self-host-intent-compensation] guard/expect/post failure + ordered compensation + history parity: PASS"

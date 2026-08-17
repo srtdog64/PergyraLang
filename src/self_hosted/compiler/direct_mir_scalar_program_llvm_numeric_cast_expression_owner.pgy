@@ -1,0 +1,13 @@
+// LLVM value projection for admitted Int/Long casts over the shared i64 ABI.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramLlvmNumericCastExpressionValue(
+    kind: Int, left: String
+) -> Option<String> {
+    if kind == DirectMirScalarProgramExprTypeNameLong() { return Some(""); }
+    if kind == DirectMirScalarProgramExprTypeNameInt() { return Some(""); }
+    if kind == DirectMirScalarProgramExprCastIntToLong() { return Some(left); }
+    if kind == DirectMirScalarProgramExprCastLongToInt() { return Some(left); }
+    return None;
+}

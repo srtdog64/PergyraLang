@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-string-collection-builtin"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -34,12 +35,13 @@ GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner
 INPUT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy"
 KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
 ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v23'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78'
 require_text "$INPUT" 'DirectMirScalarCfgProgramGraphInputFromAdmitted'
 require_text "$KIND" 'DirectMirScalarProgramExpressionKindLast'
 require_text "$ABI" 'DirectMirScalarProgramArrayStringAbiFactFromAdmitted'
 for owner in "$INPUT" "$KIND" "$ABI" \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_kind_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_builtin_signature_owner.pgy" \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_expression_owner.pgy" \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy"; do
     reject_text "$owner" 'str_builtins2.pgy'
@@ -52,7 +54,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "CFE3D90203905D4F98BD5F3D72338DA95324388DB2F6B7CAAA88302E00B079D3" ]] ||
+[[ "$mir_sha" == "176CAE4725E77AC46B784206984584BFCE8A9DC08E2C904DA581115DD1553C9F" ]] ||
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_collection_builtin_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"
@@ -70,7 +72,8 @@ project() {
 
 goods=(program display-only semantic-change)
 bads=(bad-split-result-type bad-split-argument-chain \
-    bad-contains-argument-type bad-array-index-type bad-unregistered-target \
+    bad-contains-argument-type bad-join-argument-type bad-join-order \
+    bad-array-index-type bad-unregistered-target \
     bad-split-syntax-identity bad-array-layout)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
@@ -96,17 +99,21 @@ for target in c llvm; do
     done
 done
 
-for symbol in pgy_strcontains pgy_split pgy_toint pgy_as_len pgy_as_get pgy_as_drop; do
+for symbol in pgy_strcontains pgy_split pgy_strjoin pgy_toint pgy_as_len pgy_as_get pgy_as_drop_owned; do
     require_text "$WORK_DIR/base.c" "$symbol"
     require_text "$WORK_DIR/base.ll" "$symbol"
 done
 require_text "$WORK_DIR/base.c" 'offsetof(pgy_as, allocator)'
 require_text "$WORK_DIR/base.ll" '%pgy.array.string = type { ptr, i64, i64, ptr }'
-expected_base=$'yes\n3\nbb\n43\n1\n2\nleft'
-expected_semantic=$'no\n3\nbbbb\n8\n1\n2\nleft'
+expected_base=$'yes\n3\nbb\na|bb|c\n43\n1\n2\nleft\nleft/right'
+expected_semantic=$'no\n3\nbbbb\na|bbbb|c\n8\n1\n2\nleft\nleft/right'
 for stem in base display-only semantic-change; do
-    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" ||
-        fail "C compile failed: $stem"
+    c_command=("$CC" -std=c11 "$WORK_DIR/$stem.c")
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/$stem.c"; then
+        c_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    fi
+    c_command+=(-o "$WORK_DIR/$stem.c.exe")
+    "${c_command[@]}" || fail "C compile failed: $stem"
     "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" ||
         fail "LLVM compile failed: $stem"
     expected="$expected_base"; [[ "$stem" == semantic-change ]] && expected="$expected_semantic"

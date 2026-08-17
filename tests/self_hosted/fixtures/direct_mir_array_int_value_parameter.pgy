@@ -1,0 +1,10 @@
+func KeepArrayValue(values: Array<Int>, flags: Array<Bool>) -> Int {
+    let copy: Array<Int> = values;
+    return 7;
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [];
+    let flags: Array<Bool> = [];
+    Log(ToString(KeepArrayValue(values, flags)));
+}

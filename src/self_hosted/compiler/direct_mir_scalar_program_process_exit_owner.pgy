@@ -1,0 +1,24 @@
+// Target-neutral process-exit operation inventory for a sealed GraphPlan.
+
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+
+func DirectMirScalarProgramHasProcessExit(
+    ref operation_kinds: Array<Int>
+) -> Bool {
+    let operation: Int = 0;
+    while operation < ArrayLength(operation_kinds) {
+        if operation_kinds[operation] ==
+                DirectMirScalarCfgOpProcessExit() { return true; }
+        operation = operation + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramBlockEndsWithProcessExit(
+    ref operation_kinds: Array<Int>, start: Int, count: Int
+) -> Bool {
+    if start < 0 || count < 1 ||
+        start + count > ArrayLength(operation_kinds) { return false; }
+    return operation_kinds[start + count - 1] ==
+        DirectMirScalarCfgOpProcessExit();
+}

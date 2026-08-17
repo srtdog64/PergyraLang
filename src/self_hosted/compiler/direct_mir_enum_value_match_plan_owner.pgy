@@ -227,6 +227,10 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
         declaration.json, declaration.start, declaration.end,
         "source_syntax_id"
     );
+    let source_path: Option<String> = MirObjectUniqueStringFactAtBounds(
+        declaration.json, declaration.start, declaration.end,
+        "source_module_path"
+    );
     let fields: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(declaration, "fields");
     let methods: JsonArrayObjectFactTable =
@@ -236,7 +240,9 @@ func DirectMirEnumValueMatchPlanFactFromOwners(
     let variant_count: Int = ArrayLength(
         admitted.domain_runtime_admission.declarations.enum_variants.names);
     if !JsonObjectFactTableReady(declaration) ||
-        JsonObjectFactCount(declaration) != 7 || !IsSome(syntax) ||
+        JsonObjectFactCount(declaration) != 8 || !IsSome(syntax) ||
+        !IsSome(source_path) || UnwrapOption(source_path) != admitted.
+            domain_runtime_admission.declarations.source_module_paths[0] ||
         UnwrapOption(syntax) == "" ||
         ToString(ToInt(UnwrapOption(syntax))) != UnwrapOption(syntax) ||
         ToInt(UnwrapOption(syntax)) <= 0 ||

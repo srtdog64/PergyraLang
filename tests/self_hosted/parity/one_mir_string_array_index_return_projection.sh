@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-string-array-index-return"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -30,24 +31,25 @@ while IFS='|' read -r owner cap; do
 done <<'EOF'
 src/self_hosted/compiler/direct_mir_array_string_literal_fact_owner.pgy|40
 src/self_hosted/compiler/direct_mir_bounded_literal_index_owner.pgy|15
-src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy|90
-src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy|50
+src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy|120
+src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy|120
+src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy|110
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_expression_kind_owner.pgy|10
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_callable_abi_owner.pgy|25
-src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy|60
-src/self_hosted/compiler/direct_mir_scalar_program_extension_abi_seal_owner.pgy|60
+src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy|100
+src/self_hosted/compiler/direct_mir_scalar_program_extension_abi_seal_owner.pgy|120
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_fact_owner.pgy|120
-src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_admission_owner.pgy|145
+src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_admission_owner.pgy|150
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_plan_readiness_owner.pgy|35
 src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy|45
 src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy|90
 src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy|30
 src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy|30
-src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy|65
-src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy|100
-src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy|40
+src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy|110
+src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy|140
+src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy|240
 src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_empty_owner.pgy|40
-src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy|25
+src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy|120
 src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy|50
 EOF
 
@@ -112,8 +114,13 @@ done
 
 compile_run() {
     local stem="$1" expected="$2"
-    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem-c.exe" \
-        >"$WORK_DIR/$stem-c.compile" 2>&1 || fail "$stem C did not compile"
+    local command=("$CC" -std=c11 "$WORK_DIR/$stem.c")
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/$stem.c"; then
+        command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    fi
+    command+=(-o "$WORK_DIR/$stem-c.exe")
+    "${command[@]}" >"$WORK_DIR/$stem-c.compile" 2>&1 ||
+        fail "$stem C did not compile"
     "$CLANG" -x ir "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem-llvm.exe" \
         >"$WORK_DIR/$stem-llvm.compile" 2>&1 || fail "$stem LLVM did not compile"
     "$WORK_DIR/$stem-c.exe" | tr -d '\r' >"$WORK_DIR/$stem-c.run"
@@ -127,9 +134,9 @@ compile_run() {
 
 compile_run base 'one\n'
 compile_run semantic 'blue\n'
-! grep -Fq 'pgy_as_drop(&pgy_local_' "$WORK_DIR/base.c" || \
+! grep -Fq 'pgy_as_drop_owned(&pgy_local_' "$WORK_DIR/base.c" || \
     fail "C deep-dropped borrowed literal elements"
-! grep -Fq 'call void @pgy_as_drop(ptr %pgy.local.' "$WORK_DIR/base.ll" || \
+! grep -Fq 'call void @pgy_as_drop_owned(ptr %pgy.local.' "$WORK_DIR/base.ll" || \
     fail "LLVM deep-dropped borrowed literal elements"
 grep -Fq 'pgy_scalar_routine_1(pgy_local_0)' "$WORK_DIR/base.c" || \
     fail "C lost aggregate-by-value call carriage"

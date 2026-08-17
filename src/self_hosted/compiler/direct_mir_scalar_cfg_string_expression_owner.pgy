@@ -1,8 +1,9 @@
 // String expression admission into typed scalar-CFG operation receipts.
-
 import "direct_mir_scalar_cfg_expression_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
 import "direct_mir_scalar_cfg_value_type_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 
 func DirectMirScalarCfgStringValueExpressionFact(
     ref instruction: JsonObjectFactTable,
@@ -36,7 +37,7 @@ func DirectMirScalarCfgStringValueExpressionFact(
         let operand: DirectMirScalarCfgLeafOperand =
             DirectMirScalarCfgLeafOperandFromOwners(
                 use_facts, global_row, 0, instruction_row, 0,
-                sequence.arena.node_texts[0], value_names, local_refs, wire
+                sequence.arena.node_texts[0], value_names, local_refs, wire, true
             );
         if operand.valid && operand.use_count ==
                 MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {
@@ -68,13 +69,13 @@ func DirectMirScalarCfgStringValueExpressionFact(
     let left: DirectMirScalarCfgLeafOperand =
         DirectMirScalarCfgLeafOperandFromOwners(
             use_facts, global_row, 0, instruction_row, 2,
-            sequence.arena.node_texts[2], value_names, local_refs, wire
+            sequence.arena.node_texts[2], value_names, local_refs, wire, true
         );
     if !left.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
     let right: DirectMirScalarCfgLeafOperand =
         DirectMirScalarCfgLeafOperandFromOwners(
             use_facts, global_row, left.use_count, instruction_row, 4,
-            sequence.arena.node_texts[4], value_names, local_refs, wire
+            sequence.arena.node_texts[4], value_names, local_refs, wire, true
         );
     if !right.valid || left.use_count + right.use_count !=
             MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {
@@ -110,14 +111,34 @@ func DirectMirScalarCfgTypedValueExpressionFact(
     return DirectMirScalarCfgExpressionFactEmpty();
 }
 
-func DirectMirScalarCfgPhiOperationKind(type_name: String) -> Int {
+func DirectMirScalarCfgPhiOperationKind(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    type_name: String
+) -> Int {
     if type_name == CompilerAbiLayoutIntTypeName() {
         return DirectMirScalarCfgOpPhiInt();
     }
     if type_name == CompilerAbiLayoutStringTypeName() {
         return DirectMirScalarCfgOpPhiString();
     }
+    if DirectMirScalarCfgPhiValueTypeReady(logical_record, type_name) {
+        return DirectMirScalarCfgOpPhiValue();
+    }
     return 0;
+}
+func DirectMirScalarCfgPhiValueTypeReady(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    type_name: String
+) -> Bool {
+    return type_name == CompilerAbiLayoutBoolTypeName() ||
+        type_name == CompilerAbiLayoutLongTypeName() ||
+        type_name == CompilerAbiLayoutOptionIntTypeName() || type_name == CompilerAbiLayoutOptionStringTypeName() ||
+        type_name == CompilerAbiLayoutArrayIntTypeName() ||
+        type_name == CompilerAbiLayoutArrayBoolTypeName() ||
+        type_name == CompilerAbiLayoutArrayStringTypeName() ||
+        DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) ||
+        DirectMirScalarProgramLogicalRecordOptionTypeReady(
+            logical_record, type_name);
 }
 
 func DirectMirScalarCfgTypedLogExpressionFact(

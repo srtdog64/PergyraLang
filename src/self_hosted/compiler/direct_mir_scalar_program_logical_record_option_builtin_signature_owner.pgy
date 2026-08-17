@@ -1,0 +1,55 @@
+// Contextual projection of generic Option builtins for logical-record payloads.
+
+import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordOptionBuiltinType(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    name: String, actual_types: Array<String>, expected_type: String
+) -> String {
+    let option_type: String = expected_type;
+    if name == "Some" {
+        if ArrayLength(actual_types) < 1 ||
+            !DirectMirScalarProgramLogicalRecordTypeReady(
+                fact, actual_types[0]) { return ""; }
+        option_type = Concat("Option<", Concat(actual_types[0], ">"));
+    } else if name == "IsSome" || name == "UnwrapOption" {
+        if ArrayLength(actual_types) < 1 { return ""; }
+        option_type = actual_types[0];
+    } else if name != "None" { return ""; }
+    if !DirectMirScalarProgramLogicalRecordOptionTypeReady(
+            fact, option_type) { return ""; }
+    return option_type;
+}
+
+func DirectMirScalarProgramLogicalRecordOptionBuiltinReturnType(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    name: String, option_type: String
+) -> String {
+    if name == "Some" || name == "None" { return option_type; }
+    if name == "IsSome" { return CompilerAbiLayoutBoolTypeName(); }
+    return DirectMirScalarProgramLogicalRecordOptionPayloadType(
+        fact, option_type);
+}
+
+func DirectMirScalarProgramLogicalRecordOptionBuiltinParameterTypes(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    name: String, option_type: String
+) -> Array<String> {
+    if name == "None" { return []; }
+    if name == "Some" { return [
+        DirectMirScalarProgramLogicalRecordOptionPayloadType(
+            fact, option_type)]; }
+    return [option_type];
+}
+
+func DirectMirScalarProgramLogicalRecordOptionBuiltinExpressionKind(
+    name: String
+) -> Int {
+    if name == "Some" { return DirectMirScalarProgramExprSomeLogicalRecord(); }
+    if name == "None" { return DirectMirScalarProgramExprNoneLogicalRecord(); }
+    if name == "IsSome" {
+        return DirectMirScalarProgramExprIsSomeLogicalRecord();
+    }
+    return DirectMirScalarProgramExprUnwrapOptionLogicalRecord();
+}

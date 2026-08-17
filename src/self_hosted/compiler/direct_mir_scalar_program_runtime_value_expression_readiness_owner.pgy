@@ -1,0 +1,52 @@
+// Semantic shape of one runtime-value call already joined to its carried ABI
+// receipt during graph admission.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+import "runtime_value_call_abi_owner.pgy";
+
+func DirectMirScalarProgramRuntimeValueCallNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if facts.node_kinds[node] !=
+            DirectMirScalarProgramExprRuntimeValueCall() {
+        return false;
+    }
+    let call: CompilerRuntimeValueCallAbiFact =
+        CompilerRuntimeValueCallAbiFactForId(
+            facts.node_runtime_call_abi_ids[node]);
+    if !call.valid || facts.node_types[node] != call.return_type ||
+        facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_member_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 {
+        return false;
+    }
+    let argument_count: Int = ArrayLength(call.parameter_types);
+    if argument_count == 0 {
+        return facts.node_lefts[node] == -1 && facts.node_rights[node] == -1;
+    }
+    if argument_count == 1 && facts.node_lefts[node] >= 0 &&
+            facts.node_rights[node] == -1 {
+        let argument: Int = facts.node_lefts[node];
+        return facts.node_types[argument] == call.parameter_types[0] &&
+            (!CompilerRuntimeValueTypeReady(
+                call.parameter_types[0]) ||
+             facts.node_kinds[argument] == DirectMirScalarProgramExprLocal());
+    }
+    if argument_count == 2 && facts.node_lefts[node] >= 0 &&
+            facts.node_rights[node] >= 0 {
+        let left: Int = facts.node_lefts[node];
+        let right: Int = facts.node_rights[node];
+        return facts.node_types[left] == call.parameter_types[0] &&
+            facts.node_types[right] == call.parameter_types[1] &&
+            (!CompilerRuntimeValueTypeReady(
+                call.parameter_types[0]) ||
+             facts.node_kinds[left] == DirectMirScalarProgramExprLocal()) &&
+            (!CompilerRuntimeValueTypeReady(
+                call.parameter_types[1]) ||
+             facts.node_kinds[right] == DirectMirScalarProgramExprLocal());
+    }
+    return false;
+}

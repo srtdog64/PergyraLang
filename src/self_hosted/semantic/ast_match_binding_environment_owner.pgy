@@ -24,7 +24,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     inout modes: Array<String>
 ) -> Bool {
     let pattern: AstMatchCasePatternFact =
-        AstMatchCasePatternFactFromArtifact(artifact, case_node_id);
+        AstMatchCasePatternFactFromReadyArtifact(artifact, case_node_id);
     let case_function: Option<Int> = SemanticAstFunctionScopeNodeId(
         function_scopes, case_node_id
     );

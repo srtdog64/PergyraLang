@@ -4,6 +4,7 @@
 // predecessors are visited, predecessor-first and compensation-last-first.
 
 import "intent_execution_plan_index_owner.pgy";
+import "intent_observability_emit_owner.pgy";
 import "../text/text_owner.pgy";
 
 func CodegenIntentPlanEmitTransition(
@@ -11,7 +12,8 @@ func CodegenIntentPlanEmitTransition(
     ref view: CodegenIntentExecutionView,
     routine_syntax_id: Int,
     step: Int,
-    env: CodegenTypeEnv
+    env: CodegenTypeEnv,
+    uses_intent_observability: Bool
 ) -> Void {
     let transition_id: Int = view.plan.steps.transition_ids[step];
     let child: Int = CodegenIntentPlanChildStepRow(
@@ -52,6 +54,11 @@ func CodegenIntentPlanEmitTransition(
     ArrayPush(body, Concat(
         CodegenIntentPlanTransitionLabel(transition_id), ":\n"
     ));
+    CodegenIntentObservabilityEmitTypedStepBegin(
+        body, uses_intent_observability,
+        view.plan.steps.step_names[step],
+        view.plan.steps.where_zone_names[step]
+    );
     ArrayPush(body, Concat(
         "    ", Concat(outcome_name, Concat(" = ", Concat(
             CodegenIntentPlanExpression(
@@ -77,6 +84,9 @@ func CodegenIntentPlanEmitTransition(
         "        ", Concat(CodegenIntentPlanCompletedName(transition_id),
             " = true;\n")
     ));
+    CodegenIntentObservabilityEmitStepOk(
+        body, uses_intent_observability, view.plan.steps.step_names[step]
+    );
     let success_label: String = "";
     if child >= 0 {
         success_label = CodegenIntentPlanTransitionLabel(
@@ -103,6 +113,10 @@ func CodegenIntentPlanEmitTransition(
         "        ", Concat(failure_payload, Concat(" = ", Concat(
             outcome_name, Concat(".", Concat(failure_variant, "._0;\n"))
         )))
+    ));
+    ArrayPush(body, CodegenIntentObservabilityFailureLine(
+        uses_intent_observability, "outcome",
+        view.plan.steps.step_names[step]
     ));
     ArrayPush(body, Concat(
         "        goto ", Concat(CodegenIntentPlanTerminalLabel(
@@ -174,7 +188,8 @@ func CodegenIntentPlanEmitTerminals(
     inout body: Array<String>,
     ref view: CodegenIntentExecutionView,
     routine_syntax_id: Int,
-    env: CodegenTypeEnv
+    env: CodegenTypeEnv,
+    uses_intent_observability: Bool
 ) -> Void {
     let terminal: Int = 0;
     while terminal < ArrayLength(
@@ -199,6 +214,9 @@ func CodegenIntentPlanEmitTerminals(
             } else if view.plan.terminals.roles[terminal] != "success" {
                 Die("typed intent terminal role is invalid");
             }
+            CodegenIntentObservabilityEmitExit(
+                body, uses_intent_observability
+            );
             ArrayPush(body, Concat(
                 "    return ", Concat(CodegenIntentPlanExpression(
                     view, view.terminal_graph_roots[terminal], env

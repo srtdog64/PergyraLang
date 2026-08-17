@@ -58,7 +58,7 @@ func SelfMirJsonRoutineWriteFile(
 ) -> Bool {
     let rows: SelfMirRoutineRows = facts.routines;
     let emit_local_refs: Bool = SelfMirRoutineLocalRefWireRequired(
-        rows, routine_index
+        facts, routine_index
     );
     CompilerArtifactWrite(output, "{");
     JsonOwnedFragmentWriteFile(output, JsonEmitFieldString(
@@ -71,6 +71,10 @@ func SelfMirJsonRoutineWriteFile(
     CompilerArtifactWrite(output, ",");
     JsonOwnedFragmentWriteFile(output, JsonEmitFieldNumber(
         "source_syntax_id", ToString(rows.node_ids[routine_index])
+    ));
+    CompilerArtifactWrite(output, ",");
+    JsonOwnedFragmentWriteFile(output, JsonEmitFieldString(
+        "source_module_path", rows.source_module_paths[routine_index]
     ));
     CompilerArtifactWrite(output, ",");
     JsonOwnedFragmentWriteFile(output, JsonEmitFieldString(

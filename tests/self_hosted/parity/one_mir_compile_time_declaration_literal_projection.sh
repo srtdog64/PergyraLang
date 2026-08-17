@@ -81,9 +81,15 @@ for term in Arithmetic Add ability_decl; do
 done
 ! grep -R -Fq --include='*.pgy' 'DirectMirHelloProjectionFromAdmitted' "$ROOT_DIR/src/self_hosted/compiler" || fail "old hello admission returned"
 ! grep -R -Eq --include='*.pgy' 'DirectMirHelloEmit(C|Llvm)' "$ROOT_DIR/src/self_hosted/compiler" || fail "old hello emitter returned"
-grep -Fq 'DirectMirCompileTimeDeclarationErasureRouteClaimed(admitted)' "$ROOT_OWNER" || fail "erasure route is not claimed before fallback"
+grep -Fq 'DirectMirCompileTimeDeclarationErasureRouteClaimed(' "$ROOT_OWNER" || fail "declaration-bearing malformed input can retry another route"
+route_body="$(sed -n '/^func DirectMirCompileTimeDeclarationErasureRouteClaimed(/,/^}/p' "$ERASURE")"
+! grep -Eq 'declarations\.(kinds|nominal_kinds)' <<<"$route_body" || fail "route claim reintroduced semantic kind scanning"
 grep -Fq 'DirectMirLiteralLogPlanFromAdmitted(admitted)' "$ROOT_OWNER" || fail "literal plan is not the production owner"
 ! grep -Eq 'Json|MirMachine|source_json|Arithmetic|Add|ability' "$EMISSION" || fail "emitter reopened MIR or declaration policy"
+grep -Fq 'StringRuntimeCInt32LineFormat()' "$PLAN" || fail "literal Int log lost its canonical 32-bit format"
+! grep -Fq 'StringRuntimeCIntLineFormat()' "$PLAN" || fail "literal Int log returned to the Long format"
+grep -Fq '#include <stdint.h>' "$EMISSION" || fail "literal Int C emission omitted the exact-width header"
+grep -Fq 'output = Concat(output, "i32 ");' "$EMISSION" || fail "literal Int LLVM emission is not i32"
 
 rm -f "$MIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$(rel "$FIXTURE")" -o "$(rel "$MIR")") \

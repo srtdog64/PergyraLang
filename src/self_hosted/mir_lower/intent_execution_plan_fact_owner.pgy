@@ -194,6 +194,10 @@ func MirIntentExecutionPlanSemanticCrossSeal(
         );
         if routine_row < 0 ||
             signatures.return_type_names[routine_row] == "Bool" ||
+            !MirIntentExecutionZoneDeclarationReady(
+                declarations, plan.steps.where_zone_names[step],
+                plan.steps.where_zone_syntax_ids[step]
+            ) ||
             !MirIntentExecutionCallableReturnReady(
                 signatures, plan.steps.action_syntax_ids[step],
                 plan.steps.outcome_type_names[step]

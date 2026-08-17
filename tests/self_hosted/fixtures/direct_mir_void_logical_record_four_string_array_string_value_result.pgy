@@ -1,0 +1,26 @@
+// Exact Void envelope with ArrayString copyout, a record, and four Strings.
+
+struct TypedValueEnvProbe {
+    let valid: Bool;
+    let text: String;
+}
+
+func AppendTypedBinding(
+    inout state: Array<String>,
+    env: TypedValueEnvProbe,
+    source_name: String,
+    value_type: String,
+    value_kind: String,
+    c_name: String
+) -> Void {
+    ArrayPush(state, ToString(StringLength(c_name)));
+    return;
+}
+
+func Main() -> Void {
+    let state: Array<String> = [];
+    let env: TypedValueEnvProbe = TypedValueEnvProbe(true, "ready");
+    AppendTypedBinding(state, env, "source", "Int", "local", "c_name");
+    Log("void-record-four-string-array-copyout-ready");
+    Log(ArrayLength(state));
+}

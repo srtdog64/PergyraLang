@@ -1,0 +1,47 @@
+// Target-local representation selected from one declaration-identity row.
+
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirScalarProgramLogicalRecordTarget {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let record_row: Int;
+    let c_type_name: String;
+    let llvm_type_name: String;
+}
+
+func DirectMirScalarProgramLogicalRecordTargetFromFact(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    type_name: String,
+    ref target: CompilerTargetProjectionFact
+) -> DirectMirScalarProgramLogicalRecordTarget {
+    let record_row: Int = DirectMirScalarProgramLogicalRecordRow(
+        fact, type_name);
+    if record_row < 0 ||
+        (!CompilerTargetProjectionFactReadyFor(
+            target, CompilerTargetCpuCProjection()) &&
+         !CompilerTargetProjectionFactReadyFor(
+            target, CompilerTargetCpuLlvmProjection())) {
+        Die("direct MIR logical record target projection is invalid");
+    }
+    return DirectMirScalarProgramLogicalRecordTarget(
+        true, target.projection, target.target_capability_fingerprint,
+        record_row,
+        Concat("pgy_scalar_logical_record_value_", ToString(record_row)),
+        Concat("%pgy.scalar.logical.record.value.", ToString(record_row)));
+}
+
+func DirectMirScalarProgramLogicalRecordTargetReadyFor(
+    ref target: DirectMirScalarProgramLogicalRecordTarget,
+    expected: String
+) -> Bool {
+    return target.valid && target.target_projection == expected &&
+        target.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        target.record_row >= 0 && target.c_type_name == Concat(
+            "pgy_scalar_logical_record_value_", ToString(target.record_row)) &&
+        target.llvm_type_name == Concat(
+            "%pgy.scalar.logical.record.value.", ToString(target.record_row));
+}

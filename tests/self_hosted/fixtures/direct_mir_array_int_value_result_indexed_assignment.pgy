@@ -1,0 +1,13 @@
+func FillBounds(
+    untouched: Int, inout bounds: Array<Int>, start: Int, end: Int
+) -> Void {
+    bounds[0] = start;
+    bounds[1] = end;
+}
+
+func Main() -> Void {
+    let bounds: Array<Int> = [0, 0];
+    FillBounds(3, bounds, 7, 9);
+    Log(ToString(bounds[0]));
+    Log(ToString(bounds[1]));
+}

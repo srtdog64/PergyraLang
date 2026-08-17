@@ -8,7 +8,9 @@ struct CompilerAbiNominalArrayLayoutFact {
     element_type: String;
     c_element_type: String;
     c_value_type: String;
+    c_length_type: String;
     field_order: String;
+    llvm_aggregate_type: String;
     ownership_shape: String;
     materialization_policy: String;
 }
@@ -18,7 +20,7 @@ func CompilerAbiNominalArrayLayoutFactFor(
 ) -> CompilerAbiNominalArrayLayoutFact {
     if StringLength(element_type) == 0 {
         return CompilerAbiNominalArrayLayoutFact(
-            false, "", "", "", "", "", ""
+            false, "", "", "", "", "", "", "", ""
         );
     }
     let c_element_type: String = CompilerSymbolCTypeName(element_type);
@@ -27,7 +29,9 @@ func CompilerAbiNominalArrayLayoutFactFor(
         element_type,
         c_element_type,
         Concat("pgy_", Concat(c_element_type, "_array")),
+        "long long",
         CompilerAbiLayoutFieldOrderArrayBuffer(),
+        "{ ptr, i64, i64 }",
         CompilerAbiLayoutOwnershipSharedBufferValue(),
         CompilerAbiLayoutFieldAllowedMaterialization()
     );
@@ -41,7 +45,9 @@ func CompilerAbiNominalArrayLayoutContractReady() -> Bool {
     return fact.ok &&
         fact.c_element_type == "AstExpressionGraphRows" &&
         fact.c_value_type == "pgy_AstExpressionGraphRows_array" &&
+        fact.c_length_type == "long long" &&
         fact.field_order == CompilerAbiLayoutFieldOrderArrayBuffer() &&
+        fact.llvm_aggregate_type == "{ ptr, i64, i64 }" &&
         fact.ownership_shape ==
             CompilerAbiLayoutOwnershipSharedBufferValue() &&
         fact.materialization_policy ==

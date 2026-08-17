@@ -37,10 +37,22 @@ REORDERED_OUT="$BUILD_DIR/reordered.out"
     exit 1
 }
 
+for mode in --runtime-identity --complete-runtime-identity; do
+    POSITIVE_OUT="$BUILD_DIR/positive${mode}.out"
+    (cd "$ROOT_DIR" && "$PROBE_BIN" "$mode" >"$POSITIVE_OUT" 2>&1) && \
+        grep -Fq 'persisted-graph-read=one-pass-exact' "$POSITIVE_OUT" || {
+        echo "[$LABEL] runtime ABI identity lane failed: $mode" >&2
+        cat "$POSITIVE_OUT" >&2
+        exit 1
+    }
+done
+
 # The probe owns the verdict: a negative lane exits 0 only after the reader
 # rejected the document, and exits 1 itself when a malformation is accepted.
 for mode in --duplicate-node-field --unknown-header-field \
-    --unreachable-node --overflow-root; do
+    --unreachable-node --overflow-root --runtime-with-syntax \
+    --runtime-without-direct --negative-runtime-id \
+    --duplicate-runtime-field; do
     NEG_OUT="$BUILD_DIR/neg${mode}.out"
     (cd "$ROOT_DIR" && "$PROBE_BIN" "$mode" >"$NEG_OUT" 2>&1) && \
         grep -Fq 'persisted-graph-negative=closed' "$NEG_OUT" || {

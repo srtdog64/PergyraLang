@@ -1,0 +1,105 @@
+// Structural callee topology joined to carried callable identity.
+//
+// Direct calls use one leaf callee. Namespace calls use the persisted
+// receiver/member/member-access trio, but both are admitted only when the call
+// node already carries its canonical target kind and SyntaxNodeId.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+
+func DirectMirScalarProgramNamespaceCallMarkerReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    if node < 1 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[node] !=
+            SemanticCallTargetNamespace() ||
+        sequence.arena.call_target_names[node] == "" ||
+        sequence.arena.identities.call_target_syntax_ids[node] <= 0 {
+        return false;
+    }
+    let callee: Int = sequence.arena.topology.left_children[node];
+    if callee < 0 || callee >= node ||
+        sequence.arena.topology.node_kinds[callee] !=
+            AstExpressionNodeMemberAccess() {
+        return false;
+    }
+    let receiver: Int = sequence.arena.topology.left_children[callee];
+    let member: Int = sequence.arena.topology.right_children[callee];
+    return receiver >= 0 && receiver < callee && member >= 0 &&
+        member < callee && sequence.arena.topology.node_kinds[receiver] ==
+            AstExpressionNodeLeaf() &&
+        sequence.arena.topology.node_kinds[member] == AstExpressionNodeLeaf();
+}
+
+func DirectMirScalarProgramCallMarkerReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    if DirectMirScalarProgramNamespaceCallMarkerReady(sequence, node) {
+        return true;
+    }
+    if node < 1 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[node] != SemanticCallTargetDirect() {
+        return false;
+    }
+    let callee: Int = sequence.arena.topology.left_children[node];
+    if callee < 0 || callee >= node ||
+        sequence.arena.topology.node_kinds[callee] != AstExpressionNodeLeaf() {
+        return false;
+    }
+    if sequence.arena.identities.call_target_syntax_ids[node] > 0 {
+        return true;
+    }
+    return sequence.arena.call_target_names[node] ==
+        sequence.arena.node_texts[callee];
+}
+
+func DirectMirScalarProgramBuiltinCallMarkerReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    return DirectMirScalarProgramCallMarkerReady(sequence, node) &&
+        sequence.arena.identities.call_target_syntax_ids[node] == 0;
+}
+
+func DirectMirScalarProgramCallCalleeLeafReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    return node + 1 < ArrayLength(sequence.arena.topology.node_kinds) &&
+        sequence.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
+        sequence.arena.topology.node_kinds[node + 1] == AstExpressionNodeCall() &&
+        sequence.arena.topology.left_children[node + 1] == node &&
+        DirectMirScalarProgramCallMarkerReady(sequence, node + 1);
+}
+
+func DirectMirScalarProgramCallCalleeNodeReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    if DirectMirScalarProgramCallCalleeLeafReady(sequence, node) { return true; }
+    let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    let callee: Int = -1; let call: Int = -1;
+    if node >= 0 && node < count && sequence.arena.topology.node_kinds[node] ==
+            AstExpressionNodeMemberAccess() {
+        callee = node; call = node + 1;
+    } else if node >= 0 && node < count &&
+            sequence.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
+        if node + 1 < count && sequence.arena.topology.node_kinds[node + 1] ==
+                AstExpressionNodeMemberAccess() {
+            callee = node + 1; call = node + 2;
+        } else if node + 2 < count &&
+                sequence.arena.topology.node_kinds[node + 2] ==
+                    AstExpressionNodeMemberAccess() {
+            callee = node + 2; call = node + 3;
+        }
+    }
+    return DirectMirScalarProgramNamespaceCallMarkerReady(sequence, call) &&
+        sequence.arena.topology.left_children[call] == callee &&
+        (node == callee || sequence.arena.topology.left_children[callee] == node ||
+         sequence.arena.topology.right_children[callee] == node);
+}
+
+func DirectMirScalarProgramBuiltinCalleeLeafReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    return DirectMirScalarProgramCallCalleeLeafReady(sequence, node) &&
+        DirectMirScalarProgramBuiltinCallMarkerReady(sequence, node + 1);
+}

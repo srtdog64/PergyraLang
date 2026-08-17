@@ -1,0 +1,112 @@
+// Parser-owned module provenance for top-level declarations in one AST epoch.
+
+import "typed_ast_arena_owner.pgy";
+
+struct AstSourceModuleFacts {
+    ok: Bool;
+    known: Bool;
+    declaration_node_ids: Array<Int>;
+    module_paths: Array<String>;
+}
+
+func AstSourceModuleFactsUnknown() -> AstSourceModuleFacts {
+    let declaration_node_ids: Array<Int> = [];
+    let module_paths: Array<String> = [];
+    return AstSourceModuleFacts(
+        true, false, declaration_node_ids, module_paths
+    );
+}
+
+func AstSourceModuleFactsInvalid() -> AstSourceModuleFacts {
+    let declaration_node_ids: Array<Int> = [];
+    let module_paths: Array<String> = [];
+    return AstSourceModuleFacts(
+        false, false, declaration_node_ids, module_paths
+    );
+}
+
+func AstSourceModuleFactsFromTopLevelPaths(
+    arena: AstArena, module_paths: Array<String>
+) -> AstSourceModuleFacts {
+    let declaration_node_ids: Array<Int> = [];
+    if !TypedAstArenaParallelRowsReady(arena) ||
+        !TypedAstArenaNodeKindIs(arena, 0, TypedAstKindProgramTag()) {
+        return AstSourceModuleFactsInvalid();
+    }
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(arena, 0, child_index);
+    while IsSome(child) {
+        if child_index >= ArrayLength(module_paths) ||
+            module_paths[child_index] == "" {
+            return AstSourceModuleFactsInvalid();
+        }
+        ArrayPush(declaration_node_ids, UnwrapOption(child));
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(arena, 0, child_index);
+    }
+    if child_index != ArrayLength(module_paths) {
+        return AstSourceModuleFactsInvalid();
+    }
+    return AstSourceModuleFacts(
+        true, true, declaration_node_ids, module_paths
+    );
+}
+
+func AstSourceModuleFactsReady(
+    arena: AstArena, facts: AstSourceModuleFacts
+) -> Bool {
+    if !facts.ok { return false; }
+    if !facts.known {
+        return ArrayLength(facts.declaration_node_ids) == 0 &&
+            ArrayLength(facts.module_paths) == 0;
+    }
+    let rebuilt: AstSourceModuleFacts =
+        AstSourceModuleFactsFromTopLevelPaths(arena, facts.module_paths);
+    if !rebuilt.ok || !rebuilt.known ||
+        ArrayLength(rebuilt.declaration_node_ids) !=
+            ArrayLength(facts.declaration_node_ids) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(facts.declaration_node_ids) {
+        if rebuilt.declaration_node_ids[i] != facts.declaration_node_ids[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func AstSourceModulePathForNode(
+    ref facts: AstSourceModuleFacts, arena: AstArena, node_id: Int
+) -> Option<String> {
+    if !facts.ok || !facts.known || node_id <= 0 ||
+        node_id >= TypedAstArenaNodeCount(arena) {
+        return None;
+    }
+    let top_level_node: Int = node_id;
+    let remaining: Int = TypedAstArenaNodeCount(arena);
+    while remaining > 0 {
+        let parent: Option<Int> = TypedAstArenaParentId(arena, top_level_node);
+        if !IsSome(parent) { return None; }
+        if UnwrapOption(parent) == 0 { break; }
+        top_level_node = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    if remaining == 0 { return None; }
+    let low: Int = 0;
+    let high: Int = ArrayLength(facts.declaration_node_ids);
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.declaration_node_ids[middle] < top_level_node {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if low >= ArrayLength(facts.declaration_node_ids) ||
+        facts.declaration_node_ids[low] != top_level_node {
+        return None;
+    }
+    return Some(facts.module_paths[low]);
+}

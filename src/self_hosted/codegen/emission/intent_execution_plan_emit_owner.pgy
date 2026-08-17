@@ -10,6 +10,7 @@ import "../../compiler/symbol_table_owner.pgy";
 import "function_binding_env_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "intent_signature_emit_owner.pgy";
+import "intent_observability_emit_owner.pgy";
 import "../text/text_owner.pgy";
 
 import "intent_execution_plan_index_owner.pgy";
@@ -17,9 +18,11 @@ import "intent_execution_plan_local_emit_owner.pgy";
 import "intent_execution_plan_control_emit_owner.pgy";
 
 func CodegenIntentExecutionPlanDefinitionBlock(
+    artifact: AstTreeArtifact,
     ref view: CodegenIntentExecutionView,
     ref intents: SemanticAstIntentSignatureFacts,
-    base_env: CodegenTypeEnv
+    base_env: CodegenTypeEnv,
+    uses_intent_observability: Bool
 ) -> String {
     if !view.valid {
         Die("typed intent codegen view is invalid");
@@ -56,6 +59,11 @@ func CodegenIntentExecutionPlanDefinitionBlock(
         CodegenIntentPlanEmitLocals(
             body, view, routine_syntax_id, env
         );
+        CodegenIntentObservabilityEmitPrologue(
+            body, uses_intent_observability, artifact, routine_syntax_id,
+            intents, intent_index, env,
+            "        pgy_runtime_panic_internal_invariant_export(\"typed intent runtime admission failed\");\n"
+        );
         ArrayPush(body, Concat(
             "    goto ", Concat(CodegenIntentPlanTransitionLabel(
                 view.plan.steps.transition_ids[root_step]
@@ -68,7 +76,8 @@ func CodegenIntentExecutionPlanDefinitionBlock(
                 Die("typed intent transition chain is cyclic");
             }
             CodegenIntentPlanEmitTransition(
-                body, view, routine_syntax_id, step, env
+                body, view, routine_syntax_id, step, env,
+                uses_intent_observability
             );
             emitted_steps = emitted_steps + 1;
             visited = visited + 1;
@@ -85,7 +94,8 @@ func CodegenIntentExecutionPlanDefinitionBlock(
             Die("typed intent predecessor chain does not cover its steps");
         }
         CodegenIntentPlanEmitTerminals(
-            body, view, routine_syntax_id, env
+            body, view, routine_syntax_id, env,
+            uses_intent_observability
         );
         let plan_result_type: String = "";
         let terminal: Int = 0;

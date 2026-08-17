@@ -123,7 +123,7 @@ func DirectMirScalarCfgEmitCOperation(
         );
     if collection.valid { return collection.text; }
     if kind != DirectMirScalarCfgOpPhiInt() &&
-        kind != DirectMirScalarCfgOpPhiString() {
+        kind != DirectMirScalarCfgOpPhiString() && kind != DirectMirScalarCfgOpPhiValue() {
         Die("direct MIR scalar CFG C operation is unsupported");
     }
     return output;

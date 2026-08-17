@@ -1,0 +1,8 @@
+// Stable normalized identities for Option<logical-record> values.
+
+func DirectMirScalarProgramExprSomeLogicalRecord() -> Int { return 56; }
+func DirectMirScalarProgramExprNoneLogicalRecord() -> Int { return 57; }
+func DirectMirScalarProgramExprIsSomeLogicalRecord() -> Int { return 58; }
+func DirectMirScalarProgramExprUnwrapOptionLogicalRecord() -> Int {
+    return 59;
+}

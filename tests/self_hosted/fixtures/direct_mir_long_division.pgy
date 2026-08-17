@@ -1,0 +1,7 @@
+func LongDivision(left: Long, right: Long) -> Long {
+    return left / right;
+}
+
+func Main() -> Void {
+    Log("long-division-ready");
+}

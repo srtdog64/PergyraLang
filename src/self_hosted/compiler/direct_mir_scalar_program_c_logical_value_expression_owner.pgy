@@ -1,0 +1,45 @@
+// C projection for logical-record values and indexed record-array reads.
+
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+
+func DirectMirScalarProgramCLogicalValueExpression(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact,
+    kind: Int, record_type: String, left_type: String,
+    node_type: String, left: String, right: String,
+    arguments: Array<String>, member_ordinal: Int
+) -> Option<String> {
+    if kind == DirectMirScalarProgramExprArrayIntIndex() || kind ==
+            DirectMirScalarProgramExprArrayBoolIndex() {
+        let expected_left: String = CompilerAbiLayoutArrayIntTypeName();
+        let expected_node: String = CompilerAbiLayoutIntTypeName();
+        let runtime_kind: Int = 1;
+        if kind == DirectMirScalarProgramExprArrayBoolIndex() {
+            expected_left = CompilerAbiLayoutArrayBoolTypeName();
+            expected_node = CompilerAbiLayoutBoolTypeName();
+            runtime_kind = 4;
+        }
+        if left_type != expected_left || node_type != expected_node ||
+            left == "" || right == "" || ArrayLength(arguments) != 0 ||
+            member_ordinal != -1 { return None; }
+        return Some(Concat(CollectionRuntimeCGetFn(runtime_kind),
+            Concat("(", Concat(left, Concat(", ", Concat(right, ")"))))));
+    }
+    if kind != DirectMirScalarProgramExprLogicalRecordArrayIndex() {
+        return DirectMirScalarProgramCLogicalRecordExpression(
+            fact, kind, record_type, left, arguments, member_ordinal);
+    }
+    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+            fact, left_type, target);
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
+            projected, CompilerTargetCpuCProjection()) ||
+        projected.element_type != node_type || left == "" || right == "" ||
+        ArrayLength(arguments) != 0 || member_ordinal != -1 {
+        return None;
+    }
+    return Some(Concat("(", Concat(left, Concat(").data[", Concat(
+        right, "]")))));
+}

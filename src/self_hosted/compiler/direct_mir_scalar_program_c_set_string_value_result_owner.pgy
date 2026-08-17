@@ -1,0 +1,42 @@
+// C copy-in/copy-out lifecycle for Set<String> value-result formals.
+
+import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
+
+func DirectMirScalarProgramCSetStringValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramSetStringValueResultAt(
+                plan, routine, ordinal) {
+            output = Concat(output, "    ");
+            output = Concat(output, CompilerAbiLayoutSetStringCValueType());
+            output = Concat(output, Concat(" pgy_param_", ToString(ordinal)));
+            output = Concat(output, Concat(" = *pgy_param_",
+                ToString(ordinal)));
+            output = Concat(output, "_mutref;\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCSetStringValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramSetStringValueResultAt(
+                plan, routine, ordinal) {
+            output = Concat(output, Concat("    *pgy_param_",
+                ToString(ordinal)));
+            output = Concat(output, Concat("_mutref = pgy_param_",
+                ToString(ordinal)));
+            output = Concat(output, ";\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}

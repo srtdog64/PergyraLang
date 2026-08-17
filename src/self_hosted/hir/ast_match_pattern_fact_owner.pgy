@@ -80,12 +80,15 @@ func AstMatchCasePatternFactContractReady() -> Bool {
         !AstMatchCasePatternFactFromText("Pair()").ok;
 }
 
-func AstMatchCasePatternFactFromArtifact(
+// The caller has already proved AstTreeArtifactReady at its admission
+// boundary. Keep the local node/kind/atom checks here, but do not reopen the
+// whole artifact and expression-graph proof for every nested match use site.
+func AstMatchCasePatternFactFromReadyArtifact(
     artifact: AstTreeArtifact,
     case_node_id: Int
 ) -> AstMatchCasePatternFact {
-    if !AstTreeArtifactReady(artifact) || case_node_id < 0 ||
-        case_node_id >= artifact.count || !TypedAstArenaNodeKindIs(
+    if case_node_id < 0 || case_node_id >= artifact.count ||
+        !TypedAstArenaNodeKindIs(
             artifact.arena, case_node_id, TypedAstKindMatchCaseStmtTag()
         ) {
         return AstMatchCasePatternFactInvalid();
@@ -97,4 +100,16 @@ func AstMatchCasePatternFactFromArtifact(
         return AstMatchCasePatternFactInvalid();
     }
     return AstMatchCasePatternFactFromText(UnwrapOption(pattern));
+}
+
+func AstMatchCasePatternFactFromArtifact(
+    artifact: AstTreeArtifact,
+    case_node_id: Int
+) -> AstMatchCasePatternFact {
+    if !AstTreeArtifactReady(artifact) {
+        return AstMatchCasePatternFactInvalid();
+    }
+    return AstMatchCasePatternFactFromReadyArtifact(
+        artifact, case_node_id
+    );
 }

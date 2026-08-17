@@ -50,6 +50,17 @@ func CompilerAbiLayoutRowFactAt(index: Int) -> String {
     if index == 8 { return CompilerAbiLayoutDefaultReturnValueFact(); }
     return "";
 }
+func CompilerAbiLayoutSetStringRowReady() -> Bool {
+    return CompilerAbiLayoutRowCValueTypeFor(
+            CompilerAbiLayoutSetStringTypeName()) ==
+            CompilerAbiLayoutSetStringCValueType() &&
+        CompilerAbiLayoutRowFieldOrderFor(CompilerAbiLayoutSetStringTypeName()) ==
+            CompilerAbiLayoutFieldOrderSetBuffer() &&
+        CompilerAbiLayoutRowOwnershipShapeAt(20) ==
+            CompilerAbiLayoutOwnershipSharedBufferValue() &&
+        CompilerAbiLayoutRowMaterializationFor(CompilerAbiLayoutSetStringTypeName()) ==
+            CompilerAbiLayoutRuntimeValueOnlyMaterialization();
+}
 func CompilerAbiLayoutRowsReady() -> Bool {
     return CompilerAbiLayoutRowFactCount() > 0 &&
         CompilerTargetCapabilityEnvelopeReady() &&
@@ -76,6 +87,7 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutOptionDoubleTypeName()) == CompilerAbiLayoutOptionDoubleCValueType() &&
         CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutAllocatorTypeName()) == CompilerAbiLayoutAllocatorCValueType() &&
         CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutTextBuilderTypeName()) == CompilerAbiLayoutTextBuilderCValueType() &&
+        CompilerAbiLayoutSetStringRowReady() &&
         CompilerAbiLayoutVoidTypeName() != "" &&
         CompilerAbiLayoutVoidCValueType() != "" &&
         CompilerAbiLayoutPayloadFreeEnumCValueType() == CompilerAbiLayoutIntCValueType() &&
@@ -88,7 +100,7 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutTargetPolicyReady();
 }
 func CompilerAbiLayoutConcreteRowCount() -> Int {
-    return 20;
+    return 21;
 }
 func CompilerAbiLayoutIntTypeName() -> String {
     return "Int";
@@ -150,6 +162,9 @@ func CompilerAbiLayoutAllocatorTypeName() -> String {
 func CompilerAbiLayoutTextBuilderTypeName() -> String {
     return "TextBuilder";
 }
+func CompilerAbiLayoutSetStringTypeName() -> String {
+    return "Set<String>";
+}
 func CompilerAbiLayoutVoidTypeName() -> String {
     return "Void";
 }
@@ -189,6 +204,9 @@ func CompilerAbiLayoutOptionStringExplicitTypeName() -> String {
 func CompilerAbiLayoutOptionBoolExplicitTypeName() -> String {
     return "Option<Bool: Bool>";
 }
+func CompilerAbiLayoutSetStringExplicitTypeName() -> String {
+    return "Set<String: String>";
+}
 func CompilerAbiLayoutRowTypeNameAt(index: Int) -> String {
     if index == 0 { return CompilerAbiLayoutIntTypeName(); }
     if index == 1 { return CompilerAbiLayoutBoolTypeName(); }
@@ -210,13 +228,14 @@ func CompilerAbiLayoutRowTypeNameAt(index: Int) -> String {
     if index == 17 { return CompilerAbiLayoutOptionBoolTypeName(); }
     if index == 18 { return CompilerAbiLayoutAllocatorTypeName(); }
     if index == 19 { return CompilerAbiLayoutTextBuilderTypeName(); }
+    if index == 20 { return CompilerAbiLayoutSetStringTypeName(); }
     return "";
 }
 func CompilerAbiLayoutIntCValueType() -> String {
-    return "long long";
+    return "int32_t";
 }
 func CompilerAbiLayoutLongCValueType() -> String {
-    return CompilerAbiLayoutIntCValueType();
+    return "int64_t";
 }
 func CompilerAbiLayoutBoolCValueType() -> String {
     return "bool";
@@ -234,7 +253,7 @@ func CompilerAbiLayoutArrayIntCValueType() -> String {
     return "pgy_ai";
 }
 func CompilerAbiLayoutArrayLongCValueType() -> String {
-    return CompilerAbiLayoutArrayIntCValueType();
+    return "pgy_al";
 }
 func CompilerAbiLayoutArrayStringCValueType() -> String {
     return "pgy_as";
@@ -252,7 +271,7 @@ func CompilerAbiLayoutOptionIntCValueType() -> String {
     return "pgy_option_int";
 }
 func CompilerAbiLayoutOptionLongCValueType() -> String {
-    return CompilerAbiLayoutOptionIntCValueType();
+    return "pgy_option_long";
 }
 func CompilerAbiLayoutOptionFloatCValueType() -> String {
     return "pgy_option_float";
@@ -271,6 +290,9 @@ func CompilerAbiLayoutAllocatorCValueType() -> String {
 }
 func CompilerAbiLayoutTextBuilderCValueType() -> String {
     return "PgyTextBuilder";
+}
+func CompilerAbiLayoutSetStringCValueType() -> String {
+    return "PgySet_String";
 }
 func CompilerAbiLayoutVoidCValueType() -> String {
     return "void";
@@ -302,6 +324,7 @@ func CompilerAbiLayoutRowCValueTypeAt(index: Int) -> String {
     if index == 17 { return CompilerAbiLayoutOptionBoolCValueType(); }
     if index == 18 { return CompilerAbiLayoutAllocatorCValueType(); }
     if index == 19 { return CompilerAbiLayoutTextBuilderCValueType(); }
+    if index == 20 { return CompilerAbiLayoutSetStringCValueType(); }
     return "";
 }
 
@@ -323,6 +346,9 @@ func CompilerAbiLayoutFieldOrderAllocator() -> String {
 func CompilerAbiLayoutFieldOrderTextBuilder() -> String {
     return "data,length,capacity,finished";
 }
+func CompilerAbiLayoutFieldOrderSetBuffer() -> String {
+    return "keys,occupied,count,capacity";
+}
 func CompilerAbiLayoutRowFieldOrderAt(index: Int) -> String {
     if (index >= 0 && index <= 3) || index == 10 || index == 11 { return CompilerAbiLayoutFieldOrderScalarValue(); }
     if (index >= 4 && index <= 6) || index == 12 || index == 16 { return CompilerAbiLayoutFieldOrderArrayBuffer(); }
@@ -330,6 +356,7 @@ func CompilerAbiLayoutRowFieldOrderAt(index: Int) -> String {
     if (index >= 8 && index <= 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutFieldOrderOptionValue(); }
     if index == 18 { return CompilerAbiLayoutFieldOrderAllocator(); }
     if index == 19 { return CompilerAbiLayoutFieldOrderTextBuilder(); }
+    if index == 20 { return CompilerAbiLayoutFieldOrderSetBuffer(); }
     return "";
 }
 
@@ -343,7 +370,7 @@ func CompilerAbiLayoutTagKindBoolPresence() -> String {
     return "bool_presence";
 }
 func CompilerAbiLayoutRowTagKindAt(index: Int) -> String {
-    if (index >= 0 && index <= 6) || index == 10 || index == 11 || index == 12 || index == 16 || index == 18 || index == 19 { return CompilerAbiLayoutTagKindNone(); }
+    if (index >= 0 && index <= 6) || index == 10 || index == 11 || index == 12 || index == 16 || index == 18 || index == 19 || index == 20 { return CompilerAbiLayoutTagKindNone(); }
     if index == 7 { return CompilerAbiLayoutTagKindBoolResult(); }
     if (index >= 8 && index <= 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutTagKindBoolPresence(); }
     return "";
@@ -380,7 +407,7 @@ func CompilerAbiLayoutOwnershipSingleOwnerLinear() -> String {
 func CompilerAbiLayoutRowOwnershipShapeAt(index: Int) -> String {
     if (index >= 0 && index <= 2) || index == 10 || index == 11 { return CompilerAbiLayoutOwnershipPlainValue(); }
     if index == 3 { return CompilerAbiLayoutOwnershipBorrowedStringView(); }
-    if (index >= 4 && index <= 6) || index == 12 || index == 16 { return CompilerAbiLayoutOwnershipSharedBufferValue(); }
+    if (index >= 4 && index <= 6) || index == 12 || index == 16 || index == 20 { return CompilerAbiLayoutOwnershipSharedBufferValue(); }
     if (index >= 7 && index <= 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutOwnershipTaggedValue(); }
     if index == 18 { return CompilerAbiLayoutOwnershipAllocatorLaneValue(); }
     if index == 19 { return CompilerAbiLayoutOwnershipSingleOwnerLinear(); }
@@ -415,7 +442,7 @@ func CompilerAbiLayoutRuntimeValueOnlyMaterialization() -> String {
 func CompilerAbiLayoutRowMaterializationAt(index: Int) -> String {
     if (index >= 0 && index <= 6) || index == 10 || index == 11 || index == 12 || index == 16 { return CompilerAbiLayoutFieldAllowedMaterialization(); }
     if (index >= 7 && index <= 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutRuntimeValueOnlyMaterialization(); }
-    if index == 18 || index == 19 { return CompilerAbiLayoutRuntimeValueOnlyMaterialization(); }
+    if index == 18 || index == 19 || index == 20 { return CompilerAbiLayoutRuntimeValueOnlyMaterialization(); }
     return "";
 }
 
@@ -502,6 +529,10 @@ func CompilerAbiLayoutRowMatches(index: Int, type_name: String) -> Bool {
     }
     if canonical == CompilerAbiLayoutOptionBoolTypeName() &&
         type_name == CompilerAbiLayoutOptionBoolExplicitTypeName() {
+        return true;
+    }
+    if canonical == CompilerAbiLayoutSetStringTypeName() &&
+        type_name == CompilerAbiLayoutSetStringExplicitTypeName() {
         return true;
     }
     return false;

@@ -92,6 +92,27 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
         Log(GenerateCFromTypedAstArtifact(source_artifact));
         return;
     }
+    if ArrayLength(args) > 0 && args[0] == "--observe-source-pressure" {
+        if ArrayLength(args) < 2 {
+            Die("observed codegen source path is missing");
+        }
+        if !CompilerTargetCapabilityEnvelopeReady() {
+            Die("target capability envelope is not ready for self-host C codegen");
+        }
+        Log("[codegen-pressure-stage] source:start");
+        let observed_source_artifact: AstTreeArtifact =
+            CompileSourceToAstArtifact(args[1]);
+        Log("[codegen-pressure-stage] source:done");
+        Log("[codegen-pressure-stage] semantic:start");
+        let observed_source_analysis: SemanticAstArtifactAnalysis =
+            SemanticAstArtifactAnalyzeTyped(observed_source_artifact, true);
+        Log("[codegen-pressure-stage] semantic:done");
+        Log(GenerateCUnitFromAdmittedSemanticArtifactObserved(
+            observed_source_artifact, observed_source_analysis, true,
+            SelfHostMachineLayerDeclarationEmpty(), true
+        ));
+        return;
+    }
     if ArrayLength(args) > 0 && args[0] == "--observe-pressure" {
         if ArrayLength(args) < 2 {
             Die("observed codegen AST path is missing");

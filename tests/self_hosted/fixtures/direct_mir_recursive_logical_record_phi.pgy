@@ -1,0 +1,53 @@
+// Recursive logical-record dependencies and target-neutral value phi joins.
+
+struct LeafFact {
+    valid: Bool;
+    text: String;
+    start: Int;
+    end: Int;
+}
+
+// Same-shaped declarations remain distinct identities.
+struct AlternateLeafFact {
+    valid: Bool;
+    text: String;
+    start: Int;
+    end: Int;
+}
+
+// This five-field record proves that logical records are not fixed to four
+// scalar fields. Its leaf dependencies must be emitted before this carrier.
+struct DocumentFact {
+    valid: Bool;
+    root: LeafFact;
+    alternate: AlternateLeafFact;
+    count: Int;
+    label: String;
+}
+
+func BuildDocumentFact(
+    choose_alternate: Bool, text: String
+) -> DocumentFact {
+    let valid: Bool = false;
+    let root: LeafFact = LeafFact(false, "root-default", 1, 2);
+    let alternate: AlternateLeafFact =
+        AlternateLeafFact(false, "alternate-default", 3, 4);
+    if choose_alternate {
+        valid = true;
+        root = LeafFact(true, "root-selected", 5, 6);
+        alternate = AlternateLeafFact(true, text, 7, 8);
+    }
+    return DocumentFact(valid, root, alternate, 9, "document");
+}
+
+func Main() -> Void {
+    let first: DocumentFact = BuildDocumentFact(false, "unused");
+    if first.valid { Log("unexpected"); }
+    Log(first.root.text);
+    Log(ToString(first.alternate.end));
+    let second: DocumentFact = BuildDocumentFact(true, "alternate-selected");
+    if second.valid { Log(second.label); }
+    Log(second.root.text);
+    Log(second.alternate.text);
+    Log(ToString(second.count));
+}

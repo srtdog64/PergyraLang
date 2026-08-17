@@ -30,21 +30,26 @@ func CompilerRuntimeCallAbiFactMissing() -> CompilerRuntimeCallAbiFact {
 // Must match mir_abi_resource_runtime_row_id in the native ABI owner.  The
 // key is domain|canonical ABI type|logical operation; target symbol spelling
 // and table position are deliberately excluded from identity.
+func CompilerRuntimeCallAbiRowIdHashText(hash: Long, text: String) -> Long {
+    let modulus: Long = 268435456L;
+    let i: Int = 0;
+    let n: Int = StringLength(text);
+    while i < n {
+        hash = (hash * 131L + (CharCode(text, n, i) as Long)) % modulus;
+        i = i + 1;
+    }
+    return hash;
+}
+
 func CompilerRuntimeCallAbiRowId(
     domain: String, type_name: String, operation: String
 ) -> Int {
     let modulus: Long = 268435456L;
-    let hash: Long = 7L;
-    let key: String = Concat(
-        Concat(Concat(domain, "|"), type_name),
-        Concat("|", operation)
-    );
-    let i: Int = 0;
-    let n: Int = StringLength(key);
-    while i < n {
-        hash = (hash * 131L + (CharCode(key, n, i) as Long)) % modulus;
-        i = i + 1;
-    }
+    let hash: Long = CompilerRuntimeCallAbiRowIdHashText(7L, domain);
+    hash = (hash * 131L + 124L) % modulus;
+    hash = CompilerRuntimeCallAbiRowIdHashText(hash, type_name);
+    hash = (hash * 131L + 124L) % modulus;
+    hash = CompilerRuntimeCallAbiRowIdHashText(hash, operation);
     return (1073741824L + hash) as Int;
 }
 
@@ -88,6 +93,50 @@ func CompilerRuntimeCallAbiFormattedPrintFact(
     return CompilerRuntimeCallAbiFactFromRowInput(
         CompilerRuntimeCallAbiStringFormattedPrintRowInput()
     );
+}
+
+func CompilerRuntimeCallAbiPrintFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "string", "print", StringRuntimeCPrintFn(),
+            CompilerRuntimeCallAbiMaterialGeneratedHelper()
+        )
+    );
+}
+
+func CompilerRuntimeCallAbiPrintFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return fact.ok && fact.domain == "string" && fact.operation == "print" &&
+        fact.symbol == StringRuntimeCPrintFn() &&
+        fact.symbol_kind == "function" && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
+        fact.call_shape == "string_to_void" &&
+        fact.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "string", "", "print");
+}
+
+func CompilerRuntimeCallAbiProcessExitFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "host-io", "exit", HostIORuntimeCExitFn(),
+            CompilerRuntimeCallAbiMaterialTargetLibrary()
+        )
+    );
+}
+
+func CompilerRuntimeCallAbiProcessExitFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return fact.ok && fact.domain == "host-io" &&
+        fact.operation == "exit" && fact.symbol == HostIORuntimeCExitFn() &&
+        fact.symbol_kind == "function" && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        fact.call_shape == "int_to_noreturn" &&
+        fact.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "host-io", "", "exit");
 }
 
 func CompilerRuntimeCallAbiStringConcatFact(

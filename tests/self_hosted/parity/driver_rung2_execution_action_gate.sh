@@ -54,8 +54,12 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
             return 1
         }
     done
-    [[ "$(grep -F -c -- 'CompileMirJsonToDirectBackendVerified(' "$execution_owner")" -eq 1 ]] || {
+    [[ "$(grep -F -c -- 'CompileMirJsonToDirectBackendVerifiedObserved(' "$execution_owner")" -eq 1 ]] || {
         echo "[driver-rung2-execution-action] backend owner must be consumed exactly once" >&2
+        return 1
+    }
+    ! grep -Fq -- 'CompileMirJsonToDirectBackendVerified(' "$execution_owner" || {
+        echo "[driver-rung2-execution-action] execution bypassed the observed direct-MIR boundary" >&2
         return 1
     }
     [[ "$(grep -Ec -- '^[[:space:]]*action ' "$execution_owner")" -eq 1 ]] || {

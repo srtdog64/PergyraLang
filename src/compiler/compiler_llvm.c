@@ -173,6 +173,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     CompilerResult *result = NULL;
     bool compiled_runtime = false;
     bool uses_intent_observability = false;
+    const char *runtime_error = NULL;
     PgyVerifiedProjectionPlanRow projection_plan;
     PgyVerifiedParallelCapturePlan parallel_capture_plan = {0};
     const char *projection_error = NULL;
@@ -239,160 +240,36 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         return compiler_error("Unsafe characters in file path");
     }
 
-    runtime_obj_path = compiler_runtime_prebuilt_object_path(
-        opt_profile,
-        uses_intent_observability);
-    bool using_prebuilt_runtime = (runtime_obj_path != NULL);
-    if (runtime_obj_path == NULL) {
-        runtime_obj_path = compiler_runtime_cache_object_path(
-            opt_profile,
-            uses_intent_observability);
-    }
-    if (runtime_obj_path == NULL)
-        return compiler_error("Out of memory");
-    if (!pgy_path_is_safe(runtime_obj_path)) {
-        free(runtime_obj_path);
-        return compiler_error("Unsafe characters in file path");
-    }
-
-    /* Build through a per-process scratch path and publish in one step, so
-     * concurrent builders never link a half-written object (docs/190 B2). The
-     * C leg already does this; without it here, any burst of parallel LLVM
-     * builds that all see the cache stale writes the same path at once. */
-    char *runtime_tmp_path = compiler_runtime_object_scratch_path(runtime_obj_path);
-    if (runtime_tmp_path == NULL) {
-        free(runtime_obj_path);
-        return compiler_error("Out of memory");
-    }
-
     const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
-    const char *intent_observability_flag =
-        uses_intent_observability
-            ? "-DPGY_INTENT_OBSERVABILITY_ENABLED=1"
-            : "-DPGY_INTENT_OBSERVABILITY_ENABLED=0";
     PgyCCompilerSelection cc_selection;
-    if (!pgy_select_c_compiler(&cc_selection)) {
-        free(runtime_obj_path);
+    if (!pgy_select_c_compiler(&cc_selection))
         return compiler_error("Unable to detect C compiler");
-    }
     const char *cc = cc_selection.cc;
     const char *cc_target = cc_selection.target_flag;
     result = compiler_success(output_obj_path, output_binary_path);
-    if (result == NULL) {
-        free(runtime_obj_path);
+    if (result == NULL)
         return NULL;
-    }
     if (!compiler_result_bind_artifact_identity(
             result, &projection_plan, "emitted_llvm")) {
         compiler_result_destroy(result);
-        free(runtime_obj_path);
         return compiler_error(
             "LLVM artifact identity could not bind the verified projection plan");
     }
     result->backend_timings.codegen = compiler_now_seconds() - phase_start;
     compiler_debug_llvm_host_stage("runtime_prepare");
-#ifdef _WIN32
-    const char *compile_runtime_argv[24];
-    int compile_runtime_argc = 0;
-    compile_runtime_argv[compile_runtime_argc++] = cc;
-    if (cc_target != NULL)
-        compile_runtime_argv[compile_runtime_argc++] = cc_target;
-    compile_runtime_argv[compile_runtime_argc++] = "-std=c11";
-    compile_runtime_argv[compile_runtime_argc++] = "-Wall";
-    compile_runtime_argv[compile_runtime_argc++] = "-Wno-unused-value";
-    compile_runtime_argv[compile_runtime_argc++] = "-Wno-parentheses-equality";
-    compile_runtime_argv[compile_runtime_argc++] = "-Wno-c23-extensions";
-    compile_runtime_argv[compile_runtime_argc++] = "-Wno-format-truncation";
-    compile_runtime_argv[compile_runtime_argc++] = PGY_CFLAGS_THREAD_FLAG;
-    compile_runtime_argv[compile_runtime_argc++] = opt_flag;
-    /* Match the emitted-C driver: defined signed wrap + no TBAA miscompiles
-     * so the linked runtime's checked arithmetic stays UB-free under -O3. */
-    compile_runtime_argv[compile_runtime_argc++] = "-fwrapv";
-    compile_runtime_argv[compile_runtime_argc++] = "-fno-strict-aliasing";
-    compile_runtime_argv[compile_runtime_argc++] = intent_observability_flag;
-    compile_runtime_argv[compile_runtime_argc++] = "-DPGY_LLVM_ENABLED";
-    compile_runtime_argv[compile_runtime_argc++] = "-I";
-    compile_runtime_argv[compile_runtime_argc++] = PGY_SRC_DIR;
-    compile_runtime_argv[compile_runtime_argc++] = "-c";
-    compile_runtime_argv[compile_runtime_argc++] = PGY_RUNTIME_LIB_C;
-    compile_runtime_argv[compile_runtime_argc++] = "-o";
-    compile_runtime_argv[compile_runtime_argc++] = runtime_tmp_path;
-    compile_runtime_argv[compile_runtime_argc] = NULL;
-#else
-    const char *compile_runtime_argv[22];
-    int compile_runtime_argc = 0;
-    compile_runtime_argv[compile_runtime_argc++] = cc;
-    if (cc_target != NULL)
-        compile_runtime_argv[compile_runtime_argc++] = cc_target;
-    compile_runtime_argv[compile_runtime_argc++] = "-std=c11";
-    compile_runtime_argv[compile_runtime_argc++] = "-Wall";
-#ifdef __APPLE__
-    compile_runtime_argv[compile_runtime_argc++] = "-D_DARWIN_C_SOURCE";
-    compile_runtime_argv[compile_runtime_argc++] = "-D_XOPEN_SOURCE=700";
-#else
-    compile_runtime_argv[compile_runtime_argc++] = "-D_POSIX_C_SOURCE=200809L";
-    compile_runtime_argv[compile_runtime_argc++] = "-D_XOPEN_SOURCE=700";
-#endif
-    compile_runtime_argv[compile_runtime_argc++] = opt_flag;
-    /* Match the emitted-C driver: defined signed wrap + no TBAA miscompiles
-     * so the linked runtime's checked arithmetic stays UB-free under -O3. */
-    compile_runtime_argv[compile_runtime_argc++] = "-fwrapv";
-    compile_runtime_argv[compile_runtime_argc++] = "-fno-strict-aliasing";
-#ifndef __APPLE__
-    compile_runtime_argv[compile_runtime_argc++] = "-fopenmp";
-#endif
-    compile_runtime_argv[compile_runtime_argc++] = intent_observability_flag;
-    compile_runtime_argv[compile_runtime_argc++] = "-DPGY_LLVM_ENABLED";
-    compile_runtime_argv[compile_runtime_argc++] = "-I";
-    compile_runtime_argv[compile_runtime_argc++] = PGY_SRC_DIR;
-    compile_runtime_argv[compile_runtime_argc++] = "-c";
-    compile_runtime_argv[compile_runtime_argc++] = PGY_RUNTIME_LIB_C;
-    compile_runtime_argv[compile_runtime_argc++] = "-o";
-    compile_runtime_argv[compile_runtime_argc++] = runtime_tmp_path;
-    compile_runtime_argv[compile_runtime_argc] = NULL;
-#endif
     phase_start = compiler_now_seconds();
-    if (using_prebuilt_runtime && !compiler_runtime_cache_is_fresh(runtime_obj_path)) {
+    runtime_obj_path = compiler_llvm_runtime_object_ensure(
+        opt_profile, uses_intent_observability, verbose,
+        &compiled_runtime, &runtime_error);
+    if (runtime_obj_path == NULL) {
         result->success = false;
         result->exit_code = 1;
         free(result->error_message);
-        result->error_message = pergyra_strdup(
-            "Prebuilt LLVM runtime object is stale or missing");
+        result->error_message = pergyra_strdup(runtime_error != NULL
+            ? runtime_error : "LLVM runtime object unavailable");
         result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
-        free(runtime_tmp_path);
-        free(runtime_obj_path);
         return result;
     }
-    if (!using_prebuilt_runtime && !compiler_runtime_cache_is_fresh(runtime_obj_path)) {
-        compiler_debug_llvm_host_stage("runtime_compile");
-        int rc = pgy_exec_argv(compile_runtime_argv, verbose);
-        compiled_runtime = true;
-        if (rc != 0) {
-            result->success = false;
-            result->exit_code = rc;
-            free(result->error_message);
-            result->error_message = pergyra_strdup("LLVM runtime compilation failed");
-            result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
-            remove(runtime_tmp_path);
-            free(runtime_tmp_path);
-            free(runtime_obj_path);
-            return result;
-        }
-        if (!compiler_publish_runtime_object(runtime_tmp_path, runtime_obj_path)) {
-            result->success = false;
-            result->exit_code = 1;
-            free(result->error_message);
-            result->error_message = pergyra_strdup(
-                "LLVM runtime object could not be published into the cache");
-            result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
-            remove(runtime_tmp_path);
-            free(runtime_tmp_path);
-            free(runtime_obj_path);
-            return result;
-        }
-    }
-    free(runtime_tmp_path);
-    runtime_tmp_path = NULL;
     result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
 
     compiler_debug_llvm_host_stage("link_begin");

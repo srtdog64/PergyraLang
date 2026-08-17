@@ -1,0 +1,5 @@
+// Stable identities for bounded Array<Int> literal expressions.
+
+func DirectMirScalarProgramExprArrayIntEmptyLiteral() -> Int { return 51; }
+func DirectMirScalarProgramExprArrayIntPopulatedLiteral() -> Int { return 54; }
+func DirectMirScalarProgramExprArrayIntIndex() -> Int { return 62; }

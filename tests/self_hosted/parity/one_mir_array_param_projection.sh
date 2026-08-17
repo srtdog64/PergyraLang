@@ -47,16 +47,21 @@ src/self_hosted/compiler/direct_mir_collection_program_projection_owner.pgy|45
 src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy|35
 EOF
 
-ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy"
+ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
+ROUTE_FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_collection_program_route_fact_owner.pgy"
 PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy"
 C_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_collection_program_c_emission_owner.pgy"
 LLVM_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_collection_program_llvm_emission_owner.pgy"
+ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy"
 require_text "$PLAN" 'DirectMirScalarCfgCollectionPlan'
 require_text "$PLAN" 'DirectMirCollectionProgramPlanMutationRejected'
 require_text "$PLAN" 'producer_reallocating_array_value_main_single_cleanup'
+require_text "$ROUTE_FACT" 'let claimed: Bool = routine_count == 3 && entrypoints == 1 &&'
+require_text "$ROUTE_FACT" 'producers == 1 && consumers == 1;'
+require_text "$ABI" 'StringRuntimeCLongPrintArgumentType()'
 route_line="$(grep -n 'if collection_route.claimed' "$ROUTE" | cut -d: -f1)"
-legacy_line="$(grep -n 'CompileAdmittedDirectMirThreeRoutine' "$ROUTE" | cut -d: -f1)"
-[[ "$route_line" -lt "$legacy_line" ]] || fail "collection route follows legacy classifier"
+scalar_line="$(grep -n 'scalar-route:start' "$ROUTE" | cut -d: -f1)"
+[[ "$route_line" -lt "$scalar_line" ]] || fail "collection route follows broad scalar admission"
 for owner in "$C_EMIT" "$LLVM_EMIT"; do
     for term in admitted source_json JsonObjectFactTable BuildMir FromAdmitted \
         array_param.pgy DirectMirArrayArgument; do
@@ -69,7 +74,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/program.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/program.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "4DDD5AB528AF81285F609D8910EFEB02F4E73355115B823466ED354F0FCC31A2" ]] || \
+[[ "$mir_sha" == "C473FF46F33690E8C47231F959C9DE45A2856E1B7B9FA5D60F58D561926A968C" ]] || \
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_array_param_mutations.py" \
     "$WORK_DIR/program.json" "$WORK_DIR"

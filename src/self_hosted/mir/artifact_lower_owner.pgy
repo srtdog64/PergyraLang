@@ -25,8 +25,7 @@ func SelfMirAppendRoutine(
     build: SelfMirRoutineBuild,
     initializer_types: SemanticAstInitializerTypeFacts
 ) -> SelfMirProgramFacts {
-    let function_node_id: Int =
-        analysis.signatures.function_node_ids[signature_index];
+    let function_node_id: Int = analysis.signatures.function_node_ids[signature_index];
     if !SelfMirDestructureTypeFactsReadyForRoutine(
         analysis, initializer_types, function_node_id
     ) {
@@ -40,6 +39,7 @@ func SelfMirAppendRoutine(
     let names: Array<String> = rows.names;
     let kinds: Array<String> = rows.kinds;
     let owners: Array<String> = rows.owners;
+    let source_module_paths: Array<String> = rows.source_module_paths;
     let receiver_carriages: Array<String> = rows.receiver_carriages;
     let return_types: Array<String> = rows.return_types;
     let generic_starts: Array<Int> = rows.generic_starts;
@@ -86,6 +86,11 @@ func SelfMirAppendRoutine(
     }
     ArrayPush(owners, receiver.owner);
     ArrayPush(kinds, receiver.routine_kind);
+    let source_module_path: String = analysis.signatures.module_paths[signature_index];
+    if source_module_path == "" {
+        return SelfMirProgramFactsError(facts, "mir_source_module_path_missing", "MIR routine requires admitted source module provenance");
+    }
+    ArrayPush(source_module_paths, source_module_path);
     ArrayPush(receiver_carriages, receiver.carriage);
     let owner: String = receiver.owner;
     ArrayPush(return_types, analysis.signatures.return_types[signature_index]);
@@ -210,7 +215,8 @@ func SelfMirAppendRoutine(
         facts.domain_runtime_assignments,
         facts.generic_specializations, facts.parallel_captures,
         SelfMirRoutineRows(
-            node_ids, names, kinds, owners, receiver_carriages, return_types,
+            node_ids, names, kinds, owners, source_module_paths,
+            receiver_carriages, return_types,
             generic_starts, generic_counts, generic_names,
             param_starts, param_counts, param_names, param_types,
             param_abi_kinds, param_resource_kinds,
@@ -453,6 +459,12 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
     SelfMirArtifactPressureStage(observe_pressure, "intent-lowering:start");
     let intent_i: Int = 0;
     while intent_i < SelfDirIntentCount(domain_graph.intents) {
+        let intent_source_module_path: String = "";
+        let intent_source_module_path_opt: Option<String> = AstSourceModulePathForNode(
+            traversal_artifact.source_modules, traversal_artifact.arena,
+            domain_graph.intents.intent_node_ids[intent_i]
+        );
+        if IsSome(intent_source_module_path_opt) { intent_source_module_path = UnwrapOption(intent_source_module_path_opt); }
         SelfMirArtifactRoutinePressureStage(
             observe_pressure, "intent", intent_i, "start"
         );
@@ -470,9 +482,7 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
             );
             return error;
         }
-        facts = SelfMirAppendIntentRoutine(
-            facts, domain_graph.intents, intent_i, intent_build
-        );
+        facts = SelfMirAppendIntentRoutine(facts, domain_graph.intents, intent_i, intent_source_module_path, intent_build);
         SelfMirRoutineBuildStorageRetireAfterLastConsumer(intent_build);
         if !facts.ok {
             SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(

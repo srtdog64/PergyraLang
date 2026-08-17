@@ -21,6 +21,7 @@ import "expr_semantic_graph_emit_owner.pgy";
 import "intent_signature_emit_owner.pgy";
 import "intent_outcome_emit_owner.pgy";
 import "intent_control_flow_emit_owner.pgy";
+import "intent_observability_emit_owner.pgy";
 import "intent_step_binding_owner.pgy";
 
 func CodegenIntentDefinitionBlock(
@@ -30,7 +31,8 @@ func CodegenIntentDefinitionBlock(
     ref zone_authorities: SemanticAstZoneAuthorityFacts,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     base_env: CodegenTypeEnv,
-    ref intent_execution: CodegenIntentExecutionView
+    ref intent_execution: CodegenIntentExecutionView,
+    uses_intent_observability: Bool
 ) -> String {
     let definitions: Array<String> = [];
     let intent_index: Int = 0;
@@ -54,7 +56,10 @@ func CodegenIntentDefinitionBlock(
         let compensation_expressions: Array<String> = [];
         let step_sync_expressions: Array<String> = [];
         let step_writeback_expressions: Array<String> = [];
-        CodegenIntentEmitControlPrologue(body, step_count);
+        CodegenIntentEmitControlPrologue(
+            body, step_count, uses_intent_observability, artifact,
+            intent_node, intents, intent_index, base_env
+        );
         let step_index: Int = 0;
         let child_index: Int = 0;
         let child: Option<Int> = TypedAstArenaChildAt(
@@ -216,11 +221,19 @@ func CodegenIntentDefinitionBlock(
                         binding.diagnostic
                     ));
                 }
+                CodegenIntentObservabilityEmitStepBegin(
+                    body, uses_intent_observability, header.name,
+                    binding.zone_type, who_alias, binding.slot_name
+                );
                 ArrayPush(body, Concat(
                     "    ", Concat(binding.zone_member, Concat(
                         " = (*", Concat(binding.who_c, ");\n")
                     ))
                 ));
+                CodegenIntentObservabilityEmitMaterialize(
+                    body, uses_intent_observability, who_alias,
+                    binding.slot_name, binding.zone_type
+                );
                 ArrayPush(body, Concat(
                     "    ", Concat(binding.sync_symbol, Concat(
                         "(", Concat(binding.zone_pointer, ");\n")
@@ -282,21 +295,27 @@ func CodegenIntentDefinitionBlock(
                 if guard_count == 1 {
                     CodegenIntentEmitPredicate(
                         body, expression_surfaces, guard_node,
-                        "Guard", step_env
+                        "guard", header.name, uses_intent_observability,
+                        step_env
                     );
                 }
                 if expect_count == 1 {
                     CodegenIntentEmitExpect(
                         body, expression_surfaces, expect_node,
-                        outcome_count, step_env
+                        outcome_count, header.name,
+                        uses_intent_observability, step_env
                     );
                 }
                 if post_count == 1 {
                     CodegenIntentEmitPredicate(
                         body, expression_surfaces, post_node,
-                        "Post", step_env
+                        "post", header.name, uses_intent_observability,
+                        step_env
                     );
                 }
+                CodegenIntentObservabilityEmitStepOk(
+                    body, uses_intent_observability, header.name
+                );
                 step_index = step_index + 1;
             }
             child_index = child_index + 1;
@@ -310,7 +329,7 @@ func CodegenIntentDefinitionBlock(
         CodegenIntentEmitCleanup(
             body, step_count, compensation_starts, compensation_counts,
             compensation_expressions, step_sync_expressions,
-            step_writeback_expressions
+            step_writeback_expressions, uses_intent_observability
         );
         ArrayPush(definitions, Concat(
             CodegenIntentCReturnType(intents, intent_index, base_env),

@@ -5,7 +5,6 @@ import "../mir_lower/program_declaration_index_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
 import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "direct_mir_inferred_generic_member_host_kind_fact_owner.pgy";
-
 struct DirectMirInferredGenericMemberDeclarationFact {
     let valid: Bool;
     let digest: Int;
@@ -98,6 +97,8 @@ func DirectMirInferredGenericMemberDeclarationFactFromDocument(
     let syntax_opt: Option<String> = JsonObjectFactNumberFieldOpt(
         declaration, "source_syntax_id"
     );
+    let source_path: Option<String> = JsonObjectFactStringFieldOpt(
+        declaration, "source_module_path");
     let fields: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
         declaration, "fields"
     );
@@ -105,8 +106,9 @@ func DirectMirInferredGenericMemberDeclarationFactFromDocument(
         declaration, "methods"
     );
     if !JsonObjectFactTableReady(declaration) ||
-        JsonObjectFactCount(declaration) != 6 || !IsSome(name_opt) ||
-        !IsSome(syntax_opt) || UnwrapOption(name_opt) != declarations.names[0] ||
+        JsonObjectFactCount(declaration) != 7 || !IsSome(name_opt) ||
+        !IsSome(syntax_opt) || !IsSome(source_path) || UnwrapOption(source_path) !=
+            declarations.source_module_paths[0] || UnwrapOption(name_opt) != declarations.names[0] ||
         !JsonArrayObjectFactTableReady(fields) ||
         !DirectMirExactObjectArrayCount(fields, 1) ||
         !JsonArrayObjectFactTableReady(methods) ||

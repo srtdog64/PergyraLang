@@ -12,6 +12,7 @@ func SelfMirDeclarationsFromAnalysis(
     let nominal_kinds: Array<String> = rows.nominal_kinds;
     let names: Array<String> = rows.names;
     let source_syntax_ids: Array<Int> = rows.source_syntax_ids;
+    let source_module_paths: Array<String> = rows.source_module_paths;
     let target_types: Array<String> = rows.target_types;
     let uses_pointer_self: Array<Int> = rows.uses_pointer_self;
     let field_starts: Array<Int> = rows.field_starts;
@@ -550,8 +551,13 @@ func SelfMirDeclarationsFromAnalysis(
         }
         extern_node = extern_node + 1;
     }
-    let zone_authorities: SelfMirDeclarationZoneAuthorityRows =
-        SelfMirDeclarationZoneAuthorityRowsFromFacts(
+    let source_row: Int = 0;
+    while source_row < ArrayLength(source_syntax_ids) {
+        let module_path: Option<String> = AstSourceModulePathForNode(artifact.source_modules, artifact.arena, source_syntax_ids[source_row]);
+        if !IsSome(module_path) || UnwrapOption(module_path) == "" { return SelfMirDeclarationRowsEmpty(); }
+        ArrayPush(source_module_paths, UnwrapOption(module_path)); source_row = source_row + 1;
+    }
+    let zone_authorities: SelfMirDeclarationZoneAuthorityRows = SelfMirDeclarationZoneAuthorityRowsFromFacts(
             analysis.zone_authorities, names, nominal_kinds
         );
     let nominal_abi_layouts: SelfMirNominalAbiLayoutRows =
@@ -564,7 +570,7 @@ func SelfMirDeclarationsFromAnalysis(
             names, nominal_kinds, nominal_abi_layouts
         );
     return SelfMirDeclarationRows(
-        kinds, nominal_kinds, names, source_syntax_ids,
+        kinds, nominal_kinds, names, source_syntax_ids, source_module_paths,
         target_types, uses_pointer_self,
         field_starts, field_counts,
         field_names, field_kinds, field_types, field_source_syntax_ids,

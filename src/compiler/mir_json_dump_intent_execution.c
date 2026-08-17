@@ -120,7 +120,11 @@ mir_json_emit_intent_step(FILE *out,
             fputc(',', out);
         mir_json_emit_intent_compensation(out, &row->compensations[i]);
     }
-    fputs("]}", out);
+    fputs("],\"where_zone_name\":", out);
+    mir_json_emit_str_or_null(out, row->where_zone_name);
+    fprintf(out, ",\"where_zone_syntax_id\":%u",
+            row->where_zone_syntax_id);
+    fputc('}', out);
 }
 
 static void

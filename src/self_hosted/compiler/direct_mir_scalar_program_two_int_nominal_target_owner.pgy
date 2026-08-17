@@ -38,7 +38,7 @@ func DirectMirScalarProgramTwoIntNominalTargetReadyFor(
 
 func DirectMirScalarProgramTwoIntNominalTargetFromFact(
     ref fact: DirectMirScalarProgramTwoIntNominalAbiFact,
-    target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact
 ) -> DirectMirScalarProgramTwoIntNominalTarget {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target, CompilerTargetCpuCProjection());

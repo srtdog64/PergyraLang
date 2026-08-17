@@ -40,18 +40,39 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         input.array_int_program;
     let collection_source: DirectMirScalarCfgCollectionPlan =
         input.collections;
+    let logical_record: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFactCanonicalEmpty();
+    let signature: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(
+            admitted.routines, routine_row,
+            input.index.block_instruction_counts[0]);
+    if !DirectMirRoutineSignatureFactReady(signature) {
+        Die("direct MIR scalar CFG routine signature is invalid");
+    }
+    let indexed_assignments:
+        DirectMirScalarProgramIndexedAssignmentFactSet =
+        DirectMirScalarProgramIndexedAssignmentFactSetCanonicalEmpty();
     let local_refs: DirectMirScalarCfgLocalRefPlan =
         DirectMirScalarCfgLocalRefPlanFromOwners(
             admitted, input.index, use_facts, wire, range_sources,
             foreach_sources,
-            string_array_source, array_int_source, collection_source
+            string_array_source, array_int_source, collection_source,
+            logical_record, indexed_assignments, signature.parameters
         );
     if !local_refs.valid { Die("direct MIR scalar CFG LocalRef plan is invalid"); }
     let type_plan: DirectMirScalarCfgValueTypePlan =
         DirectMirScalarCfgValueTypePlanFromOwners(
-            input.index, local_refs, foreach_elements
+            input.index, local_refs, foreach_elements, logical_record,
+            signature.parameters
         );
     if !type_plan.valid { Die("direct MIR scalar CFG value type plan is invalid"); }
+    if !DirectMirScalarCfgLocalInventoryReady(
+        input.index, local_refs.local_names, type_plan.local_types,
+        foreach_sources, string_array_source, array_int_source,
+        collection_source, logical_record, signature.parameters
+    ) { Die(Concat(
+        "direct MIR scalar CFG local inventory is invalid: source_syntax_id=",
+        input.index.source_syntax_id)); }
     let string_arrays: DirectMirScalarCfgStringArrayPlan =
         DirectMirScalarCfgStringArrayPlanAtLocalRows(
             string_array_source, local_refs
@@ -251,6 +272,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     DirectMirScalarCfgPhiOperationFromOwners(
                         input.index, admitted, use_facts, routine_row,
                         block, instruction_row, local_refs, type_plan,
+                        logical_record,
                         phi_predecessor_blocks, phi_incoming_values
                     );
                 if !phi.valid {

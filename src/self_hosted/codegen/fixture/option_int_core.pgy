@@ -11,4 +11,12 @@ func Main() -> Void {
     if !IsSome(b) {
         Log(0);
     }
+    let wide: Option<Long> = Some(4294967297L);
+    let no_wide: Option<Long> = None;
+    if IsSome(wide) {
+        Log(UnwrapOption(wide));
+    }
+    if !IsSome(no_wide) {
+        Log(0L);
+    }
 }

@@ -1,0 +1,14 @@
+// LLVM materialization for one ABI-sealed empty Array<Int> value.
+
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramLlvmArrayIntEmptyLiteralExpressionAt(
+    kind: Int
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprArrayIntEmptyLiteral() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, "", "zeroinitializer");
+}

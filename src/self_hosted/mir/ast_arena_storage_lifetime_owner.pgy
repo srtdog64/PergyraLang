@@ -1,6 +1,6 @@
-// Typed-AST arena carrier lifetime at the MIR domain/routine boundaries.
-// String elements and expression graphs remain borrowed by semantic/MIR facts;
-// only Array backing storage is retired.
+// Typed-AST arena carrier lifetime at the MIR domain/program-fact boundaries.
+// String elements, expression graphs, and source-module rows remain borrowed
+// until their final MIR consumers; only Array backing storage is retired.
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 
@@ -10,6 +10,7 @@ func SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection(
     let tree_text: String = artifact.tree_text;
     let count: Int = artifact.count;
     let expression_graphs: AstExpressionGraphRows = artifact.expression_graphs;
+    let source_modules: AstSourceModuleFacts = artifact.source_modules;
     let identity_digest: Int = artifact.identity_digest;
     let kinds: Array<Int> = artifact.arena.kinds;
     let first_children: Array<Int> = artifact.arena.first_children;
@@ -53,7 +54,7 @@ func SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection(
             first_children, child_counts, parents, empty_ints,
             empty_strings, children, empty_strings
         ),
-        count, expression_graphs, identity_digest
+        count, expression_graphs, source_modules, identity_digest
     );
 }
 
@@ -65,9 +66,14 @@ func SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(
     let child_counts: Array<Int> = artifact.arena.child_counts;
     let parents: Array<Int> = artifact.arena.parents;
     let children: Array<Int> = artifact.arena.children;
+    let source_declaration_node_ids: Array<Int> =
+        artifact.source_modules.declaration_node_ids;
+    let source_module_paths: Array<String> = artifact.source_modules.module_paths;
     CompilerRetireArrayStorage(kinds);
     CompilerRetireArrayStorage(first_children);
     CompilerRetireArrayStorage(child_counts);
     CompilerRetireArrayStorage(parents);
     CompilerRetireArrayStorage(children);
+    CompilerRetireArrayStorage(source_declaration_node_ids);
+    CompilerRetireArrayStorage(source_module_paths);
 }

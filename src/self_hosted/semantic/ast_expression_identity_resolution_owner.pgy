@@ -1,10 +1,9 @@
 // Final semantic binding/call identities for persisted expression graphs.
-
 import "ast_artifact_verdict_owner.pgy";
 import "ast_body_expression_environment_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
-
+import "../lib/intent_observability_abi_projection_owner.pgy";
 func SemanticExpressionDirectTargetSyntaxId(
     signatures: SemanticAstFunctionSignatureFacts,
     target_name: String
@@ -36,7 +35,6 @@ func SemanticExpressionDirectTargetSyntaxId(
     if found <= 0 { return 0 - 1; }
     return found;
 }
-
 func SemanticExpressionFormalParameterOrdinal(
     signatures: SemanticAstFunctionSignatureFacts,
     function_node_id: Int, binding_name: String
@@ -64,7 +62,6 @@ func SemanticExpressionFormalParameterOrdinal(
     }
     return found;
 }
-
 func SemanticAstAnalysisResolveExpressionIdentities(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
@@ -84,10 +81,8 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     let last_root: Int = -1;
     let root_slot: Int = 0;
     let valid: Bool = true;
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
-    let seeded_surface: Int = -1;
+    let names: Array<String> = []; let types: Array<String> = [];
+    let modes: Array<String> = []; let seeded_surface: Int = -1;
     while root_slot < ArrayLength(graph.roots) && valid {
         if graph.has_roots[root_slot] {
             let root_id: Int = graph.roots[root_slot];
@@ -124,11 +119,11 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                 let node: Int = last_root + 1;
                 while node <= root_id && valid {
                     graph.arena.identities.call_target_syntax_ids[node] = 0;
+                    graph.arena.identities.runtime_call_abi_ids[node] = 0;
                     graph.arena.identities.binding_kinds[node] =
                         SemanticExpressionBindingNone();
                     graph.arena.identities.binding_ordinals[node] = -1;
-                    if graph.arena.call_target_kinds[node] ==
-                            SemanticCallTargetDirect() {
+                    if graph.arena.call_target_kinds[node] == SemanticCallTargetDirect() || graph.arena.call_target_kinds[node] == SemanticCallTargetNamespace() {
                         let target_id: Int =
                             SemanticExpressionDirectTargetSyntaxId(
                                 analysis.signatures,
@@ -138,6 +133,15 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                         if target_id > 0 {
                             graph.arena.identities
                                 .call_target_syntax_ids[node] = target_id;
+                        } else {
+                            let observability: IntentObservabilityAbiRow =
+                                IntentObservabilityAbiRowForSource(
+                                    graph.arena.call_target_names[node]);
+                            if observability.valid {
+                                graph.arena.identities
+                                    .runtime_call_abi_ids[node] =
+                                        observability.runtime_call_abi_id;
+                            }
                         }
                     }
                     if valid && IsSome(function_node) &&
@@ -189,6 +193,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
             valid = false;
         } else {
             graph.arena.identities.call_target_syntax_ids[tail] = 0;
+            graph.arena.identities.runtime_call_abi_ids[tail] = 0;
             graph.arena.identities.binding_kinds[tail] =
                 SemanticExpressionBindingNone();
             graph.arena.identities.binding_ordinals[tail] = -1;

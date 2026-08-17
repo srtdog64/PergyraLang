@@ -1,0 +1,200 @@
+// Unique callable parameter-role plan for the composable scalar program lane.
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+struct DirectMirScalarProgramCallableParameterRolePlan {
+    let valid: Bool;
+    let direct_scalar_count: Int;
+    let logical_record_input_count: Int;
+    let logical_record_value_result_count: Int;
+    let logical_record_array_value_result_count: Int;
+    let abi_value_count: Int;
+    let payload_free_enum_value_count: Int;
+    let array_int_value_result_count: Int;
+    let array_string_value_result_count: Int;
+    let set_string_value_result_count: Int;
+    let array_string_readonly_ref_count: Int;
+}
+func DirectMirScalarProgramCallableParameterRolePlanInvalid() -> DirectMirScalarProgramCallableParameterRolePlan {
+    return DirectMirScalarProgramCallableParameterRolePlan(
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+func DirectMirScalarProgramCallableParameterRolePlanReady(
+    ref plan: DirectMirScalarProgramCallableParameterRolePlan,
+    parameter_count: Int
+) -> Bool {
+    return plan.valid && parameter_count >= 0 &&
+        plan.direct_scalar_count >= 0 &&
+        plan.logical_record_input_count >= 0 &&
+        plan.logical_record_value_result_count >= 0 &&
+        plan.logical_record_array_value_result_count >= 0 &&
+        plan.abi_value_count >= 0 &&
+        plan.payload_free_enum_value_count >= 0 &&
+        plan.array_int_value_result_count >= 0 &&
+        plan.array_string_value_result_count >= 0 &&
+        plan.set_string_value_result_count >= 0 &&
+        plan.array_string_readonly_ref_count >= 0 &&
+        plan.direct_scalar_count + plan.logical_record_input_count +
+            plan.logical_record_value_result_count +
+            plan.logical_record_array_value_result_count +
+            plan.abi_value_count +
+            plan.payload_free_enum_value_count +
+            plan.array_int_value_result_count +
+            plan.array_string_value_result_count +
+            plan.set_string_value_result_count +
+            plan.array_string_readonly_ref_count == parameter_count;
+}
+func DirectMirScalarProgramDirectScalarParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        DirectMirScalarCfgScalarTypeSupported(
+            signature.parameters.type_names[ordinal]) &&
+        (signature.parameters.carriages[ordinal] == "value" ||
+         DirectMirScalarProgramOwnedStringParameterReady(
+            signature, ordinal)) &&
+        DirectMirScalarProgramCallableParameterSupported(
+            signature, ordinal);
+}
+func DirectMirScalarProgramArrayIntValueResultParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        signature.parameters.type_names[ordinal] ==
+            CompilerAbiLayoutArrayIntTypeName() &&
+        signature.parameters.carriages[ordinal] == "value-result" &&
+        DirectMirScalarProgramCallableParameterSupported(
+            signature, ordinal);
+}
+func DirectMirScalarProgramArrayStringValueResultParameterReady(ref signature: DirectMirRoutineSignatureFact, ordinal: Int) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        signature.parameters.type_names[ordinal] == CompilerAbiLayoutArrayStringTypeName() &&
+        signature.parameters.carriages[ordinal] == "value-result" &&
+        DirectMirScalarProgramCallableParameterSupported(signature, ordinal);
+}
+func DirectMirScalarProgramAbiValueParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        (signature.parameters.type_names[ordinal] ==
+             CompilerAbiLayoutArrayIntTypeName() ||
+         signature.parameters.type_names[ordinal] ==
+             CompilerAbiLayoutArrayStringTypeName() ||
+         signature.parameters.type_names[ordinal] ==
+             CompilerAbiLayoutArrayBoolTypeName() ||
+         signature.parameters.type_names[ordinal] == CompilerAbiLayoutOptionIntTypeName() || signature.parameters.type_names[ordinal] == CompilerAbiLayoutOptionStringTypeName() ||
+         signature.parameters.type_names[ordinal] == CompilerAbiLayoutSetStringTypeName()) &&
+        signature.parameters.carriages[ordinal] == "value" &&
+        DirectMirScalarProgramCallableParameterSupported(
+            signature, ordinal);
+}
+func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> DirectMirScalarProgramCallableParameterRolePlan {
+    if !DirectMirRoutineSignatureFactReady(signature) {
+        return DirectMirScalarProgramCallableParameterRolePlanInvalid();
+    }
+    let direct_scalar_count: Int = 0;
+    let logical_record_input_count: Int = 0;
+    let logical_record_value_result_count: Int = 0;
+    let logical_record_array_value_result_count: Int = 0;
+    let abi_value_count: Int = 0;
+    let payload_free_enum_value_count: Int = 0;
+    let array_int_value_result_count: Int = 0;
+    let array_string_value_result_count: Int = 0;
+    let set_string_value_result_count: Int = 0;
+    let array_string_readonly_ref_count: Int = 0;
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        let direct_scalar: Bool =
+            DirectMirScalarProgramDirectScalarParameterReady(
+                signature, ordinal);
+        let logical_record_input: Bool =
+            DirectMirScalarProgramLogicalRecordParameterReady(
+                signature, ordinal, logical_record);
+        let logical_record_value_result: Bool =
+            DirectMirScalarProgramLogicalRecordValueResultParameterReady(
+                signature, ordinal, logical_record);
+        let logical_record_array_value_result: Bool =
+            DirectMirScalarProgramLogicalRecordArrayValueResultParameterReady(
+                signature, ordinal, logical_record);
+        let abi_value: Bool =
+            DirectMirScalarProgramAbiValueParameterReady(
+                signature, ordinal);
+        let payload_free_enum_value: Bool =
+            DirectMirScalarProgramPayloadFreeEnumParameterReady(
+                signature, ordinal, payload_free_enum);
+        let array_int_value_result: Bool =
+            DirectMirScalarProgramArrayIntValueResultParameterReady(
+                signature, ordinal);
+        let array_string_value_result: Bool = DirectMirScalarProgramArrayStringValueResultParameterReady(signature, ordinal);
+        let set_string_value_result: Bool =
+            DirectMirScalarProgramSetStringValueResultParameterReady(
+                signature, ordinal);
+        let array_string_readonly_ref: Bool =
+            DirectMirScalarProgramArrayStringReadonlyRefParameterReady(
+                signature, ordinal);
+        let claim_count: Int = 0;
+        if direct_scalar { claim_count = claim_count + 1; }
+        if logical_record_input { claim_count = claim_count + 1; }
+        if logical_record_value_result { claim_count = claim_count + 1; }
+        if logical_record_array_value_result {
+            claim_count = claim_count + 1;
+        }
+        if abi_value { claim_count = claim_count + 1; }
+        if payload_free_enum_value { claim_count = claim_count + 1; }
+        if array_int_value_result { claim_count = claim_count + 1; }
+        if array_string_value_result { claim_count = claim_count + 1; }
+        if set_string_value_result { claim_count = claim_count + 1; }
+        if array_string_readonly_ref { claim_count = claim_count + 1; }
+        if claim_count != 1 {
+            return DirectMirScalarProgramCallableParameterRolePlanInvalid();
+        }
+        if direct_scalar { direct_scalar_count = direct_scalar_count + 1; }
+        if logical_record_input {
+            logical_record_input_count = logical_record_input_count + 1;
+        }
+        if logical_record_value_result {
+            logical_record_value_result_count =
+                logical_record_value_result_count + 1;
+        }
+        if logical_record_array_value_result {
+            logical_record_array_value_result_count =
+                logical_record_array_value_result_count + 1;
+        }
+        if abi_value {
+            abi_value_count = abi_value_count + 1;
+        }
+        if payload_free_enum_value {
+            payload_free_enum_value_count =
+                payload_free_enum_value_count + 1;
+        }
+        if array_int_value_result {
+            array_int_value_result_count = array_int_value_result_count + 1;
+        }
+        if array_string_value_result { array_string_value_result_count = array_string_value_result_count + 1; }
+        if set_string_value_result {
+            set_string_value_result_count =
+                set_string_value_result_count + 1;
+        }
+        if array_string_readonly_ref {
+            array_string_readonly_ref_count =
+                array_string_readonly_ref_count + 1;
+        }
+        ordinal = ordinal + 1;
+    }
+    let plan: DirectMirScalarProgramCallableParameterRolePlan = DirectMirScalarProgramCallableParameterRolePlan(
+            true, direct_scalar_count, logical_record_input_count,
+            logical_record_value_result_count,
+            logical_record_array_value_result_count,
+            abi_value_count, payload_free_enum_value_count,
+            array_int_value_result_count, array_string_value_result_count,
+            set_string_value_result_count, array_string_readonly_ref_count);
+    if !DirectMirScalarProgramCallableParameterRolePlanReady(
+            plan, signature.param_count) {
+        return DirectMirScalarProgramCallableParameterRolePlanInvalid();
+    }
+    return plan;
+}

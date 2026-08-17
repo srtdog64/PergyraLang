@@ -8,6 +8,19 @@ import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_callable_abi_owner.pgy";
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
 
+func DirectMirScalarProgramArrayStringBoundarySignatureReady(
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    return DirectMirRoutineSignatureFactReady(signature) &&
+        signature.param_count == 1 &&
+        signature.return_type == CompilerAbiLayoutStringTypeName() &&
+        signature.param.type_name == CompilerAbiLayoutArrayStringTypeName() &&
+        signature.param.carriage == "value" &&
+        signature.param.resource == "none" &&
+        signature.param.pass_shape == "direct" &&
+        signature.param.abi_required && signature.param.abi_layout_id > 0;
+}
+
 func DirectMirScalarProgramArrayStringBoundaryFactFromOwners(
     ref expressions: DirectMirScalarProgramExpressionSet,
     operation_kinds: Array<Int>, operation_results: Array<Int>,
@@ -21,9 +34,8 @@ func DirectMirScalarProgramArrayStringBoundaryFactFromOwners(
         DirectMirScalarProgramArrayStringBoundaryFactEmpty();
     if !DirectMirScalarProgramExpressionSetSemanticallyReady(expressions) ||
         !DirectMirScalarCfgProgramCallableFactReady(callable) ||
-        callable.signature.param_count != 1 ||
-        callable.signature.param.type_name !=
-            CompilerAbiLayoutArrayStringTypeName() ||
+        !DirectMirScalarProgramArrayStringBoundarySignatureReady(
+            callable.signature) ||
         !DirectMirScalarProgramArrayStringAbiMatchesCallable(
             abi, callable.signature) ||
         ArrayLength(operation_kinds) != ArrayLength(operation_results) ||

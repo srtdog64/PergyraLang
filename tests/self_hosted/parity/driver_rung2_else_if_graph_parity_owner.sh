@@ -10,7 +10,7 @@ pgy_selfhost_verify_driver_rung2_else_if_graph() {
         return 0
     fi
 
-    for condition in '(n < 0)' '(n == 0)' '(n < 10)'; do
+    for condition in '(n < 0)' '(n == 0)' '(n < 10)' '(n == 31)' '(n == 47)'; do
         grep -Fq "\"expr0\":\"$condition\",\"expr0_graph\":{" \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend else-if condition graph drifted: $condition" >&2

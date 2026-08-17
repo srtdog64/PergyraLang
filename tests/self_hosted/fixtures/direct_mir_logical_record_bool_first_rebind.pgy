@@ -1,0 +1,35 @@
+struct RebindState {
+    let ok: Bool;
+    let last_row: Int;
+    let rows: Array<Int>;
+}
+
+func UpdateState(
+    inout state: RebindState, disable: Bool, row: Int
+) -> Bool {
+    if disable {
+        state.ok = false;
+        return false;
+    }
+    state.last_row = row;
+    return true;
+}
+
+func DisableStateCopy(state: RebindState) -> RebindState {
+    state.ok = false;
+    return state;
+}
+
+func Main() -> Void {
+    let first_rows: Array<Int> = [];
+    let first: RebindState = RebindState(true, 0, first_rows);
+    let disabled: Bool = UpdateState(first, true, 7);
+    let second_rows: Array<Int> = [];
+    let second: RebindState = RebindState(true, 0, second_rows);
+    let updated: Bool = UpdateState(second, false, 8);
+    let copied: RebindState = DisableStateCopy(second);
+    if !disabled && !first.ok && updated && second.ok &&
+            second.last_row == 8 && !copied.ok {
+        Log("record-bool-rebind-ready");
+    }
+}

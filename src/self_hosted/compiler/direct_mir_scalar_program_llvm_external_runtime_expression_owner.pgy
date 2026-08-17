@@ -1,0 +1,85 @@
+// LLVM projection of external runtime calls carried by typed scalar expression facts.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_runtime_value_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "../lib/intent_observability_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmIntentObservabilityExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
+    result: String, left: String, right: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprIntentObservabilityCall() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let row: IntentObservabilityAbiRow = IntentObservabilityAbiRowForId(
+        expressions.node_runtime_call_abi_ids[node]);
+    let llvm_type: String = DirectMirScalarProgramLlvmType(row.return_type);
+    if !row.valid || llvm_type == "" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let arguments: String = "";
+    if row.argument_count == 1 { arguments = Concat("i64 ", left); }
+    else if row.argument_count == 2 {
+        arguments = Concat("i64 ", Concat(left, Concat(", i64 ", right)));
+    } else if row.argument_count != 0 {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = Concat("  ", Concat(result, Concat(
+        " = call ", Concat(llvm_type, Concat(" @", Concat(
+            row.runtime_name, Concat("(", Concat(arguments, ")\n"))))))));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}
+
+func DirectMirScalarProgramLlvmExternalRuntimeExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
+    result: String, left: String, right: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let observability: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmIntentObservabilityExpressionAt(
+            expressions, node, result, left, right);
+    if observability.matched { return observability; }
+    return DirectMirScalarProgramLlvmRuntimeValueExpressionAt(
+        expressions, node, result, left, right);
+}
+
+func DirectMirScalarProgramLlvmIntentObservabilityDeclarations(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    let output: String = "";
+    let row_index: Int = 0;
+    while row_index < IntentObservabilityAbiCount() {
+        let row: IntentObservabilityAbiRow =
+            IntentObservabilityAbiRowAt(row_index);
+        let present: Bool = false;
+        let node: Int = 0;
+        while node < ArrayLength(expressions.node_kinds) {
+            if expressions.node_kinds[node] ==
+                    DirectMirScalarProgramExprIntentObservabilityCall() &&
+                expressions.node_runtime_call_abi_ids[node] ==
+                    row.runtime_call_abi_id { present = true; }
+            node = node + 1;
+        }
+        if present {
+            let llvm_type: String =
+                DirectMirScalarProgramLlvmType(row.return_type);
+            if llvm_type == "" { Die(
+                "direct MIR LLVM intent-observability return ABI is invalid"); }
+            let params: String = "";
+            if row.argument_count == 1 { params = "i64"; }
+            else if row.argument_count == 2 { params = "i64, i64"; }
+            else if row.argument_count != 0 { Die(
+                "direct MIR LLVM intent-observability parameter ABI is invalid"); }
+            output = Concat(output, Concat("declare ", Concat(llvm_type,
+                Concat(" @", Concat(row.runtime_name, Concat(
+                    "(", Concat(params, ")\n")))))));
+        }
+        row_index = row_index + 1;
+    }
+    return output;
+}

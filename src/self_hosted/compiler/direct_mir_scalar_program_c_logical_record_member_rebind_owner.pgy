@@ -1,0 +1,50 @@
+// C projection of one admitted logical-record member-rebind operation.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_c_expression_owner.pgy";
+func DirectMirScalarProgramCLogicalRecordMemberRebind(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+        plan.operation_kinds[operation] !=
+            DirectMirScalarCfgOpLogicalRecordMemberRebind() {
+        Die("direct MIR C logical-record member rebind is invalid");
+    }
+    let result: Int = plan.operation_result_values[operation];
+    let expression_row: Int = plan.program.operation_expression_rows[operation];
+    let target_row: Int = plan.program.operation_secondary_expression_rows[operation];
+    if result < 0 || result >= ArrayLength(plan.value_types) ||
+        expression_row < 0 || expression_row >=
+            ArrayLength(plan.program.expressions.graph_roots) ||
+        target_row < 0 || target_row >=
+            ArrayLength(plan.program.expressions.graph_roots) {
+        Die("direct MIR C logical-record member rebind row is invalid");
+    }
+    let local_row: Int = plan.value_local_rows[result]; let member: Int = plan.operation_right_locals[operation];
+    let target_root: Int = plan.program.expressions.graph_roots[target_row];
+    let field_type: String = plan.program.expressions.node_types[target_root]; let root: Int = plan.program.expressions.graph_roots[expression_row];
+    if local_row < 0 || field_type == "" || root < 0 ||
+        plan.program.expressions.node_types[root] != field_type ||
+        plan.program.expressions.node_kinds[target_root] !=
+            DirectMirScalarProgramExprLogicalRecordMember() ||
+        plan.program.expressions.node_member_ordinals[target_root] != member {
+        Die("direct MIR C logical-record member rebind type is invalid");
+    }
+    let output: String = Concat("    pgy_local_", ToString(local_row)); let members: Array<Int> = [];
+    let node: Int = target_root;
+    while node >= 0 && plan.program.expressions.node_kinds[node] ==
+            DirectMirScalarProgramExprLogicalRecordMember() {
+        ArrayPush(members, plan.program.expressions.node_member_ordinals[node]);
+        node = plan.program.expressions.node_lefts[node];
+    }
+    let path: Int = ArrayLength(members);
+    while path > 0 {
+        path = path - 1; output = Concat(output, Concat(".field_", ToString(members[path])));
+    }
+    output = Concat(output, " = ");
+    output = Concat(output, DirectMirScalarProgramCExpressionAt(
+        plan.program.expressions, expression_row, runtime,
+        plan.program.logical_record, plan.routines, routine, target));
+    return Concat(output, ";\n");
+}

@@ -1,0 +1,18 @@
+func FillNames(
+    inout names: Array<String>, start: Int
+) -> Void {
+    let first_index: Int = 0;
+    let first_value: String = Concat("", "middle");
+    names[start + first_index] = first_value;
+    let second_index: Int = 1;
+    let second_value: String = Concat("", "right");
+    names[start + second_index] = second_value;
+}
+
+func Main() -> Void {
+    let names: Array<String> = StringSplit("left,old,old", ",");
+    FillNames(names, 1);
+    Log(names[0]);
+    Log(names[1]);
+    Log(names[2]);
+}

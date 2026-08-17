@@ -1,0 +1,8 @@
+func DirectMirDirWalkFixtureDir() -> String {
+    return ".tmp/self_hosted/direct_mir_scalar_dir_walk_direct_call/tree";
+}
+
+func Main() -> Void {
+    let files: Array<String> = DirWalk(DirectMirDirWalkFixtureDir());
+    Log(ToString(ArrayLength(files)));
+}

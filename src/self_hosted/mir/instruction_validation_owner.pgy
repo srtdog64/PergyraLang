@@ -74,9 +74,10 @@ func SelfMirIntentCarrierInstruction(
         rows.expr0s[index] == "" && rows.expr1s[index] == "";
 }
 
-func SelfMirInstructionRowsValidationError(
+func SelfMirInstructionRowsValidationErrorObserved(
     rows: SelfMirInstructionRows,
-    ref expression_graph: SemanticExpressionGraphFacts
+    ref expression_graph: SemanticExpressionGraphFacts,
+    observe_pressure: Bool
 ) -> String {
     let count: Int = ArrayLength(rows.ids);
     if ArrayLength(rows.kinds) != count { return "kind row count differs"; }
@@ -134,25 +135,33 @@ func SelfMirInstructionRowsValidationError(
     if ArrayLength(rows.use_counts) != count {
         return "use-count row count differs";
     }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instructions:expr0:start"); }
     if !SelfMirExpressionGraphRowsReady(
         rows.expr0_graphs, expression_graph, count) {
         return "expr0 graph rows are invalid";
     }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instructions:expr1:start"); }
     if !SelfMirExpressionGraphRowsReady(
         rows.expr1_graphs, expression_graph, count) {
         return "expr1 graph rows are invalid";
     }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instructions:match:start"); }
     let match_error: String = SelfMirMatchFactRowsValidationError(
         rows.match_facts, count
     );
     if match_error != "" { return match_error; }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instructions:destructure:start"); }
     let destructure_error: String = SelfMirDestructureFactRowsValidationError(
         rows.destructure_facts, count
     );
     if destructure_error != "" { return destructure_error; }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instructions:rows:start"); }
     let use_cursor: Int = 0;
     let i: Int = 0;
     while i < count {
+        if observe_pressure && i % 8192 == 0 {
+            Log(Concat("[driver-pressure-stage] mir-facts:validation:instructions:rows:", ToString(i)));
+        }
         let kind: String = rows.kinds[i];
         let row_prefix: String = Concat("instruction=", ToString(i));
         if rows.use_starts[i] != use_cursor {
@@ -314,4 +323,12 @@ func SelfMirInstructionRowsValidationError(
         return "instruction use payload total differs";
     }
     return "";
+}
+func SelfMirInstructionRowsValidationError(
+    rows: SelfMirInstructionRows,
+    ref expression_graph: SemanticExpressionGraphFacts
+) -> String {
+    return SelfMirInstructionRowsValidationErrorObserved(
+        rows, expression_graph, false
+    );
 }

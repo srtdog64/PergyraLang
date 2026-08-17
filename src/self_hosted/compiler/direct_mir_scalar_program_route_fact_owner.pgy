@@ -1,23 +1,44 @@
 // Declaration-free scalar program claim keyed by typed routine envelopes.
 import "direct_mir_scalar_cfg_hash_owner.pgy";
-import "direct_mir_scalar_program_single_string_route_owner.pgy";
-import "direct_mir_scalar_program_builtin_route_owner.pgy";
-import "direct_mir_scalar_program_callable_route_envelope_owner.pgy";
-import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
-import "../mir_lower/routine_fact_index_owner.pgy";
-import "../mir_lower/routine_inventory_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
+import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
 struct DirectMirScalarProgramRouteFact {
     let claimed: Bool; let digest: Int;
     let entrypoint_row: Int; let callable_row: Int;
     let routine_rows: Array<Int>;
     let nominal: DirectMirScalarProgramTwoIntNominalAbiFact;
+    let logical_record: DirectMirScalarProgramLogicalRecordFact;
+    let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact;
+    let array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact;
+    let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact;
+    let array_string_abi: DirectMirScalarProgramArrayStringAbiFact;
 }
 func DirectMirScalarProgramRouteFactEmpty() -> DirectMirScalarProgramRouteFact {
     let rows: Array<Int> = [];
     return DirectMirScalarProgramRouteFact(
         false, 0, -1, -1, rows,
-        DirectMirScalarProgramTwoIntNominalAbiFactInvalid());
+        DirectMirScalarProgramTwoIntNominalAbiFactInvalid(),
+        DirectMirScalarProgramLogicalRecordFactInvalid(),
+        DirectMirScalarProgramPayloadFreeEnumFactInvalid(),
+        DirectMirScalarProgramArrayIntValueResultFactInvalid(),
+        DirectMirScalarProgramArrayBoolAbiFactInvalid(),
+        DirectMirScalarProgramArrayStringAbiFactEmpty());
+}
+func DirectMirScalarProgramRouteFactCanonicalEmpty(
+    ref fact: DirectMirScalarProgramRouteFact
+) -> Bool {
+    return !fact.claimed && fact.digest == 0 && fact.entrypoint_row == -1 &&
+        fact.callable_row == -1 && ArrayLength(fact.routine_rows) == 0 &&
+        !fact.nominal.valid && !fact.logical_record.valid &&
+        !fact.payload_free_enum.valid &&
+        !fact.array_int_value_result.valid && !fact.array_bool_abi.valid &&
+        DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
+            fact.array_string_abi);
 }
 func DirectMirScalarProgramRouteFactDigest(
     ref fact: DirectMirScalarProgramRouteFact
@@ -27,9 +48,13 @@ func DirectMirScalarProgramRouteFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.callable_row);
     hash = DirectMirScalarCfgHashInts(hash, fact.routine_rows);
     hash = DirectMirCfgHashInt(hash, fact.nominal.digest);
+    hash = DirectMirCfgHashInt(hash, fact.logical_record.digest);
+    hash = DirectMirCfgHashInt(hash, fact.payload_free_enum.digest);
+    hash = DirectMirCfgHashInt(hash, fact.array_int_value_result.digest);
+    hash = DirectMirCfgHashInt(hash, fact.array_bool_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.array_string_abi.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
-
 func DirectMirScalarProgramRouteFactReady(
     ref fact: DirectMirScalarProgramRouteFact
 ) -> Bool {
@@ -40,7 +65,20 @@ func DirectMirScalarProgramRouteFactReady(
         ((count == 2) != (fact.callable_row >= 0)) ||
         (count == 2 && fact.routine_rows[1] != fact.callable_row) ||
         (count != 2 && fact.callable_row >= 0) ||
-        !DirectMirScalarProgramTwoIntNominalAbiFactReady(fact.nominal) {
+        !DirectMirScalarProgramTwoIntNominalAbiFactReady(fact.nominal) ||
+        !DirectMirScalarProgramLogicalRecordFactReady(fact.logical_record) ||
+        !DirectMirScalarProgramPayloadFreeEnumFactReady(
+            fact.payload_free_enum) ||
+        !DirectMirScalarProgramArrayIntValueResultFactReady(
+            fact.array_int_value_result) ||
+        !DirectMirScalarProgramArrayBoolAbiFactReady(fact.array_bool_abi) ||
+        (!DirectMirScalarProgramArrayStringAbiFactReady(
+            fact.array_string_abi) &&
+         !DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
+            fact.array_string_abi) ||
+        !DirectMirScalarProgramLogicalRecordCollectionAbiReady(
+            fact.logical_record, fact.array_int_value_result, fact.array_bool_abi,
+            fact.array_string_abi)) {
         return false;
     }
     let row: Int = 0;
@@ -56,72 +94,4 @@ func DirectMirScalarProgramRouteFactReady(
         row = row + 1;
     }
     return true;
-}
-
-func DirectMirScalarProgramRouteFactFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
-) -> DirectMirScalarProgramRouteFact {
-    let invalid: DirectMirScalarProgramRouteFact =
-        DirectMirScalarProgramRouteFactEmpty();
-    let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
-    let nominal: DirectMirScalarProgramTwoIntNominalAbiFact =
-        DirectMirScalarProgramTwoIntNominalAbiFactFromAdmitted(admitted);
-    if routine_count < 1 ||
-        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
-        !DirectMirScalarProgramTwoIntNominalAbiFactReady(nominal) {
-        return invalid;
-    }
-    if routine_count == 1 {
-        if !DirectMirScalarSingleStringProgramRouteClaimed(admitted) &&
-            !DirectMirScalarBuiltinProgramRouteClaimed(admitted) { return invalid; }
-        let rows: Array<Int> = [0];
-        let fact: DirectMirScalarProgramRouteFact =
-            DirectMirScalarProgramRouteFact(
-                true, 0, 0, -1, rows, nominal);
-        let sealed: DirectMirScalarProgramRouteFact =
-            DirectMirScalarProgramRouteFact(true,
-                DirectMirScalarProgramRouteFactDigest(fact), 0, -1, rows,
-                nominal);
-        if !DirectMirScalarProgramRouteFactReady(sealed) { return invalid; }
-        return sealed;
-    }
-    let entrypoint_row: Int = -1;
-    let routine_rows: Array<Int> = [];
-    let nominal_referenced: Bool = false;
-    let row: Int = 0;
-    while row < routine_count {
-        let signature: DirectMirRoutineSignatureFact =
-            DirectMirRoutineSignatureFactAt(admitted.routines, row,
-                MirProgramRoutineIndexBlockInstructionCountAt(
-                    admitted.routines, row, 0));
-        if !DirectMirRoutineSignatureFactReady(signature) { return invalid; }
-        if DirectMirScalarProgramTwoIntNominalSignatureReferenced(
-                nominal, signature) { nominal_referenced = true; }
-        if signature.name == "Main" {
-            if entrypoint_row >= 0 || signature.return_type != "Void" ||
-                signature.param_count != 0 { return invalid; }
-            entrypoint_row = row;
-        } else if !DirectMirScalarProgramCallableRouteEnvelopeSupported(
-                signature, nominal) { return invalid; }
-        row = row + 1;
-    }
-    if entrypoint_row < 0 || (nominal.present && !nominal_referenced) {
-        return invalid;
-    }
-    ArrayPush(routine_rows, entrypoint_row);
-    row = 0;
-    while row < routine_count {
-        if row != entrypoint_row { ArrayPush(routine_rows, row); }
-        row = row + 1;
-    }
-    let callable_row: Int = -1;
-    if routine_count == 2 { callable_row = routine_rows[1]; }
-    let fact: DirectMirScalarProgramRouteFact = DirectMirScalarProgramRouteFact(
-        true, 0, entrypoint_row, callable_row, routine_rows, nominal);
-    let sealed: DirectMirScalarProgramRouteFact =
-        DirectMirScalarProgramRouteFact(true,
-            DirectMirScalarProgramRouteFactDigest(fact), entrypoint_row,
-            callable_row, routine_rows, nominal);
-    if !DirectMirScalarProgramRouteFactReady(sealed) { return invalid; }
-    return sealed;
 }

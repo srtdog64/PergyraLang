@@ -2,9 +2,11 @@
 
 import "direct_mir_scalar_program_expression_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+import "direct_mir_scalar_program_int_literal_expression_row_owner.pgy";
 
 func DirectMirScalarCfgProgramAppendTypedExpression(
     inout expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
     ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts,
     global_row: Int, local_instruction: Int,
@@ -12,22 +14,61 @@ func DirectMirScalarCfgProgramAppendTypedExpression(
     ref types: DirectMirScalarCfgValueTypePlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
     local_offset: Int, parameter_types: Array<String>,
+    ref signature: DirectMirRoutineSignatureFact,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
-    expected_type: String
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    use_offset: Int, expected_type: String
+) -> Option<Int> {
+    let cursor: Int = use_offset;
+    return DirectMirScalarCfgProgramAppendTypedExpressionField(
+        expressions, failure, instruction, uses, global_row, local_instruction,
+        locals, types, wire, local_offset, parameter_types, signature, callables,
+        logical_record, payload_free_enum,
+        "expr0_graph", cursor, true, expected_type, -1
+    );
+}
+
+func DirectMirScalarCfgProgramAppendTypedExpressionField(
+    inout expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, parameter_types: Array<String>,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    graph_field: String, inout use_offset: Int,
+    require_all_uses: Bool, expected_type: String, source_root: Int
 ) -> Option<Int> {
     let expression_row: Int = ArrayLength(expressions.graph_starts);
-    let appended: DirectMirScalarProgramExpressionSet =
+    let admission: DirectMirScalarProgramExpressionAdmission =
         DirectMirScalarProgramAppendExpression(
             expressions, instruction, uses, global_row, local_instruction,
-            locals, types, wire, local_offset, parameter_types, callables,
-            expected_type
+            locals, types, wire, local_offset, parameter_types, signature,
+            callables, logical_record, payload_free_enum,
+            graph_field, use_offset,
+            require_all_uses, expected_type, false, source_root
         );
+    if !admission.valid {
+        if !failure.present { failure = admission.failure; }
+        return None;
+    }
+    let appended: DirectMirScalarProgramExpressionSet = admission.facts;
     if !appended.valid ||
-        ArrayLength(appended.graph_starts) != expression_row + 1 ||
-        (expected_type != "" &&
-         appended.node_types[appended.graph_roots[expression_row]] !=
-            expected_type) ||
-        appended.node_types[appended.graph_roots[expression_row]] == "" {
+            ArrayLength(appended.graph_starts) != expression_row + 1 {
+        if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("admitted-cardinality", -1); }
+        return None;
+    }
+    let root: Int = appended.graph_roots[expression_row];
+    if (expected_type != "" && appended.node_types[root] != expected_type) ||
+            appended.node_types[root] == "" {
+        if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("admitted-type", root); }
         return None;
     }
     expressions = appended;

@@ -1,7 +1,6 @@
 // LLVM composition of responsibility-specific generated runtime bodies.
 
 import "direct_mir_scalar_program_llvm_string_window_materialization_owner.pgy";
-import "direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_case_math_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_index_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_trim_materialization_owner.pgy";
@@ -16,9 +15,6 @@ func DirectMirScalarProgramLlvmAdditionalMaterialization(
         DirectMirScalarProgramLlvmStringIndexMaterialization(plan, runtime));
     output = Concat(output,
         DirectMirScalarProgramLlvmStringTrimMaterialization(plan, runtime));
-    output = Concat(output,
-        DirectMirScalarProgramLlvmStringCollectionMaterialization(
-            plan, runtime));
     return Concat(output,
         DirectMirScalarProgramLlvmCaseMathMaterialization(plan, runtime));
 }

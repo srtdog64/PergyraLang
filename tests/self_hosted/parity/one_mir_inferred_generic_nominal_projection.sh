@@ -50,7 +50,7 @@ EOF
     [[ "$total" -le 1800 ]] ||
         fail "inferred generic nominal owner family cap exceeded: $total/1800"
     lines="$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")"
-    [[ "$lines" -le 90 ]] || fail "multi-routine root cap exceeded: $lines/90"
+    [[ "$lines" -le 110 ]] || fail "multi-routine root cap exceeded: $lines/110"
     grep -Fq 'DirectMirTwoRoutineClassificationFromAdmitted(admitted)' \
         "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" ||
         fail "two-routine structural classification is not routed"

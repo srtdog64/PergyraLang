@@ -70,7 +70,7 @@ func SemanticAstExpressionVerdictFromPayload(
     let text: String = SemanticStripOuterParens(expression);
     let call_error: String = CheckCall(
         text, names, types, modes,
-        function_names, function_returns, function_params
+        function_names, function_returns, function_params, false
     );
     if StringLength(call_error) > 0 {
         return SemanticAstExpressionVerdictError(text, call_error);

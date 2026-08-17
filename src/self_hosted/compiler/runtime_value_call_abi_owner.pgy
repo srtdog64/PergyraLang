@@ -1,0 +1,180 @@
+// Canonical Allocator/TextBuilder runtime-call join.
+//
+// The flat runtime-call registry owns operation identity and the native MIR
+// row owns target spellings.  This owner joins them once so MIR validation and
+// direct-MIR target emission cannot infer a call from source spelling alone.
+
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "runtime_value_call_abi_identity_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+import "../codegen/runtime_abi/text_builder_runtime_owner.pgy";
+import "../lib/json_fact_table.pgy";
+
+struct CompilerRuntimeValueCallAbiFact {
+    let valid: Bool;
+    let source_name: String;
+    let owner_name: String;
+    let native_operation: String;
+    let registry_operation: String;
+    let c_symbol: String;
+    let llvm_symbol: String;
+    let c_shape: String;
+    let llvm_shape: String;
+    let return_type: String;
+    let parameter_types: Array<String>;
+    let terminal_consumer: Bool;
+    let registry: CompilerRuntimeCallAbiFact;
+}
+
+func CompilerRuntimeValueCallAbiFactMissing(
+) -> CompilerRuntimeValueCallAbiFact {
+    let parameters: Array<String> = [];
+    return CompilerRuntimeValueCallAbiFact(
+        false, "", "", "", "", "", "", "", "", "", parameters,
+        false, CompilerRuntimeCallAbiFactMissing());
+}
+
+func CompilerRuntimeValueCallAbiFactFromFields(
+    source_name: String, owner_name: String, native_operation: String,
+    registry_operation: String, c_symbol: String, llvm_symbol: String,
+    c_shape: String, llvm_shape: String, return_type: String,
+    parameter_types: Array<String>, terminal_consumer: Bool
+) -> CompilerRuntimeValueCallAbiFact {
+    let registry: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFactFromRowInput(
+            CompilerRuntimeCallAbiRowInput(
+                "selfhost-c-text-builder", registry_operation, c_symbol,
+                CompilerRuntimeCallAbiMaterialGeneratedHelper()));
+    if !registry.ok || registry.call_shape != c_shape ||
+        source_name == "" || owner_name == "" || native_operation == "" ||
+        llvm_symbol == "" || llvm_shape == "" || return_type == "" {
+        return CompilerRuntimeValueCallAbiFactMissing();
+    }
+    return CompilerRuntimeValueCallAbiFact(
+        true, source_name, owner_name, native_operation, registry_operation,
+        c_symbol, llvm_symbol, c_shape, llvm_shape, return_type,
+        parameter_types, terminal_consumer, registry);
+}
+
+func CompilerRuntimeValueCallAbiFactForSource(
+    source_name: String
+) -> CompilerRuntimeValueCallAbiFact {
+    let identity: CompilerRuntimeValueCallAbiIdentity =
+        CompilerRuntimeValueCallAbiIdentityForSource(source_name);
+    if !identity.valid { return CompilerRuntimeValueCallAbiFactMissing(); }
+    let parameters: Array<String> = [];
+    if identity.parameter_count >= 1 { ArrayPush(parameters, identity.parameter0); }
+    if identity.parameter_count >= 2 { ArrayPush(parameters, identity.parameter1); }
+    return CompilerRuntimeValueCallAbiFactFromFields(
+        identity.source_name, identity.owner_name, identity.native_operation,
+        identity.registry_operation, identity.c_symbol, identity.llvm_symbol,
+        identity.c_shape, identity.llvm_shape, identity.return_type,
+        parameters, identity.terminal_consumer
+    );
+}
+
+func CompilerRuntimeValueCallAbiFactForId(
+    runtime_call_abi_id: Int
+) -> CompilerRuntimeValueCallAbiFact {
+    let identity: CompilerRuntimeValueCallAbiIdentity =
+        CompilerRuntimeValueCallAbiIdentityForId(runtime_call_abi_id);
+    if !identity.valid { return CompilerRuntimeValueCallAbiFactMissing(); }
+    return CompilerRuntimeValueCallAbiFactForSource(identity.source_name);
+}
+
+func CompilerRuntimeValueCallParameterSchema(
+    ref fact: CompilerRuntimeValueCallAbiFact
+) -> String {
+    if !fact.valid { return ""; }
+    // SemanticBuiltinSignatureRows spells an empty source signature as
+    // `none`, but SeedSemanticBuiltinSignatures owns the admitted projection
+    // and normalizes that spelling to the empty schema.  Consumers join the
+    // admitted projection, never its serialized source spelling.
+    if ArrayLength(fact.parameter_types) == 0 { return ""; }
+    let schema: String = fact.parameter_types[0];
+    let row: Int = 1;
+    while row < ArrayLength(fact.parameter_types) {
+        schema = Concat(schema, Concat("|", fact.parameter_types[row]));
+        row = row + 1;
+    }
+    return schema;
+}
+
+func CompilerRuntimeValueCallTerminalOwnerParameter(
+    ref fact: CompilerRuntimeValueCallAbiFact
+) -> Int {
+    if !fact.valid || !fact.terminal_consumer ||
+        ArrayLength(fact.parameter_types) < 1 ||
+        fact.parameter_types[0] != fact.owner_name {
+        return -1;
+    }
+    return 0;
+}
+
+func CompilerRuntimeValueCallAbiRowReady(
+    ref row: JsonObjectFactTable,
+    ref expected: CompilerRuntimeValueCallAbiFact
+) -> Bool {
+    return expected.valid && JsonObjectFactTableReady(row) &&
+        JsonObjectFactStringFieldEquals(row, "source", expected.source_name) &&
+        JsonObjectFactStringFieldEquals(row, "owner", expected.owner_name) &&
+        JsonObjectFactStringFieldEquals(
+            row, "operation", expected.native_operation) &&
+        JsonObjectFactStringFieldEquals(row, "c_symbol", expected.c_symbol) &&
+        JsonObjectFactStringFieldEquals(
+            row, "llvm_symbol", expected.llvm_symbol) &&
+        JsonObjectFactStringFieldEquals(row, "c_shape", expected.c_shape) &&
+        JsonObjectFactStringFieldEquals(
+            row, "llvm_shape", expected.llvm_shape);
+}
+
+func CompilerRuntimeValueCallInstructionRowReady(
+    ref instruction: JsonObjectFactTable,
+    ref expected: CompilerRuntimeValueCallAbiFact
+) -> Bool {
+    let row: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "runtime_call_abi");
+    if !CompilerRuntimeValueCallAbiRowReady(row, expected) {
+        return false;
+    }
+    let representation: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(expected.return_type);
+    let id: Option<String> = JsonObjectFactNumberFieldOpt(
+        instruction, "abi_layout_id");
+    let layout_kind: Option<String> = JsonObjectFactValueKind(
+        instruction, "abi_layout");
+    if !representation.valid {
+        let type_ready: Bool = false;
+        if expected.return_type == "Void" {
+            let type_kind: Option<String> = JsonObjectFactValueKind(
+                instruction, "abi_type_name");
+            type_ready = IsSome(type_kind) && UnwrapOption(type_kind) == "null";
+        } else {
+            type_ready = JsonObjectFactStringFieldEquals(
+                instruction, "abi_type_name", expected.return_type);
+        }
+        return type_ready && IsSome(id) && UnwrapOption(id) == "0" &&
+            JsonObjectBoolFieldEqualsWithin(
+                instruction.json, instruction.start, instruction.end,
+                "abi_layout_required", false) &&
+            IsSome(layout_kind) && UnwrapOption(layout_kind) == "null";
+    }
+    if !JsonObjectFactStringFieldEquals(
+            instruction, "abi_type_name", representation.type_name) ||
+        !IsSome(id) || ToString(ToInt(UnwrapOption(id))) != UnwrapOption(id) ||
+        !JsonObjectBoolFieldEqualsWithin(
+            instruction.json, instruction.start, instruction.end,
+            "abi_layout_required", true) ||
+        !IsSome(layout_kind) || UnwrapOption(layout_kind) != "object" {
+        return false;
+    }
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactValueBounds(instruction, "abi_layout", bounds) {
+        return false;
+    }
+    let captured: MirAbiLayoutRowCapture = MirAbiLayoutRowCaptureWithin(
+        instruction.json, bounds[0], bounds[1]);
+    return CompilerRuntimeValueRepresentationMatchesCapture(
+            representation, captured) &&
+        ToInt(UnwrapOption(id)) == MirAbiLayoutIdFromCapture(captured);
+}

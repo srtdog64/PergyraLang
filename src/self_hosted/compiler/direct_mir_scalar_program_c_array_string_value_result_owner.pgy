@@ -1,0 +1,54 @@
+// C copy and mutation boundary for admitted Array<String> value-result formals.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarProgramCArrayStringValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayStringValueResultAt(
+                plan.program.array_string_abi, routine, parameter) {
+            output = Concat(output, "    pgy_as pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, " = *pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, "_mutref;\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCArrayStringValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayStringValueResultAt(
+                plan.program.array_string_abi, routine, parameter) {
+            output = Concat(output, "    *pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, "_mutref = pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ";\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCArrayStringValueResultPush(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, parameter: Int, value: String
+) -> String {
+    if parameter < 0 || value == "" ||
+        !DirectMirScalarProgramArrayStringValueResultAt(
+            plan.program.array_string_abi, routine, parameter) {
+        Die("direct MIR C Array<String> value-result push is invalid");
+    }
+    return Concat("    pgy_as_push(&pgy_param_", Concat(
+        ToString(parameter), Concat(", ", Concat(value, ");\n"))));
+}

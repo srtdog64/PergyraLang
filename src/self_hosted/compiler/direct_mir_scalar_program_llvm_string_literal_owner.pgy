@@ -1,0 +1,26 @@
+// LLVM byte spelling for one decoded scalar-program string literal.
+
+import "../codegen/text/text_owner.pgy";
+
+func DirectMirScalarProgramLlvmStringLiteralPayload(
+    value: String
+) -> String {
+    let payload: String = "";
+    let length: Int = StringLength(value);
+    let index: Int = 0;
+    while index < length {
+        let code: Int = CharCode(value, length, index);
+        if code == 34 { payload = Concat(payload, "\\22"); }
+        else if code == 92 { payload = Concat(payload, "\\5C"); }
+        else if code == 10 { payload = Concat(payload, "\\0A"); }
+        else if code == 13 { payload = Concat(payload, "\\0D"); }
+        else if code == 9 { payload = Concat(payload, "\\09"); }
+        else if code >= 32 && code <= 126 {
+            payload = Concat(payload, CharAtN(value, length, index));
+        } else {
+            Die("direct MIR scalar LLVM string literal byte is invalid");
+        }
+        index = index + 1;
+    }
+    return payload;
+}

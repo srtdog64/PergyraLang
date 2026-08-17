@@ -1,7 +1,12 @@
-// Stable normalized identities for StringReplace and integer math expressions.
+// Stable normalized identities for StringReplace and checked numeric expressions.
 
 func DirectMirScalarProgramExprNegateInt() -> Int { return 29; }
 func DirectMirScalarProgramExprAbsInt() -> Int { return 30; }
 func DirectMirScalarProgramExprMinInt() -> Int { return 31; }
 func DirectMirScalarProgramExprMaxInt() -> Int { return 32; }
 func DirectMirScalarProgramExprStringReplace() -> Int { return 33; }
+func DirectMirScalarProgramExprMultiplyInt() -> Int { return 73; }
+func DirectMirScalarProgramExprDivideInt() -> Int { return 74; }
+func DirectMirScalarProgramExprModuloLong() -> Int { return 75; }
+func DirectMirScalarProgramExprDivideLong() -> Int { return 79; }
+func DirectMirScalarProgramExprMultiplyLong() -> Int { return 81; }

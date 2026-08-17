@@ -1,0 +1,20 @@
+// C expression identity for one ordered heap-backed populated Array<Int> literal.
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramCArrayIntPopulatedLiteralExpression(
+    kind: Int, expression_node: Int, arguments: Array<String>
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
+        return None;
+    }
+    let call: String = Concat("pgy_array_int_populated_literal_",
+        Concat(ToString(expression_node), "("));
+    if ArrayLength(arguments) == 0 { return Some(Concat(call, "NULL)")); }
+    call = Concat(call, "(int64_t[]){");
+    let row: Int = 0;
+    while row < ArrayLength(arguments) {
+        if row > 0 { call = Concat(call, ", "); }
+        call = Concat(call, arguments[row]); row = row + 1;
+    }
+    return Some(Concat(call, "})"));
+}

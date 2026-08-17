@@ -195,4 +195,15 @@ func Main() -> Void {
         RunWorkflow(second_failure_work, second_failure_actor, true, false),
         second_failure_actor
     );
+    Log("history.count=" + ToString(IntentHistoryCount()));
+    Log("history.name0=" + IntentHistoryStepName(0));
+    Log("history.phase0=" + IntentHistoryStepPhase(0));
+    Log("history.ok0=" + ToString(IntentHistoryStepOk(0)));
+    Log("history.name1=" + IntentHistoryStepName(1));
+    Log("history.phase1=" + IntentHistoryStepPhase(1));
+    Log("history.ok1=" + ToString(IntentHistoryStepOk(1)));
+    Log("history.failure1=" + IntentHistoryStepFailure(1));
+    Log("last.failed=" + ToString(IntentLastFailed()));
+    Log("last.failure=" + IntentLastFailure());
+    Log("active.after=" + ToString(IntentActiveCount()));
 }

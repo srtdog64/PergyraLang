@@ -1,11 +1,106 @@
-// Stable failure context for typed routine-expression admission.
-
+// Stable failure context for typed routine and expression admission.
 import "../codegen/text/text_owner.pgy";
-
+import "direct_mir_scalar_program_expression_admission_failure_owner.pgy";
+import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
+import "direct_mir_scalar_program_process_exit_owner.pgy";
 func DirectMirScalarCfgProgramExpressionAdmissionFailed(
-    global_row: Int, source: String
+    global_row: Int, source: String,
+    ref failure: DirectMirScalarProgramExpressionAdmissionFailure
 ) -> Void {
+    let stage: String = failure.stage;
+    let node: Int = failure.node;
+    if !failure.present { stage = "unknown"; node = -1; }
+    Die(Concat("direct MIR scalar CFG program expression admission is invalid: stage=", Concat(stage, Concat(" node=", Concat(ToString(node), Concat(" row=", Concat(ToString(global_row), Concat(" source=", source))))))));
+}
+func DirectMirScalarCfgProgramBranchTopologyAdmissionFailed(routine_ordinal: Int, block: Int, global_row: Int, source: String) -> Void {
     Die(Concat(
-        "direct MIR scalar CFG program expression admission is invalid: row=",
-        Concat(ToString(global_row), Concat(" source=", source))));
+        "direct MIR scalar CFG program branch topology is invalid: ordinal=",
+        Concat(ToString(routine_ordinal), Concat(" block=", Concat(
+            ToString(block), Concat(" row=", Concat(ToString(global_row),
+            Concat(" source=", source))))))));
+}
+func DirectMirScalarCfgProgramRoutineAdmissionFailed(stage: String, routine_ordinal: Int, block: Int, global_row: Int, source: String) -> Void {
+    Die(Concat("direct MIR scalar CFG program routine admission stage is invalid: stage=", Concat(stage, Concat(" ordinal=", Concat(ToString(routine_ordinal), Concat(" block=", Concat(ToString(block), Concat(" row=", Concat(ToString(global_row), Concat(" source=", source))))))))));
+}
+func DirectMirScalarCfgProgramExpressionSetReadinessFailed(
+    ref facts: DirectMirScalarProgramExpressionSet
+) -> Void {
+    let node: Int = 0;
+    while node < ArrayLength(facts.node_kinds) {
+        if !DirectMirScalarProgramExpressionNodeReady(facts, node) {
+            if facts.node_kinds[node] ==
+                    DirectMirScalarProgramExprDirectCall() {
+                let arguments: Array<Int> =
+                    DirectMirScalarProgramDirectCallArgumentRows(facts, node);
+                let detail: String = Concat(
+                    "direct MIR scalar direct-call expression is invalid: node=",
+                    Concat(ToString(node), Concat(" type=", Concat(
+                    facts.node_types[node], Concat(" left=", Concat(
+                    ToString(facts.node_lefts[node]), Concat(" right=", Concat(
+                    ToString(facts.node_rights[node]), Concat(" local=", Concat(
+                    ToString(facts.node_local_rows[node]), Concat(" param=", Concat(
+                    ToString(facts.node_parameter_ordinals[node]), Concat(
+                    " callable=", Concat(ToString(
+                    facts.node_callable_rows[node]), " arguments="))))))))))))));
+                let ordinal: Int = 0;
+                while ordinal < ArrayLength(arguments) {
+                    detail = Concat(detail, Concat(
+                        " ", ToString(arguments[ordinal])));
+                    ordinal = ordinal + 1;
+                }
+                Die(detail);
+            }
+            Die(Concat(
+                "direct MIR scalar program expression set is invalid: node=",
+                Concat(ToString(node), Concat(
+                    " kind=", ToString(facts.node_kinds[node])))));
+        }
+        node = node + 1;
+    }
+    Die("direct MIR scalar program expression set structure is invalid");
+}
+
+func DirectMirScalarCfgProgramTerminalReturnReadinessFailed(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Void {
+    let block: Int = 0;
+    while block < ArrayLength(plan.block_succ_true) {
+        let routine: Int = DirectMirScalarCfgRoutinePartitionBlockOwner(
+            plan.routines, block);
+        let terminal: Bool = plan.block_succ_true[block] < 0 &&
+            plan.block_succ_false[block] < 0;
+        if routine >= 0 && routine != plan.routines.entrypoint_ordinal &&
+            terminal {
+            let row: Int = plan.program.block_return_expression_rows[block];
+            let expected: String = plan.routines.return_types[routine];
+            let operation_start: Int = plan.block_operation_starts[block];
+            let operation_count: Int = plan.block_operation_counts[block];
+            let exits: Bool = row == -1 &&
+                DirectMirScalarProgramBlockEndsWithProcessExit(
+                    plan.operation_kinds, operation_start, operation_count);
+            let ready: Bool = exits ||
+                row == DirectMirScalarCfgVoidReturnExpressionRow();
+            if expected != "Void" && !exits {
+                ready = DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, row, expected, routine);
+            }
+            if !ready {
+                let last_kind: Int = -1;
+                if operation_count > 0 { last_kind = plan.operation_kinds[operation_start + operation_count - 1]; }
+                let detail: String = Concat(
+                    "direct MIR scalar terminal return is invalid: routine=",
+                    ToString(routine));
+                detail = Concat(detail, Concat(" block=", ToString(block)));
+                detail = Concat(detail, Concat(" row=", ToString(row)));
+                detail = Concat(detail, Concat(" expected=", expected));
+                detail = Concat(detail, Concat(" operation_start=", ToString(operation_start)));
+                detail = Concat(detail, Concat(" operation_count=", ToString(operation_count)));
+                Die(Concat(detail, Concat(" last_kind=", ToString(last_kind))));
+            }
+        }
+        block = block + 1;
+    }
+    Die("direct MIR scalar terminal return failure was not located");
 }

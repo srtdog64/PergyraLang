@@ -1,5 +1,4 @@
 // One indexed input boundary for scalar-CFG plan construction.
-
 import "direct_mir_scalar_cfg_graph_route_owner.pgy";
 import "direct_mir_scalar_cfg_loop_flow_admission_owner.pgy";
 import "direct_mir_scalar_cfg_range_transfer_admission_owner.pgy";
@@ -51,13 +50,14 @@ func DirectMirScalarCfgGraphInputFromAdmittedForOwner(
             admitted, index, use_facts, wire, foreach_facts
         );
     let expected_ranges: Int = 0;
-    let flow_row: Int = 0;
-    while flow_row < ArrayLength(index.loop_flow_summary_kinds) {
-        if index.loop_flow_summary_kinds[flow_row] == 1 &&
-            !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
-                foreach_facts, index.loop_flow_summary_loop_ids[flow_row]
+    let type_row: Int = 0;
+    while type_row < ArrayLength(
+            index.iteration_type_facts.iteration_syntax_ids) {
+        if !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
+                foreach_facts,
+                index.iteration_type_facts.iteration_syntax_ids[type_row]
             ).valid { expected_ranges = expected_ranges + 1; }
-        flow_row = flow_row + 1;
+        type_row = type_row + 1;
     }
     if !index.valid || DirectMirScalarCfgRangeFactCount(ranges) !=
             expected_ranges {

@@ -1,0 +1,7 @@
+func Quarter(value: Int) -> Int {
+    return value / 4;
+}
+
+func Main() -> Void {
+    Log(Quarter(12));
+}

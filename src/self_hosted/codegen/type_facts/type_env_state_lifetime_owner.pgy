@@ -1,0 +1,109 @@
+// Function-local codegen type-row ownership and last-consumer retirement.
+
+import "type_env.pgy";
+import "../text/text_owner.pgy";
+
+struct CodegenTypeEnvState {
+    let local_rows: String;
+    let owns_local_rows: Bool;
+}
+
+func CodegenTypeEnvStateOwned(local_rows: String) -> CodegenTypeEnvState {
+    return CodegenTypeEnvState(local_rows, true);
+}
+
+func CodegenTypeEnvStateBorrow(
+    state: CodegenTypeEnvState
+) -> CodegenTypeEnvState {
+    return CodegenTypeEnvState(state.local_rows, false);
+}
+
+func CodegenTypeEnvStateView(
+    state: CodegenTypeEnvState, base_env: CodegenTypeEnv
+) -> CodegenTypeEnv {
+    // The sealed global epoch remains owned by `base_env`; only local rows vary.
+    return CodegenTypeEnv(
+        base_env.global_rows, base_env.preseal_rows, base_env.preseal_index,
+        state.local_rows, base_env.global_index
+    );
+}
+
+func CodegenTypeEnvStateReplaceOwnedLocal(
+    inout state: CodegenTypeEnvState, env: CodegenTypeEnv
+) -> Void {
+    if env.local_rows == state.local_rows { return; }
+    let old_local_rows: String = state.local_rows;
+    let retire_old: Bool = state.owns_local_rows && old_local_rows != "";
+    state = CodegenTypeEnvState(env.local_rows, true);
+    if retire_old {
+        let retired: Array<String> = [old_local_rows];
+        ArrayDropOwnedStrings(retired);
+    }
+}
+
+func CodegenTypeEnvStateReleaseLocal(
+    inout state: CodegenTypeEnvState
+) -> Void {
+    let old_local_rows: String = state.local_rows;
+    let retire_old: Bool = state.owns_local_rows && old_local_rows != "";
+    state = CodegenTypeEnvState("", false);
+    if retire_old {
+        let retired: Array<String> = [old_local_rows];
+        ArrayDropOwnedStrings(retired);
+    }
+}
+
+func CodegenTypeEnvStateAdoptAfterLastConsumer(
+    inout state: CodegenTypeEnvState,
+    inout next_state: CodegenTypeEnvState
+) -> Void {
+    if next_state.local_rows == state.local_rows {
+        next_state = CodegenTypeEnvState("", false);
+        return;
+    }
+    if !next_state.owns_local_rows {
+        Die("codegen type environment replacement is not owned");
+    }
+    let old_local_rows: String = state.local_rows;
+    let retire_old: Bool = state.owns_local_rows && old_local_rows != "";
+    state = next_state;
+    next_state = CodegenTypeEnvState("", false);
+    if retire_old {
+        let retired: Array<String> = [old_local_rows];
+        ArrayDropOwnedStrings(retired);
+    }
+}
+
+func CodegenTypeEnvStateAppendValueBinding(
+    inout state: CodegenTypeEnvState, env: CodegenTypeEnv, source_name: String,
+    value_kind: String, c_name: String
+) -> Void {
+    let next_env: CodegenTypeEnv = TypeEnvAppendValueBinding(
+        CodegenTypeEnvStateView(state, env),
+        source_name, value_kind, c_name
+    );
+    CodegenTypeEnvStateReplaceOwnedLocal(state, next_env);
+}
+
+func CodegenTypeEnvStateAppendOwnedLocalRows(
+    inout state: CodegenTypeEnvState, env: CodegenTypeEnv,
+    own rows: String
+) -> Void {
+    if rows == "" { return; }
+    let next_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
+        CodegenTypeEnvStateView(state, env), rows
+    );
+    CodegenTypeEnvStateReplaceOwnedLocal(state, next_env);
+    let retired: Array<String> = [rows];
+    ArrayDropOwnedStrings(retired);
+}
+
+func CodegenTypeEnvStateAppendTypedValueBinding(
+    inout state: CodegenTypeEnvState, env: CodegenTypeEnv, source_name: String,
+    value_type: String, value_kind: String, c_name: String
+) -> Void {
+    let rows: String = TypeEnvTypedValueBindingRows(
+        source_name, value_type, value_kind, c_name
+    );
+    CodegenTypeEnvStateAppendOwnedLocalRows(state, env, rows);
+}

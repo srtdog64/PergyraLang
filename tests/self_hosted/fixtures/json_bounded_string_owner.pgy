@@ -15,6 +15,15 @@ func JsonBoundedStringEquals(
     return actual == expected && end[0] == expected_end;
 }
 
+func JsonBoundedIntegerEquals(
+    encoded: String, start: Int, end: Int, expected: String
+) -> Bool {
+    let actual: Option<String> = JsonIntegerValueOptWithin(
+        encoded, start, end
+    );
+    return IsSome(actual) && UnwrapOption(actual) == expected;
+}
+
 func Main() -> Void {
     let failures: Int = 0;
     let plain: String = "\"routine_name\"";
@@ -36,6 +45,15 @@ func Main() -> Void {
     if ReadJsonStringBounded(
         plain, 0, StringLength(plain) - 1, truncated_end
     ) != "" || truncated_end[0] != 0 {
+        failures = failures + 1;
+    }
+
+    let bounded_integer: String = "xx-42tail";
+    if !JsonBoundedIntegerEquals(bounded_integer, 2, 5, "-42") ||
+        !JsonBoundedIntegerEquals("xx17tail", 2, 4, "17") ||
+        IsSome(JsonIntegerValueOptWithin("xx-tail", 2, 3)) ||
+        IsSome(JsonIntegerValueOptWithin("xx1.5tail", 2, 5)) ||
+        IsSome(JsonIntegerValueOptWithin("xx17tail", 2, 2)) {
         failures = failures + 1;
     }
 

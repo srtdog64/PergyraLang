@@ -1,9 +1,17 @@
 // C runtime materialization for the sealed String/Array<String> ABI receipt.
-
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_c_process_args_materialization_owner.pgy";
+import "direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy";
+import "direct_mir_scalar_program_c_file_exists_materialization_owner.pgy";
+import "direct_mir_scalar_program_c_read_file_materialization_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 import "../codegen/runtime_abi/string_runtime_owner.pgy";
+
+func DirectMirScalarProgramCStringArrayOwnedSingleFn() -> String {
+    return "pgy_as_owned_single";
+}
+func DirectMirScalarProgramCStringArrayValuesFn() -> String { return "pgy_as_from_values"; }
 
 func DirectMirScalarProgramCStringArrayStorageBlock(
     ref abi: DirectMirScalarProgramArrayStringAbiFact
@@ -32,12 +40,19 @@ func DirectMirScalarProgramCStringArrayStorageBlock(
     output = Concat(output,
         "    if (a->length == a->capacity) { size_t n = a->capacity ? a->capacity * 2 : 4; const char **p = (const char **)realloc(a->data, n * sizeof(const char *)); if (p == NULL) abort(); a->data = p; a->capacity = n; }\n");
     output = Concat(output, "    a->data[a->length++] = v;\n}\n");
+    output = Concat(output, Concat("static void ", Concat(CollectionRuntimeCOwnedStringPushFn(), "(pgy_as *a, const char *v) { const char *source = v != NULL ? v : \"\"; size_t n = strlen(source); char *owned = (char *)malloc(n + 1); if (owned == NULL) abort(); memcpy(owned, source, n + 1); pgy_as_push(a, owned); }\n")));
+    output = Concat(output, Concat("static pgy_as ", Concat(DirectMirScalarProgramCStringArrayValuesFn(), "(const char **v, size_t n) { pgy_as a = pgy_as_new(); for (size_t i = 0; i < n; i++) pgy_as_push(&a, v[i]); return a; }\n")));
+    output = Concat(output, Concat("static pgy_as ", Concat(
+        DirectMirScalarProgramCStringArrayOwnedSingleFn(), Concat(
+        "(const char *v) { pgy_as a = pgy_as_new(); ", Concat(
+        CollectionRuntimeCPushFn(2), "(&a, v); return a; }\n")))));
     output = Concat(output,
         "static long long pgy_as_len(pgy_as a) { return (long long)a.length; }\n");
     output = Concat(output,
         "static const char *pgy_as_get(pgy_as a, long long i) { return a.data[(size_t)i]; }\n");
-    output = Concat(output,
-        "static void pgy_as_drop(pgy_as *a) { if (a == NULL) return; for (size_t i = 0; i < a->length; i++) free((void *)a->data[i]); free(a->data); a->data = NULL; a->length = 0; a->capacity = 0; }\n\n");
+    output = Concat(output, Concat("static void ", Concat(
+        CollectionRuntimeCOwnedStringDropFn(),
+        "(pgy_as *a) { if (a == NULL) return; for (size_t i = 0; i < a->length; i++) free((void *)a->data[i]); free(a->data); a->data = NULL; a->length = 0; a->capacity = 0; }\n\n")));
     return output;
 }
 
@@ -47,9 +62,16 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
 ) -> String {
     let any: Bool = plan.program.runtime_abi.string_contains_id != 0 ||
         plan.program.runtime_abi.string_split_id != 0 ||
+        plan.program.runtime_abi.string_join_id != 0 ||
         plan.program.runtime_abi.string_to_int_id != 0 ||
         plan.program.runtime_abi.array_string_length_id != 0 ||
-        plan.program.runtime_abi.array_string_get_id != 0;
+        plan.program.runtime_abi.array_string_get_id != 0 ||
+        plan.program.runtime_abi.process_args_id != 0 ||
+        plan.program.runtime_abi.dir_walk_id != 0 ||
+        plan.program.runtime_abi.file_exists_id != 0 ||
+        plan.program.runtime_abi.read_file_id != 0 ||
+        DirectMirScalarProgramArrayStringAbiFactReady(
+            plan.program.array_string_abi);
     if !any { return ""; }
     if !DirectMirScalarProgramRuntimeAbiProjectionReady(
             runtime, plan.program.runtime_abi) ||
@@ -58,10 +80,19 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
         Die("direct MIR scalar program C String collection ABI is invalid");
     }
     let output: String = "#include <stddef.h>\n#include <stdlib.h>\n#include <string.h>\n\n";
-    if DirectMirScalarProgramArrayStringAbiRequired(plan.program.expressions) {
+    if DirectMirScalarProgramArrayStringAbiFactReady(
+            plan.program.array_string_abi) {
         output = Concat(output, DirectMirScalarProgramCStringArrayStorageBlock(
             plan.program.array_string_abi));
     }
+    output = Concat(output,
+        DirectMirScalarProgramCProcessArgsBlock(plan, runtime));
+    output = Concat(output,
+        DirectMirScalarProgramCDirWalkBlock(plan, runtime));
+    output = Concat(output,
+        DirectMirScalarProgramCFileExistsBlock(plan, runtime));
+    output = Concat(output,
+        DirectMirScalarProgramCReadFileBlock(plan, runtime));
     if plan.program.runtime_abi.string_contains_id != 0 {
         output = Concat(output, StringRuntimeCStringContainsBlock());
     }
@@ -70,6 +101,9 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
     }
     if plan.program.runtime_abi.string_split_id != 0 {
         output = Concat(output, StringRuntimeCSplitBlock());
+    }
+    if plan.program.runtime_abi.string_join_id != 0 {
+        output = Concat(output, StringRuntimeCStringJoinBlock());
     }
     return output;
 }

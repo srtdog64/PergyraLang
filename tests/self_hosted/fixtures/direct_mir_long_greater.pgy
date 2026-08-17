@@ -1,0 +1,19 @@
+func GreaterLong(left: Long, right: Long) -> Bool {
+    return left > right;
+}
+
+func EqualLong(left: Long, right: Long) -> Bool {
+    return left == right;
+}
+
+func NotEqualLong(left: Long, right: Long) -> Bool {
+    return left != right;
+}
+
+func LessLong(left: Long, right: Long) -> Bool {
+    return left < right;
+}
+
+func Main() -> Void {
+    Log("long-greater-ready");
+}

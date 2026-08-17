@@ -1,0 +1,104 @@
+// LLVM representation and expression projection from the admitted Option<Bool> ABI.
+
+import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmOptionBoolTypeName() -> String {
+    return "%pgy.scalar.option.bool";
+}
+
+func DirectMirScalarProgramLlvmOptionBoolExpressionAt(
+    kind: Int, result: String, left: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let function_name: String = "";
+    let result_type: String = "";
+    let argument_type: String = "";
+    if kind == DirectMirScalarProgramExprSomeBool() {
+        function_name = "@pgy.scalar.option.bool.some";
+        result_type = DirectMirScalarProgramLlvmOptionBoolTypeName();
+        argument_type = "i1";
+    } else if kind == DirectMirScalarProgramExprNoneBool() {
+        function_name = "@pgy.scalar.option.bool.none";
+        result_type = DirectMirScalarProgramLlvmOptionBoolTypeName();
+    } else if kind == DirectMirScalarProgramExprIsSomeBool() {
+        function_name = "@pgy.scalar.option.bool.is_some";
+        result_type = "i1";
+        argument_type = DirectMirScalarProgramLlvmOptionBoolTypeName();
+    } else if kind == DirectMirScalarProgramExprUnwrapOptionBool() {
+        function_name = "@pgy.scalar.option.bool.unwrap";
+        result_type = "i1";
+        argument_type = DirectMirScalarProgramLlvmOptionBoolTypeName();
+    } else {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let output: String = Concat("  ", Concat(result, Concat(
+        " = call ", Concat(result_type, Concat(" ", function_name)))));
+    if argument_type == "" { output = Concat(output, "()\n"); }
+    else {
+        output = Concat(output, Concat("(", Concat(argument_type,
+            Concat(" ", Concat(left, ")\n")))));
+    }
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}
+
+func DirectMirScalarProgramLlvmOptionBoolPreamble(
+    ref fact: DirectMirOptionMatchAbiFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarProgramOptionBoolAbiCanonicalEmpty(fact) { return ""; }
+    if !DirectMirOptionBoolAbiFactReady(fact) ||
+        !CompilerTargetProjectionFactReadyFor(
+            target, CompilerTargetCpuLlvmProjection()) ||
+        fact.tag_offset != 0 || fact.value_offset != 4 {
+        Die("direct MIR scalar program LLVM Option<Bool> ABI is invalid");
+    }
+    let t: String = DirectMirScalarProgramLlvmOptionBoolTypeName();
+    let output: String = t;
+    output = Concat(output,
+        " = type { i32, i1 }\n\n");
+    output = Concat(output, "define internal ");
+    output = Concat(output, t);
+    output = Concat(output,
+        " @pgy.scalar.option.bool.some(i1 %value) {\nentry:\n  %tagged = insertvalue ");
+    output = Concat(output, t);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(output, fact.some_tag);
+    output = Concat(output, ", 0\n  %wrapped = insertvalue ");
+    output = Concat(output, t);
+    output = Concat(output,
+        " %tagged, i1 %value, 1\n  ret ");
+    output = Concat(output, t);
+    output = Concat(output, " %wrapped\n}\n\ndefine internal ");
+    output = Concat(output, t);
+    output = Concat(output,
+        " @pgy.scalar.option.bool.none() {\nentry:\n  %absent = insertvalue ");
+    output = Concat(output, t);
+    output = Concat(output, " poison, i32 ");
+    output = Concat(output, fact.none_tag);
+    output = Concat(output, ", 0\n  %empty = insertvalue ");
+    output = Concat(output, t);
+    output = Concat(output, " %absent, i1 false, 1\n  ret ");
+    output = Concat(output, t);
+    output = Concat(output, " %empty\n}\n\ndefine internal i1 @pgy.scalar.option.bool.is_some(");
+    output = Concat(output, t);
+    output = Concat(output,
+        " %value) {\nentry:\n  %tag = extractvalue ");
+    output = Concat(output, t);
+    output = Concat(output, " %value, 0\n  %ok = icmp eq i32 %tag, ");
+    output = Concat(output, fact.some_tag);
+    output = Concat(output, "\n  ret i1 %ok\n}\n\ndefine internal i1 @pgy.scalar.option.bool.unwrap(");
+    output = Concat(output, t);
+    output = Concat(output,
+        " %value) {\nentry:\n  %unwrap.tag = extractvalue ");
+    output = Concat(output, t);
+    output = Concat(output, " %value, 0\n  %unwrap.ok = icmp eq i32 %unwrap.tag, ");
+    output = Concat(output, fact.some_tag);
+    output = Concat(output,
+        "\n  br i1 %unwrap.ok, label %some, label %none\nnone:\n  call void @abort()\n  unreachable\nsome:\n  %payload = extractvalue ");
+    output = Concat(output, t);
+    output = Concat(output, " %value, 1\n  ret i1 %payload\n}\n");
+    return output;
+}

@@ -1,0 +1,18 @@
+// Target-neutral identity for Array<LogicalRecord> value-result parameters.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.parameter_counts) ||
+        ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] {
+        return false;
+    }
+    let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+    return plan.routines.parameter_carriages[row] == "value-result" &&
+        DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            plan.program.logical_record,
+            plan.routines.parameter_types[row]);
+}

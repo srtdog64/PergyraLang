@@ -1,9 +1,10 @@
-// Sealed runtime-call IDs for StringReplace and integer math expressions.
+// Sealed runtime-call IDs for StringReplace and checked numeric expressions.
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "../codegen/runtime_abi/math_runtime_owner.pgy";
+import "../codegen/runtime_abi/checked_arithmetic_runtime_owner.pgy";
 
 struct DirectMirScalarProgramCaseMathRuntimeIds {
     let valid: Bool;
@@ -12,12 +13,14 @@ struct DirectMirScalarProgramCaseMathRuntimeIds {
     let abs_id: Int;
     let min_id: Int;
     let max_id: Int;
+    let long_modulo_id: Int;
+    let long_division_id: Int;
 }
 
 func DirectMirScalarProgramCaseMathRuntimeIdsEmpty(
 ) -> DirectMirScalarProgramCaseMathRuntimeIds {
     return DirectMirScalarProgramCaseMathRuntimeIds(
-        false, 0, 0, 0, 0, 0);
+        false, 0, 0, 0, 0, 0, 0, 0);
 }
 
 func DirectMirScalarProgramCaseMathRuntimeIdsDigest(
@@ -28,6 +31,8 @@ func DirectMirScalarProgramCaseMathRuntimeIdsDigest(
     hash = DirectMirCfgHashInt(hash, fact.abs_id);
     hash = DirectMirCfgHashInt(hash, fact.min_id);
     hash = DirectMirCfgHashInt(hash, fact.max_id);
+    hash = DirectMirCfgHashInt(hash, fact.long_modulo_id);
+    hash = DirectMirCfgHashInt(hash, fact.long_division_id);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -42,7 +47,8 @@ func DirectMirScalarProgramCaseMathRuntimeIdsCanonicalEmpty(
     ref fact: DirectMirScalarProgramCaseMathRuntimeIds
 ) -> Bool {
     return !fact.valid && fact.digest == 0 && fact.replace_id == 0 &&
-        fact.abs_id == 0 && fact.min_id == 0 && fact.max_id == 0;
+        fact.abs_id == 0 && fact.min_id == 0 && fact.max_id == 0 &&
+        fact.long_modulo_id == 0 && fact.long_division_id == 0;
 }
 
 func DirectMirScalarProgramCaseMathRuntimeFact(
@@ -52,6 +58,24 @@ func DirectMirScalarProgramCaseMathRuntimeFact(
         CompilerRuntimeCallAbiRowInput(
             domain, operation, symbol,
             CompilerRuntimeCallAbiMaterialGeneratedHelper()));
+}
+
+func DirectMirScalarProgramLongModuloRuntimeFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "checked-arithmetic", "long-modulo",
+            CheckedArithmeticRuntimeCLongModuloFn(),
+            CompilerRuntimeCallAbiMaterialTargetLibrary()));
+}
+
+func DirectMirScalarProgramLongDivisionRuntimeFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "checked-arithmetic", "long-division",
+            CheckedArithmeticRuntimeCLongDivisionFn(),
+            CompilerRuntimeCallAbiMaterialTargetLibrary()));
 }
 
 func DirectMirScalarProgramCaseMathRuntimeRequirement(
@@ -65,6 +89,14 @@ func DirectMirScalarProgramCaseMathRuntimeRequirement(
         expressions, DirectMirScalarProgramExprMinInt());
     let max_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprMaxInt());
+    let long_modulo_required: Bool =
+        DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprModuloLong()) ||
+        DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprModuloInt());
+    let long_division_required: Bool =
+        DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprDivideLong());
     let replace: CompilerRuntimeCallAbiFact =
         DirectMirScalarProgramCaseMathRuntimeFact(
             "string", "replace", StringRuntimeCStringReplaceFn());
@@ -77,23 +109,45 @@ func DirectMirScalarProgramCaseMathRuntimeRequirement(
     let max: CompilerRuntimeCallAbiFact =
         DirectMirScalarProgramCaseMathRuntimeFact(
             "math", "max", MathRuntimeCMaxFn());
+    let long_modulo: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramLongModuloRuntimeFact();
+    let long_division: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramLongDivisionRuntimeFact();
     if (replace_required && (!replace.ok || replace.call_shape !=
             "string_string_string_to_string")) ||
         (abs_required && (!abs.ok || abs.call_shape != "int_to_int")) ||
         (min_required && (!min.ok || min.call_shape != "int_int_to_int")) ||
-        (max_required && (!max.ok || max.call_shape != "int_int_to_int")) {
+        (max_required && (!max.ok || max.call_shape != "int_int_to_int")) ||
+        (long_modulo_required && (!long_modulo.ok ||
+            long_modulo.call_shape != "long_long_to_long" ||
+            long_modulo.materialization !=
+                CompilerRuntimeCallAbiMaterialTargetLibrary())) ||
+        (long_division_required && (!long_division.ok ||
+            long_division.call_shape != "long_long_to_long" ||
+            long_division.materialization !=
+                CompilerRuntimeCallAbiMaterialTargetLibrary())) {
         return DirectMirScalarProgramCaseMathRuntimeIdsEmpty();
     }
     let replace_id: Int = 0; let abs_id: Int = 0;
     let min_id: Int = 0; let max_id: Int = 0;
+    let long_modulo_id: Int = 0;
+    let long_division_id: Int = 0;
     if replace_required { replace_id = replace.runtime_call_abi_id; }
     if abs_required { abs_id = abs.runtime_call_abi_id; }
     if min_required { min_id = min.runtime_call_abi_id; }
     if max_required { max_id = max.runtime_call_abi_id; }
+    if long_modulo_required {
+        long_modulo_id = long_modulo.runtime_call_abi_id;
+    }
+    if long_division_required {
+        long_division_id = long_division.runtime_call_abi_id;
+    }
     let source: DirectMirScalarProgramCaseMathRuntimeIds =
         DirectMirScalarProgramCaseMathRuntimeIds(
-            true, 0, replace_id, abs_id, min_id, max_id);
+            true, 0, replace_id, abs_id, min_id, max_id, long_modulo_id,
+            long_division_id);
     return DirectMirScalarProgramCaseMathRuntimeIds(
         true, DirectMirScalarProgramCaseMathRuntimeIdsDigest(source),
-        source.replace_id, source.abs_id, source.min_id, source.max_id);
+        source.replace_id, source.abs_id, source.min_id, source.max_id,
+        source.long_modulo_id, source.long_division_id);
 }

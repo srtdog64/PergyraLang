@@ -1,0 +1,66 @@
+// Typed normalization of one empty declaration-owned Array<Record> literal.
+
+import "direct_mir_array_literal_spine_owner.pgy";
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+
+struct DirectMirScalarProgramLogicalRecordArrayEmptyLiteralAdmission {
+    let recognized: Bool;
+    let facts: DirectMirScalarProgramExpressionSet;
+}
+
+func DirectMirScalarProgramAppendLogicalRecordArrayEmptyLiteral(
+    facts: DirectMirScalarProgramExpressionSet,
+    ref sequence: MirExpressionGraphSequence,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramLogicalRecordArrayEmptyLiteralAdmission {
+    let root: Int = sequence.roots[0];
+    let recognized: Bool =
+        DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            logical_record, expected_type) &&
+        sequence.arena.topology.node_kinds[root] ==
+            AstExpressionNodeArrayLiteral();
+    if !recognized {
+        return DirectMirScalarProgramLogicalRecordArrayEmptyLiteralAdmission(
+            false, facts);
+    }
+    let invalid: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetInvalid(facts);
+    if !DirectMirArrayLiteralEmptyReady(sequence) ||
+        MirRoutineInstructionUseCountAtGlobal(uses, global_row) != 0 {
+        return DirectMirScalarProgramLogicalRecordArrayEmptyLiteralAdmission(
+            true, invalid);
+    }
+    let graph_rows: Array<Int> = facts.graph_global_rows;
+    let starts: Array<Int> = facts.graph_starts;
+    let counts: Array<Int> = facts.graph_counts;
+    let roots: Array<Int> = facts.graph_roots;
+    let kinds: Array<Int> = facts.node_kinds;
+    let types: Array<String> = facts.node_types;
+    let lefts: Array<Int> = facts.node_lefts;
+    let rights: Array<Int> = facts.node_rights;
+    let locals: Array<Int> = facts.node_local_rows;
+    let params: Array<Int> = facts.node_parameter_ordinals;
+    let members: Array<Int> = facts.node_member_ordinals;
+    let literals: Array<String> = facts.node_literals;
+    let callables: Array<Int> = facts.node_callable_rows;
+    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    DirectMirScalarProgramAppendExpressionNode(
+        kinds, types, lefts, rights, locals, params, members,
+        literals, callables, runtime_ids,
+        DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral(),
+        expected_type, -1, -1, -1, -1, -1, "", -1, -1);
+    ArrayPush(graph_rows, global_row);
+    ArrayPush(starts, ArrayLength(kinds) - 1);
+    ArrayPush(counts, 1);
+    ArrayPush(roots, ArrayLength(kinds) - 1);
+    return DirectMirScalarProgramLogicalRecordArrayEmptyLiteralAdmission(
+        true, DirectMirScalarProgramExpressionSet(
+            true, 0, graph_rows, starts, counts, roots, kinds, types,
+            lefts, rights, locals, params, members, literals, callables,
+            runtime_ids,
+            facts.nary_operands));
+}

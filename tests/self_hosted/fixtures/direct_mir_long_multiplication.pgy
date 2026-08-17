@@ -1,0 +1,7 @@
+func LongMultiplication(left: Long, right: Long) -> Long {
+    return left * right;
+}
+
+func Main() -> Void {
+    Log("long-multiplication-ready");
+}

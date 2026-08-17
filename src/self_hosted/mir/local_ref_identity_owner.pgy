@@ -27,3 +27,14 @@ func SelfMirLocalRef(
         ))
     );
 }
+
+func SelfMirLocalRefParameterOrdinalForOwner(
+    value: String, owner_syntax_id: Int
+) -> Int {
+    if !SelfMirLocalRefValid(value) || owner_syntax_id < 0 { return -1; }
+    let parts: Array<String> = Split(value, ":");
+    if parts[0] != "parameter" || ToInt(parts[1]) != owner_syntax_id {
+        return -1;
+    }
+    return ToInt(parts[2]);
+}

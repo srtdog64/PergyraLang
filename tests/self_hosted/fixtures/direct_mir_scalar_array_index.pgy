@@ -1,0 +1,31 @@
+// Typed scalar-array index reads share one bounds-failure contract.
+
+struct ScalarArrayView {
+    values: Array<Int>;
+    flags: Array<Bool>;
+}
+
+func ScalarArraySeven() -> Int {
+    return 7;
+}
+
+func ScalarArrayIntAtZero(ref view: ScalarArrayView) -> Int {
+    return view.values[0];
+}
+
+// The positive program does not call this routine, but both backends must
+// still project the same checked Array<Bool> index owner.
+func ScalarArrayBoolAtZero(ref view: ScalarArrayView) -> Bool {
+    return view.flags[0];
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [
+        ScalarArraySeven(), ScalarArraySeven(), ScalarArraySeven()
+    ];
+    let flags: Array<Bool> = [];
+    let view: ScalarArrayView = ScalarArrayView(values, flags);
+    Log(ToString(ScalarArrayIntAtZero(view)));
+    Log(ToString(ArrayLength(view.values)));
+    Log(ToString(ArrayLength(view.flags)));
+}

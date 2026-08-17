@@ -1,0 +1,35 @@
+// Bool return with arrays-first and scalar-prefix/interleaved 2+2 copyouts.
+
+func GraphAddEdge(
+    inout node_names: Array<String>,
+    inout node_ids: Array<String>,
+    inout edge_from: Array<Int>,
+    inout edge_to: Array<Int>,
+    from_name: String, from_id: String,
+    to_name: String, to_id: String
+) -> Bool {
+    if from_name == "" || from_id == "" { return false; }
+    return to_name != "" && to_id != "";
+}
+
+func ReadRequires(
+    json: String, start: Int, end: Int,
+    inout bases: Array<String>, inout actual_starts: Array<Int>,
+    inout actual_counts: Array<Int>, inout actual_names: Array<String>
+) -> Bool {
+    if start < 0 { return false; }
+    ArrayPush(bases, Concat("", json));
+    ArrayPush(actual_starts, start); ArrayPush(actual_counts, end - start);
+    ArrayPush(actual_names, Concat("", json));
+    return true;
+}
+
+func Main() -> Void {
+    Log("mixed-four-copyouts-ready");
+    let bases: Array<String> = []; let starts: Array<Int> = [];
+    let counts: Array<Int> = []; let names: Array<String> = [];
+    let ok: Bool = ReadRequires("R", 0, 1, bases, starts, counts, names);
+    if ok { Log("mixed-interleaved-ready"); } else { Log("mixed-interleaved-failed"); }
+    Log(ArrayLength(bases)); Log(ArrayLength(starts));
+    Log(ArrayLength(counts)); Log(ArrayLength(names));
+}

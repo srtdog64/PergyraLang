@@ -1,0 +1,19 @@
+// LLVM adapter from the sealed host-io FileExists receipt to native runtime ABI.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
+
+func DirectMirScalarProgramLlvmFileExistsBlock(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    if plan.program.runtime_abi.file_exists_id == 0 { return ""; }
+    if !runtime.file_exists.ok || runtime.file_exists.symbol !=
+            HostIORuntimeCFileExistsFn() {
+        Die("direct MIR scalar LLVM file-exists ABI is invalid");
+    }
+    return Concat(
+        "declare i1 @pgy_file_exists(ptr)\ndefine internal i1 @",
+        Concat(runtime.file_exists.symbol,
+        "(ptr %path) {\nentry:\n  %result = call i1 @pgy_file_exists(ptr %path)\n  ret i1 %result\n}\n\n"));
+}

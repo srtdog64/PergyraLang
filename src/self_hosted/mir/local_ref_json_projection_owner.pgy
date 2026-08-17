@@ -4,9 +4,10 @@ import "program_fact_owner.pgy";
 import "../lib/json_emit.pgy";
 
 func SelfMirRoutineLocalRefWireRequired(
-    rows: SelfMirRoutineRows,
+    facts: SelfMirProgramFacts,
     routine_index: Int
 ) -> Bool {
+    let rows: SelfMirRoutineRows = facts.routines;
     let count: Int = rows.local_counts[routine_index];
     let start: Int = rows.local_starts[routine_index];
     let row: Int = 0;
@@ -21,7 +22,25 @@ func SelfMirRoutineLocalRefWireRequired(
         }
         row = row + 1;
     }
-    return rows.iteration_counts[routine_index] > 1;
+    if rows.iteration_counts[routine_index] > 1 { return true; }
+    let block_i: Int = 0;
+    while block_i < rows.block_counts[routine_index] {
+        let block: Int = rows.block_starts[routine_index] + block_i;
+        let instruction_i: Int = 0;
+        while instruction_i < facts.cfg.blocks.instruction_counts[block] {
+            let instruction: Int =
+                facts.cfg.blocks.instruction_starts[block] + instruction_i;
+            let arg0: String = facts.cfg.instructions.arg0s[instruction];
+            if facts.cfg.instructions.kinds[instruction] == "stmt" &&
+                (arg0 == "ArrayPush" || arg0 == "ArraySet" ||
+                 arg0 == "ArrayPop") {
+                return true;
+            }
+            instruction_i = instruction_i + 1;
+        }
+        block_i = block_i + 1;
+    }
+    return false;
 }
 
 func SelfMirJsonExpr0LocalRefs(

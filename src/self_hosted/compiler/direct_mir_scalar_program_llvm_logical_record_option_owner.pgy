@@ -1,0 +1,119 @@
+// LLVM representation and expressions for ABI-free Option<logical-record> values.
+
+import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    option_type: String
+) -> String {
+    let payload: String =
+        DirectMirScalarProgramLogicalRecordOptionPayloadType(
+            fact, option_type);
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, payload);
+    if row < 0 { return ""; }
+    return Concat("%pgy.scalar.option.logical.record.", ToString(row));
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    kind: Int, result: String, result_type: String,
+    left_type: String, left: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let option_type: String = result_type;
+    if kind == DirectMirScalarProgramExprIsSomeLogicalRecord() ||
+        kind == DirectMirScalarProgramExprUnwrapOptionLogicalRecord() {
+        option_type = left_type;
+    }
+    let t: String = DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+        fact, option_type);
+    if t == "" {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let function_name: String = ""; let output_type: String = t;
+    let argument_type: String = "";
+    if kind == DirectMirScalarProgramExprSomeLogicalRecord() {
+        function_name = Concat("@", Concat(
+            Substring(t, 1, StringLength(t) - 1), ".some"));
+        argument_type = DirectMirScalarProgramLlvmLogicalRecordTypeName(
+            fact, DirectMirScalarProgramLogicalRecordOptionPayloadType(
+                fact, option_type));
+    } else if kind == DirectMirScalarProgramExprNoneLogicalRecord() {
+        function_name = Concat("@", Concat(
+            Substring(t, 1, StringLength(t) - 1), ".none"));
+    } else if kind == DirectMirScalarProgramExprIsSomeLogicalRecord() {
+        function_name = Concat("@", Concat(
+            Substring(t, 1, StringLength(t) - 1), ".is_some"));
+        output_type = "i1"; argument_type = t;
+    } else if kind ==
+            DirectMirScalarProgramExprUnwrapOptionLogicalRecord() {
+        function_name = Concat("@", Concat(
+            Substring(t, 1, StringLength(t) - 1), ".unwrap"));
+        output_type = DirectMirScalarProgramLlvmLogicalRecordTypeName(
+            fact, DirectMirScalarProgramLogicalRecordOptionPayloadType(
+                fact, option_type));
+        argument_type = t;
+    } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    let output: String = Concat("  ", Concat(result, Concat(" = call ",
+        Concat(output_type, Concat(" ", function_name)))));
+    if argument_type == "" { output = Concat(output, "()\n"); }
+    else { output = Concat(output, Concat("(", Concat(argument_type,
+        Concat(" ", Concat(left, ")\n"))))); }
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramLogicalRecordFactReady(fact) ||
+        !CompilerTargetProjectionFactReadyFor(
+            target, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR logical-record Option LLVM fact is invalid");
+    }
+    let output: String = ""; let row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        let payload: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
+            fact, fact.names[row]);
+        let option_type: String = Concat(
+            "Option<", Concat(fact.names[row], ">"));
+        let t: String = DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+            fact, option_type);
+        let stem: String = Concat("@",
+            Substring(t, 1, StringLength(t) - 1));
+        output = Concat(output, Concat(t, Concat(" = type { i1, ",
+            Concat(payload, " }\n"))));
+        output = Concat(output, "define internal ");
+        output = Concat(output, Concat(t, Concat(" ", stem)));
+        output = Concat(output, Concat(".some(", Concat(payload,
+            " %value) {\nentry:\n  %tagged = insertvalue ")));
+        output = Concat(output, Concat(t,
+            " poison, i1 true, 0\n  %wrapped = insertvalue "));
+        output = Concat(output, Concat(t, Concat(" %tagged, ",
+            Concat(payload, " %value, 1\n  ret "))));
+        output = Concat(output, Concat(t, " %wrapped\n}\n"));
+        output = Concat(output, Concat("define internal ",
+            Concat(t, Concat(" ", stem))));
+        output = Concat(output, Concat(
+            ".none() {\nentry:\n  ret ",
+            Concat(t, " zeroinitializer\n}\n")));
+        output = Concat(output, Concat("define internal i1 ", stem));
+        output = Concat(output, Concat(".is_some(", Concat(t,
+            " %value) {\nentry:\n  %tag = extractvalue ")));
+        output = Concat(output, Concat(t,
+            " %value, 0\n  ret i1 %tag\n}\n"));
+        output = Concat(output, Concat("define internal ", payload));
+        output = Concat(output, Concat(" ", Concat(stem, ".unwrap(")));
+        output = Concat(output, Concat(t,
+            " %value) {\nentry:\n  %unwrap.tag = extractvalue "));
+        output = Concat(output, Concat(t,
+            " %value, 0\n  br i1 %unwrap.tag, label %some, label %none\nnone:\n  call void @abort()\n  unreachable\nsome:\n  %payload = extractvalue "));
+        output = Concat(output, Concat(t, Concat(" %value, 1\n  ret ",
+            Concat(payload, " %payload\n}\n"))));
+        row = row + 1;
+    }
+    return output;
+}

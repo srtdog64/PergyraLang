@@ -20,13 +20,20 @@ func DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
         expected.string_to_upper_id == fact.string_to_upper_id &&
         expected.string_to_lower_id == fact.string_to_lower_id &&
         expected.string_length_id == fact.string_length_id &&
+        expected.string_char_code_id == fact.string_char_code_id &&
+        expected.string_char_at_n_id == fact.string_char_at_n_id &&
         expected.string_substring_id == fact.string_substring_id &&
         expected.string_substring_with_len_id ==
             fact.string_substring_with_len_id &&
+        expected.string_sub_equals_with_len_id ==
+            fact.string_sub_equals_with_len_id &&
+        expected.string_sub_index_with_len_id ==
+            fact.string_sub_index_with_len_id &&
         expected.string_index.digest == fact.string_index.digest &&
         expected.string_trim.digest == fact.string_trim.digest &&
         expected.string_contains_id == fact.string_contains_id &&
         expected.string_split_id == fact.string_split_id &&
+        expected.string_join_id == fact.string_join_id &&
         expected.string_to_int_id == fact.string_to_int_id &&
         expected.array_string_length_id == fact.array_string_length_id &&
         expected.array_string_get_id == fact.array_string_get_id &&

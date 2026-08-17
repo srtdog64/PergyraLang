@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SUBSTITUTING consumer rung: native v2 MIR transition facts are admitted once
+# SUBSTITUTING consumer rung: native v3 MIR transition facts are admitted once
 # and executed by the self-host MIR -> C path. Success, current-step failure,
 # predecessor-only reverse compensation, duplicate expressions, and zero
 # compensation are all executable observations rather than source-text probes.
@@ -29,6 +29,8 @@ command -v "$CC_BIN" >/dev/null 2>&1 || fail "C compiler is required"
 
 FIXTURE="$ROOT_DIR/tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy"
 BUILD_DIR="${PGY_SELFHOST_INTENT_TYPED_COMPENSATION_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/intent_typed_compensation}"
+NATIVE_C_EXE="$BUILD_DIR/base.native.c.exe"
+NATIVE_LLVM_EXE="$BUILD_DIR/base.native.llvm.exe"
 mkdir -p "$BUILD_DIR"
 if [[ -n "$DRIVER" ]]; then
     DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
@@ -88,11 +90,39 @@ second_failure.a_calls=1
 second_failure.b_calls=1
 second_failure.undo_a=1
 second_failure.undo_b=0
+history.count=2
+history.name0=A
+history.phase0=ok
+history.ok0=true
+history.name1=B
+history.phase1=fail
+history.ok1=false
+history.failure1=outcome:B
+last.failed=true
+last.failure=outcome:B
+active.after=0
 EXPECTED
 
 emit_and_run_self base "$FIXTURE"
 cmp -s "$BUILD_DIR/expected.run" "$BUILD_DIR/base.self.run" \
     || { diff -u "$BUILD_DIR/expected.run" "$BUILD_DIR/base.self.run" >&2; fail "base execution drifted"; }
+(cd "$ROOT_DIR" && "$PGY" \
+    "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" --native-pipeline \
+    --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$NATIVE_C_EXE")") \
+    >"$BUILD_DIR/base.native.c.compile.log" 2>&1 \
+    || { cat "$BUILD_DIR/base.native.c.compile.log" >&2; fail "native C compile failed"; }
+(cd "$ROOT_DIR" && "$PGY" \
+    "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" --native-pipeline \
+    --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "$NATIVE_LLVM_EXE")") \
+    >"$BUILD_DIR/base.native.llvm.compile.log" 2>&1 \
+    || { cat "$BUILD_DIR/base.native.llvm.compile.log" >&2; fail "native LLVM compile failed"; }
+"$NATIVE_C_EXE" | tr -d '\r' >"$BUILD_DIR/base.native.c.run"
+"$NATIVE_LLVM_EXE" | tr -d '\r' >"$BUILD_DIR/base.native.llvm.run"
+cmp -s "$BUILD_DIR/base.self.run" "$BUILD_DIR/base.native.c.run" \
+    || { diff -u "$BUILD_DIR/base.self.run" "$BUILD_DIR/base.native.c.run" >&2; fail "self/native C execution differs"; }
+cmp -s "$BUILD_DIR/base.self.run" "$BUILD_DIR/base.native.llvm.run" \
+    || { diff -u "$BUILD_DIR/base.self.run" "$BUILD_DIR/base.native.llvm.run" >&2; fail "self/native LLVM execution differs"; }
 
 "$PYTHON_BIN" - "$BUILD_DIR/base.mir.json" <<'PY'
 import json
@@ -101,7 +131,7 @@ import sys
 
 document = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 plan = document["intent_execution"]
-assert plan["schema"] == "pgy.selfhost.mir-intent-execution-plan.v2", plan
+assert plan["schema"] == "pgy.selfhost.mir-intent-execution-plan.v3", plan
 assert isinstance(plan["plan_digest"], int) and plan["plan_digest"] != 0
 assert len(plan["steps"]) == 2, plan["steps"]
 assert len(plan["terminals"]) == 3, plan["terminals"]
@@ -112,6 +142,9 @@ assert steps["B"]["predecessor_transition_id"] == steps["A"]["transition_id"], s
 for row in plan["steps"]:
     assert row["success_payload_decl_syntax_id"] > 0, row
     assert row["failure_payload_decl_syntax_id"] > 0, row
+    assert row["where_zone_name"] == "WorkflowZone", row
+    assert row["where_zone_syntax_id"] > 0, row
+assert len({row["where_zone_syntax_id"] for row in plan["steps"]}) == 1, plan["steps"]
 for row in plan["terminals"]:
     assert row["source_payload_decl_syntax_id"] > 0, row
     assert row["result_payload_decl_syntax_id"] == row["source_payload_decl_syntax_id"], row
@@ -212,4 +245,4 @@ cmp -s "$BUILD_DIR/zero-compensation.expected.run" \
     "$BUILD_DIR/zero-compensation.self.run" \
     || { diff -u "$BUILD_DIR/zero-compensation.expected.run" "$BUILD_DIR/zero-compensation.self.run" >&2; fail "zero compensation cleanup drifted"; }
 
-echo "[self-host-intent-typed-compensation] v2 plan + predecessor compensation variants: PASS"
+echo "[self-host-intent-typed-compensation] v3 zone identity + predecessor compensation + history parity: PASS"

@@ -2,20 +2,17 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * compiler_runtime_cache.c -- build/cache of the separately-compiled runtime
- * object (pgy_runtime_lib.o).
+ * compiler_runtime_cache.c -- build/cache owner for separately-compiled
+ * runtime linkage objects.
  *
- * The object holds the runtime's external-linkage bodies. Two consumers link
- * it:
- *   - the LLVM leg, whose emitted IR calls the runtime by symbol; and
- *   - the C leg in extern mode (PGY_RUNTIME_DECLS_ONLY), where emitted C parses
- *     only prototypes and links the bodies here instead of re-inlining ~9k
- *     lines of runtime per translation unit (docs/189 C14 / WO-RED2).
- *
- * Both legs share one cache path and one build recipe (compiler_runtime_object
- * _ensure) so the linked runtime cannot drift between backends. This file is no
- * longer gated on PGY_LLVM_ENABLED: the C leg needs the object even in builds
- * with LLVM disabled.
+ * The LLVM leg links pgy_runtime_lib.o because emitted IR calls the complete
+ * exported runtime by symbol. The C extern leg links pgy_runtime_cext_lib.o
+ * because emitted C already keeps unconverted families inline. They have
+ * distinct cache identities and compilation recipes, while this file owns
+ * their freshness, scratch publication, and fail-closed errors. The LLVM
+ * object owner additionally admits a fresh explicit prebuilt object. This file
+ * is not gated on PGY_LLVM_ENABLED because the C leg needs its object even in
+ * builds with LLVM disabled.
  */
 
 #include "compiler_toolchain.h"
@@ -395,17 +392,131 @@ compiler_publish_runtime_object(const char *tmp_path, const char *final_path)
     return false;
 }
 
+char *
+compiler_llvm_runtime_object_ensure(PgyOptProfile opt_profile,
+                                    bool uses_intent_observability,
+                                    bool verbose,
+                                    bool *compiled_out,
+                                    const char **error_out)
+{
+    const char *dummy = NULL;
+    bool using_prebuilt;
+    char *obj_path;
+    char *tmp_path;
+    PgyCCompilerSelection cc_selection;
+    const char *opt_flag;
+    const char *obs_flag;
+    const char *argv[24];
+    int argc = 0;
+
+    if (compiled_out != NULL)
+        *compiled_out = false;
+    if (error_out == NULL)
+        error_out = &dummy;
+    *error_out = NULL;
+
+    obj_path = compiler_runtime_prebuilt_object_path(
+        opt_profile, uses_intent_observability);
+    using_prebuilt = obj_path != NULL;
+    if (obj_path == NULL) {
+        obj_path = compiler_runtime_cache_object_path(
+            opt_profile, uses_intent_observability);
+    }
+    if (obj_path == NULL) {
+        *error_out = "Out of memory resolving LLVM runtime object path";
+        return NULL;
+    }
+    if (!pgy_path_is_safe(obj_path)) {
+        free(obj_path);
+        *error_out = "Unsafe characters in LLVM runtime object path";
+        return NULL;
+    }
+    if (using_prebuilt) {
+        if (compiler_runtime_cache_is_fresh(obj_path))
+            return obj_path;
+        free(obj_path);
+        *error_out = "Prebuilt LLVM runtime object is stale or missing";
+        return NULL;
+    }
+    if (compiler_runtime_cache_is_fresh(obj_path))
+        return obj_path;
+
+    if (!pgy_select_c_compiler(&cc_selection)) {
+        free(obj_path);
+        *error_out = "Unable to detect C compiler for LLVM runtime object";
+        return NULL;
+    }
+    tmp_path = compiler_runtime_object_scratch_path(obj_path);
+    if (tmp_path == NULL) {
+        free(obj_path);
+        *error_out = "Out of memory resolving LLVM runtime scratch path";
+        return NULL;
+    }
+
+    opt_flag = opt_profile == PGY_OPT_RELEASE ? "-O3" : "-O0";
+    obs_flag = uses_intent_observability
+        ? "-DPGY_INTENT_OBSERVABILITY_ENABLED=1"
+        : "-DPGY_INTENT_OBSERVABILITY_ENABLED=0";
+    argv[argc++] = cc_selection.cc;
+    if (cc_selection.target_flag != NULL)
+        argv[argc++] = cc_selection.target_flag;
+    argv[argc++] = "-std=c11";
+    argv[argc++] = "-Wall";
+#ifdef _WIN32
+    argv[argc++] = "-Wno-unused-value";
+    argv[argc++] = "-Wno-parentheses-equality";
+    argv[argc++] = "-Wno-c23-extensions";
+    argv[argc++] = "-Wno-format-truncation";
+    argv[argc++] = PGY_CFLAGS_THREAD_FLAG;
+#elif defined(__APPLE__)
+    argv[argc++] = "-D_DARWIN_C_SOURCE";
+    argv[argc++] = "-D_XOPEN_SOURCE=700";
+#else
+    argv[argc++] = "-D_POSIX_C_SOURCE=200809L";
+    argv[argc++] = "-D_XOPEN_SOURCE=700";
+#endif
+    argv[argc++] = opt_flag;
+    argv[argc++] = "-fwrapv";
+    argv[argc++] = "-fno-strict-aliasing";
+#if !defined(_WIN32) && !defined(__APPLE__)
+    argv[argc++] = "-fopenmp";
+#endif
+    argv[argc++] = obs_flag;
+    argv[argc++] = "-DPGY_LLVM_ENABLED";
+    argv[argc++] = "-I";
+    argv[argc++] = PGY_SRC_DIR;
+    argv[argc++] = "-c";
+    argv[argc++] = PGY_RUNTIME_LIB_C;
+    argv[argc++] = "-o";
+    argv[argc++] = tmp_path;
+    argv[argc] = NULL;
+
+#ifdef PGY_LLVM_ENABLED
+    compiler_debug_llvm_host_stage("runtime_compile");
+#endif
+    if (pgy_exec_argv(argv, verbose) != 0) {
+        remove(tmp_path);
+        free(tmp_path);
+        free(obj_path);
+        *error_out = "LLVM runtime compilation failed";
+        return NULL;
+    }
+    if (!compiler_publish_runtime_object(tmp_path, obj_path)) {
+        remove(tmp_path);
+        free(tmp_path);
+        free(obj_path);
+        *error_out = "LLVM runtime object could not be published into the cache";
+        return NULL;
+    }
+    free(tmp_path);
+    if (compiled_out != NULL)
+        *compiled_out = true;
+    return obj_path;
+}
+
 /*
- * Ensure a fresh runtime object exists for (opt_profile, observability) and
- * return its path (caller frees). The single build recipe both backends share.
- *
- *   - A user-supplied prebuilt object (PGY_PREBUILT_RUNTIME_OBJ*) is used only
- *     if it is fresh; a stale prebuilt is an error, never a silent rebuild over
- *     the user's artifact.
- *   - Otherwise the per-profile cache object is rebuilt when the dir scan says
- *     it is stale, and reused when fresh.
- *
- * Returns NULL on failure with *error_out set to a static message.
+ * Ensure the C-extern runtime object exists for (profile, observability).
+ * This object intentionally differs from the LLVM-callable exports object.
  */
 char *
 compiler_runtime_object_ensure(PgyOptProfile opt_profile,

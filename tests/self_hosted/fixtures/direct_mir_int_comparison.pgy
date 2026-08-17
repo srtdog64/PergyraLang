@@ -1,0 +1,20 @@
+func ComparisonCode(left: Int, right: Int) -> Int {
+    let failures: Int = 0;
+    if left != right && right >= left && right > left && left <= right {
+        failures = failures + 1;
+    }
+    return failures;
+}
+func BoolComparisonCode(left: Bool, right: Bool) -> Int {
+    if left != right && left == false { return 1; }
+    return 0;
+}
+func Main() -> Void {
+    Log(ComparisonCode(1, 2));
+    Log(BoolComparisonCode(false, true));
+    let maximum: Int = 9223372036854775807;
+    let minimum: Int = maximum + 1;
+    Log(minimum);
+    Log(minimum - 1);
+    Log(-minimum); Log(Abs(minimum));
+}

@@ -1,0 +1,17 @@
+// An empty Array<Bool> read must use the shared out-of-bounds panic class.
+
+struct ScalarArrayView {
+    values: Array<Int>;
+    flags: Array<Bool>;
+}
+
+func ScalarArrayBoolAtZero(ref view: ScalarArrayView) -> Bool {
+    return view.flags[0];
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [];
+    let flags: Array<Bool> = [];
+    let view: ScalarArrayView = ScalarArrayView(values, flags);
+    if ScalarArrayBoolAtZero(view) { Log("unreachable"); }
+}

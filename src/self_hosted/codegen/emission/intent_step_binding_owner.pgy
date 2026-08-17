@@ -18,6 +18,7 @@ struct CodegenIntentStepBindingFact {
     who_type: String;
     zone_type: String;
     who_c: String;
+    slot_name: String;
     zone_member: String;
     zone_pointer: String;
     sync_symbol: String;
@@ -27,7 +28,7 @@ func CodegenIntentStepBindingFactError(
     diagnostic: String
 ) -> CodegenIntentStepBindingFact {
     return CodegenIntentStepBindingFact(
-        false, diagnostic, "", "", "", "", "", ""
+        false, diagnostic, "", "", "", "", "", "", ""
     );
 }
 
@@ -146,7 +147,8 @@ func CodegenIntentStepBindingFactFromFacts(
         return CodegenIntentStepBindingFactError("zone-sync-missing");
     }
     return CodegenIntentStepBindingFact(
-        true, "", who_type, zone_type, who_c, zone_member, zone_pointer,
+        true, "", who_type, zone_type, who_c, actor_slot.slot_name,
+        zone_member, zone_pointer,
         sync_symbol
     );
 }

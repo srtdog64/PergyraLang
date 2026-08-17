@@ -1,0 +1,255 @@
+// Exact member-rebind facts for direct logical-record parameters and locals.
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_mutation_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+import "direct_mir_scalar_program_logical_record_member_path_owner.pgy";
+import "../mir_lower/latest_local_value_fact_owner.pgy";
+struct DirectMirScalarProgramLogicalRecordMemberRebindTarget {
+    let valid: Bool;
+    let member_ordinal: Int;
+    let member_type: String;
+}
+struct DirectMirScalarProgramLogicalRecordMemberRebindFact {
+    let valid: Bool;
+    let global_row: Int;
+    let member_ordinal: Int;
+    let member_type: String;
+    let use_prefix_count: Int;
+}
+struct DirectMirScalarProgramLogicalRecordMemberRebindFactSet {
+    let valid: Bool;
+    let global_rows: Array<Int>;
+    let member_ordinals: Array<Int>;
+    let member_types: Array<String>;
+    let use_prefix_counts: Array<Int>;
+}
+func DirectMirScalarProgramLogicalRecordMemberRebindTargetInvalid(
+) -> DirectMirScalarProgramLogicalRecordMemberRebindTarget {
+    return DirectMirScalarProgramLogicalRecordMemberRebindTarget(
+        false, -1, "");
+}
+func DirectMirScalarProgramLogicalRecordMemberRebindFactInvalid(
+) -> DirectMirScalarProgramLogicalRecordMemberRebindFact {
+    return DirectMirScalarProgramLogicalRecordMemberRebindFact(
+        false, -1, -1, "", 0);
+}
+func DirectMirScalarProgramLogicalRecordMemberRebindFactSetInvalid(
+) -> DirectMirScalarProgramLogicalRecordMemberRebindFactSet {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return DirectMirScalarProgramLogicalRecordMemberRebindFactSet(
+        false, ints, ints, strings, ints);
+}
+
+func DirectMirScalarProgramLogicalRecordMemberRebindTargetFromGraph(
+    ref graph: MirExpressionGraphSequence,
+    target_name: String,
+    target_type: String, target_carriage: String,
+    parameter_ordinal: Int,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramLogicalRecordMemberRebindTarget {
+    let invalid: DirectMirScalarProgramLogicalRecordMemberRebindTarget =
+        DirectMirScalarProgramLogicalRecordMemberRebindTargetInvalid();
+    if !graph.ok || ArrayLength(graph.roots) != 1 ||
+        graph.roots[0] + 1 != graph.ready_node_count {
+        return invalid;
+    }
+    let path: DirectMirScalarProgramLogicalRecordMemberPathFact =
+        DirectMirScalarProgramLogicalRecordMemberPathFromGraphRoot(
+            graph, graph.roots[0], target_name, target_type, target_carriage,
+            parameter_ordinal, signature, record);
+    if !path.valid { return invalid; }
+    return DirectMirScalarProgramLogicalRecordMemberRebindTarget(
+        true, path.terminal_member_ordinal, path.final_type);
+}
+func DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(
+    ref index: MirRoutineFactIndex, ref uses: MirRoutineInstructionUseFacts,
+    global: Int, result: String, target_local: Int, local_target: Bool, ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan
+) -> Int {
+    let definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(index, result);
+    let first: Option<String> = MirRoutineInstructionUseAtGlobal(
+        uses, global, 0);
+    let predecessor: Int = -1;
+    if IsSome(first) {
+        predecessor = DirectMirScalarCfgGraphValueRow(
+            locals.value_names, UnwrapOption(first));
+    }
+    let latest: Int = MirRoutineLatestDominatingLocalValueRow(
+        index, locals.value_names, locals.value_local_rows, target_local,
+        definition.block_id, definition.block_instruction_row);
+    if predecessor >= 0 && predecessor == latest {
+        if types.value_types[predecessor] != types.local_types[target_local] ||
+            definition.global_row != global ||
+            !MirRoutineResultDefinitionFactReady(definition) {
+            return -1;
+        }
+        return 1;
+    }
+    if local_target ||
+        definition.global_row != global ||
+        !MirRoutineResultDefinitionFactReady(definition) { return -1; }
+    if latest >= 0 { return -1; }
+    return 0;
+}
+func DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref record: DirectMirScalarProgramLogicalRecordFact,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan
+) -> DirectMirScalarProgramLogicalRecordMemberRebindFactSet {
+    let invalid: DirectMirScalarProgramLogicalRecordMemberRebindFactSet =
+        DirectMirScalarProgramLogicalRecordMemberRebindFactSetInvalid();
+    if !index.valid || !DirectMirRoutineSignatureFactReady(signature) ||
+        !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        !locals.valid || !types.valid ||
+        ArrayLength(locals.local_names) != ArrayLength(types.local_types) ||
+        ArrayLength(locals.value_names) != ArrayLength(types.value_types) ||
+        signature.source_syntax_id != ToInt(index.source_syntax_id) {
+        return invalid;
+    }
+    let globals: Array<Int> = [];
+    let members: Array<Int> = [];
+    let member_types: Array<String> = [];
+    let prefixes: Array<Int> = [];
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        let capture: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global);
+        if !capture.valid { return invalid; }
+        if admitted.routines.instruction_kinds[global] == "def" &&
+                admitted.routines.instruction_source_types[global] ==
+                    "AST_ASSIGNMENT" &&
+                DirectMirScalarProgramLogicalRecordTypeReady(
+                    record, capture.abi_type_name) &&
+                (capture.arg1 == "inout_param" || capture.arg1 ==
+                    "default_param" || capture.arg1 == "local") {
+            let ordinal: Int = -1;
+            let row: Int = 0;
+            while row < signature.param_count {
+                if signature.parameters.names[row] == capture.arg0 {
+                    if ordinal >= 0 { return invalid; }
+                    ordinal = row;
+                }
+                row = row + 1;
+            }
+            let parameter_target: Bool = capture.arg1 == "inout_param" || capture.arg1 == "default_param";
+            if (parameter_target && ordinal < 0) ||
+                (capture.arg1 == "local" && ordinal >= 0) ||
+                capture.name != "ssa-def" || capture.result == "" ||
+                !MirSsaNameMatches(capture.result, capture.arg0, false) {
+                return invalid;
+            }
+            let result_value: Int = DirectMirScalarCfgGraphValueRow(
+                locals.value_names, capture.result);
+            if result_value < 0 { return invalid; }
+            let target_local: Int = locals.value_local_rows[result_value];
+            if target_local < 0 ||
+                target_local >= ArrayLength(locals.local_names) ||
+                locals.local_names[target_local] != capture.arg0 ||
+                capture.abi_type_name != types.local_types[target_local] ||
+                types.value_types[result_value] != types.local_types[target_local] ||
+                capture.abi_type_name != types.value_types[result_value] {
+                return invalid;
+            }
+            if parameter_target || ordinal < 0 {
+                let instruction_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                    admitted.routines.source_json,
+                    admitted.routines.instruction_starts[global],
+                    admitted.routines.instruction_ends[global]);
+                let target_graph: MirExpressionGraphSequence =
+                    DirectMirScalarCfgInstructionGraphAt(
+                        instruction_object, "expr1_graph");
+                let target_root: Int = -1;
+                if target_graph.ok && ArrayLength(target_graph.roots) == 1 {
+                    target_root = target_graph.roots[0];
+                }
+                if target_root >= 0 &&
+                        target_root + 1 == target_graph.ready_node_count &&
+                        target_graph.arena.topology.node_kinds[target_root] ==
+                            AstExpressionNodeMemberAccess() {
+                    let target:
+                        DirectMirScalarProgramLogicalRecordMemberRebindTarget =
+                        DirectMirScalarProgramLogicalRecordMemberRebindTargetFromGraph(
+                            target_graph, capture.arg0,
+                            types.local_types[target_local], capture.arg1,
+                            ordinal,
+                            signature, record);
+                    if !target.valid { return invalid; }
+                    let prefix: Int =
+                        DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(
+                            index, uses, global, capture.result, target_local,
+                            capture.arg1 == "local", locals, types);
+                    if prefix < 0 { return invalid; }
+                    ArrayPush(globals, global);
+                    ArrayPush(members, target.member_ordinal);
+                    ArrayPush(member_types, target.member_type);
+                    ArrayPush(prefixes, prefix);
+                }
+            }
+        }
+        instruction = instruction + 1;
+    }
+    return DirectMirScalarProgramLogicalRecordMemberRebindFactSet(
+        true, globals, members, member_types, prefixes);
+}
+
+func DirectMirScalarProgramLogicalRecordMemberRebindFactAtGlobal(
+    ref facts: DirectMirScalarProgramLogicalRecordMemberRebindFactSet,
+    global: Int
+) -> DirectMirScalarProgramLogicalRecordMemberRebindFact {
+    let invalid: DirectMirScalarProgramLogicalRecordMemberRebindFact =
+        DirectMirScalarProgramLogicalRecordMemberRebindFactInvalid();
+    if !facts.valid || ArrayLength(facts.global_rows) !=
+            ArrayLength(facts.member_ordinals) ||
+        ArrayLength(facts.global_rows) != ArrayLength(facts.member_types) ||
+        ArrayLength(facts.global_rows) != ArrayLength(facts.use_prefix_counts) {
+        return invalid;
+    }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(facts.global_rows) {
+        if facts.global_rows[row] == global {
+            if found >= 0 { return invalid; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { return invalid; }
+    return DirectMirScalarProgramLogicalRecordMemberRebindFact(
+        true, global, facts.member_ordinals[found], facts.member_types[found],
+        facts.use_prefix_counts[found]);
+}
+
+func DirectMirScalarProgramLogicalRecordMemberRebindAppendOperation(
+    storage: DirectMirScalarCfgProgramOperationStorage,
+    result: Int, expression: Int, target_expression: Int,
+    member_ordinal: Int
+) -> DirectMirScalarCfgProgramOperationStorage {
+    let appended: DirectMirScalarCfgProgramOperationStorage =
+        DirectMirScalarCfgProgramOperationsAppendExpression(
+            storage, DirectMirScalarCfgOpLogicalRecordMemberRebind(),
+            result, expression);
+    let right_locals: Array<Int> = appended.right_locals;
+    let target_rows: Array<Int> = appended.secondary_expression_rows;
+    ArraySet(right_locals, ArrayLength(right_locals) - 1, member_ordinal);
+    ArraySet(target_rows, ArrayLength(target_rows) - 1, target_expression);
+    return DirectMirScalarCfgProgramOperationStorage(
+        appended.valid, appended.kinds, appended.result_values,
+        appended.left_values, appended.right_values, appended.left_locals,
+        right_locals, appended.left_literals, appended.right_literals,
+        appended.phi_starts, appended.phi_counts,
+        appended.phi_predecessor_blocks, appended.phi_incoming_values,
+        appended.expression_rows, target_rows);
+}

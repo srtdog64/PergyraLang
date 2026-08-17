@@ -1,8 +1,10 @@
 func Main() -> Void {
-    let longs: Array<Long> = [1L, 2L, 3L];
+    let longs: Array<Long> = [1L, 4294967297L, 3L];
+    let ints: Array<Int> = [2147483648];
     let floats: Array<Float> = [1.5, 2.5];
     let bools: Array<Bool> = [true, false, true];
     Log(longs[1]);
+    Log(ints[0]);
     Log(floats[0]);
     Log(bools[2]);
 }

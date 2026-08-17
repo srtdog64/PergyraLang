@@ -1,0 +1,168 @@
+// Runtime-value call ABI rows attached to self-host MIR instructions.
+//
+// A root direct builtin call is admitted by semantic identity and projected
+// from CompilerRuntimeValueCallAbiFact.  These rows intentionally do not share
+// the resource-call schema: native MIR serializes owner/source and both target
+// shapes for Allocator/TextBuilder calls.
+
+import "../compiler/runtime_value_call_abi_owner.pgy";
+
+struct SelfMirRuntimeValueCallAbiRows {
+    present: Array<Int>;
+    owners: Array<String>;
+    sources: Array<String>;
+    operations: Array<String>;
+    c_symbols: Array<String>;
+    llvm_symbols: Array<String>;
+    c_shapes: Array<String>;
+    llvm_shapes: Array<String>;
+    runtime_call_abi_ids: Array<Int>;
+}
+
+func SelfMirRuntimeValueCallAbiRowsEmpty(
+) -> SelfMirRuntimeValueCallAbiRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirRuntimeValueCallAbiRows(
+        ints, strings, strings, strings, strings, strings, strings, strings,
+        ints);
+}
+
+func SelfMirRuntimeValueCallAbiRowsAppendInstruction(
+    rows: SelfMirRuntimeValueCallAbiRows
+) -> SelfMirRuntimeValueCallAbiRows {
+    let present: Array<Int> = rows.present;
+    let owners: Array<String> = rows.owners;
+    let sources: Array<String> = rows.sources;
+    let operations: Array<String> = rows.operations;
+    let c_symbols: Array<String> = rows.c_symbols;
+    let llvm_symbols: Array<String> = rows.llvm_symbols;
+    let c_shapes: Array<String> = rows.c_shapes;
+    let llvm_shapes: Array<String> = rows.llvm_shapes;
+    let ids: Array<Int> = rows.runtime_call_abi_ids;
+    ArrayPush(present, 0);
+    ArrayPush(owners, "");
+    ArrayPush(sources, "");
+    ArrayPush(operations, "");
+    ArrayPush(c_symbols, "");
+    ArrayPush(llvm_symbols, "");
+    ArrayPush(c_shapes, "");
+    ArrayPush(llvm_shapes, "");
+    ArrayPush(ids, 0);
+    return SelfMirRuntimeValueCallAbiRows(
+        present, owners, sources, operations, c_symbols, llvm_symbols,
+        c_shapes, llvm_shapes, ids);
+}
+
+func SelfMirRuntimeValueCallAbiRowsAppendRows(
+    target: SelfMirRuntimeValueCallAbiRows,
+    source: SelfMirRuntimeValueCallAbiRows
+) -> SelfMirRuntimeValueCallAbiRows {
+    let present: Array<Int> = target.present;
+    let owners: Array<String> = target.owners;
+    let sources: Array<String> = target.sources;
+    let operations: Array<String> = target.operations;
+    let c_symbols: Array<String> = target.c_symbols;
+    let llvm_symbols: Array<String> = target.llvm_symbols;
+    let c_shapes: Array<String> = target.c_shapes;
+    let llvm_shapes: Array<String> = target.llvm_shapes;
+    let ids: Array<Int> = target.runtime_call_abi_ids;
+    let i: Int = 0;
+    while i < ArrayLength(source.present) {
+        ArrayPush(present, source.present[i]);
+        ArrayPush(owners, source.owners[i]);
+        ArrayPush(sources, source.sources[i]);
+        ArrayPush(operations, source.operations[i]);
+        ArrayPush(c_symbols, source.c_symbols[i]);
+        ArrayPush(llvm_symbols, source.llvm_symbols[i]);
+        ArrayPush(c_shapes, source.c_shapes[i]);
+        ArrayPush(llvm_shapes, source.llvm_shapes[i]);
+        ArrayPush(ids, source.runtime_call_abi_ids[i]);
+        i = i + 1;
+    }
+    return SelfMirRuntimeValueCallAbiRows(
+        present, owners, sources, operations, c_symbols, llvm_symbols,
+        c_shapes, llvm_shapes, ids);
+}
+
+func SelfMirRuntimeValueCallAbiRowsAttachLast(
+    rows: SelfMirRuntimeValueCallAbiRows,
+    ref fact: CompilerRuntimeValueCallAbiFact
+) -> SelfMirRuntimeValueCallAbiRows {
+    let index: Int = ArrayLength(rows.present) - 1;
+    if index < 0 || !fact.valid || rows.present[index] != 0 {
+        return rows;
+    }
+    let present: Array<Int> = rows.present;
+    let owners: Array<String> = rows.owners;
+    let sources: Array<String> = rows.sources;
+    let operations: Array<String> = rows.operations;
+    let c_symbols: Array<String> = rows.c_symbols;
+    let llvm_symbols: Array<String> = rows.llvm_symbols;
+    let c_shapes: Array<String> = rows.c_shapes;
+    let llvm_shapes: Array<String> = rows.llvm_shapes;
+    let ids: Array<Int> = rows.runtime_call_abi_ids;
+    ArraySet(present, index, 1);
+    ArraySet(owners, index, fact.owner_name);
+    ArraySet(sources, index, fact.source_name);
+    ArraySet(operations, index, fact.native_operation);
+    ArraySet(c_symbols, index, fact.c_symbol);
+    ArraySet(llvm_symbols, index, fact.llvm_symbol);
+    ArraySet(c_shapes, index, fact.c_shape);
+    ArraySet(llvm_shapes, index, fact.llvm_shape);
+    ArraySet(ids, index, fact.registry.runtime_call_abi_id);
+    return SelfMirRuntimeValueCallAbiRows(
+        present, owners, sources, operations, c_symbols, llvm_symbols,
+        c_shapes, llvm_shapes, ids);
+}
+
+func SelfMirRuntimeValueCallAbiRowsReady(
+    ref rows: SelfMirRuntimeValueCallAbiRows,
+    instruction_count: Int
+) -> Bool {
+    return ArrayLength(rows.present) == instruction_count &&
+        ArrayLength(rows.owners) == instruction_count &&
+        ArrayLength(rows.sources) == instruction_count &&
+        ArrayLength(rows.operations) == instruction_count &&
+        ArrayLength(rows.c_symbols) == instruction_count &&
+        ArrayLength(rows.llvm_symbols) == instruction_count &&
+        ArrayLength(rows.c_shapes) == instruction_count &&
+        ArrayLength(rows.llvm_shapes) == instruction_count &&
+        ArrayLength(rows.runtime_call_abi_ids) == instruction_count;
+}
+
+func SelfMirRuntimeValueCallAbiRowValidationError(
+    ref rows: SelfMirRuntimeValueCallAbiRows,
+    instruction_index: Int
+) -> String {
+    if rows.present[instruction_index] == 0 {
+        if rows.owners[instruction_index] != "" ||
+            rows.sources[instruction_index] != "" ||
+            rows.operations[instruction_index] != "" ||
+            rows.c_symbols[instruction_index] != "" ||
+            rows.llvm_symbols[instruction_index] != "" ||
+            rows.c_shapes[instruction_index] != "" ||
+            rows.llvm_shapes[instruction_index] != "" ||
+            rows.runtime_call_abi_ids[instruction_index] != 0 {
+            return "runtime-value call ABI payload is present without a row";
+        }
+        return "";
+    }
+    if rows.present[instruction_index] != 1 {
+        return "runtime-value call ABI presence is invalid";
+    }
+    let expected: CompilerRuntimeValueCallAbiIdentity =
+        CompilerRuntimeValueCallAbiIdentityForId(
+            rows.runtime_call_abi_ids[instruction_index]);
+    if !expected.valid ||
+        rows.owners[instruction_index] != expected.owner_name ||
+        rows.sources[instruction_index] != expected.source_name ||
+        rows.operations[instruction_index] != expected.native_operation ||
+        rows.c_symbols[instruction_index] != expected.c_symbol ||
+        rows.llvm_symbols[instruction_index] != expected.llvm_symbol ||
+        rows.c_shapes[instruction_index] != expected.c_shape ||
+        rows.llvm_shapes[instruction_index] != expected.llvm_shape {
+        return "runtime-value call ABI row differs from its canonical owner";
+    }
+    return "";
+}

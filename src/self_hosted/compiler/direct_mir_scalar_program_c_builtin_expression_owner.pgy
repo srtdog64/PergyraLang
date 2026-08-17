@@ -2,21 +2,38 @@ import "direct_mir_scalar_program_c_string_expression_owner.pgy";
 import "direct_mir_scalar_program_c_string_collection_expression_owner.pgy";
 import "direct_mir_scalar_program_c_extended_expression_owner.pgy";
 import "direct_mir_scalar_program_c_option_int_owner.pgy";
+import "direct_mir_scalar_program_c_option_string_owner.pgy";
+import "direct_mir_scalar_program_c_option_bool_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_c_set_string_expression_owner.pgy";
 
 func DirectMirScalarProgramCBuiltinExpression(
-    kind: Int, left: String, right: String, arguments: Array<String>,
-    callable_ordinal: Int,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    kind: Int, result_type: String, left_type: String,
+    left: String, right: String, arguments: Array<String>,
+    owns_array_string_elements: Bool, expression_row: Int, callable_ordinal: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> Option<String> {
-    let option_int: Option<String> =
-        DirectMirScalarProgramCOptionIntExpression(kind, left);
+    let record_option: Option<String> = DirectMirScalarProgramCLogicalRecordOptionExpression(
+        logical_record, kind, result_type, left_type, left);
+    if IsSome(record_option) { return record_option; }
+    let option_int: Option<String> = DirectMirScalarProgramCOptionIntExpression(kind, left);
     if IsSome(option_int) { return option_int; }
+    let option_string: Option<String> = DirectMirScalarProgramCOptionStringExpression(kind, left);
+    if IsSome(option_string) { return option_string; }
+    let option_bool: Option<String> = DirectMirScalarProgramCOptionBoolExpression(kind, left);
+    if IsSome(option_bool) { return option_bool; }
+    let set_string: Option<String> =
+        DirectMirScalarProgramCSetStringExpression(
+            kind, left_type, left, right);
+    if IsSome(set_string) { return set_string; }
     let extended: Option<String> = DirectMirScalarProgramCExtendedExpression(
-        kind, left, right, arguments, callable_ordinal, runtime);
+        kind, left, right, arguments, owns_array_string_elements,
+        expression_row, callable_ordinal, runtime);
     if IsSome(extended) { return extended; }
     let collection: Option<String> =
         DirectMirScalarProgramCStringCollectionExpression(
-            kind, left, right, runtime);
+            kind, left_type, left, right, runtime, logical_record);
     if IsSome(collection) { return collection; }
     return DirectMirScalarProgramCStringExpression(
         kind, left, right, arguments, runtime);

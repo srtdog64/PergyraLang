@@ -52,7 +52,8 @@ func DirectMirScalarCfgValueExpressionFact(
         let operand: DirectMirScalarCfgLeafOperand =
             DirectMirScalarCfgLeafOperandFromOwners(
                 use_facts, global_row, 0, instruction_row, 0,
-                sequence.arena.node_texts[0], value_names, local_refs, wire
+                sequence.arena.node_texts[0], value_names, local_refs, wire,
+                true
             );
         if operand.valid && operand.use_count ==
                 MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {
@@ -79,7 +80,8 @@ func DirectMirScalarCfgValueExpressionFact(
         let operand: DirectMirScalarCfgLeafOperand =
             DirectMirScalarCfgLeafOperandFromOwners(
                 use_facts, global_row, expected_uses, instruction_row, 0,
-                sequence.arena.node_texts[0], value_names, local_refs, wire
+                sequence.arena.node_texts[0], value_names, local_refs, wire,
+                true
             );
         if !operand.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
         left_value = operand.value_row; left_local = operand.local_row;
@@ -95,7 +97,8 @@ func DirectMirScalarCfgValueExpressionFact(
         let operand: DirectMirScalarCfgLeafOperand =
             DirectMirScalarCfgLeafOperandFromOwners(
                 use_facts, global_row, expected_uses, instruction_row, 1,
-                sequence.arena.node_texts[1], value_names, local_refs, wire
+                sequence.arena.node_texts[1], value_names, local_refs, wire,
+                true
             );
         if !operand.valid { return DirectMirScalarCfgExpressionFactEmpty(); }
         right_value = operand.value_row; right_local = operand.local_row;
@@ -177,7 +180,7 @@ func DirectMirScalarCfgConditionExpressionFact(
                 DirectMirScalarCfgLeafOperandFromOwners(
                     use_facts, global_row, expected_uses, instruction_row,
                     node, sequence.arena.node_texts[node], value_names,
-                    local_refs, wire
+                    local_refs, wire, true
                 );
             if !operand.valid {
                 return DirectMirScalarCfgExpressionFactEmpty();
@@ -267,7 +270,7 @@ func DirectMirScalarCfgLogExpressionFact(
     let operand: DirectMirScalarCfgLeafOperand =
         DirectMirScalarCfgLeafOperandFromOwners(
             use_facts, global_row, 0, instruction_row, value_node,
-            node_text, value_names, local_refs, wire
+            node_text, value_names, local_refs, wire, true
         );
     if !operand.valid || operand.use_count !=
             MirRoutineInstructionUseCountAtGlobal(use_facts, global_row) {

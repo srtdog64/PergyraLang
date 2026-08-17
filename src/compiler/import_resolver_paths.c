@@ -69,7 +69,16 @@ import_resolver_canonicalize_path_dup(const char *path)
     if (canonical == NULL)
         return NULL;
 
-#ifndef _WIN32
+#ifdef _WIN32
+    /* Module identity is serialized into MIR and compared across native and
+     * self-host producers. _fullpath() chooses '\\' while the Pergyra path
+     * owner uses '/', so normalize the canonical spelling once at this owner
+     * instead of teaching every downstream fact consumer both spellings. */
+    for (char *p = canonical; *p != '\0'; ++p) {
+        if (*p == '\\')
+            *p = '/';
+    }
+#else
     if (strncmp(canonical, "/mnt/", 5) == 0
         && canonical[5] != '\0'
         && canonical[6] == '/') {

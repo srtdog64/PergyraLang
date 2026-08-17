@@ -1,0 +1,32 @@
+// Ordered routine-parameter projection shared by typed scalar-program ABI owners.
+
+import "direct_mir_routine_param_fact_owner.pgy";
+import "../mir_lower/program_routine_index_owner.pgy";
+
+func DirectMirScalarProgramParamFactAtOrdinal(
+    ref routines: MirProgramRoutineIndex, routine_row: Int, ordinal: Int
+) -> DirectMirRoutineParamFact {
+    if ordinal < 0 || !MirProgramRoutineIndexRowReady(
+            routines, routine_row) {
+        return InvalidDirectMirRoutineParamFact();
+    }
+    let array_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(
+            routines.source_json, routines.starts[routine_row],
+            routines.ends[routine_row], "params", array_bounds) {
+        return InvalidDirectMirRoutineParamFact();
+    }
+    let cursor: Int = array_bounds[0] + 1;
+    let bounds: Array<Int> = [0, 0];
+    let row: Int = 0;
+    while row <= ordinal {
+        if !JsonArrayNextObjectBounds(
+                routines.source_json, cursor, array_bounds[1], bounds) {
+            return InvalidDirectMirRoutineParamFact();
+        }
+        cursor = bounds[1];
+        row = row + 1;
+    }
+    return DirectMirRoutineParamFactFromBounds(
+        routines.source_json, bounds[0], bounds[1]);
+}

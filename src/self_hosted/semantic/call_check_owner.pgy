@@ -143,11 +143,12 @@ func CheckCollectionMutatorReceiver(
     args_src: String,
     names: Array<String>,
     types: Array<String>,
-    modes: Array<String>
+    modes: Array<String>,
+    internal_caller_ready: Bool
 ) -> String {
     let receiver: String = FirstArgFromFacts(argument_facts, args_src);
     return SemanticCollectionMutationError(
-        callee, receiver, names, types, modes, false
+        callee, receiver, names, types, modes, internal_caller_ready
     );
 }
 func CheckOptionBuiltinArgs(
@@ -186,7 +187,8 @@ func CheckCallWithIdentifierOwner(
     func_rets: Array<String>,
     func_params: Array<String>,
     check_argument_identifiers: Bool,
-    check_collection_mutation: Bool
+    check_collection_mutation: Bool,
+    internal_caller_ready: Bool
 ) -> String {
     let trimmed: String = Trim(text);
     let tn: Int = StringLength(trimmed);
@@ -221,7 +223,8 @@ func CheckCallWithIdentifierOwner(
     let receiver_error: String = "";
     if check_collection_mutation {
         receiver_error = CheckCollectionMutatorReceiver(
-            argument_facts, callee, args_src, names, types, modes
+            argument_facts, callee, args_src, names, types, modes,
+            internal_caller_ready
         );
     }
     if StringLength(receiver_error) > 0 {
@@ -264,11 +267,12 @@ func CheckCall(
     modes: Array<String>,
     func_names: Array<String>,
     func_rets: Array<String>,
-    func_params: Array<String>
+    func_params: Array<String>,
+    internal_caller_ready: Bool
 ) -> String {
     return CheckCallWithIdentifierOwner(
         text, names, types, modes, func_names, func_rets, func_params,
-        true, true
+        true, true, internal_caller_ready
     );
 }
 
@@ -283,7 +287,7 @@ func CheckCallFromGraphIdentifiers(
 ) -> String {
     return CheckCallWithIdentifierOwner(
         text, names, types, modes, func_names, func_rets, func_params,
-        false, false
+        false, false, false
     );
 }
 import "callable_resolution_owner.pgy";

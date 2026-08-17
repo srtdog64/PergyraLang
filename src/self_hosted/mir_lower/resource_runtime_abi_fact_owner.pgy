@@ -7,21 +7,21 @@ import "machine_layer_fact_owner.pgy";
 import "routine_instruction_view_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 import "../compiler/runtime_call_abi_structured_fact_owner.pgy";
+import "../compiler/runtime_value_call_abi_owner.pgy";
 import "../codegen/runtime_abi/text_builder_runtime_owner.pgy";
 
 // The native producer's own-dialect rows name resource families outside the
 // slot/pin registry; this map answers only for those, one symbol per
 // (owner, operation), and stays empty for anything unrecognized.
-func MirNativeResourceDialectSymbol(
-    owner: String, operation: String
-) -> String {
-    if owner == "TextBuilder" {
-        if operation == "New" { return TextBuilderRuntimeCNewFn(); }
-        if operation == "Append" { return TextBuilderRuntimeCAppendFn(); }
-        if operation == "Finish" { return TextBuilderRuntimeCFinishFn(); }
-        if operation == "Drop" { return TextBuilderRuntimeCDropFn(); }
-    }
-    return "";
+func MirNativeRuntimeValueDialectRowReady(
+    ref row: JsonObjectFactTable
+) -> Bool {
+    let source_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(row, "source");
+    if !IsSome(source_opt) { return false; }
+    let expected: CompilerRuntimeValueCallAbiFact =
+        CompilerRuntimeValueCallAbiFactForSource(UnwrapOption(source_opt));
+    return CompilerRuntimeValueCallAbiRowReady(row, expected);
 }
 
 func MirResourceRuntimeRowRequired(operation: String) -> Bool {
@@ -146,17 +146,11 @@ func MirResourceRuntimeRowFactReady(
                     CompilerRuntimeCallAbiFactForNativeResource(
                         UnwrapOption(native_owner_opt),
                         UnwrapOption(native_operation_opt));
-                let native_expected_symbol: String = "";
                 if native_expected.ok {
-                    native_expected_symbol = native_expected.symbol;
-                } else {
-                    native_expected_symbol = MirNativeResourceDialectSymbol(
-                        UnwrapOption(native_owner_opt),
-                        UnwrapOption(native_operation_opt));
+                    return UnwrapOption(native_symbol_opt) ==
+                        native_expected.symbol;
                 }
-                return native_expected_symbol != "" &&
-                    UnwrapOption(native_symbol_opt) ==
-                        native_expected_symbol;
+                return MirNativeRuntimeValueDialectRowReady(dialect_row);
             }
         }
     }

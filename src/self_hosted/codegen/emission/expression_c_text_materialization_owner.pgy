@@ -1,0 +1,70 @@
+// Single-allocation materialization for common emitted C expression shapes.
+import "../text/text_owner.pgy";
+struct CodegenCExpressionText {
+    text: String;
+    owned: Bool;
+}
+func CodegenCExpressionTextBorrowed(text: String) -> CodegenCExpressionText {
+    return CodegenCExpressionText(text, false);
+}
+func CodegenCExpressionTextOwned(
+    inout fragments: Array<String>, text: String
+) -> CodegenCExpressionText {
+    ArrayPush(fragments, text);
+    return CodegenCExpressionText(text, true);
+}
+func CodegenCExpressionTextCommitRoot(
+    own fragments: Array<String>, value: CodegenCExpressionText
+) -> String {
+    if value.owned {
+        if ArrayLength(fragments) == 0 {
+            Die("owned C expression root is absent from its lifetime epoch");
+        }
+        let root: String = fragments[ArrayLength(fragments) - 1]; ArrayPop(fragments);
+        if root != value.text {
+            Die("owned C expression root is not the final lifetime fragment");
+        }
+        ArrayDropOwnedStrings(fragments);
+        return root;
+    }
+    ArrayDropOwnedStrings(fragments);
+    return value.text;
+}
+
+func CodegenCParenthesizedExpression(expression: String) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(64);
+    TextBuilderAppend(output, "(");
+    TextBuilderAppend(output, expression);
+    TextBuilderAppend(output, ")");
+    let result: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return result;
+}
+
+func CodegenCCallExpression(symbol: String, arguments: String) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(64);
+    TextBuilderAppend(output, symbol);
+    TextBuilderAppend(output, "(");
+    TextBuilderAppend(output, arguments);
+    TextBuilderAppend(output, ")");
+    let result: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return result;
+}
+
+func CodegenCBinaryExpression(
+    left: String, operator: String, right: String
+) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(64);
+    TextBuilderAppend(output, "(");
+    TextBuilderAppend(output, left);
+    TextBuilderAppend(output, operator);
+    TextBuilderAppend(output, right);
+    TextBuilderAppend(output, ")");
+    let result: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return result;
+}

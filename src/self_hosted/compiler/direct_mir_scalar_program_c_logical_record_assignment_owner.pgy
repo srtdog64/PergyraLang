@@ -1,0 +1,103 @@
+// C projection for direct and nested logical-record assignment operations.
+import "direct_mir_scalar_program_c_logical_record_member_rebind_owner.pgy";
+import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+        plan.operation_kinds[operation] !=
+            DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() {
+        Die("direct MIR C nested record array assignment is invalid");
+    }
+    let value_row: Int = plan.program.operation_expression_rows[operation];
+    let target_row: Int =
+        plan.program.operation_secondary_expression_rows[operation];
+    let start: Int = plan.program.expressions.graph_starts[target_row];
+    let root: Int = plan.program.expressions.graph_roots[target_row];
+    let array_node: Int = plan.program.expressions.node_lefts[root];
+    let index_node: Int = plan.program.expressions.node_rights[root];
+    let element_type: String =
+        DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
+            plan, operation);
+    let values: Array<String> = DirectMirScalarProgramCExpressionValues(
+        plan.program.expressions, target_row, runtime,
+        plan.program.logical_record, plan.routines, routine, target);
+    if root < start || array_node < start || index_node < start ||
+        root - start >= ArrayLength(values) ||
+        array_node - start >= ArrayLength(values) ||
+        index_node - start >= ArrayLength(values) ||
+        element_type == "" ||
+        plan.program.expressions.node_types[index_node] !=
+            CompilerAbiLayoutIntTypeName() {
+        Die("direct MIR C nested record array target is invalid");
+    }
+    let result: Int = plan.operation_result_values[operation];
+    let local_row: Int = plan.value_local_rows[result];
+    let addresses: Array<String> = [];
+    let node: Int = start;
+    while node < root {
+        let address: String = "";
+        let kind: Int = plan.program.expressions.node_kinds[node];
+        if kind == DirectMirScalarProgramExprLocal() ||
+                kind == DirectMirScalarProgramExprParameter() {
+            address = DirectMirScalarProgramCLocalName(local_row);
+        } else if kind == DirectMirScalarProgramExprLogicalRecordMember() {
+            let left: Int = plan.program.expressions.node_lefts[node];
+            let member: Int =
+                plan.program.expressions.node_member_ordinals[node];
+            if left < start || left >= node || member < 0 ||
+                addresses[left - start] == "" {
+                Die("direct MIR C nested record member address is invalid");
+            }
+            address = Concat("(", addresses[left - start]);
+            address = Concat(address, Concat(").field_", ToString(member)));
+        }
+        ArrayPush(addresses, address);
+        node = node + 1;
+    }
+    let array_value: String = addresses[array_node - start];
+    if array_value == "" {
+        Die("direct MIR C nested record array address is missing");
+    }
+    let index_value: String = values[index_node - start];
+    let value: String = DirectMirScalarProgramCExpressionAt(
+        plan.program.expressions, value_row, runtime,
+        plan.program.logical_record, plan.routines, routine, target);
+    let stem: String = Concat("pgy_nested_set_", ToString(operation));
+    let output: String = Concat("    long long ", stem);
+    output = Concat(output, Concat("_index = (long long)(", index_value));
+    let value_type: String = "long long ";
+    let value_prefix: String = "(long long)(";
+    let value_suffix: String = ")";
+    let symbol: String = "pgy_ai_set";
+    if element_type == CompilerAbiLayoutStringTypeName() {
+        value_type = "const char *";
+        value_prefix = ""; value_suffix = ""; symbol = "pgy_as_set";
+    }
+    output = Concat(output, Concat(");\n    ", value_type));
+    output = Concat(output, Concat(stem, "_value = "));
+    output = Concat(output, value_prefix);
+    output = Concat(output, value);
+    output = Concat(output, value_suffix);
+    output = Concat(output, Concat(";\n    ", Concat(symbol, "(&")));
+    output = Concat(output, Concat(array_value, Concat(", ", stem)));
+    output = Concat(output, Concat("_index, ", stem));
+    return Concat(output, "_value);\n");
+}
+
+func DirectMirScalarProgramCLogicalRecordAssignment(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if plan.operation_kinds[operation] ==
+            DirectMirScalarCfgOpLogicalRecordMemberRebind() {
+        return DirectMirScalarProgramCLogicalRecordMemberRebind(
+            plan, routine, operation, runtime, target);
+    }
+    return DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
+        plan, routine, operation, runtime, target);
+}

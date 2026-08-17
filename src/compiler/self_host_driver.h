@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 char *driver_resolve_self_host_binary(const char *launcher_path);
+char *driver_self_host_source_identity_path_dup(const char *source_path);
 int driver_run_self_host_command(const char *launcher_path,
                                  int argc,
                                  char *argv[]);

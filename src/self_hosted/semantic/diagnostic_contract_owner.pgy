@@ -31,7 +31,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
-    if SemanticDiagnosticCodeCount() != 24 {
+    if SemanticDiagnosticCodeCount() != 33 {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {

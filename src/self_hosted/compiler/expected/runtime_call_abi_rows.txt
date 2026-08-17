@@ -1,5 +1,5 @@
 schema=pgy.selfhost.runtime-call-abi-row.v2
-count=246
+count=256
 0|collection|array-int.new|pgy_ai_new|function|generated_runtime_helper|returns_collection
 1|collection|array-int.push|pgy_ai_push|function|generated_runtime_helper|collection_value_to_void
 2|collection|array-int.set|pgy_ai_set|function|generated_runtime_helper|collection_index_value_to_void
@@ -246,3 +246,13 @@ count=246
 243|checked-arithmetic|float-to-int|pgy_checked_f2i_i32_export|function|target_library|double_to_int
 244|checked-arithmetic|float-to-long|pgy_checked_f2i_i64_export|function|target_library|double_to_long
 245|string|substring-with-len|pgy_substr_with_len|function|generated_runtime_helper|string_int_int_int_to_string
+246|checked-arithmetic|long-modulo|pgy_checked_mod_i64_export|function|target_library|long_long_to_long
+247|checked-arithmetic|long-division|pgy_checked_div_i64_export|function|target_library|long_long_to_long
+248|collection|array-long.new|pgy_al_new|function|generated_runtime_helper|returns_collection
+249|collection|array-long.push|pgy_al_push|function|generated_runtime_helper|collection_value_to_void
+250|collection|array-long.set|pgy_al_set|function|generated_runtime_helper|collection_index_value_to_void
+251|collection|array-long.get|pgy_al_get|function|generated_runtime_helper|collection_index_to_value
+252|collection|array-long.len|pgy_al_len|function|generated_runtime_helper|collection_to_int
+253|collection|array-long.pop|pgy_al_pop|function|generated_runtime_helper|collection_to_value
+254|option-result|option-long.some|pgy_option_some_long|function|generated_runtime_helper|value_to_option
+255|option-result|option-long.none|pgy_option_none_long|function|generated_runtime_helper|returns_option

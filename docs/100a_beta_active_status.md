@@ -21,22 +21,110 @@ order is CFG/AIR/DAG/MIR/ABI language trust first. Substrate gaps are tracked in
 not permission to rewrite parser, semantic, MIR, codegen, or runtime owners.
 Gate: `make self-host-preparation-test-smoke`.
 
+Current bootstrap control-flow update (2026-08-18): direct `else if` tails no
+longer recurse through one `SelfMirLowerIfFromArtifact` call per source branch.
+The MIR owner now records admitted entry/then frames while descending and
+consumes them through reverse `SelfMirMergeIfBranches` unwinding. The previous
+oracle failed a 41-condition fixture with Windows stack-overflow status
+`0xC00000FD`; the new Pergyra seed and native oracle emit byte-identical
+90,132-byte MIR and 11,788-byte C, and the program executes the expected four
+classification rows. The canonical release-profile full bootstrap also exits
+0: seed/oracle MIR is byte-identical at 232,242,252 bytes/SHA-256
+`47679723ED88B38972ACCA78488268277EF7BDFCD3980D33F60DCDC7CDA10F48`,
+and O3 gen2/gen3 C is byte-identical at 10,265,701 bytes/SHA-256
+`9187E188FBA6C0EC405643E14D6A33197B34E025AEA7677962C5214BBE88D0C1`.
+This closes the reached local executable blocker without a new SoT row, stack
+allowance, timeout, shard, or source split. Installed release promotion,
+committed/remote CI reproduction, and unrelated broad dirty-tree gates remain
+open, so strict beta stays 83% and the integrated project forecast stays 78%.
+The repository-owned installer also passes against an isolated output: its
+5,903,397-byte candidate completes typed-source emission, O3 compile, bounded
+source smoke, and exact 1,144-byte machine-manifest replay, and the installed
+CLI-mode gate keeps the three admitted stdout/artifact effects disjoint. This
+does not replace the public sibling under `bin/` and is not remote promotion.
+The same-revision isolated public boundary now passes as well. A fresh
+3,384,801-byte release/LTO native launcher delegates to the 5,903,397-byte
+candidate beside it; public/direct MIR is byte-identical at 59,402 bytes and
+native/self canonical MIR is byte-identical at 64,494 bytes. The only initial
+drift was `source_module_path`: native import resolution owned an absolute
+Windows spelling while the delegated producer retained relative argv text.
+Public handoff now consumes the existing canonical import-path owner and that
+owner emits one `/` separator spelling on Windows. Canonical spelling is scoped
+to MIR/C identity-bearing handoffs; public tokens, AST, capability-manifest,
+and DIR stdout preserve the user's relative argv spelling and pass their
+fail-closed gates. Public `--emit-c` and plain C compile/run also pass their
+missing-sibling and unsupported-option negatives.
+The serial Linux parity job now runs this public MIR replacement gate directly;
+CI profile and hard-contract inventories are green. `bin/`, committed state,
+and remote CI are still unpromoted, so the percentages above remain unchanged.
+The release owner is now coherent as well. `all` and `release` install the
+existing `self-host-compiler` sibling instead of leaving a newly built public
+launcher unable to perform ordinary source compilation. A single isolated
+`make release` installed the native launcher, Pergyra-built DRV-2, and native
+machine manifest in one `BIN_DIR`; installed CLI-mode, public MIR, public C
+emission, and plain compile/run gates pass without a sibling override. The
+Linux parity job begins with this same release target. This is local staged
+release evidence, not a remote-CI result or an authorized repository `bin/`
+promotion, so the percentages remain unchanged.
+
+Current bootstrap route update (2026-08-18): the collection-program claim is
+now exact to one entrypoint, one Array producer, and one Array consumer. The
+exclusive multi-routine owner consumes that fact before the broad scalar route,
+and the terminal owner no longer reconstructs it. The current Pergyra-built
+DRV-2 published a 232,060,222-byte current-source MIR under the unchanged
+3,072MiB cap, consumed it into 10,257,044-byte C, and the resulting host
+executable consumed the same MIR into byte-identical gen3 C. The C SHA-256 is
+`140C241E86C026CDC1433251D70ED400448F4179775672D3F004216E20044D2D`.
+Focused C/LLVM collection parity, routine-build backing lifetime, compiler-
+internal caller provenance, and CI-profile gates are green. This is local
+current-source fixed-point evidence, not released promotion: remote CI,
+committed reproduction, the known broad component cap RED, and the producer's
+2.781GiB peak-private attention debt remain open. Strict beta stays 83% and
+the integrated project forecast stays 78%.
+
+Current bootstrap lifetime update (2026-08-17): the Pergyra-built codegen owns
+recursive emitted-C expression fragments through their parent/root last
+consumer and now also retires owned let/assignment/bind/log statement text only
+after the final prefixed line is materialized. The semantic graph and borrowed
+indentation remain untouched; the old nested statement-line copy is
+negative-gated. The codegen reaches `output:finished` at 127.589 seconds and
+3051.6MiB peak private under the unchanged 3072MiB boundary. Its gen6/gen7 C is
+byte-identical at 3,965,061 bytes/SHA-256
+`86FC064C8B9E6E9AB78104154D671BB3F7F3A965134924AFADA9F97F0F95CF28`.
+The canonical compiler-build owner then completes typed-source emission, host
+compile, source smoke, and machine-manifest replay in 258.283 seconds at
+3041.1MiB aggregate peak private. Its 9,695,682-byte C artifact has SHA-256
+`2AC69466D8F9C80570A7B412964E4F930CFCBF6BA8AF8A5EBE41D5BA1109876B`;
+the isolated 5,804,704-byte driver has SHA-256
+`386DDC7FE6F05E57915DA87A7D0E620D0C3153AD811C7C10C38622F0CA50F2C5`.
+String plus Long division/remainder C/LLVM, component, build-inventory, size,
+likeness, CI-profile, and step-runner gates are green. The 2.4GiB attention
+threshold still fires, the candidate is not installed into `bin`, a current
+full-driver fixed point and remote CI remain open, and the broad 781-path dirty
+aggregate is not one coherent SoT closure. Strict beta therefore stays 83%,
+project forecast 78%, and the SoT registry remains 49 CLOSED / 36 BRIDGE /
+1 ACTIVE.
+
 Installed C substitution update (2026-08-01): the admitted public C artifact,
 compile/link, and `--run` envelopes now obtain exactly one C artifact from the
 sibling fixed-point `pgy-self-driver`; native code owns only host compile/link
 and optional execution. Missing driver and unsupported envelopes fail closed,
 and an exactly-once shim gate rejects native semantic/codegen fallback. This is
-target-specific `SUBSTITUTING` evidence. LLVM-enabled default builds, released
-general LLVM, package, dump/check/repl, and production-root intent remain open;
-hello-only direct LLVM reachability cannot promote those claims.
+target-specific `SUBSTITUTING` evidence. LLVM-enabled default builds now also
+consume the canonical external runtime object for the admitted host-I/O
+surface, but intent observability, composite-intent runtime, package,
+dump/check/repl, and production-root intent remain open.
 
 Installed LLVM substitution update (2026-08-01): plain public LLVM binary
 requests use the sibling Pergyra-built driver for exactly one source-to-MIR
-production and one direct LLVM projection. `clang -x ir` is the only final host
-boundary; native semantic/AIR/libLLVM and implicit runtime-object fallback are
-closed. Missing, unsupported, producer/projector, malformed-IR, and unresolved-
-runtime cases fail without publishing a new or stale binary. This is executable
-`SUBSTITUTING` evidence for the sealed runtime-free Option, local `Array<Int>`,
+production and one direct LLVM projection. `clang -x ir` plus the canonical
+external runtime object is the final host boundary; native semantic/AIR/libLLVM
+and artifact-text runtime inference are closed. Missing, unsupported,
+producer/projector, malformed-IR, and unresolved-runtime cases fail without
+publishing a new or stale binary. The default-runtime path now executes the
+host-I/O `FileExists`/`ReadFile` fixture exactly; intent observability remains
+outside this admitted surface. This is executable `SUBSTITUTING` evidence for
+the sealed runtime-free Option, local `Array<Int>`,
 the bounded two-routine Array return, and three-routine Array parameter
 frontiers, including the bounded three-routine nominal-struct parameter slice.
 The bounded nominal-struct and Option-of-nominal return/local value-flow slices

@@ -1,0 +1,25 @@
+func Maybe(value: Bool, take: Bool) -> Option<Bool> {
+    if take {
+        return Some(value);
+    }
+    return None;
+}
+
+func Relay(value: Bool) -> Option<Bool> {
+    return Maybe(value, true);
+}
+
+func Render(label: String) -> String {
+    let wrapped: Option<Bool> = Relay(true);
+    if IsSome(wrapped) {
+        if UnwrapOption(wrapped) {
+            return label;
+        }
+        return "false";
+    }
+    return "missing";
+}
+
+func Main() -> Void {
+    Log(Render("true"));
+}

@@ -28,6 +28,7 @@ struct MirProgramRoutineIndex {
     let owners: Array<String>;
     let names: Array<String>;
     let source_syntax_ids: Array<String>;
+    let source_module_paths: Array<String>;
     let receiver_carriages: Array<String>;
     let owner_nominal_kinds: Array<String>;
     let owner_declaration_rows: Array<Int>;
@@ -44,6 +45,7 @@ struct MirProgramRoutineIndex {
     let instruction_ends: Array<Int>;
     let instruction_kinds: Array<String>;
     let instruction_source_types: Array<String>;
+    let instruction_abi_type_names: Array<String>;
     let instruction_machine_contact_starts: Array<Int>;
     let instruction_machine_contact_ends: Array<Int>;
     let instruction_machine_layer_starts: Array<Int>;
@@ -62,6 +64,7 @@ func BuildMirProgramRoutineIndexFromTable(
     let owners: Array<String> = [];
     let names: Array<String> = [];
     let source_syntax_ids: Array<String> = [];
+    let source_module_paths: Array<String> = [];
     let receiver_carriages: Array<String> = [];
     let owner_nominal_kinds: Array<String> = [];
     let owner_declaration_rows: Array<Int> = [];
@@ -78,6 +81,7 @@ func BuildMirProgramRoutineIndexFromTable(
     let instruction_ends: Array<Int> = [];
     let instruction_kinds: Array<String> = [];
     let instruction_source_types: Array<String> = [];
+    let instruction_abi_type_names: Array<String> = [];
     let instruction_machine_contact_starts: Array<Int> = [];
     let instruction_machine_contact_ends: Array<Int> = [];
     let instruction_machine_layer_starts: Array<Int> = [];
@@ -96,7 +100,8 @@ func BuildMirProgramRoutineIndexFromTable(
         return MirProgramRoutineIndex(
             false, json, StringLength(json), declarations,
             starts, ends, kinds, owners, names,
-            source_syntax_ids, receiver_carriages, owner_nominal_kinds,
+            source_syntax_ids, source_module_paths, receiver_carriages,
+            owner_nominal_kinds,
             owner_declaration_rows,
             routine_block_starts, routine_block_counts,
             block_starts, block_ends, block_reachable,
@@ -104,6 +109,7 @@ func BuildMirProgramRoutineIndexFromTable(
             block_instruction_starts, block_instruction_counts,
             instruction_starts, instruction_ends,
             instruction_kinds, instruction_source_types,
+            instruction_abi_type_names,
             instruction_machine_contact_starts,
             instruction_machine_contact_ends,
             instruction_machine_layer_starts,
@@ -128,6 +134,9 @@ func BuildMirProgramRoutineIndexFromTable(
         let source_syntax_id: String = MirObjectNumberFactAtBounds(
             json, bounds[0], bounds[1], "source_syntax_id"
         );
+        let source_module_path: String = MirObjectStringFactAtBounds(
+            json, bounds[0], bounds[1], "source_module_path"
+        );
         let receiver_carriage: String = MirObjectStringFactAtBounds(
             json, bounds[0], bounds[1], "receiver_carriage"
         );
@@ -136,6 +145,7 @@ func BuildMirProgramRoutineIndexFromTable(
                 declarations, routine_kind, owner, source_syntax_id,
                 receiver_carriage, source_syntax_ids);
         if routine_kind == "" || routine_name == "" ||
+            source_module_path == "" ||
             !receiver_identity.valid {
             valid = false;
         }
@@ -143,6 +153,7 @@ func BuildMirProgramRoutineIndexFromTable(
         ArrayPush(owners, owner);
         ArrayPush(names, routine_name);
         ArrayPush(source_syntax_ids, receiver_identity.source_syntax_id);
+        ArrayPush(source_module_paths, source_module_path);
         ArrayPush(receiver_carriages, receiver_identity.receiver_carriage);
         ArrayPush(owner_nominal_kinds, receiver_identity.owner_nominal_kind);
         ArrayPush(owner_declaration_rows,
@@ -202,6 +213,10 @@ func BuildMirProgramRoutineIndexFromTable(
                         ArrayPush(
                             instruction_source_types, expression.source_type
                         );
+                        ArrayPush(instruction_abi_type_names,
+                            MirObjectStringFactAtBounds(
+                                json, instruction_bounds[0],
+                                instruction_bounds[1], "abi_type_name"));
                         ArrayPush(
                             instruction_machine_contact_starts,
                             expression.machine_contact_start
@@ -248,7 +263,8 @@ func BuildMirProgramRoutineIndexFromTable(
     return MirProgramRoutineIndex(
         valid, json, StringLength(json), declarations,
         starts, ends, kinds, owners, names,
-        source_syntax_ids, receiver_carriages, owner_nominal_kinds,
+        source_syntax_ids, source_module_paths, receiver_carriages,
+        owner_nominal_kinds,
         owner_declaration_rows,
         routine_block_starts, routine_block_counts,
         block_starts, block_ends, block_reachable,
@@ -256,6 +272,7 @@ func BuildMirProgramRoutineIndexFromTable(
         block_instruction_starts, block_instruction_counts,
         instruction_starts, instruction_ends,
         instruction_kinds, instruction_source_types,
+        instruction_abi_type_names,
         instruction_machine_contact_starts,
         instruction_machine_contact_ends,
         instruction_machine_layer_starts,
@@ -281,7 +298,9 @@ func MirProgramRoutineIndexRowReady(
     if !index.valid || row < 0 || row >= routine_count ||
         routine_count != ArrayLength(index.ends) || routine_count != ArrayLength(index.kinds) ||
         routine_count != ArrayLength(index.owners) || routine_count != ArrayLength(index.names) ||
-        routine_count != ArrayLength(index.source_syntax_ids) || routine_count != ArrayLength(index.receiver_carriages) ||
+        routine_count != ArrayLength(index.source_syntax_ids) ||
+        routine_count != ArrayLength(index.source_module_paths) ||
+        routine_count != ArrayLength(index.receiver_carriages) ||
         routine_count != ArrayLength(index.owner_nominal_kinds) || routine_count != ArrayLength(index.owner_declaration_rows) ||
         routine_count != ArrayLength(index.routine_block_starts) ||
         routine_count != ArrayLength(index.routine_block_counts) {
@@ -303,6 +322,7 @@ func MirProgramRoutineIndexRowReady(
     return index.starts[row] >= 0 && index.ends[row] > index.starts[row] &&
         index.ends[row] <= index.source_length &&
         index.kinds[row] != "" && index.names[row] != "" &&
+        index.source_module_paths[row] != "" &&
         MirProgramDeclarationFieldIdentityPositiveDecimal(index.source_syntax_ids[row]) &&
         receiver_ready && owner_ready &&
         block_start >= 0 && block_count >= 0 &&
@@ -335,6 +355,7 @@ func MirProgramRoutineIndexGlobalInstructionRow(
         instruction_row >= ArrayLength(index.instruction_ends) ||
         instruction_row >= ArrayLength(index.instruction_kinds) ||
         instruction_row >= ArrayLength(index.instruction_source_types) ||
+        instruction_row >= ArrayLength(index.instruction_abi_type_names) ||
         instruction_row >= ArrayLength(
             index.instruction_machine_contact_starts) ||
         instruction_row >= ArrayLength(
@@ -390,6 +411,7 @@ func MirProgramRoutineIndexStructureReady(
     if routine_count != ArrayLength(index.owners) ||
         routine_count != ArrayLength(index.names) ||
         routine_count != ArrayLength(index.source_syntax_ids) ||
+        routine_count != ArrayLength(index.source_module_paths) ||
         routine_count != ArrayLength(index.receiver_carriages) ||
         routine_count != ArrayLength(index.owner_nominal_kinds) ||
         routine_count != ArrayLength(index.owner_declaration_rows) ||
@@ -404,6 +426,7 @@ func MirProgramRoutineIndexStructureReady(
         instruction_count != ArrayLength(index.instruction_ends) ||
         instruction_count != ArrayLength(index.instruction_kinds) ||
         instruction_count != ArrayLength(index.instruction_source_types) ||
+        instruction_count != ArrayLength(index.instruction_abi_type_names) ||
         instruction_count != ArrayLength(
             index.instruction_machine_contact_starts) ||
         instruction_count != ArrayLength(
@@ -425,6 +448,7 @@ func MirProgramRoutineIndexStructureReady(
             index.ends[routine_row] > index.source_length ||
             index.ends[routine_row] <= index.starts[routine_row] ||
             index.kinds[routine_row] == "" || index.names[routine_row] == "" ||
+            index.source_module_paths[routine_row] == "" ||
             !MirProgramRoutineReceiverIdentityRowReady(
                 index.declarations, index.kinds[routine_row],
                 index.owners[routine_row],

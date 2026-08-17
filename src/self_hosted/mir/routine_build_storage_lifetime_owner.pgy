@@ -1,5 +1,5 @@
 // Retires the final routine-build Array carrier after its last consumer.
-// Seventy-nine CFG backings were copied; five routine-state backings are
+// Eighty-eight CFG backings were copied; five routine-state backings are
 // already dead. String elements remain shared and must not be freed.
 
 import "routine_build_owner.pgy";
@@ -86,6 +86,15 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     let abi_aux_materializations: Array<String> = build.cfg.instructions.runtime_call_abi.aux_materializations;
     let abi_aux_call_shapes: Array<String> = build.cfg.instructions.runtime_call_abi.aux_call_shapes;
     let abi_aux_ids: Array<Int> = build.cfg.instructions.runtime_call_abi.aux_runtime_call_abi_ids;
+    let runtime_value_present: Array<Int> = build.cfg.instructions.runtime_call_abi.runtime_values.present;
+    let runtime_value_owners: Array<String> = build.cfg.instructions.runtime_call_abi.runtime_values.owners;
+    let runtime_value_sources: Array<String> = build.cfg.instructions.runtime_call_abi.runtime_values.sources;
+    let runtime_value_operations: Array<String> = build.cfg.instructions.runtime_call_abi.runtime_values.operations;
+    let runtime_value_c_symbols: Array<String> = build.cfg.instructions.runtime_call_abi.runtime_values.c_symbols;
+    let runtime_value_llvm_symbols: Array<String> = build.cfg.instructions.runtime_call_abi.runtime_values.llvm_symbols;
+    let runtime_value_c_shapes: Array<String> = build.cfg.instructions.runtime_call_abi.runtime_values.c_shapes;
+    let runtime_value_llvm_shapes: Array<String> = build.cfg.instructions.runtime_call_abi.runtime_values.llvm_shapes;
+    let runtime_value_ids: Array<Int> = build.cfg.instructions.runtime_call_abi.runtime_values.runtime_call_abi_ids;
 
     let local_primary_refs: Array<String> = build.cfg.local_refs.primary_refs;
     let local_expr0_starts: Array<Int> = build.cfg.local_refs.expr0_starts;
@@ -135,7 +144,12 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     CompilerRetireArrayStorage(abi_aux_type_names); CompilerRetireArrayStorage(abi_aux_operations);
     CompilerRetireArrayStorage(abi_aux_symbols); CompilerRetireArrayStorage(abi_aux_target_kinds);
     CompilerRetireArrayStorage(abi_aux_materializations); CompilerRetireArrayStorage(abi_aux_call_shapes);
-    CompilerRetireArrayStorage(abi_aux_ids); CompilerRetireArrayStorage(local_primary_refs);
+    CompilerRetireArrayStorage(abi_aux_ids); CompilerRetireArrayStorage(runtime_value_present);
+    CompilerRetireArrayStorage(runtime_value_owners); CompilerRetireArrayStorage(runtime_value_sources);
+    CompilerRetireArrayStorage(runtime_value_operations); CompilerRetireArrayStorage(runtime_value_c_symbols);
+    CompilerRetireArrayStorage(runtime_value_llvm_symbols); CompilerRetireArrayStorage(runtime_value_c_shapes);
+    CompilerRetireArrayStorage(runtime_value_llvm_shapes); CompilerRetireArrayStorage(runtime_value_ids);
+    CompilerRetireArrayStorage(local_primary_refs);
     CompilerRetireArrayStorage(local_expr0_starts); CompilerRetireArrayStorage(local_expr0_counts);
     CompilerRetireArrayStorage(local_expr0_nodes); CompilerRetireArrayStorage(local_expr0_refs);
     CompilerRetireArrayStorage(terminated); CompilerRetireArrayStorage(local_names);

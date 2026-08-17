@@ -403,6 +403,8 @@ typedef struct
     size_t      completion_instruction_id;
     MIRIntentCompensationFact *compensations;
     size_t      compensation_count;
+    const char *where_zone_name;
+    uint32_t    where_zone_syntax_id;
 } MIRIntentStepTransitionFact;
 
 typedef struct

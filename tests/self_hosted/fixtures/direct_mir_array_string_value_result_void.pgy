@@ -1,0 +1,31 @@
+func AppendMarkers(
+    remaining: Int, inout values: Array<String>
+) -> Void {
+    if remaining < 1 {
+        return;
+    }
+    ArrayPush(values, ToString(remaining));
+    if remaining == 1 {
+        return;
+    }
+    AppendMarkers(remaining - 1, values);
+}
+
+func AppendOwnedMarker(
+    inout values: Array<String>, marker: String
+) -> Void {
+    ArrayPushOwnedString(values, marker);
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    AppendMarkers(2, values);
+    Log(ArrayLength(values));
+    Log(values[0]);
+    let marker: String = "owned";
+    let owned_values: Array<String> = [];
+    AppendOwnedMarker(owned_values, marker);
+    Log(owned_values[0]);
+    ArrayDropOwnedStrings(owned_values);
+    Log(marker);
+}

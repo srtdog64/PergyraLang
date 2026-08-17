@@ -2,6 +2,7 @@
 
 import "diagnostic_owner.pgy";
 import "env_owner.pgy";
+import "compiler_internal_builtin_caller_registry_owner.pgy";
 
 func SemanticCollectionMutatorName(callee: String) -> Bool {
     return callee == "CompilerRetireArrayStorage" || callee == "ArrayPush" ||
@@ -13,6 +14,29 @@ func SemanticCollectionMutatorName(callee: String) -> Bool {
         callee == "MapSet" || callee == "MapRemove";
 }
 
+func SemanticCompilerRetireArrayStorageCallerContractReady(
+    source_path: String,
+    name: String,
+    return_type: String,
+    param_count: Int,
+    param_type: String,
+    own_parameter: Bool
+) -> Bool {
+    return SemanticCompilerInternalBuiltinCallerReady(
+        source_path, "CompilerRetireArrayStorage", name, return_type,
+        param_count, param_type, own_parameter
+    );
+}
+
+func SemanticCompilerRetireArrayStorageCallerError(
+    internal_caller_ready: Bool
+) -> String {
+    if internal_caller_ready { return ""; }
+    return SemanticError1(
+        "compiler_internal_builtin", "name", "CompilerRetireArrayStorage"
+    );
+}
+
 func SemanticCompilerRetireArrayStorageError(
     receiver: String,
     names: Array<String>,
@@ -20,12 +44,9 @@ func SemanticCompilerRetireArrayStorageError(
     modes: Array<String>,
     internal_caller_ready: Bool
 ) -> String {
-    if !internal_caller_ready {
-        return SemanticError1(
-            "compiler_internal_builtin", "name",
-            "CompilerRetireArrayStorage"
-        );
-    }
+    let caller_error: String =
+        SemanticCompilerRetireArrayStorageCallerError(internal_caller_ready);
+    if caller_error != "" { return caller_error; }
     if !IsIdentText(receiver) {
         return SemanticError1(
             "array_drop_storage_requires_binding", "receiver", receiver

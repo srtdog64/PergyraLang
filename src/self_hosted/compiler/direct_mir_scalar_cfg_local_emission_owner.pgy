@@ -1,46 +1,123 @@
 // Target spelling for scalar local storage already sealed by the graph plan.
-
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_local_emission_owner.pgy";
-
+import "direct_mir_scalar_program_c_option_int_owner.pgy";
+import "direct_mir_scalar_program_c_option_string_owner.pgy";
+import "direct_mir_scalar_program_c_option_bool_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
 func DirectMirScalarCfgCLocalDeclarationsInRange(
     ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String,
-    start: Int, count: Int
+    start: Int, count: Int, routine: Int
 ) -> String {
     if int_c_type == "" || start < 0 || count < 0 ||
-        start + count > ArrayLength(plan.local_names) {
+        start + count > ArrayLength(plan.local_names) || routine < 0 ||
+        routine >= ArrayLength(plan.routines.roles) ||
+        start != plan.routines.local_starts[routine] ||
+        count != plan.routines.local_counts[routine] {
         Die("direct MIR scalar CFG C local range is invalid");
     }
     let output: String = "";
     let row: Int = start;
     while row < start + count {
+        let runtime_value: CompilerRuntimeValueRepresentation =
+            CompilerRuntimeValueRepresentationFor(
+                plan.local_types[row]);
         output = Concat(output, "    ");
-        if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
+        if runtime_value.valid {
+            output = Concat(output, runtime_value.c_type);
+        } else if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
             output = Concat(output, CompilerAbiLayoutStringCValueType());
         } else if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
             output = Concat(output, "bool");
-        } else if plan.local_types[row] ==
-                CompilerAbiLayoutArrayStringTypeName() {
+        } else if plan.local_types[row] == CompilerAbiLayoutLongTypeName() {
+            output = Concat(output, CompilerAbiLayoutLongCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() {
+            output = Concat(output, CompilerAbiLayoutArrayStringCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutArrayIntTypeName() {
+            output = Concat(output, CompilerAbiLayoutArrayIntCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutArrayBoolTypeName() {
+            output = Concat(output, CompilerAbiLayoutArrayBoolCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutSetStringTypeName() {
+            output = Concat(output, CompilerAbiLayoutSetStringCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() {
+            output = Concat(output, DirectMirScalarProgramCOptionIntTypeName());
+        } else if plan.local_types[row] == CompilerAbiLayoutOptionStringTypeName() {
+            output = Concat(output, DirectMirScalarProgramCOptionStringTypeName());
+        } else if plan.local_types[row] == CompilerAbiLayoutOptionBoolTypeName() {
             output = Concat(output,
-                CompilerAbiLayoutArrayStringCValueType());
+                DirectMirScalarProgramCOptionBoolTypeName());
+        } else if DirectMirScalarProgramLogicalRecordArrayTypeReady(
+                plan.program.logical_record, plan.local_types[row]) {
+            output = Concat(output,
+                DirectMirScalarProgramCLogicalRecordArrayTypeName(
+                    plan.program.logical_record, plan.local_types[row]));
+        } else if DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record, plan.local_types[row]) {
+            output = Concat(output,
+                DirectMirScalarProgramCLogicalRecordTypeName(
+                    plan.program.logical_record, plan.local_types[row]));
+        } else if DirectMirScalarProgramLogicalRecordOptionTypeReady(
+                plan.program.logical_record, plan.local_types[row]) {
+            output = Concat(output,
+                DirectMirScalarProgramCLogicalRecordOptionTypeName(
+                    plan.program.logical_record, plan.local_types[row]));
         } else { output = Concat(output, int_c_type); }
         output = Concat(output, " pgy_local_");
         output = Concat(output, ToString(row));
+        let zero_aggregate: Bool =
+            runtime_value.valid ||
+            plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() ||
+            plan.local_types[row] == CompilerAbiLayoutArrayIntTypeName() ||
+            plan.local_types[row] == CompilerAbiLayoutArrayBoolTypeName() ||
+            plan.local_types[row] == CompilerAbiLayoutSetStringTypeName() ||
+            plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() ||
+            plan.local_types[row] == CompilerAbiLayoutOptionStringTypeName() ||
+            plan.local_types[row] == CompilerAbiLayoutOptionBoolTypeName() ||
+            DirectMirScalarProgramLogicalRecordArrayTypeReady(
+                plan.program.logical_record, plan.local_types[row]) ||
+            DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record, plan.local_types[row]) ||
+            DirectMirScalarProgramLogicalRecordOptionTypeReady(
+                plan.program.logical_record, plan.local_types[row]);
         if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
             output = Concat(output, " = \"\";\n");
-        } else if plan.local_types[row] ==
-                CompilerAbiLayoutArrayStringTypeName() {
+        } else if zero_aggregate {
             output = Concat(output, " = {0};\n");
         } else { output = Concat(output, " = 0;\n"); }
+        let parameter_ordinal: Int =
+            SelfMirLocalRefParameterOrdinalForOwner(
+                plan.local_ref_value_ids[row],
+                plan.routines.source_syntax_ids[routine]);
+        if parameter_ordinal >= 0 {
+            if parameter_ordinal >= plan.routines.parameter_counts[routine] {
+                Die("direct MIR scalar CFG C parameter local is invalid");
+            }
+            let carriage: String = plan.routines.parameter_carriages[
+                plan.routines.parameter_starts[routine] + parameter_ordinal];
+            let owned_string: Bool = carriage == "owner-handle" &&
+                plan.local_types[row] == CompilerAbiLayoutStringTypeName();
+            if carriage != "value" && carriage != "value-result" &&
+                !owned_string {
+                Die("direct MIR scalar CFG C parameter local is invalid");
+            }
+            output = Concat(output, "    pgy_local_");
+            output = Concat(output, ToString(row));
+            output = Concat(output, " = pgy_param_");
+            output = Concat(output, ToString(parameter_ordinal));
+            output = Concat(output, ";\n");
+        }
         row = row + 1;
     }
     return output;
 }
-
 func DirectMirScalarCfgCLocalDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String
 ) -> String {
     return DirectMirScalarCfgCLocalDeclarationsInRange(
-        plan, int_c_type, 0, ArrayLength(plan.local_names)
+        plan, int_c_type, 0, ArrayLength(plan.local_names), 0
     );
 }

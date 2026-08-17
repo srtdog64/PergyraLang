@@ -6,6 +6,7 @@ LIMIT="${TEST_CASE_INCLUDE_MAX_LINES:-699}"
 PRODUCTION_LIMIT="${PRODUCTION_OWNER_MAX_LINES:-699}"
 SELF_HOSTED_OWNER_LIMIT="${SELF_HOSTED_OWNER_MAX_LINES:-699}"
 SELF_HOSTED_TOOL_LIMIT="${SELF_HOSTED_TOOL_MAX_LINES:-999}"
+SEMANTIC_DIAGNOSTIC_OWNER_LIMIT="${SEMANTIC_DIAGNOSTIC_OWNER_MAX_LINES:-650}"
 LEGACY_HELPER_PATHS="$ROOT_DIR/tests/fixtures/legacy_production_helper_paths.txt"
 HELPER_LIMIT="${HELPER_OWNER_MAX_LINES:-500}"
 
@@ -258,12 +259,23 @@ semantic_owner_violations="$(
         find src/self_hosted/semantic -maxdepth 1 -type f \
             -name '*.pgy' -exec wc -l {} +
     } \
-        | awk '$2 != "total" && $1 > 599 { print }'
+        | awk \
+            '$2 != "total" && $2 != "src/self_hosted/semantic/diagnostic_owner.pgy" && $1 > 599 { print }'
 )"
 
 if [[ -n "$semantic_owner_violations" ]]; then
     echo "semantic owner size violations; limit is 599 LOC:" >&2
     echo "$semantic_owner_violations" >&2
+    exit 1
+fi
+
+semantic_diagnostic_owner_lines="$(
+    wc -l < "$ROOT_DIR/src/self_hosted/semantic/diagnostic_owner.pgy" |
+        tr -d ' '
+)"
+if [[ "$semantic_diagnostic_owner_lines" -gt "$SEMANTIC_DIAGNOSTIC_OWNER_LIMIT" ]]; then
+    echo "semantic diagnostic owner size violation: ${semantic_diagnostic_owner_lines} > ${SEMANTIC_DIAGNOSTIC_OWNER_LIMIT} LOC" >&2
+    echo "the stable reason/fix vocabulary stays with its one rendering owner; split only when a distinct fact owner exists" >&2
     exit 1
 fi
 
@@ -353,4 +365,4 @@ if [[ -n "$helper_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] production C/H and Pergyra owners <= ${PRODUCTION_LIMIT}/${SELF_HOSTED_OWNER_LIMIT} LOC hard caps; semantic and MIR type/declaration owners <= 599 LOC; tools <= ${SELF_HOSTED_TOOL_LIMIT} LOC; legacy helper paths are shrink-only and <= ${HELPER_LIMIT} LOC; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] production C/H and Pergyra owners <= ${PRODUCTION_LIMIT}/${SELF_HOSTED_OWNER_LIMIT} LOC hard caps; semantic and MIR type/declaration owners <= 599 LOC (diagnostic vocabulary owner <= ${SEMANTIC_DIAGNOSTIC_OWNER_LIMIT}); tools <= ${SELF_HOSTED_TOOL_LIMIT} LOC; legacy helper paths are shrink-only and <= ${HELPER_LIMIT} LOC; src/tests .cases.h files <= ${LIMIT} LOC"

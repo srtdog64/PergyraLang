@@ -14,6 +14,7 @@ import "../mir_lower/expression_graph_fact_owner.pgy";
 import "../mir_lower/assignment_binding_mode_fact_owner.pgy";
 import "../mir_lower/generic_specialization_fact_owner.pgy";
 import "../mir/artifact_lower_owner.pgy";
+import "../mir/body_type_bundle_storage_lifetime_owner.pgy";
 import "../mir/json_projection_owner.pgy";
 import "../mir/program_json_artifact_writer_owner.pgy";
 import "machine_layer_declaration_consumer.pgy";
@@ -117,11 +118,16 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
         verified.body_types.generic_specializations,
         machine_declaration, observe_pressure
     );
+    let terminal_body_types: SemanticAstBodyTypeBundle = verified.body_types;
+    SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(terminal_body_types);
     SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:start");
     mir_facts = SelfMirCanonicalInstructionIds(mir_facts);
     SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:done");
-    if !SelfMirProgramFactsReady(mir_facts) {
-        Log(SelfMirProgramFactsValidationError(mir_facts));
+    let validation_error: String = SelfMirProgramFactsValidationErrorObserved(
+        mir_facts, observe_pressure
+    );
+    if validation_error != "" {
+        Log(validation_error);
         Exit(1);
     }
     DriverRung2PressureStage(observe_pressure, "mir-facts:done");
@@ -253,7 +259,7 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     let tree_emission: MirProgramTreeEmission =
         DriverRung2IntentTreeEmissionOrDie(admitted, observe_pressure);
     let artifact: AstTreeArtifact = CanonicalMirIdentityArtifactFromTreeTextOrDie(
-        tree_emission.text, admitted);
+        tree_emission.text, tree_emission.source_module_paths, admitted);
     DriverRung2PressureStage(
         observe_pressure, "consumer:mir-to-ast:done"
     );

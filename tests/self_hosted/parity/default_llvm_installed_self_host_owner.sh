@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-# Public LLVM binaries consume exactly one installed self-host MIR artifact and
-# one textual LLVM projection. clang is the final host boundary; native
-# semantic/AIR/libLLVM and implicit runtime linkage are forbidden.
-
+# Public LLVM binaries consume exactly one installed self-host MIR artifact,
+# one textual LLVM projection, and the canonical external runtime object.
+# installed MIR and LLVM artifacts plus the canonical external runtime object own public default-runtime LLVM compile and host-I/O execution.
+# clang is the final host boundary; native semantic/AIR/libLLVM and
+# artifact-text runtime inference are forbidden.
 set -euo pipefail
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
-
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 CC="${CC:-cc}"
@@ -21,14 +20,13 @@ SUBJECT_SOURCE="src/self_hosted/mir_lower/fixture/nominal_subject.pgy"
 CONSTRUCTED_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"
 CONSTRUCTED_ARRAY_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy"
 CONSTRUCTED_RECORD_ARRAY_MEMBER_SOURCE="src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy"
+RUNTIME_SOURCE="src/self_hosted/codegen/fixture/io_probe.pgy"
 COUNT_FILE="$WORK_DIR/count.txt"
 COUNT_FILE_FOR_DRIVER="$COUNT_FILE"
-
 fail() {
     echo "[self-host-default-llvm] $*" >&2
     exit 1
 }
-
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
 fi
@@ -40,7 +38,6 @@ fi
 [[ -x "$SELF_DRIVER" ]] || fail "missing installed self-host driver: $SELF_DRIVER"
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v clang >/dev/null 2>&1 || fail "missing LLVM IR-capable clang"
-
 PGY="$(cd "$(dirname "$PGY")" && pwd -P)/$(basename "$PGY")"
 SELF_DRIVER="$(cd "$(dirname "$SELF_DRIVER")" && pwd -P)/$(basename "$SELF_DRIVER")"
 suffix=""
@@ -52,7 +49,6 @@ if [[ "$PGY" == *.exe ]]; then
 fi
 [[ "$SELF_DRIVER" == "$(dirname "$PGY")/$installed_name" ]] ||
     fail "self-host driver is not installed beside the public launcher"
-
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR/counting-install" "$WORK_DIR/missing-install"
 
@@ -81,6 +77,14 @@ for member_case in "$MEMBER_SOURCE|member|41" \
     cmp -s "$WORK_DIR/$member_stem.expected" "$WORK_DIR/$member_stem-program.out" ||
         fail "installed self-host LLVM artifact lost $member_stem flow"
 done
+
+(cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN &&
+    "$PGY" "$RUNTIME_SOURCE" --backend=llvm \
+        -o ".tmp/self_hosted/default_llvm_installed/runtime-program$suffix") \
+    >"$WORK_DIR/runtime.out" 2>"$WORK_DIR/runtime.err"
+"$WORK_DIR/runtime-program$suffix" | tr -d '\r' >"$WORK_DIR/runtime-program.out"
+printf 'exists\nmissing\nhas-main\n' >"$WORK_DIR/runtime.expected"
+cmp -s "$WORK_DIR/runtime.expected" "$WORK_DIR/runtime-program.out" || fail "installed self-host LLVM artifact lost canonical host-I/O runtime linkage"
 
 cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
 "$CC" -std=c11 -Wall -Wextra -Werror \
@@ -125,14 +129,10 @@ run_failure() {
         fail "$mode re-entered the native compiler pipeline"
 }
 
-run_failure "producer-fail" 'producer\n' \
-    "self-host MIR producer failed with code 7"
-run_failure "backend-fail" 'producer\nbackend\n' \
-    "self-host LLVM projector failed with code 9"
-run_failure "malformed" 'producer\nbackend\n' \
-    "self-host LLVM compile failed"
-run_failure "runtime-ref" 'producer\nbackend\n' \
-    "self-host LLVM compile failed"
+run_failure "producer-fail" 'producer\n' "self-host MIR producer failed with code 7"
+run_failure "backend-fail" 'producer\nbackend\n' "self-host LLVM projector failed with code 9"
+run_failure "malformed" 'producer\nbackend\n' "self-host LLVM compile failed"
+run_failure "runtime-ref" 'producer\nbackend\n' "self-host LLVM compile failed"
 
 cp "$PGY" "$WORK_DIR/missing-install/pgy$suffix"
 set +e
@@ -154,6 +154,15 @@ grep -Fq "self-host driver is unavailable" "$WORK_DIR/missing.err" ||
 grep -Fq "outside the installed self-host driver contract" \
     "$WORK_DIR/unsupported.err" || fail "unsupported LLVM options did not fail closed"
 
+set +e
+(cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN &&
+    PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS0="$WORK_DIR/missing-runtime.obj" \
+    "$PGY" "$RUNTIME_SOURCE" --backend=llvm -o ".tmp/self_hosted/default_llvm_installed/stale-runtime-program$suffix") >"$WORK_DIR/stale-runtime.out" 2>"$WORK_DIR/stale-runtime.err"
+stale_runtime_rc=$?
+set -e
+[[ "$stale_runtime_rc" -ne 0 && ! -e "$WORK_DIR/stale-runtime-program$suffix" ]] || fail "stale prebuilt LLVM runtime published a binary"
+grep -Fq "Prebuilt LLVM runtime object is stale or missing" "$WORK_DIR/stale-runtime.err" || fail "stale prebuilt LLVM runtime lost its owned diagnostic"
+
 runner_body="$(sed -n '/^llvm_runner_execute_installed_self_host_llvm(/,/^#ifdef PGY_LLVM_ENABLED/p' \
     "$ROOT_DIR/src/compiler/llvm_runner.c")"
 [[ "$(grep -Fc 'driver_materialize_self_host_llvm_artifacts(' <<< "$runner_body")" == "1" ]] ||
@@ -162,10 +171,10 @@ grep -Fq "compiler_compile_link_self_host_llvm_artifact(" <<< "$runner_body" ||
     fail "public LLVM runner lacks the clang-only host boundary"
 ! grep -Eq 'driver_run_pipeline\(|compiler_build_native_llvm\(|llvm_codegen_' <<< "$runner_body" ||
     fail "public LLVM runner reintroduced native semantic/libLLVM ownership"
-! grep -Eq 'compiler_runtime_object|PGY_INTENT_OBSERVABILITY' <<< "$runner_body" ||
-    fail "runtime-free public LLVM runner attached an implicit runtime"
+grep -Fq "compiler_llvm_runtime_object_ensure(" "$ROOT_DIR/src/compiler/compiler_self_host_artifact.c" || fail "public LLVM host boundary omitted the canonical runtime object owner"
+! grep -Eq 'compiler_runtime_prebuilt_object_path\(|compiler_runtime_cache_object_path\(|PGY_RUNTIME_LIB_C' \
+    "$ROOT_DIR/src/compiler/compiler_llvm.c" || fail "native LLVM consumer rebuilt the canonical runtime owner locally"
 ! grep -Eq 'path_read_file\(|strstr\(' \
-    "$ROOT_DIR/src/compiler/self_host_llvm_driver.c" ||
-    fail "native LLVM materializer inferred runtime policy from artifact text"
+    "$ROOT_DIR/src/compiler/self_host_llvm_driver.c" || fail "native LLVM materializer inferred runtime policy from artifact text"
 
-echo "[self-host-default-llvm] installed MIR+LLVM artifacts own public runtime-free LLVM compile/run"
+echo "[self-host-default-llvm] installed MIR+LLVM artifacts and canonical runtime own public LLVM compile/run"

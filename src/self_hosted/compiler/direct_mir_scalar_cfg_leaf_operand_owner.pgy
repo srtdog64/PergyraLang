@@ -16,19 +16,48 @@ func DirectMirScalarCfgLeafOperandFromOwners(
     node_text: String,
     ref value_names: Array<String>,
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
-    ref wire: DirectMirScalarCfgWireLocalRefs
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    wire_expr0_carriage: Bool
 ) -> DirectMirScalarCfgLeafOperand {
     let value_row: Int = DirectMirScalarCfgUseValueRow(
         use_facts, global_row, use_row, node_text, value_names
     );
-    let direct_ref: String = DirectMirScalarCfgWireExprRefAt(
-        wire, instruction_row, node
-    );
+    let direct_ref: String = "";
+    if wire_expr0_carriage {
+        direct_ref = DirectMirScalarCfgWireExprRefAt(
+            wire, instruction_row, node
+        );
+    }
     if value_row >= 0 {
         if direct_ref != "" {
             return DirectMirScalarCfgLeafOperand(false, -1, -1, 0);
         }
         return DirectMirScalarCfgLeafOperand(true, value_row, -1, 1);
+    }
+    // MIR instruction uses are unique across receiver and expression lanes.
+    // A later lane may therefore reuse one already-consumed ValueId without
+    // receiving a duplicate use row. Multiple prior matches fail closed.
+    let consumed_value_row: Int = -1;
+    let consumed_match_count: Int = 0;
+    let consumed_use: Int = 0;
+    while consumed_use < use_row {
+        let candidate: Int = DirectMirScalarCfgUseValueRow(
+            use_facts, global_row, consumed_use, node_text, value_names);
+        if candidate >= 0 {
+            consumed_value_row = candidate;
+            consumed_match_count = consumed_match_count + 1;
+        }
+        consumed_use = consumed_use + 1;
+    }
+    if consumed_match_count == 1 {
+        if direct_ref != "" {
+            return DirectMirScalarCfgLeafOperand(false, -1, -1, 0);
+        }
+        return DirectMirScalarCfgLeafOperand(
+            true, consumed_value_row, -1, 0);
+    }
+    if consumed_match_count > 1 {
+        return DirectMirScalarCfgLeafOperand(false, -1, -1, 0);
     }
     let local_row: Int = DirectMirScalarCfgDirectLocalOperandRow(
         local_refs, wire, instruction_row, node, node_text

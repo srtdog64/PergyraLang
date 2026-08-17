@@ -1,0 +1,48 @@
+// Contextual projection of generic semantic Option builtins for Option<String>.
+
+import "direct_mir_scalar_program_option_string_expression_kind_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramOptionStringBuiltinSelected(
+    name: String, actual_types: Array<String>, expected_type: String
+) -> Bool {
+    if name == "Some" {
+        return ArrayLength(actual_types) > 0 &&
+            actual_types[0] == CompilerAbiLayoutStringTypeName();
+    }
+    if name == "None" {
+        return expected_type == CompilerAbiLayoutOptionStringTypeName();
+    }
+    if name == "IsSome" || name == "UnwrapOption" {
+        return ArrayLength(actual_types) > 0 && actual_types[0] ==
+            CompilerAbiLayoutOptionStringTypeName();
+    }
+    return false;
+}
+
+func DirectMirScalarProgramOptionStringBuiltinReturnType(
+    name: String
+) -> String {
+    if name == "Some" || name == "None" {
+        return CompilerAbiLayoutOptionStringTypeName();
+    }
+    if name == "IsSome" { return CompilerAbiLayoutBoolTypeName(); }
+    return CompilerAbiLayoutStringTypeName();
+}
+
+func DirectMirScalarProgramOptionStringBuiltinParameterTypes(
+    name: String
+) -> Array<String> {
+    if name == "None" { return []; }
+    if name == "Some" { return [CompilerAbiLayoutStringTypeName()]; }
+    return [CompilerAbiLayoutOptionStringTypeName()];
+}
+
+func DirectMirScalarProgramOptionStringBuiltinExpressionKind(
+    name: String
+) -> Int {
+    if name == "Some" { return DirectMirScalarProgramExprSomeString(); }
+    if name == "None" { return DirectMirScalarProgramExprNoneString(); }
+    if name == "IsSome" { return DirectMirScalarProgramExprIsSomeString(); }
+    return DirectMirScalarProgramExprUnwrapOptionString();
+}

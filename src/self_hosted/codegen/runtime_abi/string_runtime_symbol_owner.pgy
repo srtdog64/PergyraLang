@@ -34,6 +34,18 @@ func StringRuntimeCIntLineFormat() -> String {
     return "%lld\\n";
 }
 
+func StringRuntimeCInt32LineFormat() -> String {
+    return "%d\\n";
+}
+
+func StringRuntimeCInt32PrintArgumentType() -> String {
+    return "int";
+}
+
+func StringRuntimeCLongPrintArgumentType() -> String {
+    return "long long";
+}
+
 func StringRuntimeCStringLineFormat() -> String {
     return "%s\\n";
 }

@@ -7,13 +7,27 @@ func DirectMirScalarProgramNaryExpressionNodeReady(
 ) -> Option<Bool> {
     let kind: Int = facts.node_kinds[node];
     if kind != DirectMirScalarProgramExprSubstring() && kind !=
-            DirectMirScalarProgramExprSubstringWithLen() { return None; }
+            DirectMirScalarProgramExprSubstringWithLen() && kind !=
+            DirectMirScalarProgramExprCharAtN() && kind !=
+            DirectMirScalarProgramExprCharCode() && kind !=
+            DirectMirScalarProgramExprSubIndexOfWithLen() && kind !=
+            DirectMirScalarProgramExprSubEqualsWithLen() { return None; }
     let operands: Array<Int> = DirectMirScalarProgramNaryOperandRows(
         facts.nary_operands, node);
     let expected: Int = 3;
     if kind == DirectMirScalarProgramExprSubstringWithLen() { expected = 4; }
+    if kind == DirectMirScalarProgramExprSubIndexOfWithLen() || kind ==
+            DirectMirScalarProgramExprSubEqualsWithLen() { expected = 5; }
+    let result_type: String = CompilerAbiLayoutStringTypeName();
+    if kind == DirectMirScalarProgramExprCharCode() ||
+            kind == DirectMirScalarProgramExprSubIndexOfWithLen() {
+        result_type = CompilerAbiLayoutIntTypeName();
+    }
+    if kind == DirectMirScalarProgramExprSubEqualsWithLen() {
+        result_type = CompilerAbiLayoutBoolTypeName();
+    }
     if ArrayLength(operands) != expected ||
-        facts.node_types[node] != CompilerAbiLayoutStringTypeName() ||
+        facts.node_types[node] != result_type ||
         facts.node_lefts[node] != -1 || facts.node_rights[node] != -1 ||
         facts.node_local_rows[node] != -1 ||
         facts.node_parameter_ordinals[node] != -1 ||
@@ -22,7 +36,11 @@ func DirectMirScalarProgramNaryExpressionNodeReady(
     let i: Int = 0;
     while i < expected {
         let expected_type: String = CompilerAbiLayoutIntTypeName();
-        if i == 0 { expected_type = CompilerAbiLayoutStringTypeName(); }
+        if i == 0 || ((kind ==
+                DirectMirScalarProgramExprSubIndexOfWithLen() || kind ==
+                DirectMirScalarProgramExprSubEqualsWithLen()) && i == 4) {
+            expected_type = CompilerAbiLayoutStringTypeName();
+        }
         if operands[i] < 0 || operands[i] >= node ||
             facts.node_types[operands[i]] != expected_type {
             return Some(false);

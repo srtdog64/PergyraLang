@@ -1,8 +1,6 @@
 // Mutation seal shared by in-memory validation and pgy.mir.v1 admission.
 // Field order is byte-for-byte the native intent_execution JSON row order.
-
 import "intent_execution_schema_owner.pgy";
-
 func MirIntentExecutionHashString(hash: Long, value: String) -> Long {
     let modulus: Long = 268435456L;
     let out: Long =
@@ -18,7 +16,6 @@ func MirIntentExecutionHashString(hash: Long, value: String) -> Long {
 func MirIntentExecutionHashInt(hash: Long, value: Int) -> Long {
     return (hash * 131L + ((value + 2) as Long)) % 268435456L;
 }
-
 func MirIntentExecutionHashStepRow(
     hash: Long, ref plan: MirIntentExecutionPlan, step: Int) -> Long {
     hash = MirIntentExecutionHashInt(hash, plan.steps.transition_ids[step]);
@@ -102,7 +99,10 @@ func MirIntentExecutionHashStepRow(
             plan.steps.compensations.call_target_syntax_ids[compensation]);
         compensation = compensation + 1;
     }
-
+    hash = MirIntentExecutionHashString(hash,
+        plan.steps.where_zone_names[step]);
+    hash = MirIntentExecutionHashInt(hash,
+        plan.steps.where_zone_syntax_ids[step]);
     return hash;
 }
 

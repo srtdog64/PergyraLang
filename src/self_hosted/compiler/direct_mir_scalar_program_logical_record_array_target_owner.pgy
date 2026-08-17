@@ -1,0 +1,125 @@
+// Target projection of the compiler-owned three-field Array<Record> layout.
+
+import "abi_layout_nominal_array_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirScalarProgramLogicalRecordArrayTarget {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let array_type: String;
+    let element_type: String;
+    let record_row: Int;
+    let c_element_type: String;
+    let c_array_type: String;
+    let c_length_type: String;
+    let c_field_order: String;
+    let llvm_type_name: String;
+    let llvm_aggregate_type: String;
+}
+
+func DirectMirScalarProgramCLogicalRecordArrayTypeName(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    array_type: String
+) -> String {
+    let element: Option<String> =
+        DirectMirScalarProgramLogicalRecordArrayElementType(
+            logical_record, array_type);
+    if !IsSome(element) { return ""; }
+    let layout: CompilerAbiNominalArrayLayoutFact =
+        CompilerAbiNominalArrayLayoutFactFor(UnwrapOption(element));
+    if !layout.ok { return ""; }
+    return layout.c_value_type;
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    array_type: String
+) -> String {
+    let element: Option<String> =
+        DirectMirScalarProgramLogicalRecordArrayElementType(
+            logical_record, array_type);
+    if !IsSome(element) { return ""; }
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(
+        logical_record, UnwrapOption(element));
+    if row < 0 { return ""; }
+    return Concat("%pgy.scalar.logical.record.array.", ToString(row));
+}
+
+func DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
+    ref fact: DirectMirScalarProgramLogicalRecordArrayTarget,
+    expected_target: String
+) -> Bool {
+    if !fact.valid || !CompilerTargetProjectionKnown(expected_target) ||
+        fact.target_projection != expected_target ||
+        fact.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() ||
+        fact.array_type == "" || fact.element_type == "" ||
+        fact.record_row < 0 { return false; }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return fact.c_element_type != "" && fact.c_array_type != "" &&
+            fact.c_length_type == "long long" &&
+            fact.c_field_order == "data,len,cap" &&
+            fact.llvm_type_name == "" && fact.llvm_aggregate_type == "";
+    }
+    return expected_target == CompilerTargetCpuLlvmProjection() &&
+        fact.c_element_type == "" && fact.c_array_type == "" &&
+        fact.c_length_type == "" && fact.c_field_order == "" &&
+        fact.llvm_type_name != "" &&
+        fact.llvm_aggregate_type == "{ ptr, i64, i64 }";
+}
+
+func DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    array_type: String, ref target: CompilerTargetProjectionFact
+) -> DirectMirScalarProgramLogicalRecordArrayTarget {
+    let element_opt: Option<String> =
+        DirectMirScalarProgramLogicalRecordArrayElementType(
+            logical_record, array_type);
+    let is_c: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection());
+    let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection());
+    if !IsSome(element_opt) || (!is_c && !is_llvm) {
+        Die("direct MIR logical-record Array target input is invalid");
+    }
+    let element_type: String = UnwrapOption(element_opt);
+    let record_row: Int = DirectMirScalarProgramLogicalRecordRow(
+        logical_record, element_type);
+    let layout: CompilerAbiNominalArrayLayoutFact =
+        CompilerAbiNominalArrayLayoutFactFor(element_type);
+    if record_row < 0 || !layout.ok ||
+        layout.element_type != element_type ||
+        layout.field_order != "data,len,cap" ||
+        layout.ownership_shape !=
+            CompilerAbiLayoutOwnershipSharedBufferValue() ||
+        layout.materialization_policy !=
+            CompilerAbiLayoutFieldAllowedMaterialization() {
+        Die("direct MIR logical-record Array layout fact is invalid");
+    }
+    let projection: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTarget(
+            true, target.projection, target.target_capability_fingerprint,
+            array_type, element_type, record_row,
+            "", "", "", "", "", "");
+    if is_c {
+        projection = DirectMirScalarProgramLogicalRecordArrayTarget(
+            true, target.projection, target.target_capability_fingerprint,
+            array_type, element_type, record_row,
+            layout.c_element_type, layout.c_value_type,
+            layout.c_length_type, layout.field_order, "", "");
+    } else if is_llvm {
+        projection = DirectMirScalarProgramLogicalRecordArrayTarget(
+            true, target.projection, target.target_capability_fingerprint,
+            array_type, element_type, record_row,
+            "", "", "", "",
+            Concat("%pgy.scalar.logical.record.array.",
+                ToString(record_row)), layout.llvm_aggregate_type);
+    }
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
+            projection, target.projection) {
+        Die("direct MIR logical-record Array target projection is invalid");
+    }
+    return projection;
+}

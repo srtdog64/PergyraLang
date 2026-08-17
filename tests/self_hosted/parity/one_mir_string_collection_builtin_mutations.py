@@ -90,6 +90,20 @@ def main() -> int:
     write(output, "bad-contains-argument-type", bad)
 
     bad = clone(program)
+    joined = graph_with_target(bad, "StringJoin")
+    joined["nodes"][2]["kind"] = "integer_literal"
+    joined["nodes"][2]["text"] = "1"
+    write(output, "bad-join-argument-type", bad)
+
+    bad = clone(program)
+    joined = graph_with_target(bad, "StringJoin")
+    first = joined["nodes"][2]
+    second = joined["nodes"][4]
+    first["kind"], first["text"] = "string_literal", '"|"'
+    second["kind"], second["text"] = "leaf", "parts"
+    write(output, "bad-join-order", bad)
+
+    bad = clone(program)
     indexed = next(
         instruction["expr0_graph"]
         for instruction in instructions(bad)

@@ -265,6 +265,12 @@ transpiler_emit_typed_intent_execution(
         write_indent(ctx);
         codebuf_write(ctx->out, "__intent_transition_%u:\n",
             row->transition_id);
+        if (ctx->uses_intent_observability) {
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_step_export(__intent_handle, \"%s\", \"%s\");\n",
+                row->step_name, row->where_zone_name);
+        }
         outcome = emit_expression(row->outcome_expression, ctx);
         if (outcome == NULL || ctx->backend_error != NULL) {
             free(outcome);

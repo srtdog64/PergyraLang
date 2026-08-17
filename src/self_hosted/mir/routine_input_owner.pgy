@@ -315,6 +315,33 @@ func SelfMirIfElseLoweringRoot(arena: AstArena, if_node_id: Int) -> Option<Int> 
     return None;
 }
 
+func SelfMirIfElseNestedIfRoot(
+    arena: AstArena, if_node_id: Int
+) -> Option<Int> {
+    let child_index: Int = 0;
+    let child_opt: Option<Int> = TypedAstArenaChildAt(
+        arena, if_node_id, child_index
+    );
+    while IsSome(child_opt) {
+        let child_id: Int = UnwrapOption(child_opt);
+        if TypedAstArenaNodeKindIs(arena, child_id, TypedAstKindElseStmtTag()) {
+            if IsSome(SelfMirControlBodyBlock(arena, child_id)) { return None; }
+            let nested_opt: Option<Int> = TypedAstArenaChildAt(
+                arena, child_id, 0
+            );
+            if IsSome(nested_opt) && TypedAstArenaNodeKindIs(
+                arena, UnwrapOption(nested_opt), TypedAstKindIfStmtTag()
+            ) {
+                return nested_opt;
+            }
+            return None;
+        }
+        child_index = child_index + 1;
+        child_opt = TypedAstArenaChildAt(arena, if_node_id, child_index);
+    }
+    return None;
+}
+
 func SelfMirFunctionBodyBlock(
     arena: AstArena, function_node_id: Int
 ) -> Option<Int> {

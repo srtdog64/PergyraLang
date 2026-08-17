@@ -111,6 +111,24 @@ func MirRoutineGraphStructuralMerge(
         false_start < 0 || false_start >= block_count {
         return merge;
     }
+    // A terminal true arm with exactly one incoming edge cannot be reached
+    // from the false arm. Preserve the canonical false-start fallback without
+    // allocating four whole-CFG distance inventories for guard/return chains.
+    if block_succ_true[true_start] < 0 &&
+        block_succ_false[true_start] < 0 {
+        let true_start_incoming: Int = 0;
+        let source: Int = 0;
+        while source < block_count {
+            if block_succ_true[source] == true_start {
+                true_start_incoming = true_start_incoming + 1;
+            }
+            if block_succ_false[source] == true_start {
+                true_start_incoming = true_start_incoming + 1;
+            }
+            source = source + 1;
+        }
+        if true_start_incoming == 1 { return false_start; }
+    }
     let true_distance: Array<Int> = MirRoutineGraphDistances(
         block_succ_true, block_succ_false, true_start
     );
@@ -139,10 +157,6 @@ func MirRoutineGraphStructuralMerge(
         }
         candidate = candidate + 1;
     }
-    if merge < 0 && block_succ_true[true_start] < 0 &&
-        block_succ_false[true_start] < 0 {
-        merge = false_start;
-    }
     return merge;
 }
 
@@ -152,19 +166,12 @@ func MirRoutineBackedgeHeaders(
 ) -> Array<Int> {
     let block_count: Int = ArrayLength(block_succ_true);
     let invalid: Array<Int> = [];
-    let headers: Array<Int> = [];
-    let targeted: Array<Int> = [];
-    let row: Int = 0;
-    while row < block_count {
-        ArrayPush(headers, 0);
-        ArrayPush(targeted, 0);
-        row = row + 1;
-    }
     if ArrayLength(block_succ_false) != block_count { return invalid; }
 
     // Validate every owner-directed edge before indexing the target set. A
     // malformed graph fails closed instead of returning a partial loop view.
-    row = 0;
+    let strictly_forward: Bool = true;
+    let row: Int = 0;
     while row < block_count {
         let true_target: Int = block_succ_true[row];
         let false_target: Int = block_succ_false[row];
@@ -172,6 +179,34 @@ func MirRoutineBackedgeHeaders(
             false_target < (0 - 1) || false_target >= block_count {
             return invalid;
         }
+        if true_target >= 0 && !(true_target > row) {
+            strictly_forward = false;
+        }
+        if false_target >= 0 && !(false_target > row) {
+            strictly_forward = false;
+        }
+        row = row + 1;
+    }
+    let headers: Array<Int> = [];
+    row = 0;
+    while row < block_count {
+        ArrayPush(headers, 0);
+        row = row + 1;
+    }
+    // Block identity is row identity. Strictly forward edges form a DAG, so
+    // no target can dominate a cycle-closing incoming source.
+    if strictly_forward { return headers; }
+
+    let targeted: Array<Int> = [];
+    row = 0;
+    while row < block_count {
+        ArrayPush(targeted, 0);
+        row = row + 1;
+    }
+    row = 0;
+    while row < block_count {
+        let true_target: Int = block_succ_true[row];
+        let false_target: Int = block_succ_false[row];
         if true_target >= 0 { ArraySet(targeted, true_target, 1); }
         if false_target >= 0 { ArraySet(targeted, false_target, 1); }
         row = row + 1;

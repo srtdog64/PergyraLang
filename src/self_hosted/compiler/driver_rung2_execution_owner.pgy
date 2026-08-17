@@ -109,7 +109,8 @@ subject DriverRung2Execution {
         mir_json_path: String,
         output_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration,
-        request: DriverRung2DirectMirRequest
+        request: DriverRung2DirectMirRequest,
+        observe_pressure: Bool
     ) -> DriverRung2ExecutionOutcome
         within DriverRung2DirectMirZone
         authorized by self
@@ -135,8 +136,9 @@ subject DriverRung2Execution {
         }
 
         let artifact: CompilerEmissionArtifact =
-            CompileMirJsonToDirectBackendVerified(
-                mir_json_path, machine_declaration, target_projection
+            CompileMirJsonToDirectBackendVerifiedObserved(
+                mir_json_path, machine_declaration, target_projection,
+                observe_pressure
             );
         if !CompilerEmissionArtifactReady(artifact) ||
             artifact.target_capability_schema != target_projection.schema ||

@@ -1,0 +1,67 @@
+// LLVM projection for the canonical Set<String> runtime-value ABI.
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "../codegen/runtime_abi/set_runtime_owner.pgy";
+
+func DirectMirScalarProgramLlvmSetStringExpressionAt(
+    kind: Int, result: String, left_type: String, left: String,
+    left_address: String, right: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprSetStringNew() &&
+        kind != DirectMirScalarProgramExprSetStringAdd() &&
+        kind != DirectMirScalarProgramExprSetStringHas() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let runtime: CollectionSetRuntimeFact =
+        CollectionSetRuntimeFactFromTypeName(
+            CompilerAbiLayoutSetStringTypeName());
+    if !runtime.ok { return DirectMirScalarProgramLlvmStringExpression(
+        true, false, "", ""); }
+    let llvm_type: String = DirectMirScalarProgramLlvmSetStringTypeName();
+    if kind == DirectMirScalarProgramExprSetStringNew() {
+        let storage: String = Concat(result, ".set.storage");
+        let output: String = Concat("  ", Concat(storage, Concat(
+            " = alloca ", Concat(llvm_type, ", align 8\n"))));
+        output = Concat(output, Concat("  store ", Concat(llvm_type,
+            Concat(" zeroinitializer, ptr ", Concat(storage, ", align 8\n")))));
+        output = Concat(output, Concat("  call void @",
+            Concat(CollectionSetRuntimeLlvmNewRawFn(), Concat("(ptr ",
+            Concat(storage, ", i64 ptrtoint (ptr getelementptr (ptr, ptr null, i32 1) to i64))\n")))));
+        output = Concat(output, Concat("  ", Concat(result, Concat(
+            " = load ", Concat(llvm_type, Concat(", ptr ",
+            Concat(storage, ", align 8\n")))))));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, result);
+    }
+    if left_type != CompilerAbiLayoutSetStringTypeName() {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let receiver: String = left_address;
+    let output: String = "";
+    if receiver == "" && kind == DirectMirScalarProgramExprSetStringHas() {
+        receiver = Concat(result, ".set.receiver");
+        output = Concat("  ", Concat(receiver, Concat(" = alloca ",
+            Concat(llvm_type, ", align 8\n"))));
+        output = Concat(output, Concat("  store ", Concat(llvm_type,
+            Concat(" ", Concat(left, Concat(", ptr ",
+            Concat(receiver, ", align 8\n")))))));
+    }
+    if receiver == "" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    if kind == DirectMirScalarProgramExprSetStringAdd() {
+        output = Concat(output, Concat("  call void @",
+            Concat(CollectionSetRuntimeLlvmAddStringRawFn(),
+            Concat("(ptr ", Concat(receiver,
+            Concat(", ptr ", Concat(right, ")\n")))))));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, "");
+    }
+    output = Concat(output, Concat("  ", Concat(result, Concat(" = call i1 @",
+        Concat(CollectionSetRuntimeLlvmHasStringRawFn(), Concat("(ptr ",
+        Concat(receiver, Concat(", ptr ", Concat(right, ")\n")))))))));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

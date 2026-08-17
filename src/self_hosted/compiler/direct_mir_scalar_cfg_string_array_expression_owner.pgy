@@ -40,7 +40,7 @@ func DirectMirScalarCfgStringArrayConcatExpressionFact(
         DirectMirScalarCfgLeafOperandFromOwners(
             use_facts, global_row, 0, instruction_row, 2,
             expected_name,
-            value_names, local_refs, wire
+            value_names, local_refs, wire, true
         );
     if !left.valid || left.use_count != 1 {
         return DirectMirScalarCfgExpressionFactEmpty();

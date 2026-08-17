@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-string-indexof"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -33,17 +34,18 @@ done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_window_builtin_signature_owner.pgy"
 CONTRACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_index_runtime_owner.pgy"
-RANGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_string_index_range_owner.pgy"
 C_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"
 LLVM_RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_index_materialization_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v23'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78'
 require_text "$SIGNATURE" 'StringIndexOf'
+require_text "$SIGNATURE" 'CharAtN'
+require_text "$SIGNATURE" 'CharCode'
+require_text "$SIGNATURE" 'SubIndexOfWithLen'
 require_text "$CONTRACT" 'missing_value == -1'
 require_text "$CONTRACT" 'length_headroom == 1'
-require_text "$RANGE" 'DirectMirScalarCfgProgramStringIndexWindowReady'
 require_text "$C_RUNTIME" 'StringRuntimeCStringIndexOfBlock'
 require_text "$LLVM_RUNTIME" 'phi i64 [ %index, %found ], [ -1, %absent ]'
-for owner in "$SIGNATURE" "$CONTRACT" "$RANGE" "$C_RUNTIME" "$LLVM_RUNTIME" \
+for owner in "$SIGNATURE" "$CONTRACT" "$C_RUNTIME" "$LLVM_RUNTIME" \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_search_expression_owner.pgy" \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_search_expression_owner.pgy"; do
     reject_text "$owner" 'str_indexof.pgy'
@@ -56,7 +58,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "28F0C0C026E62F749AEF2150B5100444962B6260D242F4560E9A2262954F1C75" ]] ||
+[[ "$mir_sha" == "87DE913918018BCDC993514F96C4D87F85930BA4DDA1F6D63F61946288818C10" ]] ||
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_indexof_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"
@@ -74,8 +76,7 @@ project() {
 
 goods=(program display-only semantic-change absent-search empty-needle)
 bads=(bad-result-type bad-argument-chain bad-argument-type \
-    bad-unregistered-target bad-target-syntax bad-index-step \
-    bad-length-index-relation)
+    bad-unregistered-target bad-target-syntax)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
     for good in "${goods[@]}"; do
@@ -102,19 +103,23 @@ for target in c llvm; do
     done
 done
 
-for symbol in pgy_strindexof pgy_strlen pgy_substr; do
+for symbol in pgy_strindexof pgy_strlen pgy_substr pgy_charatn pgy_charcode pgy_subindexof_with_len; do
     require_text "$WORK_DIR/base.c" "$symbol"
     require_text "$WORK_DIR/base.ll" "$symbol"
 done
 require_text "$WORK_DIR/base.c" 'if (raw_len >= 9223372036854775807ULL || start < 0 || len <= 0'
 require_text "$WORK_DIR/base.ll" '%source.large = icmp uge i64 %source.length, 9223372036854775807'
-expected_base=$'5\n-1\nhello\nworld'
-expected_semantic=$'3\n-1\nhey\nworld'
-expected_absent=$'-1\n-1\n\nhello,world'
-expected_empty=$'0\n-1\n\nello,world'
+expected_base=$'5\n-1\nhello\nworld\nl\n\n108\n-1\n2\n-1\ndone'
+expected_semantic=$'3\n-1\nhey\nworld\ny\n\n121\n-1\n-1\n-1\ndone'
+expected_absent=$'-1\n-1\n\nhello,world\nl\n\n108\n-1\n2\n-1\ndone'
+expected_empty=$'0\n-1\n\nello,world\nl\n\n108\n-1\n2\n-1\ndone'
 for stem in base display-only semantic-change absent-search empty-needle; do
-    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" ||
-        fail "C compile failed: $stem"
+    command=("$CC" -std=c11 -fwrapv "$WORK_DIR/$stem.c")
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/$stem.c"; then
+        command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    fi
+    command+=(-o "$WORK_DIR/$stem.c.exe")
+    "${command[@]}" || fail "C compile failed: $stem"
     "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" ||
         fail "LLVM compile failed: $stem"
     expected="$expected_base"

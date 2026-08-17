@@ -1,0 +1,13 @@
+func Advance(start: Int, run: Bool) -> Int {
+    let again: Bool = run;
+    while again {
+        start = 7;
+        again = false;
+    }
+    return start;
+}
+
+func Main() -> Void {
+    Log(ToString(Advance(1, true)));
+    Log(ToString(Advance(4, false)));
+}

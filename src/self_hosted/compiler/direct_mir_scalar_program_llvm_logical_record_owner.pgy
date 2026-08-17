@@ -1,0 +1,120 @@
+// LLVM representation and expression projection for logical record identities.
+import "direct_mir_scalar_program_logical_record_target_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+func DirectMirScalarProgramLlvmLogicalRecordTypeName(
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> String {
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, type_name);
+    if row < 0 { return ""; }
+    return Concat("%pgy.scalar.logical.record.value.", ToString(row));
+}
+func DirectMirScalarProgramLlvmLogicalRecordFieldType(
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> String {
+    if type_name == CompilerAbiLayoutBoolTypeName() { return "i1"; }
+    if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
+    if type_name == CompilerAbiLayoutStringTypeName() { return "ptr"; }
+    if type_name == CompilerAbiLayoutArrayIntTypeName() {
+        return "%pgy.array.int";
+    }
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() {
+        return "%pgy.array.bool";
+    }
+    if type_name == CompilerAbiLayoutArrayStringTypeName() {
+        return "%pgy.array.string";
+    }
+    return DirectMirScalarProgramLlvmLogicalRecordTypeName(fact, type_name);
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordPreamble(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramLogicalRecordFactReady(fact) {
+        Die("direct MIR logical record LLVM fact is invalid");
+    }
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        let projection: DirectMirScalarProgramLogicalRecordTarget =
+            DirectMirScalarProgramLogicalRecordTargetFromFact(
+                fact, fact.names[row], target);
+        if !DirectMirScalarProgramLogicalRecordTargetReadyFor(
+                projection, CompilerTargetCpuLlvmProjection()) {
+            Die("direct MIR logical record LLVM target is invalid");
+        }
+        output = Concat(output, Concat(projection.llvm_type_name, " = type { "));
+        let ordinal: Int = 0;
+        while ordinal < fact.field_counts[row] {
+            if ordinal > 0 { output = Concat(output, ", "); }
+            let field_type: String =
+                DirectMirScalarProgramLlvmLogicalRecordFieldType(
+                    fact,
+                    DirectMirScalarProgramLogicalRecordFieldType(
+                        fact, fact.names[row], ordinal));
+            if field_type == "" {
+                Die("direct MIR logical record LLVM field type is invalid");
+            }
+            output = Concat(output, field_type);
+            ordinal = ordinal + 1;
+        }
+        output = Concat(output, " }\n");
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordExpressionAt(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    kind: Int, result: String, record_type: String, left: String,
+    arguments: Array<String>, argument_types: Array<String>,
+    member_ordinal: Int
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(
+        fact, record_type);
+    let type_name: String =
+        DirectMirScalarProgramLlvmLogicalRecordTypeName(fact, record_type);
+    if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
+        if row < 0 || ArrayLength(arguments) != fact.field_counts[row] ||
+            ArrayLength(argument_types) != fact.field_counts[row] ||
+            member_ordinal != -1 {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        let output: String = "";
+        let prior: String = "poison";
+        let ordinal: Int = 0;
+        while ordinal < fact.field_counts[row] {
+            let name: String = result;
+            if ordinal + 1 < fact.field_counts[row] {
+                name = Concat(result, Concat(".field.", ToString(ordinal)));
+            }
+            output = Concat(output, Concat("  ", name));
+            output = Concat(output, Concat(" = insertvalue ", type_name));
+            output = Concat(output, Concat(" ", prior));
+            output = Concat(output, Concat(", ",
+                DirectMirScalarProgramLlvmLogicalRecordFieldType(
+                    fact, argument_types[ordinal])));
+            output = Concat(output, Concat(" ", arguments[ordinal]));
+            output = Concat(output, Concat(", ", ToString(ordinal)));
+            output = Concat(output, "\n");
+            prior = name;
+            ordinal = ordinal + 1;
+        }
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, result);
+    }
+    if kind != DirectMirScalarProgramExprLogicalRecordMember() || row < 0 ||
+        left == "" || member_ordinal < 0 ||
+        member_ordinal >= fact.field_counts[row] ||
+        ArrayLength(arguments) != 0 || ArrayLength(argument_types) != 0 {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let output: String = Concat("  ", result);
+    output = Concat(output, Concat(" = extractvalue ", type_name));
+    output = Concat(output, Concat(" ", left));
+    output = Concat(output, Concat(", ", ToString(member_ordinal)));
+    output = Concat(output, "\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

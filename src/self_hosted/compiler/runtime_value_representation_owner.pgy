@@ -1,0 +1,190 @@
+// Target representation projected from the canonical ABI-layout row for
+// compiler runtime values.  The direct-MIR consumers and the MIR producer
+// consume this one representation plan; neither target reconstructs layouts
+// from a source type spelling.
+
+import "abi_layout_row_owner.pgy";
+import "../codegen/text/text_owner.pgy";
+import "../mir_lower/abi_layout_fact_owner.pgy";
+
+struct CompilerRuntimeValueRepresentation {
+    let valid: Bool;
+    let type_name: String;
+    let c_type: String;
+    let llvm_type: String;
+    let llvm_body: String;
+    let field_order: String;
+    let ownership_shape: String;
+    let size: Int;
+    let align: Int;
+    let field_names: Array<String>;
+    let field_offsets: Array<Int>;
+    let field_sizes: Array<Int>;
+    let field_aligns: Array<Int>;
+    let runtime_fn: String;
+    let inner_c_type: String;
+    let representation: Int;
+}
+
+func CompilerRuntimeValueRepresentationMissing(
+) -> CompilerRuntimeValueRepresentation {
+    let strings: Array<String> = [];
+    let ints: Array<Int> = [];
+    return CompilerRuntimeValueRepresentation(
+        false, "", "", "", "", "", "", 0, 0,
+        strings, ints, ints, ints, "", "", 0);
+}
+
+func CompilerRuntimeValueRepresentationFor(
+    type_name: String
+) -> CompilerRuntimeValueRepresentation {
+    let row_opt: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    if !IsSome(row_opt) {
+        return CompilerRuntimeValueRepresentationMissing();
+    }
+    let row: Int = UnwrapOption(row_opt);
+    if CompilerAbiLayoutRowMaterializationAt(row) !=
+            CompilerAbiLayoutRuntimeValueOnlyMaterialization() {
+        return CompilerRuntimeValueRepresentationMissing();
+    }
+    let ownership: String = CompilerAbiLayoutRowOwnershipShapeAt(row);
+    if ownership != CompilerAbiLayoutOwnershipAllocatorLaneValue() &&
+        ownership != CompilerAbiLayoutOwnershipSingleOwnerLinear() {
+        return CompilerRuntimeValueRepresentationMissing();
+    }
+    let names: Array<String> = [];
+    let offsets: Array<Int> = [];
+    let sizes: Array<Int> = [];
+    let aligns: Array<Int> = [];
+    let field_order: String = CompilerAbiLayoutRowFieldOrderAt(row);
+    let llvm_type: String = "";
+    let llvm_body: String = "";
+    let size: Int = 0;
+    let align: Int = 0;
+    let runtime_fn: String = "";
+    let inner_c_type: String = "";
+    if field_order == CompilerAbiLayoutFieldOrderAllocator() {
+        llvm_type = "%pgy.runtime.allocator";
+        llvm_body = "{ i32, i1, i1, i64, i64, i64, i64, ptr }";
+        size = 48;
+        align = 8;
+        ArrayPush(names, "kind"); ArrayPush(offsets, 0);
+        ArrayPush(sizes, 4); ArrayPush(aligns, 4);
+        ArrayPush(names, "trace_enabled"); ArrayPush(offsets, 4);
+        ArrayPush(sizes, 1); ArrayPush(aligns, 1);
+        ArrayPush(names, "debug_enabled"); ArrayPush(offsets, 5);
+        ArrayPush(sizes, 1); ArrayPush(aligns, 1);
+        ArrayPush(names, "allocations"); ArrayPush(offsets, 8);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        ArrayPush(names, "deallocations"); ArrayPush(offsets, 16);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        ArrayPush(names, "bytes_in_use"); ArrayPush(offsets, 24);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        ArrayPush(names, "peak_bytes"); ArrayPush(offsets, 32);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        ArrayPush(names, "pool"); ArrayPush(offsets, 40);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        inner_c_type = "void*";
+    } else if field_order == CompilerAbiLayoutFieldOrderTextBuilder() {
+        llvm_type = "%pgy.runtime.text_builder";
+        llvm_body = "{ ptr, i64, i64, i1 }";
+        size = 32;
+        align = 8;
+        ArrayPush(names, "data"); ArrayPush(offsets, 0);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        ArrayPush(names, "length"); ArrayPush(offsets, 8);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        ArrayPush(names, "capacity"); ArrayPush(offsets, 16);
+        ArrayPush(sizes, 8); ArrayPush(aligns, 8);
+        ArrayPush(names, "finished"); ArrayPush(offsets, 24);
+        ArrayPush(sizes, 1); ArrayPush(aligns, 1);
+        runtime_fn = "pgy_text_builder_new_export";
+        inner_c_type = "char";
+    } else {
+        return CompilerRuntimeValueRepresentationMissing();
+    }
+    let c_type: String = CompilerAbiLayoutRowCValueTypeAt(row);
+    if c_type == "" || llvm_type == "" || llvm_body == "" || size <= 0 ||
+        ArrayLength(names) != ArrayLength(offsets) ||
+        ArrayLength(names) != ArrayLength(sizes) ||
+        ArrayLength(names) != ArrayLength(aligns) {
+        return CompilerRuntimeValueRepresentationMissing();
+    }
+    return CompilerRuntimeValueRepresentation(
+        true, CompilerAbiLayoutRowTypeNameAt(row), c_type, llvm_type,
+        llvm_body, field_order, ownership, size, align, names, offsets, sizes,
+        aligns, runtime_fn, inner_c_type, 0);
+}
+
+func CompilerRuntimeValueTypeReady(type_name: String) -> Bool {
+    return CompilerRuntimeValueRepresentationFor(type_name).valid;
+}
+
+func CompilerRuntimeValueRepresentationMatchesCapture(
+    ref expected: CompilerRuntimeValueRepresentation,
+    ref captured: MirAbiLayoutRowCapture
+) -> Bool {
+    if !expected.valid || !captured.valid ||
+        captured.type_name != expected.type_name ||
+        captured.size_text != ToString(expected.size) ||
+        captured.align_text != ToString(expected.align) ||
+        captured.runtime_fn != expected.runtime_fn ||
+        captured.inner_c_type != expected.inner_c_type ||
+        captured.representation_text != ToString(expected.representation) ||
+        captured.discriminant != "" || captured.primary_tag_text != "0" ||
+        captured.secondary_tag_text != "0" ||
+        captured.niche_none_pattern != "" ||
+        ArrayLength(captured.field_names) !=
+            ArrayLength(expected.field_names) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(expected.field_names) {
+        if captured.field_names[row] != expected.field_names[row] ||
+            captured.field_offsets[row] !=
+                ToString(expected.field_offsets[row]) ||
+            captured.field_sizes[row] != ToString(expected.field_sizes[row]) ||
+            captured.field_aligns[row] !=
+                ToString(expected.field_aligns[row]) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func CompilerRuntimeValueLocalsPresent(local_types: Array<String>) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(local_types) {
+        if CompilerRuntimeValueTypeReady(local_types[row]) { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func CompilerRuntimeValueCLocalPreamble(
+    local_types: Array<String>
+) -> String {
+    if !CompilerRuntimeValueLocalsPresent(local_types) { return ""; }
+    return "#include \"pgy_runtime.h\"\n";
+}
+
+func CompilerRuntimeValueLlvmLocalPreamble(
+    local_types: Array<String>
+) -> String {
+    let output: String = "";
+    let allocator: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(
+            CompilerAbiLayoutAllocatorTypeName());
+    let builder: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(
+            CompilerAbiLayoutTextBuilderTypeName());
+    if !CompilerRuntimeValueLocalsPresent(local_types) { return output; }
+    if !allocator.valid || !builder.valid {
+        Die("compiler runtime-value LLVM representation is invalid");
+    }
+    output = Concat(output, Concat(allocator.llvm_type, " = type "));
+    output = Concat(output, Concat(allocator.llvm_body, "\n"));
+    output = Concat(output, Concat(builder.llvm_type, " = type "));
+    return Concat(output, Concat(builder.llvm_body, "\n"));
+}

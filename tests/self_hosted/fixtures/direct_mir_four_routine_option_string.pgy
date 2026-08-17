@@ -1,0 +1,43 @@
+struct JsonStringView {
+    let valid: Bool;
+    let value: String;
+}
+
+func Wrap(value: String) -> Option<String> {
+    return Some(value);
+}
+
+func Relay(value: String) -> Option<String> {
+    return Wrap(value);
+}
+
+func Extract(value: String, declared_type: Option<String>) -> String {
+    if IsSome(declared_type) {
+        return UnwrapOption(declared_type);
+    }
+    let wrapped: Option<String> = Relay(value);
+    if IsSome(wrapped) {
+        return UnwrapOption(wrapped);
+    }
+    return "missing";
+}
+
+func FindKind(ref table: JsonStringView, field: String) -> Option<String> {
+    if table.valid {
+        return Some(table.value);
+    }
+    return None;
+}
+
+func OptionStringIsMissing(value: Option<String>) -> Bool {
+    return !IsSome(value);
+}
+
+func Main() -> Void {
+    let declared_type: Option<String> = None;
+    Log(Extract("option-string", declared_type));
+    let table: JsonStringView = JsonStringView(true, "record-string");
+    Log(UnwrapOption(FindKind(table, "kind")));
+    let missing: Bool = OptionStringIsMissing(None);
+    if missing { Log("missing"); }
+}

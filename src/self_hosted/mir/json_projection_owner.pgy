@@ -217,7 +217,7 @@ func SelfMirJsonRoutine(
     }
     let blocks: Array<String> = [];
     let emit_local_refs: Bool = SelfMirRoutineLocalRefWireRequired(
-        rows, routine_index
+        facts, routine_index
     );
     let block_i: Int = 0;
     while block_i < rows.block_counts[routine_index] {
@@ -356,6 +356,9 @@ func SelfMirJsonRoutine(
         JsonEmitFieldString("name", rows.names[routine_index]),
         JsonEmitFieldString("kind", rows.kinds[routine_index]),
         JsonEmitFieldNumber("source_syntax_id", ToString(rows.node_ids[routine_index])),
+        JsonEmitFieldString(
+            "source_module_path", rows.source_module_paths[routine_index]
+        ),
         JsonEmitFieldString("receiver_carriage", rows.receiver_carriages[routine_index])
     ];
     if rows.owners[routine_index] != "" {

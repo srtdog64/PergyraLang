@@ -14,8 +14,9 @@ func AstExpressionOwnerKindBindingInvalid(
     );
     return AstTreeArtifact(
         artifact.tree_text, artifact.arena, artifact.count,
-        invalid, AstTreeArtifactIdentityDigest(
-            artifact.tree_text, artifact.count, invalid
+        invalid, artifact.source_modules, AstTreeArtifactIdentityDigest(
+            artifact.tree_text, artifact.count, invalid,
+            artifact.source_modules
         )
     );
 }
@@ -92,6 +93,7 @@ func AstTreeArtifactBindExpressionOwnerKinds(
     );
     return AstTreeArtifact(
         artifact.tree_text, bound, artifact.count,
-        artifact.expression_graphs, artifact.identity_digest
+        artifact.expression_graphs, artifact.source_modules,
+        artifact.identity_digest
     );
 }

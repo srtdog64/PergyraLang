@@ -2,6 +2,7 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
 import "direct_mir_scalar_program_llvm_additional_materialization_owner.pgy";
 import "direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
 func DirectMirScalarProgramLlvmAsciiCaseMaterialization(
     fact: CompilerRuntimeCallAbiFact,
     range_low: Int, range_high: Int, delta: Int
@@ -35,17 +36,35 @@ func DirectMirScalarProgramLlvmAsciiCaseMaterialization(
 
 func DirectMirScalarProgramLlvmBuiltinMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact
 ) -> String {
+    let requires_print: Bool = DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprPrintString());
     if !DirectMirScalarProgramRuntimeRequiresMaterialization(
         plan.program.runtime_abi
-    ) { return ""; }
+    ) && !requires_print { return ""; }
     if !DirectMirScalarProgramRuntimeAbiProjectionReady(
         runtime, plan.program.runtime_abi
     ) {
         Die("direct MIR scalar program LLVM builtin ABI is invalid");
     }
+    if requires_print && (!formatted_print.ok || formatted_print.call_shape !=
+            CompilerRuntimeCallAbiStringCallShape("formatted-print")) {
+        Die("direct MIR scalar program LLVM Print materialization ABI is invalid");
+    }
     let output: String = "";
+    if requires_print {
+        output = Concat(output,
+            "@.pgy.scalar.print.format = private unnamed_addr constant [3 x i8] c\"%s\\00\", align 1\n");
+        output = Concat(output, Concat("define internal void @",
+            runtime.string_print.symbol));
+        output = Concat(output,
+            "(ptr %value) {\nentry:\n  %ignored = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output,
+            "(ptr getelementptr inbounds ([3 x i8], ptr @.pgy.scalar.print.format, i64 0, i64 0), ptr %value)\n  ret void\n}\n\n");
+    }
     if plan.program.runtime_abi.string_to_string_id != 0 {
         output = Concat(output,
             "@.pgy.scalar.tostr.format = private unnamed_addr constant [5 x i8] c\"%lld\\00\", align 1\n");

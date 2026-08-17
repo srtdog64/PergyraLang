@@ -1,0 +1,26 @@
+// Readonly logical record plus one String and one Array<String> copyout.
+
+struct RequiredStringRow {
+    let valid: Bool;
+    let json: String;
+}
+
+func RequiredString(
+    ref row: RequiredStringRow,
+    field: String,
+    inout values: Array<String>
+) -> Bool {
+    if !row.valid { return false; }
+    return field != "";
+}
+
+func Main() -> Void {
+    let row: RequiredStringRow = RequiredStringRow(true, "{}");
+    let values: Array<String> = [];
+    if RequiredString(row, "name", values) {
+        Log("readonly-record-one-copyout-ready");
+    } else {
+        Log("readonly-record-one-copyout-failed");
+    }
+    Log(ArrayLength(values));
+}

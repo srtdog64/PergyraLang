@@ -1,11 +1,8 @@
 // Local semantic shape for ordered direct-call arguments.
-
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 
-func DirectMirScalarProgramDirectCallArgumentRows(
-    ref facts: DirectMirScalarProgramExpressionSet, node: Int
-) -> Array<Int> {
+func DirectMirScalarProgramDirectCallArgumentRows(ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Array<Int> {
     let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
         facts.nary_operands, node);
     if ArrayLength(rows) != 0 { return rows; }
@@ -14,15 +11,12 @@ func DirectMirScalarProgramDirectCallArgumentRows(
     return rows;
 }
 
-func DirectMirScalarProgramDirectCallNodeReady(
-    ref facts: DirectMirScalarProgramExpressionSet, node: Int
-) -> Bool {
+func DirectMirScalarProgramDirectCallNodeReady(ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Bool {
     let arguments: Array<Int> =
         DirectMirScalarProgramDirectCallArgumentRows(facts, node);
     if facts.node_kinds[node] != DirectMirScalarProgramExprDirectCall() ||
-        !DirectMirScalarProgramCallableReturnTypeSupported(
-            facts.node_types[node]) ||
-        ArrayLength(arguments) < 1 || facts.node_local_rows[node] != -1 ||
+        facts.node_types[node] == "" ||
+        facts.node_local_rows[node] != -1 ||
         facts.node_parameter_ordinals[node] != -1 ||
         facts.node_literals[node] != "" ||
         facts.node_callable_rows[node] < 0 { return false; }
@@ -33,9 +27,23 @@ func DirectMirScalarProgramDirectCallNodeReady(
             facts.node_rights[node] != -1) { return false; }
     let ordinal: Int = 0;
     while ordinal < ArrayLength(arguments) {
-        if arguments[ordinal] < 0 || arguments[ordinal] >= node ||
-            !DirectMirScalarProgramCallableValueTypeSupported(
-                facts.node_types[arguments[ordinal]]) { return false; }
+        let argument: Int = arguments[ordinal];
+        if argument < 0 || argument >= node ||
+            (!DirectMirScalarProgramCallableValueTypeSupported(
+                facts.node_types[argument]) &&
+             facts.node_kinds[argument] != DirectMirScalarProgramExprLocal() &&
+             facts.node_kinds[argument] !=
+                DirectMirScalarProgramExprParameter() &&
+             facts.node_kinds[argument] !=
+                DirectMirScalarProgramExprDirectCall() &&
+             facts.node_kinds[argument] != DirectMirScalarProgramExprLogicalRecordConstructor() &&
+             facts.node_kinds[argument] != DirectMirScalarProgramExprLogicalRecordArrayIndex() &&
+             facts.node_kinds[argument] !=
+                DirectMirScalarProgramExprLogicalRecordMember() &&
+             facts.node_kinds[argument] !=
+                DirectMirScalarProgramExprPayloadFreeEnumVariant()) {
+            return false;
+        }
         ordinal = ordinal + 1;
     }
     return true;

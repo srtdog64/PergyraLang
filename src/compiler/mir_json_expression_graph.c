@@ -97,6 +97,8 @@ mir_expression_graph_digest(const MIRJsonExpressionGraph *graph, int root)
                 hash, node->call_target_kind);
             hash = mir_expression_graph_hash_string(
                 hash, node->call_target_name);
+            hash = mir_expression_graph_hash_int(
+                hash, (int)node->runtime_call_abi_id);
             hash = mir_expression_graph_hash_int(hash, node->left);
             hash = mir_expression_graph_hash_int(hash, node->right);
         }
@@ -159,6 +161,8 @@ mir_json_emit_instruction_expression_graph(FILE *out,
         mir_json_emit_str(out, node->call_target_kind);
         fputs(",\"call_target_name\":", out);
         mir_json_emit_str(out, node->call_target_name);
+        fprintf(out, ",\"runtime_call_abi_id\":%u",
+                node->runtime_call_abi_id);
         fputs(",\"left\":", out);
         if (node->left < 0)
             fputs("null", out);

@@ -1,6 +1,7 @@
 // Terminator admission and condition ownership for one scalar CFG block.
 
 import "direct_mir_scalar_cfg_collection_expression_owner.pgy";
+import "direct_mir_scalar_cfg_control_transfer_admission_owner.pgy";
 import "direct_mir_scalar_cfg_instruction_position_owner.pgy";
 
 func DirectMirScalarCfgBranchConditionFromOwners(
@@ -21,28 +22,17 @@ func DirectMirScalarCfgBranchConditionFromOwners(
         DirectMirScalarCfgExpressionFact(
             true, DirectMirScalarCfgConditionNone(), -1, -1, -1, -1, "", ""
         );
+    let transfer: DirectMirScalarCfgControlTransferAdmission =
+        DirectMirScalarCfgControlTransferFromOwners(
+            index, uses, source, global_row, block, instruction_row);
+    if transfer.claimed {
+        if !transfer.valid {
+            Die("direct MIR scalar CFG control-transfer edge is invalid");
+        }
+        return condition;
+    }
     if instruction_row + 1 != index.block_instruction_counts[block] {
         Die("direct MIR scalar CFG branch is not the terminator");
-    }
-    if source == "AST_BREAK" {
-        if index.block_succ_true[block] < 0 ||
-            index.block_succ_false[block] >= 0 ||
-            MirRoutineBlockDominates(
-                index, index.block_succ_true[block], block
-            ) || MirRoutineInstructionUseCountAtGlobal(uses, global_row) != 0 {
-            Die("direct MIR scalar CFG break edge is invalid");
-        }
-        return condition;
-    }
-    if source == "AST_CONTINUE" {
-        if index.block_succ_true[block] < 0 ||
-            index.block_succ_false[block] >= 0 ||
-            !MirRoutineBlockDominates(
-                index, index.block_succ_true[block], block
-            ) || MirRoutineInstructionUseCountAtGlobal(uses, global_row) != 0 {
-            Die("direct MIR scalar CFG continue edge is invalid");
-        }
-        return condition;
     }
     if source == "AST_FOR_LOOP" {
         let foreach: DirectMirScalarCfgForEachFact =

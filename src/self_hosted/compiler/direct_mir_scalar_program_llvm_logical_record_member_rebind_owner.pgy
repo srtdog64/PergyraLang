@@ -1,0 +1,75 @@
+// LLVM projection of one admitted logical-record member-rebind operation.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+        plan.operation_kinds[operation] !=
+            DirectMirScalarCfgOpLogicalRecordMemberRebind() {
+        Die("direct MIR LLVM logical-record member rebind is invalid");
+    }
+    let result: Int = plan.operation_result_values[operation];
+    let expression_row: Int = plan.program.operation_expression_rows[operation];
+    let target_row: Int = plan.program.operation_secondary_expression_rows[operation];
+    if result < 0 || result >= ArrayLength(plan.value_types) ||
+        expression_row < 0 || expression_row >=
+            ArrayLength(plan.program.expressions.graph_roots) ||
+        target_row < 0 || target_row >=
+            ArrayLength(plan.program.expressions.graph_roots) {
+        Die("direct MIR LLVM logical-record member rebind row is invalid");
+    }
+    let local_row: Int = plan.value_local_rows[result]; let member: Int = plan.operation_right_locals[operation]; let record_type: String = plan.value_types[result];
+    let target_root: Int = plan.program.expressions.graph_roots[target_row];
+    let field_type: String = plan.program.expressions.node_types[target_root];
+    let llvm_record: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
+        plan.program.logical_record, record_type);
+    let llvm_field: String =
+        DirectMirScalarProgramLlvmLogicalRecordFieldType(
+            plan.program.logical_record, field_type);
+    let expression: DirectMirScalarProgramLlvmExpression =
+        DirectMirScalarProgramLlvmExpressionAt(
+            plan.program.expressions, expression_row, runtime,
+            plan.program.logical_record, plan.routines, routine, target);
+    if local_row < 0 || field_type == "" || llvm_record == "" ||
+        llvm_field == "" || !expression.valid ||
+        expression.type_name != field_type ||
+        plan.program.expressions.node_kinds[target_root] !=
+            DirectMirScalarProgramExprLogicalRecordMember() ||
+        plan.program.expressions.node_member_ordinals[target_root] != member {
+        Die("direct MIR LLVM logical-record member rebind type is invalid");
+    }
+    let members: Array<Int> = [];
+    let node: Int = target_root;
+    while node >= 0 && plan.program.expressions.node_kinds[node] ==
+            DirectMirScalarProgramExprLogicalRecordMember() {
+        ArrayPush(members, plan.program.expressions.node_member_ordinals[node]);
+        node = plan.program.expressions.node_lefts[node];
+    }
+    let base: String = Concat(
+        "%pgy.record.rebind.base.", ToString(operation));
+    let updated: String = Concat(
+        "%pgy.record.rebind.value.", ToString(operation));
+    let output: String = expression.instructions;
+    output = Concat(output, Concat("  ", base));
+    output = Concat(output, Concat(" = load ", llvm_record));
+    output = Concat(output, Concat(", ptr %pgy.local.", ToString(local_row)));
+    output = Concat(output, ", align 8\n");
+    output = Concat(output, Concat("  ", updated));
+    output = Concat(output, Concat(" = insertvalue ", llvm_record));
+    output = Concat(output, Concat(" ", base));
+    output = Concat(output, Concat(", ", llvm_field));
+    output = Concat(output, Concat(" ", expression.value));
+    let path: Int = ArrayLength(members);
+    while path > 0 {
+        path = path - 1;
+        output = Concat(output, Concat(", ", ToString(members[path])));
+    }
+    output = Concat(output, "\n  store ");
+    output = Concat(output, Concat(llvm_record, Concat(" ", updated)));
+    output = Concat(output, Concat(", ptr %pgy.local.", ToString(local_row)));
+    return Concat(output, ", align 8\n");
+}

@@ -13,18 +13,18 @@ func SpawnRuntimeCFutureCValueType(type_name: String) -> String {
 
 func SpawnRuntimeCBlock() -> String {
     let block: String = "typedef enum { PGY_SELFHOST_SPAWN_INT1 = 1, PGY_SELFHOST_SPAWN_INT2 = 2, PGY_SELFHOST_SPAWN_STRING1 = 3 } PgySelfHostSpawnSignature;\n";
-    block = Concat(block, "typedef union { long long int_value; const char *string_value; } PgySelfHostSpawnValue;\n");
+    block = Concat(block, "typedef union { int32_t int_value; const char *string_value; } PgySelfHostSpawnValue;\n");
     block = Concat(block, "typedef union {\n");
-    block = Concat(block, "    long long (*int_unary)(long long);\n");
-    block = Concat(block, "    long long (*int_binary)(long long, long long);\n");
+    block = Concat(block, "    int32_t (*int_unary)(int32_t);\n");
+    block = Concat(block, "    int32_t (*int_binary)(int32_t, int32_t);\n");
     block = Concat(block, "    const char *(*string_unary)(const char *);\n");
     block = Concat(block, "} PgySelfHostSpawnFunction;\n");
     block = Concat(block, "typedef struct { PgySelfHostSpawnFunction fn; PgySelfHostSpawnSignature signature; PgySelfHostSpawnValue args[2]; } PgySelfHostSpawnArgs;\n");
     block = Concat(block, "static void *pgy_selfhost_spawn_wrapper(void *raw) {\n");
     block = Concat(block, "    PgySelfHostSpawnArgs *args = (PgySelfHostSpawnArgs *)raw;\n");
     block = Concat(block, "    void *result = NULL;\n");
-    block = Concat(block, "    if (args->signature == PGY_SELFHOST_SPAWN_INT1 && args->fn.int_unary != NULL) { long long *value = (long long *)malloc(sizeof(long long)); if (value != NULL) { *value = args->fn.int_unary(args->args[0].int_value); result = value; } }\n");
-    block = Concat(block, "    else if (args->signature == PGY_SELFHOST_SPAWN_INT2 && args->fn.int_binary != NULL) { long long *value = (long long *)malloc(sizeof(long long)); if (value != NULL) { *value = args->fn.int_binary(args->args[0].int_value, args->args[1].int_value); result = value; } }\n");
+    block = Concat(block, "    if (args->signature == PGY_SELFHOST_SPAWN_INT1 && args->fn.int_unary != NULL) { int32_t *value = (int32_t *)malloc(sizeof(int32_t)); if (value != NULL) { *value = args->fn.int_unary(args->args[0].int_value); result = value; } }\n");
+    block = Concat(block, "    else if (args->signature == PGY_SELFHOST_SPAWN_INT2 && args->fn.int_binary != NULL) { int32_t *value = (int32_t *)malloc(sizeof(int32_t)); if (value != NULL) { *value = args->fn.int_binary(args->args[0].int_value, args->args[1].int_value); result = value; } }\n");
     block = Concat(block, "    else if (args->signature == PGY_SELFHOST_SPAWN_STRING1 && args->fn.string_unary != NULL) { const char **value = (const char **)malloc(sizeof(const char *)); if (value != NULL) { *value = args->fn.string_unary(args->args[0].string_value); result = value; } }\n");
     block = Concat(block, "    else { free(args); PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn invocation descriptor is invalid\"); }\n");
     block = Concat(block, "    free(args);\n");

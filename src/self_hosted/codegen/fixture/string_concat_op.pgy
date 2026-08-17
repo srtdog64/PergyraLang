@@ -10,5 +10,6 @@ func Main() -> Void {
     Log(a + "/" + b + "/end");
     let n: Int = 7;
     Log("n=" + ToString(n));
+    Log(ToString(a));
     Log(ToUpper("ab") + ToLower("CD"));
 }

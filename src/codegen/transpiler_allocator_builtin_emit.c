@@ -9,6 +9,7 @@
 #include "transpiler_format.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_symbols.h"
+#include "../compiler/mir_abi_layout.h"
 
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
@@ -20,6 +21,28 @@
 char *
 emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
+    const char *source_name = NULL;
+    const MIRTextBuilderRuntimeRow *declared_row = NULL;
+    const MIRTextBuilderRuntimeRow *carried_row = ctx != NULL
+        && ctx->active_mir_instruction != NULL
+        ? ctx->active_mir_instruction->text_builder_runtime_row : NULL;
+    if (kind == BUILTIN_ALLOCATOR_DESTROY)
+        source_name = "AllocatorDestroy";
+    else if (kind == BUILTIN_ALLOCATOR_RESULT)
+        source_name = "AllocatorResult";
+    if (source_name != NULL) {
+        declared_row = mir_text_builder_runtime_row_by_source_name(source_name);
+        if (ctx != NULL && ctx->active_mir_instruction != NULL
+            && carried_row != declared_row) {
+            transpiler_set_backend_error_with_hints(
+                ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                "C backend: allocator builtin '%s' requires its MIR-owned runtime-call ABI row",
+                source_name);
+            return NULL;
+        }
+    }
     switch (kind) {
     case BUILTIN_ALLOCATOR_DESTROY:
         if (ast_call_arg_count(call) != 1) {
@@ -82,7 +105,10 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                     arg_name);
                 return NULL;
             }
-            result = strdup_fmt("pgy_allocator_destroy(&%s)", c_arg_name);
+            result = strdup_fmt("%s(&%s)",
+                declared_row != NULL ? declared_row->c_inline_fn
+                                     : "pgy_allocator_destroy",
+                c_arg_name);
             free(c_arg_name);
             return result;
         }
@@ -95,7 +121,8 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     case BUILTIN_ALLOCATOR_SCRATCH:
         return pergyra_strdup("pgy_allocator_scratch()");
     case BUILTIN_ALLOCATOR_RESULT:
-        return pergyra_strdup("pgy_allocator_result()");
+        return strdup_fmt("%s()", declared_row != NULL
+            ? declared_row->c_inline_fn : "pgy_allocator_result");
     case BUILTIN_ALLOCATOR_PERSISTENT:
         return pergyra_strdup("pgy_allocator_persistent()");
     case BUILTIN_ALLOCATOR_POOL:

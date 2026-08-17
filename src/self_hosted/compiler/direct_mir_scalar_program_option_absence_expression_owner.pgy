@@ -1,0 +1,45 @@
+// Normalizes the persisted zero-argument None leaf from the expected Option type.
+
+import "direct_mir_scalar_program_expression_kind_fact_owner.pgy";
+import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_string_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
+import "abi_layout_row_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramOptionAbsenceExpressionKind(
+    text: String, expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramExpressionKindFact {
+    if text != "None" {
+        return DirectMirScalarProgramExpressionKindFactInvalid();
+    }
+    if expected_type == CompilerAbiLayoutOptionIntTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprNoneInt(), expected_type, "");
+    }
+    if expected_type == CompilerAbiLayoutOptionStringTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprNoneString(), expected_type, "");
+    }
+    if expected_type == CompilerAbiLayoutOptionBoolTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprNoneBool(), expected_type, "");
+    }
+    if DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, expected_type) {
+        return DirectMirScalarProgramExpressionKindFact(true,
+            DirectMirScalarProgramExprNoneLogicalRecord(), expected_type, "");
+    }
+    return DirectMirScalarProgramExpressionKindFactInvalid();
+}
+
+func DirectMirScalarProgramOptionAbsenceReturnAbiReady(
+    text: String, persisted_type: String, expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if persisted_type == expected_type { return true; }
+    let fact: DirectMirScalarProgramExpressionKindFact =
+        DirectMirScalarProgramOptionAbsenceExpressionKind(
+            text, expected_type, logical_record);
+    return fact.valid && persisted_type == "Option<Unknown>";
+}

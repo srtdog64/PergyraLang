@@ -1,5 +1,4 @@
 // MIR JSON expression graph sequence construction.
-
 import "../lib/json_fact_table.pgy";
 import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../semantic/role_operator_vocabulary_owner.pgy";
@@ -12,14 +11,12 @@ struct MirExpressionGraphSequence {
     roots: Array<Int>;
     arena: SemanticExpressionGraphArena;
 }
-
 func MirExpressionGraphSequenceEmpty() -> MirExpressionGraphSequence {
     let roots: Array<Int> = [];
     return MirExpressionGraphSequence(
         true, 0, roots, SemanticExpressionGraphArenaEmpty()
     );
 }
-
 func MirExpressionGraphSequenceError(
     sequence: MirExpressionGraphSequence
 ) -> MirExpressionGraphSequence {
@@ -27,7 +24,6 @@ func MirExpressionGraphSequenceError(
         false, sequence.ready_node_count, sequence.roots, sequence.arena
     );
 }
-
 func MirExpressionGraphSequenceFromExtendedRows(
     sequence: MirExpressionGraphSequence,
     roots: Array<Int>, kinds: Array<Int>, texts: Array<String>,
@@ -43,6 +39,7 @@ func MirExpressionGraphSequenceFromExtendedRows(
         ArrayLength(target_names) != count || ArrayLength(places) != count ||
         ArrayLength(sequence.arena.call_return_type_names) != prefix ||
         ArrayLength(sequence.arena.identities.call_target_syntax_ids) != prefix ||
+        ArrayLength(sequence.arena.identities.runtime_call_abi_ids) != prefix ||
         ArrayLength(sequence.arena.identities.binding_kinds) != prefix ||
         ArrayLength(sequence.arena.identities.binding_ordinals) != prefix {
         return MirExpressionGraphSequenceError(sequence);
@@ -50,12 +47,15 @@ func MirExpressionGraphSequenceFromExtendedRows(
     let return_types: Array<String> = sequence.arena.call_return_type_names;
     let syntax_ids: Array<Int> =
         sequence.arena.identities.call_target_syntax_ids;
+    let runtime_ids: Array<Int> =
+        sequence.arena.identities.runtime_call_abi_ids;
     let binding_kinds: Array<Int> = sequence.arena.identities.binding_kinds;
     let binding_ordinals: Array<Int> =
         sequence.arena.identities.binding_ordinals;
     let i: Int = prefix;
     while i < count {
         ArrayPush(return_types, ""); ArrayPush(syntax_ids, 0);
+        ArrayPush(runtime_ids, 0);
         ArrayPush(binding_kinds, SemanticExpressionBindingNone());
         ArrayPush(binding_ordinals, -1); i = i + 1;
     }
@@ -64,7 +64,7 @@ func MirExpressionGraphSequenceFromExtendedRows(
             AstExpressionArena(kinds, texts, lefts, rights), texts,
             target_kinds, target_names, return_types,
             SemanticExpressionIdentityRows(
-                syntax_ids, binding_kinds, binding_ordinals
+                syntax_ids, runtime_ids, binding_kinds, binding_ordinals
             ), places
         );
     return MirExpressionGraphSequence(true, count, roots, arena);
@@ -127,6 +127,8 @@ func MirExpressionGraphSequenceAppend(
         sequence.arena.call_return_type_names;
     let call_target_syntax_ids: Array<Int> =
         sequence.arena.identities.call_target_syntax_ids;
+    let runtime_call_abi_ids: Array<Int> =
+        sequence.arena.identities.runtime_call_abi_ids;
     let binding_kinds: Array<Int> =
         sequence.arena.identities.binding_kinds;
     let binding_ordinals: Array<Int> =
@@ -140,6 +142,7 @@ func MirExpressionGraphSequenceAppend(
         ArrayLength(call_target_names) != offset ||
         ArrayLength(call_return_type_names) != offset ||
         ArrayLength(call_target_syntax_ids) != offset ||
+        ArrayLength(runtime_call_abi_ids) != offset ||
         ArrayLength(binding_kinds) != offset ||
         ArrayLength(binding_ordinals) != offset ||
         ArrayLength(place_kinds) != offset {
@@ -257,6 +260,7 @@ func MirExpressionGraphSequenceAppend(
         ArrayPush(call_target_names, node.target_name);
         ArrayPush(call_return_type_names, "");
         ArrayPush(call_target_syntax_ids, node.call_target_syntax_id);
+        ArrayPush(runtime_call_abi_ids, node.runtime_call_abi_id);
         ArrayPush(binding_kinds, node.binding_kind);
         if node.has_binding_ordinal {
             ArrayPush(binding_ordinals, node.binding_ordinal);
@@ -281,7 +285,8 @@ func MirExpressionGraphSequenceAppend(
             texts, call_target_kinds, call_target_names,
             call_return_type_names,
             SemanticExpressionIdentityRows(
-                call_target_syntax_ids, binding_kinds, binding_ordinals
+                call_target_syntax_ids, runtime_call_abi_ids,
+                binding_kinds, binding_ordinals
             ), place_kinds
         );
     if !MirExpressionGraphRangeReachable(

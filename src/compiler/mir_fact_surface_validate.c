@@ -143,7 +143,7 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
         if (expected_text_builder_row != inst->text_builder_runtime_row) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' block[%zu] instruction[%zu] TextBuilder runtime-call ABI fact is missing or mismatched",
+                    "MIR routine '%s' block[%zu] instruction[%zu] runtime-value runtime-call ABI fact is missing or mismatched",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i);

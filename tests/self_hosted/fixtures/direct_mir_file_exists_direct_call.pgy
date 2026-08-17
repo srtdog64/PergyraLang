@@ -1,0 +1,11 @@
+func DirectMirFileExistsFixturePath() -> String {
+    return ".tmp/self_hosted/direct_mir_scalar_file_exists_direct_call/present.txt";
+}
+
+func Main() -> Void {
+    if FileExists(DirectMirFileExistsFixturePath()) {
+        Log("yes");
+    } else {
+        Log("no");
+    }
+}

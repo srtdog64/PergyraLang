@@ -13,6 +13,14 @@ func DirectMirScalarProgramStringWindowBuiltinSignatureExpected(
         return ["Int", "String|String", ToString(
             DirectMirScalarProgramExprStringIndexOf())];
     }
+    if name == "CharAtN" {
+        return ["String", "String|Int|Int", ToString(
+            DirectMirScalarProgramExprCharAtN())];
+    }
+    if name == "CharCode" {
+        return ["Int", "String|Int|Int", ToString(
+            DirectMirScalarProgramExprCharCode())];
+    }
     if name == "Substring" {
         return ["String", "String|Int|Int", ToString(
             DirectMirScalarProgramExprSubstring())];
@@ -20,6 +28,14 @@ func DirectMirScalarProgramStringWindowBuiltinSignatureExpected(
     if name == "SubstringWithLen" {
         return ["String", "String|Int|Int|Int", ToString(
             DirectMirScalarProgramExprSubstringWithLen())];
+    }
+    if name == "SubIndexOfWithLen" {
+        return ["Int", "String|Int|Int|Int|String", ToString(
+            DirectMirScalarProgramExprSubIndexOfWithLen())];
+    }
+    if name == "SubEqualsWithLen" {
+        return ["Bool", "String|Int|Int|Int|String", ToString(
+            DirectMirScalarProgramExprSubEqualsWithLen())];
     }
     return [];
 }

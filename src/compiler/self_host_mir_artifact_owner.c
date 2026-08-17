@@ -18,6 +18,7 @@ driver_materialize_self_host_mir_artifact(const char *launcher_path,
 {
     const char *child_argv[6];
     char *binary;
+    char *canonical_source_path;
     int rc;
 
     if (source_path == NULL || source_path[0] == '\0') {
@@ -30,10 +31,19 @@ driver_materialize_self_host_mir_artifact(const char *launcher_path,
         return 1;
     }
 
+    canonical_source_path =
+        driver_self_host_source_identity_path_dup(source_path);
+    if (canonical_source_path == NULL) {
+        fprintf(stderr,
+                "pgy: could not canonicalize self-host source identity\n");
+        return 1;
+    }
+
     binary = driver_resolve_self_host_binary(launcher_path);
     if (binary == NULL || !path_file_exists(binary)) {
         fprintf(stderr,
                 "pgy: self-host driver is unavailable; run 'make self-host-compiler' or set PGY_SELF_DRIVER_BIN\n");
+        free(canonical_source_path);
         free(binary);
         return 1;
     }
@@ -41,7 +51,7 @@ driver_materialize_self_host_mir_artifact(const char *launcher_path,
     remove(output_path);
     child_argv[0] = binary;
     child_argv[1] = "--emit-mir-json-verified";
-    child_argv[2] = source_path;
+    child_argv[2] = canonical_source_path;
     child_argv[3] = "-o";
     child_argv[4] = output_path;
     child_argv[5] = NULL;
@@ -56,6 +66,7 @@ driver_materialize_self_host_mir_artifact(const char *launcher_path,
         rc = 1;
     }
 
+    free(canonical_source_path);
     free(binary);
     return rc;
 }

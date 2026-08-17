@@ -7,6 +7,37 @@ func SelfMirJsonRuntimeCallAbiField(
     rows: SelfMirInstructionRows,
     instruction_index: Int
 ) -> String {
+    if rows.runtime_call_abi.runtime_values.present[instruction_index] == 1 {
+        return JsonEmitFieldRaw(
+            "runtime_call_abi",
+            JsonEmitObject([
+                JsonEmitFieldString(
+                    "owner", rows.runtime_call_abi.runtime_values.owners[
+                        instruction_index]),
+                JsonEmitFieldString(
+                    "source", rows.runtime_call_abi.runtime_values.sources[
+                        instruction_index]),
+                JsonEmitFieldString(
+                    "operation",
+                    rows.runtime_call_abi.runtime_values.operations[
+                        instruction_index]),
+                JsonEmitFieldString(
+                    "c_symbol", rows.runtime_call_abi.runtime_values.c_symbols[
+                        instruction_index]),
+                JsonEmitFieldString(
+                    "llvm_symbol",
+                    rows.runtime_call_abi.runtime_values.llvm_symbols[
+                        instruction_index]),
+                JsonEmitFieldString(
+                    "c_shape", rows.runtime_call_abi.runtime_values.c_shapes[
+                        instruction_index]),
+                JsonEmitFieldString(
+                    "llvm_shape",
+                    rows.runtime_call_abi.runtime_values.llvm_shapes[
+                        instruction_index])
+            ])
+        );
+    }
     if rows.runtime_call_abi.present[instruction_index] != 1 {
         return "";
     }
@@ -112,13 +143,151 @@ func SelfMirJsonAppendRuntimeCallAbiFields(
         rows, instruction_index
     );
     if primary != "" {
-        ArrayPush(fields, JsonEmitFieldBool(
-            "runtime_call_abi_required", true
-        ));
+        if rows.runtime_call_abi.present[instruction_index] == 1 {
+            ArrayPush(fields, JsonEmitFieldBool(
+                "runtime_call_abi_required", true
+            ));
+        }
         ArrayPush(fields, primary);
     }
     let auxiliary: String = SelfMirJsonRuntimeCallAbiAuxField(
         rows, instruction_index
     );
     if auxiliary != "" { ArrayPush(fields, auxiliary); }
+}
+
+func SelfMirJsonRuntimeCallAbiPrimaryWriteFile(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int,
+    output: Int
+) -> Bool {
+    if rows.runtime_call_abi.runtime_values.present[instruction_index] == 1 {
+        CompilerArtifactWrite(output, ",\"runtime_call_abi\":{\"owner\":");
+        if !JsonStringLiteralWriteFile(output,
+            rows.runtime_call_abi.runtime_values.owners[instruction_index]
+        ) { return false; }
+        CompilerArtifactWrite(output, ",\"source\":");
+        if !JsonStringLiteralWriteFile(output,
+            rows.runtime_call_abi.runtime_values.sources[instruction_index]
+        ) { return false; }
+        CompilerArtifactWrite(output, ",\"operation\":");
+        if !JsonStringLiteralWriteFile(output,
+            rows.runtime_call_abi.runtime_values.operations[instruction_index]
+        ) { return false; }
+        CompilerArtifactWrite(output, ",\"c_symbol\":");
+        if !JsonStringLiteralWriteFile(output,
+            rows.runtime_call_abi.runtime_values.c_symbols[instruction_index]
+        ) { return false; }
+        CompilerArtifactWrite(output, ",\"llvm_symbol\":");
+        if !JsonStringLiteralWriteFile(output,
+            rows.runtime_call_abi.runtime_values.llvm_symbols[instruction_index]
+        ) { return false; }
+        CompilerArtifactWrite(output, ",\"c_shape\":");
+        if !JsonStringLiteralWriteFile(output,
+            rows.runtime_call_abi.runtime_values.c_shapes[instruction_index]
+        ) { return false; }
+        CompilerArtifactWrite(output, ",\"llvm_shape\":");
+        if !JsonStringLiteralWriteFile(output,
+            rows.runtime_call_abi.runtime_values.llvm_shapes[instruction_index]
+        ) { return false; }
+        CompilerArtifactWrite(output, "}");
+        return true;
+    }
+    if rows.runtime_call_abi.present[instruction_index] != 1 { return true; }
+    CompilerArtifactWrite(output,
+        ",\"runtime_call_abi_required\":true,\"runtime_call_abi\":{");
+    CompilerArtifactWrite(output, "\"owner\":");
+    if !JsonStringLiteralWriteFile(output,
+        rows.runtime_call_abi.owners[instruction_index]
+    ) { return false; }
+    CompilerArtifactWrite(output, ",\"id\":");
+    JsonOwnedFragmentWriteFile(output, ToString(
+        rows.runtime_call_abi.runtime_call_abi_ids[instruction_index]));
+    CompilerArtifactWrite(output, ",\"domain\":");
+    if !JsonStringLiteralWriteFile(output,
+        rows.runtime_call_abi.domains[instruction_index]
+    ) { return false; }
+    CompilerArtifactWrite(output, ",\"type\":");
+    if !JsonStringLiteralWriteFile(output,
+        rows.runtime_call_abi.type_names[instruction_index]
+    ) { return false; }
+    CompilerArtifactWrite(output, ",\"operation\":");
+    if !JsonStringLiteralWriteFile(output,
+        rows.runtime_call_abi.operations[instruction_index]
+    ) { return false; }
+    CompilerArtifactWrite(output, ",\"symbol\":");
+    if !JsonStringLiteralWriteFile(output,
+        rows.runtime_call_abi.symbols[instruction_index]
+    ) { return false; }
+    CompilerArtifactWrite(output, ",\"target_kind\":");
+    if !JsonStringLiteralWriteFile(output,
+        rows.runtime_call_abi.target_kinds[instruction_index]
+    ) { return false; }
+    CompilerArtifactWrite(output, ",\"materialization\":");
+    if !JsonStringLiteralWriteFile(output,
+        rows.runtime_call_abi.materializations[instruction_index]
+    ) { return false; }
+    CompilerArtifactWrite(output, ",\"call_shape\":");
+    if !JsonStringLiteralWriteFile(output,
+        rows.runtime_call_abi.call_shapes[instruction_index]
+    ) { return false; }
+    CompilerArtifactWrite(output, "}");
+    return true;
+}
+
+func SelfMirJsonRuntimeCallAbiAuxWriteFile(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int,
+    output: Int
+) -> Bool {
+    let wrote: Bool = false;
+    let i: Int = 0;
+    while i < ArrayLength(rows.runtime_call_abi.aux_instruction_indices) {
+        if rows.runtime_call_abi.aux_instruction_indices[i] ==
+            instruction_index {
+            if !wrote {
+                CompilerArtifactWrite(output, ",\"runtime_call_abi_aux\":[");
+                wrote = true;
+            } else { CompilerArtifactWrite(output, ","); }
+            CompilerArtifactWrite(output, "{\"owner\":");
+            if !JsonStringLiteralWriteFile(output,
+                rows.runtime_call_abi.aux_owners[i]
+            ) { return false; }
+            CompilerArtifactWrite(output, ",\"id\":");
+            JsonOwnedFragmentWriteFile(output, ToString(
+                rows.runtime_call_abi.aux_runtime_call_abi_ids[i]));
+            CompilerArtifactWrite(output, ",\"domain\":");
+            if !JsonStringLiteralWriteFile(output,
+                rows.runtime_call_abi.aux_domains[i]
+            ) { return false; }
+            CompilerArtifactWrite(output, ",\"type\":");
+            if !JsonStringLiteralWriteFile(output,
+                rows.runtime_call_abi.aux_type_names[i]
+            ) { return false; }
+            CompilerArtifactWrite(output, ",\"operation\":");
+            if !JsonStringLiteralWriteFile(output,
+                rows.runtime_call_abi.aux_operations[i]
+            ) { return false; }
+            CompilerArtifactWrite(output, ",\"symbol\":");
+            if !JsonStringLiteralWriteFile(output,
+                rows.runtime_call_abi.aux_symbols[i]
+            ) { return false; }
+            CompilerArtifactWrite(output, ",\"target_kind\":");
+            if !JsonStringLiteralWriteFile(output,
+                rows.runtime_call_abi.aux_target_kinds[i]
+            ) { return false; }
+            CompilerArtifactWrite(output, ",\"materialization\":");
+            if !JsonStringLiteralWriteFile(output,
+                rows.runtime_call_abi.aux_materializations[i]
+            ) { return false; }
+            CompilerArtifactWrite(output, ",\"call_shape\":");
+            if !JsonStringLiteralWriteFile(output,
+                rows.runtime_call_abi.aux_call_shapes[i]
+            ) { return false; }
+            CompilerArtifactWrite(output, "}");
+        }
+        i = i + 1;
+    }
+    if wrote { CompilerArtifactWrite(output, "]"); }
+    return true;
 }

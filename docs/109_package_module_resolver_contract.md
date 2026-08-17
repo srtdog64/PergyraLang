@@ -136,7 +136,7 @@ selector. They therefore must not assume that the later default selector will
 delegate on their behalf. `check`, `lint`, `prove`, and the verification phase
 of `package` publish one private verified MIR artifact through the installed
 `pgy-self-driver`. `build`, `run`, and `test` consume the manifest backend once
-and use the installed C or runtime-free LLVM artifact runner. A missing sibling
+and use the installed C or admitted default-runtime LLVM artifact runner. A missing sibling
 driver fails closed; it never authorizes a native semantic/codegen retry.
 
 `PGY_NATIVE_PIPELINE=1` is the explicit resolver/bootstrap test opt-out. It is

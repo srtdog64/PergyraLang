@@ -6,6 +6,7 @@ import "direct_mir_array_int_plan_owner.pgy";
 import "direct_mir_array_return_plan_owner.pgy";
 import "target_projection_fact_owner.pgy";
 import "direct_mir_array_storage_abi_projection_owner.pgy";
+import "../codegen/runtime_abi/string_runtime_symbol_owner.pgy";
 
 struct DirectMirArrayIntAbiProjection {
     let valid: Bool;
@@ -47,7 +48,8 @@ func DirectMirArrayIntAbiProjectionReadyFor(
     if expected_target == CompilerTargetCpuCProjection() {
         return projection.c_element_type == "int32_t" &&
             projection.c_length_type == projection.storage.c_length_type &&
-            projection.c_print_type == CompilerAbiLayoutIntCValueType() &&
+            projection.c_print_type ==
+                StringRuntimeCLongPrintArgumentType() &&
             projection.c_array_type ==
                 CompilerAbiLayoutArrayIntCValueType() &&
             projection.llvm_element_type == "" &&
@@ -78,7 +80,7 @@ func DirectMirArrayIntAbiProjectionReadyFor(
 }
 
 func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
-    target: CompilerTargetProjectionFact,
+    ref target: CompilerTargetProjectionFact,
     abi_layout_id: Int,
     abi_size: Int,
     abi_align: Int,
@@ -121,7 +123,7 @@ func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
             true, target.projection,
             target.target_capability_fingerprint,
             storage, "int32_t", storage.c_length_type,
-            CompilerAbiLayoutIntCValueType(),
+            StringRuntimeCLongPrintArgumentType(),
             CompilerAbiLayoutArrayIntCValueType(),
             "", "", "", "", "", 0 - 1, 0 - 1, 0 - 1, 0 - 1
         );

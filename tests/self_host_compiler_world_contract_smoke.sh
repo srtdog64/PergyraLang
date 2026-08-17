@@ -667,7 +667,7 @@ for term in \
     "func SemanticVerdictPayloadStatusReady" \
     "func SemanticVerdictPayloadContractReady" \
     "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()" \
-    "SemanticDiagnosticCodeCount() != 24" \
+    "SemanticDiagnosticCodeCount() != 33" \
     "StringIndexOf(ok, \"Status: ok\")" \
     "StringIndexOf(err, \"Code: undefined_symbol\")"; do
     require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "$term"
@@ -891,6 +891,9 @@ done
 for term in \
     'import "target_capability_owner.pgy";' \
     "func CompilerAbiLayoutSelfHostedCAbi" \
+    "struct CompilerAbiLayoutTargetPolicyRow" \
+    "func CompilerAbiLayoutTargetPolicyRowAt" \
+    "func CompilerAbiLayoutTargetPolicyRowsReady" \
     "func CompilerAbiLayoutTargetPolicyCount" \
     "func CompilerAbiLayoutTargetPolicyAbiAt" \
     "func CompilerAbiLayoutTargetPolicyProjectionSetAt" \

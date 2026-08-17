@@ -1,88 +1,72 @@
 // Range-aware LLVM projection for every routine in the scalar program GraphPlan.
 
 import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
+import "direct_mir_scalar_program_process_exit_owner.pgy";
 import "direct_mir_scalar_program_llvm_expression_owner.pgy";
+import "direct_mir_scalar_cfg_program_llvm_operation_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_global_owner.pgy";
 import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_builtin_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_mutation_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
 import "direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_bool_materialization_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_bool_value_result_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_value_result_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_array_value_result_owner.pgy";
+import "direct_mir_scalar_program_llvm_set_string_value_result_owner.pgy";
+import "direct_mir_scalar_program_process_exit_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_signature_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+import "direct_mir_scalar_program_llvm_runtime_value_expression_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
-
-func DirectMirScalarCfgProgramLlvmOperation(
-    ref plan: DirectMirScalarCfgGraphPlan, operation: Int,
-    formatted_print: CompilerRuntimeCallAbiFact,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    int_line_format: String, string_line_format: String
-) -> String {
-    let kind: Int = plan.operation_kinds[operation];
-    if kind != DirectMirScalarCfgOpExpressionDefinition() &&
-        kind != DirectMirScalarCfgOpExpressionLog() { return ""; }
-    let expression_row: Int =
-        plan.program.operation_expression_rows[operation];
-    let expression: DirectMirScalarProgramLlvmExpression =
-        DirectMirScalarProgramLlvmExpressionAt(
-            plan.program.expressions, expression_row, runtime);
-    if !expression.valid {
-        Die("direct MIR scalar CFG LLVM expression is invalid");
-    }
-    let output: String = expression.instructions;
-    if kind == DirectMirScalarCfgOpExpressionDefinition() {
-        let result: Int = plan.operation_result_values[operation];
-        let local_binding: Int = plan.value_local_rows[result];
-        let llvm_type: String = DirectMirScalarProgramLlvmType(
-            plan.value_types[result]);
-        output = Concat(output, "  store ");
-        output = Concat(output, llvm_type);
-        output = Concat(output, " ");
-        output = Concat(output, expression.value);
-        output = Concat(output, ", ptr %pgy.local.");
-        output = Concat(output, ToString(local_binding));
-        if llvm_type == "i1" { return Concat(output, ", align 1\n"); }
-        return Concat(output, ", align 8\n");
-    }
-    let format_name: String = "@.pgy.scalar.cfg.string.format";
-    let line_format: String = string_line_format;
-    let value_type: String = "ptr";
-    let root: Int = plan.program.expressions.graph_roots[expression_row];
-    if plan.program.expressions.node_types[root] ==
-            CompilerAbiLayoutIntTypeName() {
-        format_name = "@.pgy.scalar.cfg.int.format";
-        line_format = int_line_format;
-        value_type = "i64";
-    }
-    let format_size: Int = DirectMirScalarLlvmFormatByteCount(line_format);
-    output = Concat(output, "  call i32 (ptr, ...) @");
-    output = Concat(output, formatted_print.symbol);
-    output = Concat(output, "(ptr getelementptr inbounds ([");
-    output = Concat(output, ToString(format_size));
-    output = Concat(output, " x i8], ptr ");
-    output = Concat(output, format_name);
-    output = Concat(output, ", i64 0, i64 0), ");
-    output = Concat(output, value_type);
-    output = Concat(output, " ");
-    output = Concat(output, expression.value);
-    return Concat(output, ")\n");
-}
 
 func DirectMirScalarCfgProgramLlvmRoutine(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
+    process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    int_line_format: String, string_line_format: String
+    int_line_format: String, string_line_format: String,
+    target: CompilerTargetProjectionFact
 ) -> String {
     let output: String = DirectMirScalarCfgProgramLlvmRoutineSignature(
         plan, routine);
     output = Concat(output, " {\nentry:\n");
+    if routine == plan.routines.entrypoint_ordinal &&
+        plan.program.runtime_abi.process_args_id != 0 {
+        output = Concat(output,
+            "  store i32 %argc, ptr @pgy.selfhost.argc, align 4\n  store ptr %argv, ptr @pgy.selfhost.argv, align 8\n");
+    }
+    output = Concat(output,
+        DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(
+            plan, routine));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(plan, routine));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(plan, routine));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmLogicalRecordValueResultCopyIn(
+            plan, routine));
+    output = Concat(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyIn(plan, routine));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmSetStringValueResultCopyIn(plan, routine));
     output = Concat(output, DirectMirScalarCfgLlvmLocalDeclarationsInRange(
         plan, plan.routines.local_starts[routine],
-        plan.routines.local_counts[routine]));
+        plan.routines.local_counts[routine], routine));
     let block_start: Int = plan.routines.block_starts[routine];
     let block_end: Int = block_start + plan.routines.block_counts[routine];
     output = Concat(output, "  br label %pgy.r");
@@ -102,19 +86,23 @@ func DirectMirScalarCfgProgramLlvmRoutine(
             plan.block_operation_counts[block];
         while operation < operation_end {
             let emitted: String = DirectMirScalarCfgProgramLlvmOperation(
-                plan, operation, formatted_print, runtime,
-                int_line_format, string_line_format);
+                plan, routine, operation, formatted_print, process_exit,
+                runtime, int_line_format, string_line_format, target);
             if emitted == "" &&
                 (plan.operation_kinds[operation] ==
                     DirectMirScalarCfgOpPhiInt() ||
                  plan.operation_kinds[operation] ==
-                    DirectMirScalarCfgOpPhiString()) {
+                    DirectMirScalarCfgOpPhiString() ||
+                 plan.operation_kinds[operation] ==
+                    DirectMirScalarCfgOpPhiValue()) {
                 // Memory locals already carry the selected predecessor value.
             }
             if emitted == "" && plan.operation_kinds[operation] !=
                     DirectMirScalarCfgOpPhiInt() &&
                     plan.operation_kinds[operation] !=
-                    DirectMirScalarCfgOpPhiString() {
+                    DirectMirScalarCfgOpPhiString() &&
+                    plan.operation_kinds[operation] !=
+                    DirectMirScalarCfgOpPhiValue() {
                 Die("direct MIR scalar program LLVM operation is unsupported");
             }
             output = Concat(output, emitted);
@@ -122,16 +110,61 @@ func DirectMirScalarCfgProgramLlvmRoutine(
         }
         let return_row: Int =
             plan.program.block_return_expression_rows[block];
-        if return_row >= 0 {
+        if return_row == DirectMirScalarCfgVoidReturnExpressionRow() {
+            if routine == plan.routines.entrypoint_ordinal {
+                output = Concat(output,
+                    DirectMirScalarProgramLlvmStringArrayCleanup(
+                        plan, routine));
+                output = Concat(output, "  ret i32 0\n");
+            } else {
+                output = Concat(output,
+                    DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
+                        plan, routine, block));
+                output = Concat(output,
+                    DirectMirScalarProgramLlvmArrayIntValueResultCopyOut(
+                        plan, routine, block));
+                output = Concat(output,
+                    DirectMirScalarProgramLlvmArrayBoolValueResultCopyOut(
+                        plan, routine, block));
+                output = Concat(output,
+                    DirectMirScalarProgramLlvmLogicalRecordValueResultCopyOut(
+                        plan, routine, block));
+                output = Concat(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(plan, routine, block));
+                output = Concat(output,
+                    DirectMirScalarProgramLlvmSetStringValueResultCopyOut(
+                        plan, routine, block));
+                output = Concat(output, "  ret void\n");
+            }
+        } else if return_row >= 0 {
             let expression: DirectMirScalarProgramLlvmExpression =
                 DirectMirScalarProgramLlvmExpressionAt(
-                    plan.program.expressions, return_row, runtime);
+                    plan.program.expressions, return_row, runtime,
+                    plan.program.logical_record, plan.routines, routine,
+                    target);
             if !expression.valid { Die(
                 "direct MIR scalar CFG LLVM return expression is invalid"); }
             output = Concat(output, expression.instructions);
+            output = Concat(output,
+                DirectMirScalarProgramLlvmArrayIntValueResultCopyOut(
+                    plan, routine, block));
+            output = Concat(output,
+                DirectMirScalarProgramLlvmArrayBoolValueResultCopyOut(
+                    plan, routine, block));
+            output = Concat(output,
+                DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
+                    plan, routine, block));
+            output = Concat(output,
+                DirectMirScalarProgramLlvmLogicalRecordValueResultCopyOut(
+                    plan, routine, block));
+            output = Concat(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(plan, routine, block));
+            output = Concat(output,
+                DirectMirScalarProgramLlvmSetStringValueResultCopyOut(
+                    plan, routine, block));
             output = Concat(output, "  ret ");
-            output = Concat(output, DirectMirScalarProgramLlvmTypeForNominal(
-                expression.type_name, plan.program.nominal_abi));
+            output = Concat(output, DirectMirScalarProgramLlvmTypeForProgram(
+                expression.type_name, plan.program.nominal_abi,
+                plan.program.logical_record,
+                plan.program.payload_free_enum));
             output = Concat(output, " ");
             output = Concat(output, expression.value);
             output = Concat(output, "\n");
@@ -141,7 +174,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                 DirectMirScalarProgramLlvmExpressionAt(
                     plan.program.expressions,
                     plan.program.block_condition_expression_rows[block],
-                    runtime);
+                    runtime, plan.program.logical_record,
+                    plan.routines, routine, target);
             if !condition.valid || condition.type_name !=
                     CompilerAbiLayoutBoolTypeName() {
                 Die("direct MIR scalar CFG LLVM condition is invalid");
@@ -168,6 +202,10 @@ func DirectMirScalarCfgProgramLlvmRoutine(
             output = Concat(output,
                 DirectMirScalarProgramLlvmStringArrayCleanup(plan, routine));
             output = Concat(output, "  ret i32 0\n");
+        } else if DirectMirScalarProgramBlockEndsWithProcessExit(
+                plan.operation_kinds, plan.block_operation_starts[block],
+                plan.block_operation_counts[block]) {
+            output = Concat(output, "  unreachable\n");
         } else {
             Die("direct MIR scalar program callable return is missing");
         }
@@ -179,6 +217,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
 func DirectMirScalarCfgEmitProgramLlvm(
     ref plan: DirectMirScalarCfgGraphPlan,
     formatted_print: CompilerRuntimeCallAbiFact,
+    process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     int_line_format: String, string_line_format: String,
     target: CompilerTargetProjectionFact
@@ -189,14 +228,54 @@ func DirectMirScalarCfgEmitProgramLlvm(
     let int_size: Int = DirectMirScalarLlvmFormatByteCount(int_line_format);
     let string_size: Int =
         DirectMirScalarLlvmFormatByteCount(string_line_format);
+    let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement =
+        DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
+    if !array_int_runtime.valid { Die(
+        "direct MIR scalar LLVM Array<Int> runtime requirement is invalid"); }
     let output: String =
         "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [";
+    output = Concat(
+        CompilerRuntimeValueLlvmLocalPreamble(plan.local_types),
+        output);
+    output = Concat(
+        DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
+            plan.program.logical_record, target), output);
+    output = Concat(DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(plan, target), output);
+    output = Concat(
+        DirectMirScalarProgramLlvmLogicalRecordPreamble(
+            plan.program.logical_record, target), output);
+    output = Concat(
+        DirectMirScalarProgramLlvmArrayIntValueResultPreamble(
+            plan.program.array_int_value_result, array_int_runtime, target),
+        output);
+    let array_bool_get_required: Bool =
+        DirectMirScalarProgramExpressionContainsKind(
+            plan.program.expressions,
+            DirectMirScalarProgramExprArrayBoolIndex());
+    let array_bool_preamble: String =
+        DirectMirScalarProgramLlvmArrayBoolPreamble(
+            plan.program.array_bool_abi, array_bool_get_required, target);
+    if DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) {
+        array_bool_preamble = Concat(
+            array_bool_preamble,
+            DirectMirScalarProgramLlvmArrayBoolPushMaterialization());
+    }
+    output = Concat(array_bool_preamble, output);
+    output = Concat(
+        DirectMirScalarProgramLlvmStringCollectionMaterialization(
+            plan, runtime), output);
     output = Concat(
         DirectMirScalarProgramLlvmTwoIntNominalPreamble(
             plan.program.nominal_abi, target), output);
     output = Concat(
         DirectMirScalarProgramLlvmOptionIntPreamble(
             plan.program.option_int_abi, target), output);
+    output = Concat(
+        DirectMirScalarProgramLlvmOptionStringPreamble(
+            plan.program.option_string_abi, target), output);
+    output = Concat(
+        DirectMirScalarProgramLlvmOptionBoolPreamble(
+            plan.program.option_bool_abi, target), output);
     output = Concat(output, ToString(int_size));
     output = Concat(output, " x i8] c\"");
     output = Concat(output,
@@ -214,13 +293,31 @@ func DirectMirScalarCfgEmitProgramLlvm(
     output = Concat(output,
         DirectMirScalarCfgLlvmForeignDeclarations(plan));
     output = Concat(output,
+        DirectMirScalarProgramLlvmRuntimeValueDeclarations(
+            plan.program.expressions));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmIntentObservabilityDeclarations(
+            plan.program.expressions));
+    output = Concat(output,
         DirectMirScalarCfgStringLlvmConcatBlock(
             plan, runtime.string_concat));
     output = Concat(output,
-        DirectMirScalarProgramLlvmBuiltinMaterialization(plan, runtime));
+        DirectMirScalarProgramLlvmBuiltinMaterialization(
+            plan, runtime, formatted_print));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmLocalArraySetMaterialization(
+            plan));
     output = Concat(output, "\ndeclare i32 @");
     output = Concat(output, formatted_print.symbol);
     output = Concat(output, "(ptr, ...)\n");
+    if DirectMirScalarProgramHasProcessExit(plan.operation_kinds) {
+        if !CompilerRuntimeCallAbiProcessExitFactReady(process_exit) {
+            Die("direct MIR scalar LLVM process-exit ABI is invalid");
+        }
+        output = Concat(output, "declare void @");
+        output = Concat(output, process_exit.symbol);
+        output = Concat(output, "(i32)\n");
+    }
     if plan.program.runtime_abi.string_compare_id != 0 {
         if !CompilerRuntimeCallAbiStringCompareFactReady(
                 runtime.string_compare) {
@@ -234,8 +331,8 @@ func DirectMirScalarCfgEmitProgramLlvm(
     let routine: Int = 0;
     while routine < ArrayLength(plan.routines.roles) {
         output = Concat(output, DirectMirScalarCfgProgramLlvmRoutine(
-            plan, routine, formatted_print, runtime, int_line_format,
-            string_line_format));
+            plan, routine, formatted_print, process_exit, runtime,
+            int_line_format, string_line_format, target));
         routine = routine + 1;
     }
     return output;

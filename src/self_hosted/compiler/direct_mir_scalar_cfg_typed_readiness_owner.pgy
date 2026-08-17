@@ -8,10 +8,12 @@ import "direct_mir_scalar_cfg_array_int_pop_lookup_owner.pgy";
 import "direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+import "direct_mir_scalar_program_option_int_abi_owner.pgy";
 import "direct_mir_scalar_cfg_typed_foreach_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_cfg_string_expression_owner.pgy";
 func DirectMirScalarCfgPlanOperandType(
-    ref plan: DirectMirScalarCfgGraphPlan, value: Int, local_binding: Int
-) -> String {
+    ref plan: DirectMirScalarCfgGraphPlan, value: Int, local_binding: Int) -> String {
     if value >= 0 && value < ArrayLength(plan.value_types) && local_binding < 0 {
         return plan.value_types[value];
     }
@@ -21,10 +23,8 @@ func DirectMirScalarCfgPlanOperandType(
     return "";
 }
 func DirectMirScalarCfgTypedOperationsReady(
-    ref plan: DirectMirScalarCfgGraphPlan
-) -> Bool {
-    let concat_seen: Bool =
-        plan.program.runtime_abi.string_concat_id != 0;
+    ref plan: DirectMirScalarCfgGraphPlan) -> Bool {
+    let concat_seen: Bool = plan.program.runtime_abi.string_concat_id != 0;
     let row: Int = 0;
     while row < ArrayLength(plan.operation_kinds) {
         let kind: Int = plan.operation_kinds[row];
@@ -50,6 +50,8 @@ func DirectMirScalarCfgTypedOperationsReady(
         let is_int_result: Bool = result_type == CompilerAbiLayoutIntTypeName();
         let is_string_result: Bool =
             result_type == CompilerAbiLayoutStringTypeName();
+        let is_value_result: Bool = DirectMirScalarCfgPhiValueTypeReady(
+            plan.program.logical_record, result_type);
         let indexed_row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
             plan.string_arrays, row
         );
@@ -75,6 +77,7 @@ func DirectMirScalarCfgTypedOperationsReady(
                     DirectMirScalarCfgStringArrayAccessConcatRead()))) ||
             (kind == DirectMirScalarCfgOpPhiInt() && !is_int_result) ||
             (kind == DirectMirScalarCfgOpPhiString() && !is_string_result) ||
+            (kind == DirectMirScalarCfgOpPhiValue() && !is_value_result) ||
             (kind == DirectMirScalarCfgOpLogInt() && !left_is_int) ||
             (kind == DirectMirScalarCfgOpLogStringValue() &&
                 left_type != CompilerAbiLayoutStringTypeName() &&
@@ -89,6 +92,10 @@ func DirectMirScalarCfgTypedOperationsReady(
             ) ||
             (kind == DirectMirScalarCfgOpArrayPushInt() &&
                 (result >= 0 || !left_is_int || !right_is_int)) ||
+            (plan.operation_left_locals[row] >= 0 &&
+                DirectMirScalarProgramLocalArrayMutationKind(kind) &&
+                !DirectMirScalarProgramLocalArrayMutationTargetTypeReady(
+                    kind, left_type)) ||
             (kind == DirectMirScalarCfgOpAddArrayReadInt() &&
                 (!is_int_result || !left_is_int || !right_is_int)) {
             return false;
@@ -122,15 +129,44 @@ func DirectMirScalarCfgTypedPlanReady(
             type_name == CompilerAbiLayoutArrayStringTypeName() &&
             DirectMirScalarProgramArrayStringAbiFactReady(
                 plan.program.array_string_abi);
+        let program_array_int_ready: Bool =
+            type_name == CompilerAbiLayoutArrayIntTypeName() &&
+            plan.program.array_int_value_result.present &&
+            DirectMirScalarProgramArrayIntValueResultFactReady(
+                plan.program.array_int_value_result);
+        let program_array_bool_ready: Bool =
+            type_name == CompilerAbiLayoutArrayBoolTypeName() &&
+            plan.program.array_bool_abi.present &&
+            DirectMirScalarProgramArrayBoolAbiFactReady(
+                plan.program.array_bool_abi);
+        let program_set_string_ready: Bool =
+            type_name == CompilerAbiLayoutSetStringTypeName() &&
+            CompilerAbiLayoutSetStringRowReady();
+        let program_option_string_ready: Bool =
+            type_name == CompilerAbiLayoutOptionStringTypeName() &&
+            DirectMirOptionStringAbiFactReady(
+                plan.program.option_string_abi);
+        let program_option_bool_ready: Bool =
+            type_name == CompilerAbiLayoutOptionBoolTypeName() &&
+            DirectMirOptionBoolAbiFactReady(
+                plan.program.option_bool_abi);
         let type_ready: Bool = DirectMirScalarCfgSourceLocalTypeSupported(
-            type_name);
+            type_name) || CompilerRuntimeValueTypeReady(
+                type_name);
         if plan.program.valid {
             type_ready = DirectMirScalarCfgScalarTypeSupported(type_name) ||
-                program_collection_ready;
+                program_collection_ready || program_array_int_ready ||
+                program_array_bool_ready || program_set_string_ready ||
+                (type_name == CompilerAbiLayoutOptionIntTypeName() && DirectMirScalarProgramOptionIntAbiReadyForExpressions(plan.program.option_int_abi, plan.program.expressions)) ||
+                program_option_string_ready ||
+                program_option_bool_ready ||
+                CompilerRuntimeValueTypeReady(type_name) ||
+                DirectMirScalarProgramLogicalRecordTypeReady(
+                    plan.program.logical_record, type_name) ||
+                DirectMirScalarProgramLogicalRecordArrayTypeReady(plan.program.logical_record, type_name) ||
+                DirectMirScalarProgramLogicalRecordOptionTypeReady(plan.program.logical_record, type_name);
         }
-        if !type_ready {
-            return false;
-        }
+        if !type_ready { return false; }
         row = row + 1;
     }
     row = 0;

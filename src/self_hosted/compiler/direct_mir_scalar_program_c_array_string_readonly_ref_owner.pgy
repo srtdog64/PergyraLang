@@ -1,0 +1,42 @@
+// C value/address projection for read-only Array<String> parameters.
+
+import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramCArrayStringReadonlyRefParameterValue(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    routine: Int, ordinal: Int, value: String
+) -> String {
+    if !DirectMirScalarProgramArrayStringReadonlyRefAt(
+            routines, routine, ordinal) {
+        return value;
+    }
+    return Concat("(*", Concat(value, ")"));
+}
+
+func DirectMirScalarProgramCArrayStringReadonlyRefCallArgument(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    routine: Int, target: Int, ordinal: Int,
+    argument_node: Int
+) -> String {
+    if !DirectMirScalarProgramArrayStringReadonlyRefAt(
+            routines, target, ordinal) {
+        return "";
+    }
+    if expressions.node_kinds[argument_node] ==
+            DirectMirScalarProgramExprLocal() {
+        return Concat("&pgy_local_", ToString(
+            expressions.node_local_rows[argument_node]));
+    }
+    if expressions.node_kinds[argument_node] !=
+            DirectMirScalarProgramExprParameter() {
+        return "";
+    }
+    let source: Int = expressions.node_parameter_ordinals[argument_node];
+    if !DirectMirScalarProgramArrayStringReadonlyRefAt(
+            routines, routine, source) {
+        return "";
+    }
+    return Concat("pgy_param_", ToString(source));
+}

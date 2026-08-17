@@ -1,0 +1,19 @@
+// Exact readonly logical-record inputs with an owned Array<Bool> return.
+
+struct ReachabilityGraph {
+    let valid: Bool;
+    let node_count: Int;
+}
+
+func Reachable(
+    ref graph: ReachabilityGraph,
+    root: Int,
+    reverse: Bool
+) -> Array<Bool> {
+    let seen: Array<Bool> = [];
+    return seen;
+}
+
+func Main() -> Void {
+    Log("readonly-record-array-bool-return-ready");
+}

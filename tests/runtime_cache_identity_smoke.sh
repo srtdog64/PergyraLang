@@ -40,7 +40,7 @@ build_with_revision() {
     source_path="$(pgy_path_for_compiler "$PGY" "$FIXTURE")"
     binary_path="$(pgy_path_for_compiler "$PGY" "$output")"
     if ! (cd "$ROOT_DIR" && PGY_COMPILER_REVISION="$revision" \
-        "$PGY" "$source_path" --backend=c -o "$binary_path") \
+        "$PGY" "$source_path" --native-pipeline --backend=c -o "$binary_path") \
         >"$OUT_DIR/$revision.log" 2>&1; then
         echo "[$LABEL] revision $revision build failed" >&2
         tail -20 "$OUT_DIR/$revision.log" >&2 || true

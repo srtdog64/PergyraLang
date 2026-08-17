@@ -1,0 +1,13 @@
+func SelectLong(
+    choose: Bool, initial: Long, changed: Long, modulus: Long
+) -> Long {
+    let value: Long = initial % modulus;
+    if choose {
+        value = changed % modulus;
+    }
+    return value;
+}
+
+func Main() -> Void {
+    Log("long-phi-ready");
+}

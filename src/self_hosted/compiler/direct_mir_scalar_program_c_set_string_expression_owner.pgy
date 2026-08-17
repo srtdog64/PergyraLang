@@ -1,0 +1,30 @@
+// C projection for the canonical Set<String> runtime-value ABI.
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "../codegen/runtime_abi/set_runtime_owner.pgy";
+
+func DirectMirScalarProgramCSetStringExpression(
+    kind: Int, left_type: String, left: String, right: String
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprSetStringNew() &&
+        kind != DirectMirScalarProgramExprSetStringAdd() &&
+        kind != DirectMirScalarProgramExprSetStringHas() { return None; }
+    let runtime: CollectionSetRuntimeFact =
+        CollectionSetRuntimeFactFromTypeName(
+            CompilerAbiLayoutSetStringTypeName());
+    if !runtime.ok || runtime.c_value_type !=
+            CompilerAbiLayoutSetStringCValueType() {
+        Die("direct MIR Set<String> C runtime ABI fact is invalid");
+    }
+    if kind == DirectMirScalarProgramExprSetStringNew() {
+        return Some(Concat(runtime.c_new_fn, "()"));
+    }
+    if left_type != CompilerAbiLayoutSetStringTypeName() {
+        Die("direct MIR Set<String> C receiver type is invalid");
+    }
+    let symbol: String = runtime.c_has_fn;
+    if kind == DirectMirScalarProgramExprSetStringAdd() {
+        symbol = runtime.c_add_fn;
+    }
+    return Some(Concat(symbol, Concat("(&", Concat(
+        left, Concat(", ", Concat(right, ")"))))));
+}

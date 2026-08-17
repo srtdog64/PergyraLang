@@ -1,0 +1,41 @@
+// C value-result copy boundary for admitted Array<Bool> parameters.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarProgramCArrayBoolValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayBoolValueResultAt(
+                plan.program.array_bool_abi, routine, parameter) {
+            output = Concat(output, "    pgy_ab pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, " = *pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, "_mutref;\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCArrayBoolValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayBoolValueResultAt(
+                plan.program.array_bool_abi, routine, parameter) {
+            output = Concat(output, "    *pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, "_mutref = pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ";\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}

@@ -1,0 +1,7 @@
+// Opt-in observation vocabulary for the direct MIR consumer boundary.
+
+func DirectMirPressureStage(enabled: Bool, stage: String) -> Void {
+    if enabled {
+        Log(Concat("[driver-pressure-stage] direct-mir:", stage));
+    }
+}

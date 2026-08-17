@@ -120,7 +120,9 @@ grep -Fq "source AST mode requires exactly one input path" \
     fail "installed AST arity lost its typed diagnostic"
 
 require_text "$LAUNCHER_OWNER" \
-    'if (flags.dump_tokens || flags.dump_ast || flags.dump_capability_manifest) {'
+    'if (flags.dump_tokens || flags.dump_ast'
+require_text "$LAUNCHER_OWNER" \
+    '|| flags.dump_capability_manifest || flags.dump_dir) {'
 require_text "$LAUNCHER_OWNER" 'driver_self_host_source_stdout_mode(&flags)'
 require_text "$LAUNCHER_OWNER" 'driver_run_self_host_source_stdout('
 require_text "$SELECTION_OWNER" '"--emit-capability-manifest-verified"'

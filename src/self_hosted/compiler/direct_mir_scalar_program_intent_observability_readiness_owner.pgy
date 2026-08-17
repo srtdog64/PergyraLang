@@ -1,0 +1,41 @@
+// Semantic shape of one intent-observability call joined to its generated ABI row.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "../lib/intent_observability_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramIntentObservabilityCallNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if facts.node_kinds[node] !=
+            DirectMirScalarProgramExprIntentObservabilityCall() {
+        return false;
+    }
+    let row: IntentObservabilityAbiRow = IntentObservabilityAbiRowForId(
+        facts.node_runtime_call_abi_ids[node]);
+    if !row.valid || facts.node_types[node] != row.return_type ||
+        facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_member_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 {
+        return false;
+    }
+    if row.argument_count == 0 {
+        return row.parameter_types == "" &&
+            facts.node_lefts[node] == -1 && facts.node_rights[node] == -1;
+    }
+    if row.argument_count == 1 {
+        let left: Int = facts.node_lefts[node];
+        return row.parameter_types == CompilerAbiLayoutIntTypeName() &&
+            left >= 0 && facts.node_rights[node] == -1 &&
+            facts.node_types[left] == CompilerAbiLayoutIntTypeName();
+    }
+    if row.argument_count == 2 {
+        let left: Int = facts.node_lefts[node];
+        let right: Int = facts.node_rights[node];
+        return row.parameter_types == "Int|Int" && left >= 0 && right >= 0 &&
+            facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
+            facts.node_types[right] == CompilerAbiLayoutIntTypeName();
+    }
+    return false;
+}

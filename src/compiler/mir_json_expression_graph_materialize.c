@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/intent_observability_abi.h"
 #include "../parser/ast_api.h"
 
 void
@@ -29,6 +30,7 @@ mir_json_expression_graph_append(MIRJsonExpressionGraph *graph,
                                  const char *target_name)
 {
     MIRJsonExpressionGraphNode *grown;
+    const PgyIntentObservabilityAbiRow *observability = NULL;
     size_t capacity;
 
     if (graph == NULL || kind == NULL || text == NULL)
@@ -47,11 +49,14 @@ mir_json_expression_graph_append(MIRJsonExpressionGraph *graph,
         graph->nodes = grown;
         graph->capacity = capacity;
     }
+    if (target_kind != NULL && strcmp(target_kind, "direct") == 0)
+        observability = pgy_intent_observability_abi_row_by_source(target_name);
     graph->nodes[graph->count] = (MIRJsonExpressionGraphNode){
         kind,
         text,
         target_kind != NULL ? target_kind : "none",
         target_name != NULL ? target_name : "",
+        observability != NULL ? observability->runtime_call_abi_id : 0,
         left,
         right
     };

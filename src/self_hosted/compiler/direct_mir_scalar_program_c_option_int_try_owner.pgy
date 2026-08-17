@@ -1,0 +1,46 @@
+// C control-flow projection for one admitted Option<Int> try definition.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_local_emission_owner.pgy";
+import "direct_mir_scalar_program_c_expression_owner.pgy";
+import "direct_mir_scalar_program_c_option_int_owner.pgy";
+import "direct_mir_scalar_program_option_int_try_admission_owner.pgy";
+
+func DirectMirScalarProgramCOptionIntTryDefinition(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    target: CompilerTargetProjectionFact
+) -> String {
+    let result: Int = plan.operation_result_values[operation];
+    let expression_row: Int = plan.program.operation_expression_rows[operation];
+    if !DirectMirScalarProgramOptionIntTryRoutineReady(
+            plan.routines, routine) || result < 0 ||
+        result >= ArrayLength(plan.value_types) ||
+        plan.value_types[result] != CompilerAbiLayoutIntTypeName() {
+        Die("direct MIR scalar C Option<Int> try definition is invalid");
+    }
+    let operand: String = DirectMirScalarProgramCExpressionAt(
+        plan.program.expressions, expression_row, runtime,
+        plan.program.logical_record, plan.routines, routine, target);
+    let suffix: String = Concat(ToString(routine), Concat("_", ToString(operation)));
+    let temporary: String = Concat("pgy_try_option_int_", suffix);
+    let present: Option<String> = DirectMirScalarProgramCOptionIntExpression(
+        DirectMirScalarProgramExprIsSomeInt(), temporary);
+    let absent: Option<String> = DirectMirScalarProgramCOptionIntExpression(
+        DirectMirScalarProgramExprNoneInt(), "");
+    let payload: Option<String> = DirectMirScalarProgramCOptionIntExpression(
+        DirectMirScalarProgramExprUnwrapOptionInt(), temporary);
+    if !IsSome(present) || !IsSome(absent) || !IsSome(payload) {
+        Die("direct MIR scalar C Option<Int> try ABI projection is missing");
+    }
+    let output: String = Concat("    ", Concat(
+        DirectMirScalarProgramCOptionIntTypeName(), Concat(" ", Concat(
+        temporary, Concat(" = ", Concat(operand, ";\n"))))));
+    output = Concat(output, Concat("    if (!", Concat(
+        UnwrapOption(present), ") {\n        return ")));
+    output = Concat(output, Concat(UnwrapOption(absent), ";\n    }\n    "));
+    output = Concat(output, DirectMirScalarCfgCLocal(plan, result));
+    output = Concat(output, Concat(" = ", Concat(
+        UnwrapOption(payload), ";\n")));
+    return output;
+}

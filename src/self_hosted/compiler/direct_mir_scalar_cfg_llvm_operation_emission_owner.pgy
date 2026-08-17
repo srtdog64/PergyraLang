@@ -183,7 +183,7 @@ func DirectMirScalarCfgEmitLlvmOperation(
         );
     if collection.valid { return collection.text; }
     if kind != DirectMirScalarCfgOpPhiInt() &&
-        kind != DirectMirScalarCfgOpPhiString() {
+        kind != DirectMirScalarCfgOpPhiString() && kind != DirectMirScalarCfgOpPhiValue() {
         Die("direct MIR scalar CFG LLVM operation is unsupported");
     }
     return output;

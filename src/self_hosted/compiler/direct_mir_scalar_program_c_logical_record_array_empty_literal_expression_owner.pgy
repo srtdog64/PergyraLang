@@ -1,0 +1,23 @@
+// C materialization of one empty declaration-owned Array<Record> value.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordArrayEmptyLiteralExpression(
+    kind: Int, array_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
+        return None;
+    }
+    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+            logical_record, array_type, target);
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
+            projected, CompilerTargetCpuCProjection()) {
+        return None;
+    }
+    return Some(Concat("((", Concat(
+        projected.c_array_type, "){0})")));
+}

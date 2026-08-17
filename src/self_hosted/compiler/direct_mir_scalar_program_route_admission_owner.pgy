@@ -1,0 +1,298 @@
+// One-pass scalar-program route admission with a stable rejection receipt.
+// The terminal dispatcher consumes the receipt only after every earlier route
+// declines; it never rescans the MIR to reconstruct the failed decision.
+
+import "direct_mir_scalar_program_route_fact_owner.pgy";
+import "direct_mir_scalar_program_array_bool_abi_capture_owner.pgy";
+import "direct_mir_scalar_program_single_string_route_owner.pgy";
+import "direct_mir_scalar_program_builtin_route_owner.pgy";
+import "direct_mir_scalar_program_callable_route_envelope_owner.pgy";
+import "direct_mir_scalar_program_callable_signature_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "../mir_lower/routine_inventory_owner.pgy";
+
+struct DirectMirScalarProgramRouteAdmission {
+    let valid: Bool;
+    let route: DirectMirScalarProgramRouteFact;
+    let owner: String;
+    let stage: String;
+    let routine_ordinal: Int;
+    let routine_name: String;
+    let parameter_ordinal: Int;
+    let type_name: String;
+    let carriage: String;
+}
+
+func DirectMirScalarProgramRouteAdmissionOwnerStageReady(
+    owner: String, stage: String
+) -> Bool {
+    if owner == "scalar-program-route" {
+        return stage == "ready" || stage == "routine-count" ||
+            stage == "declaration-index" || stage == "nominal-abi" ||
+            stage == "logical-record" || stage == "payload-free-enum" ||
+            stage == "single-program-shape" || stage == "entrypoint" ||
+            stage == "nominal-reference" ||
+            stage == "array-int-value-result-abi" || stage == "array-bool-abi" ||
+            stage == "array-string-abi" || stage == "seal";
+    }
+    if owner == "callable-route-envelope" {
+        return stage == "signature" || stage == "parameter-count" ||
+            stage == "return-type" ||
+            stage == "parameter-type-or-carriage";
+    }
+    return owner == "callable-signature" && stage == "signature-family";
+}
+
+func DirectMirScalarProgramRouteAdmissionReady(
+    ref admission: DirectMirScalarProgramRouteAdmission
+) -> Bool {
+    if !admission.valid ||
+        !DirectMirScalarProgramRouteAdmissionOwnerStageReady(
+            admission.owner, admission.stage) {
+        return false;
+    }
+    if admission.route.claimed {
+        return DirectMirScalarProgramRouteFactReady(admission.route) &&
+            admission.owner == "scalar-program-route" &&
+            admission.stage == "ready" && admission.routine_ordinal == -1 &&
+            admission.routine_name == "" &&
+            admission.parameter_ordinal == -1 &&
+            admission.type_name == "" && admission.carriage == "";
+    }
+    if !DirectMirScalarProgramRouteFactCanonicalEmpty(admission.route) ||
+        admission.stage == "ready" || admission.routine_ordinal < -1 ||
+        admission.parameter_ordinal < -1 {
+        return false;
+    }
+    if admission.routine_ordinal < 0 {
+        return admission.routine_name == "" &&
+            admission.parameter_ordinal == -1;
+    }
+    if admission.routine_name == "" { return false; }
+    if admission.parameter_ordinal >= 0 {
+        return admission.type_name != "" && admission.carriage != "";
+    }
+    return admission.carriage == "";
+}
+
+func DirectMirScalarProgramRouteAdmissionRejected(
+    owner: String, stage: String, routine_ordinal: Int,
+    routine_name: String, parameter_ordinal: Int,
+    type_name: String, carriage: String
+) -> DirectMirScalarProgramRouteAdmission {
+    return DirectMirScalarProgramRouteAdmission(
+        true, DirectMirScalarProgramRouteFactEmpty(), owner, stage,
+        routine_ordinal, routine_name, parameter_ordinal, type_name, carriage);
+}
+
+func DirectMirScalarProgramRouteAdmissionAccepted(
+    route: DirectMirScalarProgramRouteFact
+) -> DirectMirScalarProgramRouteAdmission {
+    return DirectMirScalarProgramRouteAdmission(
+        true, route, "scalar-program-route", "ready", -1, "", -1, "", "");
+}
+
+func DirectMirScalarProgramRouteAdmissionDie(
+    ref admission: DirectMirScalarProgramRouteAdmission
+) -> Void {
+    if !DirectMirScalarProgramRouteAdmissionReady(admission) ||
+        admission.route.claimed {
+        Die("direct MIR scalar program route admission receipt is invalid");
+    }
+    Die(Concat(
+        "direct MIR scalar program route rejected: owner=",
+        Concat(admission.owner, Concat(" stage=", Concat(admission.stage,
+        Concat(" routine=", Concat(ToString(admission.routine_ordinal),
+        Concat(" name=", Concat(admission.routine_name,
+        Concat(" parameter=", Concat(ToString(admission.parameter_ordinal),
+        Concat(" type=", Concat(admission.type_name,
+        Concat(" carriage=", admission.carriage))))))))))))));
+}
+
+func DirectMirScalarProgramRouteAdmissionFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirScalarProgramRouteAdmission {
+    let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
+    if routine_count < 1 {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "routine-count", -1, "", -1, "", "");
+    }
+    if !JsonArrayObjectFactTableReady(admitted.document.declarations) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "declaration-index", -1, "", -1, "", "");
+    }
+    let nominal: DirectMirScalarProgramTwoIntNominalAbiFact =
+        DirectMirScalarProgramTwoIntNominalAbiFactFromAdmitted(admitted);
+    if !DirectMirScalarProgramTwoIntNominalAbiFactReady(nominal) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "nominal-abi", -1, "", -1, "", "");
+    }
+    let logical_record: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFactFromAdmitted(admitted);
+    if !DirectMirScalarProgramLogicalRecordFactReady(logical_record) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "logical-record", -1, "", -1, "", "");
+    }
+    let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact =
+        DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(admitted);
+    if !DirectMirScalarProgramPayloadFreeEnumFactReady(payload_free_enum) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "payload-free-enum",
+            -1, "", -1, "", "");
+    }
+    if routine_count == 1 {
+        if !DirectMirScalarSingleStringProgramRouteClaimed(admitted) &&
+            !DirectMirScalarBuiltinProgramRouteClaimed(admitted) {
+            return DirectMirScalarProgramRouteAdmissionRejected(
+                "scalar-program-route", "single-program-shape",
+                -1, "", -1, "", "");
+        }
+        let rows: Array<Int> = [0];
+        let array_int_value_result:
+            DirectMirScalarProgramArrayIntValueResultFact =
+                DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
+                    admitted, rows);
+        if !DirectMirScalarProgramArrayIntValueResultFactReady(
+                array_int_value_result) {
+            return DirectMirScalarProgramRouteAdmissionRejected(
+                "scalar-program-route", "array-int-value-result-abi",
+                -1, "", -1, "", "");
+        }
+        let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact =
+            DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
+                admitted, rows, logical_record);
+        if !DirectMirScalarProgramArrayBoolAbiFactReady(array_bool_abi) {
+            return DirectMirScalarProgramRouteAdmissionRejected(
+                "scalar-program-route", "array-bool-abi",
+                -1, "", -1, "", "");
+        }
+        let array_string_abi: DirectMirScalarProgramArrayStringAbiFact =
+            DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
+                admitted, rows, logical_record, payload_free_enum);
+        if !DirectMirScalarProgramArrayStringAbiFactReady(array_string_abi) &&
+            !DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
+                array_string_abi) {
+            return DirectMirScalarProgramRouteAdmissionRejected(
+                "scalar-program-route", "array-string-abi",
+                -1, "", -1, "", "");
+        }
+        let source: DirectMirScalarProgramRouteFact =
+            DirectMirScalarProgramRouteFact(
+                true, 0, 0, -1, rows, nominal, logical_record,
+                payload_free_enum,
+                array_int_value_result, array_bool_abi, array_string_abi);
+        let sealed: DirectMirScalarProgramRouteFact =
+            DirectMirScalarProgramRouteFact(
+                true, DirectMirScalarProgramRouteFactDigest(source),
+                0, -1, rows, nominal, logical_record, payload_free_enum,
+                array_int_value_result, array_bool_abi, array_string_abi);
+        if !DirectMirScalarProgramRouteFactReady(sealed) {
+            return DirectMirScalarProgramRouteAdmissionRejected(
+                "scalar-program-route", "seal", -1, "", -1, "", "");
+        }
+        return DirectMirScalarProgramRouteAdmissionAccepted(sealed);
+    }
+    let entrypoint_row: Int = -1;
+    let routine_rows: Array<Int> = [];
+    let nominal_referenced: Bool = false;
+    let row: Int = 0;
+    while row < routine_count {
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineSignatureFactAt(
+                admitted.routines, row,
+                MirProgramRoutineIndexBlockInstructionCountAt(
+                    admitted.routines, row, 0));
+        if signature.name == "Main" {
+            if !DirectMirRoutineSignatureFactReady(signature) ||
+                entrypoint_row >= 0 || signature.return_type != "Void" ||
+                signature.param_count != 0 {
+                return DirectMirScalarProgramRouteAdmissionRejected(
+                    "scalar-program-route", "entrypoint", row,
+                    signature.name, -1, signature.return_type, "");
+            }
+            entrypoint_row = row;
+        } else {
+            let assessment:
+                DirectMirScalarProgramCallableRouteEnvelopeAssessment =
+                    DirectMirScalarProgramCallableRouteEnvelopeAssess(
+                        signature, nominal, logical_record,
+                        payload_free_enum);
+            if !DirectMirScalarProgramCallableRouteEnvelopeAssessmentReady(
+                    assessment) || !assessment.supported {
+                return DirectMirScalarProgramRouteAdmissionRejected(
+                    "callable-route-envelope", assessment.stage, row,
+                    signature.name, assessment.parameter_ordinal,
+                    assessment.type_name, assessment.carriage);
+            }
+            if !DirectMirScalarProgramCallableSignatureSupportedWithFacts(
+                    signature, nominal, logical_record, payload_free_enum) {
+                return DirectMirScalarProgramRouteAdmissionRejected(
+                    "callable-signature", "signature-family", row,
+                    signature.name, -1, signature.return_type, "");
+            }
+        }
+        if DirectMirScalarProgramTwoIntNominalSignatureReferenced(
+                nominal, signature) { nominal_referenced = true; }
+        row = row + 1;
+    }
+    if entrypoint_row < 0 {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "entrypoint", -1, "", -1, "", "");
+    }
+    if nominal.present && !nominal_referenced {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "nominal-reference", -1, "", -1, "", "");
+    }
+    ArrayPush(routine_rows, entrypoint_row);
+    row = 0;
+    while row < routine_count {
+        if row != entrypoint_row { ArrayPush(routine_rows, row); }
+        row = row + 1;
+    }
+    let callable_row: Int = -1;
+    if routine_count == 2 { callable_row = routine_rows[1]; }
+    let array_int_value_result:
+        DirectMirScalarProgramArrayIntValueResultFact =
+            DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
+                admitted, routine_rows);
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(
+            array_int_value_result) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "array-int-value-result-abi",
+            -1, "", -1, "", "");
+    }
+    let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact =
+        DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
+            admitted, routine_rows, logical_record);
+    if !DirectMirScalarProgramArrayBoolAbiFactReady(array_bool_abi) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "array-bool-abi",
+            -1, "", -1, "", "");
+    }
+    let array_string_abi: DirectMirScalarProgramArrayStringAbiFact =
+        DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
+            admitted, routine_rows, logical_record, payload_free_enum);
+    if !DirectMirScalarProgramArrayStringAbiFactReady(array_string_abi) &&
+        !DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
+            array_string_abi) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "array-string-abi",
+            -1, "", -1, "", "");
+    }
+    let source: DirectMirScalarProgramRouteFact =
+        DirectMirScalarProgramRouteFact(
+            true, 0, entrypoint_row, callable_row, routine_rows, nominal,
+            logical_record, payload_free_enum, array_int_value_result,
+            array_bool_abi, array_string_abi);
+    let sealed: DirectMirScalarProgramRouteFact =
+        DirectMirScalarProgramRouteFact(
+            true, DirectMirScalarProgramRouteFactDigest(source),
+            entrypoint_row, callable_row, routine_rows, nominal,
+            logical_record, payload_free_enum, array_int_value_result,
+            array_bool_abi, array_string_abi);
+    if !DirectMirScalarProgramRouteFactReady(sealed) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "seal", -1, "", -1, "", "");
+    }
+    return DirectMirScalarProgramRouteAdmissionAccepted(sealed);
+}

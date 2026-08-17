@@ -8,14 +8,13 @@ import "expr_semantic_graph_emit_owner.pgy";
 
 func EmitFormattedScalarLog(
     c_expr: String,
-    type_name: String,
-    line_format: String,
-    env: CodegenTypeEnv
+    print_argument_c_type: String,
+    line_format: String
 ) -> String {
     let stmt: String = Concat(StringRuntimeCFormattedPrintFn(), "(\"");
     stmt = Concat(stmt, line_format);
     stmt = Concat(stmt, "\", (");
-    stmt = Concat(stmt, AbiLayoutCValueType(type_name, env));
+    stmt = Concat(stmt, print_argument_c_type);
     stmt = Concat(stmt, ")(");
     stmt = Concat(stmt, c_expr);
     stmt = Concat(stmt, "));");
@@ -32,26 +31,24 @@ func EmitLog(
     );
     if inferred_type_name == "Int" {
         return EmitFormattedScalarLog(
-            rendered, "Int",
-            StringRuntimeCIntLineFormat(), env
+            rendered, StringRuntimeCInt32PrintArgumentType(),
+            StringRuntimeCInt32LineFormat()
         );
     }
     if inferred_type_name == "Long" {
         return EmitFormattedScalarLog(
-            rendered, "Long",
-            StringRuntimeCIntLineFormat(), env
+            rendered, StringRuntimeCLongPrintArgumentType(),
+            StringRuntimeCIntLineFormat()
         );
     }
     if inferred_type_name == "Float" {
         return EmitFormattedScalarLog(
-            rendered, "Float",
-            StringRuntimeCFloatLineFormat(), env
+            rendered, "double", StringRuntimeCFloatLineFormat()
         );
     }
     if inferred_type_name == "Double" {
         return EmitFormattedScalarLog(
-            rendered, "Double",
-            StringRuntimeCFloatLineFormat(), env
+            rendered, "double", StringRuntimeCFloatLineFormat()
         );
     }
     if inferred_type_name == "Bool" {

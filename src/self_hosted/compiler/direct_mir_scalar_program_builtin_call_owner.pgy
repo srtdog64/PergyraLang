@@ -1,28 +1,41 @@
 // Canonical builtin-signature join for calls nested in scalar expression DAGs.
-
 import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
 import "direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
-
+func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
+    ref signature: DirectMirScalarProgramBuiltinSignatureFact, carried: Int
+) -> Bool {
+    // Runtime-value identity belongs to the instruction row; its graph carries
+    // zero until admission seals the validated row ID into expression facts.
+    if signature.expression_kind == DirectMirScalarProgramExprRuntimeValueCall() {
+        return signature.runtime_call_abi_id > 0 && carried == 0;
+    }
+    if signature.runtime_call_abi_id > 0 {
+        return carried == signature.runtime_call_abi_id;
+    }
+    return signature.valid && carried == 0;
+}
 struct DirectMirScalarProgramBuiltinCallFact {
     let recognized: Bool;
     let valid: Bool;
     let complete: Bool;
     let expression_kind: Int;
+    let return_type: String;
     let argument_rows: Array<Int>;
     let call_node: Int;
+    let runtime_call_abi_id: Int;
 }
-
 func DirectMirScalarProgramBuiltinCallFactInvalid(
     recognized: Bool
 ) -> DirectMirScalarProgramBuiltinCallFact {
     let rows: Array<Int> = [];
     return DirectMirScalarProgramBuiltinCallFact(
-        recognized, false, false, 0, rows, -1);
+        recognized, false, false, 0, "", rows, -1, -1);
 }
-
 func DirectMirScalarProgramBuiltinCallFactFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int,
-    source_rows: Array<Int>, normalized_types: Array<String>
+    source_rows: Array<Int>, normalized_types: Array<String>,
+    expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramBuiltinCallFact {
     let missing: DirectMirScalarProgramBuiltinCallFact =
         DirectMirScalarProgramBuiltinCallFactInvalid(false);
@@ -38,16 +51,17 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
     if sequence.arena.identities.call_target_syntax_ids[chain.call_node] != 0 {
         return missing;
     }
-    let signature: DirectMirScalarProgramBuiltinSignatureFact =
-        DirectMirScalarProgramBuiltinSignatureFactFromName(
-            sequence.arena.call_target_names[chain.call_node]);
-    if !signature.valid {
-        return DirectMirScalarProgramBuiltinCallFactInvalid(true);
-    }
     let actual_types: Array<String> = []; let i: Int = 0;
     while i < ArrayLength(chain.argument_rows) {
         ArrayPush(actual_types, normalized_types[chain.argument_rows[i]]);
         i = i + 1;
+    }
+    let signature: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBuiltinSignatureFactForCall(
+            sequence.arena.call_target_names[chain.call_node],
+            actual_types, expected_type, logical_record);
+    if !signature.valid {
+        return DirectMirScalarProgramBuiltinCallFactInvalid(true);
     }
     if !DirectMirScalarProgramBuiltinArgumentPrefixReady(
             signature, actual_types) {
@@ -55,7 +69,47 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
     }
     let complete: Bool = ArrayLength(actual_types) ==
         ArrayLength(signature.parameter_types);
+    let carried_runtime_call_abi_id: Int =
+        sequence.arena.identities.runtime_call_abi_ids[chain.call_node];
+    if !DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
+            signature, carried_runtime_call_abi_id) {
+        return DirectMirScalarProgramBuiltinCallFactInvalid(true);
+    }
     return DirectMirScalarProgramBuiltinCallFact(
         true, true, complete, signature.expression_kind,
-        chain.argument_rows, chain.call_node);
+        signature.return_type,
+        chain.argument_rows, chain.call_node, signature.runtime_call_abi_id);
+}
+func DirectMirScalarProgramZeroArgumentBuiltinCallFactFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramBuiltinCallFact {
+    let missing: DirectMirScalarProgramBuiltinCallFact =
+        DirectMirScalarProgramBuiltinCallFactInvalid(false);
+    if !DirectMirScalarProgramBuiltinCallMarkerReady(sequence, node) {
+        return missing;
+    }
+    let actual_types: Array<String> = [];
+    let signature: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBuiltinSignatureFactForCall(
+            sequence.arena.call_target_names[node], actual_types,
+            expected_type, logical_record);
+    if !signature.valid { return missing; }
+    if ArrayLength(signature.parameter_types) != 0 {
+        // A non-empty signature is incomplete until CallArgument admission.
+        // The terminal CallArgument node owns admission for that call.
+        return missing;
+    }
+    let argument_rows: Array<Int> = [];
+    let carried_runtime_call_abi_id: Int =
+        sequence.arena.identities.runtime_call_abi_ids[node];
+    if !DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
+            signature, carried_runtime_call_abi_id) {
+        return DirectMirScalarProgramBuiltinCallFactInvalid(true);
+    }
+    return DirectMirScalarProgramBuiltinCallFact(
+        true, true, true, signature.expression_kind,
+        signature.return_type, argument_rows, node,
+        signature.runtime_call_abi_id);
 }

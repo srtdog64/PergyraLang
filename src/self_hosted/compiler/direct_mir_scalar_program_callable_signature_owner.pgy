@@ -1,23 +1,88 @@
 // Scalar-program callable signature support and canonical empty-state checks.
-
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
-
-func DirectMirScalarProgramCallableSignatureSupported(
+import "direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy";
+import "direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy";
+import "direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy";
+import "direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy";
+func DirectMirScalarProgramComposableCallableSignatureReady(
     ref signature: DirectMirRoutineSignatureFact,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> Bool {
-    if !DirectMirRoutineSignatureFactReady(signature) ||
-        signature.param_count <= 0 { return false; }
+    let option_return: Bool = signature.return_type ==
+            CompilerAbiLayoutOptionIntTypeName() ||
+        signature.return_type == CompilerAbiLayoutOptionStringTypeName() ||
+        signature.return_type == CompilerAbiLayoutOptionBoolTypeName();
+    let return_ready: Bool = signature.return_type == "Void" ||
+        DirectMirScalarCfgScalarTypeSupported(signature.return_type) || signature.return_type == CompilerAbiLayoutArrayStringTypeName() ||
+        DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, signature.return_type) ||
+        (signature.param_count > 0 && option_return);
+    let plan: DirectMirScalarProgramCallableParameterRolePlan = DirectMirScalarProgramCallableParameterRolePlanFromSignature(
+            signature, logical_record, payload_free_enum);
+    return return_ready && DirectMirScalarProgramCallableParameterRolePlanReady(plan, signature.param_count);
+}
+func DirectMirScalarProgramCallableSignatureSupportedWithFacts(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) { return false; }
+    if signature.param_count == 0 {
+        return DirectMirScalarProgramComposableCallableSignatureReady(
+                signature, logical_record, payload_free_enum) ||
+            DirectMirScalarProgramZeroParameterReturnTypeSupportedWithFacts(
+                signature.return_type, logical_record) ||
+            DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(
+                signature);
+    }
     let int_or_option: Bool = signature.return_type ==
             CompilerAbiLayoutIntTypeName() ||
         signature.return_type == CompilerAbiLayoutOptionIntTypeName();
+    let option_string: Bool = signature.return_type == CompilerAbiLayoutOptionStringTypeName(); let option_bool: Bool = signature.return_type == CompilerAbiLayoutOptionBoolTypeName();
+    let long_return: Bool = signature.return_type == CompilerAbiLayoutLongTypeName(); let array_int_return: Bool = signature.return_type == CompilerAbiLayoutArrayIntTypeName();
     let nominal_passthrough: Bool = signature.param_count == 1 &&
         DirectMirScalarProgramTwoIntNominalTypeReady(
             nominal, signature.return_type) &&
         signature.param.type_name == signature.return_type;
-    let shape_ready: Bool = int_or_option || nominal_passthrough;
+    let logical_record_return: Bool = DirectMirScalarProgramLogicalRecordTypeReady(logical_record, signature.return_type);
+    let logical_record_option_return: Bool = DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, signature.return_type);
+    if logical_record_return && signature.param_count == 1 &&
+        signature.parameters.type_names[0] == signature.return_type &&
+        signature.parameters.carriages[0] == "value-result" { return false; }
+    let composable_callable: Bool =
+        DirectMirScalarProgramComposableCallableSignatureReady(
+            signature, logical_record, payload_free_enum);
+    let logical_record_value_result: Bool = DirectMirScalarProgramLogicalRecordValueResultSignatureReady(
+            signature, logical_record);
+    let logical_record_array_value_result: Bool =
+        DirectMirScalarProgramLogicalRecordArrayValueResultSignatureReady(
+            signature, logical_record);
+    let logical_record_array_value_parameter: Bool =
+        DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(
+            signature, logical_record);
+    let logical_record_mixed_collection_value_result: Bool =
+        DirectMirScalarProgramLogicalRecordMixedCollectionValueResultSignatureReady(
+        signature, logical_record);
+    let array_string_value_result: Bool =
+        DirectMirScalarProgramArrayStringValueResultSignatureReady(
+            signature);
+    let owned_array_string_return: Bool =
+        DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(signature);
+    let shape_ready: Bool = int_or_option || option_string || option_bool ||
+        long_return || array_int_return || nominal_passthrough ||
+        logical_record_return || logical_record_option_return ||
+        composable_callable || logical_record_value_result ||
+        logical_record_array_value_result ||
+        logical_record_array_value_parameter ||
+        logical_record_mixed_collection_value_result ||
+        DirectMirScalarProgramBoolMixedCollectionValueResultSignatureReady(signature) ||
+        DirectMirScalarProgramVoidLogicalRecordArrayIntValueResultSignatureReady(signature, logical_record) ||
+        DirectMirScalarProgramLogicalRecordInputsValueResultSignatureReady(signature, logical_record) || DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultSignatureReady(signature, logical_record) || DirectMirScalarProgramBoolTwoArrayStringTwoArrayIntValueResultSignatureReady(signature) || DirectMirScalarProgramReadonlyLogicalRecordArrayBoolReturnSignatureReady(signature, logical_record) || DirectMirScalarProgramOwnedLogicalRecordReturnSignatureReady(signature, logical_record) || DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultSignatureReady(signature, logical_record) || DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady(signature, logical_record) ||
+        array_string_value_result || owned_array_string_return;
     if signature.param_count == 1 {
         shape_ready = shape_ready ||
             (signature.return_type == CompilerAbiLayoutBoolTypeName() &&
@@ -30,14 +95,46 @@ func DirectMirScalarProgramCallableSignatureSupported(
     if !shape_ready { return false; }
     let ordinal: Int = 0;
     while ordinal < signature.param_count {
-        if !DirectMirScalarProgramCallableParameterSupportedWithNominal(
-                signature, ordinal, nominal) ||
-            (int_or_option &&
-             signature.parameters.type_names[ordinal] !=
-                CompilerAbiLayoutIntTypeName()) {
+        let int_or_option_parameter: Bool =
+            signature.parameters.type_names[ordinal] ==
+                CompilerAbiLayoutIntTypeName() ||
+            ((signature.parameters.type_names[ordinal] ==
+                CompilerAbiLayoutArrayIntTypeName() ||
+              signature.parameters.type_names[ordinal] ==
+                CompilerAbiLayoutArrayStringTypeName()) &&
+             signature.parameters.carriages[ordinal] == "value");
+        if !DirectMirScalarProgramCallableParameterSupportedWithFacts(
+                signature, ordinal, nominal, logical_record,
+                payload_free_enum) ||
+            (int_or_option && !composable_callable &&
+             !int_or_option_parameter &&
+             !array_string_value_result) ||
+            ((option_string || option_bool) && !composable_callable &&
+             !DirectMirScalarCfgScalarTypeSupported(
+                signature.parameters.type_names[ordinal])) ||
+            (logical_record_return && !
+             DirectMirScalarProgramCallableParameterSupportedWithFacts(
+                signature, ordinal, nominal, logical_record,
+                payload_free_enum)) ||
+            (logical_record_return && !composable_callable &&
+             signature.parameters.type_names[ordinal] == CompilerAbiLayoutArrayStringTypeName() &&
+             signature.parameters.carriages[ordinal] == "value-result" &&
+             !logical_record_mixed_collection_value_result &&
+             !DirectMirScalarProgramLogicalRecordReturnArrayStringValueResultSignatureReady(signature, logical_record)) {
             return false;
         }
         ordinal = ordinal + 1;
     }
     return true;
+}
+func DirectMirScalarProgramCallableSignatureSupported(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
+) -> Bool {
+    let logical_record: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFactCanonicalEmpty();
+    let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact =
+        DirectMirScalarProgramPayloadFreeEnumFactCanonicalEmpty();
+    return DirectMirScalarProgramCallableSignatureSupportedWithFacts(
+        signature, nominal, logical_record, payload_free_enum);
 }

@@ -1,8 +1,735 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-03
+마지막 업데이트: 2026-08-18
 
-## 활성 우선순위 — for-loop break exit merge
+## 2026-08-17 프로젝트 퍼센테이지 기준선
+
+한 숫자가 필요할 때의 현재 작업 예측은 **78%**다. 오차 범위는
+**75~81%**로 둔다. 이것은 릴리스 판정이나 테스트 통과율이 아니라,
+`언어 베타 + SoT 폐쇄 + hard self-host 대체 + bootstrap + CI/release`를
+함께 끝내는 데 필요한 남은 작업을 추정하는 통합 진행 지수다.
+
+언어 자체의 공식 **strict beta readiness는 83%로 유지**한다. 6월의
+83%보다 코드가 진전됐지만, 현재 dirty revision의 full suite와 remote CI,
+모든 beta-critical fallback 폐쇄가 아직 없으므로 그 수치를 올리지 않는다.
+즉 `83%`와 `78%`는 모순이 아니다. 전자는 언어 베타 기준이고, 후자는
+셀프호스트와 배포까지 포함한 프로젝트 전체 기준이다.
+
+| 축 | 현재치 | 분모와 근거 | 다음 상승 조건 |
+| --- | ---: | --- | --- |
+| 언어 strict beta | 83% | `docs/100_beta_readiness_checklist.md`의 현재 공식선 | current full suite와 남은 beta-critical fallback 폐쇄 |
+| SoT hard closure | 49/86 = 57.0% CLOSED | owner registry의 `CLOSED 49 / BRIDGE 36 / ACTIVE 1` | consumer migration, old read 삭제, negative gate까지 갖춰 `CLOSED` 승격 |
+| SoT migration index | 78.2% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | BRIDGE를 늘리는 문서/owner 추가가 아니라 실제 hard substitution |
+| self-host substrate | 9/10 READY | hard self-host scorecard 10개 capability 중 9 READY, arena/ownership 1 SUBSET | compiler-scale String/scratch lifetime과 일반 route closure |
+| 일반 GraphPlan 연속 전선 | current-source 232,242,252-byte MIR -> canonical O3 byte-stable gen2/gen3 C | direct `else if` source-depth 재귀를 explicit frame descent/reverse merge로 교체한 current source를 Pergyra seed와 native oracle이 동일 MIR로 게시했다. release-profile O3 gen2가 같은 MIR을 다시 소비해 10,265,701-byte gen3 C를 만들었고 gen2/gen3 SHA-256이 일치한다. 같은 리비전의 격리 public launcher/sibling도 source→MIR, `--emit-c`, plain C compile/run을 통과한다. routine·row·V·owner 수는 진행률 분자가 아니다. | 격리 증거를 repository-installed sibling과 current remote CI에서 재현하고 release promotion을 닫는다. |
+| hard self-host replacement 예측 | 75% | 아래 8개 milestone 중 5개 완료와 현재 hard-substitution 범위 및 남은 native/release surface를 함께 본 작업 예측 | 남은 native mode와 released whole-product fallback 삭제 |
+| bootstrap fixed point | 3/4 = 75% | current-source MIR producer, DRV-2/gen2 consumers, gen2==gen3 byte equality를 canonical O3 full-bootstrap script로 완료 | installed release promotion과 committed/remote reproduction |
+| 마지막 완료 baseline CI/release 증거 | 3/4 = 75% | fixed MIR consumer/C/host verify, MIR 161/161, 816초 full GraphPlan aggregate와 기존 CI profile/step 증거가 있다. 2026-08-17 affected slice의 current component, build inventory, likeness, size, String/Long C/LLVM gate도 local green이다. 최신 remote run은 committed HEAD 기준 RED이고 current worktree rerun은 없다. | current worktree를 의도적으로 통합한 뒤 current full suite와 remote CI/release evidence를 새 revision에서 검증 |
+
+통합 78%의 계산 가중치는 다음과 같이 고정한다. 이 가중치는 완료를
+예쁘게 보이게 하려고 바꾸지 않는다.
+
+- 언어 strict beta 30%
+- SoT migration 25%
+- hard self-host replacement 25%
+- bootstrap reproducibility 10%
+- CI/release evidence 10%
+
+hard self-host replacement는 lexer/parser parity, complete-source MIR producer,
+Pergyra MIR consumer, gen2/gen3 fixed point, bounded public C/LLVM/package
+substitution까지를 완료 milestone으로 센다. 일반 GraphPlan canary의 routine
+ordinal이나 통과 routine 수는 프로그램 구조가 바뀔 때 함께 변하므로 완료
+분수로 환산하지 않는다. 75%는 완료된 다섯 milestone, 현재 실제
+hard-substitution 범위, 남은 native debug/dump/REPL/package orchestration과
+released whole-product replacement를 함께 본 작업 예측이며 산술 통과율이
+아니다.
+통합 계산은 `83×0.30 + 78.2×0.25 + 75×0.25 + 75×0.10 +
+75×0.10 = 78.20`이며 표시값은 78%다.
+
+2026-08-18 control-flow 실행 갱신: 다음 compiler-scale RED는 SoT 행이
+아니라 direct `else if` tail을 source 깊이만큼 재귀 호출하던 MIR lowering이었다.
+기존 oracle은 41-condition fixture에서 Windows `0xC00000FD` stack overflow로
+종료했고, 전체 source는 routine 2743
+`SelfDirIntentStepClauseFactsFromArtifact`에서 멈췄다. 이제 direct nested-If
+topology만 explicit entry/then frame으로 내려가고, 기존
+`SelfMirMergeIfBranches`를 역순으로 소비한다. 41-condition seed/native MIR
+90,132 bytes와 C 11,788 bytes가 각각 byte-equal이며 실행 stdout도
+`neg/zero/small/big`와 일치한다. canonical full `driver_bootstrap.sh`를
+`PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1`과 release flags
+`-O3 -fwrapv -fno-strict-aliasing`으로 실행해 exit 0을 확인했다. seed/oracle
+MIR은 232,242,252 bytes/SHA-256
+`47679723ED88B38972ACCA78488268277EF7BDFCD3980D33F60DCDC7CDA10F48`,
+gen2/gen3 C는 10,265,701 bytes/SHA-256
+`9187E188FBA6C0EC405643E14D6A33197B34E025AEA7677962C5214BBE88D0C1`로
+동일하다. 이어 기존 installer를 격리 출력으로 실행해 5,903,397-byte
+candidate와 byte-identical 1,144-byte machine-manifest replay를 만들었고,
+typed argv의 source-C/source-MIR/MIR-C stdout·artifact 분리 gate도 통과했다.
+이것은 새 registry 폐쇄가 아니라 실제 executable fixed-point와 local install
+transaction 전진이다. 이어 같은 리비전으로 fresh release/LTO native launcher를
+격리 sibling 옆에 만들었다. public 상대경로와 native 절대경로가
+`source_module_path`를 갈랐던 경계는 기존 import-resolver canonical path owner를
+public child handoff가 소비하도록 닫았고, Windows canonical spelling은 `/` 하나로
+고정했다. 이 정규화는 MIR/C identity handoff에만 적용하며 public `--tokens`,
+`--ast`, capability-manifest, DIR stdout은 사용자가 입력한 상대경로 표기를 유지한다.
+네 stdout gate와 fail-closed negative가 모두 통과했다. public/direct MIR은 59,402 bytes/SHA-256
+`447440EC0547886CBC0216C70F6466FDF4B4E10A84D3F7C2149CC6072038F491`, native/self
+canonical MIR은 64,494 bytes/SHA-256
+`CADA3C569501FD2CB18E071D5F0B0A89DF195B57690E8923B2F9D8A344B16DE9`로 각각
+byte-equal이다. public `--emit-c`와 plain C compile/run도 missing-sibling
+fail-closed를 포함해 green이고, Linux parity CI job은 이제 이 public-MIR gate를
+직접 실행한다. CI profile, hard-substitution, documentation-quality gate도 green이다.
+실제 `bin/` promotion, current remote CI, broad dirty-tree gate는 아직 남아 있으므로
+SoT `49/86`, 통합 78%, strict beta 83%, bootstrap 3/4는 올리지 않는다.
+
+같은 날 release 설치 경계도 실행으로 닫았다. 기존 `all`/`release`는 ordinary
+source compile의 필수 sibling 없이 public `pgy`만 만들 수 있었으나, 이제 두 target이
+기존 `self-host-compiler` installer를 소비한다. 격리 `BIN_DIR`에서 단일
+`make release`가 3,384,801-byte `pgy.exe`, 5,903,397-byte
+`pgy-self-driver.exe`, 1,144-byte machine manifest를 함께 설치했고, 환경 override 없이
+installed CLI-mode/public MIR/public C emit/plain compile-run gate가 모두 green이다.
+Linux parity CI도 이 동일 `make release`를 첫 목표로 사용한다. 원격 CI와 실제
+repository `bin/` promotion은 아직 관측하지 않았으므로 위 퍼센트는 유지한다.
+
+2026-08-18 실행 갱신: statement/body 분석의 큰 메모리 증폭은 SoT 문서가
+아니라 admitted/checked API 경계 결함이었다. 이미 승인된 match case ancestor를
+읽을 때 `AstMatchCasePatternFactFromArtifact`가 `AstTreeArtifactReady`를 214회
+다시 호출했고, 그 안의 전역 expression-graph `seen`/stack 성장 요청만 약
+673.2MB였다. checked API는 그대로 두고 ready-artifact 로컬 projection을
+분리해 admitted match-binding owner만 소비하게 했으며, 옛 전체 artifact/graph
+재증명은 focused negative gate가 막는다. Current Pergyra-built driver가 게시한
+MIR은 232,064,536 bytes/SHA-256
+`56EF4D76E96E8B8E3F8C63B786803506CC841C18CDC7DF5B353DB91582F820EC`다.
+생산 시간은 144.550초에서 102.981초, peak private는 2.781GiB에서
+1.753GiB로 줄어 attention 선 아래로 내려왔다. 동일 MIR을 DRV-2와
+host-compiled gen2가 각각 소비한 gen2/gen3 C는 10,257,419 bytes/SHA-256
+`484D5246C782FD7BC70E24B3EE7EE341F9B3D38F962D6786AD4DC0B6B5500608`로
+byte-equal이다. Option-match C/LLVM parity와 semantic lifetime gate도 green이다.
+이는 실제 executable lifetime/substitution 전진이지만 installed/remote
+CI/release promotion과 broad component inventory의 기존 163/125 cap RED는 남아
+있다. 따라서 registry census `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%,
+strict beta 83%는 올리지 않는다.
+
+2026-08-17 최신 실행 전선은 문서·owner 수가 아니라 고정 MIR 전진으로
+판정한다. 현재 Pergyra-built DRV-2는 5,890,881 bytes/SHA-256
+`56EA64D1DA7D654AF8075BEEDB39AB98BED01E67567BA70EBB7D0B3D279B9A36`다.
+Stable operation 44 하나가 이제 로컬 또는 formal value-result 논리 레코드의
+persisted member/index graph와 `Array<Int>`/`Array<String>` element type, 최신
+지배 SSA predecessor를 소비한다. 기존 로컬 String gate와 새 value-result Int
+gate가 C/LLVM에서 각각 실행됐고, 후자는 두 번의 nested write/copyout 결과 `8`과
+8개 damaged-fact 거부를 확인했다. 동일 48,531,749-byte fixed MIR의 첫 실패는
+global row 17147에서 17618과 17851을 거쳐 18392로 이동했다. 기존 populated
+ArrayInt owner도 `[root_id]`의 정확한 instruction use, LocalRef, value type을
+소비하며 C/LLVM local operand 실행과 missing-use 거부를 통과했다. 따라서 이
+슬라이스는 실제
+executable substitution이지만 top-level registry 행을 새로 닫은 것은 아니며,
+통합 78%, strict beta 83%, hard SoT 49/86=57.0%는 그대로다. 다음 RED는
+`SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody`의 value-result
+`analysis.expression_surfaces.expression_graph = graph`에서 발생한
+`stage=admitted-type`다. 기존 member-rebind fact가 exact local/value type과 target
+member type을 결합하는 것이 다음 상승 조건이다. 새 V, operation, cache, shard,
+timeout, memory cap은 진행 증거로 인정하지 않는다.
+
+2026-08-17 Git 작업 감사 결론은 두 층으로 나뉜다. 전체 dirty aggregate는
+823 paths(`419 tracked`, `404 untracked`)이고 top-level registry는 여전히
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`다. 따라서 파일·owner·fixture·V 증가를
+합산하면 맴도는 작업으로 보이는 것이 맞으며, 그 수를 진행률로 세지 않는다.
+반면 이번 활성 String/scalar-ABI 슬라이스는 세 MIR producer의 동일 identity,
+한 typed runtime-symbol owner, old path 삭제·negative gate, current typed-source
+candidate 실행까지 이어져 실제 SoT 치환이다. 전체 작업 트리가 정리됐다는 뜻은
+아니므로 hard SoT 57.0%, 통합 78%, strict beta 83%를 그대로 유지한다.
+
+현재 callable ABI 전선도 SoT 개수를 늘리는 작업으로 세지 않는다. 하나의
+generic-return production 실행에서 첫 실패가 routine 501 `Array<Bool>`, 860
+`Option<String>`, 985 composable logical-record return, 1159 `Option<Int>`, 1173
+composable owned `Array<String>` return, 그리고 1228
+`ParserImportGraphSeen(Set<String>, String)`을 차례로 통과해 routine 1250
+`ParseDestructureLetStmt`까지 이동했다. 각 단계는 기존 ABI
+receipt와 unique parameter-role plan의 누락된 마지막 소비자를 연결했고, focused
+C/LLVM 실행·negative gate와 component/CI-profile/CI-step ratchet이 green이다.
+최신 Pergyra-built driver는 5,850,285 bytes, SHA-256
+`607034BDA8E5BB9FF5CE7A4DFDBF523FAA11B77D5AB718335FF05C7524AF745E`다.
+`Set<String>`은 이제 central ABI row와 기존 Set runtime symbol fact를 통해
+spelling 추론 없이 C/LLVM으로 투영된다. 따라서 이번 이동은 기존 BRIDGE 내부의
+실행 폭 증가이고 registry 승격이나 퍼센테이지 상승이 아니다. 다음 실행
+falsifier는 `ParseDestructureLetStmt` parameter 4의
+`Array<AstExpressionGraphRows>` value-result ABI이며, 기존 nominal-array layout과
+logical-record-array copyout owner의 마지막 composable consumer를 먼저 확인한다.
+
+현재 활성 source-module provenance 슬라이스도 같은 기준으로 판정했다. 기존
+MIR wire는 parser가 소유한 top-level module path를 잃고 canonical AST를
+`unknown` provenance로 재구성했으며, 그 결과 합법적인 compiler-internal
+storage-retirement owner도 `compiler_internal_builtin`으로 거부됐다. 지금은
+declaration/routine MIR row가 exact `source_module_path`를 운반하고, 두 MIR
+index가 빈 경로를 admission 단계에서 fail-closed하며, canonical reconstruction은
+기존 `AstSourceModuleFacts`를 다시 결합한 뒤 artifact identity를 재봉인한다.
+이름/서명만으로 허용하는 fallback이나 `<unknown>` 보정은 없다. 구조 inventory,
+13개 early/7개 final AST backing lifetime gate, wrong-path/external/missing-path
+negative를 포함한 C/LLVM provenance gate, CI profile과 step-runner가 local green이다.
+CI의 기존 serial self-host job도 provenance와 lifetime 게이트를 함께 실행한다.
+따라서 이 reached seam은 실제 SoT 폐쇄로 센다. Current isolated codegen seed에서
+driver를 다시 만들고, 그 driver가 229,290,183-byte verified MIR을 게시한 뒤 production
+consumer가 10,126,081-byte C를 생성했다. Host-compiled gen2 executable이 다시 만든
+gen3 C는 byte-equal이며 SHA-256은 둘 다
+`3401A5DD1269E3489DF78046F67016C721A387765A995A12F72A532D71014F35`다. MIR의
+`source_module_path` 7,430행은 null/empty가 0개다. 즉 current-source full MIR
+게시·소비·고정점까지 관측됐다. 다만 이 driver build는 peak private 2.995GiB로
+3072MiB cap 아래 여유가 거의 없었다. 이후 옛 6/7필드 선언 모양을 고정한 여섯
+direct-MIR 소비자를 같은 declaration-index provenance owner에 교차 봉인했고, 이를
+포함하고 enum `<stdint.h>`/CI ABI drift까지 교정했다. 동시 `gen2 | tr` normalization은
+compiler 3,063.9MiB에 orchestration private를 겹쳐 aggregate 3.012GiB cap을 넘겼다.
+동일 payload owner를 compiler 종료 뒤 직렬 normalization하도록 바꾸자 authoritative
+driver는 217.994초/2.938GiB, SHA-256
+`C111DAAD3B19F27CC2B087D788775D8F437BF8B3D9207E2267D01B490F5D2A9E`로 빌드됐다.
+격리된 public launcher 옆에서 installed C/LLVM 전체 경로와 두 enum focused gate가
+모두 green이다. 다만 source-pressure 영수증은 6,727개 definition 구간에서 private가
+2,622.4MiB→3,055.3MiB로 증가함을 보였고, remote CI와 의도적인 diff 통합도 아직
+없다. 따라서 wider registry row는 BRIDGE이며 `49/86`, 78%, 83%는 올리지 않는다.
+
+정의 생성 구간의 첫 후속 폐쇄도 같은 방식으로 제한해서 센다.
+`CodegenFunctionValueBindingFactFor`가 이미 `binding.env_rows`를 만들었는데도
+`EmitLet`의 7개 분기가 동일한 source name/type/value kind/C name 행을 다시
+직렬화하고 있었다. 이제 그 분기들은 기존 행을
+`CodegenTypeEnvStateAppendOwnedLocalRows`에 넘기며, owner는 local environment로
+복사한 뒤 임시 backing만 회수한다. 옛 `EmitLet ->
+CodegenTypeEnvStateAppendTypedValueBinding` 경로는 기존 type-env preseal focused
+gate가 막는다. 이 gate는 exact 7회 admitted-row 소비와 copy→install→retire 순서,
+rebuild 부재를 고정한 뒤 installed C/native-pipeline LLVM ordered-delta 실행을
+7.3초에 통과했고, 기존 Linux serial self-host CI invocation에도 연결됐다. CI
+profile, 전체 component gate, `string_concat_op` C/LLVM focused parity는 green이다.
+`bool_logic`의 실제 10행/expected 9행 차이는 이 변경과 무관한 현재 dirty-tree
+oracle drift로 RED 상태를 유지한다. Fresh Pergyra-built codegen seed의 SHA-256은
+`0A1068EB4C76F6CBCE24AEF4C631BDF3FC840CAB31356AF57F12EA1D150AC202`다.
+같은 3072MiB/300초 process-tree 경계에서 current-source pressure는 113.582초에
+`definitions:done:6728`과 `output:finished`까지 exit 0으로 완주했다. 정의 구간
+private 증가는 2,622.5MiB→3,038.8MiB, 즉 416.3MiB로 직전 432.9MiB보다
+16.6MiB 줄었다. 그러나 전체 peak 3,038.8MiB는 여전히 2.4GiB attention 선을
+넘고 hard cap 여유가 33.2MiB뿐이며, 정의 구간 시간도 2.999초→3.878초라
+속도 개선은 주장하지 않는다. 즉 이 한 소비 경계는 실제 치환이지만 broader
+definition lifetime과 813-path aggregate가 통합됐다는 뜻은 아니다. Registry
+승격 없이 SoT 57.0%, 통합 78%, strict beta 83%는 그대로다.
+
+같은 owner의 다음 반복도 범위를 넓히지 않고 제거했다.
+`TypeEnvAppendLocalRows`는 admitted local row를 앞에 붙일 때 기존 prefix를
+`Substring` suffix, `combined`, 선두 `|` 복원으로 세 번 복사했다. 이제
+`Concat(rows, local_rows)` 한 번만 수행하고, local-row scan owner가 offset 0의
+첫 행과 기존 delimiter 행을 하나의 row-start fact로 판정해 value/presence lookup이
+공유한다. Focused gate는 옛 세 단계 재구성을 거부하고 first-row 조회,
+newest-first shadowing, malformed preseal 거부를 C/native-pipeline LLVM으로
+검증한다. 전체 component와 `string_concat_op` self-host C/LLVM도 green이다.
+Fresh gen2 SHA-256은
+`9174B6583E01191C7440C0065A375E3A71655D480AE3306DF07D9E66CF99332E`이며,
+동일 3072MiB/300초 pressure에서 106.705초, `definitions:done:6729`,
+`output:finished`, peak private 3,063.1MiB로 exit 0이다. Definition marker 구간은
+2.738초로 짧아졌지만 단일 실행이므로 속도 개선으로 확정하지 않는다. 50ms 요청
+sampler도 `definitions:done`을 3,002.4~3,040.1MiB 사이에서만 포착해 메모리
+감소를 증명하지 못했다. 따라서 old repeated operation 삭제는 실제 치환으로 세되,
+3GiB definition-lifetime blocker나 registry row를 닫았다고 세지 않는다.
+
+그다음에는 SoT 목록을 더 늘리지 않고 실제 할당 소유자를 계측했다. 이전
+Pergyra-built codegen C에 `.tmp` 전용 malloc/realloc/free 계측을 링크해 동일
+3,972,166-byte 출력과 SHA-256
+`32FD6565FCBFC2E202C6AA6FB2303B0FAF93AB3A928BF64B5EBBA941FC4356EF`를
+확인했고, 추적 누락은 0이었다. Codegen 자신의 2,900-definition AST에서 정의
+블록은 direct-live payload를 353,146,582→404,218,328 bytes 늘리는 동안
+8,285,484회 할당했다. 함수 스택별로 분해하자 `CodegenCharAt`의 439만여
+한 글자 String 할당 대부분이 `CsvAt`과 `ParamModeCsvCount`의 쉼표 검사였다.
+payload 자체는 각각 6.90MiB/1.39MiB였지만 수백만 allocation의 Windows heap
+metadata가 훨씬 큰 private-memory 비용을 만들었다.
+
+두 함수는 이제 기존 `CodegenCharCodeAt(..., length, index) == 44` fact를
+소비한다. 새 owner/cache/builtin/표면 문법은 없고 loop 안 한 글자 String
+재생성은 negative gate가 막는다. First/middle/last/out-of-range CSV와 empty/3-row
+mode fixture는 installed C/native-pipeline LLVM에서 green이고, 전체 component와
+`string_concat_op` self-host C/LLVM도 green이다. Fresh gen2 SHA-256은
+`F4E1452EB634725C040961C832B667C89E5C26A19A0BAAD6D20F89458B4FF73A`이며,
+gen2/gen3 raw C는 3,972,162 bytes/SHA-256
+`AED3A59592F6D20662D9BD2C0805E3F3EE5BB2B2206E2A28A48BC363B1C85847`로
+byte-equal이다.
+
+같은 6,729-definition driver source와 3072MiB/300초/50ms 조건에서는 172개
+stage와 `output:finished`까지 116.577초, peak private 2,890.8MiB로 exit 0이다.
+직전 106.705초/3,063.1MiB와 비교하면 peak가 172.3MiB 줄었다. Definition 시작은
+2,622.4/2,622.9MiB로 같지만 완료 직후가 3,040.1→2,867.6MiB라 감소 위치도
+정의 구간과 일치한다. 시간은 9.872초 늘었으므로 속도 개선은 주장하지 않는다.
+Peak는 아직 2.4GiB attention 선 위이고 wider lifetime과 remote CI가 남아 있다.
+따라서 이 작업은 reached BRIDGE 내부의 실제 lifetime substitution이지만 registry
+승격은 아니며 SoT 57.0%, 통합 78%, strict beta 83%를 그대로 유지한다.
+
+같은 실행 경계에서 다음으로 큰 allocation owner도 새 SoT 행 없이 닫았다.
+`SemanticCallSpineViewFromGraph`는 parser call-spine의 argument와 generic actual을
+역순으로 수집한 뒤 별도 ordered Array 두 개로 다시 복사하고 있었다. 이제 기존
+두 backing을 `ArraySet`으로 제자리 역순 복원해 그대로 반환하며, focused/component
+gate가 두 번째 `arguments`/`actuals` 재구성을 거부한다. Clean, callable-resolution,
+target/nested/explicit mismatch 다섯 모드는 current native C/LLVM에서 기대 stdout과
+exit status가 모두 같고 installed self-host C도 green이다. Installed self-host LLVM은
+별도 direct-MIR projector의 `SemanticAstGenericParameterDefaultRowsFromNode` 2번
+`Array<String>` value-result parameter에서 RED이며, 이를 call-view green이나 fallback으로
+숨기지 않는다.
+
+이 변경을 포함한 isolated Pergyra-built gen2는 2,490,207 bytes, SHA-256
+`4C9D3E31C22AAFF9ED48CF0E548255BEE9FE5FEDF3BF59D98DB748DE377DEF3D`다.
+Gen2/gen3 normalized C SHA-256은 둘 다
+`6C92CC343AE3E80BD77444C1F82CF35C1CA2CDFB71C38829B08801D396E9B2A5`다.
+동일 6,729-definition driver source와 3072MiB/300초/50ms 조건에서 172개 stage와
+`output:finished`까지 118.113초, peak private 2,823.5MiB로 exit 0이다. 직전
+CSV-charcode 영수증보다 peak가 67.3MiB 줄었다. Definition 시작/완료 직후 표본은
+2,640.2→2,867.6MiB에서 2,602.2→2,798.0MiB로 바뀌어 구간 증가가
+227.4→195.8MiB, 즉 31.6MiB 감소했다. Marker 구간은 2.637→2.614초지만 전체
+실행은 1.536초 느려 속도 개선은 주장하지 않는다. Peak는 여전히 2.4GiB attention
+선 위이고 installed self-host LLVM, canonical install, remote CI도 남았다. 따라서
+기존 BRIDGE 내부의 실제 lifetime 치환으로만 세며 49/86, 78%, 83%는 유지한다.
+
+그다음 작업도 SoT 목록을 늘린 것이 아니라 generic-return production 경로의 첫
+실패를 두 번 전진시킨 실행 치환이다. 기존 ArrayBool storage receipt가 by-value
+`Array<Bool>` formal을 소유하게 했고, 기존 OptionString layout receipt가 완전한
+by-value parameter ABI fact를 instruction receipt와 교차 봉인하게 했다. Parameter
+role plan은 이를 하나의 admitted ABI-value 역할로 분류하며 routine admission은
+parameter JSON이나 물리 layout을 재구성하지 않는다. 최신 Pergyra-built driver는
+5,837,354 bytes, SHA-256
+`43F93550C66B01B30AB45D7B889AD2B79EAA4BD6B3F1A51AF509A0C865EC10BB`다.
+이 driver에서 OptionString, ArrayInt/ArrayBool, ArrayString focused gate가 모두
+C/LLVM 실행과 ABI/carriage/pass-shape negative를 통과했고, component structural
+gate와 CI profile도 green이다. 세 focused target은 기존 serial
+`self-host-direct-mir-scalar-graph-plan-test-smoke`에 이미 연결되어 새 workflow job은
+필요하지 않았다.
+
+전체 generic-return C leg는 통과하고 self-host LLVM projector는 옛 routine 501과
+860 경계를 지난 뒤 routine 985 `SemanticAstInitializerEnvironmentCursorAdvance`의
+`SemanticAstInitializerEnvironmentCursor` return에서 fail-closed한다. 이 타입은
+이미 declaration index가 소유하는 `Bool + Int×4 + Array<Int>` 여섯 필드 record지만,
+동일 signature에는 논리 record by-value 다섯 개와 `Array<String>` value-result 세
+개도 함께 있다. 따라서 다음 작업은 새 타입/owner를 만드는 일이 아니라 기존
+logical-record fact 누락과 compositional role join 누락을 먼저 가르는 focused
+falsifier다.
+Artifact는 게시되지 않았고 canonical install/remote CI도 하지 않았다. Registry는
+여전히 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%다.
+
+정의 블록의 TextBuilder를 하위 emitter에 직접 넘기는 더 큰 가설은 구현 전에
+기각했다. 현재 언어 계약은 TextBuilder parameter를 copy/borrow/transfer 미증명
+경계로 fail-closed한다. 성능 가설을 위해 ownership 예외나 새 builtin, monolithic
+emitter를 만들지 않았다.
+
+7개 `EmitLet` 분기의 `type name = value;` framing을 기존 binding owner 한 곳으로
+모으는 더 작은 가설도 C/LLVM·component green 뒤 production pressure로 반증했다.
+해당 gen2 SHA-256은
+`9E6732E8E453A1C49E6AC73CD0FC2EFB3496B049611834F6AA5373B152FAA1AD`였지만
+peak private는 3,061.0MiB로 직전 3,063.1MiB보다 2.1MiB 낮은 데 그쳤고 시간도
+개선되지 않았다. 실행·sampling 변동을 넘는 효과가 아니므로 새 함수·7개 call·gate·
+owner 문구를 모두 되돌렸다. 이것도 진행률에 포함하지 않는다.
+
+같은 reached rung에서 `CodegenPrefixOwnedStatementLine`을 단일 TextBuilder로
+바꾸는 가설도 실행으로 반증했다. 첫 500ms 표본은 정의 구간이 63.8MiB 줄어든
+것처럼 보였지만, 같은 seed를 50ms 요청 간격으로 다시 관찰하자 경계는
+2,622.7MiB→3,035.5MiB, 약 412.8MiB였다. 직전 416.3MiB와의 3.5MiB 차이는
+실행·sampling 변동을 넘어선 효과로 볼 수 없고 support tail도 약 22MiB 늘었다.
+C/LLVM 의미는 green이었지만 reached cost를 닫지 못했으므로 이 실험의 source와
+structural-gate 변경은 되돌렸다. 이 반증은 진행률로 세지 않으며, active blocker는
+여전히 definition 내부 lifetime이다. 최종 payload assembly를 새 owner track으로
+승격하지도 않는다.
+
+## 과거 실행 증거 보관 — 현재 작업 큐가 아님
+
+아래 기록은 퍼센트 산정과 원인 비교에 필요한 과거 영수증이다. 현재 활성 작업은
+위 source-module provenance 통합 경계 하나이며, 아래의 runtime-value, MIR consumer,
+GraphPlan, V 번호를 별도 활성 큐로 되살리지 않는다.
+
+이번 runtime-value ABI 검증 슬라이스는 그 구분을 실제 대형 실행으로 다시
+확인했다. 최종 instruction validator가 runtime-value 행마다 여섯 candidate fact를
+materialize하고 256행 serialized runtime-call registry를 반복 scan하던 경로를
+allocation-free stable identity receipt 소비로 치환했다. Old fact-materializer read는
+component negative gate가 거부하며, full fact materialization은 실제 codegen
+consumer에만 남는다. Runtime-value lifecycle C/LLVM negative와 runtime-call ABI
+manifest parity가 green이고, fresh current-source C 생성 및 canonical host compile도
+각각 exit 0이다. 같은 3072MiB 제한의 source-to-verified-MIR 실행은 116.270초,
+peak private 2.812GiB로 row 90,112, local refs, instruction ABI, blocks, routines,
+`mir-facts:done`, `json-write:done`을 모두 통과했다. 결과 MIR은 228,492,268 bytes,
+SHA-256 `F338B0E4F8EDFBAF490E4994726725A32A8E34F6F80160041A98001B79BA773E`다.
+이전 run은 row 73,728 부근에서 3.203GiB cap 종료였으므로 이 한 seam은 실제 SoT
+폐쇄로 센다. 다만 top-level registry row 승격, installed-driver 교체, current remote
+CI green은 아니므로 SoT 57.0%, 통합 78%, strict beta 83%는 올리지 않는다.
+
+다음 production rung인 current MIR consumer는 아직 RED다. 동일 executable과
+228,492,268-byte MIR을 `--mir-json --observe-mir-consumer-stages`로 소비한 결과
+메모리는 peak private 0.616GiB로 안정적이었지만 300초 경계에서 routine
+6,464/6,704, output 미게시 상태로 timeout됐다. 가장 느린 완료 interval은
+3,008→3,072의 12.605초이며 4,646,507 raw bytes, 840 blocks, 2,011 instructions를
+포함한다. 101개 완료 batch 상관은 instruction `r=0.5833`, raw bytes `r=0.5342`,
+sum(blocks×conditionals) `r=0.1605`, sum(blocks²) `r=0.1818`이다. 따라서 현재
+증거는 broad CFG 제곱 최적화를 다음 해법으로 승인하지 않는다. 다음 단일
+falsifier는 이 interval의 최대 routine 3,056에서 fact-index와 validation/header/
+region-render 시간을 분리하는 것이다. 그 전에는 timeout 상향, cache/FactStore,
+또 다른 registry owner 확장을 진행으로 세지 않는다. 240초 focused 시도는 host
+편차로 routine 2,880까지만 도달해 해당 receipt를 만들지 못했고, 임시 ordinal
+focus와 gate 변경은 곧바로 제거했다. 이 실패 관측은 진척으로 세지 않는다.
+
+이번 활성 codegen 문자열 수명 슬라이스는 이 넓은 aggregate와 다르게 실제
+production 경계를 바꿨다. semantic expression graph는 그대로 한 fact owner이며,
+재귀 C-expression 자식 문자열과 let/assignment/bind/log statement 문자열은
+각각 최종 root/line 생성 직후 기존 lifetime owner에서 회수된다. 새 owner, V,
+cache, shard, timeout, memory-cap 증액은 없다. Codegen gen6/gen7 C는
+3,965,061 bytes와 SHA-256
+`86FC064C8B9E6E9AB78104154D671BB3F7F3A965134924AFADA9F97F0F95CF28`로
+byte-equal이다. 동일 3072MiB 경계에서 codegen은 127.589초, peak private
+3051.6MiB로 `output:finished`까지 완료했고, canonical compiler build도
+258.283초, peak private 3041.1MiB, exit 0으로 host compile/source smoke/
+machine-manifest replay를 끝냈다. 최신 9,695,682-byte C artifact SHA-256은
+`2AC69466D8F9C80570A7B412964E4F930CFCBF6BA8AF8A5EBE41D5BA1109876B`,
+5,804,704-byte 임시 driver SHA-256은
+`386DDC7FE6F05E57915DA87A7D0E620D0C3153AD811C7C10C38622F0CA50F2C5`다.
+String 및 Long division/remainder C/LLVM, component, build inventory,
+likeness, size, CI profile/step-runner 게이트가 green이다. 후보는 `.tmp`에
+격리되어 있고 remote CI는 아직 committed HEAD의 RED이므로 SoT 57.0%, 통합
+78%, strict beta 83%는 올리지 않는다.
+
+현재 최신 설치 영수증은 intent 실행 관측 projection까지 포함한
+Pergyra-built DRV-2다. 크기는 5,766,328 bytes, SHA-256은
+`76B05F94576EC9EA2F4F61E5FE6CFC380F89559AA34B73FA180C819A14FFDC37`다.
+그 직전 고정 MIR 통합 영수증은
+`runtime-value-current-consumer-growable-array-string-20260816-v36`이다.
+41,051,560-byte/1,660-routine 고정 consumer는 118.815초에 exit 0,
+`direct-mir:projection:done`까지 도달했고 2,827,611-byte C artifact를 게시했다.
+Peak private는 2.511GiB, working set은 2.438GiB로 3072MiB hard cap 이하지만
+2.4GiB attention threshold는 넘었다. 생성 C는
+`-Werror=free-nonheap-object` host link를 통과했고 523,305-byte executable은
+같은 MIR을 `--verify-input`에서 1.746초/0.049GiB, exit 0으로 검증했다.
+MIR 161/161, 816초 full GraphPlan aggregate, component inventory, build
+inventory, local CI profile/step, likeness, machine manifest와 affected C/LLVM
+gates도 green이다. 같은 레코드의 owner-handle 반환과 value-result formal이
+겹치던 callable admission은 fail-closed로 분리됐고, legal value+copyout은
+positive fixture로 보존됐다. 최신 remote CI run은 이 uncommitted worktree보다
+  이전 committed HEAD의 RED이며 새 run은 없다.
+  Self-host scalar ABI의 `Int`/`Long` conflation도 기존 ABI owner에서 닫혔다.
+  `Int`는 `int32_t`, `Long`은 `int64_t`, `Array<Int>`/`Array<Long>`과
+  `Option<Long>`은 서로 다른 C/LLVM runtime carrier를 소비한다. ABI manifest와
+  focused long-division/conversion/projection gate가 green이고,
+  `array_scalar_aggregate_core`는 exact `4294967297`, `-2147483648`, `1.500000`,
+  `true`, `option_int_core`의 Long 경계는 exact `4294967297`, `0`을 실행한다.
+  이것은 기존 scalar ABI seam의 hard closure이며 새 registry 행이나 퍼센트
+  상승으로 중복 계산하지 않는다.
+현재 typed intent 실행 wire는
+`pgy.selfhost.mir-intent-execution-plan.v3`로 전진했다. 각 step은 exact
+`where_zone_name`과 zone declaration syntax ID를 함께 운반하고 native producer,
+native/self admission, mutation digest, C/LLVM consumer가 한 identity로
+cross-seal한다. Stage-0 self C와 native C/LLVM compensation gate는 green이지만,
+  이전 canonical Pergyra-built gen2는 unchanged 3072MiB 경계에서
+  `definition:done:2432`에 멈췄고, 첫 expression epoch는
+  `definitions:done:6716`까지 전진했다. 현재 call/member lifetime epoch까지
+  포함한 Pergyra-built codegen은 typed
+  `--observe-source-pressure src/self_hosted/compiler/driver_bootstrap_main.pgy`
+  를 128.609초, peak private 3066.5MiB로 exit 0 완료해
+  `definitions:done:6718`, `support-blocks:done`, `output:finished`를 기록했다.
+  9,840,366-byte C artifact(SHA-256
+  `257CAFE0C9A87D60F03A33C932B04C3F6E35AE9ABC719CCDD10C604CA9E9B3D6`)는
+  canonical host flags로 5,802,628-byte executable(SHA-256
+  `6181B9F28F9EBFF6B408D3A3DD3B4B00D5AC757BA8B3525AD9D50BD4E38FB598`)까지
+  컴파일됐다. 이 candidate와 installed DRV-2의 `hello.pgy --tokens` 실행은
+  둘 다 exit 0이며 byte-identical SHA-256
+  `A59B414C2FC153AEA8F008913E3BBE7736FF29C27AB3C744289945DC7B1A29DD`다.
+  새 Pergyra-built codegen이 자신의 current AST를 다시 생성한 gen3/gen4 C도
+  byte-identical SHA-256
+  `71C63F0415648B599FB5D35AAAF2D95E24787E9BD2AD54DC01BD23E3B4A7FEF3`다.
+  다만 cap 여유가 5.5MiB뿐이고 driver executable은 아직 설치되거나 full-driver
+  fixed point로 봉인되지 않았다. 따라서 installed v2 typed transition의 bounded
+  `SUBSTITUTING` 증거는 유지하되 v3 zone/observability delta는 replacement DRV-2가
+  생기기 전까지 `REACHABLE`로 기록한다. Registry 분자와 통합 78%는 올리지 않는다.
+  Scalar builtin runtime-call ABI ID는 이제 signature fact가 arity/type/kind와
+  함께 한 번만 소유한다. Call admission은 MIR-carried ID를 이 fact와
+  cross-seal하며 intent/runtime-value registry를 source name으로 다시 읽지
+  않는다. Call/signature owner는 각각 115/115, 205/205이고 cap은 올리지 않았다.
+  Current-source check와 새 Pergyra-built driver 생성(124.961초, peak private
+  3035.2MiB), host compile, native/self MIR 및 direct C/LLVM ABI-identity 실행이
+  green이다. 새 candidate SHA-256은
+  `6E0FD990A67D6958B787AE5A0829DE5D268FBB779962178E301FA0D685FB04E6`다.
+  이어진 compile-time declaration/literal-Log family는 27-line semantic
+  pre-scan을 shape-only route claim으로 교체하고 final semantic 판정은 erasure
+  fact/plan 한 경로에 남겼다. malformed declaration-bearing 입력은 더 이상
+  scalar fallback으로 재시도하지 않는다. 동시에 옛 Int=64 출력 가정을 제거해
+  C `int32_t/%d`와 LLVM `i32`를 일치시켰다. Family는 560/560이고, focused
+  C/LLVM 실행(ability 7, literal 73, metamorphic positives, 25 negatives)과 full
+  component inventory가 green이다. 두 closure를 포함한 최신 candidate는
+  142.920초, peak private 3069.8MiB로 hard cap 안에서 생성·host compile됐고,
+  SHA-256은
+  `E833ACE13B5B3E419B02EA22EFA897193F861E10E9AD5B3C8847AF9947521F3D`다.
+  native/self MIR 및 direct C/LLVM ABI identity와 installed token byte parity도
+  green이다. 일반 String-builtin drift는 세 독립 producer를 비교한 뒤
+  normalized 16,434 bytes/SHA-256
+  `C39CF0215F9ACA7CA5841D027966786C418967831A66ADE527FD05B9A04E03CA`로
+  폐쇄됐다. Fixture는 `ToString` 결과 `foo`를 실제로 관찰하고 current
+  candidate가 positive와 8개 malformed-MIR C/LLVM case를 통과한다. 같은
+  candidate에서 `Int`와 `Long`이 shared `int_c_type`으로 합쳐지던 C ABI
+  consumer도 분리해 exact `int32_t`/`int64_t` signature와 Long MIN/-1,
+  zero-divisor negative를 실행했다. 최종 9,841,295-byte C artifact SHA-256은
+  `C7BA467A324EA4283482489A09FEB0B532225E714BC937305294C4603389F819`,
+  canonical host executable 5,804,082-byte SHA-256은
+  `5940CDC022DCB7B16C5611B3BA41F4BF41806D70436E9F2CD7339BE6D624CFBC`다.
+  아직 설치·current full-driver fixed point·remote CI는 아니다.
+별도로 parser-tool source-set fingerprint는 2,011개 파일마다 `sha256sum`을
+기동하던 Windows CI 증폭을 sorted NUL-delimited batched hashing으로 바꿨다.
+동일 source set 2,011행의 deterministic fingerprint를 약 6.6초에 만들며,
+이는 CI 측정 owner 폐쇄이지 언어 SoT 대체 진척은 아니다. 이번 ABI owner
+이동도 top-level registry 행 전체를 닫지는 않으므로 SoT 57.0%, 통합 78%,
+strict beta 83%는 유지한다.
+추가로 현재 소스에서 새로 컴파일한 C/LLVM semantic checker가 각각 1,522개
+`src/self_hosted` 실소스를 모두 받아 backend당 1,522/1,522, 총 3,044회
+real-source selfcheck가 green이다. 이전 완료 기준은 backend당 1,520개,
+총 3,040회였다. 진단 registry는 실제 emitter vocabulary에 맞춘 33개이고,
+artifact/legacy body 검사는 하나의 collection-mutation caller contract를
+소비한다. 이제 complete internal-builtin caller tuple은
+`src/common/compiler_internal_builtin_caller_registry.def` 한 곳이 소유하고,
+parser-owned `AstSourceModuleFacts`가 import-composed artifact의 선언별 module
+path를 semantic signature까지 운반한다. C/LLVM legacy checker와 artifact
+분석은 real owner를 승인하고 ordinary external caller 및 exact 이름/서명
+wrong-path impersonation을 `compiler_internal_builtin`으로 거부한다. focused
+provenance/lifetime, component, compiler-world, build inventory, generated
+registry, CI-profile gate가 green이고 CI에도 focused provenance step이
+추가됐다. 이것은 ACTIVE semantic-admission family 안의 bounded BRIDGE를
+닫는다. 이어 public installed-self-host LLVM과 in-process native LLVM이
+`compiler_runtime_cache.c`의 같은 LLVM runtime-object owner를 소비하도록
+로컬 build/cache/publish 복제를 삭제했다. `io_probe.pgy`는 양 경로에서
+compile/run 0으로 `exists`, `missing`, `has-main`을 출력하고, unresolved
+runtime symbol은 기존 gate에서 계속 fail-closed다. Typed-plan observability는
+현재 v3 step-zone identity와 함께 stage-0 self C/native C/LLVM까지
+`REACHABLE`해졌지만 replacement installed driver가 아직 없고,
+non-default-priority, compiler-root intent, composite-intent 의무도 남아
+top-level SoT 승격은 보류한다.
+이 경계를 통합하던 두 로컬 RED도 실제 소유 경로에 맞춰 닫았다. Hard-contract
+gate는 현재 runtime-ABI owner와 modulo-zero/signed-add 실행 계약을 검증하며,
+runtime-cache identity gate는 cache producer인 native pipeline을 명시한다.
+세 exact Make owner gate(runtime C-extern, cache identity, hard contract)가 한
+실행에서 green이고, 기존 단일 self-host Make invocation에 hard contract를
+추가한 CI profile과 step runner도 green이다. 이것은 회귀 방지 증거의 완성이지
+새 top-level registry 승격은 아니므로 퍼센테이지는 그대로 둔다.
+Production driver bootstrap은 이제 codegen의 typed `--source`
+artifact를 직접 소비하고 provenance-free parser executable/AST-text detour를
+갖지 않는다. 설치 owner인 `self_host_compiler_build.sh`도 같은 typed-source
+경로로 이전했고, 실제 emitted-C 해시가 설치 캐시 키를 소유한다. AST-text
+route의 module provenance는 `Unknown`이며 internal builtin 사용은 fail-closed다.
+Typed production bootstrap의 현재 재실행도 exit 0이다. Pergyra-built seed와
+native oracle이 각각 C를 생성하고 host compile된 뒤 sample C, bounded MIR
+publication, bounded MIR consumption에서 일치했다. 이 과정에서 self-host
+source checker가 놓친 native ownership 오류 82개를 4개 root owner shape로
+축약해 닫았고, 이어 generated C의 `literal`/`target` SSA 이름 충돌 두 개도
+타입별 local identity로 분리했다. 최종 artifact는 seed C 9,651,147 bytes,
+seed executable 5,765,044 bytes, oracle C 29,244,684 bytes, oracle executable
+6,405,399 bytes다. 따라서 typed provenance slice는 focused gate뿐 아니라
+production seed/oracle 실행 경계까지 통합됐다. 다만 이것은 registry의
+36 BRIDGE와 1 ACTIVE 전체를 닫은 것이 아니므로 top-level 상태 승격은 없다.
+이때 드러난 회귀 모양도 기존 component 계약에 고정했다. expression admission의
+typed `literal_admission`, C/LLVM expression의 `callable_target`, typed-return
+owner의 standalone bare `return` 금지를 source ratchet으로 두었고, 기존
+expression-admission 상한은 올리지 않고 445/445로 유지했다. Component
+inventory와 populated `Array<Int>`, logical-record array value parameter,
+`Option<Int>` try-let C/LLVM parity가 모두 통과했다. Build-source inventory와
+local CI profile도 green이다. 이는 새 완료 분자가 아니라 방금 얻은 production
+대체 증거가 같은 실수로 후퇴하지 않게 만든 negative closure다.
+현재 progress metric은 implementation/frontend/backend 65,962 LOC,
+compiler core 197,798 LOC, 19.82%, default C emit `substituting`, full default
+compile `open`, explicit DRV-2 `live`다. 이 LOC 변화는 완료 분자로 세지 않는다.
+  현재 dirty 775개 경로(`381 tracked`, `394 untracked`)에는 누적 GraphPlan work와 이번 MIR identity carriage가
+함께 들어 있지만 top-level registry census는 HEAD와 같은
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`다. 따라서 이 전체 파일 폭은 SoT 폐쇄
+진척이 아니다. Fixed 1,660-routine publication과 이번 provenance-free
+bootstrap detour 삭제는 실제 대체 증거지만, 새 GraphPlan owner/V 확장은
+통합 경계까지 동결한다. Top-level SoT 승격과 current remote release evidence가
+없으므로 SoT 57.0%, 통합 78%, strict beta 83%는 유지한다.
+
+Intent-observability의 설치 C/LLVM 슬라이스는 실행 경계까지 닫혔다. 51행 `.def`
+projection이 self-host codegen usage receipt와 runtime symbol rewrite를 직접
+소유하고, 사용된 프로그램에만 enabled runtime header를 낸다. Public installed
+C/LLVM과 두 native oracle은 `IntentHistoryCount()`(0인자/Int),
+`IntentActiveConcurrent(0)`(1인자/Bool), `IntentActiveStepName(0, 0)`
+(2인자/String)을 모두 실행하며 exact stdout `0`, `false`, 빈 문자열을 낸다.
+두 public installed 경로는 native pipeline 재진입을 하지 않는다. Registry
+gate는 `86 authorities / 168 derived fact carriers`와
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`로 green이고 CI step/profile도 green이다.
+Native 7-field와 self-host 10-field `pgy.mir.v1` expression fact는 이제 canonical
+`RuntimeCallAbiId`를 싣는다. Direct-MIR admission은 source/name/shape row와 carried
+ID를 한 번 교차 봉인하고 C/LLVM은 `RowForId`만 소비한다. 같은 0/1/2인자 fixture의
+native/self MIR 네 direct-backend 조합은 exact stdout을 보존했고, missing,
+mismatch, non-observability forged ID, source-syntax/runtime-ID conflict는 모두
+artifact publication 전에 실패했다. 새 focused gate는 기존 serial self-host CI
+job에 연결됐다. 이어 installed self-host의 default-priority legacy intent emitter가
+admitted mode/signature/participant/zone/slot fact에서
+`enter/step/bind/materialize/fail/ok/exit`를 투영한다. Success와 첫 guard 실패,
+둘째 step의 guard/expect/post 실패, 역순 compensation, history 2행,
+`post:ForwardB`, exit 뒤 active count 0이 self C/native C/native LLVM에서 동일하다.
+LLVM compensation은 forward materialize 사건을 다시 발행해 fail phase를
+덮어쓰지 않는다. Typed v2 execution-plan observability와 non-default priority,
+compiler-purpose root intent는 남아 있으므로 `abi.intent_observability_rows`는
+BRIDGE이며 전체 퍼센테이지는 오르지 않는다.
+
+### 퍼센테이지 해석 규칙
+
+- `V72`, `V76` 같은 V 번호는 작업 체크포인트이지 제품 버전이나 퍼센트가
+  아니다. V가 하나 늘었다고 통합 진행률을 자동으로 올리지 않는다.
+- `.tmp` 파일 수, owner 파일 수, gate 수, LOC는 진척 분자가 아니다.
+- 퍼센트는 `CLOSED`, `SUBSTITUTING`, fixed-point receipt, current CI처럼
+  되돌리기 어려운 증거가 생길 때만 오른다.
+- focused gate는 한 owner의 정확성을 증명하고, aggregate gate는 이미 닫힌
+  owner들의 회귀를 막는다. 둘을 각각 별도 진척으로 중복 계산하지 않는다.
+- 2026-08-15 current-source driver는 최종 Pergyra-built DRV-2에서 194.0초에
+  설치됐다. 크기는 5,728,025 bytes, SHA-256은
+  `E7482523B5FE67856A2E1A37AF022A038099D6E02306F0F8B0A9D50E920B6E33`다.
+  Bool 1+ ArrayString과 ArrayBool-bearing collection copyout가 기존
+  callable/array ABI/LocalRef owner를 소비하고, LLVM은 exit-block별 copyout
+  identity를 쓴다. Fixed canary는 routine 1572/1574를 넘어 source syntax ID
+  37479, routine index 1575의 2+2 mixed collection policy에서 fail-closed했다.
+  이 증거는 다음 type/count owner를 정하지만 V 번호나 통과 routine 수를
+  퍼센테이지 분자로 세지 않는다.
+- 현재 routine-admission receipt는 global row/source/stage를 보존한다. 그
+  receipt가 지목한 local `Array<Bool>` push는 stable operation 39로 닫혔고,
+  source syntax ID 5428의 rebound value parameter는 ordered parameter-set fact와
+  canonical parameter LocalRef를 통해 entry `.0`/phi/C/LLVM 초기화까지 닫혔다.
+  최종 Pergyra-built self-driver는 5,529,557 bytes, SHA-256
+  `4F2931E649D9BF708635223750C138A3D77CF98DAFEEA8DD20061DCA800A84A6`이며,
+  canonical build는 223.1초에 통과했다. Array mutation(23.9초), diagnostic
+  receipt(14.0초), value-parameter rebind(8.0초), CI profile(6.2초), component
+  structural inventory(560.0초)가 green이다. 최종 드라이버에서 mutation과
+  diagnostic pair는 38.0초, value-parameter rebind는 14.0초에 다시 통과했다.
+  Fixed canary는 234.034초 뒤 global expression row 3227/raw routine row 229
+  `MirRoutineGraphDistances`의 populated `Array<Int>` literal `[start]`에서
+  fail-closed한다. 다음 seam은 exact `parameter:5969:2` identity/type/source
+  order를 기존 literal materializer까지 전달하는 것이다. Routine spelling/size
+  분기, same-type formal 추정, backend MIR reread, 새 graph/cache는 금지한다.
+  Full GraphPlan aggregate와 remote CI는 재실행하지 않았다.
+  이 seam은 이어서 닫혔다. 최종 driver는 5,531,272 bytes, SHA-256
+  `9DBCAD01EFCDD71227938F08701765652CCE90255BEAFC341422ED5B8037DDF8`이며,
+  populated literal/parameter C/LLVM gate가 12.9초에 통과했다. Fixed canary는
+  241.300초 뒤 row4338/raw routine252의 nested record-return expression으로
+  이동했다. 첫 rejected nested owner는 아직 receipt가 없으므로 다음 작업은
+  broad record/index 허용이 아니라 exact failure stage/node 진단이다.
+  이 진단은 `builtin-call@9`를 보존했고, nested constructor의 enclosing
+  expected-type 재검증을 제거한 뒤 scalar multi-record C/LLVM gate가 12.1초에
+  통과했다. 최종 driver는 5,537,253 bytes, SHA-256
+  `46EB4248737E2C71B5B3987D22D60059E9C258FF458936601C15F23D50313188`이다.
+  Fixed canary는 210.828초 뒤 row4360/raw routine258
+  `MirAbiLayoutMulMod`의 Long remainder로 이동했다. 다음 작업은 dynamic
+  divisor/overflow semantics를 소유하는 safety fact이며 C signed UB 허용은
+  금지한다. Component inventory와 local CI profile은 각각 343.5초와
+  6.1초에 green이다.
+  이어 dynamic Long remainder가 stable expression 75와 runtime-call ABI
+  row246으로 닫혔다. Focused C/LLVM gate는 ordinary `2`, `INT64_MIN % -1 == 0`,
+  zero-divisor panic, malformed type/kind를 12.5초에 검증했고 runtime ABI
+  manifest parity와 Int-divide 회귀 gate도 각각 37.4초와 6.2초에 통과했다.
+  최종 driver는 5,619,967 bytes, SHA-256
+  `73CEE796D3C7AF524E61E20CB86F84EC0A1790284F56B2DCD8F4841BDD916058`였다.
+  Fixed canary는 203.644초 뒤 row4360을 넘어 같은 raw routine258의
+  Long loop-header phi row4363에서 fail-closed했다. 다음 seam은 기존
+  PhiValue owner의 exact Long type/predecessor admission이며 새 opcode나
+  routine spelling 분기는 금지한다. 현재 component inventory, local CI,
+  progress metric, documentation quality는 각각 348.6초, 4.7초, 23.9초,
+  최종 문서 수정 뒤 5.5초에 green이다. Remote CI와 full GraphPlan aggregate는
+  실행하지 않았다.
+  Registry 승격이 없으므로 SoT hard closure 57.0%, 통합 78%, strict beta 83%는
+  모두 유지한다.
+  이어 기존 common PhiValue classifier에 Long을 추가했다. 새 opcode나
+  backend 분기는 없고, true/false `29`/`11`, wrong incoming type,
+  non-dominating incoming, missing incoming을 C/LLVM에서 검증한 focused gate가
+  9.4초, 기존 collection PhiValue 회귀가 8.3초에 green이다. Current-source
+  driver는 223.3초에 설치됐고 5,619,967 bytes, SHA-256
+  `E1A7E97A39E3AD8CB38E58A1E95D6D3993C459AE00B9612679885B0E792AEF87`이다.
+  Fixed canary는 214.910초 뒤 phi rows4363-4365를 넘어 row4366
+  `right > 0L`의 `expression-kind node=2`에서 fail-closed했다. 다음 seam은
+  기존 comparison/branch owner의 exact Long operand/Bool-result identity다.
+  Component inventory와 local CI profile은 각각 349.2초와 6.0초에 green이다.
+  최종 progress metric은 20.8초에 implementation/frontend/backend 65,124 LOC,
+  compiler core 191,251 LOC, 19.57%, default C emit `substituting`, full default
+  compile `open`을 재확인했고 documentation quality는 최종 문서 수정 뒤
+  8.7초에 green이다.
+  Registry 승격이 없으므로 세 퍼센테이지는 다시 유지한다.
+  이어 Int-only comparison owner를 typed comparison family로 치환하고 기존 Int
+  identity 7/11/60/61/66/67은 보존한 채 exact Long greater/equality identity
+  76/77을 append했다. 두 비교의 C/LLVM true/false와 wrong type/kind focused
+  gate는 17.9초, 기존 Int comparison/wrap 회귀는 11.8초에 green이다.
+  GraphPlan은 carrier 변경 없이 v54로 전진했다. 새 current-source driver는
+  5,621,222 bytes,
+  SHA-256
+  `89B8D1E42E3C410F3AFF2F34ED28F4D73E796F9135B0B45C54F7B4E2312E89A1`이다.
+  Fixed canary는 170.869초 뒤 row4368 node2 `result + left`에서
+  fail-closed했고 artifact를 게시하지 않았다. Component inventory는
+  329.9초에 green이다. Local CI profile, progress metric, documentation
+  quality도 9.4초, 9.1초, 10.3초에 green이고 implementation volume은
+  19.57%, default C emit은 `substituting`, full default compile은 `open`이다.
+  다음 seam은 Long addition의 언어-owned overflow contract다.
+  Registry 승격이 없으므로 SoT 57.0%, 통합 78%, strict beta 83%를 유지한다.
+  이어 exact Long addition, checked division, inequality, multiplication,
+  subtraction을 append-only identity 78~82로 닫았다. 덧셈/곱셈/뺄셈은 언어의
+  two's-complement wrap 계약을 공유하고, C는 `-fwrapv`, LLVM은 `nsw` 없는
+  `add`/`mul`/`sub`를 낸다. 최종 GraphPlan v59 driver는 226.3초에 설치됐고
+  5,625,746 bytes, SHA-256
+  `1E1F7546C7AE4110CF17DF4672182F0BB94C9BA7E7E9C780269FE7C311BBAD39`이다.
+  Long subtraction focused gate는 12.1초, 최종 division/remainder/comparison
+  회귀 묶음은 56.1초에 green이다. Component inventory, local CI, progress
+  metric, full UTF-8 documentation quality도 각각 365.8초, 7.2초, 4.0초,
+  139.2초에 통과했다. Fixed canary는 row4388을 넘어 204.520초 뒤
+  row4397/raw routine261 `MirAbiLayoutHashString`의 `type_name Long` node12에서
+  fail-closed했다. 다음 seam은 arbitrary cast widening이 아니라 exact
+  `Int -> Long` cast/type-name shape다. Registry 승격이 없으므로 SoT 57.0%,
+  통합 78%, strict beta 83%를 유지한다.
+  이어 exact `TypeName(Long)`/`Cast(Int, Long)`을 identity 83/84로 닫았다.
+  최종 GraphPlan v60 driver는 207.8초에 설치됐고 5,627,785 bytes,
+  SHA-256
+  `76E1CC93A1F537C730CD70593710EE822C12019069EB54C5D6F433B6C60A2796`이다.
+  Focused C/LLVM gate는 32.7초, Long wrap 회귀는 14.3초, component
+  inventory와 local CI profile은 357.0초와 8.2초에 통과했다. Progress
+  metric, documentation quality, source UTF-8 gate도 4.6초, 6.5초, 31.0초에
+  통과했고 implementation volume은 19.58%다. Fixed canary는 row4397을
+  넘어 205.389초 뒤 row4402/raw routine262
+  `MirAbiLayoutHashU32`의 `unsigned_value < 0L`에서 fail-closed했다. 다음
+  seam은 Int-less identity 재사용이 아니라 exact Long less comparison이다.
+  Registry 승격이 없으므로 SoT 57.0%, 통합 78%, strict beta 83%는 그대로다.
+  이어 exact `Long < Long -> Bool`을 append-only identity 85로 기존 typed
+  comparison family에 추가했다. GraphPlan v61 driver는 210.4초에 설치됐고
+  5,627,856 bytes, SHA-256
+  `ABEAD70CD950AE536B1FD6B63EA9412E4E7BF03C938A7F2C1DA23EA449D4338C`다.
+  네 Long 비교의 true/false와 wrong-type/kind gate는 14.9초, component
+  inventory와 local CI profile은 306.5초와 5.8초에 green이다. Progress,
+  documentation-quality, source UTF-8 gate도 4.8초, 6.4초, 0.8초에 통과했고
+  implementation volume은 19.58%다. Fixed canary는
+  row4402를 넘어 181.949초 뒤 row4513/raw routine268
+  `MirAbiLayoutFieldsCaptureWithin`의 populated `Array<Int>` literal
+  `[(0 - 1), (0 - 1), (0 - 1), (0 - 1)]` node16에서 fail-closed했다. 다음
+  seam은 기존 populated literal operand owner의 ordered admitted Int
+  expression element 소비다. Registry 승격이 없으므로 SoT 57.0%, 통합 78%,
+  strict beta 83%는 그대로다.
+
+현재 실행 체크포인트와 다음 falsifier의 권위는
+`docs/current_work_handoff.md`의 맨 위 active card다. 이 문서의 아래 기록은
+역사적 탐색 자료이며, 오래된 `활성` 또는 퍼센테이지 문구를 현재 상태로
+인용하지 않는다.
+
+## SoT 가족 단위 폐쇄판
+
+2026-08-13 registry census의 비폐쇄 row 37개를 누락이나 중복 없이 다섯
+가족으로 묶는다. 이것은 다섯 가족이 이미 닫혔다는 뜻이 아니라, 37개의
+row를 37개의 순차 V 작업처럼 다루던 방식을 중단하기 위한 실행 순서다.
+새로운 실제 fact family가 발견되지 않는 한 분모 86도 늘리지 않는다. 같은
+Coq fact를 가리키던 두 Array<String> exact-shape pseudo-owner는 독립 권위가
+아니므로 canonical GraphPlan의 derived projection 한 행으로 환원했다. 이는
+기능 두 개를 완료 처리한 것이 아니라 잘못 중복 집계한 분모를 교정한 것이다.
+
+| 폐쇄 가족 | row 수 | 포함 owner | 가족 종료 조건 |
+| --- | ---: | --- | --- |
+| compiler artifact spine | 12 | `selfhost.semantic_artifact_admission`, `selfhost.expression_surface`, `mir.generic_specialization`, `hir.typed_control_flow`, `mir.execution_graph`, `air.evidence_graph`, `target.capability_profile`, `projection.verified_plan`, `semantic.symbol_type_graph`, `abi.layout_rows`, `abi.runtime_call_rows`, `semantic.callable_receiver_carriage` | source admission부터 released C/LLVM artifact까지 typed fact가 한 번만 생산·검증되고 native/AST/text/target 재구성 fallback이 삭제됨 |
+| collection GraphPlan | 7 | `projection.direct_mir_array_int_program`, `projection.direct_mir_collection_pop_effect`, `projection.direct_mir_collection_program_plan`, `projection.direct_mir_scalar_cfg_foreach_receipt`, `projection.direct_mir_scalar_cfg_program_extension`, `projection.direct_mir_string_array_push`, `abi.mir_array_string_layout_projection` | signature별 예외 owner 대신 공통 collection ownership·ABI·effect plan이 C/LLVM의 마지막 consumer가 되고 old exact-shape 경로가 없음 |
+| domain/resource/intent | 11 | `semantic.domain_runtime_assignment`, `dir.domain_graph`, `semantic.machine_layer_transition`, `selfhost.zone_authority_rows`, `selfhost.intent_declaration_rows`, `semantic.nominal_field_kind`, `resource.region_allocation_plan`, `rir.resource_transition_graph`, `semantic.function_param_flow_summary`, `semantic.resource_flow_universe`, `semantic.loop_flow_summary` | real-purpose intent가 production root에서 domain/resource lifecycle과 하나의 native/self runtime plan을 소비하고 old ordinal/name/lifecycle reconstruction이 없음 |
+| syntax/tooling | 4 | `lexer.language_word_registry`, `parser.syntax_provenance`, `selfhost.match_case_pattern`, `selfhost.enum_declaration_rows` | parser-owned typed facts가 semantic/IR/LSP까지 유지되고 direct spelling, pattern-string 재파싱, concatenated-source carrier가 삭제됨 |
+| protocol/product | 3 | `compatibility.evolution`, `diagnostic.catalog`, `abi.intent_observability_rows` | manifest·diagnostic·intent ABI가 stable row로 package/release consumer까지 직접 전달되고 free-text/위치 기반 매핑이 삭제됨 |
+
+운영 규칙은 다음과 같다.
+
+- 동시에 활성화하는 가족은 하나다. 현재 executable rung은 collection
+  GraphPlan canary의 Bool call-short-circuit seam이며, 그 결과가
+  다음 실제 owner boundary를 결정한다.
+- V 번호와 fixture 증가는 폐쇄 진척이 아니다. 가족 안에서 old carrier
+  삭제, missing-fact fail-closed, negative ratchet, production substitution을
+  함께 만족해 registry row가 `CLOSED`가 될 때만 hard closure가 오른다.
+- 한 bounded patch가 가족 전체를 닫지 못하면 어떤 row와 fallback이 남았는지
+  같은 표에 유지한다. 작은 green gate를 가족 완료로 확대 해석하지 않는다.
+- 가족 두 개를 실제로 닫기 전에는 남은 기간을 날짜로 약속하지 않는다.
+  두 표본의 row 폐쇄 속도와 integration 시간을 관측한 뒤 ETA를 산정한다.
+
+## 과거 활성 우선순위 archive — for-loop break exit merge
 
 - 실행 체크포인트는 `6da669a4`다. installed Pergyra driver는 4,278,544
   bytes, SHA-256 `C274237F...2A44`다.

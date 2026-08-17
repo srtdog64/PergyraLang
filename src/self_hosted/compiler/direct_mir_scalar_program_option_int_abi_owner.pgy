@@ -1,6 +1,8 @@
-// One canonical Option<Int> layout receipt shared by every program expression.
+// One canonical Option<Int> layout receipt for expressions and parameters.
 
 import "direct_mir_option_match_abi_capture_owner.pgy";
+import "direct_mir_routine_param_fact_owner.pgy";
+import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 import "../mir_lower/routine_instruction_scalar_capture_owner.pgy";
@@ -25,8 +27,9 @@ func DirectMirScalarProgramOptionIntAbiFromInstruction(
     if !IsSome(admitted) {
         Die("direct MIR scalar program Option<Int> ABI receipt is missing");
     }
+    let admitted_row: MirAbiLayoutRowCapture = UnwrapOption(admitted);
     let next: DirectMirOptionMatchAbiFact =
-        DirectMirOptionMatchAbiFactFromCapture(UnwrapOption(admitted));
+        DirectMirOptionMatchAbiFactFromCapture(admitted_row);
     if current.valid && (current.layout_id != next.layout_id ||
         current.digest != next.digest) {
         Die("direct MIR scalar program Option<Int> ABI owners disagree");
@@ -38,6 +41,35 @@ func DirectMirScalarProgramOptionIntAbiCanonicalEmpty(
     ref fact: DirectMirOptionMatchAbiFact
 ) -> Bool {
     return !fact.valid && fact.digest == 0 && fact.layout_id == 0;
+}
+
+func DirectMirScalarProgramOptionIntAbiFromParameter(
+    current: DirectMirOptionMatchAbiFact, own parameter: DirectMirRoutineParamFact
+) -> DirectMirOptionMatchAbiFact {
+    if parameter.type_name != CompilerAbiLayoutOptionIntTypeName() { return current; }
+    if !DirectMirRoutineParamFactReady(parameter) || parameter.carriage != "value" ||
+        parameter.resource != "none" || parameter.pass_shape != "direct" || !parameter.abi_required {
+        Die("direct MIR scalar program Option<Int> parameter ABI is invalid");
+    }
+    let abi_capture: MirAbiLayoutRowCapture = parameter.abi;
+    let next: DirectMirOptionMatchAbiFact = DirectMirOptionMatchAbiFactFromCapture(abi_capture);
+    if current.valid && (current.layout_id != next.layout_id || current.digest != next.digest) {
+        Die("direct MIR scalar program Option<Int> ABI owners disagree");
+    }
+    return next;
+}
+
+func DirectMirScalarProgramOptionIntAbiFromRoutineParameters(
+    current: DirectMirOptionMatchAbiFact, ref routines: MirProgramRoutineIndex,
+    routine_row: Int, param_count: Int
+) -> DirectMirOptionMatchAbiFact {
+    let ordinal: Int = 0;
+    while ordinal < param_count {
+        let parameter: DirectMirRoutineParamFact = DirectMirScalarProgramParamFactAtOrdinal(routines, routine_row, ordinal);
+        current = DirectMirScalarProgramOptionIntAbiFromParameter(current, parameter);
+        ordinal = ordinal + 1;
+    }
+    return current;
 }
 
 func DirectMirScalarProgramOptionIntAbiReadyForExpressions(
@@ -53,6 +85,6 @@ func DirectMirScalarProgramOptionIntAbiReadyForExpressions(
         }
         row = row + 1;
     }
-    if required { return DirectMirOptionMatchAbiFactReady(fact); }
+    if required || fact.valid { return DirectMirOptionMatchAbiFactReady(fact); }
     return DirectMirScalarProgramOptionIntAbiCanonicalEmpty(fact);
 }

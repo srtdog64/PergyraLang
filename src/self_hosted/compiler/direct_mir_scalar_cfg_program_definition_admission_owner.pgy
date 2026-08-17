@@ -1,0 +1,63 @@
+// One definition operation joins its target local and expression owner.
+
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_mutation_owner.pgy";
+import "direct_mir_scalar_cfg_program_instruction_expression_owner.pgy";
+import "direct_mir_scalar_program_option_int_try_admission_owner.pgy";
+
+struct DirectMirScalarCfgProgramDefinitionAdmission {
+    let valid: Bool;
+    let operations: DirectMirScalarCfgProgramOperationStorage;
+    let expressions: DirectMirScalarProgramExpressionSet;
+}
+
+func DirectMirScalarCfgProgramAppendDefinition(
+    operations: DirectMirScalarCfgProgramOperationStorage,
+    expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    result: Int,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, value_offset: Int,
+    parameter_types: Array<String>,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref signature: DirectMirRoutineSignatureFact
+) -> DirectMirScalarCfgProgramDefinitionAdmission {
+    let root_kind: Int =
+        DirectMirScalarProgramInstructionExpressionRootKind(instruction);
+    if root_kind < 0 {
+        return DirectMirScalarCfgProgramDefinitionAdmission(
+            false, operations, expressions);
+    }
+    let operation_kind: Int = DirectMirScalarCfgOpExpressionDefinition();
+    let expression_row_opt: Option<Int> = None;
+    if root_kind == AstExpressionNodeTry() {
+        operation_kind = DirectMirScalarCfgOpOptionIntTryDefinition();
+        expression_row_opt = DirectMirScalarProgramAppendOptionIntTryOperand(
+            expressions, failure, instruction, uses, global_row, local_instruction,
+            locals, types, wire, local_offset, parameter_types, callables,
+            logical_record, payload_free_enum,
+            signature, types.value_types[result]);
+    } else {
+        expression_row_opt = DirectMirScalarCfgProgramAppendTypedExpression(
+            expressions, failure, instruction, uses, global_row, local_instruction,
+            locals, types, wire, local_offset, parameter_types, signature,
+            callables, logical_record, payload_free_enum,
+            0, types.value_types[result]);
+    }
+    if !IsSome(expression_row_opt) {
+        return DirectMirScalarCfgProgramDefinitionAdmission(
+            false, operations, expressions);
+    }
+    operations = DirectMirScalarCfgProgramOperationsAppendExpression(
+        operations, operation_kind, result + value_offset,
+        UnwrapOption(expression_row_opt));
+    return DirectMirScalarCfgProgramDefinitionAdmission(
+        true, operations, expressions);
+}

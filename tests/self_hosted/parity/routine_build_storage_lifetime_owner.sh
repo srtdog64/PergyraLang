@@ -10,6 +10,7 @@ MATCH_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_match_owner.pgy"
 ARTIFACT_OWNER="$ROOT_DIR/src/self_hosted/mir/artifact_lower_owner.pgy"
 SOURCE_MIR_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 AST_LIFETIME_OWNER="$ROOT_DIR/src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy"
+BODY_LIFETIME_OWNER="$ROOT_DIR/src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy"
 NEGATIVE="$ROOT_DIR/tests/self_hosted/semantic/fixture/compiler_retire_array_storage_external_rejected.pgy"
 IMPERSONATION_NEGATIVE="$ROOT_DIR/tests/self_hosted/semantic/fixture/compiler_retire_array_storage_owner_impersonation_rejected.pgy"
 
@@ -26,6 +27,12 @@ command -v "$PYTHON" >/dev/null 2>&1 || {
 }
 mkdir -p "$BUILD_DIR"
 
+"$PYTHON" \
+    "$ROOT_DIR/scripts/render_compiler_internal_builtin_caller_registry.py" \
+    "$ROOT_DIR/src/common/compiler_internal_builtin_caller_registry.def" \
+    "$ROOT_DIR/src/self_hosted/semantic/compiler_internal_builtin_caller_registry_owner.pgy" \
+    --check
+
 "$PYTHON" - "$ROOT_DIR" <<'PY'
 import pathlib
 import re
@@ -37,6 +44,7 @@ artifact_path = root / "src/self_hosted/mir/artifact_lower_owner.pgy"
 routine_build_path = root / "src/self_hosted/mir/routine_build_owner.pgy"
 source_mir_path = root / "src/self_hosted/compiler/driver_rung2_owner.pgy"
 ast_lifetime_path = root / "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy"
+body_lifetime_path = root / "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy"
 
 structs = {}
 struct_pattern = re.compile(r"(?ms)^struct\s+(\w+)\s*\{(.*?)^\}")
@@ -89,7 +97,7 @@ if sorted(drops) != expected_locals or len(drops) != len(set(drops)):
 
 int_count = sum(element == "Int" for _, element in actual)
 string_count = sum(element == "String" for _, element in actual)
-if (int_count, string_count, len(actual)) != (41, 43, 84):
+if (int_count, string_count, len(actual)) != (43, 50, 93):
     raise SystemExit(
         f"routine-build leaf census drift: Int={int_count} String={string_count} total={len(actual)}"
     )
@@ -140,6 +148,61 @@ def function_body(text, name):
                 return text[start:pos + 1]
     raise SystemExit(f"unterminated function body: {name}")
 
+body_lifetime = body_lifetime_path.read_text(encoding="utf-8")
+body_lifetime_body = function_body(
+    body_lifetime,
+    "SelfMirBodyTypeBundleStorageRetireAfterProgramFacts",
+)
+expected_body_leaves = leaves(
+    "SemanticAstBodyTypeBundle", "body_types", set()
+)
+body_bindings = re.findall(
+    r"let\s+(\w+)\s*:\s*Array\s*<\s*(Int|String)\s*>\s*=\s*"
+    r"(body_types(?:\.\w+)+)\s*;",
+    body_lifetime_body,
+)
+actual_body_leaves = [(path, element) for _, element, path in body_bindings]
+if sorted(expected_body_leaves) != sorted(actual_body_leaves):
+    missing = sorted(set(expected_body_leaves) - set(actual_body_leaves))
+    extra = sorted(set(actual_body_leaves) - set(expected_body_leaves))
+    raise SystemExit(
+        f"body-type leaf coverage drift: missing={missing} extra={extra}"
+    )
+body_locals = {path: local for local, _, path in body_bindings}
+body_drops = re.findall(
+    r"CompilerRetireArrayStorage\((\w+)\)\s*;", body_lifetime_body
+)
+if sorted(body_drops) != sorted(body_locals.values()) or \
+        len(body_drops) != len(set(body_drops)):
+    raise SystemExit("body-type backing drop coverage is not exactly once per leaf")
+body_ints = sum(element == "Int" for _, element in actual_body_leaves)
+body_strings = sum(element == "String" for _, element in actual_body_leaves)
+if (body_ints, body_strings, len(actual_body_leaves)) != (20, 20, 40):
+    raise SystemExit(
+        f"body-type leaf census drift: Int={body_ints} "
+        f"String={body_strings} total={len(actual_body_leaves)}"
+    )
+if "ArrayDropOwnedStrings" in body_lifetime_body:
+    raise SystemExit("body-type lifetime owner must not free shared String elements")
+
+source_mir = source_mir_path.read_text(encoding="utf-8")
+source_mir_body = function_body(
+    source_mir, "DriverRung2MirProjectionFromVerifiedFactsObserved"
+)
+facts_done = source_mir_body.index(
+    "let terminal_body_types: SemanticAstBodyTypeBundle = verified.body_types;"
+)
+body_retire = source_mir_body.index(
+    "SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(terminal_body_types);"
+)
+canonical_start = source_mir_body.index(
+    'SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:start")'
+)
+if not (facts_done < body_retire < canonical_start):
+    raise SystemExit("body-type retirement is not facts < retire < canonical validation")
+if "verified.body_types" in source_mir_body[body_retire:]:
+    raise SystemExit("body-type bundle is used after its retirement boundary")
+
 early_body = function_body(
     ast_lifetime,
     "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection",
@@ -156,14 +219,24 @@ for field in traversal_fields:
         raise SystemExit(f"typed-AST traversal carry drift: {field}")
     if final_body.count(f"artifact.arena.{field};") != 1:
         raise SystemExit(f"typed-AST final leaf coverage drift: {field}")
+if early_body.count(
+    "let source_modules: AstSourceModuleFacts = artifact.source_modules;"
+) != 1:
+    raise SystemExit("typed-AST source-module provenance is not carried past domain projection")
+for field in ("declaration_node_ids", "module_paths"):
+    if final_body.count(f"artifact.source_modules.{field};") != 1:
+        raise SystemExit(f"typed-AST final source-module coverage drift: {field}")
 early_drops = re.findall(r"CompilerRetireArrayStorage\((\w+)\);", early_body)
 final_drops = re.findall(r"CompilerRetireArrayStorage\((\w+)\);", final_body)
 if len(early_drops) != 13 or len(set(early_drops)) != 13:
     raise SystemExit("typed-AST non-traversal backings are not retired exactly once")
-if len(final_drops) != 5 or len(set(final_drops)) != 5:
-    raise SystemExit("typed-AST traversal backings are not retired exactly once")
+if len(final_drops) != 7 or len(set(final_drops)) != 7:
+    raise SystemExit("typed-AST traversal/provenance backings are not retired exactly once")
 if set(early_drops) & set(final_drops):
     raise SystemExit("typed-AST early/final retirement sets overlap")
+for required in ("source_declaration_node_ids", "source_module_paths"):
+    if required in early_drops or required not in final_drops:
+        raise SystemExit(f"typed-AST source-module lifetime drift: {required}")
 if "AstArena(" not in early_body or "let empty_ints: Array<Int> = [];" not in early_body \
         or "let empty_strings: Array<String> = [];" not in early_body:
     raise SystemExit("typed-AST early owner leaves dangling retired descriptors")
@@ -176,7 +249,7 @@ if early_body.count("artifact.expression_graphs;") != 1 or \
 if re.search(r"CompilerRetireArrayStorage\([^)]*expression_graph", ast_lifetime):
     raise SystemExit("typed-AST lifetime owner retires expression graph storage")
 all_ast_drops = list(re.finditer(r"CompilerRetireArrayStorage\(", ast_lifetime))
-if len(all_ast_drops) != 18:
+if len(all_ast_drops) != 20:
     raise SystemExit("typed-AST lifetime owner gained an unowned retirement call")
 early_start = ast_lifetime.index(early_body)
 final_start = ast_lifetime.index(final_body)
@@ -199,7 +272,7 @@ if normalized_early.count(expected_arena) != 1:
     raise SystemExit("typed-AST reduced arena positional mapping drift")
 expected_artifact = (
     "AstTreeArtifact(tree_text," + expected_arena +
-    ",count,expression_graphs,identity_digest)"
+    ",count,expression_graphs,source_modules,identity_digest)"
 )
 if normalized_early.count(expected_artifact) != 1:
     raise SystemExit("typed-AST reduced artifact positional mapping drift")
@@ -225,7 +298,7 @@ success_final_retire = artifact_function.rindex(
 )
 return_facts = artifact_function.rindex("return facts;")
 if not (domain_done < early_retire < routine_input < intent_done < success_final_retire < return_facts):
-    raise SystemExit("typed-AST retirement is not domain < 13-drop < routines < 5-drop")
+    raise SystemExit("typed-AST retirement is not domain < 13-drop < routines/intents < 7-drop")
 after_early_call = early_retire + len(
     "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection(artifact);"
 )
@@ -239,6 +312,18 @@ for forbidden in (
 ):
     if forbidden in post_early:
         raise SystemExit(f"retired typed-AST lane regained a consumer: {forbidden}")
+intent_path_lookup = artifact_function.index(
+    "AstSourceModulePathForNode(", routine_input
+)
+intent_append = artifact_function.index(
+    "facts = SelfMirAppendIntentRoutine(", intent_path_lookup
+)
+if not (routine_input < intent_path_lookup < intent_append < intent_done):
+    raise SystemExit("intent MIR row does not consume carried source-module provenance")
+if "intent_source_module_path, intent_build" not in artifact_function[
+    intent_append:intent_done
+]:
+    raise SystemExit("intent MIR append lost its source-module path receipt")
 returns = list(re.finditer(
     r"(?m)^\s*return\b", artifact_function[after_early_call:]
 ))
@@ -290,7 +375,9 @@ projection_call = source_mir.index("SelfMirProgramFactsBeforeCanonicalIdsObserve
 canonical_ids = source_mir.index(
     "mir_facts = SelfMirCanonicalInstructionIds(mir_facts);", projection_call
 )
-facts_ready = source_mir.index("if !SelfMirProgramFactsReady(mir_facts)", canonical_ids)
+facts_ready = source_mir.index(
+    "SelfMirProgramFactsValidationErrorObserved(", canonical_ids
+)
 if not (projection_call < canonical_ids < facts_ready):
     raise SystemExit("source-MIR canonicalization ordering drift")
 if "DriverRung2AstArenaStorageRetireAfterMirFactRows" in source_mir:
@@ -329,6 +416,7 @@ for path in (root / "src/self_hosted").rglob("*.pgy"):
         call_sites.append(path.relative_to(root).as_posix())
 if call_sites != [
     "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy",
+    "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy",
     "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy",
 ]:
     raise SystemExit(f"compiler storage retirement call-site drift: {call_sites}")
@@ -337,32 +425,45 @@ approved_internal_owners = {
     "SelfMirRoutineBuildStorageRetireAfterLastConsumer",
     "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection",
     "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts",
+    "SelfMirBodyTypeBundleStorageRetireAfterProgramFacts",
 }
+sys.path.insert(0, str(root / "scripts"))
+import render_compiler_internal_builtin_caller_registry as caller_registry
+registry_rows = caller_registry.load_rows(
+    root / "src/common/compiler_internal_builtin_caller_registry.def"
+)
+if {row.function_name for row in registry_rows} != approved_internal_owners:
+    raise SystemExit("compiler-internal caller registry owner set drift")
 native_admission = (
     root / "src/semantic/type_checker_builtins_stdlib_array.c"
 ).read_text(encoding="utf-8")
-native_names = set(re.findall(
-    r'strcmp\(function_name,\s*"([A-Za-z0-9_]+)"\)', native_admission
-))
-if native_names != approved_internal_owners:
-    raise SystemExit(f"native compiler-internal owner set drift: {native_names}")
-for path in (
-    "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy",
-    "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy",
-):
-    if native_admission.count(f'"{path}"') != 1:
-        raise SystemExit(f"native compiler-internal module path drift: {path}")
+if '#include "../common/compiler_internal_builtin_caller_registry.def"' not in native_admission:
+    raise SystemExit("native compiler-internal admission bypasses the registry")
+for row in registry_rows:
+    if row.function_name in native_admission or row.module_path in native_admission:
+        raise SystemExit("native compiler-internal tuple was re-owned outside registry")
 self_host_admission = (
-    root / "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy"
+    root / "src/self_hosted/semantic/collection_mutation_policy_owner.pgy"
 ).read_text(encoding="utf-8")
-caller_body = function_body(
-    self_host_admission, "SemanticCompilerRetireArrayStorageCallerReady"
-)
-self_host_names = set(re.findall(
-    r'UnwrapOption\(name\)\s*==\s*"([A-Za-z0-9_]+)"', caller_body
-))
-if self_host_names != approved_internal_owners:
-    raise SystemExit(f"self-host compiler-internal owner set drift: {self_host_names}")
+caller_body = function_body(self_host_admission,
+                            "SemanticCompilerRetireArrayStorageCallerContractReady")
+if "SemanticCompilerInternalBuiltinCallerReady(" not in caller_body:
+    raise SystemExit("self-host compiler-internal admission bypasses the registry")
+for row in registry_rows:
+    if row.function_name in self_host_admission or row.module_path in self_host_admission:
+        raise SystemExit("self-host compiler-internal tuple was re-owned outside registry")
+
+artifact_owner = (root / "src/self_hosted/hir/ast_text_arena_projection_owner.pgy").read_text(encoding="utf-8")
+parser_owner = (root / "src/self_hosted/parser/program_parse_owner.pgy").read_text(encoding="utf-8")
+signature_owner = (root / "src/self_hosted/semantic/ast_signature_fact_owner.pgy").read_text(encoding="utf-8")
+for text, required in (
+    (artifact_owner, "source_modules: AstSourceModuleFacts;"),
+    (parser_owner, "AstSourceModuleFactsFromTopLevelPaths("),
+    (signature_owner, "module_paths: Array<String>;"),
+    (signature_owner, "SemanticAstFunctionModulePathAt("),
+):
+    if required not in text:
+        raise SystemExit(f"compiler-internal module provenance missing: {required}")
 
 runtime_owner = (
     root / "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"
@@ -418,7 +519,7 @@ for path, pattern in sorted_tables:
     if "CompilerRetireArrayStorage" not in names or names != sorted(names):
         raise SystemExit(f"compiler retirement registry ordering drift: {path}")
 
-print("[routine-build-storage-lifetime] structural coverage ok: 41 Int + 43 String")
+print("[routine-build-storage-lifetime] structural coverage ok: 43 Int + 50 String")
 PY
 
 grep -Fq 'PGY_BUILTIN_FLAG_COMPILER_INTERNAL' \
@@ -494,6 +595,28 @@ grep -Fq 'CompilerRetireArrayStorage(local_refs)' "$BUILD_DIR/owner.ast" || {
 grep -Fq 'SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection' \
     "$BUILD_DIR/source_mir.ast" || {
     echo "[routine-build-storage-lifetime] source-MIR artifact lifetime AST is incomplete" >&2
+    exit 1
+}
+"$PGY" "$BODY_LIFETIME_OWNER" --native-pipeline --ast \
+    >"$BUILD_DIR/body_type_lifetime.ast" \
+    2>"$BUILD_DIR/body_type_lifetime.ast.err"
+grep -Fq 'CompilerRetireArrayStorage(generic_actual_types)' \
+    "$BUILD_DIR/body_type_lifetime.ast" || {
+    echo "[routine-build-storage-lifetime] body-type lifetime AST is incomplete" >&2
+    exit 1
+}
+"$PGY" "$BODY_LIFETIME_OWNER" --native-pipeline --emit-c \
+    -o "$BUILD_DIR/body_type_lifetime.c" \
+    >"$BUILD_DIR/body_type_lifetime.c.out" \
+    2>"$BUILD_DIR/body_type_lifetime.c.err"
+grep -Fq 'pgy_array_drop_Int(&_pgy_ssa_initializer_node_ids_' \
+    "$BUILD_DIR/body_type_lifetime.c" || {
+    echo "[routine-build-storage-lifetime] body-type Int backing retirement is missing" >&2
+    exit 1
+}
+grep -Fq 'pgy_array_drop_String(&_pgy_ssa_generic_actual_types_' \
+    "$BUILD_DIR/body_type_lifetime.c" || {
+    echo "[routine-build-storage-lifetime] body-type String backing retirement is missing" >&2
     exit 1
 }
 "$PGY" "$OWNER" --native-pipeline --emit-c -o "$BUILD_DIR/owner.c" \

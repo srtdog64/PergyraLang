@@ -1,0 +1,27 @@
+// A persisted member path, not source spelling, owns the nested Array<String> target.
+
+struct TextArena {
+    node_texts: Array<String>;
+}
+
+struct ExpressionGraph {
+    arena: TextArena;
+}
+
+struct ExpressionSurfaces {
+    expression_graph: ExpressionGraph;
+}
+
+func RewriteNested() -> String {
+    let node_texts: Array<String> = StringSplit("left,old,right", ",");
+    let arena: TextArena = TextArena(node_texts);
+    let graph: ExpressionGraph = ExpressionGraph(arena);
+    let surfaces: ExpressionSurfaces = ExpressionSurfaces(graph);
+    let index: Int = 1;
+    surfaces.expression_graph.arena.node_texts[index] = "changed";
+    return surfaces.expression_graph.arena.node_texts[index];
+}
+
+func Main() -> Void {
+    Log(RewriteNested());
+}

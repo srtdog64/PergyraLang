@@ -1,6 +1,7 @@
 // LLVM string globals derived solely from sealed expression literal nodes.
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_literal_owner.pgy";
 
 func DirectMirScalarProgramLlvmStringGlobals(
     ref expressions: DirectMirScalarProgramExpressionSet
@@ -16,7 +17,8 @@ func DirectMirScalarProgramLlvmStringGlobals(
             output = Concat(output, " = private unnamed_addr constant [");
             output = Concat(output, ToString(StringLength(literal) + 1));
             output = Concat(output, " x i8] c\"");
-            output = Concat(output, literal);
+            output = Concat(output,
+                DirectMirScalarProgramLlvmStringLiteralPayload(literal));
             output = Concat(output, "\\00\"\n");
         }
         node = node + 1;

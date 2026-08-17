@@ -6,13 +6,15 @@ import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_member_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "expr_semantic_type_owner.pgy";
+import "expression_c_text_materialization_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func RewriteSemanticDynamicAbilityCall(
     graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
     member: SemanticMemberAccessView,
-    env: CodegenTypeEnv
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
 ) -> Option<String> {
     let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
         graph, member.receiver_node, env
@@ -35,9 +37,11 @@ func RewriteSemanticDynamicAbilityCall(
         !IsIdentifier(UnwrapOption(method_name)) {
         Die("dynamic ability call is missing its party/slot/method facts");
     }
-    let slot_key: String = Concat(
-        UnwrapOption(party_type), Concat(".", UnwrapOption(slot_name))
-    );
+    let slot_key: String = CodegenCExpressionTextOwned(
+        owned_fragments, Concat(
+            UnwrapOption(party_type), Concat(".", UnwrapOption(slot_name))
+        )
+    ).text;
     let dispatch_identity: String = LookupKindType(
         env, slot_key, "role_slot"
     );
@@ -56,15 +60,15 @@ func RewriteSemanticDynamicAbilityCall(
     if LookupKindType(env, call_symbol, "f") == "" {
         Die("dynamic ability call ABI method fact is missing");
     }
-    let party_expr: String = RewriteExprFromSemanticGraph(
-        graph, slot_member.receiver_node, env
-    );
-    let c_slot: String = CompilerSymbolCFieldName(
-        UnwrapOption(slot_name)
-    );
-    let prefix_argument: String = Concat(
-        party_expr, Concat(".", c_slot)
-    );
+    let party_expr: String = RewriteExprFromSemanticGraphTracked(
+        graph, slot_member.receiver_node, env, owned_fragments
+    ).text;
+    let c_slot: String = CodegenCExpressionTextOwned(
+        owned_fragments, CompilerSymbolCFieldName(UnwrapOption(slot_name))
+    ).text;
+    let prefix_argument: String = CodegenCExpressionTextOwned(
+        owned_fragments, Concat(party_expr, Concat(".", c_slot))
+    ).text;
     let param_offset: Int = ParamModeCsvCount(modes) -
         ArrayLength(view.argument_nodes);
     if param_offset < 0 || param_offset > 1 {
@@ -72,11 +76,13 @@ func RewriteSemanticDynamicAbilityCall(
     }
     let args: String = RewriteSemanticCallArguments(
         graph, view, modes, param_types,
-        param_offset, prefix_argument, env
+        param_offset, prefix_argument, env, owned_fragments
     );
-    let vtable_field: String = Concat(
-        c_slot, Concat("_", Concat(dispatch_identity, "_vt"))
-    );
+    let vtable_field: String = CodegenCExpressionTextOwned(
+        owned_fragments, Concat(
+            c_slot, Concat("_", Concat(dispatch_identity, "_vt"))
+        )
+    ).text;
     return Some(Concat(
         party_expr, Concat(".", Concat(
             vtable_field, Concat("->", Concat(

@@ -1,0 +1,18 @@
+func Main() -> Void {
+    let source: String = "runtime-value";
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(StringLength(source));
+    let index: Int = 0;
+    while index < StringLength(source) {
+        TextBuilderAppend(output, Substring(source, index, 1));
+        index = index + 1;
+    }
+    let result: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    Print(result);
+    Log("");
+}
+
+func RuntimeValueLifecycleMarker() -> Int {
+    return 1;
+}

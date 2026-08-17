@@ -1,0 +1,95 @@
+func NextIndex() -> Int {
+    Log("index");
+    return 1;
+}
+
+func NextInt() -> Int {
+    Log("int-value");
+    return 9;
+}
+
+func NextString() -> String {
+    Log("string-value");
+    return Concat("", "b");
+}
+
+func IncrementFirst(
+    inout untouched: Array<Int>, inout values: Array<Int>
+) -> Void {
+    ArraySet(values, 0, values[0] + 1);
+}
+
+func AppendSecond(
+    inout untouched: Array<Int>, inout values: Array<Int>
+) -> Void {
+    ArrayPush(values, 9);
+}
+
+func PopSecond(
+    inout untouched: Array<Int>, inout values: Array<Int>
+) -> Void {
+    ArrayPop(values);
+}
+
+func ReplaceFirst(inout values: Array<String>, suffix: String) -> Void {
+    ArraySet(values, 0, Concat(values[0], suffix));
+}
+
+func PopLastString(inout values: Array<String>) -> Void {
+    ArrayPop(values);
+}
+
+struct ReachabilityFact {
+    let reachable: Bool;
+}
+
+func Main() -> Void {
+    let ints: Array<Int> = [1, 2];
+    ArraySet(ints, NextIndex(), ints[0] + NextInt());
+    Log(ToString(ints[1]));
+    ArrayPop(ints);
+    Log(ArrayLength(ints));
+    let untouched: Array<Int> = [7];
+    IncrementFirst(untouched, ints);
+    Log(ToString(untouched[0]));
+    Log(ToString(ints[0]));
+    let push_untouched: Array<Int> = [8];
+    let pushed: Array<Int> = [3];
+    AppendSecond(push_untouched, pushed);
+    Log(ToString(push_untouched[0]));
+    Log(ToString(ArrayLength(pushed)));
+    Log(ToString(pushed[1]));
+    PopSecond(push_untouched, pushed);
+    Log(ToString(push_untouched[0]));
+    Log(ToString(ArrayLength(pushed)));
+    let strings: Array<String> = [];
+    ArrayPush(strings, Concat("", "a"));
+    ArrayPush(strings, Concat("", "x"));
+    ArraySet(strings, 0, NextString());
+    Log(strings[0]);
+    ReplaceFirst(strings, "!");
+    Log(strings[0]);
+    ArrayPop(strings);
+    Log(ArrayLength(strings));
+    PopLastString(strings);
+    Log(ArrayLength(strings));
+    let reachable_fact = ReachabilityFact(true);
+    let reachable_values: Array<Bool> = [];
+    ArrayPush(reachable_values, reachable_fact.reachable);
+    if reachable_values[0] { Log("1"); } else { Log("unreachable"); }
+    ArraySet(reachable_values, 0, false);
+    if reachable_values[0] { Log("unreachable"); } else { Log("0-set"); }
+    let blocked_fact = ReachabilityFact(false);
+    let blocked_values: Array<Bool> = [];
+    ArrayPush(blocked_values, blocked_fact.reachable);
+    if blocked_values[0] { Log("unreachable"); } else { Log("0"); }
+    Log(MutateLateLocal());
+}
+
+func MutateLateLocal() -> String {
+    let sentinel: Int = 7;
+    let values: Array<String> = [];
+    ArrayPush(values, Concat("", "late"));
+    if sentinel == 7 { return values[0]; }
+    return "unreachable";
+}

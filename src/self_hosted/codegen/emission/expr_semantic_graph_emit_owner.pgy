@@ -1,5 +1,4 @@
 // Recursive expression emission from semantic-owned node handles.
-
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
@@ -12,18 +11,17 @@ import "../../compiler/symbol_table_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "expr_semantic_composite_literal_emit_owner.pgy";
 import "expr_semantic_call_emit_owner.pgy";
+import "expression_c_text_materialization_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "runtime_call_rewrite_owner.pgy";
 import "../runtime_abi/checked_division_runtime_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
-
 struct CodegenSemanticLeafBindingProjection {
     place_ready: Bool;
     applies: Bool;
     ok: Bool;
     c_name: String;
 }
-
 func CodegenSemanticLeafBindingProjectionFromGraph(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -44,7 +42,6 @@ func CodegenSemanticLeafBindingProjectionFromGraph(
     let c_name: String = LookupKindType(env, text, "cbind");
     return CodegenSemanticLeafBindingProjection(true, true, c_name != "", c_name);
 }
-
 func RewriteSemanticLeaf(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -89,7 +86,6 @@ func RewriteSemanticLeaf(
     Die(Concat("unsupported semantic leaf expression: ", text));
     return "";
 }
-
 func CodegenSemanticTaggedEnumVariantTagFromGraph(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -104,7 +100,6 @@ func CodegenSemanticTaggedEnumVariantTagFromGraph(
     if tag == "" { return None; }
     return Some(tag);
 }
-
 func RewriteSemanticIndex(
     graph: SemanticExpressionGraphFacts,
     receiver_id: Int,
@@ -133,7 +128,6 @@ func RewriteSemanticIndex(
         "(", Concat(receiver, Concat(", ", Concat(index, ")")))
     ));
 }
-
 func RewriteSemanticSpawn(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -191,79 +185,74 @@ func RewriteSemanticSpawn(
         CompilerSymbolCIdentifier(call_symbol), payload_type, arguments
     );
 }
-
-func RewriteExprFromSemanticGraph(
-    graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    env: CodegenTypeEnv
-) -> String {
-    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, node_id
-    );
-    let text_opt: Option<String> = SemanticExpressionGraphNodeText(
-        graph, node_id
-    );
+func RewriteExprFromSemanticGraphTracked(
+    graph: SemanticExpressionGraphFacts, node_id: Int, env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
+) -> CodegenCExpressionText {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    let text_opt: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
     if !IsSome(kind_opt) || !IsSome(text_opt) {
         Die("semantic expression graph node is missing");
     }
     let kind: Int = UnwrapOption(kind_opt);
     let text: String = UnwrapOption(text_opt);
-    if kind == AstExpressionNodeIntegerLiteral() { return text; }
+    if kind == AstExpressionNodeIntegerLiteral() { return CodegenCExpressionTextBorrowed(text); }
     if kind == AstExpressionNodeLongLiteral() {
-        return Concat(text, "L");
+        return CodegenCExpressionTextOwned(owned_fragments, Concat(text, "L"));
     }
     if kind == AstExpressionNodeFloatLiteral() {
-        if StringIndexOf(text, ".") >= 0 { return text; }
-        return Concat(text, ".0");
+        if StringIndexOf(text, ".") >= 0 {
+            return CodegenCExpressionTextBorrowed(text);
+        }
+        return CodegenCExpressionTextOwned(owned_fragments, Concat(text, ".0"));
     }
     if kind == AstExpressionNodeBoolLiteral() {
-        if text == "true" { return "1"; }
-        if text == "false" { return "0"; }
+        if text == "true" { return CodegenCExpressionTextBorrowed("1"); }
+        if text == "false" { return CodegenCExpressionTextBorrowed("0"); }
         Die("semantic Bool literal payload is invalid");
     }
-    if kind == AstExpressionNodeStringLiteral() { return text; }
+    if kind == AstExpressionNodeStringLiteral() { return CodegenCExpressionTextBorrowed(text); }
     if kind == AstExpressionNodeLeaf() {
-        return RewriteSemanticLeaf(graph, node_id, text, env);
+        return CodegenCExpressionTextBorrowed(RewriteSemanticLeaf(graph, node_id, text, env));
     }
     if AstExpressionNodeIsCallSpine(kind) {
-        return RewriteSemanticCall(graph, node_id, env);
+        return RewriteSemanticCallTracked(graph, node_id, env, owned_fragments);
     }
     if kind == AstExpressionNodeMemberAccess() {
-        return RewriteSemanticMemberAccess(graph, node_id, env);
+        return RewriteSemanticMemberAccessTracked(graph, node_id, env, owned_fragments);
     }
     if AstExpressionNodeIsArrayLiteralSpine(kind) ||
         AstExpressionNodeIsStructLiteralSpine(kind) ||
         AstExpressionNodeIsSetLiteralSpine(kind) {
         Die("composite literal requires an expected-type owner");
     }
-    let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
-        graph, node_id
-    );
+    let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
     if !IsSome(left_opt) {
         Die("semantic expression graph left edge is missing");
     }
     let left_id: Int = UnwrapOption(left_opt);
     if AstExpressionNodeIsUnaryOperator(kind) {
-        let operand: String = RewriteExprFromSemanticGraph(
-            graph, left_id, env
-        );
-        let operand_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-            graph, left_id
-        );
+        let operand_fact: CodegenCExpressionText = RewriteExprFromSemanticGraphTracked(
+            graph, left_id, env, owned_fragments);
+        let operand: String = operand_fact.text;
+        let operand_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, left_id);
         if !IsSome(operand_kind) {
             Die("semantic unary operand kind is missing");
         }
         if AstExpressionNodeArity(UnwrapOption(operand_kind)) == 1 {
-            operand = Concat("(", Concat(operand, ")"));
+            operand = CodegenCExpressionTextOwned(
+                owned_fragments,
+                CodegenCParenthesizedExpression(operand)
+            ).text;
         }
         if kind == AstExpressionNodeLogicalNot() {
-            return Concat("!", operand);
+            return CodegenCExpressionTextOwned(owned_fragments, Concat("!", operand));
         }
         if kind == AstExpressionNodeNegate() {
-            return Concat("-", operand);
+            return CodegenCExpressionTextOwned(owned_fragments, Concat("-", operand));
         }
         if kind == AstExpressionNodeSpawn() {
-            return RewriteSemanticSpawn(graph, left_id, env);
+            return CodegenCExpressionTextOwned(owned_fragments, RewriteSemanticSpawn(graph, left_id, env));
         }
         if kind == AstExpressionNodeAwait() {
             if UnwrapOption(operand_kind) == AstExpressionNodeSpawn() {
@@ -281,7 +270,7 @@ func RewriteExprFromSemanticGraph(
                 let payload_c: String = AbiLayoutCValueType(
                     UnwrapOption(payload), env
                 );
-                return SpawnRuntimeCAwaitTake(operand, payload_c);
+                return CodegenCExpressionTextOwned(owned_fragments, SpawnRuntimeCAwaitTake(operand, payload_c));
             }
             if UnwrapOption(operand_kind) != AstExpressionNodeLeaf() {
                 Die("self-host await requires a named future binding node");
@@ -301,7 +290,7 @@ func RewriteExprFromSemanticGraph(
                 let payload_c: String = AbiLayoutCValueType(
                     UnwrapOption(future_payload), env
                 );
-                return SpawnRuntimeCAwaitTake(operand, payload_c);
+                return CodegenCExpressionTextOwned(owned_fragments, SpawnRuntimeCAwaitTake(operand, payload_c));
             }
             let await_name: String =
                 CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitCName(
@@ -310,27 +299,22 @@ func RewriteExprFromSemanticGraph(
             if await_name == "" {
                 Die("self-host await requires a supported RemoteFuture<T> ABI row");
             }
-            return Concat(await_name, Concat("(", Concat(operand, ")")));
+            return CodegenCExpressionTextOwned(
+                owned_fragments,
+                Concat(await_name, Concat("(", Concat(operand, ")")))
+            );
         }
         Die("unsupported semantic unary expression graph node kind");
     }
-    let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
-        graph, node_id
-    );
+    let right_opt: Option<Int> = SemanticExpressionGraphRightChild(graph, node_id);
     if !IsSome(right_opt) {
         Die("semantic expression graph right edge is missing");
     }
     let right_id: Int = UnwrapOption(right_opt);
     if kind == AstExpressionNodeCast() {
-        let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-            graph, right_id
-        );
-        let target_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, right_id
-        );
-        let source_type: Option<String> = CodegenExpressionTypeFromGraph(
-            graph, left_id, env
-        );
+        let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, right_id);
+        let target_text: Option<String> = SemanticExpressionGraphNodeText(graph, right_id);
+        let source_type: Option<String> = CodegenExpressionTypeFromGraph(graph, left_id, env);
         if !IsSome(target_kind) || !IsSome(target_text) ||
             !IsSome(source_type) || UnwrapOption(target_kind) !=
                 AstExpressionNodeTypeName() {
@@ -338,33 +322,33 @@ func RewriteExprFromSemanticGraph(
         }
         let target: String = UnwrapOption(target_text);
         let source: String = UnwrapOption(source_type);
-        let operand: String = RewriteExprFromSemanticGraph(
-            graph, left_id, env
-        );
+        let operand: String = RewriteExprFromSemanticGraphTracked(
+            graph, left_id, env, owned_fragments
+        ).text;
         if source == "Float" && (target == "Int" || target == "Long") {
             let checked_fn: String =
                 CheckedArithmeticRuntimeCFloatToIntegerFn(target);
             if checked_fn == "" {
                 Die("checked float cast runtime ABI fact is missing");
             }
-            return Concat(checked_fn, Concat(
-                "((double)(", Concat(operand, "))")
-            ));
+            return CodegenCExpressionTextOwned(
+                owned_fragments, Concat(checked_fn, Concat(
+                    "((double)(", Concat(operand, "))")
+                ))
+            );
         }
         let c_target: String = AbiLayoutCValueType(target, env);
-        return Concat("((", Concat(
-            c_target, Concat(")(", Concat(operand, "))"))
-        ));
+        return CodegenCExpressionTextOwned(
+            owned_fragments, Concat("((", Concat(
+                c_target, Concat(")(", Concat(operand, "))"))
+            ))
+        );
     }
-    let left: String = RewriteExprFromSemanticGraph(graph, left_id, env);
-    let right: String = RewriteExprFromSemanticGraph(graph, right_id, env);
+    let left: String = RewriteExprFromSemanticGraphTracked(graph, left_id, env, owned_fragments).text;
+    let right: String = RewriteExprFromSemanticGraphTracked(graph, right_id, env, owned_fragments).text;
     if kind == AstExpressionNodeCoalesce() {
-        let left_type: Option<String> = CodegenExpressionTypeFromGraph(
-            graph, left_id, env
-        );
-        let right_type: Option<String> = CodegenExpressionTypeFromGraph(
-            graph, right_id, env
-        );
+        let left_type: Option<String> = CodegenExpressionTypeFromGraph(graph, left_id, env);
+        let right_type: Option<String> = CodegenExpressionTypeFromGraph(graph, right_id, env);
         if !IsSome(left_type) || !IsSome(right_type) {
             Die("semantic coalesce operand type fact is missing");
         }
@@ -375,7 +359,8 @@ func RewriteExprFromSemanticGraph(
         }
         let is_some_fn: String = OptionResultRuntimeCOptionIsSomeFn();
         let unwrap_fn: String = OptionResultRuntimeCOptionUnwrapFn();
-        return Concat(
+        return CodegenCExpressionTextOwned(
+            owned_fragments, Concat(
             "(({ __auto_type _pgy_coalesce = ", Concat(
                 left, Concat(
                     "; ", Concat(is_some_fn, Concat(
@@ -384,7 +369,7 @@ func RewriteExprFromSemanticGraph(
                         ))
                     ))
                 )
-            )
+            ))
         );
     }
     if kind == AstExpressionNodeEquality() ||
@@ -404,13 +389,14 @@ func RewriteExprFromSemanticGraph(
             if kind == AstExpressionNodeInequality() {
                 comparison = " != 0)";
             }
-            return Concat("(", Concat(
+            return CodegenCExpressionTextOwned(
+                owned_fragments, Concat("(", Concat(
                 StringRuntimeCStringCompareFn(), Concat(
                     "(", Concat(left, Concat(
                         ", ", Concat(right, Concat(")", comparison))
                     ))
                 )
-            ));
+            )));
         }
         if UnwrapOption(left_type) == UnwrapOption(right_type) &&
             LookupKindType(
@@ -429,13 +415,14 @@ func RewriteExprFromSemanticGraph(
                 if kind == AstExpressionNodeInequality() {
                     enum_operator = " != ";
                 }
-                return Concat("(", Concat(
+                return CodegenCExpressionTextOwned(
+                    owned_fragments, Concat("(", Concat(
                     UnwrapOption(left_tag), Concat(
                         enum_operator, Concat(
                             UnwrapOption(right_tag), ")"
                         )
                     )
-                ));
+                )));
             }
             if IsSome(left_tag) != IsSome(right_tag) {
                 let enum_operator: String = " == ";
@@ -443,32 +430,36 @@ func RewriteExprFromSemanticGraph(
                     enum_operator = " != ";
                 }
                 if IsSome(left_tag) {
-                    let tagged_right: String = Concat(
-                        "(", Concat(right, ").tag")
-                    );
-                    return Concat("(", Concat(
+                    let tagged_right: String = CodegenCExpressionTextOwned(
+                        owned_fragments, Concat("(", Concat(right, ").tag"))
+                    ).text;
+                    return CodegenCExpressionTextOwned(
+                        owned_fragments, Concat("(", Concat(
                         UnwrapOption(left_tag), Concat(
                             enum_operator, Concat(tagged_right, ")")
                         )
-                    ));
+                    )));
                 }
-                let tagged_left: String = Concat(
-                    "(", Concat(left, ").tag")
-                );
-                return Concat("(", Concat(
+                let tagged_left: String = CodegenCExpressionTextOwned(
+                    owned_fragments, Concat("(", Concat(left, ").tag"))
+                ).text;
+                return CodegenCExpressionTextOwned(
+                    owned_fragments, Concat("(", Concat(
                     tagged_left, Concat(
                         enum_operator, Concat(
                             UnwrapOption(right_tag), ")"
                         )
                     )
-                ));
+                )));
             }
             Die("tagged enum equality requires a variant tag operand");
         }
     }
     if kind == AstExpressionNodeIndex() {
-        return RewriteSemanticIndex(
-            graph, left_id, left, right, env
+        return CodegenCExpressionTextOwned(
+            owned_fragments, RewriteSemanticIndex(
+                graph, left_id, left, right, env
+            )
         );
     }
     if kind == AstExpressionNodeAdd() {
@@ -494,9 +485,11 @@ func RewriteExprFromSemanticGraph(
                 op_name = StringRuntimeCConcatFn();
             }
             if op_name != "" {
-                return Concat(op_name, Concat(
-                    "(", Concat(left, Concat(", ", Concat(right, ")")))
-                ));
+                return CodegenCExpressionTextOwned(
+                    owned_fragments, Concat(op_name, Concat(
+                        "(", Concat(left, Concat(", ", Concat(right, ")")))
+                    ))
+                );
             }
         }
     }
@@ -539,35 +532,43 @@ func RewriteExprFromSemanticGraph(
         operator = " * ";
     } else if kind == AstExpressionNodeDivide() || kind == AstExpressionNodeModulo() {
         let dt: Option<String> = CodegenExpressionTypeFromGraph(graph, left_id, env);
-        return CheckedDivisionRuntimeCBinaryEmit(
-            kind == AstExpressionNodeModulo(),
-            IsSome(dt) && (UnwrapOption(dt) == "Int" || UnwrapOption(dt) == "Long"),
-            left, right);
+        let division_type: String = "";
+        if IsSome(dt) { division_type = UnwrapOption(dt); }
+        return CodegenCExpressionTextOwned(
+            owned_fragments, CheckedDivisionRuntimeCBinaryEmit(
+                kind == AstExpressionNodeModulo(), division_type, left, right
+            )
+        );
     } else if kind == AstExpressionNodeIndex() {
         Die("semantic index expression did not project through its ABI row");
     } else if kind != AstExpressionNodeLogicalOr() {
         Die("unsupported semantic expression graph node kind");
     }
-    return Concat("(", Concat(
-        left, Concat(operator, Concat(right, ")"))
-    ));
-}
-
-func RewriteExprWithSemanticGraph(
-    expression: String,
-    env: CodegenTypeEnv,
-    view: SemanticExpressionGraphView
-) -> String {
-    let root_text: Option<String> = SemanticExpressionGraphNodeText(
-        view.graph, view.root_id
+    return CodegenCExpressionTextOwned(
+        owned_fragments, CodegenCBinaryExpression(left, operator, right)
     );
+}
+func RewriteExprFromSemanticGraph(
+    graph: SemanticExpressionGraphFacts, node_id: Int, env: CodegenTypeEnv
+) -> String {
+    let owned_fragments: Array<String> = [];
+    let value: CodegenCExpressionText = RewriteExprFromSemanticGraphTracked(graph, node_id, env, owned_fragments);
+    return CodegenCExpressionTextCommitRoot(owned_fragments, value);
+}
+func RewriteExprWithSemanticGraphTracked(
+    expression: String, env: CodegenTypeEnv, view: SemanticExpressionGraphView, inout owned_fragments: Array<String>
+) -> CodegenCExpressionText {
+    let root_text: Option<String> = SemanticExpressionGraphNodeText(view.graph, view.root_id);
     if !view.ok || !IsSome(root_text) ||
         UnwrapOption(root_text) != SemanticStripOuterParens(expression) {
         Die("semantic expression graph does not match codegen expression");
     }
-    return RewriteExprFromSemanticGraph(view.graph, view.root_id, env);
+    return RewriteExprFromSemanticGraphTracked(view.graph, view.root_id, env, owned_fragments);
 }
-
+func RewriteExprWithSemanticGraph(expression: String, env: CodegenTypeEnv, view: SemanticExpressionGraphView) -> String {
+    let owned_fragments: Array<String> = []; let value: CodegenCExpressionText = RewriteExprWithSemanticGraphTracked(expression, env, view, owned_fragments);
+    return CodegenCExpressionTextCommitRoot(owned_fragments, value);
+}
 func RewriteExpectedValueWithSemanticGraph(
     expression: String,
     expected_type: String,
@@ -588,13 +589,12 @@ func RewriteExpectedValueWithSemanticGraph(
         view.graph, view.root_id, expected_type, env
     );
 }
-
-func WrapExprWithSemanticGraph(
-    expression: String,
-    env: CodegenTypeEnv,
-    view: SemanticExpressionGraphView
-) -> String {
-    return Concat("(", Concat(
-        RewriteExprWithSemanticGraph(expression, env, view), ")"
-    ));
+func WrapExprWithSemanticGraph(expression: String, env: CodegenTypeEnv, view: SemanticExpressionGraphView) -> String {
+    let owned_fragments: Array<String> = []; let value: CodegenCExpressionText = RewriteExprWithSemanticGraphTracked(expression, env, view, owned_fragments);
+    let wrapped: String = CodegenCParenthesizedExpression(value.text);
+    if value.owned && (ArrayLength(owned_fragments) == 0 || owned_fragments[ArrayLength(owned_fragments) - 1] != value.text) {
+        Die("owned wrapped C expression root is not the final lifetime fragment");
+    }
+    ArrayDropOwnedStrings(owned_fragments);
+    return wrapped;
 }

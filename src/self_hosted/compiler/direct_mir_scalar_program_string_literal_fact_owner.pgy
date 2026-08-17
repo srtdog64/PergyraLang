@@ -1,0 +1,28 @@
+// Decoded ASCII payload identity for persisted Pergyra string literals.
+
+import "../lib/json.pgy";
+
+func DirectMirScalarProgramStringLiteralContent(
+    spelling: String
+) -> Option<String> {
+    let length: Int = StringLength(spelling);
+    if length < 2 || CharCode(spelling, length, 0) != 34 ||
+        CharCode(spelling, length, length - 1) != 34 { return None; }
+    let index: Int = 1;
+    while index < length - 1 {
+        let code: Int = CharCode(spelling, length, index);
+        if code < 32 || code > 126 || code == 34 { return None; }
+        if code == 92 {
+            if index + 1 >= length - 1 { return None; }
+            let escaped: Int = CharCode(spelling, length, index + 1);
+            if escaped != 110 && escaped != 114 && escaped != 116 &&
+                escaped != 34 && escaped != 92 { return None; }
+            index = index + 2;
+        } else { index = index + 1; }
+    }
+    let end: Array<Int> = [0];
+    let value: String = ReadJsonStringBounded(
+        spelling, 0, length, end);
+    if end[0] != length { return None; }
+    return Some(value);
+}

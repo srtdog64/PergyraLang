@@ -1,0 +1,42 @@
+// LLVM type materialization for one sealed program-wide Array<Bool> ABI.
+
+import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
+import "direct_mir_array_storage_abi_projection_owner.pgy";
+import "target_projection_fact_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+
+func DirectMirScalarProgramLlvmArrayBoolGetMaterialization() -> String {
+    return "define internal i1 @${CollectionRuntimeCGetFn(4)}(%pgy.array.bool %array, i64 %index) {\nentry:\n  %length = extractvalue %pgy.array.bool %array, 1\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %read\n\npanic:\n  call void @${CollectionRuntimeLlvmBoundsPanicFn()}(ptr null)\n  unreachable\n\nread:\n  %data = extractvalue %pgy.array.bool %array, 0\n  %slot = getelementptr inbounds i1, ptr %data, i64 %index\n  %value = load i1, ptr %slot, align 1\n  ret i1 %value\n}\n\n";
+}
+
+func DirectMirScalarProgramLlvmArrayBoolPushMaterialization() -> String {
+    return "define internal void @pgy_ab_push(ptr %array, i1 %value) {\nentry:\n  %data.ptr = getelementptr inbounds %pgy.array.bool, ptr %array, i32 0, i32 0\n  %length.ptr = getelementptr inbounds %pgy.array.bool, ptr %array, i32 0, i32 1\n  %capacity.ptr = getelementptr inbounds %pgy.array.bool, ptr %array, i32 0, i32 2\n  %length = load i64, ptr %length.ptr, align 8\n  %capacity = load i64, ptr %capacity.ptr, align 8\n  %full = icmp eq i64 %length, %capacity\n  br i1 %full, label %grow, label %append\n\ngrow:\n  %empty = icmp eq i64 %capacity, 0\n  %doubled = mul i64 %capacity, 2\n  %next.capacity = select i1 %empty, i64 4, i64 %doubled\n  %old.data = load ptr, ptr %data.ptr, align 8\n  %next.data = call ptr @realloc(ptr %old.data, i64 %next.capacity)\n  %failed = icmp eq ptr %next.data, null\n  br i1 %failed, label %abort, label %grown\n\nabort:\n  call void @abort()\n  unreachable\n\ngrown:\n  store ptr %next.data, ptr %data.ptr, align 8\n  store i64 %next.capacity, ptr %capacity.ptr, align 8\n  br label %append\n\nappend:\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds i1, ptr %data, i64 %length\n  store i1 %value, ptr %slot, align 1\n  %next.length = add i64 %length, 1\n  store i64 %next.length, ptr %length.ptr, align 8\n  ret void\n}\n\n";
+}
+
+func DirectMirScalarProgramLlvmArrayBoolPreamble(
+    ref fact: DirectMirScalarProgramArrayBoolAbiFact,
+    get_required: Bool,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramArrayBoolAbiFactReady(fact) {
+        Die("direct MIR LLVM Array<Bool> ABI fact is invalid");
+    }
+    if !fact.present { return ""; }
+    let storage: DirectMirArrayStorageAbiProjection =
+        DirectMirArrayStorageAbiProjectionFromTarget(target);
+    if !DirectMirArrayStorageAbiProjectionReadyFor(
+            storage, CompilerTargetCpuLlvmProjection()) ||
+        fact.size != storage.size || fact.align != storage.align ||
+        fact.data_offset != storage.data_offset ||
+        fact.length_offset != storage.length_offset ||
+        fact.capacity_offset != storage.capacity_offset ||
+        fact.allocator_offset != storage.allocator_offset {
+        Die("direct MIR LLVM Array<Bool> target projection is invalid");
+    }
+    let output: String = Concat("%pgy.array.bool = type ",
+        Concat(storage.llvm_aggregate_type, "\n"));
+    if !get_required { return output; }
+    return Concat(output,
+        DirectMirScalarProgramLlvmArrayBoolGetMaterialization());
+}

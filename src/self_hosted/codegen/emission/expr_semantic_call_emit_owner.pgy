@@ -22,66 +22,9 @@ import "expr_semantic_machine_call_emit_owner.pgy";
 import "expr_semantic_domain_query_emit_owner.pgy";
 import "function_binding_env_owner.pgy";
 import "member_call_receiver_carriage_owner.pgy";
+import "expression_c_text_materialization_owner.pgy";
+import "expr_semantic_struct_call_emit_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
-func RewriteSemanticStructCall(
-    graph: SemanticExpressionGraphFacts,
-    view: SemanticCallSpineView,
-    type_name: String,
-    env: CodegenTypeEnv
-) -> String {
-    let fields: String = LookupKindType(env, type_name, "constructor_fields");
-    if !LookupKindTypeRowPresent(env, type_name, "constructor_fields") {
-        Die(Concat("struct call constructor-field inventory is missing: ", type_name));
-    }
-    let out: String = Concat(
-        "(", Concat(AbiLayoutCStructTypeName(type_name), "){ ")
-    );
-    let i: Int = 0;
-    while i < ArrayLength(view.argument_nodes) {
-        let field_name: String = CsvAt(fields, i);
-        let field_type: String = LookupFieldType(env, type_name, field_name);
-        if field_name == "" || field_type == "" {
-            Die(Concat("struct call field fact is missing: ", type_name));
-        }
-        let value: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[i], field_type, "default", env
-        );
-        if i > 0 { out = Concat(out, ", "); }
-        out = Concat(out, Concat(
-            ".", Concat(CompilerSymbolCFieldName(field_name), Concat(
-                " = (", Concat(value, ")")
-            ))
-        ));
-        i = i + 1;
-    }
-    // Prefix construction is the admitted arity (semantic: at_most_N; native
-    // emits the same shape): supplied arguments bind leading constructor
-    // fields, every unmentioned field is C zero-initialized.
-    let initializer_count: Int = ArrayLength(view.argument_nodes);
-    let all_fields: String = LookupKindType(env, type_name, "fields");
-    let field_index: Int = 0;
-    while CsvAt(all_fields, field_index) != "" {
-        let field_name: String = CsvAt(all_fields, field_index);
-        let field_kind: String = LookupKindType(
-            env, Concat(type_name, Concat(".", field_name)), "field_kind"
-        );
-        if field_kind == NominalFieldKindObjectSlot() ||
-            field_kind == NominalFieldKindTObjectSlot() {
-            if initializer_count > 0 { out = Concat(out, ", "); }
-            out = Concat(out, Concat(
-                ".__projection_dirty_",
-                Concat(CompilerSymbolCFieldName(field_name), " = true")
-            ));
-            initializer_count = initializer_count + 1;
-        }
-        field_index = field_index + 1;
-    }
-    if initializer_count == 0 {
-        out = Concat(out, AbiLayoutCFieldlessNominalInitializer());
-    }
-    return Concat(out, " }");
-}
-
 func RewriteSemanticCallArguments(
     graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
@@ -89,9 +32,13 @@ func RewriteSemanticCallArguments(
     param_types: String,
     param_offset: Int,
     prefix_argument: String,
-    env: CodegenTypeEnv
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
 ) -> String {
-    let args: String = prefix_argument;
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(64);
+    let has_argument: Bool = prefix_argument != "";
+    if has_argument { TextBuilderAppend(output, prefix_argument); }
     let i: Int = 0;
     while i < ArrayLength(view.argument_nodes) {
         let param_index: Int = i + param_offset;
@@ -103,18 +50,21 @@ func RewriteSemanticCallArguments(
         let argument: String = RewriteSemanticCallArgument(
             graph, view.argument_nodes[i], expected_type, mode, env
         );
-        if args == "" { args = argument; }
-        else { args = Concat(args, Concat(", ", argument)); }
+        if has_argument { TextBuilderAppend(output, ", "); }
+        TextBuilderAppend(output, argument);
+        has_argument = true;
         i = i + 1;
     }
-    return args;
+    let args: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return CodegenCExpressionTextOwned(owned_fragments, args).text;
 }
-
-func RewriteSemanticMemberAccess(
+func RewriteSemanticMemberAccessTracked(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
-    env: CodegenTypeEnv
-) -> String {
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
+) -> CodegenCExpressionText {
     let view: SemanticMemberAccessView =
         SemanticMemberAccessViewFromGraph(graph, node_id);
     if !view.ok {
@@ -152,23 +102,24 @@ func RewriteSemanticMemberAccess(
     let member_name: String = UnwrapOption(member_text);
     if UnwrapOption(receiver_kind) == AstExpressionNodeLeaf() &&
         IsSome(receiver_text) && IsIdentifier(UnwrapOption(receiver_text)) {
-        let enum_value: String = LookupKindType(
-            env, Concat(
+        let qualified_member_key: String = CodegenCExpressionTextOwned(
+            owned_fragments, Concat(
                 UnwrapOption(receiver_text), Concat(".", member_name)
-            ), "e"
+            )
+        ).text;
+        let enum_value: String = LookupKindType(
+            env, qualified_member_key, "e"
         );
-        if enum_value != "" { return enum_value; }
-        let tagged_key: String = Concat(
-            UnwrapOption(receiver_text), Concat(".", member_name)
-        );
+        if enum_value != "" { return CodegenCExpressionTextBorrowed(enum_value); }
+        let tagged_key: String = qualified_member_key;
         let tagged_value: String = LookupKindType(
             env, tagged_key, "eval"
         );
-        if tagged_value != "" { return tagged_value; }
+        if tagged_value != "" { return CodegenCExpressionTextBorrowed(tagged_value); }
         let tagged_tag: String = LookupKindType(
             env, tagged_key, "etag"
         );
-        if tagged_tag != "" { return tagged_tag; }
+        if tagged_tag != "" { return CodegenCExpressionTextBorrowed(tagged_tag); }
     }
     let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
         graph, view.receiver_node, env
@@ -188,15 +139,19 @@ func RewriteSemanticMemberAccess(
         ));
     }
     let receiver_type_name: String = UnwrapOption(receiver_type);
-    let tagged_variant_owner: String = LookupKindType(
-        env, Concat(receiver_type_name, Concat(".", member_name)), "etype"
+    let tagged_variant_owner: String = LookupQualifiedKindType(
+        env, receiver_type_name, member_name, "etype"
     );
     if tagged_variant_owner == receiver_type_name &&
         LookupKindType(env, receiver_type_name, "enum") == "tagged" {
-        let receiver: String = RewriteExprFromSemanticGraph(
-            graph, view.receiver_node, env
+        let receiver: String = RewriteExprFromSemanticGraphTracked(
+            graph, view.receiver_node, env, owned_fragments
+        ).text;
+        return CodegenCExpressionTextOwned(
+            owned_fragments, Concat("(", Concat(
+                receiver, Concat(").", CompilerSymbolCFieldName(member_name))
+            ))
         );
-        return Concat("(", Concat(receiver, Concat(").", CompilerSymbolCFieldName(member_name))));
     }
     if LookupFieldType(env, receiver_type_name, member_name) == "" {
         Die(Concat(
@@ -208,18 +163,26 @@ func RewriteSemanticMemberAccess(
             ))
         ));
     }
-    let receiver: String = RewriteExprFromSemanticGraph(
-        graph, view.receiver_node, env
-    );
-    return Concat(receiver, Concat(
-        ".", CompilerSymbolCFieldName(member_name)
+    let receiver: String = RewriteExprFromSemanticGraphTracked(
+        graph, view.receiver_node, env, owned_fragments
+    ).text;
+    return CodegenCExpressionTextOwned(owned_fragments, Concat(
+        receiver, Concat(".", CompilerSymbolCFieldName(member_name))
     ));
 }
-
+func RewriteSemanticMemberAccess(graph: SemanticExpressionGraphFacts, node_id: Int, env: CodegenTypeEnv
+) -> String {
+    let owned_fragments: Array<String> = [];
+    let value: CodegenCExpressionText = RewriteSemanticMemberAccessTracked(
+        graph, node_id, env, owned_fragments
+    );
+    return CodegenCExpressionTextCommitRoot(owned_fragments, value);
+}
 func RewriteSemanticMemberCall(
     graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
-    env: CodegenTypeEnv
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
 ) -> String {
     let member: SemanticMemberAccessView =
         SemanticMemberAccessViewFromGraph(graph, view.callee_node);
@@ -249,7 +212,7 @@ func RewriteSemanticMemberCall(
     } else if UnwrapOption(target_kind) == SemanticCallTargetMember() {
         let dynamic_call: Option<String> =
             RewriteSemanticDynamicAbilityCall(
-                graph, view, member, env
+                graph, view, member, env, owned_fragments
             );
         if IsSome(dynamic_call) { return UnwrapOption(dynamic_call); }
         if UnwrapOption(target_name) == "" {
@@ -268,14 +231,20 @@ func RewriteSemanticMemberCall(
             Die("semantic member-call method fact is missing");
         }
         param_offset = 1;
-        let receiver_value: String = RewriteExprFromSemanticGraph(
-            graph, member.receiver_node, env);
+        let receiver_value: String = RewriteExprFromSemanticGraphTracked(
+            graph, member.receiver_node, env, owned_fragments).text;
         let receiver_place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(
             graph, member.receiver_node);
         if !IsSome(receiver_place_kind) { Die("semantic member-call receiver place fact is missing"); }
         let stable_addressable: Bool = SemanticExpressionPlaceKindAddressable(UnwrapOption(receiver_place_kind));
         prefix_argument = CodegenMemberCallReceiverArgument(
             call_symbol, receiver_value, stable_addressable, env);
+        if LookupKindType(env, call_symbol, "rc") !=
+            CallableReceiverCarriageValue() {
+            prefix_argument = CodegenCExpressionTextOwned(
+                owned_fragments, prefix_argument
+            ).text;
+        }
     } else {
         Die("semantic member-call target fact is missing");
     }
@@ -283,9 +252,9 @@ func RewriteSemanticMemberCall(
     let param_types: String = LookupKindType(env, call_symbol, "pt");
     let args: String = RewriteSemanticCallArguments(
         graph, view, modes, param_types, param_offset,
-        prefix_argument, env
+        prefix_argument, env, owned_fragments
     );
-    return Concat(call_symbol, Concat("(", Concat(args, ")")));
+    return CodegenCCallExpression(call_symbol, args);
 }
 func RewriteSemanticSlotCall(
     graph: SemanticExpressionGraphFacts,
@@ -329,7 +298,6 @@ func RewriteSemanticSlotCall(
     Die(Concat(source_name, " is not a supported Slot<T> call"));
     return "";
 }
-
 func RewriteSemanticOwnedStringArrayCall(
     graph: SemanticExpressionGraphFacts, view: SemanticCallSpineView,
     source_name: String, env: CodegenTypeEnv
@@ -354,7 +322,6 @@ func RewriteSemanticOwnedStringArrayCall(
     Die("unsupported owned String array call");
     return "";
 }
-
 func RewriteSemanticCompilerRetireArrayStorageCall(
     graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
@@ -383,11 +350,11 @@ func RewriteSemanticCompilerRetireArrayStorageCall(
         Concat("(", Concat(array_arg, ")"))
     );
 }
-
 func RewriteSemanticDirectCall(
     graph: SemanticExpressionGraphFacts,
     root_id: Int,
-    env: CodegenTypeEnv
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
 ) -> String {
     let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
@@ -568,16 +535,16 @@ func RewriteSemanticDirectCall(
         }
     }
     let args: String = RewriteSemanticCallArguments(
-        graph, view, modes, param_types, 0, "", env
+        graph, view, modes, param_types, 0, "", env, owned_fragments
     );
-    return Concat(call_symbol, Concat("(", Concat(args, ")")));
+    return CodegenCCallExpression(call_symbol, args);
 }
-
-func RewriteSemanticCall(
+func RewriteSemanticCallTracked(
     graph: SemanticExpressionGraphFacts,
     root_id: Int,
-    env: CodegenTypeEnv
-) -> String {
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
+) -> CodegenCExpressionText {
     let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
     );
@@ -591,10 +558,43 @@ func RewriteSemanticCall(
         Die("semantic call callee kind is missing");
     }
     if UnwrapOption(callee_kind) == AstExpressionNodeMemberAccess() {
-        return RewriteSemanticMemberCall(graph, view, env);
+        return CodegenCExpressionTextOwned(
+            owned_fragments,
+            RewriteSemanticMemberCall(graph, view, env, owned_fragments)
+        );
     }
     if UnwrapOption(callee_kind) != AstExpressionNodeLeaf() {
         Die("semantic call callee kind is unsupported");
     }
-    return RewriteSemanticDirectCall(graph, root_id, env);
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, view.call_node
+    );
+    if !IsSome(target_name) || UnwrapOption(target_name) == "" {
+        Die("semantic direct-call target fact is missing");
+    }
+    let source_name: String = UnwrapOption(target_name);
+    let result: String = RewriteSemanticDirectCall(
+        graph, root_id, env, owned_fragments
+    );
+    if source_name == "Clone" {
+        return CodegenCExpressionTextBorrowed(result);
+    }
+    if source_name == "ToString" && ArrayLength(view.argument_nodes) == 1 {
+        let argument_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, view.argument_nodes[0], env
+        );
+        if IsSome(argument_type) && UnwrapOption(argument_type) == "String" {
+            return CodegenCExpressionTextBorrowed(result);
+        }
+    }
+    return CodegenCExpressionTextOwned(owned_fragments, result);
+}
+func RewriteSemanticCall(
+    graph: SemanticExpressionGraphFacts, root_id: Int, env: CodegenTypeEnv
+) -> String {
+    let owned_fragments: Array<String> = [];
+    let value: CodegenCExpressionText = RewriteSemanticCallTracked(
+        graph, root_id, env, owned_fragments
+    );
+    return CodegenCExpressionTextCommitRoot(owned_fragments, value);
 }

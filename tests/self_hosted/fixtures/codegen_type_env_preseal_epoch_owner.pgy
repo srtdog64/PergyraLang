@@ -29,6 +29,9 @@ func Main() -> Void {
     let local_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
         sealed_role_env, "Runtime=bind:local|Local=type:Value|"
     );
+    let shadowed_local_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
+        local_env, "Local=type:Newest|Fresh=type:First|"
+    );
     if global_rows[0] ==
             "|Root=s:struct|Shared=type:Int|Later=s:struct|Alias=type:String|Later=s:shadow|Tail=type:Bool|" &&
         LookupKindType(env, "Root", "s") == "struct" &&
@@ -40,7 +43,19 @@ func Main() -> Void {
         LookupKindType(sealed_role_env, "Operator", "op") == "plus" &&
         LookupKindType(env, "Runtime", "bind") == "" &&
         LookupKindType(local_env, "Runtime", "bind") == "ready" &&
-        LookupKindType(local_env, "Local", "type") == "Value" {
+        LookupKindType(local_env, "Local", "type") == "Value" &&
+        LookupKindType(shadowed_local_env, "Local", "type") == "Newest" &&
+        LookupKindType(shadowed_local_env, "Fresh", "type") == "First" &&
+        CsvAt("first,second,third", 0) == "first" &&
+        CsvAt("first,second,third", 1) == "second" &&
+        CsvAt("first,second,third", 2) == "third" &&
+        CsvAt("first,second,third", 3) == "" &&
+        ParamModeCsvCount("") == 0 &&
+        ParamModeCsvCount("default,ref,own") == 3 &&
+        ParamModeCsvAt("default,ref,own", 1) == "ref" &&
+        LookupKindTypeRowPresentRows(
+            "AtStart=type:Ready|", "AtStart", "type"
+        ) {
         Log("codegen-type-env-preseal-epoch-ok");
         return;
     }

@@ -273,6 +273,8 @@ intent_execution_validate_step(const MIRRoutine *routine,
         || row->transition_id != row->step_syntax_id
         || row->routine_syntax_id != routine->source_syntax_id
         || row->step_name == NULL || row->step_name[0] == '\0'
+        || row->where_zone_name == NULL || row->where_zone_name[0] == '\0'
+        || row->where_zone_syntax_id == 0
         || row->action_syntax_id == 0
         || row->outcome_result_name == NULL
         || row->outcome_result_name[0] == '\0'
@@ -606,6 +608,12 @@ mir_validate_intent_execution_program(const MIRProgram *mir,
              s < routine->intent_step_transition_count; s++) {
             const MIRIntentStepTransitionFact *step =
                 &routine->intent_step_transitions[s];
+            if (intent_execution_decl_by_identity(mir,
+                    step->where_zone_syntax_id, AST_ZONE_DECL,
+                    step->where_zone_name) == NULL) {
+                return intent_execution_reject(error_message, routine,
+                    "step zone identity cross-seal failed");
+            }
             if (!intent_execution_enum_branch_is_sealed(mir,
                     step->outcome_enum_syntax_id,
                     step->outcome_enum_name, &step->success)

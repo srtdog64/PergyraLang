@@ -87,7 +87,7 @@ project() {
 }
 project program c c; project program llvm ll
 [[ "$(sha256sum "$MIR" | awk '{print $1}')" == \
-    77409191405bdd859479069669aed8426f41e7dfaaa497b7ebceda28754264bb ]] ||
+    fe64a5314b7a1146bbcffa826752f2c9aeeea6f2c8fe603d0955b1c76dfff006 ]] ||
     fail "single-range MIR identity drifted"
 [[ "$(sha256sum "$WORK_DIR/program.c" | awk '{print $1}')" == \
     e2724f4f1b6972be932c30e4545ae89eb749e7f8883b322e2df23eb9c25fdf31 ]] ||
@@ -113,7 +113,7 @@ for mutation in missing-def-ref forged-def-ref forged-init-ref \
         missing-def-ref)
             diagnostic='direct MIR scalar CFG LocalRef plan is invalid' ;;
         duplicate-local)
-            diagnostic='direct MIR scalar CFG foreach local inventory is invalid' ;;
+            diagnostic='direct MIR scalar CFG local inventory is invalid: source_syntax_id=' ;;
         *)
             diagnostic='direct MIR scalar CFG range LocalRef binding is invalid' ;;
     esac

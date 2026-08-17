@@ -33,6 +33,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 INVENTORY="$ROOT_DIR/src/self_hosted/dir/domain_graph_inventory_owner.pgy"
+ROW_OWNER="$ROOT_DIR/src/self_hosted/dir/domain_graph_row_owner.pgy"
 RENDERER="$ROOT_DIR/src/self_hosted/compiler/dir_text_artifact_owner.pgy"
 INTENT_RENDERER="$ROOT_DIR/src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy"
 INTENT_PROVENANCE="$ROOT_DIR/src/self_hosted/dir/intent_step_provenance_fact_owner.pgy"
@@ -51,7 +52,13 @@ PROBE_BIN="$BUILD_DIR/dir_graph_inventory_probe.exe"
 mkdir -p "$BUILD_DIR"
 
 for term in 'struct SelfDirGraphInventoryFacts' \
-    'SelfDirGraphInventoryFactsFromAdmittedFacts' \
+    'SelfDirGraphInventoryAppendNode' \
+    'SelfDirGraphInventoryAppendEdge' \
+    'SelfDirGraphInventoryNodeIndex'; do
+    grep -Fq -- "$term" "$ROW_OWNER" \
+        || fail "missing exact graph row owner term: $term"
+done
+for term in 'SelfDirGraphInventoryFactsFromAdmittedFacts' \
     'SelfDirGraphInventoryAppendPrimaryNodes' \
     'SelfDirGraphInventoryAppendProjectionTopologyEdges' \
     'zone_states: SelfDirZoneStateRows' \
@@ -131,14 +138,16 @@ if grep -Eq '(^|[^A-Za-z0-9_])on_node_ids([^A-Za-z0-9_]|$)' \
     fail "action-only on-node carriage reappeared"
 fi
 if grep -Eq 'TypedAstArenaProvenanceText|native_oracle|SelfDirDomainGraphAnchor' \
-    "$INVENTORY" "$RENDERER" "$INTENT_RENDERER"; then
+    "$INVENTORY" "$ROW_OWNER" "$RENDERER" "$INTENT_RENDERER"; then
     fail "DIR inventory reopened provenance, native-oracle, or count-anchor reconstruction"
 fi
 if grep -Fq 'domain_graph_inventory_owner.pgy' "$DOMAIN_CENSUS"; then
     fail "normal MIR domain census rebuilt the debug program inventory"
 fi
-[[ "$(wc -l <"$INVENTORY" | tr -d ' ')" -le 810 ]] \
-    || fail "DIR graph inventory owner exceeds 810 lines"
+[[ "$(wc -l <"$INVENTORY" | tr -d ' ')" -le 650 ]] \
+    || fail "DIR graph inventory owner exceeds 650 lines"
+[[ "$(wc -l <"$ROW_OWNER" | tr -d ' ')" -le 190 ]] \
+    || fail "DIR graph row owner exceeds 190 lines"
 [[ "$(wc -l <"$ZONE_STATE" | tr -d ' ')" -le 300 ]] \
     || fail "DIR zone-state row owner exceeds 300 lines"
 [[ "$(wc -l <"$RENDERER" | tr -d ' ')" -le 220 ]] \

@@ -79,8 +79,9 @@ CompilerResult *compiler_compile_link_self_host_c_artifact(
                                       const char *output_binary_path,
                                       bool verbose,
                                       PgyOptProfile opt_profile);
-/* Compile/link an admitted runtime-free textual LLVM artifact through clang.
- * No MIR, AIR, libLLVM, or runtime object is accepted at this host boundary. */
+/* Compile/link an admitted textual LLVM artifact plus the canonical external
+ * runtime object through clang. No MIR, AIR, libLLVM, or artifact-text policy
+ * inference is accepted at this host boundary. */
 CompilerResult *compiler_compile_link_self_host_llvm_artifact(
                                       const char *input_llvm_path,
                                       const char *output_binary_path,

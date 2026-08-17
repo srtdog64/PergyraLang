@@ -65,7 +65,23 @@ runtime declaration consume those rows. The previous names-only table,
 per-call `BuiltinKind` aliases, semantic spec table, and backend-local runtime
 symbol tables are retired. The generated self-host projection returns one
 complete immutable row per index; the six independent 51-branch selectors are
-also retired.
+also retired. The installed self-host C and LLVM routes now derive their usage
+receipt, runtime call spelling, and enabled runtime-header boundary from that
+same row. The public installed routes and both native oracles execute canonical
+zero-, one-, and two-argument rows with exact stdout `0`, `false`, and an empty
+line, without native re-entry. Persisted `pgy.mir.v1` expression facts now
+carry `RuntimeCallAbiId` in both native 7-field and self-host complete 10-field
+node rows. Direct-MIR admission cross-seals the carried ID against the canonical
+source/name/parameter-shape row, then C and LLVM resolve the runtime symbol only
+through `RowForId`. Missing, mismatched, forged non-observability, and mixed
+source-syntax/runtime identities fail before artifact publication. Full intent
+execution is no longer wholly open: the installed self-host default-priority
+legacy emitter projects enter/step/bind/materialize/fail/ok/exit events from
+admitted mode, signature, participant, zone, and slot facts. Its success and
+guard/expect/post failure histories, reverse compensation, final failure, and
+active-count exit state match native C and LLVM. Typed v2 execution-plan
+observability, non-default priority preservation, and the compiler-purpose root
+intent remain separate open obligations.
 
 ## Gate
 
@@ -83,6 +99,11 @@ also retired.
   identities, while duplicate and non-positive IDs fail closed;
 - zero-, one-, and two-`Int` parameter shapes project identically through
   native semantic, C, LLVM, and self-host signature consumers;
+- native and self-host MIR carry stable IDs 25, 1, and 13 through both direct
+  C and LLVM execution paths, while four identity mutations fail closed;
+- installed self-host intent execution records the same success/failure history
+  and reverse-compensation outcome as native C/LLVM, and LLVM compensation does
+  not overwrite a failure phase with a forward materialization event;
 - semantic/C/LLVM consumers use the canonical ABI owner;
 - retired aliases, backend-local runtime symbols, and AST/HIR fallback scans
   cannot return;

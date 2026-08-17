@@ -1,0 +1,19 @@
+// Exact normalized shape of the bounded empty Array<Bool> value.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayBoolEmptyLiteralNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    return facts.node_kinds[node] ==
+            DirectMirScalarProgramExprArrayBoolEmptyLiteral() &&
+        facts.node_types[node] == CompilerAbiLayoutArrayBoolTypeName() &&
+        facts.node_lefts[node] == -1 && facts.node_rights[node] == -1 &&
+        facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_member_ordinals[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        facts.node_callable_rows[node] == -1 &&
+        DirectMirScalarProgramNaryOperandEntry(
+            facts.nary_operands, node) < 0;
+}

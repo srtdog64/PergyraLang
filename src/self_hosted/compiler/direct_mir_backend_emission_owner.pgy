@@ -31,7 +31,7 @@ func DirectMirScalarEmitC(
         StringLength(line_format) == 0 || StringLength(int_c_type) == 0 {
         Die("direct MIR scalar C runtime ABI facts are invalid");
     }
-    let output: String = "#include <stdio.h>\n\nint main(void) {\n";
+    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n";
     let row: Int = 0;
     while row < ArrayLength(projection.local_names) {
         output = Concat(output, "    ");
@@ -145,7 +145,7 @@ func DirectMirCfgEmitC(
         Die("direct MIR CFG C projection plan or runtime ABI is invalid");
     }
     if DirectMirEnumValueMatchPlanFactReady(plan.enum_match) {
-        let output: String = "#include <stdio.h>\n\nint main(void) {\n    ";
+        let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n    ";
         output = Concat(output, int_c_type);
         output = Concat(output, " pgy_enum_value = ");
         output = Concat(output, ToString(plan.enum_match.selected_ordinal));
@@ -188,7 +188,7 @@ func DirectMirCfgEmitC(
             line_format, int_c_type
         );
     }
-    let output: String = "#include <stdio.h>\n";
+    let output: String = "#include <stdint.h>\n#include <stdio.h>\n";
     if plan.shape.kind == DirectMirCfgPhiMergeShapeKind() {
         output = Concat(output, "#include <stdbool.h>\n");
     }

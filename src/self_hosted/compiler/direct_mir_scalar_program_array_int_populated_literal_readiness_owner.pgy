@@ -1,0 +1,108 @@
+// Ordered admitted Int operands carried by one populated Array<Int> literal.
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+func DirectMirScalarProgramArrayIntPopulatedLiteralOperandRows(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Array<Int> {
+    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+        facts.nary_operands, node);
+    if ArrayLength(rows) != 0 { return rows; }
+    if facts.node_lefts[node] >= 0 {
+        ArrayPush(rows, facts.node_lefts[node]);
+    }
+    if facts.node_rights[node] >= 0 {
+        ArrayPush(rows, facts.node_rights[node]);
+    }
+    return rows;
+}
+
+func DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if facts.node_kinds[node] !=
+            DirectMirScalarProgramExprArrayIntPopulatedLiteral() ||
+        facts.node_types[node] != CompilerAbiLayoutArrayIntTypeName() ||
+        facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_member_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 { return false; }
+    let operands: Array<Int> =
+        DirectMirScalarProgramArrayIntPopulatedLiteralOperandRows(facts, node);
+    if ArrayLength(operands) < 1 { return false; }
+    let nary: Bool = DirectMirScalarProgramNaryOperandEntry(
+        facts.nary_operands, node) >= 0;
+    if nary && (ArrayLength(operands) < 3 ||
+            facts.node_lefts[node] != -1 ||
+            facts.node_rights[node] != -1) { return false; }
+    if !nary && (ArrayLength(operands) > 2 ||
+            facts.node_lefts[node] < 0) { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(operands) {
+        let operand: Int = operands[row];
+        if operand < 0 || operand >= node ||
+            facts.node_types[operand] != CompilerAbiLayoutIntTypeName() {
+            return false;
+        }
+        if facts.node_kinds[operand] == DirectMirScalarProgramExprIntLiteral() {
+            if !DirectMirScalarCfgCanonicalInt(facts.node_literals[operand]) ||
+                facts.node_lefts[operand] != -1 ||
+                facts.node_rights[operand] != -1 ||
+                facts.node_local_rows[operand] != -1 ||
+                facts.node_parameter_ordinals[operand] != -1 ||
+                facts.node_member_ordinals[operand] != -1 ||
+                facts.node_callable_rows[operand] != -1 { return false; }
+        } else if facts.node_kinds[operand] ==
+                DirectMirScalarProgramExprDirectCall() {
+            if !DirectMirScalarProgramDirectCallNodeReady(facts, operand) ||
+                ArrayLength(DirectMirScalarProgramDirectCallArgumentRows(
+                    facts, operand)) != 0 { return false; }
+        } else if facts.node_kinds[operand] ==
+                DirectMirScalarProgramExprParameter() {
+            if facts.node_parameter_ordinals[operand] < 0 ||
+                facts.node_lefts[operand] != -1 ||
+                facts.node_rights[operand] != -1 ||
+                facts.node_local_rows[operand] != -1 ||
+                facts.node_literals[operand] != "" ||
+                facts.node_callable_rows[operand] != -1 { return false; }
+        } else if facts.node_kinds[operand] ==
+                DirectMirScalarProgramExprLocal() {
+            if facts.node_local_rows[operand] < 0 ||
+                facts.node_parameter_ordinals[operand] != -1 ||
+                facts.node_lefts[operand] != -1 ||
+                facts.node_rights[operand] != -1 ||
+                facts.node_member_ordinals[operand] != -1 ||
+                facts.node_literals[operand] != "" ||
+                facts.node_callable_rows[operand] != -1 { return false; }
+        } else if facts.node_kinds[operand] ==
+                DirectMirScalarProgramExprSubtractInt() {
+            let left: Int = facts.node_lefts[operand];
+            let right: Int = facts.node_rights[operand];
+            if left < 0 || right < 0 || left >= operand || right >= operand ||
+                facts.node_kinds[left] != DirectMirScalarProgramExprIntLiteral() ||
+                facts.node_kinds[right] != DirectMirScalarProgramExprIntLiteral() ||
+                facts.node_types[left] != CompilerAbiLayoutIntTypeName() ||
+                facts.node_types[right] != CompilerAbiLayoutIntTypeName() ||
+                facts.node_local_rows[operand] != -1 ||
+                facts.node_parameter_ordinals[operand] != -1 ||
+                facts.node_member_ordinals[operand] != -1 ||
+                facts.node_literals[operand] != "" ||
+                facts.node_callable_rows[operand] != -1 { return false; }
+        } else { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramHasArrayIntPopulatedLiteral(
+    ref facts: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    let node: Int = 0;
+    while node < ArrayLength(facts.node_kinds) {
+        if facts.node_kinds[node] ==
+                DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
+            return true;
+        }
+        node = node + 1;
+    }
+    return false;
+}

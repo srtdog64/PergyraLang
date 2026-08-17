@@ -94,17 +94,71 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm
 
-      # self-host-preparation-exhaustive-parity-test-smoke depends on $(PGY) and
-      # $(PGY_LSP) only, but it compiles Pergyra source, which now delegates to
-      # the installed driver. The self-host-one-mir-* targets below do declare
-      # self-host-compiler, so make would build it -- but only after the first
-      # target has already run and failed.
-      - name: Build the installed self-host driver
-        run: make self-host-compiler
-
-      - name: Run exhaustive self-host parity
+      # Keep the release-owned native launcher/self-host sibling pair in the
+      # same serial make invocation as its consumers. A separate invocation
+      # would rebuild the phony driver prerequisite when the later GraphPlan
+      # gates encounter it again.
+      - name: Build the release pair and run exhaustive self-host parity
+        # The scalar GraphPlan aggregate includes distinct declaration-owned
+        # logical records, ABI-free Option<logical-record> payload joins,
+        # recursive record dependencies, Bool/record phi joins,
+        # zero-parameter record returns, readonly-ref carriage,
+        # Void + Array<String> value-result copy-in/out on every exit, and
+        # scalar-arity owned Array<String> return transfer/cleanup, exact
+        # by-value Array<Int>/Array<String> parameter ABIs, collection-bearing
+        # logical-record ABI joins, and nested logical-record return/value flow
+        # over the exact captured Array<Bool> ABI, plus direct Array<Int>
+        # return transfer, readonly-record/scalar owned Array<Bool> return,
+        # and exact owner-handle logical-record transfer/same-record return,
+        # plus readonly-record/String/one-ArrayString-copyout Bool carriage,
+        # plus String/readonly-record/two-record-copyout Bool carriage,
+        # plus same-record return with one ArrayString copyout and String,
+        # plus Void with one ArrayString copyout and one record value,
+        # plus that exact Void family with three or four ordered String values,
+        # the exact zero-parameter Long literal-return, and
+        # Bool return with one-or-more Array<String> copy-outs, and declaration-keyed
+        # logical-record value-result copy-in/out on every exit, plus ordered
+        # zero-or-more-parameter Void scalar Log/Exit process effects and
+        # ordered zero-call populated
+        # Array<Int> returns, plus compiler-owned three-field record-Array and
+        # public Array<Int> copy-outs in one Void signature, and exact
+        # record-Array copyout with distinct-record/Int or same-element input,
+        # plus exact logical-record return with ordered four Array<Int> and
+        # two Array<String> copy-outs and four direct scalar values,
+        # plus exact Bool return with ordered five Array<Int>, one Array<Bool>,
+        # and two Array<String> copy-outs and Bool/Bool/String values, plus exact
+        # Void return with Array<Int> copyout, a declaration-keyed logical-record
+        # value, and a direct String value, plus exact Bool return with two
+        # distinct record values and a third record copyout, plus exact
+        # readonly-record/two-String/two-ArrayString-copyout carriage, plus exact
+        # Int return with two ArrayString copyouts and two String values, plus exact
+        # Bool 2+2 ArrayString/ArrayInt copyouts with four String values, plus exact
+        # by-value record-Array indexed member reads, Bool/record-returning loops,
+        # declaration-keyed payload-free enum value-parameter signatures and
+        # exact value-formal or local-SSA String elements in populated
+        # Array<String> literals,
+        # Option<Int> try-let Some/None propagation from the semantic graph,
+        # and ordered Array<Int>/Array<String> Push/Set/Pop operations whose
+        # receiver is producer-owned LocalRef identity, including indexed
+        # assignment to an exact value-result formal with an SSA predecessor,
+        # and collection SSA joins through the shared PhiValue carrier,
+        # plus Bool short-circuit evaluation of a five-argument String window call,
+        # and Option<Bool> unwrap equality confined to that conditional RHS.
+        # The same GraphPlan profile also executes registry-owned Args() as a
+        # nested direct-call argument through exact C/LLVM argc/argv carriers.
+        # CI must not validate only the earlier physical ABI rows.
         run: >-
-          make self-host-preparation-exhaustive-parity-test-smoke
+          make release
+          self-host-hard-contract-test-smoke
+          self-host-intent-observability-runtime-test-smoke
+          self-host-intent-observability-mir-identity-test-smoke
+          self-host-intent-guard-post-compensation-execution-test-smoke
+          self-host-intent-typed-compensation-test-smoke
+          self-host-preparation-exhaustive-parity-test-smoke
+          self-host-codegen-type-env-preseal-epoch-test-smoke
+          self-host-compiler-internal-caller-provenance-test-smoke
+          self-host-routine-build-storage-lifetime-test-smoke
+          self-host-direct-mir-scalar-graph-plan-test-smoke
           self-host-one-mir-array-return-projection-test-smoke
           self-host-one-mir-array-argument-projection-test-smoke
           self-host-one-mir-array-param-projection-test-smoke
@@ -124,6 +178,7 @@ jobs:
           self-host-one-mir-constructed-generic-member-projection-test-smoke
           self-host-one-mir-constructed-array-member-projection-test-smoke
           self-host-one-mir-constructed-record-array-member-projection-test-smoke
+          self-host-public-mir-json-replacement-test-smoke
           self-host-default-c-compile-replacement-test-smoke
           self-host-default-llvm-replacement-test-smoke
 

@@ -1,0 +1,41 @@
+// First rejecting owner and source-graph node for one expression admission.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+struct DirectMirScalarProgramExpressionAdmissionFailure {
+    let present: Bool;
+    let stage: String;
+    let node: Int;
+}
+
+struct DirectMirScalarProgramExpressionAdmission {
+    let valid: Bool;
+    let facts: DirectMirScalarProgramExpressionSet;
+    let failure: DirectMirScalarProgramExpressionAdmissionFailure;
+}
+
+func DirectMirScalarProgramExpressionAdmissionFailureEmpty(
+) -> DirectMirScalarProgramExpressionAdmissionFailure {
+    return DirectMirScalarProgramExpressionAdmissionFailure(false, "", -1);
+}
+
+func DirectMirScalarProgramExpressionAdmissionFailureAt(
+    stage: String, node: Int
+) -> DirectMirScalarProgramExpressionAdmissionFailure {
+    return DirectMirScalarProgramExpressionAdmissionFailure(true, stage, node);
+}
+
+func DirectMirScalarProgramExpressionAdmissionRejected(
+    facts: DirectMirScalarProgramExpressionSet, stage: String, node: Int
+) -> DirectMirScalarProgramExpressionAdmission {
+    return DirectMirScalarProgramExpressionAdmission(
+        false, facts,
+        DirectMirScalarProgramExpressionAdmissionFailureAt(stage, node));
+}
+
+func DirectMirScalarProgramExpressionAdmissionAccepted(
+    facts: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarProgramExpressionAdmission {
+    return DirectMirScalarProgramExpressionAdmission(
+        true, facts, DirectMirScalarProgramExpressionAdmissionFailureEmpty());
+}

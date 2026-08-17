@@ -8,9 +8,20 @@ import "../mir_lower/ssa_identity_owner.pgy";
 func DirectMirScalarCfgExpressionSequence(
     ref instruction: JsonObjectFactTable
 ) -> MirExpressionGraphSequence {
+    return DirectMirScalarCfgExpressionSequenceForField(
+        instruction, "expr0_graph"
+    );
+}
+
+func DirectMirScalarCfgExpressionSequenceForField(
+    ref instruction: JsonObjectFactTable, field_name: String
+) -> MirExpressionGraphSequence {
+    if field_name != "expr0_graph" && field_name != "expr1_graph" {
+        return MirExpressionGraphSequenceEmpty();
+    }
     return MirExpressionGraphSequenceAppend(
         MirExpressionGraphSequenceEmpty(),
-        JsonObjectFactObjectTable(instruction, "expr0_graph")
+        JsonObjectFactObjectTable(instruction, field_name)
     );
 }
 

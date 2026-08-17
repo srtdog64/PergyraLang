@@ -1,9 +1,5 @@
-// Target-neutral one-instruction literal Log plan.
-//
-// The graph is semantic authority. The display envelope column is never
-// reparsed. A compile-time declaration receipt may differ while the
-// emitted runtime artifact remains identical.
-
+// Target-neutral one-instruction literal Log plan; the graph is authority.
+// Display text is never reparsed and compile-time declarations may erase.
 import "direct_mir_compile_time_declaration_erasure_owner.pgy";
 import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
@@ -27,6 +23,28 @@ struct DirectMirLiteralLogPlan {
 
 func DirectMirLiteralLogIntegerKind() -> Int { return 1; }
 func DirectMirLiteralLogStringKind() -> Int { return 2; }
+func DirectMirLiteralLogRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput) -> Bool {
+    if MirProgramRoutineIndexCount(admitted.routines) != 1 ||
+        admitted.routines.routine_block_counts[0] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, 0, 0) != 1 { return false; }
+    let row: Int = MirProgramRoutineIndexGlobalInstructionRow(admitted.routines, 0, 0, 0);
+    if row < 0 { return false; }
+    let expression: MirProgramInstructionExpressionFact = MirProgramInstructionExpressionIndexAt(
+        admitted.routines.instruction_expressions, row);
+    let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(
+        admitted.routines.source_json, expression, 0);
+    let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(MirExpressionGraphSequenceEmpty(), graph);
+    if !expression.valid || !graph.valid || !sequence.ok ||
+        sequence.ready_node_count != 1 || ArrayLength(sequence.roots) != 1 ||
+        sequence.roots[0] != 0 { return false; }
+    let kind: Int = sequence.arena.topology.node_kinds[0];
+    return ArrayLength(sequence.arena.topology.node_kinds) == 1 &&
+        sequence.arena.call_target_kinds[0] == SemanticCallTargetNone() &&
+        sequence.arena.call_target_names[0] == "" &&
+        (kind == AstExpressionNodeIntegerLiteral() ||
+         kind == AstExpressionNodeStringLiteral());
+}
 
 func DirectMirLiteralLogPlanDigest(ref plan: DirectMirLiteralLogPlan) -> Int {
     if !plan.valid { return 0; }
@@ -51,7 +69,7 @@ func DirectMirLiteralLogPlanReady(ref plan: DirectMirLiteralLogPlan) -> Bool {
     if plan.literal_kind == DirectMirLiteralLogIntegerKind() {
         return plan.literal != "" && ToString(ToInt(plan.literal)) ==
             plan.literal && plan.content == "" &&
-            plan.line_format == StringRuntimeCIntLineFormat();
+            plan.line_format == StringRuntimeCInt32LineFormat();
     }
     if plan.literal_kind != DirectMirLiteralLogStringKind() ||
         plan.line_format != StringRuntimeCStringLineFormat() {
@@ -171,7 +189,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
         if literal == "" || ToString(ToInt(literal)) != literal {
             Die("direct MIR literal Log integer is not canonical");
         }
-        line_format = StringRuntimeCIntLineFormat();
+        line_format = StringRuntimeCInt32LineFormat();
     } else if sequence.arena.topology.node_kinds[0] ==
             AstExpressionNodeStringLiteral() {
         literal_kind = DirectMirLiteralLogStringKind();

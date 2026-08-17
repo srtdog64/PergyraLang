@@ -54,7 +54,7 @@ calls="$(awk '
 while IFS= read -r call; do
     [[ -n "$call" ]] || continue
     case "$call" in
-        *'ToString('*|*'JsonEmitField'*|*'JsonEmitObject('*|\
+        *'ToString('*|*'JsonEmitField'*|*'JsonEmitObject('*) ;;
         *'SelfMirJson'*|*'SelfMirDomain'*|*'output, abi_layout);'*) ;;
         *) fail "non-renderer owned-fragment argument: $call" ;;
     esac

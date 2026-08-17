@@ -166,11 +166,15 @@ frontend gate is
 
 Native MIR now preserves the exact intent return signature, materializes one
 validated `MIRIntentExecutionPlan`, and projects it as
-`pgy.selfhost.mir-intent-execution-plan.v2`.  Its step and terminal rows bind
+`pgy.selfhost.mir-intent-execution-plan.v3`.  Its step and terminal rows bind
 stable declaration, variant, payload-definition, predecessor, completion and
-compensation identities.  Version 2 adds exact success/failure/source/result
+compensation identities. Version 2 added exact success/failure/source/result
 payload tobject declaration IDs and removes the version-1 name-only payload
-join without a compatibility dual read.  Native C and LLVM return early into target-specific
+join without a compatibility dual read. Version 3 adds each step's exact
+`where` zone spelling and declaration syntax identity; native and self
+admission cross-seal the pair against one zone declaration, and target-specific
+C/LLVM consumers use the admitted zone without an AST or source re-read.
+Native C and LLVM return early into target-specific
 projections of that plan; typed mode does not fall through to the legacy Bool
 emitter or rescan the AST.  The native execution gate
 `tests/intent_typed_transition_native_execution_smoke.sh` observes success,
@@ -194,14 +198,20 @@ The bounded executable seam therefore satisfies the promotion conditions:
    name-only, or row-order recovery;
 3. self C, native C, and native LLVM parity holds for success, `failure A`,
    `failure B`, predecessor-only compensation, reverse multiple compensation,
-   duplicate expression spelling, and zero compensation;
+   duplicate expression spelling, zero compensation, and exact step/zone
+   observability;
 4. schema, digest, graph-shape, action-target, payload-declaration, and zero-
    compensation scaffold mutations reject before any partial self C artifact;
 5. the production self-host driver reaches the admitted consumer and the old
    typed direct/rollback path cannot reappear.
 
-This is `SUBSTITUTING` evidence only for the bounded input-language
-MIR-to-self-C transition slice.  It does not promote `intent` into a universal
+The already-installed version-2 transition consumer is `SUBSTITUTING` evidence
+only for the bounded input-language MIR-to-self-C transition slice. The
+version-3 zone/observability extension is currently `REACHABLE`: its stage-0
+self C plus native C/LLVM execution gate is green, but the canonical
+Pergyra-built codegen exceeded the unchanged 3072MiB boundary during
+definition emission before a replacement installed driver was produced. It
+does not promote `intent` into a universal
 compiler owner and does not prove compiler-root dogfood.  `PgyCompilerWorld`'s
 production entrypoint still calls no real-purpose root intent that elaborates
 the canonical participant, coordination, authority, effect, boundary,

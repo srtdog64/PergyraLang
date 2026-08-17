@@ -218,6 +218,23 @@ grep -Fq 'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(' \
 require_borrowed_environment_push "$MATCH_BINDINGS" 'SemanticAstExpressionSeedMatchCaseBindings'
 require_borrowed_environment_push "$ITERATION_FACTS" 'SemanticAstIterationSeedVisibleRows'
 
+match_case_binding_body="$(function_body "$MATCH_BINDINGS" \
+    'SemanticAstExpressionSeedMatchCaseBindings')"
+grep -Fq 'AstMatchCasePatternFactFromReadyArtifact(' \
+    <<<"$match_case_binding_body" || {
+    echo "[self-host-parity:semantic-environment-lifetime] admitted match-case binding bypasses the ready-artifact pattern owner" >&2
+    exit 1
+}
+for forbidden in \
+    'AstMatchCasePatternFactFromArtifact(' \
+    'AstTreeArtifactReady(' \
+    'AstExpressionGraphRowsReady('; do
+    if grep -Fq "$forbidden" <<<"$match_case_binding_body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] admitted match-case binding repeats whole-artifact readiness: $forbidden" >&2
+        exit 1
+    fi
+done
+
 ready_match_body="$(function_body "$MATCH_BINDINGS" 'SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact')"
 [[ -n "$ready_match_body" ]] || {
     echo "[self-host-parity:semantic-environment-lifetime] missing ready-artifact match environment owner" >&2

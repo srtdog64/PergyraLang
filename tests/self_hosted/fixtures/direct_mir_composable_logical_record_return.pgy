@@ -1,0 +1,52 @@
+// Composable logical-record return with record values and three copyouts.
+struct CursorProbe {
+    let ok: Bool;
+    let first: Int;
+    let second: Int;
+    let third: Int;
+    let fourth: Int;
+    let rows: Array<Int>;
+}
+struct ArtifactProbe { let ok: Bool; }
+struct SignatureProbe { let signature_rows: Array<Int>; }
+struct ConstructorProbe { let constructor_rows: Array<Int>; }
+struct EnumProbe { let enum_rows: Array<Int>; }
+struct LocalProbe { let local_rows: Array<Int>; }
+func EmptyActuals(ref signatures: SignatureProbe, row: Int) -> Array<String> {
+    return [];
+}
+func AdvanceProbe(
+    artifact: ArtifactProbe,
+    signatures: SignatureProbe,
+    constructors: ConstructorProbe,
+    enums: EnumProbe,
+    locals: LocalProbe,
+    row: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>,
+    cursor: CursorProbe
+) -> CursorProbe {
+    let rejected_rows: Array<Int> = [];
+    if artifact.ok && ArrayLength(signatures.signature_rows) ==
+            ArrayLength(constructors.constructor_rows) &&
+        ArrayLength(enums.enum_rows) == ArrayLength(locals.local_rows) &&
+        row == 0 { return cursor; }
+    return CursorProbe(false, 0, 0, 0, 0, rejected_rows);
+}
+func Main() -> Void {
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
+    let cursor_rows: Array<Int> = [];
+    let fact_rows: Array<Int> = [];
+    let cursor: CursorProbe = CursorProbe(true, 1, 2, 3, 4, cursor_rows);
+    let signatures: SignatureProbe = SignatureProbe(fact_rows);
+    let actuals: Array<String> = EmptyActuals(signatures, 0);
+    let advanced: CursorProbe = AdvanceProbe(
+        ArtifactProbe(true), signatures, ConstructorProbe(fact_rows),
+        EnumProbe(fact_rows), LocalProbe(fact_rows), 0,
+        names, types, modes, cursor);
+    if advanced.ok && ArrayLength(actuals) == 0 { Log("composable-cursor-ready"); }
+    else { Log("composable-cursor-failed"); }
+}

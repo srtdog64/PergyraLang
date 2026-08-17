@@ -1,5 +1,5 @@
-// Coarse semantic claim for a multi-routine collection carriage program.
-// Exact call, return, ABI, CFG, and storage edges belong to admission.
+// Exact outer shape claim for the three-routine collection carriage program.
+// Call, return, ABI, CFG, and storage edges remain owned by admission.
 
 import "../air/mir_cfg_identity_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
@@ -40,10 +40,11 @@ func DirectMirCollectionProgramRouteFactReady(
         fact.collection_consumer_count > fact.routine_count {
         return false;
     }
-    let semantic_surface: Bool = fact.entrypoint_count > 0 &&
-        fact.collection_producer_count > 0 &&
-        fact.collection_consumer_count > 0;
-    return fact.claimed == semantic_surface;
+    let exact_program_shape: Bool = fact.routine_count == 3 &&
+        fact.entrypoint_count == 1 &&
+        fact.collection_producer_count == 1 &&
+        fact.collection_consumer_count == 1;
+    return fact.claimed == exact_program_shape;
 }
 
 func DirectMirCollectionProgramRouteFactFromAdmitted(
@@ -77,7 +78,8 @@ func DirectMirCollectionProgramRouteFactFromAdmitted(
         }
         row = row + 1;
     }
-    let claimed: Bool = entrypoints > 0 && producers > 0 && consumers > 0;
+    let claimed: Bool = routine_count == 3 && entrypoints == 1 &&
+        producers == 1 && consumers == 1;
     let fact: DirectMirCollectionProgramRouteFact =
         DirectMirCollectionProgramRouteFact(
             true, 0, claimed, routine_count, entrypoints,

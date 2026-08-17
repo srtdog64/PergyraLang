@@ -1,30 +1,55 @@
 // C syntax for registry-owned String/Array<String> builtin expressions.
-
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
-
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 func DirectMirScalarProgramCStringCollectionExpression(
-    kind: Int, left: String, right: String,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    kind: Int, left_type: String, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> Option<String> {
-    if kind == DirectMirScalarProgramExprStringContains() {
-        return Some(Concat(runtime.string_contains.symbol,
-            Concat("(", Concat(left, Concat(", ", Concat(right, ")"))))));
+    if kind == DirectMirScalarProgramExprProcessArgs() {
+        return Some(Concat(runtime.process_args.symbol, "()"));
     }
-    if kind == DirectMirScalarProgramExprStringSplit() {
-        return Some(Concat(runtime.string_split.symbol,
-            Concat("(", Concat(left, Concat(", ", Concat(right, ")"))))));
+    if kind == DirectMirScalarProgramExprDirWalk() {
+        return Some(Concat(runtime.dir_walk.symbol,
+            Concat("(", Concat(left, ")"))));
     }
+    if kind == DirectMirScalarProgramExprFileExists() {
+        return Some(Concat(runtime.file_exists.symbol,
+            Concat("(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprReadFile() {
+        return Some(Concat(runtime.read_file.symbol,
+            Concat("(", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
+        return Some(Concat(CollectionRuntimeCOwnedStringDropFn(),
+            Concat("(&", Concat(left, ")"))));
+    }
+    if kind == DirectMirScalarProgramExprArrayStringPushOwned() {
+        return Some(Concat(CollectionRuntimeCOwnedStringPushFn(),
+            Concat("(&", Concat(left, Concat(", ", Concat(right, ")"))))));
+    }
+    if kind == DirectMirScalarProgramExprStringContains() { return Some(Concat(
+        runtime.string_contains.symbol, Concat("(", Concat(left, Concat(", ", Concat(right, ")")))))); }
+    if kind == DirectMirScalarProgramExprStringSplit() { return Some(Concat(
+        runtime.string_split.symbol, Concat("(", Concat(left, Concat(", ", Concat(right, ")")))))); }
+    if kind == DirectMirScalarProgramExprStringJoin() { return Some(Concat(runtime.string_join.symbol,
+        Concat("(", Concat(left, Concat(", ", Concat(right, ")")))))); }
     if kind == DirectMirScalarProgramExprArrayStringLength() {
+        if left_type == CompilerAbiLayoutArrayIntTypeName() ||
+                left_type == CompilerAbiLayoutArrayBoolTypeName() {
+            return Some(Concat("((long long)(", Concat(left, ").length)")));
+        }
+        if DirectMirScalarProgramCLogicalRecordArrayTypeName(logical_record, left_type) != "" {
+            return Some(Concat("((long long)(", Concat(left, ").len)")));
+        }
         return Some(Concat(runtime.array_string_length.symbol,
             Concat("(", Concat(left, ")"))));
     }
-    if kind == DirectMirScalarProgramExprToIntString() {
-        return Some(Concat(runtime.string_to_int.symbol,
-            Concat("(", Concat(left, ")"))));
-    }
-    if kind == DirectMirScalarProgramExprArrayStringIndex() {
-        return Some(Concat(runtime.array_string_get.symbol,
-            Concat("(", Concat(left, Concat(", ", Concat(right, ")"))))));
-    }
+    if kind == DirectMirScalarProgramExprToIntString() { return Some(Concat(
+        runtime.string_to_int.symbol, Concat("(", Concat(left, ")")))); }
+    if kind == DirectMirScalarProgramExprArrayStringIndex() { return Some(Concat(
+        runtime.array_string_get.symbol, Concat("(", Concat(left, Concat(", ", Concat(right, ")")))))); }
     return None;
 }

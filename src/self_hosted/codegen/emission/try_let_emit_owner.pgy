@@ -3,6 +3,7 @@
 
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
+import "../type_facts/type_env_state_lifetime_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../input/semantic_local_binding_codegen_view_owner.pgy";
@@ -19,7 +20,7 @@ func EmitTryLet(
     arena: AstArena,
     idx: Int,
     graph: SemanticExpressionGraphView,
-    inout env_state: Array<String>,
+    inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv,
     cur_fn_ret: String,
     pad: String,

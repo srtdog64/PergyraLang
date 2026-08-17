@@ -1,22 +1,48 @@
 // LLVM scalar type spelling projected from canonical compiler type identities.
-
 import "abi_layout_row_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
 import "direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy";
-
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+func DirectMirScalarProgramLlvmSetStringTypeName() -> String {
+    return "{ ptr, ptr, i64, i64 }";
+}
 func DirectMirScalarProgramLlvmType(type_name: String) -> String {
+    let runtime_value: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(type_name);
+    if runtime_value.valid { return runtime_value.llvm_type; }
+    if type_name == "Void" { return "void"; }
     if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
+    if type_name == CompilerAbiLayoutLongTypeName() { return "i64"; }
     if type_name == CompilerAbiLayoutBoolTypeName() { return "i1"; }
     if type_name == CompilerAbiLayoutStringTypeName() { return "ptr"; }
     if type_name == CompilerAbiLayoutArrayStringTypeName() {
         return "%pgy.array.string";
     }
+    if type_name == CompilerAbiLayoutArrayIntTypeName() {
+        return "%pgy.array.int";
+    }
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() {
+        return "%pgy.array.bool";
+    }
+    if type_name == CompilerAbiLayoutSetStringTypeName() {
+        return DirectMirScalarProgramLlvmSetStringTypeName();
+    }
     if type_name == CompilerAbiLayoutOptionIntTypeName() {
         return DirectMirScalarProgramLlvmOptionIntTypeName();
     }
+    if type_name == CompilerAbiLayoutOptionStringTypeName() {
+        return DirectMirScalarProgramLlvmOptionStringTypeName();
+    }
+    if type_name == CompilerAbiLayoutOptionBoolTypeName() {
+        return DirectMirScalarProgramLlvmOptionBoolTypeName();
+    }
     return "";
 }
-
 func DirectMirScalarProgramLlvmTypeForNominal(
     type_name: String,
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
@@ -25,6 +51,35 @@ func DirectMirScalarProgramLlvmTypeForNominal(
     if scalar != "" { return scalar; }
     if DirectMirScalarProgramTwoIntNominalTypeReady(nominal, type_name) {
         return DirectMirScalarProgramLlvmTwoIntNominalTypeName();
+    }
+    return "";
+}
+func DirectMirScalarProgramLlvmTypeForProgram(
+    type_name: String,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> String {
+    let projected: String = DirectMirScalarProgramLlvmTypeForNominal(
+        type_name, nominal);
+    if projected != "" { return projected; }
+    if DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, type_name) {
+        return DirectMirScalarProgramLlvmLogicalRecordTypeName(
+            logical_record, type_name);
+    }
+    if DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name) {
+        return DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+            logical_record, type_name);
+    }
+    if DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            logical_record, type_name) {
+        return DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+            logical_record, type_name);
+    }
+    if DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            payload_free_enum, type_name) {
+        return "i64";
     }
     return "";
 }

@@ -315,7 +315,9 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
         && inst->text_builder_runtime_row != NULL) {
         const MIRTextBuilderRuntimeRow *row =
             inst->text_builder_runtime_row;
-        fputs(",\"runtime_call_abi\":{\"owner\":\"TextBuilder\",\"source\":", out);
+        fputs(",\"runtime_call_abi\":{\"owner\":", out);
+        mir_json_emit_str_or_null(out, row->owner_name);
+        fputs(",\"source\":", out);
         mir_json_emit_str_or_null(out, row->source_name);
         fputs(",\"operation\":", out);
         mir_json_emit_str_or_null(out, row->operation);
@@ -423,8 +425,11 @@ mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
     mir_json_emit_str_or_null(out, routine->name);
     fputs(",\"kind\":", out);
     mir_json_emit_str(out, mir_scope_kind_name(routine->kind));
-    fprintf(out, ",\"source_syntax_id\":%u,\"receiver_carriage\":",
+    fprintf(out, ",\"source_syntax_id\":%u,\"source_module_path\":",
             routine->source_syntax_id);
+    mir_json_emit_str_or_null(out,
+        routine->ast != NULL ? routine->ast->origin_path : NULL);
+    fputs(",\"receiver_carriage\":", out);
     mir_json_emit_str(out,
         mir_receiver_carriage_name(routine->receiver_carriage));
     fprintf(out, ",\"function_param_flow_summary_count\":%zu",

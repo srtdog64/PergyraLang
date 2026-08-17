@@ -1,0 +1,38 @@
+// Exact operand/result readiness for typed scalar comparison identities.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramComparisonExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    let int_comparison: Bool = kind == DirectMirScalarProgramExprEqualInt() ||
+        kind == DirectMirScalarProgramExprNotEqualInt() ||
+        kind == DirectMirScalarProgramExprLessInt() ||
+        kind == DirectMirScalarProgramExprGreaterEqualInt() ||
+        kind == DirectMirScalarProgramExprGreaterInt() ||
+        kind == DirectMirScalarProgramExprLessEqualInt();
+    let long_comparison: Bool =
+        kind == DirectMirScalarProgramExprGreaterLong() ||
+        kind == DirectMirScalarProgramExprEqualLong() ||
+        kind == DirectMirScalarProgramExprNotEqualLong() ||
+        kind == DirectMirScalarProgramExprLessLong();
+    let bool_comparison: Bool =
+        kind == DirectMirScalarProgramExprEqualBool() ||
+        kind == DirectMirScalarProgramExprNotEqualBool();
+    if !int_comparison && !long_comparison && !bool_comparison { return None(); }
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    let operand_type: String = CompilerAbiLayoutIntTypeName();
+    if long_comparison { operand_type = CompilerAbiLayoutLongTypeName(); }
+    if bool_comparison { operand_type = CompilerAbiLayoutBoolTypeName(); }
+    return Some(left >= 0 && left < node && right >= 0 && right < node &&
+        facts.node_types[left] == operand_type &&
+        facts.node_types[right] == operand_type &&
+        facts.node_types[node] == CompilerAbiLayoutBoolTypeName() &&
+        facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_member_ordinals[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        facts.node_callable_rows[node] == -1);
+}

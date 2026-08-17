@@ -93,6 +93,23 @@ grep -Fq 'ParserExpressionGenericCalleeActual(' "$POSTFIX_OWNER" ||
     { echo "[$LABEL] parser drops explicit generic actuals" >&2; exit 1; }
 grep -Fq 'generic_actual_type_names: Array<String>' "$CALL_VIEW_OWNER" ||
     { echo "[$LABEL] call view drops explicit generic actuals" >&2; exit 1; }
+for term in \
+    'ArraySet(reversed, i, reversed[last]);' \
+    'ArraySet(reversed_actuals, i, reversed_actuals[last]);' \
+    'true, node, base_callee, reversed, reversed_actuals'; do
+    grep -Fq "$term" "$CALL_VIEW_OWNER" || {
+        echo "[$LABEL] call view does not reuse its ordered spine backing: $term" >&2
+        exit 1
+    }
+done
+for retired_copy in \
+    'let arguments: Array<Int> = [];' \
+    'let actuals: Array<String> = [];'; do
+    if grep -Fq "$retired_copy" "$CALL_VIEW_OWNER"; then
+        echo "[$LABEL] call view rebuilt an ordered spine array: $retired_copy" >&2
+        exit 1
+    fi
+done
 grep -Fq 'call.generic_actual_type_names' "$GENERIC_CALL_OWNER" ||
     { echo "[$LABEL] generic consumer ignores explicit actual facts" >&2; exit 1; }
 if grep -Eq 'String(IndexOf|Contains).*<[[:space:]]*' "$GENERIC_CALL_OWNER"; then

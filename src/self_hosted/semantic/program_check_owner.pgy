@@ -332,7 +332,7 @@ func SeedDeclaredFunctionSignatures(
     }
 }
 
-func CheckProgram(content: String) -> String {
+func CheckProgram(source_path: String, content: String) -> String {
     let cursor: Array<Int> = [0];
     let func_names: Array<String> = [];
     let func_rets: Array<String> = [];
@@ -377,7 +377,10 @@ func CheckProgram(content: String) -> String {
             continue;
         }
         if SemanticMatchKeywordWithin(content, n, i, "func") {
-            let fn_error: String = CheckFunction(content, i, cursor, func_names, func_rets, func_params);
+            let fn_error: String = CheckFunction(
+                source_path, content, i, cursor,
+                func_names, func_rets, func_params
+            );
             if StringLength(fn_error) > 0 {
                 return fn_error;
             }

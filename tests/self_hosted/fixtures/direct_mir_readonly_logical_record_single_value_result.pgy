@@ -1,0 +1,27 @@
+// Readonly record inputs plus exactly one declaration-keyed record copyout.
+struct LeftBranchView {
+    let valid: Bool;
+}
+
+struct RightBranchView {
+    let valid: Bool;
+}
+
+struct EmissionOrder {
+    let valid: Bool;
+    let last_block: Int;
+}
+
+func MergeBranchOrder(
+    ref left: LeftBranchView, ref right: RightBranchView,
+    block: Int, next: Int, inout order: EmissionOrder
+) -> String {
+    return "readonly-copyout-ready";
+}
+
+func Main() -> Void {
+    let left: LeftBranchView = LeftBranchView(true);
+    let right: RightBranchView = RightBranchView(true);
+    let order: EmissionOrder = EmissionOrder(false, 0);
+    Log(MergeBranchOrder(left, right, 7, 8, order));
+}

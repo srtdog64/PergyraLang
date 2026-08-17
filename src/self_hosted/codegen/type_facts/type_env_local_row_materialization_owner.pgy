@@ -1,0 +1,107 @@
+// Function-local codegen type-row schema and single-allocation materialization.
+
+import "../text/text_owner.pgy";
+
+func TypeEnvValueBindingRows(
+    source_name: String, value_kind: String, c_name: String
+) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(64);
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=v:");
+    TextBuilderAppend(output, value_kind);
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=cbind:");
+    TextBuilderAppend(output, c_name);
+    TextBuilderAppend(output, "|");
+    let rows: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return rows;
+}
+
+func TypeEnvSemanticValueTypeRows(
+    source_name: String, value_type: String
+) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(48);
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=type:");
+    TextBuilderAppend(output, value_type);
+    TextBuilderAppend(output, "|");
+    let rows: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return rows;
+}
+
+func TypeEnvTypedValueBindingRows(
+    source_name: String, value_type: String,
+    value_kind: String, c_name: String
+) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(96);
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=v:");
+    TextBuilderAppend(output, value_kind);
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=cbind:");
+    TextBuilderAppend(output, c_name);
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=type:");
+    TextBuilderAppend(output, value_type);
+    TextBuilderAppend(output, "|");
+    let rows: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return rows;
+}
+
+func TypeEnvReadonlyRefBindingRows(
+    source_name: String, value_kind: String, ref_c_name: String
+) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(96);
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=v:");
+    TextBuilderAppend(output, value_kind);
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=cbind:(*");
+    TextBuilderAppend(output, ref_c_name);
+    TextBuilderAppend(output, ")|");
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=cref:");
+    TextBuilderAppend(output, ref_c_name);
+    TextBuilderAppend(output, "|");
+    let rows: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return rows;
+}
+
+func TypeEnvTypedReadonlyRefBindingRows(
+    source_name: String, value_type: String,
+    value_kind: String, ref_c_name: String
+) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(128);
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=v:");
+    TextBuilderAppend(output, value_kind);
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=cbind:(*");
+    TextBuilderAppend(output, ref_c_name);
+    TextBuilderAppend(output, ")|");
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=cref:");
+    TextBuilderAppend(output, ref_c_name);
+    TextBuilderAppend(output, "|");
+    TextBuilderAppend(output, source_name);
+    TextBuilderAppend(output, "=type:");
+    TextBuilderAppend(output, value_type);
+    TextBuilderAppend(output, "|");
+    let rows: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return rows;
+}

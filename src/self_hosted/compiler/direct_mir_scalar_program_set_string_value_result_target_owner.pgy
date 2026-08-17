@@ -1,0 +1,16 @@
+// GraphPlan identity for admitted Set<String> value-result parameters.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarProgramSetStringValueResultAt(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.parameter_counts) ||
+        ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] {
+        return false;
+    }
+    let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+    return plan.routines.parameter_types[row] ==
+            CompilerAbiLayoutSetStringTypeName() &&
+        plan.routines.parameter_carriages[row] == "value-result";
+}

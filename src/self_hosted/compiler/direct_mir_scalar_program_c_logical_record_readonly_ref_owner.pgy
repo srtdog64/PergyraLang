@@ -1,0 +1,50 @@
+// C address/value projection for admitted logical-record parameter carriage.
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordParameterValue(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    routine: Int, ordinal: Int, value: String
+) -> String {
+    let parameter_row: Int = routines.parameter_starts[routine] + ordinal;
+    if routines.parameter_carriages[parameter_row] == "value" ||
+        routines.parameter_carriages[parameter_row] == "value-result" {
+        return value;
+    }
+    if routines.parameter_carriages[parameter_row] == "owner-handle" &&
+        (routines.parameter_types[parameter_row] ==
+            CompilerAbiLayoutStringTypeName() ||
+         DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, routines.parameter_types[parameter_row])) {
+        return value;
+    }
+    if routines.parameter_carriages[parameter_row] != "readonly-ref" ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, routines.parameter_types[parameter_row]) {
+        Die("direct MIR scalar C readonly record parameter is invalid");
+    }
+    return Concat("(*", Concat(value, ")"));
+}
+
+func DirectMirScalarProgramCLogicalRecordCallArgument(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    target: Int, ordinal: Int, value: String
+) -> String {
+    let parameter_row: Int = routines.parameter_starts[target] + ordinal;
+    if routines.parameter_carriages[parameter_row] == "value" { return value; }
+    if routines.parameter_carriages[parameter_row] == "owner-handle" &&
+        (routines.parameter_types[parameter_row] ==
+            CompilerAbiLayoutStringTypeName() ||
+         DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, routines.parameter_types[parameter_row])) {
+        return value;
+    }
+    if routines.parameter_carriages[parameter_row] != "readonly-ref" ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, routines.parameter_types[parameter_row]) {
+        Die("direct MIR scalar C readonly record call argument is invalid");
+    }
+    return Concat("&(", Concat(value, ")"));
+}

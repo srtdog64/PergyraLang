@@ -9,7 +9,13 @@ import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_callable_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_fact_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_option_string_abi_owner.pgy";
+import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
+import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
+import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 
 struct DirectMirScalarCfgProgramExtensionFact {
     let valid: Bool;
@@ -18,11 +24,18 @@ struct DirectMirScalarCfgProgramExtensionFact {
     let expressions: DirectMirScalarProgramExpressionSet;
     let block_condition_expression_rows: Array<Int>;
     let operation_expression_rows: Array<Int>;
+    let operation_secondary_expression_rows: Array<Int>;
     let block_return_expression_rows: Array<Int>;
     let closed_call_abi: DirectMirClosedModuleCallAbiFact;
     let runtime_abi: DirectMirScalarProgramRuntimeAbiFact;
     let option_int_abi: DirectMirOptionMatchAbiFact;
+    let option_string_abi: DirectMirOptionMatchAbiFact;
+    let option_bool_abi: DirectMirOptionMatchAbiFact;
     let nominal_abi: DirectMirScalarProgramTwoIntNominalAbiFact;
+    let logical_record: DirectMirScalarProgramLogicalRecordFact;
+    let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact;
+    let array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact;
+    let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact;
     let array_string_abi: DirectMirScalarProgramArrayStringAbiFact;
     let array_string_boundary: DirectMirScalarProgramArrayStringBoundaryFact;
 }
@@ -32,11 +45,17 @@ func DirectMirScalarCfgProgramExtensionFactEmpty(
     let rows: Array<Int> = [];
     return DirectMirScalarCfgProgramExtensionFact(
         false, 0, DirectMirScalarCfgProgramCallableFactInvalid(),
-        DirectMirScalarProgramExpressionSetEmpty(), rows, rows, rows,
+        DirectMirScalarProgramExpressionSetEmpty(), rows, rows, rows, rows,
         DirectMirClosedModuleCallAbiFactEmpty(),
         DirectMirScalarProgramRuntimeAbiFactEmpty(),
         DirectMirOptionMatchAbiFactEmpty(),
+        DirectMirOptionMatchAbiFactEmpty(),
+        DirectMirOptionMatchAbiFactEmpty(),
         DirectMirScalarProgramTwoIntNominalAbiFactFromCanonicalEmpty(),
+        DirectMirScalarProgramLogicalRecordFactCanonicalEmpty(),
+        DirectMirScalarProgramPayloadFreeEnumFactCanonicalEmpty(),
+        DirectMirScalarProgramArrayIntValueResultFactCanonicalEmpty(),
+        DirectMirScalarProgramArrayBoolAbiFactCanonicalEmpty(),
         DirectMirScalarProgramArrayStringAbiFactEmpty(),
         DirectMirScalarProgramArrayStringBoundaryFactEmpty()
     );
@@ -52,13 +71,21 @@ func DirectMirScalarCfgProgramExtensionFactDigest(
         hash, fact.block_condition_expression_rows
     );
     hash = DirectMirScalarCfgHashInts(hash, fact.operation_expression_rows);
+    hash = DirectMirScalarCfgHashInts(
+        hash, fact.operation_secondary_expression_rows);
     hash = DirectMirScalarCfgHashInts(hash, fact.block_return_expression_rows);
     hash = DirectMirCfgHashInt(
         hash, fact.closed_call_abi.target_capability_fingerprint
     );
     hash = DirectMirCfgHashInt(hash, fact.runtime_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.option_int_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.option_string_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.option_bool_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.nominal_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.logical_record.digest);
+    hash = DirectMirCfgHashInt(hash, fact.payload_free_enum.digest);
+    hash = DirectMirCfgHashInt(hash, fact.array_int_value_result.digest);
+    hash = DirectMirCfgHashInt(hash, fact.array_bool_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_boundary.digest);
     return DirectMirCfgBoundedDigest(hash);
@@ -70,9 +97,15 @@ func DirectMirScalarCfgProgramExtensionFactWithDigest(
     return DirectMirScalarCfgProgramExtensionFact(
         fact.valid, digest, fact.callable, fact.expressions,
         fact.block_condition_expression_rows,
-        fact.operation_expression_rows, fact.block_return_expression_rows,
+        fact.operation_expression_rows,
+        fact.operation_secondary_expression_rows,
+        fact.block_return_expression_rows,
         fact.closed_call_abi, fact.runtime_abi, fact.option_int_abi,
-        fact.nominal_abi,
+        fact.option_string_abi, fact.option_bool_abi, fact.nominal_abi,
+        fact.logical_record,
+        fact.payload_free_enum,
+        fact.array_int_value_result,
+        fact.array_bool_abi,
         fact.array_string_abi,
         fact.array_string_boundary
     );

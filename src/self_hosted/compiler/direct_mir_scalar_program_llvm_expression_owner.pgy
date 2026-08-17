@@ -1,51 +1,87 @@
 // LLVM expression projection from the sealed scalar-program expression arena.
-
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_llvm_builtin_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
-
+import "direct_mir_scalar_program_llvm_logical_value_expression_owner.pgy";
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_bool_empty_literal_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_short_circuit_owner.pgy";
+import "direct_mir_scalar_program_llvm_numeric_cast_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy";
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
     let instructions: String;
     let value: String;
     let type_name: String;
 }
-
 func DirectMirScalarProgramLlvmNodeName(
     expression_row: Int, node: Int
 ) -> String {
     return Concat("%pgy.expr.", Concat(
         ToString(expression_row), Concat(".", ToString(node))));
 }
-
 func DirectMirScalarProgramLlvmLocalName(row: Int) -> String {
     return Concat("%pgy.local.", ToString(row));
 }
-
 func DirectMirScalarProgramLlvmExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
     expression_row: Int,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int,
+    target: CompilerTargetProjectionFact
 ) -> DirectMirScalarProgramLlvmExpression {
-    let instructions: String = "";
+    let chunks: Array<String> = [];
     let values: Array<String> = [];
     let start: Int = expressions.graph_starts[expression_row];
     let count: Int = expressions.graph_counts[expression_row];
     let node: Int = start;
     while node < start + count {
+        let node_instructions: String = "";
         let kind: Int = expressions.node_kinds[node];
         let left: String = ""; let right: String = "";
+        let left_address: String = "";
         if expressions.node_lefts[node] >= start {
             left = values[expressions.node_lefts[node] - start];
+            let left_node: Int = expressions.node_lefts[node];
+            if expressions.node_kinds[left_node] ==
+                    DirectMirScalarProgramExprLocal() {
+                left_address = DirectMirScalarProgramLlvmLocalName(
+                    expressions.node_local_rows[left_node]);
+            } else if expressions.node_kinds[left_node] ==
+                    DirectMirScalarProgramExprParameter() {
+                let left_ordinal: Int =
+                    expressions.node_parameter_ordinals[left_node];
+                let left_parameter_row: Int =
+                    routines.parameter_starts[routine] + left_ordinal;
+                if (routines.parameter_types[left_parameter_row] == CompilerAbiLayoutSetStringTypeName() ||
+                    routines.parameter_types[left_parameter_row] == CompilerAbiLayoutArrayStringTypeName()) &&
+                    routines.parameter_carriages[left_parameter_row] == "value-result" {
+                    left_address = Concat("%pgy.param.", Concat(
+                        ToString(left_ordinal), ".local"));
+                }
+            }
         }
         if expressions.node_rights[node] >= start {
             right = values[expressions.node_rights[node] - start];
         }
         let arguments: Array<String> = [];
         let argument_types: Array<String> = [];
+        let argument_kinds: Array<Int> = [];
+        let argument_carriages: Array<String> = [];
         let argument_rows: Array<Int> =
             DirectMirScalarProgramNaryOperandRows(
                 expressions.nary_operands, node);
+        if kind == DirectMirScalarProgramExprDirectCall() {
+            argument_rows = DirectMirScalarProgramDirectCallArgumentRows(
+                expressions, node);
+        } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
+            argument_rows = DirectMirScalarProgramLogicalRecordArgumentRows(
+                expressions, node);
+        }
         let argument: Int = 0;
         while argument < ArrayLength(argument_rows) {
             if argument_rows[argument] < start ||
@@ -53,36 +89,149 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 return DirectMirScalarProgramLlvmExpression(
                     false, "", "", "");
             }
-            ArrayPush(arguments, values[argument_rows[argument] - start]);
+            let argument_value: String =
+                values[argument_rows[argument] - start];
+            let argument_carriage: String = "value";
+            if kind == DirectMirScalarProgramExprDirectCall() &&
+                expressions.node_callable_rows[node] >= 0 {
+                let call_argument: DirectMirScalarProgramLlvmCallArgument = DirectMirScalarProgramLlvmCallArgumentValue(
+                    expressions, routines, logical_record, routine,
+                    expressions.node_callable_rows[node], argument, argument_rows[argument], argument_value);
+                if !call_argument.valid { return DirectMirScalarProgramLlvmExpression(
+                    false, "", "", ""); }
+                node_instructions = Concat(node_instructions, call_argument.instructions);
+                argument_value = call_argument.value;
+                argument_carriage = call_argument.carriage;
+            }
+            ArrayPush(arguments, argument_value);
             ArrayPush(argument_types,
                 expressions.node_types[argument_rows[argument]]);
+            ArrayPush(argument_kinds,
+                expressions.node_kinds[argument_rows[argument]]);
+            ArrayPush(argument_carriages, argument_carriage);
             argument = argument + 1;
         }
         let value: String = "";
-        let result: String = DirectMirScalarProgramLlvmNodeName(
-            expression_row, node);
-        if kind == DirectMirScalarProgramExprLocal() {
-            let type_name: String = DirectMirScalarProgramLlvmType(
-                expressions.node_types[node]);
+        let result: String = DirectMirScalarProgramLlvmNodeName(expression_row, node);
+        let cast_value: Option<String> = DirectMirScalarProgramLlvmNumericCastExpressionValue(kind, left);
+        if IsSome(cast_value) { value = UnwrapOption(cast_value);
+        } else if kind == DirectMirScalarProgramExprLocal() {
+            let type_name: String = DirectMirScalarProgramLlvmType(expressions.node_types[node]);
+            if DirectMirScalarProgramLogicalRecordArrayTypeReady(
+                    logical_record, expressions.node_types[node]) {
+                type_name =
+                    DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+                        logical_record, expressions.node_types[node]);
+            }
+            if DirectMirScalarProgramLogicalRecordTypeReady(logical_record, expressions.node_types[node]) {
+                type_name = DirectMirScalarProgramLlvmLogicalRecordTypeName(logical_record, expressions.node_types[node]);
+            }
+            if DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, expressions.node_types[node]) {
+                type_name = DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(logical_record, expressions.node_types[node]);
+            }
             value = result;
-            instructions = Concat(instructions, "  ");
-            instructions = Concat(instructions, value);
-            instructions = Concat(instructions, " = load ");
-            instructions = Concat(instructions, type_name);
-            instructions = Concat(instructions, ", ptr ");
-            instructions = Concat(instructions,
+            node_instructions = Concat(node_instructions, "  ");
+            node_instructions = Concat(node_instructions, value);
+            node_instructions = Concat(node_instructions, " = load ");
+            node_instructions = Concat(node_instructions, type_name);
+            node_instructions = Concat(node_instructions, ", ptr ");
+            node_instructions = Concat(node_instructions,
                 DirectMirScalarProgramLlvmLocalName(
                     expressions.node_local_rows[node]));
-            instructions = Concat(instructions, "\n");
+            node_instructions = Concat(node_instructions, "\n");
         } else if kind == DirectMirScalarProgramExprParameter() {
-            value = Concat("%pgy.param.", ToString(
-                expressions.node_parameter_ordinals[node]));
-        } else if kind == DirectMirScalarProgramExprIntLiteral() ||
-                kind == DirectMirScalarProgramExprBoolLiteral() {
+            let ordinal: Int = expressions.node_parameter_ordinals[node];
+            value = Concat("%pgy.param.", ToString(ordinal));
+            let parameter_row: Int = routines.parameter_starts[routine] +
+                ordinal;
+            if routines.parameter_carriages[parameter_row] == "value-result" &&
+                (routines.parameter_types[parameter_row] == CompilerAbiLayoutArrayStringTypeName() ||
+                 routines.parameter_types[parameter_row] == CompilerAbiLayoutArrayIntTypeName() ||
+                 routines.parameter_types[parameter_row] == CompilerAbiLayoutSetStringTypeName()) {
+                let array_type: String = "%pgy.array.string";
+                if routines.parameter_types[parameter_row] == CompilerAbiLayoutArrayIntTypeName() {
+                    array_type = "%pgy.array.int";
+                } else if routines.parameter_types[parameter_row] ==
+                        CompilerAbiLayoutSetStringTypeName() {
+                    array_type =
+                        DirectMirScalarProgramLlvmSetStringTypeName();
+                }
+                value = result;
+                node_instructions = Concat(node_instructions, Concat("  ", result));
+                node_instructions = Concat(node_instructions,
+                    Concat(" = load ", Concat(array_type, ", ptr %pgy.param.")));
+                node_instructions = Concat(node_instructions, ToString(ordinal));
+                node_instructions = Concat(node_instructions, ".local, align 8\n");
+            }
+            let parameter_read:
+                DirectMirScalarProgramLlvmStringExpression =
+                    DirectMirScalarProgramLlvmLogicalRecordParameterRead(
+                        expressions, routines, logical_record, routine, node,
+                        result, value);
+            if parameter_read.matched {
+                if !parameter_read.valid {
+                    return DirectMirScalarProgramLlvmExpression(
+                        false, "", "", "");
+                }
+                node_instructions = Concat(
+                    node_instructions, parameter_read.instructions);
+                value = parameter_read.value;
+            }
+            let array_parameter_read:
+                DirectMirScalarProgramLlvmStringExpression =
+                    DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(
+                        routines, routine, ordinal, result);
+            if array_parameter_read.matched {
+                if !array_parameter_read.valid {
+                    return DirectMirScalarProgramLlvmExpression(
+                        false, "", "", "");
+                }
+                node_instructions = Concat(
+                    node_instructions, array_parameter_read.instructions);
+                value = array_parameter_read.value;
+            }
+        } else if kind == DirectMirScalarProgramExprIntLiteral() || kind ==
+                DirectMirScalarProgramExprLongLiteral() || kind == DirectMirScalarProgramExprBoolLiteral() {
             value = expressions.node_literals[node];
+        } else if kind ==
+                DirectMirScalarProgramExprPayloadFreeEnumVariant() {
+            value = ToString(expressions.node_member_ordinals[node]);
         } else if kind == DirectMirScalarProgramExprStringLiteral() {
             value = Concat("@pgy.scalar.string.", ToString(node));
+        } else if kind == DirectMirScalarProgramExprArrayBoolEmptyLiteral() {
+            let empty_bool: DirectMirScalarProgramLlvmStringExpression =
+                DirectMirScalarProgramLlvmArrayBoolEmptyLiteralExpressionAt(
+                    kind);
+            if !empty_bool.matched || !empty_bool.valid {
+                return DirectMirScalarProgramLlvmExpression(
+                    false, "", "", "");
+            }
+            value = empty_bool.value;
+        } else if kind ==
+                DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
+            let empty_record_array:
+                DirectMirScalarProgramLlvmStringExpression =
+                DirectMirScalarProgramLlvmLogicalRecordArrayEmptyLiteralExpressionAt(
+                    kind, expressions.node_types[node], logical_record,
+                    target);
+            if !empty_record_array.matched || !empty_record_array.valid {
+                return DirectMirScalarProgramLlvmExpression(
+                    false, "", "", "");
+            }
+            node_instructions = empty_record_array.instructions;
+            value = empty_record_array.value;
         } else {
+            let runtime_value: DirectMirScalarProgramLlvmStringExpression =
+                DirectMirScalarProgramLlvmExternalRuntimeExpressionAt(
+                    expressions, node, result, left, right);
+            if runtime_value.matched {
+                if !runtime_value.valid {
+                    return DirectMirScalarProgramLlvmExpression(
+                        false, "", "", "");
+                }
+                node_instructions = runtime_value.instructions;
+                value = runtime_value.value;
+            } else {
             let left_type: String = ""; let right_type: String = "";
             if expressions.node_lefts[node] >= start {
                 left_type = expressions.node_types[
@@ -92,59 +241,107 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 right_type = expressions.node_types[
                     expressions.node_rights[node]];
             }
+            let record_type: String = expressions.node_types[node];
+            if kind == DirectMirScalarProgramExprLogicalRecordMember() { record_type = left_type; }
+            let record_expression: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalValueExpressionAt(
+                        logical_record, target, kind, result, record_type,
+                        left_type, expressions.node_types[node], left, right,
+                        arguments, argument_types,
+                        expressions.node_member_ordinals[node]);
+            if record_expression.matched {
+                if !record_expression.valid {
+                    return DirectMirScalarProgramLlvmExpression(
+                        false, "", "", "");
+                }
+                node_instructions = Concat(
+                    node_instructions, record_expression.instructions);
+                value = record_expression.value;
+            } else {
             let string_expression: DirectMirScalarProgramLlvmStringExpression =
                 DirectMirScalarProgramLlvmBuiltinExpressionAt(
                     kind, result, expressions.node_types[node],
-                    left, left_type, right, right_type,
-                    arguments, argument_types,
-                    expressions.node_callable_rows[node], runtime);
+                    left, left_address, left_type, right, right_type,
+                    DirectMirScalarProgramArrayStringLiteralOwnsElements(
+                        expressions, node, routines, routine),
+                    arguments, argument_types, argument_kinds,
+                    argument_carriages,
+                    expressions.node_callable_rows[node], runtime,
+                    logical_record);
             if string_expression.matched {
                 if !string_expression.valid {
                     return DirectMirScalarProgramLlvmExpression(
                         false, "", "", "");
                 }
-                instructions = Concat(
-                    instructions, string_expression.instructions);
+                node_instructions = Concat(
+                    node_instructions, string_expression.instructions);
                 value = string_expression.value;
             } else {
+                let short_circuit: DirectMirScalarProgramLlvmShortCircuit =
+                    DirectMirScalarProgramLlvmShortCircuitAt(
+                        expressions, expression_row, node, start,
+                        chunks, left, right, result);
+                if short_circuit.matched {
+                    if !short_circuit.valid {
+                        return DirectMirScalarProgramLlvmExpression(
+                            false, "", "", "");
+                    }
+                    node_instructions = short_circuit.instructions;
+                    value = result;
+                } else {
                 value = result;
-                instructions = Concat(instructions, Concat("  ", result));
-                if kind == DirectMirScalarProgramExprModuloInt() {
-                    instructions = Concat(instructions, " = srem i64 ");
-                } else if kind == DirectMirScalarProgramExprEqualInt() {
-                    instructions = Concat(instructions, " = icmp eq i64 ");
+                node_instructions = Concat(node_instructions, Concat("  ", result));
+                if kind == DirectMirScalarProgramExprEqualInt() || kind == DirectMirScalarProgramExprEqualLong() || kind == DirectMirScalarProgramExprEqualPayloadFreeEnum() { node_instructions = Concat(node_instructions, " = icmp eq i64 ");
+                } else if kind == DirectMirScalarProgramExprEqualBool() { node_instructions = Concat(node_instructions, " = icmp eq i1 ");
+                } else if kind == DirectMirScalarProgramExprNotEqualInt() || kind == DirectMirScalarProgramExprNotEqualLong() { node_instructions = Concat(node_instructions, " = icmp ne i64 ");
+                } else if kind == DirectMirScalarProgramExprNotEqualBool() { node_instructions = Concat(node_instructions, " = icmp ne i1 ");
+                } else if kind == DirectMirScalarProgramExprGreaterEqualInt() { node_instructions = Concat(node_instructions, " = icmp sge i64 ");
+                } else if kind == DirectMirScalarProgramExprGreaterInt() || kind == DirectMirScalarProgramExprGreaterLong() { node_instructions = Concat(node_instructions, " = icmp sgt i64 ");
+                } else if kind == DirectMirScalarProgramExprLessEqualInt() { node_instructions = Concat(node_instructions, " = icmp sle i64 ");
                 } else if kind == DirectMirScalarProgramExprLogicalNot() {
-                    instructions = Concat(instructions, " = xor i1 ");
+                    node_instructions = Concat(node_instructions, " = xor i1 ");
                 } else if kind == DirectMirScalarProgramExprLogicalAnd() {
-                    instructions = Concat(instructions, " = and i1 ");
+                    node_instructions = Concat(node_instructions, " = and i1 ");
                 } else if kind == DirectMirScalarProgramExprLogicalOr() {
-                    instructions = Concat(instructions, " = or i1 ");
-                } else if kind == DirectMirScalarProgramExprLessInt() {
-                    instructions = Concat(instructions, " = icmp slt i64 ");
-                } else if kind == DirectMirScalarProgramExprAddInt() {
-                    instructions = Concat(instructions, " = add nsw i64 ");
-                } else if kind == DirectMirScalarProgramExprSubtractInt() {
-                    instructions = Concat(instructions, " = sub nsw i64 ");
+                    node_instructions = Concat(node_instructions, " = or i1 ");
+                } else if kind == DirectMirScalarProgramExprLessInt() || kind == DirectMirScalarProgramExprLessLong() {
+                    node_instructions = Concat(node_instructions, " = icmp slt i64 ");
+                } else if kind == DirectMirScalarProgramExprAddInt() ||
+                        kind == DirectMirScalarProgramExprAddLong() {
+                    node_instructions = Concat(node_instructions, " = add i64 ");
+                } else if kind == DirectMirScalarProgramExprSubtractInt() ||
+                        kind == DirectMirScalarProgramExprSubtractLong() {
+                    node_instructions = Concat(node_instructions, " = sub i64 ");
+                } else if kind == DirectMirScalarProgramExprMultiplyInt() ||
+                        kind == DirectMirScalarProgramExprMultiplyLong() {
+                    node_instructions = Concat(node_instructions, " = mul i64 ");
+                } else if kind == DirectMirScalarProgramExprDivideInt() {
+                    node_instructions = Concat(node_instructions, " = sdiv i64 ");
                 } else if kind == DirectMirScalarProgramExprNegateInt() {
-                    instructions = Concat(instructions, " = sub nsw i64 0, ");
+                    node_instructions = Concat(node_instructions, " = sub i64 0, ");
                 } else {
                     return DirectMirScalarProgramLlvmExpression(
                         false, "", "", "");
                 }
-                instructions = Concat(instructions, left);
+                node_instructions = Concat(node_instructions, left);
                 if kind == DirectMirScalarProgramExprLogicalNot() {
-                    instructions = Concat(instructions, ", true");
+                    node_instructions = Concat(node_instructions, ", true");
                 } else if kind == DirectMirScalarProgramExprNegateInt() {
                     // The leading zero and comma are already part of the opcode.
                 } else {
-                    instructions = Concat(
-                        instructions, Concat(", ", right));
+                    node_instructions = Concat(
+                        node_instructions, Concat(", ", right));
                 }
-                instructions = Concat(instructions, "\n");
+                node_instructions = Concat(node_instructions, "\n");
+                }
+            }
+            }
             }
         }
+        ArrayPush(chunks, node_instructions);
         ArrayPush(values, value); node = node + 1;
     }
+    let instructions: String =
+        DirectMirScalarProgramLlvmExpressionChunksJoin(chunks);
     let root: Int = expressions.graph_roots[expression_row] - start;
     return DirectMirScalarProgramLlvmExpression(
         true, instructions, values[root],

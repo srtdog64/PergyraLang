@@ -2,14 +2,18 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
 import "direct_mir_scalar_program_c_additional_materialization_owner.pgy";
 import "direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
 import "../codegen/runtime_abi/string_runtime_owner.pgy";
 
 func DirectMirScalarProgramCBuiltinMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    runtime_header_owns_print: Bool
 ) -> String {
+    let requires_print: Bool = DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprPrintString());
     if !DirectMirScalarProgramRuntimeRequiresMaterialization(
-            plan.program.runtime_abi) { return ""; }
+            plan.program.runtime_abi) && !requires_print { return ""; }
     if !DirectMirScalarProgramRuntimeAbiProjectionReady(
             runtime, plan.program.runtime_abi) {
         Die("direct MIR scalar program C builtin ABI is invalid");
@@ -17,6 +21,9 @@ func DirectMirScalarProgramCBuiltinMaterialization(
     let output: String = "";
     if plan.string_concat_runtime_call_abi_id == 0 {
         output = "#include <stdlib.h>\n#include <string.h>\n\n";
+    }
+    if requires_print && !runtime_header_owns_print {
+        output = Concat(output, StringRuntimeCPrintBlock());
     }
     if plan.program.runtime_abi.string_to_string_id != 0 {
         output = Concat(output, StringRuntimeCToStringBlock());

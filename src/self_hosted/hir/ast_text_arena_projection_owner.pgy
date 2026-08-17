@@ -3,6 +3,7 @@
 import "typed_ast_arena_owner.pgy";
 import "ast_text_inventory_owner.pgy";
 import "ast_expression_graph_owner.pgy";
+import "ast_source_module_fact_owner.pgy";
 
 func CodegenAstTextArenaAtomFor(node: CodegenAstTextNode) -> String {
     if node.name != "" {
@@ -298,11 +299,12 @@ struct AstTreeArtifact {
     arena: AstArena;
     count: Int;
     expression_graphs: AstExpressionGraphRows;
+    source_modules: AstSourceModuleFacts;
     identity_digest: Int;
 }
 
 func AstTreeArtifactPayloadSchema() -> String {
-    return "pgy.selfhost.ast-tree-artifact.v4";
+    return "pgy.selfhost.ast-tree-artifact.v5";
 }
 
 // Stable producer-time identity for the immutable tree-text epoch.  Semantic
@@ -331,10 +333,17 @@ func AstTreeArtifactIdentityHashInt(
 func AstTreeArtifactIdentityDigest(
     tree_text: String,
     node_count: Int,
-    ref expression_graphs: AstExpressionGraphRows
+    ref expression_graphs: AstExpressionGraphRows,
+    ref source_modules: AstSourceModuleFacts
 ) -> Int {
     let modulus: Long = 268435456L;
-    if ArrayLength(expression_graphs.root_owner_kinds) !=
+    if !source_modules.ok ||
+        ArrayLength(source_modules.declaration_node_ids) !=
+            ArrayLength(source_modules.module_paths) ||
+        (!source_modules.known &&
+            (ArrayLength(source_modules.declaration_node_ids) != 0 ||
+             ArrayLength(source_modules.module_paths) != 0)) ||
+        ArrayLength(expression_graphs.root_owner_kinds) !=
             ArrayLength(expression_graphs.roots) ||
         ArrayLength(expression_graphs.root_lanes) !=
             ArrayLength(expression_graphs.roots) ||
@@ -345,6 +354,22 @@ func AstTreeArtifactIdentityDigest(
         17L, node_count, modulus
     );
     hash = AstTreeArtifactIdentityHashString(hash, tree_text, modulus);
+    let source_known: Int = 0;
+    if source_modules.known { source_known = 1; }
+    hash = AstTreeArtifactIdentityHashInt(hash, source_known, modulus);
+    hash = AstTreeArtifactIdentityHashInt(
+        hash, ArrayLength(source_modules.declaration_node_ids), modulus
+    );
+    let source_row: Int = 0;
+    while source_row < ArrayLength(source_modules.declaration_node_ids) {
+        hash = AstTreeArtifactIdentityHashInt(
+            hash, source_modules.declaration_node_ids[source_row], modulus
+        );
+        hash = AstTreeArtifactIdentityHashString(
+            hash, source_modules.module_paths[source_row], modulus
+        );
+        source_row = source_row + 1;
+    }
     let graph_ok: Int = 0;
     if expression_graphs.ok { graph_ok = 1; }
     hash = AstTreeArtifactIdentityHashInt(hash, graph_ok, modulus);
@@ -394,9 +419,12 @@ func AstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let expression_graphs: AstExpressionGraphRows =
         AstExpressionGraphRowsEmpty();
+    let source_modules: AstSourceModuleFacts = AstSourceModuleFactsUnknown();
     return AstTreeArtifact(
-        tree_text, arena, count, expression_graphs,
-        AstTreeArtifactIdentityDigest(tree_text, count, expression_graphs)
+        tree_text, arena, count, expression_graphs, source_modules,
+        AstTreeArtifactIdentityDigest(
+            tree_text, count, expression_graphs, source_modules
+        )
     );
 }
 
@@ -404,6 +432,7 @@ func AstTreeArtifactReady(artifact: AstTreeArtifact) -> Bool {
     return TypedAstArenaParallelRowsReady(artifact.arena) &&
         TypedAstArenaNodeCount(artifact.arena) == artifact.count &&
         AstExpressionGraphRowsReady(artifact.expression_graphs) &&
+        AstSourceModuleFactsReady(artifact.arena, artifact.source_modules) &&
         artifact.identity_digest > 0;
 }
 
@@ -427,12 +456,17 @@ func AstTreeArtifactPayloadContractReady() -> Bool {
     let invalid_arena_rows: AstExpressionGraphRows = AstExpressionGraphRows(
         true, no_owner_kinds, no_lanes, no_roots, invalid_arena
     );
-    return AstTreeArtifactPayloadSchema() == "pgy.selfhost.ast-tree-artifact.v4" &&
+    return AstTreeArtifactPayloadSchema() == "pgy.selfhost.ast-tree-artifact.v5" &&
         AstTreeArtifactReady(artifact) && artifact.count == 1 &&
         artifact.identity_digest == AstTreeArtifactIdentityDigest(
-            artifact.tree_text, artifact.count, artifact.expression_graphs
+            artifact.tree_text, artifact.count, artifact.expression_graphs,
+            artifact.source_modules
         ) &&
-        AstTreeArtifactIdentityDigest("Program:\n", 1, invalid_root_rows) == 0 &&
-        AstTreeArtifactIdentityDigest("Program:\n", 1, invalid_arena_rows) == 0 &&
+        AstTreeArtifactIdentityDigest(
+            "Program:\n", 1, invalid_root_rows, artifact.source_modules
+        ) == 0 &&
+        AstTreeArtifactIdentityDigest(
+            "Program:\n", 1, invalid_arena_rows, artifact.source_modules
+        ) == 0 &&
         IsSome(root_kind) && UnwrapOption(root_kind) == TypedAstTextKindOf("Program:");
 }

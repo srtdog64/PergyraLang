@@ -1,0 +1,36 @@
+// String plus one readonly record and two declaration-keyed record copyouts.
+struct ExactFieldSet {
+    let valid: Bool;
+    let text: String;
+}
+
+struct StepTransitionFacts {
+    let valid: Bool;
+    let count: Int;
+}
+
+struct TerminalTransitionFacts {
+    let valid: Bool;
+    let count: Int;
+}
+
+func BuildExecutionPlan(
+    json: String, ref fields: ExactFieldSet,
+    inout steps: StepTransitionFacts,
+    inout terminals: TerminalTransitionFacts
+) -> Bool {
+    if json == "" { return false; }
+    if !fields.valid { return false; }
+    return steps.valid && terminals.valid;
+}
+
+func Main() -> Void {
+    let fields: ExactFieldSet = ExactFieldSet(true, "{}");
+    let steps: StepTransitionFacts = StepTransitionFacts(true, 1);
+    let terminals: TerminalTransitionFacts = TerminalTransitionFacts(true, 2);
+    if BuildExecutionPlan("{}", fields, steps, terminals) {
+        Log("readonly-record-two-record-copyouts-ready");
+    }
+    Log(steps.count);
+    Log(terminals.count);
+}

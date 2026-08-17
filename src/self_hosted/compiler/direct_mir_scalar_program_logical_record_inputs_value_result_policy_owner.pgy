@@ -1,0 +1,49 @@
+// Exact Bool signature with two record values and one record copyout.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordInputsValueResultSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.return_type != CompilerAbiLayoutBoolTypeName() ||
+        signature.param_count != 3 { return false; }
+    let first: Int = DirectMirScalarProgramLogicalRecordRow(
+        logical_record, signature.parameters.type_names[0]);
+    let second: Int = DirectMirScalarProgramLogicalRecordRow(
+        logical_record, signature.parameters.type_names[1]);
+    let copyout: Int = DirectMirScalarProgramLogicalRecordRow(
+        logical_record, signature.parameters.type_names[2]);
+    if first < 0 || second < 0 || copyout < 0 || first == second ||
+        first == copyout || second == copyout { return false; }
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        if signature.parameters.resources[ordinal] != "none" ||
+            signature.parameters.pass_shapes[ordinal] != "direct" ||
+            signature.parameters.abi_required[ordinal] ||
+            signature.parameters.abi_layout_ids[ordinal] != 0 {
+            return false;
+        }
+        if ordinal < 2 {
+            if signature.parameters.carriages[ordinal] != "value" {
+                return false;
+            }
+        } else if signature.parameters.carriages[ordinal] != "value-result" {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramLogicalRecordInputsValueResultParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    return ordinal == 2 &&
+        DirectMirScalarProgramLogicalRecordInputsValueResultSignatureReady(
+            signature, logical_record);
+}

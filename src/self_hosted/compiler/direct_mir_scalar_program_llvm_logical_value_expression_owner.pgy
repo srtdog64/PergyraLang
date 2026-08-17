@@ -1,0 +1,71 @@
+// LLVM projection for logical-record values and indexed record-array reads.
+
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+
+func DirectMirScalarProgramLlvmLogicalValueExpressionAt(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact,
+    kind: Int, result: String, record_type: String,
+    left_type: String, node_type: String, left: String, right: String,
+    arguments: Array<String>, argument_types: Array<String>,
+    member_ordinal: Int
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind == DirectMirScalarProgramExprArrayIntIndex() || kind ==
+            DirectMirScalarProgramExprArrayBoolIndex() {
+        let expected_left: String = CompilerAbiLayoutArrayIntTypeName();
+        let expected_node: String = CompilerAbiLayoutIntTypeName();
+        let runtime_kind: Int = 1; let llvm_type: String = "i64";
+        if kind == DirectMirScalarProgramExprArrayBoolIndex() {
+            expected_left = CompilerAbiLayoutArrayBoolTypeName();
+            expected_node = CompilerAbiLayoutBoolTypeName();
+            runtime_kind = 4; llvm_type = "i1";
+        }
+        if left_type != expected_left || node_type != expected_node ||
+            left == "" || right == "" || ArrayLength(arguments) != 0 ||
+            ArrayLength(argument_types) != 0 || member_ordinal != -1 {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        let output: String = Concat("  ", Concat(result, Concat(
+            " = call ", Concat(llvm_type, Concat(" @", Concat(
+            CollectionRuntimeCGetFn(runtime_kind), Concat("(", Concat(
+            DirectMirScalarProgramLlvmType(left_type), Concat(" ", Concat(
+            left, Concat(", i64 ", Concat(right, ")\n"))))))))))));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, result);
+    }
+    if kind != DirectMirScalarProgramExprLogicalRecordArrayIndex() {
+        return DirectMirScalarProgramLlvmLogicalRecordExpressionAt(
+            fact, kind, result, record_type, left, arguments,
+            argument_types, member_ordinal);
+    }
+    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+            fact, left_type, target);
+    let element_type: String =
+        DirectMirScalarProgramLlvmLogicalRecordTypeName(fact, node_type);
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
+            projected, CompilerTargetCpuLlvmProjection()) ||
+        projected.element_type != node_type || element_type == "" ||
+        left == "" || right == "" || ArrayLength(arguments) != 0 ||
+        ArrayLength(argument_types) != 0 || member_ordinal != -1 {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let data: String = Concat(result, ".data");
+    let slot: String = Concat(result, ".slot");
+    let output: String = Concat("  ", Concat(data, Concat(
+        " = extractvalue ", projected.llvm_type_name)));
+    output = Concat(output, Concat(" ", Concat(left, ", 0\n")));
+    output = Concat(output, Concat("  ", Concat(slot, Concat(
+        " = getelementptr inbounds ", element_type))));
+    output = Concat(output, Concat(", ptr ", Concat(data, Concat(
+        ", i64 ", Concat(right, "\n")))));
+    output = Concat(output, Concat("  ", Concat(result, Concat(
+        " = load ", element_type))));
+    output = Concat(output, Concat(", ptr ", Concat(slot, ", align 8\n")));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

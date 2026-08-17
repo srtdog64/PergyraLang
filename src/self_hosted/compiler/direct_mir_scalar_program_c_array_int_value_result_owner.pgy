@@ -1,0 +1,88 @@
+// C representation and value-result copy boundary for Array<Int> parameters.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy";
+import "direct_mir_array_storage_c_assertion_owner.pgy";
+import "direct_mir_scalar_program_c_array_mutation_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+
+func DirectMirScalarProgramCArrayIntValueResultPreamble(
+    ref fact: DirectMirScalarProgramArrayIntValueResultFact,
+    requirement: DirectMirScalarProgramArrayIntRuntimeRequirement,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact) {
+        Die("direct MIR C Array<Int> value-result fact is invalid");
+    }
+    if !fact.present { return ""; }
+    if !requirement.valid { Die(
+        "direct MIR C Array<Int> helper requirement is invalid"); }
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirScalarProgramArrayIntValueResultTargetFromFact(fact, target);
+    let output: String = "#include <stdint.h>\n#include <stddef.h>\n";
+    output = Concat(output, "typedef struct {\n    ");
+    output = Concat(output, abi.c_element_type);
+    output = Concat(output, " *data;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " length;\n    ");
+    output = Concat(output, abi.c_length_type);
+    output = Concat(output, " capacity;\n    void *allocator;\n} ");
+    output = Concat(output, abi.c_array_type);
+    output = Concat(output, ";\n\n");
+    output = Concat(output, DirectMirArrayStorageCAssertionBlock(
+        abi.storage, abi.c_array_type));
+    if requirement.push {
+        output = Concat(output,
+            DirectMirScalarProgramCArrayPushMaterialization(
+                CollectionRuntimeCPushFn(1), abi.c_array_type,
+                abi.c_element_type));
+    }
+    if requirement.get {
+        output = Concat(output,
+            "#include \"pgy_runtime_panic_contract.h\"\n");
+        output = Concat(output, CollectionRuntimeCGuardedGetWithLength(
+            abi.c_element_type, CollectionRuntimeCGetFn(1),
+            abi.c_array_type, "length"));
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCArrayIntValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayIntValueResultAt(
+                plan.program.array_int_value_result, routine, parameter) {
+            output = Concat(output, "    pgy_ai pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, " = *pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, "_mutref;\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCArrayIntValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayIntValueResultAt(
+                plan.program.array_int_value_result, routine, parameter) {
+            output = Concat(output, "    *pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, "_mutref = pgy_param_");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ";\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}

@@ -1,0 +1,423 @@
+// Runtime-value local lifecycle derived from admitted CFG and ABI facts.
+//
+// No source spelling is reopened here.  Creation and terminal identity come
+// from the runtime-call ABI owner; local identity, execution order, and exits
+// come from the immutable GraphPlan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+import "runtime_value_call_abi_owner.pgy";
+
+struct DirectMirScalarProgramRuntimeValueUsePoint {
+    let valid: Bool;
+    let routine: Int;
+    let block: Int;
+    let position: Int;
+}
+
+func DirectMirScalarProgramRuntimeValueUsePointMissing(
+) -> DirectMirScalarProgramRuntimeValueUsePoint {
+    return DirectMirScalarProgramRuntimeValueUsePoint(false, -1, -1, -1);
+}
+
+func DirectMirScalarProgramRuntimeValueOperationBlock(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int
+) -> Int {
+    if routine < 0 || routine >= ArrayLength(plan.routines.block_starts) {
+        return -1;
+    }
+    let block: Int = plan.routines.block_starts[routine];
+    let end: Int = block + plan.routines.block_counts[routine];
+    while block < end {
+        if operation >= plan.block_operation_starts[block] &&
+            operation < plan.block_operation_starts[block] +
+                plan.block_operation_counts[block] { return block; }
+        block = block + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramRuntimeValueExpressionContainsLocal(
+    ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int, local_row: Int
+) -> Bool {
+    if expression_row < 0 || expression_row >=
+            ArrayLength(plan.program.expressions.graph_starts) {
+        return false;
+    }
+    let node: Int = plan.program.expressions.graph_starts[expression_row];
+    let end: Int = node + plan.program.expressions.graph_counts[expression_row];
+    while node < end {
+        if plan.program.expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprLocal() &&
+            plan.program.expressions.node_local_rows[node] == local_row {
+            return true;
+        }
+        node = node + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramRuntimeValueExpressionCall(
+    ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
+) -> CompilerRuntimeValueCallAbiFact {
+    if expression_row < 0 || expression_row >=
+            ArrayLength(plan.program.expressions.graph_roots) {
+        return CompilerRuntimeValueCallAbiFactMissing();
+    }
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    if plan.program.expressions.node_kinds[root] !=
+            DirectMirScalarProgramExprRuntimeValueCall() {
+        return CompilerRuntimeValueCallAbiFactMissing();
+    }
+    return CompilerRuntimeValueCallAbiFactForId(
+        plan.program.expressions.node_runtime_call_abi_ids[root]);
+}
+
+func DirectMirScalarProgramRuntimeValueCallOwnerLocal(
+    ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
+) -> Int {
+    if expression_row < 0 || expression_row >=
+            ArrayLength(plan.program.expressions.graph_roots) {
+        return -1;
+    }
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    let argument: Int = plan.program.expressions.node_lefts[root];
+    if argument < 0 || plan.program.expressions.node_kinds[argument] !=
+            DirectMirScalarProgramExprLocal() {
+        return -1;
+    }
+    return plan.program.expressions.node_local_rows[argument];
+}
+
+func DirectMirScalarProgramRuntimeValueScratchReset(
+    inout seen: Array<Bool>, inout pending_blocks: Array<Int>
+) -> Void {
+    let row: Int = 0;
+    while row < ArrayLength(seen) {
+        ArraySet(seen, row, false);
+        row = row + 1;
+    }
+    while ArrayLength(pending_blocks) > 0 { ArrayPop(pending_blocks); }
+}
+
+func DirectMirScalarProgramRuntimeValuePathExistsAvoiding(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    start: Int, target: Int, avoid: Int,
+    inout seen: Array<Bool>, inout pending_blocks: Array<Int>
+) -> Bool {
+    if routine < 0 || start < 0 || target < 0 || start == avoid {
+        return false;
+    }
+    let first: Int = plan.routines.block_starts[routine];
+    let end: Int = first + plan.routines.block_counts[routine];
+    if start < first || start >= end || target < first || target >= end {
+        return false;
+    }
+    DirectMirScalarProgramRuntimeValueScratchReset(seen, pending_blocks);
+    ArrayPush(pending_blocks, start);
+    while ArrayLength(pending_blocks) > 0 {
+        let block: Int = pending_blocks[ArrayLength(pending_blocks) - 1];
+        ArrayPop(pending_blocks);
+        if block != avoid && !seen[block] {
+            if block == target { return true; }
+            ArraySet(seen, block, true);
+            let true_target: Int = plan.block_succ_true[block];
+            let false_target: Int = plan.block_succ_false[block];
+            if true_target >= first && true_target < end &&
+                true_target != avoid {
+                ArrayPush(pending_blocks, true_target);
+            }
+            if false_target >= first && false_target < end &&
+                false_target != avoid {
+                ArrayPush(pending_blocks, false_target);
+            }
+        }
+    }
+    return false;
+}
+
+func DirectMirScalarProgramRuntimeValueBlockHasProcessExit(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> Bool {
+    let operation: Int = plan.block_operation_starts[block];
+    let end: Int = operation + plan.block_operation_counts[block];
+    while operation < end {
+        if plan.operation_kinds[operation] ==
+                DirectMirScalarCfgOpProcessExit() { return true; }
+        operation = operation + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramRuntimeValuePathToExitAvoiding(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    start: Int, avoid: Int,
+    inout seen: Array<Bool>, inout pending_blocks: Array<Int>
+) -> Bool {
+    if routine < 0 || start < 0 || start == avoid { return false; }
+    let first: Int = plan.routines.block_starts[routine];
+    let end: Int = first + plan.routines.block_counts[routine];
+    if start < first || start >= end { return false; }
+    DirectMirScalarProgramRuntimeValueScratchReset(seen, pending_blocks);
+    ArrayPush(pending_blocks, start);
+    while ArrayLength(pending_blocks) > 0 {
+        let block: Int = pending_blocks[ArrayLength(pending_blocks) - 1];
+        ArrayPop(pending_blocks);
+        if block != avoid && !seen[block] {
+            ArraySet(seen, block, true);
+            if DirectMirScalarProgramRuntimeValueBlockHasProcessExit(
+                    plan, block) { return true; }
+            let true_target: Int = plan.block_succ_true[block];
+            let false_target: Int = plan.block_succ_false[block];
+            if true_target < 0 && false_target < 0 { return true; }
+            if true_target >= first && true_target < end &&
+                true_target != avoid {
+                ArrayPush(pending_blocks, true_target);
+            }
+            if false_target >= first && false_target < end &&
+                false_target != avoid {
+                ArrayPush(pending_blocks, false_target);
+            }
+        }
+    }
+    return false;
+}
+
+func DirectMirScalarProgramRuntimeValueCreationOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    local_row: Int, local_type: String
+) -> Int {
+    let found: Int = -1;
+    let operation: Int = plan.routines.operation_starts[routine];
+    let end: Int = operation + plan.routines.operation_counts[routine];
+    while operation < end {
+        let result: Int = plan.operation_result_values[operation];
+        if result >= 0 && result < ArrayLength(plan.value_local_rows) &&
+            plan.value_local_rows[result] == local_row {
+            let expression_row: Int =
+                plan.program.operation_expression_rows[operation];
+            let call: CompilerRuntimeValueCallAbiFact =
+                DirectMirScalarProgramRuntimeValueExpressionCall(
+                    plan, expression_row);
+            if found >= 0 || plan.operation_kinds[operation] !=
+                    DirectMirScalarCfgOpExpressionDefinition() ||
+                !call.valid || call.terminal_consumer ||
+                call.owner_name != local_type ||
+                call.return_type != local_type {
+                return -2;
+            }
+            found = operation;
+        }
+        operation = operation + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramRuntimeValueTerminalOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    local_row: Int, local_type: String
+) -> Int {
+    let found: Int = -1;
+    let operation: Int = plan.routines.operation_starts[routine];
+    let end: Int = operation + plan.routines.operation_counts[routine];
+    while operation < end {
+        let expression_row: Int =
+            plan.program.operation_expression_rows[operation];
+        let call: CompilerRuntimeValueCallAbiFact =
+            DirectMirScalarProgramRuntimeValueExpressionCall(
+                plan, expression_row);
+        if call.valid &&
+            CompilerRuntimeValueCallTerminalOwnerParameter(call) == 0 &&
+            call.owner_name == local_type &&
+            DirectMirScalarProgramRuntimeValueCallOwnerLocal(
+                plan, expression_row) == local_row {
+            if found >= 0 { return -2; }
+            found = operation;
+        }
+        let secondary: Int =
+            plan.program.operation_secondary_expression_rows[operation];
+        let secondary_call: CompilerRuntimeValueCallAbiFact =
+            DirectMirScalarProgramRuntimeValueExpressionCall(plan, secondary);
+        if secondary_call.valid &&
+            CompilerRuntimeValueCallTerminalOwnerParameter(secondary_call) == 0 &&
+            DirectMirScalarProgramRuntimeValueCallOwnerLocal(
+                plan, secondary) == local_row { return -2; }
+        operation = operation + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramRuntimeValueUsePointReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref point: DirectMirScalarProgramRuntimeValueUsePoint,
+    routine: Int, creation_block: Int, creation_operation: Int,
+    terminal_block: Int, terminal_operation: Int,
+    inout seen: Array<Bool>, inout pending_blocks: Array<Int>
+) -> Bool {
+    if !point.valid || point.routine != routine { return false; }
+    let entry: Int = plan.routines.block_starts[routine];
+    if point.block == creation_block {
+        if point.position <= creation_operation { return false; }
+    } else if DirectMirScalarProgramRuntimeValuePathExistsAvoiding(
+            plan, routine, entry, point.block, creation_block,
+            seen, pending_blocks) {
+        return false;
+    }
+    if point.block == terminal_block {
+        return point.position <= terminal_operation;
+    }
+    return !DirectMirScalarProgramRuntimeValuePathToExitAvoiding(
+        plan, routine, point.block, terminal_block, seen, pending_blocks);
+}
+
+func DirectMirScalarProgramRuntimeValueLocalReady(
+    ref plan: DirectMirScalarCfgGraphPlan, local_row: Int,
+    inout seen: Array<Bool>, inout pending_blocks: Array<Int>
+) -> Bool {
+    let local_type: String = plan.local_types[local_row];
+    let routine: Int = DirectMirScalarCfgRoutinePartitionLocalOwner(
+        plan.routines, local_row);
+    if routine < 0 || plan.local_ref_kinds[local_row] !=
+            DirectMirScalarCfgLocalRefValue() ||
+        !CompilerRuntimeValueTypeReady(local_type) {
+        return false;
+    }
+    let creation: Int =
+        DirectMirScalarProgramRuntimeValueCreationOperation(
+            plan, routine, local_row, local_type);
+    let terminal: Int =
+        DirectMirScalarProgramRuntimeValueTerminalOperation(
+            plan, routine, local_row, local_type);
+    if creation < 0 || terminal < 0 { return false; }
+    let creation_block: Int =
+        DirectMirScalarProgramRuntimeValueOperationBlock(
+            plan, routine, creation);
+    let terminal_block: Int =
+        DirectMirScalarProgramRuntimeValueOperationBlock(
+            plan, routine, terminal);
+    let entry: Int = plan.routines.block_starts[routine];
+    if creation_block < 0 || terminal_block < 0 ||
+        !DirectMirScalarProgramRuntimeValuePathExistsAvoiding(
+            plan, routine, entry, creation_block, -1,
+            seen, pending_blocks) ||
+        (creation_block == terminal_block && creation >= terminal) ||
+        (creation_block != terminal_block &&
+         DirectMirScalarProgramRuntimeValuePathExistsAvoiding(
+            plan, routine, entry, terminal_block, creation_block,
+            seen, pending_blocks)) ||
+        (creation_block != terminal_block &&
+         DirectMirScalarProgramRuntimeValuePathToExitAvoiding(
+            plan, routine, creation_block, terminal_block,
+            seen, pending_blocks)) {
+        return false;
+    }
+    let true_target: Int = plan.block_succ_true[terminal_block];
+    let false_target: Int = plan.block_succ_false[terminal_block];
+    if (true_target >= 0 &&
+        DirectMirScalarProgramRuntimeValuePathExistsAvoiding(
+            plan, routine, true_target, terminal_block, -1,
+            seen, pending_blocks)) ||
+       (false_target >= 0 &&
+        DirectMirScalarProgramRuntimeValuePathExistsAvoiding(
+            plan, routine, false_target, terminal_block, -1,
+            seen, pending_blocks)) {
+        return false;
+    }
+    let use_count: Int = 0;
+    let operation: Int = plan.routines.operation_starts[routine];
+    let operation_end: Int = operation +
+        plan.routines.operation_counts[routine];
+    while operation < operation_end {
+        let block: Int = DirectMirScalarProgramRuntimeValueOperationBlock(
+            plan, routine, operation);
+        let expression_row: Int =
+            plan.program.operation_expression_rows[operation];
+        let secondary_row: Int =
+            plan.program.operation_secondary_expression_rows[operation];
+        if DirectMirScalarProgramRuntimeValueExpressionContainsLocal(
+                plan, expression_row, local_row) {
+            let point: DirectMirScalarProgramRuntimeValueUsePoint =
+                DirectMirScalarProgramRuntimeValueUsePoint(
+                    block >= 0, routine, block, operation);
+            if !DirectMirScalarProgramRuntimeValueUsePointReady(
+                    plan, point, routine, creation_block, creation,
+                    terminal_block, terminal, seen, pending_blocks) {
+                return false;
+            }
+            use_count = use_count + 1;
+        }
+        if DirectMirScalarProgramRuntimeValueExpressionContainsLocal(
+                plan, secondary_row, local_row) {
+            let secondary_point: DirectMirScalarProgramRuntimeValueUsePoint =
+                DirectMirScalarProgramRuntimeValueUsePoint(
+                    block >= 0, routine, block, operation);
+            if !DirectMirScalarProgramRuntimeValueUsePointReady(
+                    plan, secondary_point, routine, creation_block, creation,
+                    terminal_block, terminal, seen, pending_blocks) {
+                return false;
+            }
+            use_count = use_count + 1;
+        }
+        operation = operation + 1;
+    }
+    let block: Int = plan.routines.block_starts[routine];
+    let block_end: Int = block + plan.routines.block_counts[routine];
+    while block < block_end {
+        let position: Int = plan.block_operation_starts[block] +
+            plan.block_operation_counts[block];
+        let condition_row: Int =
+            plan.program.block_condition_expression_rows[block];
+        let return_row: Int = plan.program.block_return_expression_rows[block];
+        if DirectMirScalarProgramRuntimeValueExpressionContainsLocal(
+                plan, condition_row, local_row) {
+            let condition_point: DirectMirScalarProgramRuntimeValueUsePoint =
+                DirectMirScalarProgramRuntimeValueUsePoint(
+                    true, routine, block, position);
+            if !DirectMirScalarProgramRuntimeValueUsePointReady(
+                    plan, condition_point, routine, creation_block, creation,
+                    terminal_block, terminal, seen, pending_blocks) {
+                return false;
+            }
+            use_count = use_count + 1;
+        }
+        if DirectMirScalarProgramRuntimeValueExpressionContainsLocal(
+                plan, return_row, local_row) {
+            let return_point: DirectMirScalarProgramRuntimeValueUsePoint =
+                DirectMirScalarProgramRuntimeValueUsePoint(
+                    true, routine, block, position);
+            if !DirectMirScalarProgramRuntimeValueUsePointReady(
+                    plan, return_point, routine, creation_block, creation,
+                    terminal_block, terminal, seen, pending_blocks) {
+                return false;
+            }
+            use_count = use_count + 1;
+        }
+        block = block + 1;
+    }
+    return use_count > 0;
+}
+
+func DirectMirScalarProgramRuntimeValueLifecycleReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    if !plan.program.valid { return true; }
+    let seen: Array<Bool> = [];
+    let pending_blocks: Array<Int> = [];
+    let block: Int = 0;
+    while block < ArrayLength(plan.block_succ_true) {
+        ArrayPush(seen, false);
+        block = block + 1;
+    }
+    let local_row: Int = 0;
+    while local_row < ArrayLength(plan.local_types) {
+        if CompilerRuntimeValueTypeReady(
+                plan.local_types[local_row]) &&
+            !DirectMirScalarProgramRuntimeValueLocalReady(
+                plan, local_row, seen, pending_blocks) {
+            return false;
+        }
+        local_row = local_row + 1;
+    }
+    return true;
+}

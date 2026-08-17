@@ -4,17 +4,22 @@ import "direct_mir_scalar_program_string_index_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_string_trim_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_array_string_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_string_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_array_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_array_bool_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_comparison_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_numeric_cast_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprLocal() -> Int { return 1; }
 func DirectMirScalarProgramExprParameter() -> Int { return 2; }
 func DirectMirScalarProgramExprIntLiteral() -> Int { return 3; }
 func DirectMirScalarProgramExprBoolLiteral() -> Int { return 4; }
 func DirectMirScalarProgramExprStringLiteral() -> Int { return 5; }
 func DirectMirScalarProgramExprModuloInt() -> Int { return 6; }
-func DirectMirScalarProgramExprEqualInt() -> Int { return 7; }
 func DirectMirScalarProgramExprLogicalNot() -> Int { return 8; }
 func DirectMirScalarProgramExprLogicalAnd() -> Int { return 9; }
 func DirectMirScalarProgramExprLogicalOr() -> Int { return 10; }
-func DirectMirScalarProgramExprLessInt() -> Int { return 11; }
 func DirectMirScalarProgramExprAddInt() -> Int { return 12; }
 func DirectMirScalarProgramExprDirectCall() -> Int { return 13; }
 func DirectMirScalarProgramExprToStringInt() -> Int { return 14; }
@@ -31,6 +36,29 @@ func DirectMirScalarProgramExprStringContains() -> Int { return 24; }
 func DirectMirScalarProgramExprStringSplit() -> Int { return 25; }
 func DirectMirScalarProgramExprArrayStringLength() -> Int { return 26; }
 func DirectMirScalarProgramExprToIntString() -> Int { return 27; }
-func DirectMirScalarProgramExpressionKindLast() -> Int {
-    return DirectMirScalarProgramExprUnwrapOptionInt();
-}
+func DirectMirScalarProgramExprLogicalRecordConstructor() -> Int { return 49; }
+func DirectMirScalarProgramExprLogicalRecordMember() -> Int { return 50; }
+func DirectMirScalarProgramExprLongLiteral() -> Int { return 53; }
+func DirectMirScalarProgramExprLogicalRecordArrayIndex() -> Int { return 55; }
+func DirectMirScalarProgramExprStringJoin() -> Int { return 69; }
+func DirectMirScalarProgramExprToStringString() -> Int { return 70; }
+func DirectMirScalarProgramExprEqualBool() -> Int { return 72; }
+func DirectMirScalarProgramExprAddLong() -> Int { return 78; }
+func DirectMirScalarProgramExprSubtractLong() -> Int { return 82; }
+func DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() -> Int { return 88; }
+func DirectMirScalarProgramExprNotEqualBool() -> Int { return 89; }
+func DirectMirScalarProgramExprPayloadFreeEnumVariant() -> Int { return 90; }
+func DirectMirScalarProgramExprEqualPayloadFreeEnum() -> Int { return 91; }
+func DirectMirScalarProgramExprRuntimeValueCall() -> Int { return 92; }
+func DirectMirScalarProgramExprArrayStringDropOwned() -> Int { return 93; }
+func DirectMirScalarProgramExprProcessArgs() -> Int { return 94; }
+func DirectMirScalarProgramExprDirWalk() -> Int { return 95; }
+func DirectMirScalarProgramExprFileExists() -> Int { return 96; }
+func DirectMirScalarProgramExprReadFile() -> Int { return 97; }
+func DirectMirScalarProgramExprPrintString() -> Int { return 99; }
+func DirectMirScalarProgramExprIntentObservabilityCall() -> Int { return 100; }
+func DirectMirScalarProgramExprSetStringNew() -> Int { return 101; }
+func DirectMirScalarProgramExprSetStringAdd() -> Int { return 102; }
+func DirectMirScalarProgramExprSetStringHas() -> Int { return 103; }
+func DirectMirScalarProgramExprArrayStringPushOwned() -> Int { return 104; }
+func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprArrayStringPushOwned(); }

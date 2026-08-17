@@ -11,7 +11,7 @@ func DirectMirLiteralLogEmitC(
          int_c_type == "") {
         Die("direct MIR literal Log C plan or ABI type is invalid");
     }
-    let output: String = "#include <stdio.h>\n\nint main(void) {\n";
+    let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n";
     if plan.literal_kind == DirectMirLiteralLogIntegerKind() {
         output = Concat(output, "    ");
         output = Concat(output, int_c_type);
@@ -71,7 +71,7 @@ func DirectMirLiteralLogEmitLlvm(
     output = Concat(output, plan.formatted_print.symbol);
     output = Concat(output, "(ptr @.pgy.log.format, ");
     if plan.literal_kind == DirectMirLiteralLogIntegerKind() {
-        output = Concat(output, "i64 ");
+        output = Concat(output, "i32 ");
         output = Concat(output, plan.literal);
     } else {
         output = Concat(output, "ptr @.pgy.log.literal");

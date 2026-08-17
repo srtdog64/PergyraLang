@@ -317,7 +317,7 @@ declaration census는 gate가 다시 생성하는 관측값이며, import surfac
 | `tobject` | `REACHABLE`, not `SUBSTITUTING` | production action의 receipt와 failure가 typed variant로 Main까지 전달되고 양쪽 payload가 후속 판정/진단에 소비된다 |
 | 입력 기능의 passive/mutable nominal literal direct-MIR slice | `SUBSTITUTING` | class/object/tobject value carriage와 subject/vessel stable mutable identity가 한 route/admission 뒤 배타 plan으로 installed C/LLVM exact 12/7/13을 실행한다. 이는 compiler 조직의 vessel/action/intent grade를 올리지 않는다. |
 | 입력 기능의 `binding slot` admission/runtime slice | `SUBSTITUTING` | production self source -> admitted MIR -> general C가 exact binding constructor와 projection assignment를 실행하고 native C/LLVM parity 및 valid-ID wrong-kind negatives를 통과한다 |
-| 입력 기능의 typed intent transition MIR -> self C | `SUBSTITUTING` | admitted v2 Pergyra plan consumer가 old typed direct/rollback consumer를 대체한다. compiler-root intent 증거는 아니다. |
+| 입력 기능의 typed intent transition MIR -> self C | v2 bounded `SUBSTITUTING`; v3 zone/observability `REACHABLE` | installed v2 Pergyra plan consumer가 old typed direct/rollback consumer를 대체한다. v3는 exact step-zone identity를 stage-0 self C/native C/LLVM까지 실행했지만 replacement DRV-2 publication은 아직 없다. compiler-root intent 증거는 아니다. |
 | `subject`, `action`, `zone`, `world` | `REACHABLE`; bounded public source-MIR stdout slice is `SUBSTITUTING` | 두 slice가 production에서 invoke되고 typed outcome이 소비된다. 그중 exact public `pgy --mir-json <source>`는 C pipeline selector를 삭제했지만, 이 한 slice가 compiler world 전체를 대체하지는 않는다. |
 | public source token dump | bounded `SUBSTITUTING` | exact `pgy --tokens <source>`가 installed `DriverCliSourceTokensStdout`와 Pergyra `LexContent`를 소비하고 native fallback을 삭제했다. Native lexer는 parity oracle의 명시적 `--native-pipeline` opt-out으로만 남으며, 이 디버그 출력 slice는 source compiler 전체 lexer/parser 대체를 뜻하지 않는다. |
 | public source AST dump | bounded `SUBSTITUTING` | exact `pgy --ast <source>`가 installed `DriverCliSourceAstStdout`와 import-composed Pergyra `ParseRootProgram`을 소비하고 native fallback을 삭제했다. Native parser는 parity oracle의 명시적 `--native-pipeline` opt-out으로만 남으며, 이 디버그 출력 slice는 source compiler 전체 parser/semantic 대체를 뜻하지 않는다. |
@@ -991,11 +991,13 @@ owner family는 `BRIDGE`다. 이것은 self compiler의 내부 orchestration이
 - The previously named two-action falsifier now has an executable owner gate at
   `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`. Its two
   actions expose predecessor-only rollback; they are a fixture shape, not the
-  definition of `intent`. The v2 plan admits exact typed branches, success-only
+  definition of `intent`. The v3 plan preserves the v2 typed branches,
+  success-only
   completion and predecessor carriage, while malformed plans must still reject
-  before any partial C artifact.
+  before any partial C artifact, and additionally cross-seals each step's exact
+  `where` zone name/syntax identity for observability.
 
-Direct-MIR action 경계 자체는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 반면 아래 입력 언어의 admitted v2 typed transition MIR-to-self-C consumer는 old typed direct/rollback path를 실제로 대체한 bounded `SUBSTITUTING` slice다. source-mode orchestration을 subject/action으로 이주하는 작업은 별도 executable rung으로 유지한다.
+Direct-MIR action 경계 자체는 계속 `REACHABLE`이며 `SUBSTITUTING`이 아니다. 반면 아래 입력 언어의 installed admitted v2 typed transition MIR-to-self-C consumer는 old typed direct/rollback path를 실제로 대체한 bounded `SUBSTITUTING` slice다. 현재 source의 v3 step-zone/observability 확장은 stage-0 self C와 native C/LLVM에서 `REACHABLE`하지만 replacement installed driver가 없으므로 아직 그 등급을 상속하지 않는다. source-mode orchestration을 subject/action으로 이주하는 작업은 별도 executable rung으로 유지한다.
 
 ## Bounded typed transition substitution and historical reachable slices
 
@@ -1012,7 +1014,7 @@ self semantic/DIR은 exact action return type과 stable action identity를 한 �
 `tobject` payload를 갖는다. Self C, native C, native LLVM이 모두
 `accepted=true`, `calls=1`, `rejected=false`, `calls=2`를 출력했고 direct/admitted
 self C는 byte-equal이었다. Missing carrier, result/type/action identity drift,
-duplicate binding과 eval-result drift는 partial C 전에 실패했다. 이 historical single-binding feature 자체는 supporting `REACHABLE` evidence다. 현재 admitted v2 plan consumer는 bounded `SUBSTITUTING`이다. Production bootstrap entrypoint가 intent를 호출하지 않으므로 compiler
+duplicate binding과 eval-result drift는 partial C 전에 실패했다. 이 historical single-binding feature 자체는 supporting `REACHABLE` evidence다. 현재 installed admitted v2 plan consumer는 bounded `SUBSTITUTING`이고 v3 zone/observability delta는 `REACHABLE`이다. Production bootstrap entrypoint가 intent를 호출하지 않으므로 compiler
 `intent` 등급은 여전히 `SURFACE`이며 hard substitution 진척으로 세지 않는다.
 
 `intent_guard_post_compensation_execution_owner.sh`는 성공, 첫 step guard 실패,
@@ -1050,15 +1052,21 @@ plan과 executable owner gate에 존재한다. 두 action fixture는 predecessor
   compensate 재조회, native graft, old direct orchestration 병존이다.
 - Executable evidence:
   `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`는 fixture를
-  MIR로 내리고 `pgy.selfhost.mir-intent-execution-plan.v2`를 admission한 뒤 self C를
+  MIR로 내리고 `pgy.selfhost.mir-intent-execution-plan.v3`를 admission한 뒤 stage-0 self C를
   실행한다. Success는 A/B success payload와 compensation 0회를, A failure는 미래
   step 미실행을, B failure는 A compensation 1회와 B compensation 0회를 관측한다.
   multiple/duplicate/zero compensation shape도 같은 consumer에서 실행한다.
 - Negative evidence: 같은 gate는 plan/graph digest와 named-call graph carrier를
   변조하고 partial C artifact 전에 admission 거부를 요구한다. v2 protocol corpus와
-  admission gate는 variant/payload, predecessor, completion, compensation stable
-  identity를 포함한 더 넓은 cross-wire를 fail closed한다.
-- Grade: draft/owner/document/fixture 수는 진척이 아니다. admitted v2 typed transition plan consumer는 old typed direct/rollback consumer를 제거했으므로 bounded `SUBSTITUTING`이다. single-step binding과 legacy predicate/compensation slice는 supporting `REACHABLE` evidence다. Production root의 canonical real-purpose intent 호출은 여전히 0이므로 compiler organization의 `intent` 등급은 `SURFACE`다.
+  admission gate는 variant/payload, predecessor, completion, compensation와
+  step-zone stable identity를 포함한 더 넓은 cross-wire를 fail closed한다.
+- Grade: draft/owner/document/fixture 수는 진척이 아니다. installed admitted
+  v2 typed transition plan consumer는 old typed direct/rollback consumer를
+  제거했으므로 bounded `SUBSTITUTING`이다. v3 step-zone/observability는
+  stage-0 self C와 native C/LLVM에서 `REACHABLE`하지만 canonical
+  Pergyra-built driver publication 전에는 `SUBSTITUTING`으로 승격하지 않는다.
+  Production root의 canonical real-purpose intent 호출은 여전히 0이므로
+  compiler organization의 `intent` 등급은 `SURFACE`다.
 
 SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 섞지 않는다. 해당 row는 source declaration/signature와 legacy phase carriage를 유지한다. typed outcome case, success-only completion, carried predecessor와 failure-driven compensation은 `mir.execution_graph` 아래의 named execution subfacts인 `mir.intent_step_transition`과 `mir.intent_terminal_transition`이다. 이 이름들은 독립 top-level registry authority가 아니며, 별도 owner identity와 모든 consumer migration 및 negative gate가 생기기 전에는 새 registry row나 `CLOSED`를 추론하지 않는다.
 
@@ -1084,11 +1092,12 @@ SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 
   `tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh`가 실제
   sibling driver, exactly-once counting shim, output execution, missing driver,
   unsupported option, partial artifact 부재를 검증한다.
-- Grade: 이 세 C target만 `SUBSTITUTING`이다. LLVM-enabled build의 implicit
-  default와 released LLVM, package, dump/check/repl은 아직 open이다. 이 폐쇄는
-  `subject/action/intent`의 production-root 등급을 올리지 않는다.
+- Grade: 이 세 C target과 아래 admitted default-runtime LLVM target이
+  `SUBSTITUTING`이다. intent-observability, composite-intent LLVM, package,
+  dump/check/repl은 아직 open이다. 이 폐쇄는 `subject/action/intent`의
+  production-root 등급을 올리지 않는다.
 
-## 완료된 installed runtime-free LLVM substitution
+## 완료된 installed default-runtime LLVM substitution
 
 2026-08-01의 public LLVM rung은 다음 경계까지 닫혔다.
 
@@ -1097,22 +1106,24 @@ SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 
 - Installed driver는 source-to-MIR producer와 `--mir-json-backend=llvm`
   projector를 각각 정확히 한 번 실행한다. Native launcher는 private artifact
   lifetime, `clang -x ir` host compile/link, optional execution만 소유한다.
-- Native `driver_run_pipeline`, AIR/libLLVM, implicit runtime object fallback은
-  없다. LLVM text를 스캔해 runtime policy를 발명하지도 않는다. Runtime symbol
-  requirement는 추후 typed profile owner가 있어야만 admit할 수 있다.
+- Native `driver_run_pipeline`과 AIR/libLLVM fallback은 없다. LLVM text를
+  스캔해 runtime policy를 발명하지도 않는다. Host linker는
+  `compiler_runtime_cache.c`가 소유하는 canonical LLVM runtime object를
+  artifact spelling과 무관하게 소비한다.
 - Missing/unsupported/producer/projector/malformed/unresolved-runtime negative는
   모두 fail closed한다. Gate가 일부러 만든 stale output도 실행 시작 시 제거되며
   실패 뒤 binary가 남지 않는다.
-- Grade: public selector의 direct bypass는 삭제됐지만 executable
-  `SUBSTITUTING` 증거는 sealed runtime-free `Option<Int>` frontier까지다. General
-  aggregate와 runtime-bearing LLVM을 완료했다고 주장하지 않는다.
+- Grade: public selector의 direct bypass는 삭제됐고 sealed runtime-free
+  frontier뿐 아니라 `FileExists`/`ReadFile` host-I/O도 executable
+  `SUBSTITUTING`이다. Intent observability와 composite-intent runtime을
+  완료했다고 주장하지 않는다.
 
 다음 LLVM rung은 `array_literal_assignment.pgy`다. 현재 installed production
 path는 source-to-MIR을 통과한 뒤 self-host LLVM projector code 1로 거부되며 native
 LLVM으로 돌아가지 않는다. 기존 installed C 실행을 oracle로 삼아 `Array<Int>`
 literal, length, index에 필요한 typed MIR fact와 마지막 direct-LLVM consumer를
 한 owner seam에서 닫는다. C emitter의 배열 reconstruction 복사, LLVM text 기반
-runtime 추론, implicit runtime attachment, general cache/query engine은 금지한다.
+runtime 추론, consumer-local runtime build, general cache/query engine은 금지한다.
 
 ## 세션 메모리와 handoff 규칙
 

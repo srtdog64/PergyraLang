@@ -1,0 +1,11 @@
+// Entrypoint return must retire owned locals and project process status zero.
+func Identity(value: Int) -> Int {
+    return value;
+}
+
+func Main() -> Void {
+    let values: Array<String> = StringSplit("alpha,beta", ",");
+    Log(Identity(ArrayLength(values)));
+    Log("entrypoint-early-return-ready");
+    return;
+}

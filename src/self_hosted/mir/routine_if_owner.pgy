@@ -10,6 +10,34 @@ import "routine_expression_use_owner.pgy";
 import "expression_fact_owner.pgy";
 import "routine_local_predecessor_snapshot_owner.pgy";
 
+struct SelfMirIfVersionSnapshot {
+    ok: Bool;
+    versions: Array<Int>;
+}
+
+func SelfMirIfFrameVersionsAt(
+    ref frames: SelfMirLocalPredecessorSnapshots,
+    frame_index: Int
+) -> SelfMirIfVersionSnapshot {
+    let versions: Array<Int> = [];
+    if frame_index < 0 || frame_index >= ArrayLength(frames.blocks) ||
+        frame_index >= ArrayLength(frames.version_starts) ||
+        frame_index >= ArrayLength(frames.version_counts) {
+        return SelfMirIfVersionSnapshot(false, versions);
+    }
+    let start: Int = frames.version_starts[frame_index];
+    let count: Int = frames.version_counts[frame_index];
+    if start < 0 || count < 0 || start + count > ArrayLength(frames.versions) {
+        return SelfMirIfVersionSnapshot(false, versions);
+    }
+    let local_index: Int = 0;
+    while local_index < count {
+        ArrayPush(versions, frames.versions[start + local_index]);
+        local_index = local_index + 1;
+    }
+    return SelfMirIfVersionSnapshot(true, versions);
+}
+
 func SelfMirMergeIfBranches(
     build: SelfMirRoutineBuild,
     branch_block: Int,
@@ -111,70 +139,177 @@ func SelfMirLowerIfFromArtifact(
     inout backedge_snapshots: SelfMirLocalPredecessorSnapshots,
     continue_target: Int
 ) -> SelfMirRoutineBuild {
-    let condition_graph: SemanticExpressionGraphView =
-        SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            node_id, AstExpressionLaneAtom()
+    let entry_frames: SelfMirLocalPredecessorSnapshots =
+        SelfMirLocalPredecessorSnapshotsEmpty();
+    let then_frames: SelfMirLocalPredecessorSnapshots =
+        SelfMirLocalPredecessorSnapshotsEmpty();
+    let then_blocks: Array<Int> = [];
+    let else_blocks: Array<Int> = [];
+    let active_node_id: Int = node_id;
+    let active_condition: String = condition;
+    let terminal_else_exit: Int = -1;
+    let terminal_else_versions: Array<Int> = [];
+    let descending: Bool = true;
+    while descending && build.ok {
+        let condition_graph: SemanticExpressionGraphView =
+            SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                active_node_id, AstExpressionLaneAtom()
+            );
+        if !condition_graph.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR if condition expression graph is missing"
+            );
+        }
+        build = SelfMirRoutineAddInstruction(
+            build, "branch", "branch", "", "", "", active_condition, "",
+            SelfMirExpressionSourceTypeName(
+                SelfMirExpressionKindFromText(active_condition)
+            ),
+            SelfMirExpressionGraphUses(build, condition_graph)
         );
-    if !condition_graph.ok {
-        return SelfMirRoutineBuildError(
-            build, "MIR if condition expression graph is missing"
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, condition_graph, input.machine_declaration
         );
-    }
-    let branch_block: Int = build.current_block;
-    build = SelfMirRoutineAddInstruction(
-        build, "branch", "branch", "", "", "", condition, "",
-        SelfMirExpressionSourceTypeName(
-            SelfMirExpressionKindFromText(condition)
-        ),
-        SelfMirExpressionGraphUses(build, condition_graph)
-    );
-    build = SelfMirRoutineAttachLastExpressionGraph(
-        build, condition_graph, input.machine_declaration
-    );
-    let body_opt: Option<Int> = SelfMirControlBodyBlock(
-        input.artifact.arena, node_id
-    );
-    if !IsSome(body_opt) {
-        return SelfMirRoutineBuildError(build, "MIR if body block is missing");
-    }
-    let else_body_opt: Option<Int> = SelfMirIfElseLoweringRoot(
-        input.artifact.arena, node_id
-    );
-    let entry_versions: Array<Int> =
-        SelfMirLocalVersionsSnapshot(build.local_versions);
-    let entry_local_count: Int = ArrayLength(build.local_names);
-    build = SelfMirRoutineAddBlock(build);
-    let then_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
-    build = SelfMirRoutineAtBlock(build, then_block);
-    build = SelfMirLowerBlockFromArtifact(
-        input, build, UnwrapOption(body_opt),
-        break_exits, backedge_snapshots, continue_target, entry_local_count
-    );
-    let then_exit: Int = build.current_block;
-    let then_versions: Array<Int> =
-        SelfMirLocalVersionsSnapshot(build.local_versions);
-    let else_block: Int = -1;
-    let else_exit: Int = -1;
-    let else_versions: Array<Int> =
-        SelfMirLocalVersionsSnapshot(entry_versions);
-    if IsSome(else_body_opt) {
+        let body_opt: Option<Int> = SelfMirControlBodyBlock(
+            input.artifact.arena, active_node_id
+        );
+        if !IsSome(body_opt) {
+            return SelfMirRoutineBuildError(
+                build, "MIR if body block is missing"
+            );
+        }
+        let else_body_opt: Option<Int> = SelfMirIfElseLoweringRoot(
+            input.artifact.arena, active_node_id
+        );
+        let nested_if_opt: Option<Int> = SelfMirIfElseNestedIfRoot(
+            input.artifact.arena, active_node_id
+        );
+        entry_frames = SelfMirLocalPredecessorSnapshotsAppend(
+            entry_frames, build
+        );
+        let entry_local_count: Int = ArrayLength(build.local_names);
         build = SelfMirRoutineAddBlock(build);
-        else_block = SelfMirCfgBlockCount(build.cfg) - 1;
-        build = SelfMirRoutineAtBlock(build, else_block);
-        build = SelfMirRoutineAtLocalVersions(
-            build, entry_versions
-        );
+        let then_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+        build = SelfMirRoutineAtBlock(build, then_block);
         build = SelfMirLowerBlockFromArtifact(
-            input, build, UnwrapOption(else_body_opt),
+            input, build, UnwrapOption(body_opt),
             break_exits, backedge_snapshots, continue_target,
             entry_local_count
         );
-        else_exit = build.current_block;
-        else_versions = SelfMirLocalVersionsSnapshot(build.local_versions);
+        if !build.ok { return build; }
+        then_frames = SelfMirLocalPredecessorSnapshotsAppend(
+            then_frames, build
+        );
+        let else_block: Int = -1;
+        if IsSome(else_body_opt) {
+            build = SelfMirRoutineAddBlock(build);
+            else_block = SelfMirCfgBlockCount(build.cfg) - 1;
+            build = SelfMirRoutineAtBlock(build, else_block);
+            let entry_frame: SelfMirIfVersionSnapshot =
+                SelfMirIfFrameVersionsAt(
+                    entry_frames, ArrayLength(entry_frames.blocks) - 1
+                );
+            if !entry_frame.ok {
+                return SelfMirRoutineBuildError(
+                    build, "MIR if entry-version frame is invalid"
+                );
+            }
+            build = SelfMirRoutineAtLocalVersions(
+                build, entry_frame.versions
+            );
+        }
+        ArrayPush(then_blocks, then_block);
+        ArrayPush(else_blocks, else_block);
+        if IsSome(nested_if_opt) {
+            active_node_id = UnwrapOption(nested_if_opt);
+            let statement_index_opt: Option<Int> =
+                SemanticAstStatementIndexForNode(
+                    input.analysis.statements, active_node_id
+                );
+            if !IsSome(statement_index_opt) {
+                return SelfMirRoutineBuildError(
+                    build, "MIR nested else-if statement fact is missing"
+                );
+            }
+            let statement_index: Int = UnwrapOption(statement_index_opt);
+            if input.analysis.statements.kind_tags[statement_index] !=
+                TypedAstKindIfStmtTag() {
+                return SelfMirRoutineBuildError(
+                    build, "MIR nested else-if statement kind drifted"
+                );
+            }
+            active_condition =
+                input.analysis.statements.payload_texts[statement_index];
+            continue;
+        }
+        if IsSome(else_body_opt) {
+            build = SelfMirLowerBlockFromArtifact(
+                input, build, UnwrapOption(else_body_opt),
+                break_exits, backedge_snapshots, continue_target,
+                entry_local_count
+            );
+            if !build.ok { return build; }
+            terminal_else_exit = build.current_block;
+            terminal_else_versions =
+                SelfMirLocalVersionsSnapshot(build.local_versions);
+        } else {
+            let entry_frame: SelfMirIfVersionSnapshot =
+                SelfMirIfFrameVersionsAt(
+                    entry_frames, ArrayLength(entry_frames.blocks) - 1
+                );
+            if !entry_frame.ok {
+                return SelfMirRoutineBuildError(
+                    build, "MIR if terminal entry-version frame is invalid"
+                );
+            }
+            terminal_else_versions = entry_frame.versions;
+        }
+        descending = false;
     }
-    return SelfMirMergeIfBranches(
-        build, branch_block, then_block, then_exit, then_versions,
-        else_block, else_exit, else_versions, entry_versions
-    );
+    if !build.ok { return build; }
+    if ArrayLength(entry_frames.blocks) == 0 ||
+        ArrayLength(entry_frames.blocks) != ArrayLength(then_frames.blocks) ||
+        ArrayLength(entry_frames.blocks) != ArrayLength(then_blocks) ||
+        ArrayLength(entry_frames.blocks) != ArrayLength(else_blocks) {
+        return SelfMirRoutineBuildError(
+            build, "MIR else-if frame cardinality drifted"
+        );
+    }
+    let frame_index: Int = ArrayLength(entry_frames.blocks) - 1;
+    let else_exit: Int = terminal_else_exit;
+    let else_versions: Array<Int> = terminal_else_versions;
+    while frame_index >= 0 {
+        let entry_frame: SelfMirIfVersionSnapshot =
+            SelfMirIfFrameVersionsAt(entry_frames, frame_index);
+        let then_frame: SelfMirIfVersionSnapshot =
+            SelfMirIfFrameVersionsAt(then_frames, frame_index);
+        if !entry_frame.ok || !then_frame.ok {
+            return SelfMirRoutineBuildError(
+                build, "MIR else-if local-version frame is invalid"
+            );
+        }
+        build = SelfMirMergeIfBranches(
+            build,
+            entry_frames.blocks[frame_index],
+            then_blocks[frame_index],
+            then_frames.blocks[frame_index],
+            then_frame.versions,
+            else_blocks[frame_index],
+            else_exit,
+            else_versions,
+            entry_frame.versions
+        );
+        if !build.ok { return build; }
+        frame_index = frame_index - 1;
+        if frame_index >= 0 {
+            build = SelfMirRoutineAtLocalCount(
+                build, entry_frames.version_counts[frame_index]
+            );
+            else_exit = build.current_block;
+            else_versions =
+                SelfMirLocalVersionsSnapshot(build.local_versions);
+        }
+    }
+    return build;
 }

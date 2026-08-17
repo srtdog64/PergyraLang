@@ -80,7 +80,7 @@ func DirectMirArrayStorageAbiProjectionReadyFor(
 }
 
 func DirectMirArrayStorageAbiProjectionFromTarget(
-    target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact
 ) -> DirectMirArrayStorageAbiProjection {
     let contract: DirectMirArrayStorageLayoutContract =
         DirectMirArrayStorageLayoutContractFact();

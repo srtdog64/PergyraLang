@@ -18,6 +18,7 @@ func DirectMirScalarCfgProgramOperationsAppendExpression(
     let phi_starts: Array<Int> = storage.phi_starts;
     let phi_counts: Array<Int> = storage.phi_counts;
     let expression_rows: Array<Int> = storage.expression_rows;
+    let secondary_rows: Array<Int> = storage.secondary_expression_rows;
     ArrayPush(kinds, kind);
     ArrayPush(results, result_value);
     ArrayPush(left_values, -1); ArrayPush(right_values, -1);
@@ -25,11 +26,12 @@ func DirectMirScalarCfgProgramOperationsAppendExpression(
     ArrayPush(left_literals, ""); ArrayPush(right_literals, "");
     ArrayPush(phi_starts, ArrayLength(storage.phi_predecessor_blocks));
     ArrayPush(phi_counts, 0); ArrayPush(expression_rows, expression_row);
+    ArrayPush(secondary_rows, -1);
     return DirectMirScalarCfgProgramOperationStorage(
         storage.valid, kinds, results, left_values, right_values,
         left_locals, right_locals, left_literals, right_literals,
         phi_starts, phi_counts, storage.phi_predecessor_blocks,
-        storage.phi_incoming_values, expression_rows);
+        storage.phi_incoming_values, expression_rows, secondary_rows);
 }
 
 func DirectMirScalarCfgProgramBlocksAppend(

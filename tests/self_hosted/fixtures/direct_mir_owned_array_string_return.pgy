@@ -1,0 +1,47 @@
+func AppendOwnedValue(inout values: Array<String>) -> Void {
+    ArrayPush(values, ToString(2));
+}
+
+func BuildZeroParameterValues() -> Array<String> {
+    let values: Array<String> = [];
+    AppendOwnedValue(values);
+    return values;
+}
+
+func BuildOwnedValues(seed: String, field: String) -> Array<String> {
+    let values: Array<String> = [];
+    if seed == "" {
+        return values;
+    }
+    AppendOwnedValue(values);
+    return values;
+}
+
+func BuildBoundedValues(
+    json: String, start: Int, end: Int, field: String
+) -> Array<String> {
+    let bounded_values: Array<String> = [];
+    if start == end {
+        return bounded_values;
+    }
+    AppendOwnedValue(bounded_values);
+    return bounded_values;
+}
+
+func Main() -> Void {
+    let zero_parameter: Array<String> = BuildZeroParameterValues();
+    let empty: Array<String> = BuildOwnedValues("", "x");
+    let full: Array<String> = BuildOwnedValues("go", "x");
+    let bounded_empty: Array<String> = BuildBoundedValues(
+        "document", 0, 0, "field");
+    let bounded_full: Array<String> = BuildBoundedValues(
+        "document", 1, 4, "field");
+    Log(ArrayLength(zero_parameter));
+    Log(zero_parameter[0]);
+    Log(ArrayLength(empty));
+    Log(ArrayLength(full));
+    Log(full[0]);
+    Log(ArrayLength(bounded_empty));
+    Log(ArrayLength(bounded_full));
+    Log(bounded_full[0]);
+}

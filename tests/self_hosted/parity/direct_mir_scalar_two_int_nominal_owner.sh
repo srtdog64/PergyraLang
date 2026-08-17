@@ -24,10 +24,14 @@ TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_two_i
 C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_two_int_nominal_owner.pgy"
 LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy"
 ROUTE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy"
+ADMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy"
+ENVELOPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy"
+TERMINAL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 for owner in "$ABI_OWNER" "$TARGET_OWNER" "$C_OWNER" "$LLVM_OWNER" \
-    "$ROUTE_OWNER" "$MUTATIONS"; do
+    "$ROUTE_OWNER" "$ADMISSION_OWNER" "$ENVELOPE_OWNER" \
+    "$TERMINAL_OWNER" "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
@@ -58,6 +62,12 @@ done
 if grep -Eq 'routine_count[[:space:]]*==[[:space:]]*4' "$ROUTE_OWNER"; then
     fail "nominal support regressed to a fixture-count route"
 fi
+grep -Fq 'DirectMirScalarProgramCallableRouteEnvelopeAssess(' \
+    "$ADMISSION_OWNER" || fail "route admission reconstructs callable policy"
+grep -Fq 'DirectMirScalarProgramRouteAdmissionDie(' "$TERMINAL_OWNER" ||
+    fail "terminal projector discards the scalar route receipt"
+! grep -Fq 'terminal multi-routine graph is unsupported' "$TERMINAL_OWNER" ||
+    fail "terminal projector retained the coarse fallback diagnostic"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
@@ -135,6 +145,13 @@ for backend in c llvm; do
     fi
     [[ ! -e "$output" ]] ||
         fail "$backend published a referenced unsupported nominal"
+    # v39 admits by-value logical records only when every field is terminal or
+    # an admitted record dependency. Metadata's Option<Int> field remains
+    # outside that exact owner and must fail closed at the callable envelope.
+    diagnostic='direct MIR scalar program route rejected: owner=callable-route-envelope stage=return-type routine=1 name=KeepMetadata parameter=-1 type=Metadata carriage='
+    grep -Fq "$diagnostic" "$WORK_DIR/unsupported.$backend.out" \
+        "$WORK_DIR/unsupported.$backend.err" ||
+        fail "$backend discarded the exact unsupported nominal receipt"
 done
 
 mutated_rel="$WORK_REL/two-int-nominal-abi-layout.mir.json"

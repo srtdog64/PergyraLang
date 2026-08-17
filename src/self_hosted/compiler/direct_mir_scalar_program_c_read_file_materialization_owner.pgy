@@ -1,0 +1,18 @@
+// C adapter from the sealed host-io ReadFile receipt to native runtime facts.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
+
+func DirectMirScalarProgramCReadFileBlock(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    if plan.program.runtime_abi.read_file_id == 0 { return ""; }
+    if !runtime.read_file.ok || runtime.read_file.symbol !=
+            HostIORuntimeCReadFileFn() {
+        Die("direct MIR scalar C read-file ABI is invalid");
+    }
+    return Concat("#include \"pgy_runtime.h\"\nstatic char *", Concat(
+        runtime.read_file.symbol,
+        "(const char *path) { return pgy_read_file(path); }\n\n"));
+}

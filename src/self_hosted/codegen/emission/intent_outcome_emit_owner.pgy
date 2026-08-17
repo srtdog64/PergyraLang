@@ -57,12 +57,15 @@ func CodegenIntentEmitExpect(
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     expect_node: Int,
     outcome_count: Int,
+    step_name: String,
+    uses_intent_observability: Bool,
     step_env: CodegenTypeEnv
 ) -> Void {
     if outcome_count < 0 || outcome_count > 1 {
         Die("self-host intent Expect outcome count is invalid");
     }
     CodegenIntentEmitPredicate(
-        body, expression_surfaces, expect_node, "Expect", step_env
+        body, expression_surfaces, expect_node, "expect", step_name,
+        uses_intent_observability, step_env
     );
 }

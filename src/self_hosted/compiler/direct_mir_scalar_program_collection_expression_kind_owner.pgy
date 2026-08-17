@@ -1,4 +1,4 @@
-// Normalized String collection and index expression classifications.
+// Normalized collection and String expression classifications.
 
 import "direct_mir_scalar_program_expression_kind_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
@@ -9,11 +9,20 @@ func DirectMirScalarProgramCollectionExpressionKindFact(
     let invalid: DirectMirScalarProgramExpressionKindFact =
         DirectMirScalarProgramExpressionKindFactInvalid();
     if source_kind == AstExpressionNodeIndex() && arity == 2 &&
-            left_type == CompilerAbiLayoutArrayStringTypeName() &&
             right_type == CompilerAbiLayoutIntTypeName() {
-        return DirectMirScalarProgramExpressionKindFact(
-            true, DirectMirScalarProgramExprArrayStringIndex(),
-            CompilerAbiLayoutStringTypeName(), "");
+        let kind: Int = 0; let type_name: String = "";
+        if left_type == CompilerAbiLayoutArrayStringTypeName() {
+            kind = DirectMirScalarProgramExprArrayStringIndex();
+            type_name = CompilerAbiLayoutStringTypeName();
+        } else if left_type == CompilerAbiLayoutArrayIntTypeName() {
+            kind = DirectMirScalarProgramExprArrayIntIndex();
+            type_name = CompilerAbiLayoutIntTypeName();
+        } else if left_type == CompilerAbiLayoutArrayBoolTypeName() {
+            kind = DirectMirScalarProgramExprArrayBoolIndex();
+            type_name = CompilerAbiLayoutBoolTypeName();
+        }
+        if kind != 0 { return DirectMirScalarProgramExpressionKindFact(
+            true, kind, type_name, ""); }
     }
     if arity != 2 || left_type != CompilerAbiLayoutStringTypeName() ||
         right_type != CompilerAbiLayoutStringTypeName() { return invalid; }

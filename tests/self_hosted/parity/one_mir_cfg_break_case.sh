@@ -25,6 +25,13 @@ PGY_SELFHOST_ONE_MIR_DRIVER_BIN="$DRIVER_BIN" \
 
 echo "[$LABEL] break_continue is owned by producer backedge snapshots"
 
+PROGRAM_TRANSFER_GATE="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_program_control_transfer_owner.sh"
+require_file "$PROGRAM_TRANSFER_GATE"
+PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \
+    bash "$PROGRAM_TRANSFER_GATE" || fail "program control-transfer gate failed"
+
+echo "[$LABEL] program GraphPlan consumes one shared break/continue fact"
+
 ITERATION_SCOPE_GATE="$ROOT_DIR/tests/self_hosted/parity/one_mir_iteration_binding_scope_owner.sh"
 require_file "$ITERATION_SCOPE_GATE"
 PGY_SELF_DRIVER_BIN="$DRIVER_BIN" \

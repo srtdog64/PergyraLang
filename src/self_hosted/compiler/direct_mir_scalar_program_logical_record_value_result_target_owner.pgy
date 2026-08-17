@@ -1,0 +1,40 @@
+// Target-neutral identity for carried logical-record value-result parameters.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordValueResultAt(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.parameter_counts) ||
+        ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] {
+        return false;
+    }
+    let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+    return plan.routines.parameter_carriages[row] == "value-result" &&
+        DirectMirScalarProgramLogicalRecordTypeReady(
+            plan.program.logical_record, plan.routines.parameter_types[row]);
+}
+
+func DirectMirScalarProgramLogicalRecordValueResultLocalRow(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> Int {
+    if !DirectMirScalarProgramLogicalRecordValueResultAt(
+            plan, routine, ordinal) { return -1; }
+    let wanted: String = SelfMirLocalRef(
+        "parameter", plan.routines.source_syntax_ids[routine], ordinal);
+    let start: Int = plan.routines.local_starts[routine];
+    let end: Int = start + plan.routines.local_counts[routine];
+    let found: Int = -1; let row: Int = start;
+    while row < end {
+        if plan.local_ref_value_ids[row] == wanted {
+            if found >= 0 {
+                Die("direct MIR logical-record value-result local is ambiguous");
+                return -1;
+            }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

@@ -1,0 +1,37 @@
+// Int return with one-or-more Array<String> copyouts and scalar values.
+
+func OwnerGraphNodeIndexOrAppend(
+    inout node_names: Array<String>,
+    inout node_ids: Array<String>,
+    name: String, source_id: String
+) -> Int {
+    if name == "" || source_id == "" { return -1; }
+    return 0;
+}
+
+func EmitDeclFields(
+    json: String, start: Int, end: Int, owner: String, kind: String,
+    inout storage: Array<String>, inout slots: Array<String>,
+    inout subject_slots: Array<String>
+) -> Int {
+    if start < 0 { return 0; }
+    ArrayPush(storage, Concat("", json));
+    ArrayPush(slots, Concat("", owner));
+    ArrayPush(subject_slots, Concat("", kind));
+    return end - start;
+}
+
+func Main() -> Void {
+    let names: Array<String> = [];
+    let ids: Array<String> = [];
+    Log(OwnerGraphNodeIndexOrAppend(names, ids, "node", "syntax"));
+    Log(ArrayLength(names));
+    Log(ArrayLength(ids));
+    let storage: Array<String> = [];
+    let slots: Array<String> = [];
+    let subject_slots: Array<String> = [];
+    Log(EmitDeclFields("field", 1, 4, "Owner", "slot", storage, slots,
+        subject_slots));
+    Log(ArrayLength(storage)); Log(ArrayLength(slots));
+    Log(ArrayLength(subject_slots));
+}

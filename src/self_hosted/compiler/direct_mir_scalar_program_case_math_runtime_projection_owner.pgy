@@ -1,4 +1,4 @@
-// Concrete StringReplace/math runtime facts projected from sealed IDs.
+// Concrete StringReplace/checked numeric runtime facts projected from sealed IDs.
 
 import "direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy";
 
@@ -8,6 +8,8 @@ struct DirectMirScalarProgramCaseMathRuntimeProjection {
     let abs: CompilerRuntimeCallAbiFact;
     let min: CompilerRuntimeCallAbiFact;
     let max: CompilerRuntimeCallAbiFact;
+    let long_modulo: CompilerRuntimeCallAbiFact;
+    let long_division: CompilerRuntimeCallAbiFact;
 }
 
 func DirectMirScalarProgramCaseMathRuntimeProjectionFromIds(
@@ -22,7 +24,9 @@ func DirectMirScalarProgramCaseMathRuntimeProjectionFromIds(
         DirectMirScalarProgramCaseMathRuntimeFact(
             "math", "min", MathRuntimeCMinFn()),
         DirectMirScalarProgramCaseMathRuntimeFact(
-            "math", "max", MathRuntimeCMaxFn()));
+            "math", "max", MathRuntimeCMaxFn()),
+        DirectMirScalarProgramLongModuloRuntimeFact(),
+        DirectMirScalarProgramLongDivisionRuntimeFact());
 }
 
 func DirectMirScalarProgramCaseMathRuntimeProjectionReady(
@@ -38,7 +42,35 @@ func DirectMirScalarProgramCaseMathRuntimeProjectionReady(
         DirectMirScalarProgramCaseMathRuntimeFactReady(
             projection.min, ids.min_id) &&
         DirectMirScalarProgramCaseMathRuntimeFactReady(
-            projection.max, ids.max_id);
+            projection.max, ids.max_id) &&
+        DirectMirScalarProgramLongModuloRuntimeFactReady(
+            projection.long_modulo, ids.long_modulo_id) &&
+        DirectMirScalarProgramLongDivisionRuntimeFactReady(
+            projection.long_division, ids.long_division_id);
+}
+
+func DirectMirScalarProgramLongDivisionRuntimeFactReady(
+    fact: CompilerRuntimeCallAbiFact, expected_id: Int
+) -> Bool {
+    return expected_id == 0 || (fact.ok &&
+        fact.runtime_call_abi_id == expected_id &&
+        fact.domain == "checked-arithmetic" &&
+        fact.operation == "long-division" &&
+        fact.symbol == CheckedArithmeticRuntimeCLongDivisionFn() &&
+        fact.materialization == CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        fact.call_shape == "long_long_to_long");
+}
+
+func DirectMirScalarProgramLongModuloRuntimeFactReady(
+    fact: CompilerRuntimeCallAbiFact, expected_id: Int
+) -> Bool {
+    return expected_id == 0 || (fact.ok &&
+        fact.runtime_call_abi_id == expected_id &&
+        fact.domain == "checked-arithmetic" &&
+        fact.operation == "long-modulo" &&
+        fact.symbol == CheckedArithmeticRuntimeCLongModuloFn() &&
+        fact.materialization == CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        fact.call_shape == "long_long_to_long");
 }
 
 func DirectMirScalarProgramCaseMathRuntimeFactReady(
@@ -53,5 +85,6 @@ func DirectMirScalarProgramCaseMathRuntimeRequired(
     ref ids: DirectMirScalarProgramCaseMathRuntimeIds
 ) -> Bool {
     return ids.replace_id != 0 || ids.abs_id != 0 ||
-        ids.min_id != 0 || ids.max_id != 0;
+        ids.min_id != 0 || ids.max_id != 0 || ids.long_modulo_id != 0 ||
+        ids.long_division_id != 0;
 }

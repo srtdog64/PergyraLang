@@ -1,0 +1,67 @@
+// Ordered admitted String expressions carried by one mixed Array<String> literal.
+import "direct_mir_scalar_program_nested_array_literal_seed_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+
+func DirectMirScalarProgramNestedArrayStringLiteralCandidateReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    if !sequence.ok || node < 0 || node >= count ||
+        ArrayLength(sequence.roots) != 1 { return false; }
+    let cursor: Int = node;
+    let elements: Int = 0;
+    let dynamic: Bool = false;
+    while cursor >= 0 && cursor < count &&
+            sequence.arena.topology.node_kinds[cursor] ==
+                AstExpressionNodeArrayElement() {
+        let left: Int = sequence.arena.topology.left_children[cursor];
+        let right: Int = sequence.arena.topology.right_children[cursor];
+        if left < 0 || left >= cursor || right < 0 || right >= cursor ||
+            sequence.arena.call_target_kinds[cursor] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[cursor] != "" ||
+            sequence.arena.identities.binding_kinds[cursor] !=
+                SemanticExpressionBindingNone() { return false; }
+        if !AstExpressionNodeIsScalarLeaf(
+                sequence.arena.topology.node_kinds[right]) { dynamic = true; }
+        elements = elements + 1;
+        cursor = left;
+    }
+    return elements >= 1 && (node != sequence.roots[0] ||
+            elements > 1 || dynamic) &&
+        DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(
+            sequence, cursor);
+}
+
+func DirectMirScalarProgramNestedArrayStringLiteralOperandRows(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    ref source_rows: Array<Int>,
+    ref normalized_types: Array<String>
+) -> Array<Int> {
+    let reverse_rows: Array<Int> = [];
+    if !DirectMirScalarProgramNestedArrayStringLiteralCandidateReady(
+            sequence, node) { return reverse_rows; }
+    let cursor: Int = node;
+    while sequence.arena.topology.node_kinds[cursor] ==
+            AstExpressionNodeArrayElement() {
+        let source_right: Int =
+            sequence.arena.topology.right_children[cursor];
+        if source_right < 0 || source_right >= ArrayLength(source_rows) {
+            return [];
+        }
+        let operand: Int = source_rows[source_right];
+        if operand < 0 || operand >= ArrayLength(normalized_types) ||
+            normalized_types[operand] != CompilerAbiLayoutStringTypeName() {
+            return [];
+        }
+        ArrayPush(reverse_rows, operand);
+        cursor = sequence.arena.topology.left_children[cursor];
+    }
+    let rows: Array<Int> = [];
+    let row: Int = ArrayLength(reverse_rows);
+    while row > 0 {
+        row = row - 1;
+        ArrayPush(rows, reverse_rows[row]);
+    }
+    return rows;
+}

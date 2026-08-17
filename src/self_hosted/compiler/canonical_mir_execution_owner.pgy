@@ -52,7 +52,7 @@ func CanonicalizeMirJsonVerified(
         DriverRung2IntentTreeEmissionOrDie(admitted, false);
     let identity_epoch: CanonicalMirIdentityEpochArtifact =
         CanonicalMirIdentityEpochArtifactFromTreeText(
-            emission.text, admitted
+            emission.text, emission.source_module_paths, admitted
         );
     if !identity_epoch.ok {
         Die("canonical MIR identity epoch projection is invalid");
@@ -97,7 +97,7 @@ func CanonicalizeOracleMirJsonBridge(
         DriverRung2IntentTreeEmissionOrDie(admitted, false);
     let identity_epoch: CanonicalMirIdentityEpochArtifact =
         CanonicalMirIdentityEpochArtifactFromTreeText(
-            tree_emission.text, admitted
+            tree_emission.text, tree_emission.source_module_paths, admitted
         );
     if !identity_epoch.ok {
         Die("canonical MIR identity epoch projection is invalid");

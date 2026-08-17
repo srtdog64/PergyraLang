@@ -31,7 +31,9 @@ inventory must not become a second fact-family owner registry.
   generated stable MIR declaration-field wire spelling and AST-label projection.
 - `src/self_hosted/lib/intent_observability_abi_projection_owner.pgy` --
   generated complete stable-ID, source/runtime name, parameter-shape, result,
-  and semantic-signature row from the intent observability ABI registry.
+  and semantic-signature row from the intent observability ABI registry. The
+  semantic signature owner and self-host C usage/symbol-rewrite owners consume
+  this row; they may not recreate a builtin spelling table.
 - `src/self_hosted/lib/nominal_field_kind_owner.pgy` -- declaration-family
   compatibility and shape policy over the generated field-kind vocabulary.
 
@@ -131,8 +133,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
 - `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- interprets the
   canonical typed `MatchCase` spelling as one bounded pattern fact. Semantic
-  statement rows capture the AST atom once; MIR consumes that admitted payload
-  through the same text owner instead of rereading the typed-AST arena.
+  admission proves the full artifact once, then the ready-artifact projection
+  keeps only local node/kind/atom checks for nested use sites. MIR consumes the
+  admitted statement payload through the same text owner instead of rereading
+  the typed-AST arena.
 - `src/self_hosted/parser/run_owner.pgy` -- parser CLI run boundary and mode
   selection.
 - `src/self_hosted/parser/source_path_owner.pgy` -- source path/default and import read input.
@@ -262,7 +266,9 @@ inventory must not become a second fact-family owner registry.
   nominal constructor field rows; source-text rewriting is forbidden.
 - `src/self_hosted/semantic/ast_match_binding_environment_owner.pgy` --
   case-scoped `Option<T>` payload bindings derived from the canonical pattern
-  fact and typed scrutinee graph.
+  fact and typed scrutinee graph. Its admitted hot path consumes the
+  ready-artifact pattern projection and must not reopen whole-artifact graph
+  readiness per use-site ancestor.
 - `src/self_hosted/semantic/ast_assignment_fact_owner.pgy` -- artifact-bound
   assignment node, function, scope, target/base/index, and RHS payload facts;
   assignment node identity also owns `Assign` statement routing.
@@ -297,7 +303,9 @@ inventory must not become a second fact-family owner registry.
   domain queries; ordinary value-environment injection is forbidden.
 - `src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy` --
   canonical ordered callee/argument projection over parser-owned call spines;
-  semantic and codegen consumers share this view.
+  semantic and codegen consumers share this view. The owner restores source
+  order in place and returns the same argument/generic-actual backings; a
+  second ordered-array reconstruction is forbidden.
 - `src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy` --
   DRV-2 MIR fixture manifest rows and their count contract; the CLI consumes
   this owner for --mir-fixture-manifest while the driver owner keeps the
@@ -596,6 +604,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/collection_mutation_policy_owner.pgy` -- canonical
   mutator, collection type, and parameter-mode policy shared by source,
   statement-fact, and expression-graph consumers.
+- `src/self_hosted/semantic/compiler_internal_builtin_caller_registry_owner.pgy`
+  -- generated projection of the common compiler-internal caller registry;
+  owns complete module/function/signature admission rows and path-boundary
+  matching, not a consumer-local allowlist.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.
 - `src/self_hosted/semantic/program_check_owner.pgy` -- program/function and
   nominal constructor signature checks, including exact zone/world field rows.
@@ -625,7 +637,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/hir/ast_destructure_graph_owner.pgy` -- parser graph to
   typed destructure pattern and initializer artifact binding.
 - `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- canonical bounded
-  scalar and `Some(binding)`/`None` pattern facts shared by semantic and MIR.
+  scalar and `Some(binding)`/`None` pattern facts shared by semantic and MIR;
+  checked and ready-artifact entrypoints share the same local projection.
 - `src/self_hosted/hir/ast_text_scan_owner.pgy` -- compact AST-text scanning
   primitives shared by parser/HIR and codegen.
 - `src/self_hosted/hir/ast_text_row_fact_owner.pgy` -- compact AST text
@@ -634,6 +647,9 @@ inventory must not become a second fact-family owner registry.
   inventory and cursor expectation boundary.
 - `src/self_hosted/hir/ast_text_arena_projection_owner.pgy` -- single
   `AstTreeArtifact` construction and compact inventory to arena projection.
+- `src/self_hosted/hir/ast_source_module_fact_owner.pgy` -- parser-owned
+  top-level declaration-to-module provenance carried by the artifact identity
+  and projected into callable signature facts.
 - `src/self_hosted/hir/typed_ast_arena_owner.pgy` -- shared typed AST arena
   payload contract and `NodeId` lookup facts.
 
@@ -675,14 +691,18 @@ inventory must not become a second fact-family owner registry.
   declaration projection to `pgy.mir.v1`, including generic parameters,
   method parameters, party role slots, and role implementation ranges.
 - `src/self_hosted/mir/runtime_call_abi_fact_owner.pgy` -- instruction-aligned
-  MIR resource runtime-call ABI facts, including auxiliary operations; missing
-  producer-declared rows fail before JSON projection or backend consumption.
-- `src/self_hosted/mir/routine_build_owner.pgy` -- routine-local resource
-  operation type projection; Claim resolves its ABI type from the result SSA
-  binding's carried local type, never from a duplicated expression-text row.
+  runtime-call ABI carrier. Resource primary/auxiliary rows and the distinct
+  runtime-value row carrier remain separate schemas and cannot overlap.
+- `src/self_hosted/mir/runtime_value_call_abi_fact_owner.pgy` -- exact
+  Allocator/TextBuilder instruction rows projected from the canonical runtime-
+  value call fact, including stable internal identity and both target shapes.
+- `src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy` -- the one
+  routine-expression attachment boundary for resource and runtime-value call
+  rows. Claim resolves its type from the result SSA binding; runtime values
+  require a direct builtin graph identity and never a spelling-only fallback.
 - `src/self_hosted/mir/expression_runtime_abi_owner.pgy` -- projects plain
-  `Slot<T>` runtime-call requirements from carried expression-graph call facts
-  and typed local bindings without reparsing source text.
+  `Slot<T>` requirements and root runtime-value builtin identity from carried
+  expression-graph facts without reparsing source text.
 - `src/self_hosted/mir/cfg_instruction_mutation_owner.pgy` -- canonical use-row
   replacement and runtime-call ABI attachment state transformations.
 - `src/self_hosted/mir/expression_fact_owner.pgy` -- expression identifier-use
@@ -722,8 +742,10 @@ inventory must not become a second fact-family owner registry.
   routine-local source inventory projected from semantic binding, initializer,
   and iteration facts; active CFG stack state is not a replacement authority.
 - `src/self_hosted/mir/routine_expression_use_owner.pgy` -- expression-graph
-  leaf binding to SSA-use projection for migrated routine consumers; source
-  text identifier scans remain a legacy bridge outside that migration.
+  value-leaf binding to SSA-use projection for migrated routine consumers;
+  member-selector leaves are excluded by graph topology even when their
+  spelling matches an active local, while source-text identifier scans remain
+  a legacy bridge outside that migration.
 - `src/self_hosted/mir/routine_build_owner.pgy` -- routine CFG build state,
   block edges, instruction IDs, termination, and binding-identity keyed local
   SSA inventory with lexical scope restoration.
@@ -731,7 +753,8 @@ inventory must not become a second fact-family owner registry.
   lowering dispatcher over read-only compiler-scale input and mutable routine
   build state, including block-exit local-inventory restoration.
 - `src/self_hosted/mir/routine_if_owner.pgy` -- conditional branch topology,
-  branch-local build threading, and merge-block ownership.
+  branch-local build threading, iterative else-if tail frames, and reverse
+  merge-block ownership without source-depth call-stack recursion.
 - `src/self_hosted/mir/routine_match_owner.pgy` -- scalar case/default CFG
   topology plus arm exit/version carriage into the merge owner.
 - `src/self_hosted/mir/routine_match_pattern_owner.pgy` -- MIR projection of
@@ -782,15 +805,19 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/routine_cfg_append_owner.pgy` -- CFG row append and
   instruction/use offset rebinding across routine-local MIR graphs.
 - `src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy` -- the
-  bounded final-carrier lifetime boundary that retires 79 copied CFG Array
+  bounded final-carrier lifetime boundary that retires 88 copied CFG Array
   backings plus 5 already-dead routine-state backings, without freeing shared
   semantic/program-owned String elements. Earlier build scratch remains open.
 - `src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy` -- the typed-AST
   arena carrier lifetime boundary. It retires 13 non-traversal backings after
-  domain projection, rebuilds a five-lane traversal-only artifact view, then
-  retires those five backings after routine and intent facts are materialized.
-  String elements and expression-graph facts remain borrowed and are never
-  deep-freed here.
+  domain projection, carries the five traversal lanes plus parser-owned source
+  module provenance through routine and intent materialization, then retires
+  those seven backings after their final consumers. String elements and
+  expression-graph facts remain borrowed and are never deep-freed here.
+- `src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy` -- the
+  post-MIR boundary for the 40 semantic body-type Array backings (20 Int and
+  20 String). MIR rows keep borrowed String elements, so this owner retires
+  carrier storage only after the final program-fact consumer.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
@@ -846,7 +873,8 @@ inventory must not become a second fact-family owner registry.
   including the complete physical ABI receipt when the type requires one.
 - `src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy` --
   sequential file framing for unbounded instruction-local expression graphs,
-  match/destructure lists, uses, and runtime-call ABI auxiliary rows; it reads
+  match/destructure lists, and uses; runtime-call rows are delegated to their
+  schema owner. It reads
   only verified `SelfMirProgramFacts`, retires owned row fragments immediately
   after synchronous writes, and cannot establish semantic facts.
 - `src/self_hosted/mir/program_json_artifact_writer_owner.pgy` -- bounded
@@ -859,7 +887,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/machine_layer_json_projection_owner.pgy` -- machine
   layer object projection nested in the pgy.mir.v1 instruction row.
 - `src/self_hosted/mir/runtime_call_abi_json_projection_owner.pgy` -- nested
-  `runtime_call_abi` JSON projection from the instruction-owned fact row.
+  resource and runtime-value `runtime_call_abi` String/streaming projections
+  from their distinct instruction-owned fact rows.
 - `src/self_hosted/mir/json_projection_support_owner.pgy` -- shared optional
   scalar projection used by the MIR JSON facade.
 
@@ -1004,6 +1033,10 @@ inventory must not become a second fact-family owner registry.
   identities may not. Aggregate census or graph-anchor values are not an
   inventory substitute. Zone-state edges consume the typed state row and keep
   the owning zone as their exact DIR-local resolved node.
+- `src/self_hosted/dir/domain_graph_row_owner.pgy` -- canonical DIR graph row
+  carrier, DIR-local node identity assignment, and exact node/edge append and
+  lookup operations. It does not decide which semantic facts enter the graph;
+  the inventory owner remains the only admitted-fact orchestration owner.
 - `src/self_hosted/dir/intent_fact_owner.pgy` -- exact intent declaration,
   participant/value range, ordered-step range, and intent-edge census owner;
   it validates typed identities and never rescans source text.
@@ -1096,7 +1129,10 @@ inventory must not become a second fact-family owner registry.
   certificate and backend owners may not reopen those JSON spans.
 - `src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy` -- pure CFG distance,
   blocked-reachability, structural-merge, and dominator-edge queries used by
-  the routine fact index.
+  the routine fact index. Its allocation-free proofs return zero backedges for
+  a validated strictly-forward CFG and the canonical false-start merge for a
+  terminal true arm with exactly one incoming edge; every non-proven graph
+  continues through the exact query, never a numeric-backedge guess.
 - `src/self_hosted/mir_lower/machine_layer_fact_owner.pgy` -- checked
   machine-contact projection validation for MIR JSON rows; it is the sole full
   readiness and semantic cross-seal boundary for the intent execution plan.
@@ -1227,7 +1263,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy` -- carried
   MIR resource runtime-call ABI row validation before self-host reconstruction.
 - `src/self_hosted/mir_lower/abi_layout_fact_owner.pgy` -- carried static MIR
-  ABI layout rows and stable-identity validation.
+  ABI layout rows and stable-identity validation. Integer token materialization
+  delegates to the exact-bounded JSON integer owner and never remeasures the
+  complete MIR document.
 - `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory facts.
 - `src/self_hosted/mir_lower/routine_lower.pgy` -- routine CFG/body reconstruction.
 - `src/self_hosted/mir_lower/stmt_render.pgy` -- instruction fact to AST text rendering.
@@ -1307,7 +1345,7 @@ inventory must not become a second fact-family owner registry.
   or reconstruct the decision from type-environment nominal-kind strings.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
-- `src/self_hosted/codegen/text/owned_string_join_owner.pgy` -- consuming join for codegen-owned text fragments; only the joined result survives.
+- `src/self_hosted/codegen/text/owned_string_join_owner.pgy` -- consuming join and compiler-internal prefixed statement-line materialization for codegen-owned text fragments; exact emitter call sites are gated, borrowed fragments are forbidden, and only the final joined/materialized result survives.
 - `src/self_hosted/codegen/text/enum_literal_owner.pgy` -- payload-free enum literal projection facts.
 - `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
 - `src/self_hosted/codegen/text/expr_sequence_owner.pgy` -- top-level comma-separated expression sequence facts.
@@ -1319,12 +1357,29 @@ inventory must not become a second fact-family owner registry.
   index, the ordered program-global delta, and function-local rows as distinct
   lookup layers. The program delta is sealed once into its own immutable index
   after the last role/operator row; it is never copied into each function-local
-  environment or reparsed with the original global serialization.
+  environment or reparsed with the original global serialization. A local-row
+  delta is copied once ahead of the retained newest-first prefix; suffix and
+  intermediate-prefix reconstructions are forbidden. CSV field and parameter-
+  mode scans compare the allocation-free character-code delimiter fact; they
+  never allocate a one-character String for each scanned byte.
+- `src/self_hosted/codegen/type_facts/type_env_state_lifetime_owner.pgy` --
+  function-local type-row ownership, borrowed statement views, and retirement
+  only after the expression emitter's last consumer has returned. It also
+  consumes already-materialized `CodegenFunctionValueBindingFact.env_rows`,
+  copies them into the function-local environment, and retires that temporary
+  backing after the copy; statement emitters must not rebuild the same typed
+  value-binding rows.
+- `src/self_hosted/codegen/type_facts/type_env_local_row_materialization_owner.pgy`
+  -- the function-local binding-row schema and its single-allocation text
+  materialization. Borrowed names/types are appended into one owned result;
+  nested `Concat` intermediates are forbidden.
 - `src/self_hosted/codegen/type_facts/type_env_global_index_owner.pgy` --
   immutable same-epoch global type-row offset index; it owns no copied row
   strings and never scans the sealed global serialization during lookup.
 - `src/self_hosted/codegen/type_facts/type_env_local_row_scan_owner.pgy` --
-  dynamic local-scope first-row lookup; sealed global rows are forbidden here.
+  dynamic local-scope row-boundary identity and first-row/newest-first lookup;
+  value and presence consumers share the same row-start fact, and sealed
+  global rows are forbidden here.
 - `src/self_hosted/codegen/abi_layout/enum_abi_value_fact_owner.pgy` -- one
   semantic-enum-to-C-value/default ABI fact for payload-free and tagged enum
   consumers.
@@ -1333,8 +1388,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/runtime_abi/checked_division_runtime_owner.pgy`
   -- checked integer division and modulo in emitted C. The raw operator let
   `x / 0` run to completion while the native pipeline panicked on the same
-  source; signed division overflow is checked with it. Float division keeps
-  the plain operator.
+  source; signed division overflow is checked with it, while
+  `INT64_MIN % -1` returns the language-defined zero remainder. Float division
+  keeps the plain operator.
 - `src/self_hosted/codegen/runtime_abi/checked_builtin_runtime_owner.pgy`
   -- the CheckedAdd and CheckedMul lowering. Neither had a lowering at all, so
   the declared fail-closed arithmetic surface did not compile through the
@@ -1355,7 +1411,8 @@ inventory must not become a second fact-family owner registry.
   `Set<T>` runtime ABI fact, supported element ABI, and constructor/operation
   symbol projection.
 - `src/self_hosted/codegen/runtime_abi/checked_arithmetic_runtime_owner.pgy` --
-  fail-closed numeric conversion runtime symbol facts.
+  fail-closed numeric conversion runtime symbol facts and the canonical
+  target-library symbols for checked Long division and remainder.
 - `src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy` -- self-host C host file/argv/process entrypoint runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy` -- self-host C math/random runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy` -- self-host C Option/Result runtime symbol facts.
@@ -1381,6 +1438,11 @@ inventory must not become a second fact-family owner registry.
   codegen does not split migrated payloads to rediscover precedence. It is the
   semantic-check cluster root for the mutually recursive call and composite
   literal projection owners below.
+- `src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy`
+  -- single-allocation materialization of common emitted C call, binary, and
+  parenthesized expression shapes, plus the bounded lifetime epoch that retires
+  recursive owned child fragments after the root has been selected; semantic
+  routing and borrowed graph text remain with its callers.
 - `src/self_hosted/codegen/emission/expr_semantic_leaf_place_contract_owner.pgy` --
   executable binding/value leaf projection contract: admitted place kind wins
   over flat enum/function spellings, and missing binding identity fails closed.
@@ -1423,6 +1485,9 @@ inventory must not become a second fact-family owner registry.
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
   symbol fact consumption, delegating List family calls to their named owner.
+- `src/self_hosted/codegen/emission/expr_semantic_struct_call_emit_owner.pgy` --
+  admitted struct-constructor field binding and single-builder C initializer
+  emission; call dispatch does not reconstruct its field-row policy.
 - `src/self_hosted/codegen/emission/expr_semantic_machine_call_emit_owner.pgy`
   -- typed DeviceSlot machine-call ABI selection and argument emission.
 - `src/self_hosted/codegen/emission/expr_semantic_domain_query_emit_owner.pgy`
@@ -1501,6 +1566,11 @@ inventory must not become a second fact-family owner registry.
   legacy action-completion flags, Bool predicate failure edges, and full-policy
   reverse-step/reverse-expression compensation C emission. Typed variant
   success-only completion remains outside this owner.
+- `src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy` --
+  opt-in legacy intent enter/step/bind/materialize/fail/ok/exit C projection
+  from the admitted mode, signature, subject, and exact zone-slot facts. The
+  default-priority lane is closed here; typed-plan and non-default-priority
+  observability remain separate executable rungs.
 - `src/self_hosted/codegen/emission/intent_outcome_emit_owner.pgy` -- exact
   typed immutable C binding for one intent action result and step-local Bool
   `expect` dispatch through the shared intent control-flow owner.
@@ -1949,12 +2019,15 @@ inventory must not become a second fact-family owner registry.
   native `c_runner` may consume that artifact only for host compile/link and
   optional execution; it cannot re-enter parser, semantic, MIR, AIR, or native
   codegen as a fallback. Its verified source-to-MIR and direct-MIR LLVM modes
-  also own the admitted runtime-free public `--backend=llvm` artifact pair;
+  also own the admitted public `--backend=llvm` artifact pair;
   the native launcher may only select that pair, invoke it once per stage, and
-  pass the resulting textual IR to clang. Pipeline ownership remains in
+  pass the resulting textual IR to clang. The host linker obtains the
+  canonical external runtime object from `compiler_runtime_cache.c`; it does
+  not infer linkage by scanning that IR. Pipeline ownership remains in
   `driver_rung2_owner.pgy`; test fixture manifests are excluded from this
-  import graph. This target-specific substitution does not claim runtime-
-  bearing LLVM programs or package paths.
+  import graph. This target-specific substitution covers the currently
+  admitted default-runtime rows, including host I/O; intent observability,
+  composite-intent runtime programs, and package paths remain open.
 - `src/compiler/driver_self_host_selection_owner.c` -- native launcher's one
   policy owner for deciding whether a plain C/LLVM binary request is inside an
   installed self-host artifact envelope and whether exact public `--tokens`,
@@ -1976,12 +2049,14 @@ inventory must not become a second fact-family owner registry.
 - `src/compiler/self_host_llvm_driver.c` -- installed self-host LLVM materializer
   boundary. It invokes exactly one verified source-to-MIR producer and one
   direct-MIR LLVM projector. It does not inspect LLVM text to infer runtime
-  policy or attach a runtime object; unresolved requirements fail at the final
-  clang boundary until a typed runtime profile is explicitly admitted.
+  policy or attach a runtime object. The final compiler boundary consumes the
+  canonical default-runtime object independently of artifact spelling, while
+  unsupported runtime profiles still fail closed.
 - `src/compiler/compiler_self_host_artifact.c` -- final host compiler boundary
-  for admitted self-host C and runtime-free textual LLVM artifacts. It accepts
-  no AST, MIR, AIR, libLLVM, or runtime-owner input and cannot claim projection
-  identity.
+  for admitted self-host C and textual LLVM artifacts. It accepts no AST, MIR,
+  AIR, libLLVM, or artifact-derived runtime policy. The LLVM leg consumes the
+  canonical external runtime object owned by `compiler_runtime_cache.c` and
+  cannot claim projection identity.
 - `src/self_hosted/compiler/driver_rung2_execution_owner.pgy` -- reachable
   identity-bearing action boundary for the direct-MIR rung. It owns request-
   to-target admission, exact emitted-artifact acceptance, output write, and
@@ -2013,6 +2088,10 @@ inventory must not become a second fact-family owner registry.
   selects the bounded scalar or verified-CFG path, and creates one C or LLVM
   artifact without rebuilding AST/semantic artifacts or creating backend-
   specific MIR readers.
+- `src/self_hosted/compiler/direct_mir_pressure_observation_owner.pgy` --
+  opt-in direct-MIR stage receipt vocabulary. It reuses the existing driver
+  pressure prefix, emits only named owner boundaries, and is disabled by every
+  default compiler path; it owns no semantic fact or fallback.
 - `src/self_hosted/compiler/domain_topology_graph_plan_consumer_owner.pgy` --
   bounded production receipt plus C/LLVM projections of the one admitted
   target-neutral domain topology plan. It serializes exact ID edges and
@@ -2027,12 +2106,15 @@ inventory must not become a second fact-family owner registry.
   -- exact compile-time declaration admission and zero-runtime-materialization
   receipt. Only declaration kinds explicitly owned by the compile-time
   contract policy are claimed; enum and runtime nominal declarations cannot
-  enter or retry this route.
+  enter or retry this route. A shape-only declaration claim prevents malformed
+  input from retrying another backend path, while semantic kind/name checks
+  remain exclusively in the fact consumed by the literal-Log plan.
 - `src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy` -- one
   target-neutral plan for a terminal one-instruction `Log` whose semantic
   value is a canonical integer or safe string graph literal. It combines the
   declaration-erasure receipt, routine/block/use identity and structured
-  formatted-print ABI without reparsing `expr0`.
+  formatted-print ABI without reparsing `expr0`; scalar `Int` keeps the
+  canonical 32-bit format while `Long` remains a distinct ABI.
 - `src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy` -- C and
   LLVM text emission from the verified literal-Log plan only. It cannot read
   MIR declarations or create runtime nominal storage.
@@ -2257,7 +2339,9 @@ inventory must not become a second fact-family owner registry.
   supplies that exact digest to the shared aggregate value-flow fact.
 - `src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy` --
   exclusive multi-routine direct-MIR projection boundary; rejection cannot
-  retry hello, scalar, single-routine Array, Option, or CFG dispatch.
+  retry hello, scalar, single-routine Array, Option, or CFG dispatch. Its
+  observed adapter reports the existing scalar-route boundary without
+  rebuilding the route fact.
 - `src/self_hosted/compiler/direct_mir_cfg_shape_fact_owner.pgy` -- normalized
   closed action facts for the same single CFG plan: literal-log arms or typed
   Int assignment arms with a predecessor-resolved merge phi and Log use. It is
@@ -2291,12 +2375,24 @@ inventory must not become a second fact-family owner registry.
   rows, typed local/value receipts, optional range/foreach receipts, one joint
   collection-pop receipt, and the selected String-concat runtime ABI identity.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy` --
-  the bounded scalar-CFG type-family policy for `Int`, `Bool`, `String`, and
-  their currently admitted iteration pairs. Route classification consumes this
-  policy; it does not inspect source-local arrays or block counts itself.
+  the bounded scalar-CFG type-family policy for `Int`, `Long`, `Bool`, `String`,
+  and their currently admitted iteration pairs. It also owns the narrow
+  `Option<Unknown>` source-local compatibility rule: only an already resolved
+  canonical `Option<Int>`, `Option<String>`, or `Option<Bool>` may match. The
+  first Long rung owns only the canonical literal and zero-parameter return
+  representation; arithmetic, casts, and zero-argument calls remain
+  fail-closed. Route classification consumes this policy; it does not infer a
+  type from source-local arrays or block counts.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy` --
   derives one target-neutral result-ValueId type table from canonical local,
-  phi, and operation facts. Missing or conflicting result types fail closed.
+  phi, and operation facts. It must observe every definition of one local and
+  reject missing or conflicting concrete types; source-local inventory consumes
+  this completed type plan rather than selecting a first definition.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy` --
+  exact source-local multiset admission after LocalRef normalization and value
+  type consensus. An inferred Option source row may consume only the same local's
+  resolved canonical Option type; names, routine identity, and source spelling
+  are not type fallbacks.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy`
   -- exact persisted-graph admission for String literals, direct `Concat`, and
   typed String `Log`; display `expr0` and call spelling are not fallback facts.
@@ -2320,9 +2416,13 @@ inventory must not become a second fact-family owner registry.
   semantic input.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy` --
   ValueId-first leaf resolution. Wire-required ranges use exact expression-node
-  LocalRefs; the byte-stable single-range wireless shape admits only one
-  iteration local with the requested spelling. Spelling never overrides an
-  explicit SSA use or selects a first/last candidate.
+  LocalRefs only for the wire-owned `expr0` lane; later expression lanes never
+  reinterpret an equal node ordinal as an `expr0` LocalRef. The byte-stable
+  single-range wireless shape admits only one
+  iteration local with the requested spelling. A later expression lane may
+  reuse one unique ValueId already consumed by the same instruction receiver
+  or earlier lane; ambiguous prior matches fail closed. Spelling never
+  overrides an explicit SSA use or selects a first/last candidate.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy`
   -- exact `(instruction,node)` LocalRef-to-iteration-slot resolution after
   ValueId admission; duplicate or missing identities fail closed.
@@ -2334,8 +2434,15 @@ inventory must not become a second fact-family owner registry.
   foreign foreach ref; those refs remain mandatory inputs to the foreach and
   shared direct-local owners.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy` --
-  target-neutral LocalRef-to-plan-slot normalization and source-local inventory
-  multiset admission; physical JSON row order is not storage identity.
+  target-neutral LocalRef-to-plan-slot normalization. Source-local inventory is
+  admitted only after the value-type owner has resolved every local definition.
+  Local/value/block identities are checked inside the
+  routine partition that owns them; equal SSA spellings in different routines
+  are not global collisions, and physical JSON row order is not storage
+  identity. An admitted indexed-assignment result is retained as another SSA
+  value of the exact parameter LocalRef so a later common `PhiValue` can join
+  it; it is never reclassified as a source local. `inout_param` spelling alone
+  is not a LocalRef or parameter-identity fallback.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_identity_owner.pgy`
   -- scalar-CFG local-slot kinds and exact explicit-identity lookup.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy`
@@ -2353,7 +2460,10 @@ inventory must not become a second fact-family owner registry.
   cannot retry a legacy topology path.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy`
   -- shared predecessor-order, local identity, type, and operation-row admission
-  for every scalar GraphPlan phi. Dialects do not reconstruct phi arrays.
+  for every scalar GraphPlan phi. Int and String keep their existing operation
+  identities; Bool, Long, Option<Int>, admitted collections, and logical-record
+  joins use one target-neutral value-phi identity. Dialects do not reconstruct
+  phi arrays or infer a record layout.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy` --
   one decoded scalar-CFG input bundle shared by graph admission. It owns the
   admitted document/index/use/wire setup, not a second plan or route.
@@ -2381,24 +2491,36 @@ inventory must not become a second fact-family owner registry.
   topology-independent per-routine classification by the supported
   operation/type envelope, never fixture names or exact block counts. A
   validated multi-routine composition may select its exact `Main` row.
-- `src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy` --
-  typed scalar-program route receipt. It carries the exact admitted routine
-  rows in canonical Main-first order plus the optional admitted two-Int nominal
-  representation, and never claims by fixture name, display spelling, block
-  count, routine-array order, or an exact routine count.
+- `src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy` and
+  `src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy`
+  -- immutable typed scalar-program route receipt plus its sole one-pass
+  admission owner. The route carries exact admitted routine rows in canonical
+  Main-first order, the optional admitted two-Int nominal representation, and
+  the exact value-result `Array<Int>` parameter ABI. A declined route carries a
+  stable owner/stage/routine/parameter receipt to the terminal dispatcher;
+  neither owner claims or diagnoses by fixture name, display spelling, block
+  count, routine-array order, or an exact routine count. The terminal consumer
+  must not rescan MIR or replace that receipt with a coarse unsupported string.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy`
   -- normalized typed expression-DAG arena shared by every program routine,
   including String concat/equality/inequality and routine-qualified calls.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy`
   -- graph/use/LocalRef normalization for literals, logical operators, Int
-  arithmetic, String comparison, registry builtins, and direct calls; formal
+  arithmetic, String comparison, registry builtins, and zero-or-more-argument
+  direct calls; formal
   parameters bind only through persisted syntax IDs/ordinals, never display
   text. Rejected def/Log/branch/return rows use the shared expression
   diagnostic owner rather than a silent `None` at the routine boundary.
+- `src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_failure_owner.pgy`
+  -- immutable first-failure receipt for expression normalization. It carries
+  the exact rejecting admission stage and source-graph node to the terminal
+  routine diagnostic without reopening the MIR graph or entering GraphPlan.
 - `src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy`
   -- typed ordered-argument direct-call admission. User routines join the
   canonical routine partition by persisted call-target syntax ID and ordered
-  signature types, while builtin identity remains owned by the builtin registry.
+  signature types, including contextual `None` arguments whose Option type is
+  owned by the exact target parameter rather than the enclosing expression;
+  builtin identity remains owned by the builtin registry.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_mutation_owner.pgy`
   -- small persistent append primitives for expression rows. It owns no
   semantic selection policy and prevents callers from aliasing growable arena
@@ -2406,6 +2528,19 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy`
   -- exact node arity, type, endpoint, and literal invariants for that arena;
   raw modulo projection is admitted only for nonzero, non-minus-one literals.
+- `src/self_hosted/compiler/direct_mir_scalar_program_intent_observability_readiness_owner.pgy`
+  -- exact zero-, one-, or two-Int argument shape for an intent-observability
+  call whose stable ABI ID was joined from the generated registry row.
+- `src/self_hosted/compiler/direct_mir_scalar_program_numeric_cast_expression_kind_owner.pgy`
+  and
+  `direct_mir_scalar_program_numeric_cast_expression_readiness_owner.pgy`
+  -- append-only `TypeName(Long)` and `Cast(Int, Long)` identities plus their
+  exact source/target/type-name shape. Other numeric casts remain fail-closed.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_short_circuit_owner.pgy`
+  -- LLVM branch/phi projection for logical right subtrees whose calls, indexed
+  reads, or other operations may not be evaluated. It consumes the normalized
+  expression topology and keeps ordinary non-trapping Bool trees on the linear
+  `and`/`or` path; it never infers callable purity from spelling.
 - `src/self_hosted/compiler/direct_mir_scalar_program_option_int_expression_kind_owner.pgy`,
   `direct_mir_scalar_program_option_int_builtin_signature_owner.pgy`, and
   `direct_mir_scalar_program_option_int_expression_readiness_owner.pgy`
@@ -2414,7 +2549,8 @@ inventory must not become a second fact-family owner registry.
   value family in the shared program expression arena.
 - `src/self_hosted/compiler/direct_mir_scalar_program_option_int_abi_owner.pgy`
   -- the one program-wide Option<Int> representation receipt captured from the
-  persisted required MIR ABI row. It rejects missing or disagreeing layouts;
+  persisted required MIR ABI row. Expression and complete by-value parameter
+  rows consume the same receipt. It rejects missing or disagreeing layouts;
   consumers cannot infer tag order, field offsets, or backend type spellings.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_option_int_owner.pgy`
   and
@@ -2422,6 +2558,54 @@ inventory must not become a second fact-family owner registry.
   -- target projections and expression materialization for that admitted ABI.
   Both targets consume the shared tag/value/print mapping and do not recreate
   an Option layout from the surface type name.
+- `src/self_hosted/compiler/direct_mir_scalar_program_option_int_try_admission_owner.pgy`
+  -- the reached try-let control-flow admission. It strips only the persisted
+  unary try root, normalizes its operand through the shared expression owner,
+  joins the existing OptionInt receipt, and requires an enclosing OptionInt
+  callable without value-result copy-out in this first rung.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_option_int_try_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_int_try_owner.pgy`
+  -- target control-flow consumers of that admitted operation. Both propagate
+  None by returning the existing OptionInt absence value and write the Some
+  payload to the declared Int local; neither rereads MIR or invents tags.
+- `src/self_hosted/compiler/direct_mir_option_string_abi_capture_owner.pgy`,
+  `direct_mir_scalar_program_option_string_abi_owner.pgy`,
+  `direct_mir_scalar_program_option_string_expression_kind_owner.pgy`,
+  `direct_mir_scalar_program_option_string_builtin_signature_owner.pgy`, and
+  `direct_mir_scalar_program_option_string_expression_readiness_owner.pgy`
+  -- the persisted Option<String> physical receipt and its contextual
+  Some/None/IsSome/UnwrapOption expression family. The same receipt owner
+  consumes complete by-value callable parameter ABI rows and cross-seals them
+  with instruction-owned receipts; a parameter does not invent a second
+  Option layout. Generic builtin identity is joined once with actual/expected
+  types; Option<Int> is not a fallback.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_option_string_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_string_owner.pgy`
+  -- C and LLVM materialization of the admitted tag-plus-pointer layout. Both
+  targets consume the same layout identity and reject field-offset mutation.
+- `src/self_hosted/compiler/direct_mir_option_bool_abi_capture_owner.pgy`,
+  `direct_mir_scalar_program_option_bool_abi_owner.pgy`,
+  `direct_mir_scalar_program_option_bool_expression_kind_owner.pgy`,
+  `direct_mir_scalar_program_option_bool_builtin_signature_owner.pgy`, and
+  `direct_mir_scalar_program_option_bool_expression_readiness_owner.pgy`
+  -- the persisted eight-byte Option<Bool> physical receipt and its contextual
+  Some/IsSome/UnwrapOption expression family. The same owner family admits the
+  generic persisted `None` leaf through
+  `direct_mir_scalar_program_option_absence_expression_owner.pgy`; it does not
+  invent an Option<Bool> layout from `Option<Unknown>`.
+- `src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy`,
+  `direct_mir_scalar_program_expression_kind_owner.pgy`, and
+  `direct_mir_scalar_program_bool_readiness_owner.pgy` -- stable expression 72
+  for Bool equality and its recursive non-trapping proof. An Option<Bool>
+  unwrap beneath `logical_and` remains conditional unless both equality
+  operands are independently proven non-trapping.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_option_bool_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_bool_owner.pgy`
+  -- C and LLVM projections of the admitted tag-plus-bool layout. Both targets
+  consume the same size, alignment, field offset, and discriminant receipt.
 - `src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy`
   -- the optional program-wide two-field Int nominal declaration and physical
   ABI cross-seal. It admits one declaration row, checks formal-parameter and
@@ -2432,6 +2616,305 @@ inventory must not become a second fact-family owner registry.
   `direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy` -- the target
   projection and C/LLVM type materialization for that fact. Neither backend
   derives `{i32,i32}` or a C struct merely from the source type spelling.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy`,
+  `direct_mir_scalar_program_logical_record_expression_owner.pgy`, and
+  `direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy`
+  -- the program inventory of callable-referenced ordered logical-record
+  identities and their constructor/member graph rows. Each candidate consumes
+  the declaration index's canonical
+  `source_module_path` and requires the exact nine-field wire object before
+  exposing fields or callable identities. Distinct declaration
+  rows remain distinct even when their field types and spellings match. The
+  fact consumes the admitted declaration field index, closes nested record
+  dependencies in dependency-first order, and checks exact instruction
+  ABI-absence receipts. Variable field counts are declaration facts; cycles,
+  missing dependencies, unreferenced same-shape declarations, and inferred
+  physical layouts are rejected. `Array<Int>`, `Array<Bool>`, and
+  `Array<String>` are bounded terminal field identities, not nested record
+  dependencies.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy`,
+  `direct_mir_scalar_program_logical_record_option_builtin_signature_owner.pgy`,
+  `direct_mir_scalar_program_logical_record_option_expression_readiness_owner.pgy`,
+  `direct_mir_scalar_program_c_logical_record_option_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_logical_record_option_owner.pgy` -- the
+  ABI-free `Option<logical-record>` expression family. The wrapper shape comes
+  only from `OptionPayloadTypeOpt`, and the payload identity must resolve to the
+  declaration-keyed logical-record fact before target projection. C and LLVM
+  derive an internal tag-plus-record carrier for this GraphPlan slice; it is
+  not an interoperability ABI receipt. Record/routine spelling allowlists,
+  `Option<Unknown>` substitution outside `None`, physical record-layout
+  invention, and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy`
+  -- the declaration-keyed scalar-ordinal representation of callable-referenced
+  payload-free enum value parameters. It consumes the admitted declaration and
+  enum-variant inventories, requires a nonempty contiguous ordinal sequence,
+  and joins exact `value` carriage with absent physical ABI rows. Enum spelling,
+  routine-name branches, general Int relabeling, payload-bearing variants, and
+  backend MIR rereads are forbidden. C and LLVM consume its canonical Int ABI
+  type only after this fact is admitted.
+- `src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy`
+  and `direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy`
+  -- declaration-owned payload-free enum variant constants and the exact
+  value-formal/variant equality join. The existing enum fact owns type,
+  variant name, ordinal, and scalar-ordinal representation; expression
+  admission stores only that admitted ordinal and both targets consume the
+  sealed `i64` carrier. Enum/routine spelling branches, ordinal inference,
+  generic member fallback, and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_collection_abi_owner.pgy`
+  -- the only join from collection-bearing logical fields to the already
+  admitted Array ABI receipts. It does not copy offsets or authorize a record
+  from field spelling alone; a required collection layout must be present.
+- `src/self_hosted/compiler/direct_mir_array_bool_abi_fact_owner.pgy`,
+  `direct_mir_scalar_program_array_bool_abi_owner.pgy`,
+  `direct_mir_scalar_program_array_bool_abi_capture_owner.pgy`,
+  `direct_mir_scalar_program_c_array_bool_materialization_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_array_bool_materialization_owner.pgy` -- the
+  exact program-wide `Array<Bool>` storage receipt, its selected-routine
+  admission capture, and target projections. The fact is the sole physical
+  layout authority and also owns exact value-result routine/parameter/digest
+  rows plus the exact owned-return presence receipt; capture may not rescan the
+  whole program instruction table. Logical records, copyout emitters, and the
+  ArrayBool return emitter consume the same receipt. Neither declaration
+  spelling, ArrayInt identity, nor another Array layout may substitute.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_bool_populated_literal_admission_owner.pgy`,
+  `direct_mir_scalar_program_array_bool_nested_literal_owner.pgy`,
+  `direct_mir_scalar_program_array_bool_populated_literal_readiness_owner.pgy`,
+  `direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_array_bool_populated_literal_owner.pgy` --
+  the exact nonempty `Array<Bool>` literal projection. The persisted expression
+  graph owns its array spine and ordered canonical `true`/`false` leaves; the
+  nested owner joins that spine to already-normalized Bool operands when a
+  logical-record constructor owns the outer expression. The existing program-
+  wide ArrayBool ABI owns storage, and C and LLVM consume only the normalized
+  Bool operands. Source-text parsing, nonliteral elements, nonempty use rows,
+  ArrayInt substitution, and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_target_owner.pgy`,
+  `direct_mir_scalar_program_c_logical_record_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_logical_record_owner.pgy` -- the bounded
+  target representation for that logical value carrier. Field ordinals come
+  only from the ordered declaration fact, while offsets remain intentionally
+  absent because the MIR owns no interoperability layout receipt.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy`
+  and
+  `direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy` --
+  backend projections of signature-owned logical-record carriage. A
+  `readonly-ref` is a C const pointer or LLVM pointer plus bounded aggregate
+  load; an already-admitted `owner-handle` is the direct aggregate value in
+  both targets. Neither backend may invent ownership, coerce readonly carriage
+  to by-value, or admit an unaddressable call argument.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_value_result_policy_owner.pgy`,
+  `direct_mir_scalar_program_logical_record_value_result_target_owner.pgy`,
+  `direct_mir_scalar_program_c_logical_record_value_result_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_logical_record_value_result_owner.pgy` --
+  the declaration-keyed logical-record `value-result` signature,
+  target-neutral parameter identity, and C/LLVM copy lifecycle. One routine
+  may carry one or more such copyouts, zero or more declaration-keyed readonly
+  record inputs, direct scalar value parameters, and a scalar result.
+  Readonly records remain indirect while every copyout remains direct;
+  Direct-call identity joins the same target and source
+  carriage facts; it cannot substitute the ArrayString copyout inventory.
+  Every explicit return copies the complete aggregate back after loading the
+  initial caller value. Name/arity allowlists, field-prefix copies, and
+  backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_member_rebind_owner.pgy`,
+  `direct_mir_scalar_program_c_logical_record_member_rebind_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_logical_record_member_rebind_owner.pgy` --
+  exact member-rebind facts for value-result parameters, by-value parameter
+  copies, and ordinary logical-record locals. A target joins the exact
+  signature carriage, carried LocalRef, result/predecessor
+  ValueIds, canonical latest-dominating local fact when a same-local prefix is
+  present, declaration member ordinal, member type, and the target-use prefix.
+  Branch-exclusive inout writes and by-value copy writes consume the existing
+  memory-local carrier and do not invent a predecessor from physical
+  instruction order; ordinary local writes still require their predecessor.
+  A by-value write never authorizes caller copyout. Non-record assignments are
+  outside this owner. Target/source spelling, generic assignment-type guessing, a
+  second record compiler, and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_mixed_collection_value_result_policy_owner.pgy`
+  -- the exact declaration-keyed logical-record return plus mixed public
+  collection copyout signatures. Both admitted families have four
+  `Array<Int>` value-results at ordinals 0/2/3/4, two `Array<String>`
+  value-results at ordinals 1/5; the ten-parameter family then carries ordered
+  Int/String/Int/Int values, while the seven-parameter family carries one
+  String value. It
+  consumes the persisted Array ABI identities and existing C/LLVM copy
+  lifecycle rather than reconstructing layout or emission facts. Routine-name
+  branches, count-only matching, copyout reordering, first-array ABI
+  substitution, general multi-array widening, and backend MIR rereads are
+  forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_bool_mixed_collection_value_result_policy_owner.pgy`,
+  `direct_mir_scalar_program_c_array_bool_value_result_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_array_bool_value_result_owner.pgy` -- the
+  exact Bool-returning 11-parameter family with five ordered `Array<Int>`, one
+  `Array<Bool>`, and two `Array<String>` value-results followed by
+  Bool/Bool/String values. The policy consumes each persisted ABI identity;
+  the backend owners copy the ArrayBool carrier in and out on every explicit
+  return. LLVM materializes a mutable parameter-local carrier only when the
+  shared operation inventory targets that parameter, then copies the latest
+  aggregate back. Routine-name branches, count-only matching, ArrayInt
+  substitution, copied layouts, partial return handling, and backend MIR
+  rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_void_logical_record_array_int_value_result_policy_owner.pgy`
+  -- the exact three-parameter Void signature joining one persisted public
+  `Array<Int>` value-result, one declaration-keyed logical-record value, and
+  one direct String value. The policy owns only complete signature admission;
+  the existing ArrayInt and logical-record owners remain the physical and
+  backend copy authorities. Routine-name branches, arbitrary Void widening,
+  record-shape guessing, count-only matching, copied layouts, and backend MIR
+  rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_inputs_value_result_policy_owner.pgy`
+  -- the exact Bool-returning three-parameter signature joining three distinct
+  declaration-keyed logical-record identities. Ordinals 0/1 are direct values;
+  ordinal 2 alone is a direct value-result and consumes the existing record
+  copyout route. The owner adds no physical ABI fact and does not authorize the
+  caller-side three-record `AST_CALL` boundary. Routine-name branches,
+  record-shape guessing, arbitrary value-result widening, count-only matching,
+  and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_array_string_value_result_policy_owner.pgy`
+  -- the exact Bool-returning five-parameter signature joining one indirect
+  readonly-ref declaration-keyed logical record, two direct String values, and
+  two direct `Array<String>` value-results. The copyouts must carry positive
+  equal persisted ABI layout identities. This policy creates no record or
+  Array carrier authority; existing readonly-record and ArrayString C/LLVM
+  owners remain the last consumers. Routine-name branches, broad signature
+  widening, count-only matching, copied layouts, and backend MIR rereads are
+  forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_bool_two_array_string_two_array_int_value_result_policy_owner.pgy`
+  -- the exact Bool-returning eight-parameter signature with two direct
+  `Array<String>` value-results, two direct `Array<Int>` value-results, and
+  four direct String values. Each collection pair must carry one positive
+  equal persisted layout identity, while the two collection families must
+  remain distinct. This policy creates no carrier fact; existing ArrayString
+  and ArrayInt C/LLVM owners remain the last consumers. Routine-name branches,
+  broad mixed-copyout widening, count-only matching, copied or cross-family
+  layouts, and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy`
+  -- the exact three-parameter owned `Array<Bool>` return signature joining one
+  declaration-keyed indirect readonly-ref logical record with direct Int and
+  Bool values. The signature policy creates no layout fact; the program-wide
+  ArrayBool ABI owner must prove every return instruction carries its sealed
+  layout before C/LLVM emit the aggregate value. Routine/record-name branches,
+  general ArrayBool-return widening, guessed record shapes, copied layouts,
+  and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy`
+  -- the exact single-parameter signature transferring one declaration-keyed
+  logical record by `owner-handle` and returning that same record identity.
+  It adds no destructor or physical layout: the source/MIR ownership carriage
+  remains authoritative. The carried call-target identity and callable
+  inventory admit the same owner handle at direct calls; existing logical-
+  record C/LLVM value emitters remain the last consumers. Treating the handle
+  as value, readonly-ref, or
+  value-result, accepting a different return record, general owner-handle
+  widening, routine/record-name branches, or backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy`
+  -- the exact Bool-returning signature joining one declaration-keyed indirect
+  readonly-ref logical record, one direct String value, and one direct
+  `Array<String>` value-result. The record inventory and persisted ArrayString
+  ABI identity remain the fact owners; existing C/LLVM readonly-record and
+  collection copy-in/out emitters are the last consumers. Routine/record-name
+  branches, a broad one-copyout rule, record-as-value coercion, copied or
+  missing ArrayString layouts, and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_return_array_string_value_result_policy_owner.pgy`
+  -- the exact same-record return signature joining one direct ArrayString
+  value-result, one direct declaration-keyed logical-record value, and one
+  direct String value. The return must preserve the record parameter identity,
+  while the persisted ArrayString ABI remains the sole collection-layout fact.
+  Existing C/LLVM collection copyout, record-value, and record-return emitters
+  are the last consumers. Name branches, broad record-return/copyout widening,
+  identity mismatch, copied layouts, and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_void_logical_record_array_string_value_result_policy_owner.pgy`
+  -- the exact Void signature family joining one direct ArrayString value-result
+  with one direct declaration-keyed logical-record value and exactly zero,
+  three, or four ordered direct String values. The admitted tail-cardinality
+  set is the union of reached production shapes, not an arbitrary scalar tail.
+  The logical-record inventory and persisted ArrayString ABI remain the fact
+  owners; existing C/LLVM collection copyout, record-value, and String-value
+  emitters are the last consumers. The retired three-String policy may not
+  reappear. Routine/record-name branches, other tail counts, carriage coercion,
+  missing or copied layouts, and backend MIR rereads are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy`,
+  `direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy`,
+  `direct_mir_scalar_program_logical_record_array_target_owner.pgy`,
+  `direct_mir_scalar_program_logical_record_array_empty_literal_admission_owner.pgy`,
+  `direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy`,
+  `direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy`,
+  `direct_mir_scalar_program_c_logical_record_array_value_result_owner.pgy`,
+  and
+  `direct_mir_scalar_program_llvm_logical_record_array_value_result_owner.pgy`
+  -- the declaration-keyed compiler-owned three-field `Array<Record>`
+  `value-result` parameter identity, exact mixed-Void signature policies, and
+  C/LLVM copy lifecycle. The logical-record
+  inventory derives an array element declaration from canonical Array shape;
+  the nominal-array layout owner supplies `data,len,cap`, C type spelling, and
+  the LLVM aggregate. The exact Void shapes carry one such record array plus
+  either one-or-more persisted public `Array<Int>` copyouts, one distinct
+  direct logical record and two direct Int values, or one direct value of the
+  array's own element declaration. The latter two declaration relationships
+  are explicit identity joins, not spelling guesses. The same declaration and
+  nominal-array owners also admit an exact routine-local `Array<Record>`
+  carrier and its empty literal; C and LLVM materialize only the existing
+  three-field target shape. Parameter admission is local to the parameter's
+  type, carriage, resource, pass shape, and no-physical-ABI receipt so the
+  unique callable role plan may compose it with a supported non-Void return;
+  it does not require one of the exact mixed-Void whole-signature policies.
+  The public four-field Array layout, record-name
+  allowlists, arbitrary `Array<T>` widening, copied layout facts,
+  one-copyout-only emission, and backend MIR rereads are forbidden. By-value
+  record-array parameters, indexed reads, and record-array operations are
+  owned by the next row rather than inferred from this copyout/local contract.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_parameter_policy_owner.pgy`,
+  `direct_mir_scalar_program_logical_record_array_index_expression_owner.pgy`,
+  `direct_mir_scalar_program_c_logical_value_expression_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_logical_value_expression_owner.pgy` -- the
+  exact by-value compiler-owned `Array<Record>` parameter policy, stable
+  indexed-read expression identity, and target-bound C/LLVM indexed load.
+  The signature returns public `Array<Int>`, `Bool`, or the declaration-owned
+  logical record, carries exactly one record Array plus direct scalar values,
+  and joins its element through the declaration inventory. C and LLVM consume
+  the existing three-field nominal-array target projection before reading
+  `data`; the resulting record value then uses the existing ordered member
+  identity. Record-name allowlists, public four-field Array substitution,
+  return-type guessing, backend MIR rereads, and admitting local collection
+  mutation through this read-only expression owner are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_fact_owner.pgy`
+  -- the program-wide complete persisted four-field `Array<Int>` ABI row plus
+  the exact subset of formal parameters that own value-result carriage.
+  Instruction-local collection definitions, direct return rows, and admitted
+  ArrayInt formals must agree on one layout; only value-result formals create
+  copy-in/copy-out identity rows. Direct returns reuse the storage receipt and
+  remain ordinary value carriers.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_target_owner.pgy`,
+  `direct_mir_scalar_program_c_array_int_value_result_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy` -- the one
+  target-bound representation plus C/LLVM copy-in/copy-out boundary. Actual
+  calls remain fail-closed until a caller-side value-result owner is admitted;
+  they may not reuse the existing by-value direct-call path.
+- `src/self_hosted/compiler/direct_mir_scalar_program_parameter_fact_projection_owner.pgy`
+  -- the ordered parameter-row projection shared by typed scalar-program ABI
+  owners. It consumes admitted routine bounds and never guesses a nonzero
+  formal's ABI from the first-parameter shortcut.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy`,
+  `direct_mir_scalar_program_c_array_string_value_result_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy` -- the
+  program-wide join between the complete `Array<String>` layout, exact
+  value-result routine/parameter identities, owned-return presence, and the
+  target copy lifecycle.
+  The bounded callable shapes are exactly Void with one such formal and Bool
+  with `String, Int, Int` values followed by four such formals. Every explicit
+  or fallthrough return copies all carried rows out, while callers admit only
+  addressable locals or already value-result formals. The separate owned-return
+  shape accepts a nonempty composable role plan, including admitted readonly
+  logical records and direct scalar values, and may transfer its array only
+  when every return-row ABI capture matches this same layout. The ABI owner
+  consumes the callable's composable signature fact; it does not recreate the
+  role plan. Unadmitted collections and spelling-only return admission remain
+  forbidden.
+  Same-mistake rule: join signature-wide value-result admission to the
+  individual parameter policy, and inspect existing last consumers before
+  adding a target-local owner. A singular helper that returns one parameter
+  ordinal cannot select mutations after multiple copyout identities are
+  admitted; operation targeting remains closed until it has an exact parameter
+  fact.
 - `src/self_hosted/compiler/direct_mir_scalar_program_string_index_expression_kind_owner.pgy`
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_string_search_expression_readiness_owner.pgy`
@@ -2445,7 +2928,54 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_program_string_window_builtin_signature_owner.pgy`
   -- canonical bounded String window/search signature projection from the
   semantic builtin registry; consumers cannot own copied spelling/arity/type
-  tables.
+  tables. `SubEqualsWithLen` is stable expression 71 and joins the existing
+  five-argument Bool signature rather than a JSON-routine spelling exception.
+- `src/self_hosted/compiler/direct_mir_scalar_program_string_runtime_requirement_owner.pgy`,
+  `direct_mir_scalar_program_runtime_abi_fact_owner.pgy`, and
+  `direct_mir_scalar_program_runtime_abi_projection_owner.pgy`
+  -- the sealed runtime-call identity needed by normalized String expressions.
+  The SubEqualsWithLen row consumes canonical operation `sub-equals-with-len`,
+  symbol `pgy_subequals_with_len`, and call shape
+  `string_int_string_int_to_bool`; target emitters cannot reconstruct it. The
+  same sealed fact now projects the existing `host-io/args` registry row as
+  `process_args_id`; `Args()` is an ordinary zero-argument collection
+  expression and does not impersonate an instruction-local runtime-value row.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_process_args_materialization_owner.pgy`
+  and
+  `direct_mir_scalar_program_llvm_process_args_materialization_owner.pgy`
+  -- target materialization of the sealed `host-io/args` receipt. They capture
+  the entrypoint argc/argv carrier and duplicate every published argument
+  String into the returned `Array<String>` backing. They do not own the Args
+  spelling, signature, runtime symbol, or call-target identity.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy`
+  and
+  `direct_mir_scalar_program_llvm_dir_walk_materialization_owner.pgy`
+  -- target adapters from the sealed `host-io/dir-walk` row to the native
+  `pgy_dir_walk` runtime owner. The runtime remains the sole directory-walk,
+  capability, ordering, and owned-path authority; these adapters only carry
+  its ABI-compatible `Array<String>` result into GraphPlan target types.
+- `src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy`
+  -- the single GraphPlan join from normalized host-I/O expression kinds to
+  existing runtime-call ABI rows. It currently seals process Args, directory
+  walk, file-existence, and file-read IDs; String runtime admission only carries these
+  IDs and cannot recreate host-I/O symbols or call shapes.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_file_exists_materialization_owner.pgy`
+  and
+  `direct_mir_scalar_program_llvm_file_exists_materialization_owner.pgy`
+  -- target adapters for the sealed `host-io/file-exists` row. Native
+  `pgy_file_exists` remains the capability and filesystem fact owner.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_read_file_materialization_owner.pgy`
+  and
+  `direct_mir_scalar_program_llvm_read_file_materialization_owner.pgy`
+  -- target adapters for the sealed `host-io/read-file` row. Native
+  `pgy_read_file` remains the capability, bounded-I/O, failure, and owned
+  String authority; the adapters do not reconstruct file-reading policy.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_string_window_expression_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_window_expression_owner.pgy`
+  -- target consumers for ordered String-window operands. C preserves language
+  `&&` evaluation and LLVM places a potentially trapping right-side runtime
+  call under the existing short-circuit branch/phi owner.
 - `src/self_hosted/compiler/direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy`
   -- canonical bounded unary String-transform signature and actual-argument
   projection from the same semantic builtin registry.
@@ -2465,7 +2995,22 @@ inventory must not become a second fact-family owner registry.
   -- the sole expression-kind-to-runtime-ABI requirement mapper. Its sealed
   case/math subfact owns StringReplace/Abs/Min/Max call identities, and its
   sealed StringIndexOf subfact owns search identity and the `-1`-or-byte-offset
-  result contract. Backends consume projections and do not infer calls.
+  result contract. The registry-owned StringJoin ID is projected from the same
+  ABI row; backends consume projections and do not infer calls.
+- `src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy`
+  -- the bounded semantic-builtin signature join for GraphPlan expressions.
+  It owns the canonical runtime-call ABI ID alongside arity and type facts;
+  call admission only cross-seals the MIR-carried ID and may not requery a
+  source-name registry.
+  Its `ToString` specialization keeps String input as an identity value while
+  Int input continues to require the registry-owned formatting ABI. Its
+  `Print` specialization admits exactly `String -> Void`; expression readiness
+  and C/LLVM String emitters consume the canonical `string|print|pgy_print`
+  runtime row without rewriting Print as newline-producing Log.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy`
+  -- the LLVM body for the sealed `Array<String>, String -> String` join ABI.
+  It consumes the runtime projection and owns no builtin name or argument-type
+  decision; the C path consumes the canonical String runtime block.
 - `src/self_hosted/compiler/direct_mir_scalar_program_string_index_runtime_owner.pgy`
   -- canonical StringIndexOf ABI identity, result sentinel/range/unit, and
   signed-headroom contract consumed by both target materializers.
@@ -2483,18 +3028,6 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_mutation_owner.pgy`
   -- executable negative proving an inactive extension cannot hide expression
   or closed-module ABI payload outside its zero digest.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy`
-  -- bounded-add evidence from an already admitted `local < positive bound`
-  condition whose true edge dominates the addition block, or from the bounded
-  constant-DAG magnitude owner for literals and negate/abs/min/max/subtract.
-  It owns neither a loop topology nor a second expression graph.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_condition_bound_owner.pgy`
-  -- the named dominating-condition proof previously mixed into arithmetic
-  coordination.
-- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_string_index_range_owner.pgy`
-  -- exact same-source, same-block StringIndexOf range evidence for the reached
-  `index + 1` and StringLength-minus-index window arithmetic; it is not a
-  general signed-range analyzer.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy`
   -- the small admitted-program composition boundary. It seals the optional
   callable and expression-derived runtime ABI IDs; it owns no storage loop,
@@ -2508,27 +3041,148 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_owner.pgy`
   -- one instruction-to-expression-row admission boundary shared by Main and
   the callable for definition, Log, branch condition, and return positions.
+- `src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_chain_owner.pgy`
+  -- canonical call-marker and ordered argument-spine recovery. A nonzero
+  call-target `SyntaxNodeId` is the direct-call identity carried to the
+  callable inventory; namespace-local short source spelling is not compared
+  with the canonical target name. Syntax-id-zero builtin calls retain their
+  exact spelling check, and name-only direct-call fallback is forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy`
+  -- structural direct/namespace callee topology joined to the persisted
+  semantic call-target kind and `SyntaxNodeId`; namespace receiver/member
+  spelling and local function-name scans are not alternate authorities.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_statement_admission_owner.pgy`
+  -- one statement-operation admission boundary. It joins Log, Exit, and
+  collection mutation targets to their expression and operation rows. A bare
+  direct call may discard its non-Void result without rewriting the callable's
+  admitted return type; non-call String/Int expressions cannot use that discard
+  boundary. The routine owner retains only ordered traversal and state commit.
+- `src/self_hosted/compiler/direct_mir_scalar_program_int_literal_expression_row_owner.pgy`
+  -- the canonical raw-Int-literal constructor for the normalized expression
+  arena. It owns row append only; instruction field admission remains with the
+  instruction-expression owner.
 - `src/self_hosted/compiler/direct_mir_array_string_literal_fact_owner.pgy` and
   `src/self_hosted/compiler/direct_mir_bounded_literal_index_owner.pgy` --
   shared target-neutral typed
   String-literal-array payload and fixed-cardinality index proof. The typed
   program and older local indexed collection route consume these owners rather
   than decoding parallel literal graphs.
-- `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy`,
+- `src/self_hosted/compiler/direct_mir_scalar_program_nested_array_literal_seed_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_array_string_nested_literal_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy`,
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_expression_kind_owner.pgy`
   --
-  Array<String> literal admission into the existing typed ExpressionSet, its
-  semantic readiness, and its stable expression kind identity.
+  Array<String> literal admission into the existing typed ExpressionSet, one
+  exact value/owner-formal or local-SSA String element identity, or an ordered
+  literal spine containing already-normalized String expressions with exact
+  instruction-use and LocalRef receipts, plus semantic readiness and the
+  stable expression kind identity.
+  The common seed owner is shared with nested `Array<Int>` admission and owns
+  the one-seed/one-spine identity. Mixed literals retain source element order
+  and derive `Array<String>` only from normalized String operands; they do not
+  reuse the enclosing record expression's expected type. The constructor owner
+  still seals the resulting array type to the exact declaration field type.
+  They may carry non-parameter dynamic String rows; parameter operands remain
+  single-element so owner-handle transfer cannot be silently downgraded to a
+  borrow. The same owner family
+  admits the exact semantic `ArrayDropOwnedStrings` signature only for an
+  addressable local and projects the canonical owned-string drop symbol in
+  both targets. It also admits `ArrayPushOwnedString` only for an addressable
+  local or an exact value-result `Array<String>` formal, and both targets
+  consume the canonical owned-push symbol that duplicates the String before
+  the matching deep drop. Mapping that call to ordinary `ArrayPush` is
+  forbidden. The persisted array spine owns element
+  order; the routine parameter set and producer LocalRef own formal identity
+  and type; the instruction-use/value-type owners additionally own local SSA
+  identity and one-use consumption. Source spelling guesses, untyped dynamic
+  elements, mixed parameter ownership, and a second expression parser remain
+  forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_int_empty_literal_admission_owner.pgy`,
+  `direct_mir_scalar_program_array_int_empty_literal_readiness_owner.pgy`,
+  `direct_mir_scalar_program_array_int_expression_kind_owner.pgy`, and their
+  C/LLVM expression owners -- the exact empty `Array<Int>` value reached by
+  collection-index constructors. This rung does not authorize populated local
+  storage or reuse the older shape-specific Array plan.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_admission_owner.pgy`,
+  `direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy`,
+  `direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy`, and
+  their C/LLVM expression/materialization owners -- canonical populated
+  `Array<Int>` literals whose one-or-more elements are ordered canonical Int
+  literals, zero-parameter direct calls returning Int, exact value-parameter
+  leaves, or exact local SSA Int leaves. The local route consumes the existing
+  instruction-use, LocalRef, and value-type plans and advances the caller's
+  ordered use cursor; missing or foreign use identity fails closed. The same
+  owner recognizes an exact one-or-more-element array spine
+  when it is nested as a logical-record constructor field and the common
+  expression owner has already normalized every element to Int. Literal, call,
+  parameter, local, and admitted Int-expression rows therefore share the
+  existing populated-array kind without reading the outer record type. The
+  persisted array spine owns order; SyntaxNodeIds and the callable
+  inventory own call target identity; the routine parameter set plus producer
+  LocalRef own parameter ordinal/type; the existing ArrayInt ABI receipt owns
+  storage. No same-type parameter guess, second literal decoder, tag-name table,
+  empty-literal fallback, or backend MIR reread is permitted.
 - `src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy`,
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_empty_owner.pgy`
   -- one
-  callable value/carriage/ABI policy, broad typed claimant envelope, and the
-  canonical empty signature projection. Final signature readiness remains with
+  callable value/carriage/ABI policy, broad typed claimant envelope with its
+  exact failure assessment, and the canonical empty signature projection.
+  Zero-parameter non-entrypoint callables are admitted only for bounded returns
+  and C emits an exact `(void)` prototype. Standalone zero-argument call
+  expressions stay closed; the populated ArrayInt literal owner admits only
+  its exact internal admitted Int operands. Individual ArrayString
+  value-result parameters are admitted from their local type, carriage,
+  resource, pass-shape, and ABI identity rows; the program ArrayString ABI
+  owner later cross-seals every captured layout. By-value ArrayInt, ArrayString,
+  ArrayBool, and SetString parameters and by-value OptionString parameters
+  consume their existing physical ABI receipts; no collection- or
+  Option-specific layout is recreated here. Exact signature policies may constrain their specialized
+  routes but are not a prerequisite for the composable callable lane. Target
+  emitters do not reclassify return type, copyout count, or parameter position.
+  Final signature readiness remains with
   `direct_mir_scalar_program_callable_signature_owner.pgy`.
+- `src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy`
+  -- the unique declaration-independent plan that classifies every formal as
+  exactly one direct-scalar value, declaration-keyed logical-record input or
+  value-result, admitted ABI value (including the central SetString runtime
+  value receipt), payload-free enum value, or admitted `Array<Int>`,
+  `Array<String>`, or declaration-keyed `Array<Record>` value-result ABI role. Array value-result
+  admission is parameter-local; the program ABI fact remains the owner that
+  cross-seals captured layout identity across routines. The final signature
+  may compose those roles
+  with Void, scalar, owned `Array<String>`, or nonempty-parameter
+  `Option<Int>`, `Option<String>`, and `Option<Bool>` returns. Each collection
+  or Option physical receipt remains owned by its
+  existing ABI owner; the role plan gains no return-layout authority. Exact
+  routine names, arity/ordinals, overlapping role claims, generic Array
+  widening, scalar-only Option parameter scans, backend MIR rereads, and
+  return-specific parameter classifiers are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_set_string_value_result_policy_owner.pgy`,
+  `direct_mir_scalar_program_set_string_value_result_target_owner.pgy`,
+  `direct_mir_scalar_program_c_set_string_value_result_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_set_string_value_result_owner.pgy` -- exact
+  `Set<String>` value-result signature identity plus C/LLVM copy-in/copy-out.
+  The canonical Set runtime fact remains the storage authority; routine-name,
+  ordinal-first, by-value, and backend MIR reread fallbacks are forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy`,
+  `direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy`,
+  `direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy` -- exact
+  `Array<String>` readonly-ref signature identity and indirect target
+  projection. The persisted ArrayString ABI remains the physical authority;
+  local callers pass an address and forwarding callers preserve the admitted
+  pointer. Copy-in/out, by-value coercion, and backend MIR rereads are
+  forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_process_exit_owner.pgy`
+  -- the target-neutral process-exit operation inventory consumed by statement
+  admission and both block emitters. The canonical symbol and
+  `int_to_noreturn` call shape remain owned by
+  `runtime_call_abi_structured_fact_owner.pgy` and its runtime registry row.
 - `src/self_hosted/compiler/direct_mir_scalar_program_array_string_callable_abi_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_fact_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_admission_owner.pgy`,
@@ -2543,9 +3197,86 @@ inventory must not become a second fact-family owner registry.
   -- small
   extension ABI/boundary sealing and final extension-fact verification owners;
   they keep construction separate from mutation/readiness policy.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_control_transfer_admission_owner.pgy`
+  -- the exact break/continue edge owner shared by the single-routine and
+  program GraphPlan consumers. Break targets must not dominate their source;
+  continue targets must dominate it. Both require one true successor, no false
+  successor, terminator position, and no value uses.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy`
   -- the sole per-routine local/value/block/operation/phi append loop. Both Main
-  and the callable use it with explicit offsets and no topology classifier.
+  and each callable use it with explicit offsets and consume the shared
+  control-transfer fact instead of reconstructing break/continue topology.
+  It also asks the canonical OptionString ABI owner to consume each routine's
+  admitted parameter receipts before expression attachment; it does not scan
+  parameter JSON or manufacture a layout locally.
+  Collection mutation consumes the producer-owned primary `LocalRef` as its
+  receiver identity. `ArraySet` then admits `expr1` index before `expr0` value
+  from one ordered use cursor; a value-result parameter receiver consumes no
+  expression-use row. Indexed assignment consumes the same stable mutation
+  operation after the target graph proves its exact formal ordinal and the
+  routine fact proves the predecessor SSA version.
+  An explicit entrypoint `AST_RETURN_VOID` owns the same cleanup boundary as
+  fallthrough, then projects target status zero; silently rejecting the source
+  return or emitting a raw void return is forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_admission_owner.pgy`
+  -- the cohesive definition-operation selector shared by routine admission.
+  It distinguishes the persisted unary try root from ordinary definitions and
+  records stable operation 38 without adding a routine-name or JSON fallback.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_mutation_target_owner.pgy`,
+  `direct_mir_scalar_cfg_program_array_mutation_storage_owner.pgy`,
+  `direct_mir_scalar_program_array_mutation_readiness_owner.pgy`, and
+  `direct_mir_scalar_cfg_program_operation_shape_owner.pgy` -- one typed
+  `Array<Int>`/`Array<Bool>`/`Array<String>` Push/Set/Pop fact. Stable ArrayBool
+  operation identities 39/42 and ArrayString Set identity 34 are target-neutral:
+  local receivers persist in `operation_left_locals`, while an admitted value-
+  result parameter persists by exact ordinal in `operation_right_locals` and
+  must join the existing program element ABI receipt. Push/Set values and the optional Set index
+  persist in the primary and secondary expression rows, while Pop carries
+  neither. MIR-use receiver recovery, unique-parameter inference, target-
+  specific duplicate opcodes, and legacy collection-plan routes are forbidden
+  fallbacks.
+- `src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_fact_owner.pgy`
+  -- routine-local join from an `AST_ASSIGNMENT` target graph to one exact
+  `Array<Int>` or `Array<String>` value-result parameter. It owns canonical
+  target/index identity, element type, and the per-parameter SSA predecessor
+  chain. A dynamic target index is admitted from the persisted target graph's
+  right root before the RHS consumes the remaining ordered use rows. Routine,
+  name, arity, first-parameter, and source-text inference are forbidden. The
+  exact Array ABI type gates this owner before target parsing, so a logical-
+  record member rebind remains owned by its separate member-target fact. The
+  last consumers are stable array mutation operations 37 and 34, shared
+  unchanged by C and LLVM; this route does not create a target-specific opcode
+  or backend fork.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_indexed_assignment_owner.pgy`
+  -- declaration-keyed typed fact for an `AST_ASSIGNMENT` whose target is one
+  local or formal value-result logical record, one-or-more persisted member
+  ordinals, and a terminal `Array<Int>` or `Array<String>` dynamic index. The
+  source spelling is never split into a field path; the expression graph,
+  LocalRef/value-type plan, formal carriage/ordinal, and logical-record field
+  inventory own the join. Stable operation 44 preserves the complete target
+  graph as its secondary expression row, the RHS as its primary expression
+  row, and the resolved element type as its typed receipt.
+- `src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy` and
+  `direct_mir_scalar_program_logical_record_member_rebind_owner.pgy` -- the
+  canonical latest-dominating LocalRef value row and its operation-use prefix
+  consumer. A value-result record's first mutation may consume the parameter
+  entry without a use row, but once an explicit SSA value dominates the
+  assignment that exact value must be the first persisted use. Missing,
+  foreign, or stale predecessors cannot fall back to the parameter entry.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy`
+  and
+  `direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy`
+  -- the definition-route and typed-readiness consumers shared by direct
+  logical-record member rebind and nested indexed assignment. They do not
+  rescan MIR or infer a member path from `expr1` text.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_assignment_owner.pgy`
+  and
+  `direct_mir_scalar_program_llvm_logical_record_assignment_owner.pgy` -- last
+  consumers of operations 40 and 44. Operation 44 roots the stored member
+  ordinals at the admitted operation-result LocalRef, projects the address,
+  and selects the existing bounds-checked `pgy_ai_set` or `pgy_as_set` from
+  the typed receipt. C/LLVM do not own record identity, field spelling,
+  predecessor selection, element typing, or target reconstruction.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_owner.pgy`
   -- canonical Main-first contiguous range construction over the flat GraphPlan
   storage, independent of admitted routine-array order. Routine signature and
@@ -2555,10 +3286,29 @@ inventory must not become a second fact-family owner registry.
   -- loops over every canonical route row through one routine-admission call,
   constructs one callable inventory, partition, and extension, and calls the
   sole GraphPlan seal once.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy`
+  -- scalar/string expression admission and the one target-neutral PhiValue
+  carrier classification. Bool, Long, Option<Int>, Option<String>, logical
+  records/options, and admitted collection values share operation 29; target emitters do not
+  reclassify it.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy`
+  -- target-neutral generated-runtime requirements. ArrayInt runtime bodies are
+  selected from sealed operation and expression identities, never from ABI
+  presence alone; C, LLVM, and foreign declarations consume the same decision.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy`
   -- MIR-blind C expression rendering from the sealed typed arena and String
   runtime ABI receipts. Responsibility-specific direct-call, case/math, and
   generated-runtime owners render ordered calls and standalone runtime bodies.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_expression_owner.pgy`
+  -- final C consumption of generated external runtime rows. Intent
+  observability and runtime-value calls share dispatch but not ABI authority.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_numeric_cast_expression_owner.pgy`
+  -- the explicit `long long` target projection for the admitted Int-to-Long
+  identity; it never infers a target type from source spelling.
+- `src/self_hosted/compiler/direct_mir_scalar_program_string_literal_fact_owner.pgy`
+  -- exact decoding of persisted Pergyra String literal spelling into the
+  sealed expression payload. It accepts only the owned ASCII escape vocabulary
+  and consumes the bounded String decoder with an exact-end receipt.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_string_search_expression_owner.pgy`
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_c_string_index_materialization_owner.pgy`
@@ -2580,13 +3330,28 @@ inventory must not become a second fact-family owner registry.
   -- MIR-blind C
   block-lifetime literal materialization and boundary-selected cleanup. The
   cleanup owner skips only the sealed borrowed-static local.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_set_string_expression_owner.pgy`
+  -- MIR-blind C projection of admitted `Set<String>` construction, mutation,
+  and lookup through the canonical Set runtime symbol fact. It does not infer
+  a carrier layout or builtin signature from source spelling.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy`
   -- MIR-blind range-driven C program rendering. One routine renderer serves
   entrypoint and callable; it never reopens admitted MIR.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_operation_owner.pgy`
+  and `direct_mir_scalar_program_c_array_mutation_owner.pgy` -- MIR-blind C
+  per-operation dispatch and local/value-result ArrayInt/ArrayString storage
+  mutation from the sealed GraphPlan receiver and ordered expression rows.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy`
   -- MIR-blind LLVM SSA expression rendering from the same typed arena and ABI
   receipts. Ordered signatures/direct calls and case/math runtime bodies live
   in target-specific owners rather than a second semantic dispatcher.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy`
+  -- final LLVM call/declaration consumption of generated external runtime
+  rows, including intent-observability ABI IDs and target symbol spellings.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_numeric_cast_expression_owner.pgy`
+  -- the representation-preserving Int-to-Long projection for GraphPlan's
+  shared `i64` scalar ABI. The semantic source/target identity remains in the
+  sealed expression facts rather than a backend width guess.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_search_expression_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_index_materialization_owner.pgy`,
   and
@@ -2606,20 +3371,77 @@ inventory must not become a second fact-family owner registry.
   -- MIR-blind
   LLVM caller-frame literal materialization and boundary-selected cleanup from
   the same ownership fact as C.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_set_string_expression_owner.pgy`
+  -- MIR-blind LLVM projection of the same admitted `Set<String>` operations;
+  raw runtime declarations come from the canonical Set ABI owner and a
+  by-value receiver is materialized only at the call boundary that requires an
+  address.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy`
   -- one plan-derived declaration set for generated LLVM runtime bodies. It
   is shared by scalar-program and legacy scalar-CFG projections and owns
   declaration cardinality only; semantic bodies remain with their runtime
-  owners.
+  owners. Bounds declarations follow the target-neutral helper requirement or
+  an actual checked set/index operation, never ArrayInt ABI presence alone.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy`
   -- literal String global materialization, separated from expression policy.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_literal_owner.pgy`
+  -- LLVM byte escaping for decoded scalar-program String literals. Quotes,
+  slashes, and control escapes are encoded here rather than concatenated into
+  IR by the global owner.
+- `src/self_hosted/compiler/direct_mir_scalar_program_comparison_expression_kind_owner.pgy`
+  and `direct_mir_scalar_program_comparison_expression_readiness_owner.pgy`
+  -- one normalized typed comparison identity/readiness family. Int comparison
+  identities and exact Long greater/equality/inequality/less identities remain
+  distinct; exact Bool equality/inequality share this same owner while C and LLVM
+  consume the same signed comparison projection; targets do not reclassify
+  source graph kinds or operand types.
+- `src/self_hosted/compiler/direct_mir_scalar_program_case_math_expression_readiness_owner.pgy`,
+  `direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy`,
+  `direct_mir_scalar_program_case_math_runtime_projection_owner.pgy`,
+  `direct_mir_scalar_program_c_case_math_expression_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_case_math_expression_owner.pgy` -- one
+  target-neutral String/math expression family and its sealed runtime-call ABI
+  projection. Dynamic Long division/remainder join exact Long operands to the
+  checked arithmetic rows; neither target emits raw `/`, `%`, `sdiv`, or
+  `srem`, nor recreates divisor safety policy.
+- `src/self_hosted/compiler/runtime_value_call_abi_identity_owner.pgy`,
+  `runtime_value_call_abi_owner.pgy`,
+  `runtime_value_representation_owner.pgy`,
+  `direct_mir_scalar_program_runtime_value_expression_readiness_owner.pgy`,
+  and `direct_mir_scalar_program_runtime_value_lifecycle_owner.pgy` -- the
+  target-neutral join from one allocation-free Allocator/TextBuilder stable
+  identity receipt through the canonical ABI-layout registry to one
+  runtime-value representation and its GraphPlan-local last-consumer proof.
+  Final MIR validation consumes the identity receipt and never reconstructs
+  the serialized runtime-call registry per instruction. This is compiler
+  storage lifetime, not
+  an entity or world lifecycle model: every admitted owner value is created by
+  its registry call, used only while live, and reaches its exact terminal call
+  on every exit without reopening source spelling or rescanning other routines.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_runtime_value_expression_owner.pgy`
+  and `direct_mir_scalar_program_llvm_runtime_value_expression_owner.pgy` --
+  MIR-blind target projection of the same runtime-value call identity. They
+  materialize the canonical aggregate storage and symbols but do not infer
+  ownership, cleanup, or ABI shape independently.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy`,
+  `direct_mir_scalar_program_llvm_expression_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_int_math_materialization_owner.pgy` -- typed
+  Int/Long addition, subtraction, and multiplication, Int negation, and `Abs`
+  lowering consume the language's defined two's-complement wrap semantics.
+  LLVM uses plain `add`/`sub`/`mul` without `nsw`; emitted C is compiled under
+  the canonical
+  `-fwrapv` contract. No CFG-, magnitude-, or String-window-specific overflow
+  proof may narrow these source semantics.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy`
-  -- MIR-blind range-driven LLVM program rendering. Its target syntax differs
-  from C, but routine schedule, ranges, expression facts, and return ownership
-  all come from the same sealed plan.
+  -- MIR-blind range-driven LLVM program rendering from the sealed GraphPlan.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_operation_owner.pgy`
+  and `direct_mir_scalar_program_llvm_array_mutation_owner.pgy` -- MIR-blind
+  LLVM per-operation dispatch and local/value-result ArrayInt/ArrayString
+  storage mutation from the same sealed receiver and expression rows.
 - `src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy` --
   selected-target boundary that issues one sealed GraphPlan and never retries a
-  returned-Array, Option, terminal-graph, or native backend path.
+  returned-Array, Option, terminal-graph, or native backend path. Opt-in
+  receipts bracket the one GraphPlan build and the one target emission.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy` --
   operation-row assembly plus latest-dominating ValueId joins.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_loop_flow_admission_owner.pgy`
@@ -2942,6 +3764,9 @@ inventory must not become a second fact-family owner registry.
   one reconstructed `AstTreeArtifact` epoch, then consumes the pre-projection
   nominal-constructor capture and field identity epoch owner before publishing
   program facts.
+- `src/self_hosted/compiler/canonical_mir_source_module_epoch_owner.pgy` --
+  canonical MIR source-module provenance reconstruction; binds wire-owned
+  paths to reconstructed top-level declarations and reseals the AST digest.
 - `src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy` --
   declaration-field identity epoch owner; rebinds declaration fields and
   topology field references by exact `(owner, name, field_kind)` joins.

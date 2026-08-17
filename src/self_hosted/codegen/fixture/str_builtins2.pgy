@@ -7,6 +7,7 @@ func Main() -> Void {
     let parts: Array<String> = Split("a,bb,c", ",");
     Log(ToString(ArrayLength(parts)));
     Log(parts[1]);
+    Log(StringJoin(parts, "|"));
     let n: Int = ToInt("42");
     Log(ToString(n + 1));
     let empty: Array<String> = Split("x", ",");
@@ -14,4 +15,5 @@ func Main() -> Void {
     let explicit: Array<String> = StringSplit("left,right", ",");
     Log(ToString(ArrayLength(explicit)));
     Log(explicit[0]);
+    Log(Join(explicit, "/"));
 }

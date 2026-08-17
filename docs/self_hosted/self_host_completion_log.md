@@ -6,6 +6,47 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-18 - Exact collection route reaches a current-source fixed point
+
+- Refreshed the stale self-host codegen carrier through the canonical
+  seed-only bootstrap. The resulting 2,490,793-byte gen2 has SHA-256
+  `EF39A1AC8BFD79BBAF375115232D24ADCFD72B9EB8F45CF68B45AC3A8E8D33B9`.
+  `self_host_compiler_build.sh` then produced the 5,893,469-byte DRV-2,
+  SHA-256
+  `B55C21CF153067EE09C90ECA46D8F005E5895178125C6109CD597C15F03B5AB9`;
+  bounded source smoke and machine-manifest replay passed.
+- The collection-program route no longer claims a compiler-scale program merely
+  because matching role types occur somewhere in it. It requires exactly one
+  entrypoint, one producer, one consumer, and three routines. The exclusive
+  multi-routine projection consumes that fact before the scalar route, while
+  the terminal owner no longer reconstructs it. Claimed malformed members still
+  fail closed.
+- The existing Array<Int> ABI projection now uses the canonical C `long long`
+  print-argument type for `%lld`. The focused C/LLVM gate executes exact
+  `12/4` and alternate `20/5`, preserves row-order equality, and rejects ABI,
+  call, return, and collision mutations. The independently reproduced fixture
+  MIR SHA-256 is
+  `C473FF46F33690E8C47231F959C9DE45A2856E1B7B9FA5D60F58D561926A968C`.
+- DRV-2 published a 232,060,222-byte current-source MIR, SHA-256
+  `507723B927045A0D12085218B16B172347C1FDB1371538969A4B5D4B88A8F51F`,
+  in 144.550 seconds under the unchanged 3,072MiB cap. It consumed that MIR in
+  119.018 seconds and emitted 10,257,044-byte gen2 C, SHA-256
+  `140C241E86C026CDC1433251D70ED400448F4179775672D3F004216E20044D2D`.
+  The host-compiled gen2 consumed the same MIR in 129.282 seconds and emitted
+  byte-identical gen3 C. Consumer peaks were 1.681/1.694GiB private.
+- The routine-build storage lifetime gate, compiler-internal caller provenance
+  C/LLVM gate, registry generator check, focused shell syntax, and CI-profile
+  inventory pass. The focused Make recipe now supplies the built self-host
+  driver through `PGY_SELF_DRIVER_BIN`; the previous ignored `PGY_BIN` wiring
+  is negative-gated by the CI profile. Existing CI targets already own these
+  gates. Full component
+  inventory, remote CI, release promotion, and commit were not claimed.
+- Source-MIR publication peaked at 2.781GiB private, above the 2.4GiB attention
+  threshold. This fixed point closes the reached route error but not producer
+  lifetime debt. The next work must integrate the same executable evidence or
+  reduce that measured owner lifetime; another unrelated SoT family, V label,
+  cache, shard, timeout, or cap increase is not progress.
+
 ## 2026-08-05 - Array<String> call/index substitutes through GraphPlan v23
 
 - Committed executable checkpoint `52715894`. The 5,048,145-byte installed
@@ -417,8 +458,10 @@ rewrite history.
 - Removed block-count semantics from returned-Array routing and require actual
   iteration evidence. Direct calls bind target identity and actual type.
   Eager logical RHS is restricted to nontrapping Bool DAGs. Modulo rejects
-  literal `0` and `-1`; `local + 1` requires a dominating positive bound and
-  LLVM uses `add nsw`. Phi incoming rows are validated completely before any
+  literal `0` and `-1`. The then-current `local + 1` dominating-bound and LLVM
+  `add nsw` policy was later retired because it contradicted the canonical
+  defined-wrap Int semantics; current GraphPlan uses typed arithmetic plus
+  plain LLVM `add`/`sub`. Phi incoming rows are validated completely before any
   shared array mutation.
 - The focused C/LLVM gate covers behavior variants, display/routine-order
   equality, inactive extension payload, and no-artifact use/type/backedge/phi/
@@ -11493,3 +11536,471 @@ Released/default replacement remains 0%.
   temporary 291 debt ceiling with 22. The current installed work therefore did
   not create this RED, and neither a baseline increase nor a blanket direct-MIR
   exclusion is an acceptable fix.
+
+## 2026-08-14 - exact collection formals reuse mutation and phi owners
+
+- The fixed 36,183,978-byte, 1,492-routine canary remains the executable
+  boundary. It is measurement evidence only; owner files, V labels, and `.tmp`
+  artifacts do not increment project progress.
+- `DirectMirScalarProgramIndexedAssignmentFact` joins producer LocalRef,
+  signature ordinal, existing ArrayInt value-result ABI, and index/value graph
+  identities. Stable operation 37 now mutates only the selected formal in C and
+  LLVM. The two-same-type-formal fixture prevents first/unique-formal guesses.
+- One target-neutral ArrayInt helper requirement derives push/get bodies from
+  admitted use rather than ABI presence. This removes unused helper emission
+  and the corresponding LLVM panic dependency without weakening exact local
+  value-result calls or their non-addressable-actual rejection.
+- Collection phi values reuse stable operation 29 and one shared
+  `DirectMirScalarCfgPhiValueTypeReady`. ArrayString/ArrayInt branch merges are
+  executable in both targets; incoming, type, and missing-edge mutations fail
+  without artifacts. No collection-specific phi operation was introduced.
+- The final canonical Pergyra-built driver rebuilt in 209.7 seconds. The
+  installed 5,520,167-byte binary has SHA-256
+  `BB3F536120C569927210DF886B4505A64A4E927B997C74853B6B801710905C69`.
+  Collection phi, recursive record phi, collection mutation, indexed
+  assignment, ArrayInt value-result ABI/call, and the CI profile are green.
+- The full component inventory first falsified two stale owner boundaries.
+  Canonical raw Int-literal row construction moved out of instruction-field
+  admission, and Log/Exit/collection statement admission moved out of the
+  routine traversal monolith. Their final caps are 36/40, 60/65, 111/125, and
+  351/380 respectively. On the final driver, indexed assignment passes in
+  11.3 seconds, collection mutation in 21.0 seconds, and ordered Log/Exit in
+  10.7 seconds; the CI profile passed in 3.4 seconds and the final component
+  inventory passed in 223.7 seconds.
+- The first canary stopped at ordinal 120/raw row 119 on ArrayString phi. After
+  the shared phi closure, the second crossed that frontier and stopped with no
+  artifact at ordinal 151/raw row 150,
+  `MirProgramInstructionExpressionRowsAppend`. The routine has three ArrayInt
+  value-result formals and twelve pushes into exact receivers.
+- Next objective: route ArrayInt formal push through the existing producer
+  LocalRef, signature, ABI, and collection mutation plan. A routine/name/arity
+  branch, first-parameter inference, backend MIR reread, new collection plan,
+  or unproven widening of local-only operation 31 is forbidden. The next
+  falsifier uses two same-typed formals and proves that only the named ordinal
+  changes in C and LLVM.
+- No SoT registry row was promoted. Hard closure remains 49/86 (57.0%), the
+  integrated forecast remains 78%, and strict beta remains 83%.
+
+## 2026-08-14 - formal push and safe Int math reach routine-index admission
+
+- Stable operation 31 now accepts an exact ArrayInt value-result target carried
+  by the producer LocalRef and signature ordinal. The two-same-type-formal
+  fixture pushes only to ordinal 1 and proves ordinal 0 is unchanged in C and
+  LLVM. Typed readiness no longer classifies that formal as a local; LLVM's
+  mutation target recognizes both op31 push and op37 set. Receiver, owner,
+  ordinal, and value-type mutations fail closed.
+- Stable expression identity 73 closes Int multiplication. Identity 74 closes
+  signed Int division only when the persisted divisor is a canonical Int
+  literal other than zero or `-1`. Both targets consume the same expression
+  rows (`*`/`mul i64`, `/`/`sdiv i64`); missing-edge, wrong-type, and zero
+  divisor variants emit no artifact. No graph schema or operation version was
+  added.
+- The final focused gates pass: Array mutation 25.1 seconds, multiply 11.3
+  seconds, divide 12.7 seconds, CI profile 9.5 seconds, and component structural
+  inventory 323.3 seconds. The canonical current-source driver build passed in
+  213.1 seconds. `bin/pgy-self-driver.exe` is 5,519,781 bytes with SHA-256
+  `CFAB5C2A0B23187B56E5B71D5D6380F0EA2A7160E30D0254FAAE660E4AACF1FC`.
+- The fixed canary advanced in three independently observed steps: formal push
+  exposed expression row 2111 (Int multiply, raw routine 152/ordinal 153),
+  multiply exposed row 2112 (safe divide, raw 153/ordinal 154), and the final
+  divide build crossed both before failing at ordinal 160/raw routine 159.
+- Raw routine 159 is `BuildMirProgramRoutineIndexFromTable`, with 30 blocks and
+  123 instructions. It mixes logical-record values with ArrayInt, ArrayString,
+  and ArrayBool storage. The outer error currently reports only the ordinal and
+  discards the internal rejection stage, so the first unsupported row is
+  explicitly `Unknown`.
+- Next objective: carry the exact failed stage plus global row/source identity
+  from `DirectMirScalarCfgProgramAppendRoutine` to the graph-plan diagnostic,
+  then implement only the seam named by that receipt. Broad ArrayBool/record
+  admission, routine spelling or size branches, backend MIR rereads, another
+  graph, timeout increases, and repeated canary probes without new evidence are
+  forbidden. Hard closure remains 49/86 (57.0%), integrated forecast 78%, and
+  strict beta 83%.
+
+## 2026-08-14 - local ArrayBool push and parameter-entry phi reach populated ArrayInt
+
+- The routine-admission receipt resolved its former unknown boundary to global
+  row 2243/source `AST_CALL` in `BuildMirProgramRoutineIndexFromTable`: a local
+  `Array<Bool>` push. Stable operation 39 joins the exact local receiver and
+  Bool value expression. C uses `pgy_ab_push`; LLVM uses the same i1 growth
+  contract. Receiver/type mutations reject without an artifact.
+- The next fixed-canary receipt identified source syntax ID 5428,
+  `SemanticTrimSourceRangeReuse`. Its rebound `start`/`end` value parameters
+  now consume the existing ordered parameter-set fact. Canonical parameter
+  LocalRefs own the working local, synthetic `.0` entry value, type, and phi
+  predecessor identity; C and LLVM initialize from the same exact formal.
+- The focused parameter fixture executes a backedge rebind and a zero-iteration
+  entry, producing `7` then `4` in C and LLVM. A forged formal identity fails
+  before publication. This semantic change advances GraphPlan schema to v51.
+- The final current-source driver build passed in 223.1 seconds. Installed
+  `bin/pgy-self-driver.exe` is 5,529,557 bytes with SHA-256
+  `4F2931E649D9BF708635223750C138A3D77CF98DAFEEA8DD20061DCA800A84A6`.
+  The observed focused receipts are ArrayBool mutation 23.9 seconds,
+  routine-admission diagnostic 14.0 seconds, value-parameter rebind 8.0 seconds,
+  and CI profile 6.2 seconds. The final driver reran mutation plus diagnostics
+  green in 38.0 seconds and value-parameter rebind green in 14.0 seconds; the
+  component structural inventory passed in 560.0 seconds. Remote CI, full
+  GraphPlan aggregate, commit, push, and publication did not run.
+- The fixed 36,183,978-byte canary crossed both seams and stopped after
+  234.034 seconds with no artifact at expression row 3227/raw routine row 229,
+  `MirRoutineGraphDistances`. The exact expression is
+  `let queue: Array<Int> = [start]`, with `start` owned by
+  `parameter:5969:2`.
+- Next objective: let the existing populated ArrayInt literal admission and
+  C/LLVM materialization owners consume that exact parameter leaf. Preserve
+  ordinal, element type, and source order. Routine spelling/size branches,
+  same-type formal guessing, backend MIR rereads, a new graph/cache, and a
+  parallel literal-only fallback are forbidden. No top-level SoT row was
+  promoted; 57.0% hard closure, 78% integrated forecast, and 83% strict beta
+  remain unchanged.
+
+## 2026-08-14 - exact parameter leaves populate ArrayInt literals
+
+- The populated ArrayInt literal owner now admits three ordered operand forms:
+  canonical Int literals, zero-parameter direct calls returning Int, and exact
+  value-parameter leaves. No new expression kind, graph, cache, or collection
+  plan was added.
+- Parameter admission joins formal binding ordinal, parameter-set name/type and
+  value/direct policy, source syntax owner, and `expr0_local_refs`. C passes
+  only parameter operands into its existing materializer and leaves zero-call
+  evaluation in source order; LLVM consumes the same normalized operand rows.
+- The focused fixture selects ordinal 1 of two Int formals, executes exact `9`
+  on C and LLVM, and rejects wrong owner, wrong ordinal, and String-typed leaf
+  without publishing an artifact. Existing literal and zero-call output/order
+  remains byte-for-byte observable. The gate passed in 12.9 seconds.
+- The final Pergyra-built self-driver installed in 239.9 seconds and is
+  5,531,272 bytes with SHA-256
+  `9DBCAD01EFCDD71227938F08701765652CCE90255BEAFC341422ED5B8037DDF8`.
+  Value-parameter rebind, Array mutation, admission diagnostics, CI profile,
+  and component inventory pass in 12.4, 41.9, 8.5, 12.3, and 421.3 seconds.
+- One fixed-canary run crossed row 3227 and stopped after 241.300 seconds with
+  no artifact at expression row 4338/raw routine row 252,
+  `MirRoutineFactIndexBranchAtBlock`. Its block-10 return constructs nested
+  `MirRoutineInstructionView`/`MirRoutineInstructionSelection` records while
+  indexing readonly-ref routine-index arrays.
+- The next objective is an exact first-failed nested expression stage/node
+  receipt for row 4338. A routine/record allowlist, constructor-wide admission,
+  broad readonly-record indexing, backend MIR reread, or second expression graph
+  is forbidden before that receipt. No SoT registry family was promoted, so
+  hard closure remains 49/86 (57.0%), integrated forecast 78%, and strict beta
+  83%.
+
+## 2026-08-14 - first expression failure receipt and nested record constructor
+
+- Expression normalization now carries the exact first rejecting stage and
+  source-graph node to the routine diagnostic. The successful GraphPlan schema
+  is unchanged. The focused C/LLVM gate distinguishes `leaf-operand node=0`
+  from `expression-kind node=2` and passes in 7.1 seconds.
+- The first fixed-canary receipt was `builtin-call node=9 row=4338`. It exposed
+  an enclosing-expected-type filter inside declaration-keyed record constructor
+  admission. Removing that duplicate authority admits records nested inside a
+  different record result while leaving root result typing unchanged.
+- The multi-record fixture now executes
+  `LocalDocumentFact(LocalTableFact(...), ...)` in both C and LLVM and retains
+  its existing declaration-identity and ABI negatives. The gate passes in 12.1
+  seconds.
+- The final current-source driver installed in 240.5 seconds. It is 5,537,253
+  bytes, SHA-256
+  `46EB4248737E2C71B5B3987D22D60059E9C258FF458936601C15F23D50313188`.
+  Component inventory passes in 343.5 seconds and local CI profile in 6.1
+  seconds. Remote CI, full GraphPlan aggregate, commit, push, and publication
+  did not run.
+- The next canary receipt is `expression-kind node=2 row=4360`, raw routine row
+  258 `MirAbiLayoutMulMod`: `let left: Long = a % modulus`. Dynamic Long
+  remainder needs an explicit shared divisor/overflow safety fact; treating it
+  as safe-literal Int remainder or accepting C signed UB is forbidden.
+- No top-level SoT row was promoted. Hard closure remains 49/86 (57.0%),
+  integrated forecast 78%, and strict beta 83%.
+
+## 2026-08-14 - checked Long remainder and next Long phi receipt
+
+- Stable expression identity 75 admits exact `Long % Long` only after joining
+  runtime-call ABI row246 (`checked-arithmetic/long-modulo`, target-library
+  symbol `pgy_checked_mod_i64_export`, shape `long_long_to_long`). The existing
+  C/LLVM case-math consumers use the sealed projection; raw `%`/`srem` is not a
+  fallback.
+- The focused gate passed in 12.5 seconds: `100 % 7 == 2`,
+  `INT64_MIN % -1 == 0`, canonical zero-divisor panic, and wrong operand
+  type/expression kind rejection in both targets. Runtime ABI manifest parity
+  passed in 37.4 seconds and the adjacent Int-divide gate in 6.2 seconds.
+- The current driver is 5,619,967 bytes, mtime 2026-08-14 08:17:17 +09:00,
+  SHA-256
+  `73CEE796D3C7AF524E61E20CB86F84EC0A1790284F56B2DCD8F4841BDD916058`.
+- The fixed canary crossed row4360 and exited 1 after 203.644 seconds without an
+  artifact at `stage=phi ordinal=259 block=1 row=4363`. Ordinal259 maps to raw
+  routine row258 `MirAbiLayoutMulMod`; row4363 is its first Long loop-header
+  phi (`left.4` from `left.1`/`left.11`). The next rung is common PhiValue Long
+  admission with exact incoming/predecessor facts, not a routine or backend
+  exception.
+- Full component inventory passed in 348.6 seconds, the local CI profile in
+  4.7 seconds, the self-host progress metric in 23.9 seconds, and documentation
+  quality after the final edits in 5.5 seconds. Remote CI and the full
+  GraphPlan aggregate did not run.
+- No top-level SoT row was promoted. Hard closure remains 49/86 (57.0%),
+  integrated forecast 78%, and strict beta 83%.
+
+## 2026-08-14 - common Long PhiValue and next Long greater receipt
+
+- Exact Long joins now consume the existing common PhiValue classifier,
+  operation 29, and `MirPhiPredecessorBindingFact`. Uses-array order is not
+  treated as predecessor order; each selected incoming definition must dominate
+  its predecessor and match the result local/type. No Long-only opcode or
+  backend path was added.
+- The focused C/LLVM gate returns `29`/`11` for true/false paths and rejects a
+  wrong incoming type, a duplicated non-dominating incoming definition, and
+  missing cardinality. It passed in 9.4 seconds; the existing collection
+  PhiValue regression passed in 8.3 seconds.
+- Fresh codegen bootstrap completed with zero source errors/warnings. The
+  repository-owned final build script installed the current driver in 223.3
+  seconds: 5,619,967 bytes, mtime 2026-08-14 09:00:54 +09:00, SHA-256
+  `E1A7E97A39E3AD8CB38E58A1E95D6D3993C459AE00B9612679885B0E792AEF87`.
+  The enclosing Windows Make wrapper itself remained environment-red because
+  of cross-shell path/temporary-directory translation; this was not a source
+  compile error or a permission escalation.
+- Full component inventory passed in 349.2 seconds and the local CI profile in
+  6.0 seconds. The final progress metric passed in 20.8 seconds at 19.57%
+  implementation volume (`default_c_emit=substituting`,
+  `full_default_compile=open`), and documentation quality passed after the
+  final ordering edit in 8.7 seconds. Remote CI and the full GraphPlan aggregate
+  did not run.
+- The fixed canary crossed rows4363-4365 and exited 1 after 214.910 seconds
+  without an artifact at `expression-kind node=2 row=4366 source=AST_BINARY`.
+  The exact graph in raw routine row258 `MirAbiLayoutMulMod` is `right > 0L`.
+  The next bounded rung is exact Long greater comparison through the existing
+  comparison/branch family, not a routine or backend exception.
+- No top-level SoT row was promoted. Hard closure remains 49/86 (57.0%),
+  integrated forecast 78%, and strict beta 83%.
+
+## 2026-08-14 - typed Long comparisons and next Long addition receipt
+
+- The former Int-only comparison owner is replaced by one typed comparison
+  family. Existing Int identities 7/11/60/61/66/67 stay stable; append-only
+  identities 76/77 admit only exact Long greater/equality. The retired owner
+  path is deleted and negative-gated, and GraphPlan advances v52 -> v54 without
+  a carrier column or parallel graph.
+- Existing C and LLVM comparison consumers emit signed greater and equality
+  operations. The focused true/false plus wrong-type/kind gate for both
+  comparisons passed in 17.9 seconds; the Int comparison/wrap regression passed
+  in 11.8 seconds.
+- Fresh bootstrap produced the 2,414,827-byte gen2 seed, SHA-256
+  `1BA700150377DF9144C9F48E52F4203E19ADD0F19F5887314EC03C5C59AC6DA1`.
+  The repository build script installed the v53 driver in 205.2 seconds; the
+  same current seed then installed the v54 driver in 194.1 seconds:
+  5,621,222 bytes, mtime 2026-08-14 10:14:57 +09:00, SHA-256
+  `89B8D1E42E3C410F3AFF2F34ED28F4D73E796F9135B0B45C54F7B4E2312E89A1`.
+  The outer Windows tool call returned at its five-minute budget while its
+  already-started child completed normally; no permission escalation or
+  network access was involved.
+- Full v54 component inventory passed in 329.9 seconds. Local CI profile,
+  progress metric, and documentation quality passed in 9.4, 9.1, and 10.3
+  seconds. The progress receipt remains 19.57% implementation volume with
+  default C emit `substituting` and full default compile `open`.
+- The fixed canary crossed rows4366-4367 and exited 1 after 170.869 seconds
+  without publishing an artifact at `expression-kind node=2 row=4368`. In raw
+  routine row258 `MirAbiLayoutMulMod`, the enclosing graph is
+  `((result + left) % modulus)`: the Long addition is rejected before the
+  admitted remainder root. The next bounded rung must identify the language's
+  Long overflow contract before admitting exact addition; blind Int identity
+  reuse, raw C signed UB, or a backend/routine exception is forbidden.
+- No top-level SoT row was promoted. Hard closure remains 49/86 (57.0%),
+  integrated forecast 78%, and strict beta 83%. Remote CI, full GraphPlan
+  aggregate, commit, push, and publication did not run.
+
+## 2026-08-14 - Long wrap arithmetic and next Int-to-Long cast receipt
+
+- Exact Long addition, checked division, inequality, multiplication, and
+  subtraction use append-only identities 78 through 82. Addition,
+  multiplication, and subtraction share the defined wrap contract: emitted C
+  uses `-fwrapv`, LLVM emits plain `add`/`mul`/`sub` without `nsw`, and neither
+  target routes them through checked arithmetic. Existing remainder,
+  greater/equality, and PhiValue identities remain stable.
+- The focused multiplication gate passed in 15.1 seconds and the final-driver
+  subtraction gate in 12.1 seconds. Final-driver addition/multiplication were
+  green; division/remainder/comparison passed together in 56.1 seconds. Stale
+  wrong-kind mutations were changed from newly legal arithmetic kinds to
+  Long-typed `logical_and`, keeping the negative independent of legalization
+  order.
+- The repository-owned build installed the current GraphPlan v59 driver in
+  226.3 seconds: 5,625,746 bytes, mtime 2026-08-14 11:51:36 +09:00, SHA-256
+  `1E1F7546C7AE4110CF17DF4672182F0BB94C9BA7E7E9C780269FE7C311BBAD39`.
+  No permission escalation, network access, or Trusted Access was used.
+- Full component inventory passed in 365.8 seconds. Local CI profile, progress
+  metric, and full UTF-8 documentation quality passed in 7.2, 4.0, and 139.2
+  seconds. The progress receipt is 65,130 implementation LOC, 191,399 compiler-
+  core LOC, 19.58% implementation volume, default C emit `substituting`, and
+  full default compile `open`.
+- The v58 fixed canary crossed row4386 and stopped at row4388's first Long
+  subtraction after 211.248 seconds. The v59 canary crossed row4388 and stopped
+  after 204.520 seconds without an artifact at `expression-kind node=12
+  row=4397`. The exact graph is in raw routine row261
+  `MirAbiLayoutHashString`: `MirAbiLayoutHashByte(out, CharCode(value, n, i) as
+  Long)`. Node12 is the `type_name Long` child of the exact Int-to-Long cast.
+- The next bounded rung is exact `Int -> Long` cast/type-name admission through
+  existing expression owners. Arbitrary cast widening, backend spelling
+  policy, routine exceptions, MIR rereads, and new graph/cache fallback are
+  forbidden. No top-level SoT row was promoted; hard closure remains 49/86
+  (57.0%), integrated forecast 78%, and strict beta 83%. Remote CI, full
+  GraphPlan aggregate, commit, push, and publication did not run.
+
+## 2026-08-14 - exact Int-to-Long cast and next Long-less receipt
+
+- Append-only identities 83/84 admit only `TypeName(Long)` and
+  `Cast(Int, Long)`. The normalized owner retains source/target identity and
+  exact shape. C emits an explicit `long long` cast; LLVM preserves the value
+  over GraphPlan's shared `i64` carrier. Arbitrary casts and type-name leaves
+  remain rejected.
+- The focused ordinary/boundary C/LLVM gate and four wrong-source/target/shape/
+  non-cast negatives passed in 32.7 seconds. Adjacent Long wrap regressions
+  passed in 14.3 seconds. Full component inventory passed in 357.0 seconds and
+  local CI profile in 8.2 seconds. Progress, documentation-quality, and source
+  UTF-8 gates passed in 4.6, 6.5, and 31.0 seconds; implementation volume
+  remains 19.58%.
+- The repository-owned build installed GraphPlan v60 in 207.8 seconds:
+  5,627,785 bytes, mtime 2026-08-14 12:33:52 +09:00, SHA-256
+  `76E1CC93A1F537C730CD70593710EE822C12019069EB54C5D6F433B6C60A2796`.
+  No permission escalation, network access, or Trusted Access was used.
+- The fixed canary crossed row4397 and exited 1 after 205.389 seconds without
+  an artifact at `expression-kind node=2 row=4402 source=AST_BINARY`. The exact
+  graph is `unsigned_value < 0L` in raw routine row262
+  `MirAbiLayoutHashU32` (source syntax ID 7479).
+- The next bounded rung is exact `Long < Long -> Bool` in the existing typed
+  comparison family. Int-less identity reuse, mixed operand acceptance,
+  routine/backend exceptions, MIR rereads, and a second graph are forbidden.
+  No registry row was promoted: hard closure remains 49/86 (57.0%), integrated
+  forecast 78%, and strict beta 83%. Remote CI, full GraphPlan aggregate,
+  commit, push, and publication did not run.
+
+## 2026-08-14 - exact Long less and next populated Array<Int> element receipt
+
+- Append-only identity 85 admits only exact `Long < Long -> Bool` through the
+  existing typed comparison family. Existing IDs stay stable. C emits signed
+  `<`; LLVM emits `icmp slt i64`; no carrier or comparison graph was added.
+- The expanded greater/equality/inequality/less gate executed true/false paths
+  and rejected wrong left/right types and source kinds in 14.9 seconds. The
+  Int-to-Long cast, Int comparison, and Long addition/multiplication/subtraction
+  regressions passed in 17.9, 13.2, 19.1, 18.0, and 18.1 seconds. Component
+  inventory passed in 306.5 seconds and local CI profile in 5.8 seconds.
+  Progress, documentation-quality, and source UTF-8 gates passed in 4.8, 6.4,
+  and 0.8 seconds; implementation volume remains 19.58%.
+- The repository-owned build installed GraphPlan v61 in 210.4 seconds:
+  5,627,856 bytes, mtime 2026-08-14 12:59:45 +09:00, SHA-256
+  `ABEAD70CD950AE536B1FD6B63EA9412E4E7BF03C938A7F2C1DA23EA449D4338C`.
+  No permission escalation, network access, or Trusted Access was used.
+- The fixed canary crossed row4402 and exited 1 after 181.949 seconds without
+  an artifact at `literal node=16 row=4513 source=AST_LET_DECL`. It maps to
+  block8 instruction1 of raw routine row268
+  `MirAbiLayoutFieldsCaptureWithin` (source syntax ID 7683):
+  `let starts: Array<Int> = [(0 - 1), (0 - 1), (0 - 1), (0 - 1)]`.
+- The next bounded rung is ordered admitted Int expression elements in the
+  existing populated Array<Int> operand owner. Source-text evaluation,
+  arbitrary element types, routine/backend exceptions, MIR rereads, and a
+  second graph are forbidden. No registry row was promoted: hard closure
+  remains 49/86 (57.0%), integrated forecast 78%, and strict beta 83%. Remote
+  CI, full GraphPlan aggregate, commit, push, and publication did not run.
+
+## 2026-08-14 - local logical-record Array and next formal member-index receipt
+
+- GraphPlan v68 adds append-only expression identity 88 only for an exact empty
+  local `Array<LogicalRecord>` literal. The existing logical-record declaration
+  inventory and nominal-array `data,len,cap` target remain authoritative. CFG
+  value/typed plans and direct-call value-result identity now consume those
+  facts; C and LLVM materialize the same local carrier and copyout.
+- The repository-owned build installed `bin/pgy-self-driver.exe` in 193.0
+  seconds: 5,655,714 bytes, mtime 2026-08-14 16:27:13 +09:00, SHA-256
+  `A9D3AC25FE9884885A59020F2D635884B6FC041A74E84FF3BDBA8A864FE61D3F`.
+  No permission escalation, network access, or Trusted Access was used.
+- The focused record-array/ArrayInt value-result gate passed C/LLVM execution
+  and eight mutations in 15.7 seconds. Local/value-result Push/Set/Pop,
+  logical-record identity, and nested record-array/Bool regressions passed in
+  29.5, 20.0, and 22.3 seconds. The local CI profile is green. LLVM runtime
+  compilation emitted six existing `ATOMIC_VAR_INIT` deprecation warnings;
+  none was skipped or treated as success evidence. Full component structural
+  inventory passed in 291.3 seconds. Progress metric, documentation quality,
+  source UTF-8, and final local CI profile passed in 30.8, 16.0, 35.0, and 8.8
+  seconds. The receipt is 65,130 implementation LOC, 192,539 compiler-core
+  LOC, 19.58% implementation volume, default C emit `substituting`, and full
+  default compile `open`.
+- The fixed 36,183,978-byte canary exited 1 after 167.911 seconds without an
+  artifact at `stage=leaf-operand node=0 row=7044 source=AST_CALL`. It maps to
+  block10 instruction0 of routine index613
+  `SemanticExpressionGraphFactsFromAstRows` (source syntax ID 13593):
+  `ArraySet(roots, slot, rows.roots[i])`. `rows` is a value formal record and
+  `roots` is its declaration-owned `Array<Int>` member.
+- The next bounded rung is exact formal-record member/index admission through
+  the existing parameter, logical-record, and ArrayInt facts. Source-text
+  evaluation, record/routine spelling, backend field lookup, MIR reread, and a
+  second graph are forbidden. No top-level row was promoted: hard closure
+  remains 49/86 (57.0%), integrated forecast 78%, and strict beta 83%. Full
+  Remote CI, the full GraphPlan aggregate, commit, push, and publication remain
+  unrun for this final state.
+
+## 2026-08-14 - expr0 LocalRef lane and Bool inequality receipts
+
+- The row7044 record-member/index failure was a LocalRef lane collision. The
+  persisted wire carries `expr0` only, but the leaf resolver had looked it up
+  for `expr1` by the same node ordinal. The resolver now receives the lane fact
+  and reads wire LocalRefs only for `expr0`; no schema identity was added for
+  this correction.
+- The focused record/member/index fixture executes `7` in C and LLVM and
+  rejects wrong use order, missing/wrong formal identity, wrong index type,
+  and wrong field type. Array mutation, logical-record, and nested
+  record-array/value-result regressions passed in 28.9, 18.4, and 18.0 seconds.
+- GraphPlan v69 appends identity 89 for exact `Bool != Bool -> Bool`. The typed
+  comparison owner now owns Bool equality and inequality; the duplicate
+  generic Bool-equality rule is removed. C emits `!=`, LLVM emits `icmp ne i1`,
+  and mixed Bool/String or Bool/Int operands reject. Typed comparison and the
+  record-member Bool-inequality gate passed in 16.1 and 14.8 seconds; adjacent
+  OptionBool equality and Bool `SubEquals` gates passed in 16.3 and 16.1
+  seconds.
+- The repository-owned build installed the v69 Pergyra driver in 226.2 seconds:
+  5,655,789 bytes, SHA-256
+  `F8270191B1268065F5A9D3C696E9979CCBDD5A3A6D2BB7D042B32DD762FA0E4A`.
+  The current component structural inventory passed in 374.7 seconds and the
+  final local CI, progress metric, documentation quality, and source UTF-8
+  gates passed in 8.8, 66.9, 18.2, and 59.2 seconds. The progress receipt is
+  65,130 implementation LOC, 192,554 compiler-core LOC, 19.58%, default C emit
+  `substituting`, and full default compile `open`.
+- The v69 fixed canary crossed rows7044 and7155 and exited 1 after 196.014
+  seconds without an artifact at `leaf-operand node=1 row=7201`. It maps to
+  routine index625 `LanguageWordSpelling`, exact expression
+  `id == LanguageWordId.WordAbility`.
+- The attached 2026-08-13 architecture review was checked as design evidence,
+  not semantic authority. This work follows its representation-budget warning:
+  it repaired one owned lane and reused one typed comparison owner instead of
+  adding record or Bool mini-compilers. Lifecycle/provenance/FactStore and MIR
+  compaction proposals remain outside the active executable rung.
+- No top-level SoT row was promoted. Hard closure remains 49/86 (57.0%),
+  integrated forecast 78%, and strict beta 83%. Remote CI, the full GraphPlan
+  aggregate, commit, push, and publication remain unrun.
+
+## 2026-08-14 - payload-free enum variant/equality and next String-array receipt
+
+- GraphPlan v70 appends identity90 for one declaration-owned payload-free enum
+  variant and identity91 for exact value-formal/variant equality. The existing
+  enum fact remains authoritative for type, variant name/order, ordinal, and
+  scalar-ordinal representation. C and LLVM consume the normalized ordinal as
+  their existing 64-bit scalar carrier; neither target branches on enum name.
+- The expanded focused gate executes Tone/Direction true and false paths in C
+  and LLVM. Six existing signature/ABI mutations and four new wrong
+  owner/variant/binding/type mutations fail without artifacts. The gate passed
+  in 8.7 seconds. Direct scalar call, typed comparison, record collection-field,
+  and Option<Int> try regressions passed in 15.3, 19.5, 23.3, and 17.3 seconds.
+- The repository build installed the final v70 driver in 207.2 seconds:
+  5,662,221 bytes, mtime 2026-08-14 23:09:47 +09:00, SHA-256
+  `29CC2050D23569F0ABA1D6D9D6D423F701E58C644397E6173F1AD177C305C4DB`.
+  Component structural inventory passed in 327.9 seconds after its stale
+  KindLast ratchet moved from identity89 to append-only identity91.
+- The unchanged 36,183,978-byte canary crossed row7201 and exited 1 after
+  209.074 seconds without an artifact at `literal node=2 row=8457`. It maps to
+  routine index649 `ParserExpressionLeaf` (source syntax ID16460), exact source
+  `let texts: Array<String> = [text]`.
+- The next bounded rung is one exact value-formal String element in the
+  existing populated Array<String> literal owner. Source-text evaluation,
+  parameter/routine spelling, arbitrary expression elements, backend MIR
+  rereads, and a second array graph remain forbidden.
+- No top-level SoT row was promoted. Hard closure remains49/86 (57.0%),
+  integrated forecast78%, and strict beta83%. Final local CI, progress,
+  documentation, and UTF-8 gates passed in 7.2, 15.3, 17.7, and 11.3 seconds;
+  the receipt is 65,130 implementation LOC, 192,814 compiler-core LOC, 19.58%,
+  default C emit `substituting`, and full default compile `open`. Remote CI,
+  full GraphPlan aggregate, commit, push, and publication remain unrun.

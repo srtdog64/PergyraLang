@@ -12,15 +12,24 @@ func DirectMirScalarProgramRuntimeAbiFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.string_to_upper_id);
     hash = DirectMirCfgHashInt(hash, fact.string_to_lower_id);
     hash = DirectMirCfgHashInt(hash, fact.string_length_id);
+    hash = DirectMirCfgHashInt(hash, fact.string_char_code_id);
+    hash = DirectMirCfgHashInt(hash, fact.string_char_at_n_id);
     hash = DirectMirCfgHashInt(hash, fact.string_substring_id);
     hash = DirectMirCfgHashInt(hash, fact.string_substring_with_len_id);
+    hash = DirectMirCfgHashInt(hash, fact.string_sub_equals_with_len_id);
+    hash = DirectMirCfgHashInt(hash, fact.string_sub_index_with_len_id);
     hash = DirectMirCfgHashInt(hash, fact.string_index.digest);
     hash = DirectMirCfgHashInt(hash, fact.string_trim.digest);
     hash = DirectMirCfgHashInt(hash, fact.string_contains_id);
     hash = DirectMirCfgHashInt(hash, fact.string_split_id);
+    hash = DirectMirCfgHashInt(hash, fact.string_join_id);
     hash = DirectMirCfgHashInt(hash, fact.string_to_int_id);
     hash = DirectMirCfgHashInt(hash, fact.array_string_length_id);
     hash = DirectMirCfgHashInt(hash, fact.array_string_get_id);
+    hash = DirectMirCfgHashInt(hash, fact.process_args_id);
+    hash = DirectMirCfgHashInt(hash, fact.dir_walk_id);
+    hash = DirectMirCfgHashInt(hash, fact.file_exists_id);
+    hash = DirectMirCfgHashInt(hash, fact.read_file_id);
     hash = DirectMirCfgHashInt(hash, fact.case_math.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -32,9 +41,17 @@ func DirectMirScalarProgramRuntimeAbiFactWithDigest(
         fact.valid, digest, fact.string_compare_id, fact.string_concat_id,
         fact.string_to_string_id, fact.string_to_upper_id,
         fact.string_to_lower_id, fact.string_length_id,
+        fact.string_char_code_id,
+        fact.string_char_at_n_id,
         fact.string_substring_id, fact.string_substring_with_len_id,
+        fact.string_sub_equals_with_len_id,
+        fact.string_sub_index_with_len_id,
         fact.string_index, fact.string_trim,
         fact.string_contains_id, fact.string_split_id,
+        fact.string_join_id,
         fact.string_to_int_id, fact.array_string_length_id,
-        fact.array_string_get_id, fact.case_math);
+        fact.array_string_get_id, fact.process_args_id, fact.dir_walk_id,
+        fact.file_exists_id,
+        fact.read_file_id,
+        fact.case_math);
 }

@@ -72,7 +72,7 @@ import sys
 
 document = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 plan = document["intent_execution"]
-assert plan["schema"] == "pgy.selfhost.mir-intent-execution-plan.v2", plan
+assert plan["schema"] == "pgy.selfhost.mir-intent-execution-plan.v3", plan
 assert isinstance(plan["plan_digest"], int) and plan["plan_digest"] != 0
 assert len(plan["steps"]) == 2, plan["steps"]
 assert len(plan["terminals"]) == 3, plan["terminals"]

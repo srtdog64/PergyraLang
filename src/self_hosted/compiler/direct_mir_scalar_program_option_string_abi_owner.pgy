@@ -1,0 +1,90 @@
+// One canonical Option<String> layout receipt for expressions and parameters.
+import "direct_mir_option_string_abi_capture_owner.pgy";
+import "direct_mir_routine_param_fact_owner.pgy";
+import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../mir_lower/routine_instruction_scalar_capture_owner.pgy";
+func DirectMirOptionStringAbiFactReady(ref fact: DirectMirOptionMatchAbiFact) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirOptionMatchAbiFactDigest(fact) &&
+        fact.layout_id > 0 &&
+        fact.layout_id == DirectMirOptionMatchAbiCanonicalLayoutId(fact) &&
+        fact.type_name == CompilerAbiLayoutOptionStringTypeName() &&
+        fact.size == 16 && fact.align == 8 &&
+        fact.tag_name == "tag" && fact.tag_offset == 0 &&
+        fact.tag_size == 4 && fact.tag_align == 4 &&
+        fact.value_name == "value" && fact.value_offset == 8 &&
+        fact.value_size == 8 && fact.value_align == 8 &&
+        fact.runtime_fn == "pgy_option_some_String" &&
+        fact.inner_c_type == "char*" && fact.representation == 1 &&
+        fact.discriminant == "tag" && fact.some_tag == "0" &&
+        fact.none_tag == "1" && fact.niche_none_pattern == "";
+}
+func DirectMirScalarProgramOptionStringAbiFromInstruction(
+    current: DirectMirOptionMatchAbiFact, json: String, ref capture: MirRoutineInstructionScalarCapture
+) -> DirectMirOptionMatchAbiFact {
+    if capture.abi_type_name != CompilerAbiLayoutOptionStringTypeName() { return current; }
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, capture.abi_type_name, capture.abi_type_value_ready,
+            capture.abi_type_start, capture.abi_type_end,
+            capture.abi_layout_id_start, capture.abi_layout_id_end,
+            capture.abi_layout_required_start,
+            capture.abi_layout_required_end,
+            capture.abi_layout_start, capture.abi_layout_end);
+    if !IsSome(admitted) {
+        Die("direct MIR scalar program Option<String> ABI receipt is missing");
+    }
+    let admitted_row: MirAbiLayoutRowCapture = UnwrapOption(admitted);
+    let next: DirectMirOptionMatchAbiFact = DirectMirOptionStringAbiFactFromCapture(admitted_row);
+    if current.valid && (current.layout_id != next.layout_id || current.digest != next.digest) {
+        Die("direct MIR scalar program Option<String> ABI owners disagree");
+    }
+    return next;
+}
+func DirectMirScalarProgramOptionStringAbiFromParameter(
+    current: DirectMirOptionMatchAbiFact, own parameter: DirectMirRoutineParamFact) -> DirectMirOptionMatchAbiFact {
+    if parameter.type_name != CompilerAbiLayoutOptionStringTypeName() { return current; }
+    if !DirectMirRoutineParamFactReady(parameter) ||
+        parameter.carriage != "value" || parameter.resource != "none" ||
+        parameter.pass_shape != "direct" || !parameter.abi_required {
+        Die("direct MIR scalar program Option<String> parameter ABI is invalid");
+    }
+    let abi_capture: MirAbiLayoutRowCapture = parameter.abi;
+    let next: DirectMirOptionMatchAbiFact = DirectMirOptionStringAbiFactFromCapture(abi_capture);
+    if current.valid && (current.layout_id != next.layout_id || current.digest != next.digest) {
+        Die("direct MIR scalar program Option<String> ABI owners disagree");
+    }
+    return next;
+}
+func DirectMirScalarProgramOptionStringAbiFromRoutineParameters(
+    current: DirectMirOptionMatchAbiFact, ref routines: MirProgramRoutineIndex,
+    routine_row: Int, param_count: Int
+) -> DirectMirOptionMatchAbiFact {
+    let ordinal: Int = 0;
+    while ordinal < param_count {
+        let parameter: DirectMirRoutineParamFact =
+            DirectMirScalarProgramParamFactAtOrdinal(routines, routine_row, ordinal);
+        current = DirectMirScalarProgramOptionStringAbiFromParameter(current, parameter);
+        ordinal = ordinal + 1;
+    }
+    return current;
+}
+func DirectMirScalarProgramOptionStringAbiCanonicalEmpty(ref fact: DirectMirOptionMatchAbiFact) -> Bool {
+    return !fact.valid && fact.digest == 0 && fact.layout_id == 0;
+}
+func DirectMirScalarProgramOptionStringAbiReadyForExpressions(
+    ref fact: DirectMirOptionMatchAbiFact, ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    let required: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_types) {
+        if expressions.node_types[row] == CompilerAbiLayoutOptionStringTypeName() {
+            required = true;
+        }
+        row = row + 1;
+    }
+    if required || fact.valid { return DirectMirOptionStringAbiFactReady(fact); }
+    return DirectMirScalarProgramOptionStringAbiCanonicalEmpty(fact);
+}

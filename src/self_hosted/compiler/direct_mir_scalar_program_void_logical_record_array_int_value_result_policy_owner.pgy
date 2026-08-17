@@ -1,0 +1,39 @@
+// Exact Void signature joining Array<Int> copyout and a logical-record value.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramVoidLogicalRecordArrayIntValueResultSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.return_type != "Void" || signature.param_count != 3 ||
+        signature.parameters.type_names[0] !=
+            CompilerAbiLayoutArrayIntTypeName() ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, signature.parameters.type_names[1]) ||
+        signature.parameters.type_names[2] !=
+            CompilerAbiLayoutStringTypeName() { return false; }
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        if signature.parameters.resources[ordinal] != "none" ||
+            signature.parameters.pass_shapes[ordinal] != "direct" {
+            return false;
+        }
+        if ordinal == 0 {
+            if signature.parameters.carriages[ordinal] != "value-result" ||
+                !signature.parameters.abi_required[ordinal] ||
+                signature.parameters.abi_layout_ids[ordinal] <= 0 {
+                return false;
+            }
+        } else if signature.parameters.carriages[ordinal] != "value" ||
+            signature.parameters.abi_required[ordinal] ||
+            signature.parameters.abi_layout_ids[ordinal] != 0 {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}

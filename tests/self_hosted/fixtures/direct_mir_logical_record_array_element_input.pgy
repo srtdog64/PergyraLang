@@ -1,0 +1,25 @@
+// One record-Array copyout plus a direct value of its element declaration.
+
+struct GraphRow {
+    let valid: Bool;
+    let ids: Array<Int>;
+    let labels: Array<String>;
+}
+
+struct OtherRow {
+    let valid: Bool;
+    let ids: Array<Int>;
+    let labels: Array<String>;
+}
+
+func AppendGraphRow(
+    inout target: Array<GraphRow>, source: GraphRow
+) -> Void {
+    return;
+}
+
+func Main() -> Void {
+    let ids: Array<Int> = [];
+    let labels: Array<String> = [];
+    Log("record-array-element-input-ready");
+}

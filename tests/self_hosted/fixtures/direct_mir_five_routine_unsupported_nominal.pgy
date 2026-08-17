@@ -7,7 +7,7 @@ struct Pair {
 
 struct Metadata {
     ready: Bool;
-    label: String;
+    optional_count: Option<Int>;
 }
 
 func Keep(value: Pair) -> Pair {

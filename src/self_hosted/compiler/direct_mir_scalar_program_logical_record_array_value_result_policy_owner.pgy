@@ -1,0 +1,120 @@
+// Mixed Void signature policy for declaration-keyed Array<Record> copyout.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "../semantic/array_type_shape_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordArrayElementType(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    array_type: String
+) -> Option<String> {
+    let element: Option<String> = SemanticArrayElementType(array_type);
+    if !IsSome(element) || !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, UnwrapOption(element)) {
+        return None;
+    }
+    return element;
+}
+
+func DirectMirScalarProgramLogicalRecordArrayTypeReady(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    array_type: String
+) -> Bool {
+    return IsSome(DirectMirScalarProgramLogicalRecordArrayElementType(
+        logical_record, array_type));
+}
+
+func DirectMirScalarProgramLogicalRecordArrayValueResultSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.return_type != "Void" || signature.param_count < 2 {
+        return false;
+    }
+    let record_array_count: Int = 0;
+    let array_int_count: Int = 0;
+    let record_value_count: Int = 0;
+    let int_value_count: Int = 0;
+    let other_scalar_value_count: Int = 0;
+    let record_array_element_type: String = "";
+    let record_value_type: String = "";
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        let type_name: String = signature.parameters.type_names[ordinal];
+        let record_array_element: Option<String> =
+            DirectMirScalarProgramLogicalRecordArrayElementType(
+                logical_record, type_name);
+        if IsSome(record_array_element) {
+            if signature.parameters.carriages[ordinal] != "value-result" ||
+                signature.parameters.resources[ordinal] != "none" ||
+                signature.parameters.pass_shapes[ordinal] != "direct" ||
+                signature.parameters.abi_required[ordinal] ||
+                signature.parameters.abi_layout_ids[ordinal] != 0 {
+                return false;
+            }
+            record_array_count = record_array_count + 1;
+            record_array_element_type = UnwrapOption(record_array_element);
+        } else if type_name == CompilerAbiLayoutArrayIntTypeName() {
+            if signature.parameters.carriages[ordinal] != "value-result" ||
+                signature.parameters.resources[ordinal] != "none" ||
+                signature.parameters.pass_shapes[ordinal] != "direct" ||
+                !signature.parameters.abi_required[ordinal] ||
+                signature.parameters.abi_layout_ids[ordinal] <= 0 {
+                return false;
+            }
+            array_int_count = array_int_count + 1;
+        } else if DirectMirScalarProgramLogicalRecordTypeReady(
+                logical_record, type_name) {
+            if signature.parameters.carriages[ordinal] != "value" ||
+                signature.parameters.resources[ordinal] != "none" ||
+                signature.parameters.pass_shapes[ordinal] != "direct" ||
+                signature.parameters.abi_required[ordinal] ||
+                signature.parameters.abi_layout_ids[ordinal] != 0 {
+                return false;
+            }
+            record_value_count = record_value_count + 1;
+            record_value_type = type_name;
+        } else if !DirectMirScalarCfgScalarTypeSupported(type_name) ||
+            signature.parameters.carriages[ordinal] != "value" ||
+            signature.parameters.resources[ordinal] != "none" ||
+            signature.parameters.pass_shapes[ordinal] != "direct" ||
+            signature.parameters.abi_required[ordinal] ||
+            signature.parameters.abi_layout_ids[ordinal] != 0 {
+            return false;
+        } else if type_name == CompilerAbiLayoutIntTypeName() {
+            int_value_count = int_value_count + 1;
+        } else {
+            other_scalar_value_count = other_scalar_value_count + 1;
+        }
+        ordinal = ordinal + 1;
+    }
+    let mixed_copyout: Bool = record_array_count == 1 &&
+        array_int_count >= 1 && record_value_count == 0;
+    let distinct_record_input: Bool = signature.param_count == 4 &&
+        record_array_count == 1 && array_int_count == 0 &&
+        record_value_count == 1 && int_value_count == 2 &&
+        other_scalar_value_count == 0 &&
+        record_array_element_type != record_value_type;
+    let element_record_input: Bool = signature.param_count == 2 &&
+        record_array_count == 1 && array_int_count == 0 &&
+        record_value_count == 1 && int_value_count == 0 &&
+        other_scalar_value_count == 0 &&
+        record_array_element_type == record_value_type;
+    return mixed_copyout || distinct_record_input || element_record_input;
+}
+
+func DirectMirScalarProgramLogicalRecordArrayValueResultParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            logical_record, signature.parameters.type_names[ordinal]) &&
+        signature.parameters.carriages[ordinal] == "value-result" &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0;
+}

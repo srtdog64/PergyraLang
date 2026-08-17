@@ -30,7 +30,7 @@ func DirectMirScalarProgramCOptionIntExpression(
 
 func DirectMirScalarProgramCOptionIntPreamble(
     ref fact: DirectMirOptionMatchAbiFact,
-    target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact
 ) -> String {
     if DirectMirScalarProgramOptionIntAbiCanonicalEmpty(fact) { return ""; }
     let abi: DirectMirOptionMatchAbiProjection =

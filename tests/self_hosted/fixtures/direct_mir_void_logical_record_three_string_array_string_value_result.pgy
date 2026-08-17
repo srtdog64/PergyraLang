@@ -1,0 +1,25 @@
+// Exact Void envelope with ArrayString copyout, a record, and three Strings.
+
+struct ValueEnvProbe {
+    let valid: Bool;
+    let text: String;
+}
+
+func AppendBinding(
+    inout state: Array<String>,
+    env: ValueEnvProbe,
+    source_name: String,
+    value_kind: String,
+    c_name: String
+) -> Void {
+    ArrayPush(state, ToString(StringLength(c_name)));
+    return;
+}
+
+func Main() -> Void {
+    let state: Array<String> = [];
+    let env: ValueEnvProbe = ValueEnvProbe(true, "ready");
+    AppendBinding(state, env, "source", "local", "c_name");
+    Log("void-record-three-string-array-copyout-ready");
+    Log(ArrayLength(state));
+}

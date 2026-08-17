@@ -1,0 +1,33 @@
+// Exact break/continue edge identity shared by scalar CFG consumers.
+
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirScalarCfgControlTransferAdmission {
+    let valid: Bool;
+    let claimed: Bool;
+}
+
+func DirectMirScalarCfgControlTransferFromOwners(
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    source: String, global_row: Int, block: Int, instruction_row: Int
+) -> DirectMirScalarCfgControlTransferAdmission {
+    let is_break: Bool = source == "AST_BREAK";
+    let is_continue: Bool = source == "AST_CONTINUE";
+    if !is_break && !is_continue {
+        return DirectMirScalarCfgControlTransferAdmission(true, false);
+    }
+    if instruction_row + 1 != index.block_instruction_counts[block] ||
+        index.block_succ_true[block] < 0 ||
+        index.block_succ_false[block] >= 0 ||
+        MirRoutineInstructionUseCountAtGlobal(uses, global_row) != 0 {
+        return DirectMirScalarCfgControlTransferAdmission(false, true);
+    }
+    let target_dominates: Bool = MirRoutineBlockDominates(
+        index, index.block_succ_true[block], block);
+    return DirectMirScalarCfgControlTransferAdmission(
+        (is_break && !target_dominates) ||
+        (is_continue && target_dominates), true);
+}

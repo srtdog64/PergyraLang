@@ -13,9 +13,12 @@ SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 WORK_REL=".tmp/self_hosted/public_mir_json_installed"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE="tests/self_hosted/parity/fixture/intent_typed_outcome_execution.pgy"
+SOURCE_CANONICAL="$ROOT_DIR/$SOURCE"
 LAUNCHER_OWNER="$ROOT_DIR/src/pgy_driver.c"
 SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
 SIBLING_OWNER="$ROOT_DIR/src/compiler/self_host_driver.c"
+PATH_OWNER="$ROOT_DIR/src/compiler/import_resolver_paths.c"
+MIR_ARTIFACT_OWNER="$ROOT_DIR/src/compiler/self_host_mir_artifact_owner.c"
 
 fail() {
     echo "[self-host-public-mir-json] $*" >&2
@@ -47,7 +50,8 @@ mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/{direct,public,native,native.canonical,self.canonical}.json \
     "$WORK_DIR"/{missing,unsupported,mixed,rejected}.{out,err}
 
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-verified "$SOURCE") \
+(cd "$ROOT_DIR" && unset PGY_IO_ROOT && PGY_IO_ALLOW_ABSOLUTE=1 \
+    "$SELF_DRIVER" --emit-mir-json-verified "$SOURCE_CANONICAL") \
     >"$WORK_DIR/direct.json"
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && "$PGY" --mir-json "$SOURCE") \
     >"$WORK_DIR/public.json"
@@ -70,9 +74,11 @@ func Main() -> Void {
     MissingSourceMirSurface();
 }
 PGY
+REJECTED_CANONICAL="$WORK_DIR/rejected.pgy"
 set +e
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-verified \
-    "$WORK_REL/rejected.pgy") >"$WORK_DIR/rejected.direct.out" \
+(cd "$ROOT_DIR" && unset PGY_IO_ROOT && PGY_IO_ALLOW_ABSOLUTE=1 \
+    "$SELF_DRIVER" --emit-mir-json-verified \
+    "$REJECTED_CANONICAL") >"$WORK_DIR/rejected.direct.out" \
     2>"$WORK_DIR/rejected.direct.err"
 rejected_direct_rc=$?
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && "$PGY" --mir-json \
@@ -120,6 +126,10 @@ require_text "$SELECTION_OWNER" 'driver_self_host_mir_json_request_supported('
 require_text "$SELECTION_OWNER" '&& !flags->test_native_mir_json_oracle'
 require_text "$SIBLING_OWNER" 'args[0] = (char *)"--emit-mir-json-verified";'
 require_text "$SIBLING_OWNER" 'return driver_run_self_host_command(launcher_path, 2, args);'
+require_text "$SIBLING_OWNER" 'driver_self_host_source_identity_path_dup('
+require_text "$SIBLING_OWNER" 'import_resolver_canonicalize_path_dup(source_path)'
+require_text "$MIR_ARTIFACT_OWNER" 'driver_self_host_source_identity_path_dup(source_path)'
+require_text "$PATH_OWNER" "if (*p == '\\\\')"
 # 3 = test oracle + declared --native-pipeline opt-out (docs/152) + final.
 [[ "$(grep -F -c 'return driver_run_pipeline(&flags);' "$LAUNCHER_OWNER")" -eq 3 ]] ||
     fail "native pipeline reachability escaped test oracle, declared opt-out, and final non-MIR dispatch"
@@ -129,7 +139,8 @@ unseparated_oracles="$(find "$ROOT_DIR/tests" -type f -name '*.sh' \
     ! -name 'public_mir_json_installed_self_host_owner.sh' \
     ! -name 'public_llvm_ir_installed_self_host_owner.sh' -exec awk '
         /"\$PGY"/ { pgy_window = 3; self_mode = /--self-driver/ }
-        pgy_window > 0 && /--mir-json/ && !/--test-native-mir-json-oracle/ && !self_mode {
+        pgy_window > 0 && /--mir-json/ && !/--test-native-mir-json-oracle/ &&
+            !/--native-pipeline/ && !self_mode {
             print FILENAME ":" FNR
         }
         pgy_window > 0 { pgy_window-- }

@@ -1,35 +1,70 @@
 // LLVM builtin/direct-call expression dispatch behind typed GraphPlan facts.
-
 import "direct_mir_scalar_program_llvm_string_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_case_math_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_int_empty_literal_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_int_populated_literal_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_bool_populated_literal_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_llvm_set_string_expression_owner.pgy";
 
 func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     kind: Int, result: String, result_type: String,
-    left: String, left_type: String, right: String, right_type: String,
+    left: String, left_address: String, left_type: String,
+    right: String, right_type: String,
+    owns_array_string_elements: Bool,
     arguments: Array<String>, argument_types: Array<String>,
+    argument_kinds: Array<Int>,
+    argument_carriages: Array<String>,
     callable_ordinal: Int,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
+    let record_option: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(logical_record, kind, result, result_type, left_type, left);
+    if record_option.matched { return record_option; }
     let option_int: DirectMirScalarProgramLlvmStringExpression =
-        DirectMirScalarProgramLlvmOptionIntExpressionAt(
-            kind, result, left);
+        DirectMirScalarProgramLlvmOptionIntExpressionAt(kind, result, left);
     if option_int.matched { return option_int; }
+    let option_string: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmOptionStringExpressionAt(kind, result, left);
+    if option_string.matched { return option_string; }
+    let option_bool: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmOptionBoolExpressionAt(kind, result, left);
+    if option_bool.matched { return option_bool; }
+    let set_string: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmSetStringExpressionAt(
+            kind, result, left_type, left, left_address, right);
+    if set_string.matched { return set_string; }
     let literal: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(
-            kind, result, left, right, arguments);
+            kind, result, left, right, arguments,
+            owns_array_string_elements);
     if literal.matched { return literal; }
+    let int_populated_literal: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmArrayIntPopulatedLiteralExpressionAt(
+            kind, result, left, right, arguments);
+    if int_populated_literal.matched { return int_populated_literal; }
+    let bool_populated_literal: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmArrayBoolPopulatedLiteralExpressionAt(
+            kind, result, left, right, arguments);
+    if bool_populated_literal.matched { return bool_populated_literal; }
+    let int_literal: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmArrayIntEmptyLiteralExpressionAt(kind);
+    if int_literal.matched { return int_literal; }
     let direct: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmDirectCallExpressionAt(
             kind, result, result_type, left, left_type, right, right_type,
-            arguments, argument_types, callable_ordinal);
+            arguments, argument_types, argument_kinds, argument_carriages,
+            callable_ordinal, logical_record);
     if direct.matched { return direct; }
     let case_math: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmCaseMathExpressionAt(
             kind, result, left, right, arguments, runtime);
     if case_math.matched { return case_math; }
     return DirectMirScalarProgramLlvmStringExpressionAt(
-        kind, result, left, right, arguments, runtime);
+        kind, result, left_type, left, left_address, right, arguments, runtime,
+        logical_record);
 }

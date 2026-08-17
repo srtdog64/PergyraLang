@@ -14,6 +14,12 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
         ) {
         return false;
     }
+    let module_path: String = "";
+    let module_path_opt: Option<String> = AstSourceModulePathForNode(
+        artifact.source_modules, artifact.arena, function_node_id
+    );
+    if IsSome(module_path_opt) { module_path = UnwrapOption(module_path_opt); }
+    if facts.module_paths[signature_index] != module_path { return false; }
     let name: Option<String> = TypedAstArenaAtomText(
         artifact.arena, function_node_id
     );
@@ -175,6 +181,7 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
         !SemanticAstActionContractFactsMatchArtifact(
             artifact, facts.action_contracts
         ) ||
+        ArrayLength(facts.module_paths) != n ||
         ArrayLength(facts.owner_names) != n ||
         ArrayLength(facts.runtime_callables) != n ||
         ArrayLength(facts.names) != n ||

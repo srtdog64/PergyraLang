@@ -1,0 +1,131 @@
+// One statement operation joins its target, expressions, and operation rows.
+import "direct_mir_scalar_cfg_program_array_mutation_storage_owner.pgy";
+import "direct_mir_scalar_cfg_program_instruction_expression_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+
+struct DirectMirScalarCfgProgramStatementAdmission {
+    let valid: Bool;
+    let operations: DirectMirScalarCfgProgramOperationStorage;
+    let expressions: DirectMirScalarProgramExpressionSet;
+}
+
+func DirectMirScalarCfgProgramDiscardedCallExpressionReady(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    expression_row: Int
+) -> Bool {
+    if expression_row < 0 || expression_row >=
+            ArrayLength(expressions.graph_roots) { return false; }
+    let root: Int = expressions.graph_roots[expression_row];
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
+        expressions.node_types[root] == "" { return false; }
+    return expressions.node_types[root] == "Void" ||
+        expressions.node_kinds[root] ==
+            DirectMirScalarProgramExprDirectCall();
+}
+
+func DirectMirScalarCfgProgramAppendStatement(
+    operations: DirectMirScalarCfgProgramOperationStorage,
+    expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    source: String,
+    ref capture: MirRoutineInstructionScalarCapture,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, parameter_types: Array<String>,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact,
+    ref array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    routine_ordinal: Int
+) -> DirectMirScalarCfgProgramStatementAdmission {
+    let invalid: DirectMirScalarCfgProgramStatementAdmission =
+        DirectMirScalarCfgProgramStatementAdmission(
+            false, operations, expressions);
+    if source != "AST_CALL" || capture.result != "" { return invalid; }
+    let operation_kind: Int = 0;
+    let expected_type: String = "";
+    let target_local: Int = -1;
+    let target_parameter: Int = -1;
+    let use_offset: Int = 0;
+    let index_expression_row: Int = -1;
+    if capture.arg0 == "Log" {
+        operation_kind = DirectMirScalarCfgOpExpressionLog();
+    } else if capture.arg0 == "Exit" {
+        operation_kind = DirectMirScalarCfgOpProcessExit();
+        expected_type = CompilerAbiLayoutIntTypeName();
+    } else if capture.arg0 == "ArrayPush" ||
+            capture.arg0 == "ArraySet" || capture.arg0 == "ArrayPop" {
+        let target: DirectMirScalarProgramArrayMutationTarget =
+            DirectMirScalarProgramArrayMutationTargetFromOwners(
+                capture.arg0, wire, local_instruction, locals, types,
+                signature, array_int_value_result, array_bool_abi,
+                array_string_abi,
+                logical_record,
+                routine_ordinal);
+        if !target.valid { return invalid; }
+        operation_kind = target.operation_kind;
+        expected_type = target.element_type;
+        if target.local_row >= 0 {
+            target_local = target.local_row + local_offset;
+            use_offset = 1;
+        }
+        target_parameter = target.parameter_ordinal;
+        if DirectMirScalarProgramArrayPopKind(operation_kind) {
+            if JsonObjectFactObjectTable(instruction, "expr0_graph").valid ||
+                JsonObjectFactObjectTable(instruction, "expr1_graph").valid {
+                return invalid;
+            }
+            operations = DirectMirScalarCfgProgramOperationsAppendArrayMutation(
+                operations, operation_kind, target_local, target_parameter,
+                -1, -1);
+            return DirectMirScalarCfgProgramStatementAdmission(
+                operations.valid, operations, expressions);
+        }
+        if capture.arg0 == "ArraySet" {
+            let index_opt: Option<Int> =
+                DirectMirScalarCfgProgramAppendTypedExpressionField(
+                    expressions, failure, instruction, uses, global_row,
+                    local_instruction, locals, types, wire, local_offset,
+                    parameter_types, signature, callables, logical_record,
+                    payload_free_enum,
+                    "expr1_graph",
+                    use_offset, false, CompilerAbiLayoutIntTypeName(), -1);
+            if !IsSome(index_opt) {
+                return invalid;
+            }
+            index_expression_row = UnwrapOption(index_opt);
+        }
+    } else {
+        operation_kind = DirectMirScalarCfgOpExpressionStatement();
+    }
+    let expression_row_opt: Option<Int> =
+        DirectMirScalarCfgProgramAppendTypedExpression(
+            expressions, failure, instruction, uses, global_row, local_instruction,
+            locals, types, wire, local_offset, parameter_types, signature,
+            callables, logical_record, payload_free_enum,
+            use_offset, expected_type);
+    if !IsSome(expression_row_opt) {
+        return invalid;
+    }
+    let expression_row: Int = UnwrapOption(expression_row_opt);
+    if operation_kind == DirectMirScalarCfgOpExpressionStatement() &&
+        !DirectMirScalarCfgProgramDiscardedCallExpressionReady(
+            expressions, expression_row) { return invalid; }
+    if DirectMirScalarProgramArrayMutationKind(operation_kind) {
+        operations = DirectMirScalarCfgProgramOperationsAppendArrayMutation(
+            operations, operation_kind, target_local, target_parameter,
+            expression_row, index_expression_row);
+    } else {
+        operations = DirectMirScalarCfgProgramOperationsAppendExpression(
+            operations, operation_kind, -1, expression_row);
+    }
+    return DirectMirScalarCfgProgramStatementAdmission(
+        operations.valid, operations, expressions);
+}

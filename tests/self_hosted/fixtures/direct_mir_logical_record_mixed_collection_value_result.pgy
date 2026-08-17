@@ -1,0 +1,36 @@
+// One logical-record return with an exact 4+2 mixed collection copyout.
+
+struct GraphBuild {
+    let valid: Bool;
+    let node_id: Int;
+}
+
+func AppendNode(
+    inout node_kinds: Array<Int>,
+    inout node_texts: Array<String>,
+    inout left_children: Array<Int>,
+    inout right_children: Array<Int>,
+    inout call_target_kinds: Array<Int>,
+    inout call_target_names: Array<String>,
+    kind: Int, text: String, left: Int, right: Int
+) -> GraphBuild {
+    return GraphBuild(true, kind + left + right);
+}
+
+func BuildCompactGraph(
+    inout node_kinds: Array<Int>,
+    inout node_texts: Array<String>,
+    inout left_children: Array<Int>,
+    inout right_children: Array<Int>,
+    inout call_target_kinds: Array<Int>,
+    inout call_target_names: Array<String>,
+    source: String
+) -> GraphBuild {
+    return GraphBuild(true, 0);
+}
+
+func Main() -> Void {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    Log("logical-record-mixed-collection-copyout-ready");
+}

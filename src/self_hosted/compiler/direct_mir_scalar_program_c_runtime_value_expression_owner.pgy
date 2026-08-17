@@ -1,0 +1,57 @@
+// C expression projection for one admitted runtime-value call receipt.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "runtime_value_call_abi_owner.pgy";
+
+func DirectMirScalarProgramCRuntimeValueLocalArgument(
+    ref expressions: DirectMirScalarProgramExpressionSet, argument: Int
+) -> String {
+    if argument < 0 || argument >= ArrayLength(expressions.node_kinds) ||
+        expressions.node_kinds[argument] !=
+            DirectMirScalarProgramExprLocal() ||
+        expressions.node_local_rows[argument] < 0 {
+        Die("direct MIR C runtime-value owner argument is invalid");
+    }
+    return Concat("&pgy_local_", ToString(
+        expressions.node_local_rows[argument]));
+}
+
+func DirectMirScalarProgramCRuntimeValueExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
+    left: String, right: String
+) -> Option<String> {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprRuntimeValueCall() {
+        return None;
+    }
+    let call: CompilerRuntimeValueCallAbiFact =
+        CompilerRuntimeValueCallAbiFactForId(
+            expressions.node_runtime_call_abi_ids[node]);
+    if !call.valid { Die("direct MIR C runtime-value ABI is invalid"); }
+    if call.c_shape == "returns_allocator" {
+        return Some(Concat(call.c_symbol, "()"));
+    }
+    if call.c_shape == "capacity_to_builder" {
+        return Some(Concat(call.c_symbol, Concat("(", Concat(left, ")"))));
+    }
+    let left_owner: String = DirectMirScalarProgramCRuntimeValueLocalArgument(
+        expressions, expressions.node_lefts[node]);
+    if call.c_shape == "allocator_ptr_to_void" ||
+        call.c_shape == "builder_ptr_to_void" {
+        return Some(Concat(call.c_symbol,
+            Concat("(", Concat(left_owner, ")"))));
+    }
+    if call.c_shape == "builder_ptr_string_to_void" {
+        return Some(Concat(call.c_symbol, Concat("(", Concat(
+            left_owner, Concat(", ", Concat(right, ")"))))));
+    }
+    if call.c_shape == "builder_ptr_allocator_ptr_to_string" {
+        let right_owner: String =
+            DirectMirScalarProgramCRuntimeValueLocalArgument(
+                expressions, expressions.node_rights[node]);
+        return Some(Concat(call.c_symbol, Concat("(", Concat(
+            left_owner, Concat(", ", Concat(right_owner, ")"))))));
+    }
+    Die("direct MIR C runtime-value call shape is invalid");
+    return None;
+}

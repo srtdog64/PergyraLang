@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-bool-logic"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -36,7 +37,8 @@ done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy"
 C_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
 LLVM_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
-require_text "$ROUTE" 'DirectMirScalarProgramRouteFactFromAdmitted'
+SHORT_CIRCUIT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_short_circuit_owner.pgy"
+require_text "$ROUTE" 'DirectMirScalarProgramRouteAdmissionFromAdmitted'
 require_text "$ROUTE" 'CompileAdmittedDirectMirScalarProgramForTarget'
 for owner in "$C_EMIT" "$LLVM_EMIT"; do
     for term in admitted source_json JsonObjectFactTable BuildMir FromAdmitted \
@@ -44,13 +46,21 @@ for owner in "$C_EMIT" "$LLVM_EMIT"; do
         reject_text "$owner" "$term"
     done
 done
+require_text "$SHORT_CIRCUIT_OWNER" 'func DirectMirScalarProgramLlvmShortCircuitAt('
+require_text "$SHORT_CIRCUIT_OWNER" '!DirectMirScalarProgramNonTrappingBoolNode(expressions, right)'
+require_text "$SHORT_CIRCUIT_OWNER" ' = phi i1 [ '
+require_text "$SHORT_CIRCUIT_OWNER" '  br i1 '
+require_text "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    'DirectMirScalarProgramLlvmShortCircuitAt('
+require_text "$ROOT_DIR/src/self_hosted/codegen/fixture/bool_logic.pgy" \
+    'if true || IsEven(0 - 1) {'
 
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/program.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/program.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "35F8954AE3C72CD8BB74BABD947C7E298B3538CFD39A69199B705EE1A7E5C962" ]] || \
+[[ "$mir_sha" == "B4DE3B8ABBD8259DB7833157951B2FC36CC876B6EEE193B0305F7DCC40D03B4B" ]] || \
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_bool_logic_mutations.py" \
     "$WORK_DIR/program.json" "$WORK_DIR"
@@ -66,14 +76,14 @@ project() {
         "$WORK_DIR/$stem.$target.err"
 }
 
-expected_base=$'flag-on\nother-off\nand\nlogic\ngrouped\n0\n2\n4'
-expected_other=$'flag-on\nlogic\n0\n2\n4'
-expected_and=$'flag-on\nother-off\nand\ngrouped\n0\n2\n4'
-expected_modulo=$'flag-on\nother-off\nand\nlogic\ngrouped\n0\n3'
-goods=(program other-true logical-and modulo-three display-only routine-order)
+expected_base=$'flag-on\nother-off\nand\nlogic\ngrouped\n0\n2\n4\nshort-or'
+expected_other=$'flag-on\nlogic\n0\n2\n4\nshort-or'
+expected_and=$'flag-on\nother-off\nand\ngrouped\n0\n2\n4\nshort-or'
+expected_modulo=$'flag-on\nother-off\nand\nlogic\ngrouped\n0\n3\nshort-or'
+goods=(program other-true logical-and modulo-three modulo-zero modulo-minus-one \
+    display-only routine-order)
 bads=(bad-use-identity bad-logical-kind bad-backedge bad-call-target \
     bad-call-argument-type bad-short-circuit-rhs bad-phi-incoming-identity)
-bads+=(bad-modulo-zero bad-modulo-minus-one bad-add-unbounded)
 
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
@@ -120,9 +130,15 @@ done
 
 compile_run() {
     local stem="$1" expected="$2"
-    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" || \
+    local c_command=("$CC" -std=c11 "$WORK_DIR/$stem.c")
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/$stem.c"; then
+        c_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    fi
+    c_command+=(-o "$WORK_DIR/$stem.c.exe")
+    "${c_command[@]}" || \
         fail "C host compile failed: $stem"
-    "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" || \
+    "$CLANG" -x ir "$WORK_DIR/$stem.ll" -x none "$WORK_DIR/runtime.o" \
+        -pthread -lm -o "$WORK_DIR/$stem.llvm.exe" || \
         fail "LLVM host compile failed: $stem"
     local c_out llvm_out
     c_out="$("$WORK_DIR/$stem.c.exe" | tr -d '\r')" || \
@@ -133,6 +149,9 @@ compile_run() {
     [[ "$llvm_out" == "$expected" ]] || fail "LLVM stdout changed: $stem"
 }
 
+"$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+    -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/runtime.o" || \
+    fail "runtime ABI object did not compile"
 compile_run base "$expected_base"
 compile_run other-true "$expected_other"
 compile_run logical-and "$expected_and"

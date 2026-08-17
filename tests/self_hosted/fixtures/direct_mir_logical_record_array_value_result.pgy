@@ -1,0 +1,67 @@
+// Declaration-keyed three-field record Array plus public Array<Int> copyout.
+
+struct InventoryRow {
+    let kind: Int;
+    let text: String;
+}
+
+struct AstExpressionArena {
+    let node_kinds: Array<Int>;
+    let node_texts: Array<String>;
+    let left_children: Array<Int>;
+    let right_children: Array<Int>;
+}
+
+struct AstExpressionGraphRows {
+    let ok: Bool;
+    let root_owner_kinds: Array<Int>;
+    let root_lanes: Array<Int>;
+    let roots: Array<Int>;
+    let arena: AstExpressionArena;
+}
+
+func ReplacementRow(label: String) -> InventoryRow {
+    return InventoryRow(8, label);
+}
+
+func KeepStringArrayValue(values: Array<String>) -> Int {
+    return ArrayLength(values);
+}
+
+func RetainRows(
+    label: String,
+    inout rows: Array<InventoryRow>,
+    inout count_box: Array<Int>
+) -> Void {
+    ArrayPush(rows, InventoryRow(7, label));
+    ArraySet(rows, 0, ReplacementRow(label));
+    ArraySet(count_box, 0, 1);
+    return;
+}
+
+func ParseDestructureLetStmt(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout expression_graphs: Array<AstExpressionGraphRows>
+) -> String {
+    ArraySet(cursor_out, 0, start + stmt_indent);
+    return content;
+}
+
+func Main() -> Void {
+    let rows: Array<InventoryRow> = [];
+    let count_box: Array<Int> = [0];
+    RetainRows("logical-record-array-copyout-ready", rows, count_box);
+    Log(rows[0].text);
+    Log(ToString(count_box[0]));
+    let cursor_out: Array<Int> = [0];
+    let expression_graphs: Array<AstExpressionGraphRows> = [];
+    let result: String = ParseDestructureLetStmt(
+        "graph-row-copyout-ready", 2, cursor_out, 3, expression_graphs
+    );
+    Log(result);
+    Log(ToString(cursor_out[0]));
+    Log(ToString(ArrayLength(expression_graphs)));
+}

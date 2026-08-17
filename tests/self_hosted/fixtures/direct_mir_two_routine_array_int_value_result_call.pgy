@@ -1,0 +1,15 @@
+func ObserveWindow(
+    text: String, start: Int, end: Int, inout ends: Array<Int>
+) -> String {
+    return text;
+}
+
+func ObserveWindowFromValue(text: String, ends: Array<Int>) -> String {
+    return ObserveWindow(text, 0, 1, ends);
+}
+
+func Main() -> Void {
+    let ends: Array<Int> = [0];
+    Log(ObserveWindow("x", 0, 1, ends));
+    Log(ObserveWindowFromValue("y", ends));
+}

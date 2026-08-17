@@ -55,13 +55,16 @@ func DirectMirScalarCfgForEachFactsFromOwners(
 ) -> DirectMirScalarCfgForEachAdmission {
     let invalid: DirectMirScalarCfgForEachAdmission =
         DirectMirScalarCfgForEachAdmissionInvalid();
-    if !index.valid || !wire.valid ||
-        ArrayLength(index.loop_flow_state_stable_indices) != 0 {
+    if !index.valid || !wire.valid {
         return invalid;
     }
     let expected: Int = DirectMirScalarCfgCollectionIterationCount(
         admitted, index
     );
+    if expected > 0 &&
+        ArrayLength(index.loop_flow_state_stable_indices) != 0 {
+        return invalid;
+    }
     let facts: DirectMirScalarCfgForEachFactSet =
         DirectMirScalarCfgForEachFactSetEmpty();
     let elements: DirectMirScalarCfgForEachElementFacts =

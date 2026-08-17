@@ -1,0 +1,273 @@
+// Program-wide exact Array<Int> ABI plus value-result parameter identities.
+// Captured MIR rows own physical layout. Routine signatures separately own
+// the subset of parameters whose carriage requires copy-in/copy-out. Return
+// instructions reuse the same physical receipt without becoming copy-out rows.
+
+import "direct_mir_array_int_abi_fact_owner.pgy";
+import "direct_mir_array_storage_layout_contract_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/machine_layer_fact_owner.pgy";
+
+struct DirectMirScalarProgramArrayIntValueResultFact {
+    let valid: Bool;
+    let digest: Int;
+    let present: Bool;
+    let layout_id: Int;
+    let size: Int;
+    let align: Int;
+    let data_offset: Int;
+    let length_offset: Int;
+    let capacity_offset: Int;
+    let allocator_offset: Int;
+    let routine_ordinals: Array<Int>;
+    let parameter_ordinals: Array<Int>;
+    let parameter_digests: Array<Int>;
+}
+
+func DirectMirScalarProgramArrayIntValueResultFactInvalid(
+) -> DirectMirScalarProgramArrayIntValueResultFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramArrayIntValueResultFact(
+        false, 0, false, 0, 0, 0, 0, 0, 0, 0, rows, rows, rows);
+}
+
+func DirectMirScalarProgramArrayIntValueResultFactDigest(
+    ref fact: DirectMirScalarProgramArrayIntValueResultFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(271L, fact.layout_id);
+    hash = DirectMirCfgHashInt(hash, fact.size);
+    hash = DirectMirCfgHashInt(hash, fact.align);
+    hash = DirectMirCfgHashInt(hash, fact.data_offset);
+    hash = DirectMirCfgHashInt(hash, fact.length_offset);
+    hash = DirectMirCfgHashInt(hash, fact.capacity_offset);
+    hash = DirectMirCfgHashInt(hash, fact.allocator_offset);
+    hash = DirectMirScalarCfgHashInts(hash, fact.routine_ordinals);
+    hash = DirectMirScalarCfgHashInts(hash, fact.parameter_ordinals);
+    hash = DirectMirScalarCfgHashInts(hash, fact.parameter_digests);
+    if fact.present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramArrayIntValueResultFactReady(
+    ref fact: DirectMirScalarProgramArrayIntValueResultFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramArrayIntValueResultFactDigest(fact) {
+        return false;
+    }
+    let count: Int = ArrayLength(fact.routine_ordinals);
+    if count != ArrayLength(fact.parameter_ordinals) ||
+        count != ArrayLength(fact.parameter_digests) { return false; }
+    if !fact.present {
+        return count == 0 && fact.layout_id == 0 && fact.size == 0 &&
+            fact.align == 0 && fact.data_offset == 0 &&
+            fact.length_offset == 0 && fact.capacity_offset == 0 &&
+            fact.allocator_offset == 0;
+    }
+    let layout: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    if fact.layout_id <= 0 ||
+        !DirectMirArrayStorageLayoutContractReady(layout) ||
+        fact.size != layout.size || fact.align != layout.align ||
+        fact.data_offset != layout.data_offset ||
+        fact.length_offset != layout.length_offset ||
+        fact.capacity_offset != layout.capacity_offset ||
+        fact.allocator_offset != layout.allocator_offset {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if fact.routine_ordinals[row] <= 0 ||
+            fact.parameter_ordinals[row] < 0 ||
+            fact.parameter_digests[row] == 0 { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.routine_ordinals[prior] == fact.routine_ordinals[row] &&
+                fact.parameter_ordinals[prior] ==
+                    fact.parameter_ordinals[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramArrayIntValueResultFactCanonicalEmpty(
+) -> DirectMirScalarProgramArrayIntValueResultFact {
+    let rows: Array<Int> = [];
+    let source: DirectMirScalarProgramArrayIntValueResultFact =
+        DirectMirScalarProgramArrayIntValueResultFact(
+            true, 0, false, 0, 0, 0, 0, 0, 0, 0, rows, rows, rows);
+    return DirectMirScalarProgramArrayIntValueResultFact(
+        true, DirectMirScalarProgramArrayIntValueResultFactDigest(source),
+        false, 0, 0, 0, 0, 0, 0, 0, rows, rows, rows);
+}
+
+func DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_rows: Array<Int>
+) -> DirectMirScalarProgramArrayIntValueResultFact {
+    let routines: Array<Int> = [];
+    let parameters: Array<Int> = [];
+    let digests: Array<Int> = [];
+    let layout_id: Int = 0; let size: Int = 0; let align: Int = 0;
+    let data_offset: Int = 0; let length_offset: Int = 0;
+    let capacity_offset: Int = 0; let allocator_offset: Int = 0;
+    let found: Int = 0;
+    let routine: Int = 0;
+    while routine < ArrayLength(routine_rows) {
+        let row: Int = routine_rows[routine];
+        let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+            admitted.routines, row);
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineSignatureFactAt(
+                admitted.routines, row,
+                MirProgramRoutineIndexBlockInstructionCountAt(
+                    admitted.routines, row, 0));
+        if !index.valid || !DirectMirRoutineSignatureFactReady(signature) {
+            return DirectMirScalarProgramArrayIntValueResultFactInvalid();
+        }
+        let parameter: Int = 0;
+        while parameter < signature.param_count {
+            if signature.parameters.type_names[parameter] ==
+                    CompilerAbiLayoutArrayIntTypeName() {
+                let fact: DirectMirRoutineParamFact =
+                    DirectMirScalarProgramParamFactAtOrdinal(
+                        admitted.routines, row, parameter);
+                let carriage: String =
+                    signature.parameters.carriages[parameter];
+                if (carriage != "value" && carriage != "value-result") ||
+                    signature.parameters.resources[parameter] != "none" ||
+                    signature.parameters.pass_shapes[parameter] != "direct" ||
+                    !signature.parameters.abi_required[parameter] ||
+                    !DirectMirRoutineParamFactReady(fact) ||
+                    fact.digest != signature.parameters.param_digests[parameter] ||
+                    !DirectMirArrayIntCapturedAbiReady(fact.abi) {
+                    return DirectMirScalarProgramArrayIntValueResultFactInvalid();
+                }
+                let candidate_id: Int = MirAbiLayoutIdFromCapture(fact.abi);
+                let candidate_size: Int = ToInt(fact.abi.size_text);
+                let candidate_align: Int = ToInt(fact.abi.align_text);
+                let candidate_data: Int = ToInt(fact.abi.field_offsets[0]);
+                let candidate_length: Int = ToInt(fact.abi.field_offsets[1]);
+                let candidate_capacity: Int = ToInt(fact.abi.field_offsets[2]);
+                let candidate_allocator: Int = ToInt(fact.abi.field_offsets[3]);
+                if found == 0 {
+                    layout_id = candidate_id; size = candidate_size;
+                    align = candidate_align; data_offset = candidate_data;
+                    length_offset = candidate_length;
+                    capacity_offset = candidate_capacity;
+                    allocator_offset = candidate_allocator;
+                } else if layout_id != candidate_id || size != candidate_size ||
+                    align != candidate_align || data_offset != candidate_data ||
+                    length_offset != candidate_length ||
+                    capacity_offset != candidate_capacity ||
+                    allocator_offset != candidate_allocator {
+                    return DirectMirScalarProgramArrayIntValueResultFactInvalid();
+                }
+                found = found + 1;
+                if carriage == "value-result" {
+                    ArrayPush(routines, routine);
+                    ArrayPush(parameters, parameter);
+                    ArrayPush(digests, fact.digest);
+                }
+            }
+            parameter = parameter + 1;
+        }
+        let instruction: Int = 0;
+        while instruction < ArrayLength(index.instruction_facts.starts) {
+            let global: Int = index.instruction_facts.global_start + instruction;
+            let capture: MirRoutineInstructionScalarCapture =
+                MirRoutineInstructionFactBundleAtGlobal(
+                    index.instruction_facts, global);
+            if !capture.valid {
+                return DirectMirScalarProgramArrayIntValueResultFactInvalid();
+            }
+            if capture.abi_type_name == CompilerAbiLayoutArrayIntTypeName() {
+                if admitted.routines.instruction_kinds[global] != "def" &&
+                    admitted.routines.instruction_kinds[global] != "return" {
+                    return DirectMirScalarProgramArrayIntValueResultFactInvalid();
+                }
+                let abi_opt: Option<MirAbiLayoutRowCapture> =
+                    MirCapturedRequiredAbiLayoutRowAdmission(
+                        admitted.routines.source_json,
+                        capture.abi_type_name, capture.abi_type_value_ready,
+                        capture.abi_type_start, capture.abi_type_end,
+                        capture.abi_layout_id_start,
+                        capture.abi_layout_id_end,
+                        capture.abi_layout_required_start,
+                        capture.abi_layout_required_end,
+                        capture.abi_layout_start, capture.abi_layout_end);
+                if !IsSome(abi_opt) {
+                    return DirectMirScalarProgramArrayIntValueResultFactInvalid();
+                }
+                let abi: MirAbiLayoutRowCapture = UnwrapOption(abi_opt);
+                if !DirectMirArrayIntCapturedAbiReady(abi) {
+                    return DirectMirScalarProgramArrayIntValueResultFactInvalid();
+                }
+                let candidate_id: Int = MirAbiLayoutIdFromCapture(abi);
+                let candidate_size: Int = ToInt(abi.size_text);
+                let candidate_align: Int = ToInt(abi.align_text);
+                let candidate_data: Int = ToInt(abi.field_offsets[0]);
+                let candidate_length: Int = ToInt(abi.field_offsets[1]);
+                let candidate_capacity: Int = ToInt(abi.field_offsets[2]);
+                let candidate_allocator: Int = ToInt(abi.field_offsets[3]);
+                if found == 0 {
+                    layout_id = candidate_id; size = candidate_size;
+                    align = candidate_align; data_offset = candidate_data;
+                    length_offset = candidate_length;
+                    capacity_offset = candidate_capacity;
+                    allocator_offset = candidate_allocator;
+                } else if layout_id != candidate_id || size != candidate_size ||
+                    align != candidate_align || data_offset != candidate_data ||
+                    length_offset != candidate_length ||
+                    capacity_offset != candidate_capacity ||
+                    allocator_offset != candidate_allocator {
+                    return DirectMirScalarProgramArrayIntValueResultFactInvalid();
+                }
+                found = found + 1;
+            }
+            instruction = instruction + 1;
+        }
+        routine = routine + 1;
+    }
+    let present: Bool = found > 0;
+    if !present {
+        return DirectMirScalarProgramArrayIntValueResultFactCanonicalEmpty();
+    }
+    let source: DirectMirScalarProgramArrayIntValueResultFact =
+        DirectMirScalarProgramArrayIntValueResultFact(
+            true, 0, true, layout_id, size, align, data_offset,
+            length_offset, capacity_offset, allocator_offset,
+            routines, parameters, digests);
+    let sealed: DirectMirScalarProgramArrayIntValueResultFact =
+        DirectMirScalarProgramArrayIntValueResultFact(
+            true, DirectMirScalarProgramArrayIntValueResultFactDigest(source),
+            true, layout_id, size, align, data_offset, length_offset,
+            capacity_offset, allocator_offset, routines, parameters, digests);
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(sealed) {
+        return DirectMirScalarProgramArrayIntValueResultFactInvalid();
+    }
+    return sealed;
+}
+
+func DirectMirScalarProgramArrayIntValueResultAt(
+    ref fact: DirectMirScalarProgramArrayIntValueResultFact,
+    routine: Int, parameter: Int
+) -> Bool {
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact) ||
+        !fact.present { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(fact.routine_ordinals) {
+        if fact.routine_ordinals[row] == routine &&
+            fact.parameter_ordinals[row] == parameter { return true; }
+        row = row + 1;
+    }
+    return false;
+}

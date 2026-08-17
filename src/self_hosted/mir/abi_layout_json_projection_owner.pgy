@@ -7,6 +7,7 @@
 import "program_verify_owner.pgy";
 import "../mir_lower/abi_layout_fact_owner.pgy";
 import "../compiler/abi_layout_target_policy_owner.pgy";
+import "../compiler/runtime_value_representation_owner.pgy";
 import "../lib/json_emit.pgy";
 import "option_abi_layout_contract_owner.pgy";
 
@@ -33,15 +34,19 @@ func SelfMirJsonAbiLayoutRow(
     discriminant: String, primary_tag: Int, secondary_tag: Int
 ) -> String {
     let discriminant_field: String = "null";
+    let runtime_fn_field: String = "null";
     if StringLength(discriminant) > 0 {
         discriminant_field = JsonStringLiteral(discriminant);
+    }
+    if StringLength(runtime_fn) > 0 {
+        runtime_fn_field = JsonStringLiteral(runtime_fn);
     }
     return JsonEmitObject([
         JsonEmitFieldString("type", type_name),
         JsonEmitFieldNumber("size", ToString(size)),
         JsonEmitFieldNumber("align", ToString(align)),
         JsonEmitFieldRaw("fields", JsonEmitArray(fields)),
-        JsonEmitFieldString("runtime_fn", runtime_fn),
+        JsonEmitFieldRaw("runtime_fn", runtime_fn_field),
         JsonEmitFieldString("inner_c_type", inner_c_type),
         JsonEmitFieldNumber("representation", ToString(representation)),
         JsonEmitFieldRaw("discriminant", discriminant_field),
@@ -51,10 +56,37 @@ func SelfMirJsonAbiLayoutRow(
     ]);
 }
 
+func SelfMirJsonRuntimeValueAbiLayout(type_name: String) -> String {
+    let representation: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(type_name);
+    if !representation.valid || representation.type_name != type_name {
+        return "";
+    }
+    let fields: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(representation.field_names) {
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(
+            representation.field_names[row],
+            representation.field_offsets[row],
+            representation.field_sizes[row],
+            representation.field_aligns[row]
+        ));
+        row = row + 1;
+    }
+    return SelfMirJsonAbiLayoutRow(
+        representation.type_name, representation.size, representation.align,
+        fields, representation.runtime_fn, representation.inner_c_type,
+        representation.representation, "", 0, 0
+    );
+}
+
 func SelfMirJsonStaticAbiLayout(type_name: String) -> String {
     if !CompilerAbiLayoutTargetPolicyReady() {
         return "";
     }
+    let runtime_value_layout: String =
+        SelfMirJsonRuntimeValueAbiLayout(type_name);
+    if runtime_value_layout != "" { return runtime_value_layout; }
     let fields: Array<String> = [];
     if type_name == "Slot<Int>" {
         ArrayPush(fields, SelfMirJsonAbiLayoutField("value", 0, 4, 4));

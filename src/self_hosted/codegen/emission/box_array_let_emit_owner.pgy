@@ -4,6 +4,7 @@ import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../runtime_abi/box_array_runtime_owner.pgy";
 import "../type_facts/type_env.pgy";
+import "../type_facts/type_env_state_lifetime_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "expr_semantic_call_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
@@ -56,7 +57,7 @@ func EmitBoxArrayLetDeclaration(
     name: String,
     type_name: String,
     c_name: String,
-    inout env_state: Array<String>,
+    inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv,
     graph: SemanticExpressionGraphView
 ) -> String {

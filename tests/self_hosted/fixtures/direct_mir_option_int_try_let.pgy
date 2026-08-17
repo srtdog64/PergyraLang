@@ -1,0 +1,22 @@
+func PickTryValue(x: Int) -> Option<Int> {
+    if x == 0 {
+        return None;
+    }
+    return Some(x);
+}
+
+func DoubleTryValue(x: Int) -> Option<Int> {
+    let found: Int = PickTryValue(x)?;
+    return Some(found + found);
+}
+
+func Main() -> Void {
+    let present: Option<Int> = DoubleTryValue(4);
+    if IsSome(present) {
+        Log(UnwrapOption(present));
+    }
+    let absent: Option<Int> = DoubleTryValue(0);
+    if !IsSome(absent) {
+        Log(0);
+    }
+}

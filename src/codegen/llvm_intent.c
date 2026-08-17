@@ -393,7 +393,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             step_ctx.authorized_aliases, step_ctx.authorized_alias_count);
         llvm_emit_intent_step_bind_bound_zone(
             ctx, node, step_ctx.zone_type_name, step_ctx.zone_alias, step_ctx.from_alias,
-            step_ctx.who_aliases, step_ctx.who_alias_count);
+            step_ctx.who_aliases, step_ctx.who_alias_count, true);
         if (ctx->has_error)
             goto intent_emit_fail;
         if (step_ctx.who_alias_count > 0) {
@@ -546,7 +546,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         } else {
             llvm_emit_intent_step_bind_bound_zone(
                 ctx, node, step_ctx.zone_type_name, step_ctx.zone_alias, step_ctx.from_alias,
-                step_ctx.who_aliases, step_ctx.who_alias_count);
+                step_ctx.who_aliases, step_ctx.who_alias_count, true);
             if (ctx->has_error)
                 goto intent_emit_fail;
         }

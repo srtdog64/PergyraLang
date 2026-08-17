@@ -66,12 +66,14 @@ func DriverRung2InstalledCommitMirC(
 func DriverRung2InstalledPublishDirectMir(
     input_path: String,
     output_path: String,
-    direct_request: DriverRung2DirectMirRequest
+    direct_request: DriverRung2DirectMirRequest,
+    observe_pressure: Bool
 ) -> Void with caps io_read, io_write {
     let outcome: DriverRung2ExecutionOutcome =
         EmitDirectMirThroughPgyCompilerWorld(
             input_path, output_path,
-            SelfHostMachineLayerDeclarationEmpty(), direct_request
+            SelfHostMachineLayerDeclarationEmpty(), direct_request,
+            observe_pressure
         );
     let projection: String =
         DriverRung2DirectMirRequestProjection(direct_request);
@@ -115,11 +117,19 @@ func DriverRung2ExecuteInstalledRequest(
             DriverRung2InstalledCommitMirC(input_path, output_path, true);
         case DriverCliDirectMirCArtifact(input_path, output_path):
             DriverRung2InstalledPublishDirectMir(
-                input_path, output_path, DirectMirC
+                input_path, output_path, DirectMirC, false
             );
         case DriverCliDirectMirLlvmArtifact(input_path, output_path):
             DriverRung2InstalledPublishDirectMir(
-                input_path, output_path, DirectMirLlvm
+                input_path, output_path, DirectMirLlvm, false
+            );
+        case DriverCliDirectMirCObservedArtifact(input_path, output_path):
+            DriverRung2InstalledPublishDirectMir(
+                input_path, output_path, DirectMirC, true
+            );
+        case DriverCliDirectMirLlvmObservedArtifact(input_path, output_path):
+            DriverRung2InstalledPublishDirectMir(
+                input_path, output_path, DirectMirLlvm, true
             );
         case DriverCliSourceCStdout(source_path):
             DriverRung2ExecuteReadRequest(request);

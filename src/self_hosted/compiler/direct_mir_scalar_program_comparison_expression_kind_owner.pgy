@@ -1,0 +1,55 @@
+// One normalized owner for typed binary comparison expression identities.
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_fact_owner.pgy";
+func DirectMirScalarProgramExprEqualInt() -> Int { return 7; }
+func DirectMirScalarProgramExprLessInt() -> Int { return 11; }
+func DirectMirScalarProgramExprNotEqualInt() -> Int { return 60; }
+func DirectMirScalarProgramExprGreaterEqualInt() -> Int { return 61; }
+func DirectMirScalarProgramExprGreaterInt() -> Int { return 66; }
+func DirectMirScalarProgramExprLessEqualInt() -> Int { return 67; }
+func DirectMirScalarProgramExprGreaterLong() -> Int { return 76; }
+func DirectMirScalarProgramExprEqualLong() -> Int { return 77; }
+func DirectMirScalarProgramExprNotEqualLong() -> Int { return 80; }
+func DirectMirScalarProgramExprLessLong() -> Int { return 85; }
+func DirectMirScalarProgramComparisonExpressionKindFact(
+    source_kind: Int, left_type: String, right_type: String, arity: Int
+) -> DirectMirScalarProgramExpressionKindFact {
+    let invalid: DirectMirScalarProgramExpressionKindFact =
+        DirectMirScalarProgramExpressionKindFactInvalid();
+    if arity != 2 { return invalid; }
+    let ints: Bool = left_type == CompilerAbiLayoutIntTypeName() &&
+        right_type == CompilerAbiLayoutIntTypeName();
+    let longs: Bool = left_type == CompilerAbiLayoutLongTypeName() &&
+        right_type == CompilerAbiLayoutLongTypeName();
+    let bools: Bool = left_type == CompilerAbiLayoutBoolTypeName() &&
+        right_type == CompilerAbiLayoutBoolTypeName();
+    let kind: Int = 0;
+    if ints && source_kind == AstExpressionNodeEquality() {
+        kind = DirectMirScalarProgramExprEqualInt();
+    } else if ints && source_kind == AstExpressionNodeInequality() {
+        kind = DirectMirScalarProgramExprNotEqualInt();
+    } else if ints && source_kind == AstExpressionNodeLess() {
+        kind = DirectMirScalarProgramExprLessInt();
+    } else if ints && source_kind == AstExpressionNodeGreaterEqual() {
+        kind = DirectMirScalarProgramExprGreaterEqualInt();
+    } else if ints && source_kind == AstExpressionNodeGreater() {
+        kind = DirectMirScalarProgramExprGreaterInt();
+    } else if ints && source_kind == AstExpressionNodeLessEqual() {
+        kind = DirectMirScalarProgramExprLessEqualInt();
+    } else if longs && source_kind == AstExpressionNodeGreater() {
+        kind = DirectMirScalarProgramExprGreaterLong();
+    } else if longs && source_kind == AstExpressionNodeEquality() {
+        kind = DirectMirScalarProgramExprEqualLong();
+    } else if longs && source_kind == AstExpressionNodeInequality() {
+        kind = DirectMirScalarProgramExprNotEqualLong();
+    } else if longs && source_kind == AstExpressionNodeLess() {
+        kind = DirectMirScalarProgramExprLessLong();
+    } else if bools && source_kind == AstExpressionNodeEquality() {
+        kind = DirectMirScalarProgramExprEqualBool();
+    } else if bools && source_kind == AstExpressionNodeInequality() {
+        kind = DirectMirScalarProgramExprNotEqualBool();
+    }
+    if kind == 0 { return invalid; }
+    return DirectMirScalarProgramExpressionKindFact(
+        true, kind, CompilerAbiLayoutBoolTypeName(), "");
+}

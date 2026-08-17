@@ -3,14 +3,23 @@
 import "direct_mir_scalar_program_c_direct_call_expression_owner.pgy";
 import "direct_mir_scalar_program_c_case_math_expression_owner.pgy";
 import "direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy";
+import "direct_mir_scalar_program_c_array_int_empty_literal_expression_owner.pgy";
+import "direct_mir_scalar_program_c_array_int_populated_literal_expression_owner.pgy";
 
 func DirectMirScalarProgramCExtendedExpression(
     kind: Int, left: String, right: String, arguments: Array<String>,
-    callable_ordinal: Int,
+    owns_array_string_elements: Bool, expression_row: Int, callable_ordinal: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> Option<String> {
-    let literal: Option<String> = DirectMirScalarProgramCArrayStringLiteralExpression(kind, left, right, arguments);
+    let populated_literal: Option<String> =
+        DirectMirScalarProgramCArrayIntPopulatedLiteralExpression(
+            kind, expression_row, arguments);
+    if IsSome(populated_literal) { return populated_literal; }
+    let literal: Option<String> = DirectMirScalarProgramCArrayStringLiteralExpression(
+        kind, left, right, arguments, owns_array_string_elements);
     if IsSome(literal) { return literal; }
+    let int_literal: Option<String> = DirectMirScalarProgramCArrayIntEmptyLiteralExpression(kind);
+    if IsSome(int_literal) { return int_literal; }
     let direct: Option<String> =
         DirectMirScalarProgramCDirectCallExpression(
             kind, left, right, arguments, callable_ordinal);

@@ -1181,6 +1181,10 @@ require_each_following_term "src/codegen/llvm_intent.c" \
 require_each_following_term "src/codegen/llvm_intent_cleanup.c" \
     "llvm_emit_intent_step_bind_bound_zone(" \
     "ctx->has_error" 6
+require_term "src/codegen/llvm_intent.c" \
+    "step_ctx.who_aliases, step_ctx.who_alias_count, true);"
+require_term "src/codegen/llvm_intent_cleanup.c" \
+    "who_aliases, who_alias_count, false);"
 require_term "src/codegen/llvm_intent_forward.c" \
     "llvm_collect_mir_intent_bindings"
 require_term "src/codegen/llvm_intent_forward.c" \

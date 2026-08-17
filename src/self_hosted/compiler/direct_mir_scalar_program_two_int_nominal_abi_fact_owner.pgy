@@ -78,12 +78,11 @@ func DirectMirScalarProgramTwoIntNominalAbiFactReady(
 func DirectMirScalarProgramTwoIntNominalAbiFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirScalarProgramTwoIntNominalAbiFact {
-    let declarations: MirProgramDeclarationIndex =
-        admitted.domain_runtime_admission.declarations;
-    if !declarations.valid {
+    if !admitted.domain_runtime_admission.declarations.valid {
         return DirectMirScalarProgramTwoIntNominalAbiFactInvalid();
     }
-    let count: Int = MirProgramDeclarationIndexCount(declarations);
+    let count: Int = MirProgramDeclarationIndexCount(
+        admitted.domain_runtime_admission.declarations);
     let declaration: DirectMirNominalDeclarationAbiFact =
         InvalidDirectMirNominalDeclarationAbiFact();
     let present: Bool = false;
@@ -91,7 +90,8 @@ func DirectMirScalarProgramTwoIntNominalAbiFactFromAdmitted(
     while row < count {
         let candidate: DirectMirNominalDeclarationAbiFact =
             DirectMirNominalDeclarationAbiFactFromDocument(
-                admitted.document.root.json, declarations, row);
+                admitted.document.root.json,
+                admitted.domain_runtime_admission.declarations, row);
         if DirectMirTwoIntNominalPhysicalRowReady(candidate) {
             if present {
                 return DirectMirScalarProgramTwoIntNominalAbiFactInvalid();

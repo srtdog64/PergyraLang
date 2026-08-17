@@ -1,0 +1,140 @@
+// LLVM projection for direct and nested logical-record assignment operations.
+import "direct_mir_scalar_program_llvm_logical_record_member_rebind_owner.pgy";
+import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
+
+func DirectMirScalarProgramLlvmExpressionNodeValue(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    expression_row: Int, node: Int
+) -> String {
+    let kind: Int = expressions.node_kinds[node];
+    if kind == DirectMirScalarProgramExprIntLiteral() ||
+            kind == DirectMirScalarProgramExprLongLiteral() {
+        return expressions.node_literals[node];
+    }
+    if kind == DirectMirScalarProgramExprParameter() {
+        return Concat("%pgy.param.", ToString(
+            expressions.node_parameter_ordinals[node]));
+    }
+    return DirectMirScalarProgramLlvmNodeName(expression_row, node);
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+        plan.operation_kinds[operation] !=
+            DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() {
+        Die("direct MIR LLVM nested record array assignment is invalid");
+    }
+    let target_row: Int =
+        plan.program.operation_secondary_expression_rows[operation];
+    let value_row: Int = plan.program.operation_expression_rows[operation];
+    let target_expression: DirectMirScalarProgramLlvmExpression =
+        DirectMirScalarProgramLlvmExpressionAt(
+            plan.program.expressions, target_row, runtime,
+            plan.program.logical_record, plan.routines, routine, target);
+    let value_expression: DirectMirScalarProgramLlvmExpression =
+        DirectMirScalarProgramLlvmExpressionAt(
+            plan.program.expressions, value_row, runtime,
+            plan.program.logical_record, plan.routines, routine, target);
+    let element_type: String =
+        DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
+            plan, operation);
+    if !target_expression.valid || !value_expression.valid ||
+        element_type == "" || value_expression.type_name != element_type {
+        Die("direct MIR LLVM nested record array expression is invalid");
+    }
+    let start: Int = plan.program.expressions.graph_starts[target_row];
+    let end: Int = start + plan.program.expressions.graph_counts[target_row];
+    let root: Int = plan.program.expressions.graph_roots[target_row];
+    let array_node: Int = plan.program.expressions.node_lefts[root];
+    let index_node: Int = plan.program.expressions.node_rights[root];
+    if root < start || root >= end || array_node < start ||
+        array_node >= root || index_node < start || index_node >= root ||
+        plan.program.expressions.node_types[index_node] !=
+            CompilerAbiLayoutIntTypeName() {
+        Die("direct MIR LLVM nested record array target is invalid");
+    }
+    let result: Int = plan.operation_result_values[operation];
+    let local_row: Int = plan.value_local_rows[result];
+    let addresses: Array<String> = [];
+    let address_instructions: String = "";
+    let node: Int = start;
+    while node < end {
+        let address: String = "";
+        let kind: Int = plan.program.expressions.node_kinds[node];
+        if kind == DirectMirScalarProgramExprLocal() ||
+                kind == DirectMirScalarProgramExprParameter() {
+            address = DirectMirScalarProgramLlvmLocalName(local_row);
+        } else if kind == DirectMirScalarProgramExprLogicalRecordMember() {
+            let left: Int = plan.program.expressions.node_lefts[node];
+            if left < start || left >= node ||
+                addresses[left - start] == "" {
+                Die("direct MIR LLVM nested record member address is invalid");
+            }
+            let record_type: String =
+                plan.program.expressions.node_types[left];
+            let llvm_type: String =
+                DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                    plan.program.logical_record, record_type);
+            let member: Int =
+                plan.program.expressions.node_member_ordinals[node];
+            if llvm_type == "" || member < 0 {
+                Die("direct MIR LLVM nested record member type is invalid");
+            }
+            address = Concat(
+                DirectMirScalarProgramLlvmNodeName(target_row, node),
+                ".address");
+            address_instructions = Concat(address_instructions, "  ");
+            address_instructions = Concat(address_instructions, address);
+            address_instructions = Concat(
+                address_instructions, " = getelementptr inbounds ");
+            address_instructions = Concat(address_instructions, llvm_type);
+            address_instructions = Concat(address_instructions, ", ptr ");
+            address_instructions = Concat(
+                address_instructions, addresses[left - start]);
+            address_instructions = Concat(
+                address_instructions, ", i32 0, i32 ");
+            address_instructions = Concat(
+                address_instructions, Concat(ToString(member), "\n"));
+        }
+        ArrayPush(addresses, address);
+        node = node + 1;
+    }
+    let array_address: String = addresses[array_node - start];
+    if array_address == "" {
+        Die("direct MIR LLVM nested record array address is missing");
+    }
+    let index_value: String = DirectMirScalarProgramLlvmExpressionNodeValue(
+        plan.program.expressions, target_row, index_node);
+    let output: String = Concat(
+        target_expression.instructions, address_instructions);
+    output = Concat(output, value_expression.instructions);
+    let symbol: String = "@pgy_ai_set";
+    let value_type: String = "i64";
+    if element_type == CompilerAbiLayoutStringTypeName() {
+        symbol = "@pgy_as_set"; value_type = "ptr";
+    }
+    output = Concat(output, Concat("  call void ", symbol));
+    output = Concat(output, "(ptr ");
+    output = Concat(output, Concat(array_address, Concat(", i64 ",
+        Concat(index_value, Concat(Concat(", ", value_type),
+        Concat(" ", value_expression.value))))));
+    return Concat(output, ")\n");
+}
+
+func DirectMirScalarProgramLlvmLogicalRecordAssignment(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    target: CompilerTargetProjectionFact
+) -> String {
+    if plan.operation_kinds[operation] ==
+            DirectMirScalarCfgOpLogicalRecordMemberRebind() {
+        return DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
+            plan, routine, operation, runtime, target);
+    }
+    return DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
+        plan, routine, operation, runtime, target);
+}

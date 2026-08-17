@@ -1,6 +1,7 @@
 #include "self_host_driver.h"
 
 #include "compiler_process.h"
+#include "import_resolver_internal.h"
 #include "path_utils.h"
 #include "self_host_child_io_authority.h"
 
@@ -32,6 +33,12 @@ driver_resolve_self_host_binary(const char *launcher_path)
     return resolved;
 }
 
+char *
+driver_self_host_source_identity_path_dup(const char *source_path)
+{
+    return import_resolver_canonicalize_path_dup(source_path);
+}
+
 int
 driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
 {
@@ -41,6 +48,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
     bool mir_json_mode;
     bool mir_producer_mode;
     bool mir_canonicalize_mode;
+    char *canonical_source_path = NULL;
     int child_argc = 0;
     int rc;
 
@@ -96,14 +104,25 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
 
     child_argv[child_argc++] = binary;
     child_argv[child_argc++] = argv[0];
-    if (source_stdout_mode || mir_json_mode
-        || mir_producer_mode || mir_canonicalize_mode)
+    if (mir_producer_mode) {
+        canonical_source_path =
+            driver_self_host_source_identity_path_dup(argv[1]);
+        if (canonical_source_path == NULL) {
+            fprintf(stderr,
+                    "pgy: could not canonicalize self-host source identity\n");
+            free(binary);
+            return 1;
+        }
+        child_argv[child_argc++] = canonical_source_path;
+    } else if (source_stdout_mode || mir_json_mode || mir_canonicalize_mode) {
         child_argv[child_argc++] = argv[1];
-    else
+    } else {
         child_argv[child_argc++] = "--emit-c-verified";
+    }
     child_argv[child_argc] = NULL;
     driver_authorize_self_host_child_io();
     rc = pgy_exec_argv(child_argv, false);
+    free(canonical_source_path);
     free(binary);
     return rc;
 }
@@ -154,6 +173,7 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
 {
     const char *child_argv[5];
     char *binary;
+    char *canonical_source_path;
     int rc;
 
     if (source_path == NULL || source_path[0] == '\0') {
@@ -165,17 +185,26 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
         return 1;
     }
 
+    canonical_source_path =
+        driver_self_host_source_identity_path_dup(source_path);
+    if (canonical_source_path == NULL) {
+        fprintf(stderr,
+                "pgy: could not canonicalize self-host source identity\n");
+        return 1;
+    }
+
     binary = driver_resolve_self_host_binary(launcher_path);
     if (binary == NULL || !path_file_exists(binary)) {
         fprintf(stderr,
                 "pgy: self-host driver is unavailable; run 'make self-host-compiler' or set PGY_SELF_DRIVER_BIN\n");
+        free(canonical_source_path);
         free(binary);
         return 1;
     }
 
     child_argv[0] = binary;
     child_argv[1] = "--emit-c-artifact-verified";
-    child_argv[2] = source_path;
+    child_argv[2] = canonical_source_path;
     child_argv[3] = output_path;
     child_argv[4] = NULL;
     driver_authorize_self_host_child_io();
@@ -193,6 +222,7 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
         rc = 1;
     }
 
+    free(canonical_source_path);
     free(binary);
     return rc;
 }

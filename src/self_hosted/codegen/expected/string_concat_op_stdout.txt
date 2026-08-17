@@ -3,4 +3,5 @@ xyz
 Hello, Pergyra!
 foo/bar/end
 n=7
+foo
 ABcd

@@ -1,10 +1,12 @@
-// C caller-frame materialization for borrowed-static Array<String> literals.
+// C materialization for borrowed-static or owner-transferred Array<String> literals.
 
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "abi_layout_row_owner.pgy";
+import "direct_mir_scalar_program_c_string_collection_materialization_owner.pgy";
 
 func DirectMirScalarProgramCArrayStringLiteralExpression(
-    kind: Int, left: String, right: String, arguments: Array<String>
+    kind: Int, left: String, right: String, arguments: Array<String>,
+    owns_elements: Bool
 ) -> Option<String> {
     if kind != DirectMirScalarProgramExprArrayStringLiteral() { return None; }
     let values: Array<String> = [];
@@ -16,13 +18,18 @@ func DirectMirScalarProgramCArrayStringLiteralExpression(
         if left != "" { ArrayPush(values, left); }
         if right != "" { ArrayPush(values, right); }
     }
+    if owns_elements {
+        if ArrayLength(values) != 1 { return None; }
+        return Some(Concat(DirectMirScalarProgramCStringArrayOwnedSingleFn(),
+            Concat("(", Concat(values[0], ")"))));
+    }
     let type_name: String = CompilerAbiLayoutArrayStringCValueType();
     if ArrayLength(values) == 0 {
         return Some(Concat("((", Concat(type_name,
             "){NULL, 0, 0, NULL})")));
     }
-    let output: String = Concat("((", Concat(type_name,
-        "){(const char *[]){"));
+    let output: String = Concat(
+        DirectMirScalarProgramCStringArrayValuesFn(), "((const char *[]){");
     let item: Int = 0;
     while item < ArrayLength(values) {
         if item > 0 { output = Concat(output, ", "); }
@@ -30,7 +37,5 @@ func DirectMirScalarProgramCArrayStringLiteralExpression(
     }
     output = Concat(output, "}, ");
     output = Concat(output, ToString(ArrayLength(values)));
-    output = Concat(output, ", ");
-    output = Concat(output, ToString(ArrayLength(values)));
-    return Some(Concat(output, ", NULL})"));
+    return Some(Concat(output, ")"));
 }

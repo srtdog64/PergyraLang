@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds the bounded DRV-2 compiler with the Pergyra parser/codegen seeds.
-# The native compiler may build stage-0 seeds, but it must not compile the
-# replacement driver source directly.
+# Builds the bounded DRV-2 compiler through the Pergyra typed-source codegen
+# seed. The native compiler may build stage-0 seeds, but it must not compile
+# the replacement driver source directly.
 
 set -euo pipefail
 
@@ -24,16 +24,14 @@ CC="${PGY_SELFHOST_CC:-gcc}"
 NATIVE_PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 CODEGEN_BUILD="${PGY_SELFHOST_CODEGEN_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap}"
 BUILD_DIR="${PGY_SELFHOST_COMPILER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/compiler/bootstrap}"
-PARSER_BIN="${PGY_SELFHOST_PARSER_SEED:-$CODEGEN_BUILD/parser_ast_producer.exe}"
 CODEGEN_BIN="${PGY_SELFHOST_CODEGEN_SEED:-$CODEGEN_BUILD/gen2.exe}"
 DRIVER_SOURCE="src/self_hosted/compiler/driver_bootstrap_main.pgy"
 OUTPUT="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
-AST_FILE="$BUILD_DIR/driver.ast.txt"
 C_FILE="$BUILD_DIR/driver.c"
+C_RAW="$BUILD_DIR/driver.c.raw"
+C_NEXT="$BUILD_DIR/driver.c.next"
 STAMP="$BUILD_DIR/driver.build.key"
-EMIT_STAMP="$BUILD_DIR/driver.emit.key"
 KEY_INPUT="$BUILD_DIR/driver.build.key.input"
-AST_ERROR="$BUILD_DIR/driver.ast.err"
 SMOKE_OUT="$BUILD_DIR/driver.smoke.c"
 MANIFEST_SOURCE="$BUILD_DIR/machine-layer-manifest.json"
 MANIFEST_SMOKE="$BUILD_DIR/machine-layer-manifest.smoke.json"
@@ -49,7 +47,7 @@ esac
 case "$OUTPUT" in
     *.exe) ;;
     *)
-        if pgy_binary_expects_windows_paths "$PARSER_BIN"; then
+        if pgy_binary_expects_windows_paths "$CODEGEN_BIN"; then
             OUTPUT="${OUTPUT}.exe"
         fi
         ;;
@@ -79,10 +77,8 @@ hash_file() {
 
 mkdir -p "$BUILD_DIR" "$(dirname "$OUTPUT")"
 [[ -f "$ROOT_DIR/$DRIVER_SOURCE" ]] || fail "missing driver source"
-[[ -f "$PARSER_BIN" ]] || fail "missing parser seed: $PARSER_BIN"
 [[ -f "$CODEGEN_BIN" ]] || fail "missing Pergyra codegen seed: $CODEGEN_BIN"
 [[ -f "$NATIVE_PGY" ]] || fail "missing native machine manifest owner: $NATIVE_PGY"
-pgy_require_runnable_binary_here "self-host-compiler-build" "$PARSER_BIN" || exit 1
 pgy_require_runnable_binary_here "self-host-compiler-build" "$CODEGEN_BIN" || exit 1
 pgy_require_runnable_binary_here "self-host-compiler-build" "$NATIVE_PGY" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
@@ -97,26 +93,29 @@ fi
 grep -Fq '"schema":"pgy.machine-layer.declaration.v1"' "$MANIFEST_SOURCE" ||
     fail "native machine manifest owner emitted an invalid artifact"
 
-# The composed AST is the parser owner's import-graph fact. Hashing a stale
-# parser-build inventory here allowed the installed driver to retain 76 MIR
-# fixtures after the live owner had reached 109. Parse first on every build;
-# the expensive codegen/host-compile legs remain fingerprint-cached.
-echo "[self-host-compiler-build] parsing DRV-2 composed source graph"
-rm -f "$AST_FILE" "$AST_ERROR"
+# The source pipeline owns declaration provenance. An AST-text detour loses
+# that fact and must fail closed for compiler-internal builtins, so emit the
+# current composed graph through the typed source-artifact route every time.
+echo "[self-host-compiler-build] emitting DRV-2 from typed source artifact"
+rm -f "$C_RAW" "$C_NEXT"
 if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
-    "$PARSER_BIN" "$DRIVER_SOURCE" 2>"$AST_ERROR" \
-    | tr -d '\r' >"$AST_FILE"); then
-    tail -n 20 "$AST_FILE" "$AST_ERROR" >&2 || true
-    fail "Pergyra parser seed rejected the DRV-2 source graph"
+    "$CODEGEN_BIN" --source "$DRIVER_SOURCE" >"$C_RAW"); then
+    fail "Pergyra-built codegen rejected the DRV-2 source graph"
 fi
-[[ -s "$AST_FILE" ]] || fail "Pergyra parser seed emitted an empty AST"
-ast_rel="${AST_FILE#"$ROOT_DIR"/}"
+if ! tr -d '\r' <"$C_RAW" >"$C_NEXT"; then
+    fail "Pergyra-built codegen C normalization failed"
+fi
+rm -f "$C_RAW"
+if grep -q '^CODEGEN ERROR' "$C_NEXT"; then
+    grep '^CODEGEN ERROR' "$C_NEXT" | head -5 >&2
+    fail "DRV-2 is outside the Pergyra codegen subset"
+fi
+[[ -s "$C_NEXT" ]] || fail "Pergyra-built codegen emitted empty C"
 
 printf '%s\n' \
-    "schema=pgy.selfhost.compiler-build.v2" \
-    "parser=$(hash_file "$PARSER_BIN")" \
+    "schema=pgy.selfhost.compiler-build.v3-typed-source" \
     "codegen=$(hash_file "$CODEGEN_BIN")" \
-    "composed_ast=$(hash_file "$AST_FILE")" \
+    "source_artifact_c=$(hash_file "$C_NEXT")" \
     "machine_manifest=$(hash_file "$MANIFEST_SOURCE")" \
     "output=$OUTPUT_KEY" \
     "cc=$($CC --version 2>/dev/null | head -1)" \
@@ -131,26 +130,12 @@ if [[ -x "$OUTPUT" && -f "$STAMP" ]] \
         cp "$MANIFEST_SOURCE" "${MANIFEST_OUTPUT}.tmp"
         mv -f "${MANIFEST_OUTPUT}.tmp" "$MANIFEST_OUTPUT"
     fi
+    rm -f "$C_NEXT"
     echo "[self-host-compiler-build] reusing fingerprinted Pergyra-built driver"
     exit 0
 fi
 
-if [[ -s "$C_FILE" && -f "$EMIT_STAMP" ]] \
-    && grep -Fxq "$build_key" "$EMIT_STAMP"; then
-    echo "[self-host-compiler-build] reusing fingerprinted Pergyra-emitted driver C"
-else
-    echo "[self-host-compiler-build] emitting DRV-2 with Pergyra-built gen2 codegen"
-    if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
-        "$CODEGEN_BIN" "$ast_rel" | tr -d '\r' >"$C_FILE"); then
-        fail "Pergyra-built codegen rejected the DRV-2 AST"
-    fi
-    if grep -q '^CODEGEN ERROR' "$C_FILE"; then
-        grep '^CODEGEN ERROR' "$C_FILE" | head -5 >&2
-        fail "DRV-2 is outside the Pergyra codegen subset"
-    fi
-    [[ -s "$C_FILE" ]] || fail "Pergyra-built codegen emitted empty C"
-    printf '%s\n' "$build_key" >"$EMIT_STAMP"
-fi
+mv -f "$C_NEXT" "$C_FILE"
 
 tmp_output="${OUTPUT}.tmp"
 rm -f "$tmp_output"

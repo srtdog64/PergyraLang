@@ -1,0 +1,78 @@
+// Ordered admission for literal families and their exact owned use prefix.
+import "direct_mir_scalar_program_array_string_literal_admission_owner.pgy";
+import "direct_mir_scalar_program_array_int_empty_literal_admission_owner.pgy";
+import "direct_mir_scalar_program_array_int_populated_literal_admission_owner.pgy";
+import "direct_mir_scalar_program_array_bool_empty_literal_admission_owner.pgy";
+import "direct_mir_scalar_program_array_bool_populated_literal_admission_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_empty_literal_admission_owner.pgy";
+
+struct DirectMirScalarProgramLiteralExpressionAdmission {
+    let recognized: Bool;
+    let facts: DirectMirScalarProgramExpressionSet;
+}
+
+func DirectMirScalarProgramAppendLiteralExpression(
+    facts: DirectMirScalarProgramExpressionSet,
+    ref sequence: MirExpressionGraphSequence,
+    ref uses: MirRoutineInstructionUseFacts, global_row: Int,
+    local_instruction: Int, local_offset: Int, inout use_offset: Int,
+    expected_type: String,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref value_types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramLiteralExpressionAdmission {
+    let string_array: DirectMirScalarProgramArrayStringLiteralAdmission =
+        DirectMirScalarProgramAppendArrayStringLiteral(
+            facts, sequence, uses, global_row, local_instruction,
+            local_offset, use_offset, expected_type, locals, value_types,
+            wire, signature);
+    if string_array.recognized {
+        return DirectMirScalarProgramLiteralExpressionAdmission(
+            true, string_array.facts);
+    }
+    let int_populated:
+        DirectMirScalarProgramArrayIntPopulatedLiteralAdmission =
+        DirectMirScalarProgramAppendArrayIntPopulatedLiteral(
+            facts, sequence, uses, global_row, local_instruction,
+            local_offset, use_offset, expected_type, locals, value_types,
+            wire, signature, callables, logical_record);
+    if int_populated.recognized {
+        return DirectMirScalarProgramLiteralExpressionAdmission(
+            true, int_populated.facts);
+    }
+    let bool_populated:
+        DirectMirScalarProgramArrayBoolPopulatedLiteralAdmission =
+        DirectMirScalarProgramAppendArrayBoolPopulatedLiteral(
+            facts, sequence, uses, global_row, expected_type);
+    if bool_populated.recognized {
+        return DirectMirScalarProgramLiteralExpressionAdmission(
+            true, bool_populated.facts);
+    }
+    let int_empty: DirectMirScalarProgramArrayIntEmptyLiteralAdmission =
+        DirectMirScalarProgramAppendArrayIntEmptyLiteral(
+            facts, sequence, uses, global_row, expected_type);
+    if int_empty.recognized {
+        return DirectMirScalarProgramLiteralExpressionAdmission(
+            true, int_empty.facts);
+    }
+    let bool_empty: DirectMirScalarProgramArrayBoolEmptyLiteralAdmission =
+        DirectMirScalarProgramAppendArrayBoolEmptyLiteral(
+            facts, sequence, uses, global_row, expected_type);
+    if bool_empty.recognized {
+        return DirectMirScalarProgramLiteralExpressionAdmission(
+            true, bool_empty.facts);
+    }
+    let record_array:
+        DirectMirScalarProgramLogicalRecordArrayEmptyLiteralAdmission =
+        DirectMirScalarProgramAppendLogicalRecordArrayEmptyLiteral(
+            facts, sequence, uses, global_row, expected_type,
+            logical_record);
+    if record_array.recognized {
+        return DirectMirScalarProgramLiteralExpressionAdmission(
+            true, record_array.facts);
+    }
+    return DirectMirScalarProgramLiteralExpressionAdmission(false, facts);
+}

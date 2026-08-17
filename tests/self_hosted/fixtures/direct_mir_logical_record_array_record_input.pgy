@@ -1,0 +1,32 @@
+// One record-Array copyout plus a distinct direct record input.
+
+struct ArenaRows {
+    let ids: Array<Int>;
+    let labels: Array<String>;
+}
+
+struct GraphRows {
+    let valid: Bool;
+    let roots: Array<Int>;
+    let arena: ArenaRows;
+}
+
+struct ParseFact {
+    let valid: Bool;
+    let text: String;
+    let root: Int;
+    let arena: ArenaRows;
+}
+
+func AppendGraphRows(
+    inout rows: Array<GraphRows>, owner_kind: Int, lane: Int,
+    fact: ParseFact
+) -> Void {
+    return;
+}
+
+func Main() -> Void {
+    let ids: Array<Int> = [];
+    let labels: Array<String> = [];
+    Log("record-array-record-input-ready");
+}

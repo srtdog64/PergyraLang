@@ -1,0 +1,30 @@
+// Bool-returning complex and scalar-prefix/single-ArrayBool copyout shapes.
+func AppendLaneRows(
+    inout node_kinds: Array<Int>, inout node_flags: Array<Bool>,
+    inout node_parents: Array<Int>, inout node_texts: Array<String>,
+    inout child_starts: Array<Int>, inout child_counts: Array<Int>,
+    inout child_rows: Array<Int>, inout diagnostics: Array<String>,
+    include_aux: Bool, strict: Bool, source: String
+) -> Bool {
+    ArrayPush(node_flags, false);
+    ArraySet(node_flags, 0, true);
+    return true;
+}
+func ReadRequiredBool(
+    json: String, start: Int, end: Int, field: String,
+    inout value_box: Array<Bool>) -> Bool {
+    if start < 0 { return false; }
+    ArrayPush(value_box, true);
+    return true;
+}
+func Main() -> Void {
+    Log("bool-mixed-collection-copyout-ready");
+    let value_box: Array<Bool> = [];
+    let read: Bool = ReadRequiredBool("{}", 0, 2, "required", value_box);
+    if read {
+        Log("bool-single-copyout-ready");
+    } else {
+        Log("bool-single-copyout-failed");
+    }
+    Log(ArrayLength(value_box));
+}

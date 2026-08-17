@@ -17,6 +17,10 @@ struct CollectionSetRuntimeFact {
     c_size_fn: String;
 }
 
+func CollectionSetRuntimeLlvmNewRawFn() -> String { return "pgy_set_new_raw_export"; }
+func CollectionSetRuntimeLlvmAddStringRawFn() -> String { return "pgy_set_add_string_raw_export"; }
+func CollectionSetRuntimeLlvmHasStringRawFn() -> String { return "pgy_set_has_string_raw_export"; }
+
 func CollectionSetRuntimeFactMissing() -> CollectionSetRuntimeFact {
     return CollectionSetRuntimeFact(
         false, "", "", "", "", "", "", "", "", ""
@@ -88,6 +92,9 @@ func CollectionSetRuntimeContractReady() -> Bool {
         int_fact.c_size_fn == "pgy_set_size_int" &&
         string_fact.ok && string_fact.c_value_type == "PgySet_String" &&
         string_fact.c_has_fn == "pgy_set_has_string" &&
+        CollectionSetRuntimeLlvmNewRawFn() == "pgy_set_new_raw_export" &&
+        CollectionSetRuntimeLlvmAddStringRawFn() == "pgy_set_add_string_raw_export" &&
+        CollectionSetRuntimeLlvmHasStringRawFn() == "pgy_set_has_string_raw_export" &&
         !CollectionSetRuntimeFactFromTypeName("Set<Unknown>").ok &&
         !CollectionSetRuntimeFactFromTypeName("Queue<Int>").ok;
 }

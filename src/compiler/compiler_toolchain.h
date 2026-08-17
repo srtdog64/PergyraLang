@@ -39,7 +39,8 @@ void compiler_debug_llvm_host_stage(const char *stage);
 #endif
 
 /* Runtime object cache (compiler_runtime_cache.c). Not gated on LLVM: the C
- * leg in extern mode (PGY_RUNTIME_DECLS_ONLY) links the runtime object too. */
+ * extern leg and textual/native LLVM legs consume distinct linkage objects
+ * owned by the same freshness/publication boundary. */
 bool compiler_runtime_cache_is_fresh(const char *cache_obj_path);
 
 /* Build the runtime object through a per-process scratch path and publish it
@@ -52,12 +53,18 @@ char *compiler_runtime_prebuilt_object_path(PgyOptProfile opt_profile,
                                             bool uses_intent_observability);
 char *compiler_runtime_cache_object_path(PgyOptProfile opt_profile,
                                          bool uses_intent_observability);
-/* Resolve + (re)build a fresh runtime object for the given profile; returns a
- * malloc'd path (caller frees) or NULL with *error_out set. Shared by both
- * backends so the linked runtime cannot drift. */
+/* Resolve + (re)build the C-extern runtime object for the given profile. */
 char *compiler_runtime_object_ensure(PgyOptProfile opt_profile,
                                      bool uses_intent_observability,
                                      bool verbose,
                                      const char **error_out);
+/* Resolve + (re)build the canonical LLVM-callable runtime object. The caller
+ * frees the returned path; compiled_out records whether this call published a
+ * fresh cache object so a failed link may invalidate that new artifact. */
+char *compiler_llvm_runtime_object_ensure(PgyOptProfile opt_profile,
+                                          bool uses_intent_observability,
+                                          bool verbose,
+                                          bool *compiled_out,
+                                          const char **error_out);
 
 #endif /* PGY_COMPILER_TOOLCHAIN_H */

@@ -1,0 +1,42 @@
+// Declaration-keyed nested logical records retain their Array<Bool> ABI.
+
+struct ReachabilityRows {
+    valid: Bool;
+    reachable: Array<Bool>;
+}
+
+struct ProgramIndex {
+    valid: Bool;
+    rows: ReachabilityRows;
+    count: Int;
+}
+
+// This unused same-shaped declaration must never substitute for ProgramIndex.
+struct WrongProgramIndex {
+    valid: Bool;
+    rows: ReachabilityRows;
+    count: Int;
+}
+
+func BuildProgramIndex(rows: ReachabilityRows, count: Int) -> ProgramIndex {
+    return ProgramIndex(true, rows, count);
+}
+
+func RebuildProgramIndex(index: ProgramIndex) -> ProgramIndex {
+    return ProgramIndex(index.valid, index.rows, index.count + 1);
+}
+
+func ProgramIndexCount(index: ProgramIndex) -> Int {
+    if !index.valid || !index.rows.valid { return 0; }
+    return index.count;
+}
+
+func Main() -> Void {
+    let reachable: Array<Bool> = [];
+    let rows: ReachabilityRows = ReachabilityRows(true, [true]);
+    let built: ProgramIndex = BuildProgramIndex(rows, 7);
+    let index: ProgramIndex = RebuildProgramIndex(built);
+    if !index.rows.valid { Log("nested-record-invalid"); }
+    Log(ToString(ArrayLength(reachable)));
+    Log(ToString(ProgramIndexCount(index)));
+}

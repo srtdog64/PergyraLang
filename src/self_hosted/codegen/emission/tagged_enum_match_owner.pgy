@@ -4,6 +4,7 @@ import "../text/text_owner.pgy";
 import "../text/enum_literal_owner.pgy";
 import "../../hir/ast_match_pattern_fact_owner.pgy";
 import "../type_facts/type_env.pgy";
+import "../type_facts/type_env_state_lifetime_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "expr_rewrite.pgy";
@@ -43,7 +44,7 @@ func BindTaggedEnumMatchPayload(
     pattern: String,
     match_value: String,
     subject_type: String,
-    inout env_state: Array<String>,
+    inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv
 ) -> Void {
     let fact: AstMatchCasePatternFact = AstMatchCasePatternFactFromText(pattern);

@@ -1,0 +1,143 @@
+// LLVM expression and declaration projection for admitted runtime-value calls.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "runtime_value_call_abi_owner.pgy";
+
+func DirectMirScalarProgramLlvmRuntimeValueLocalArgument(
+    ref expressions: DirectMirScalarProgramExpressionSet, argument: Int
+) -> String {
+    if argument < 0 || argument >= ArrayLength(expressions.node_kinds) ||
+        expressions.node_kinds[argument] !=
+            DirectMirScalarProgramExprLocal() ||
+        expressions.node_local_rows[argument] < 0 {
+        return "";
+    }
+    return Concat("%pgy.local.", ToString(
+        expressions.node_local_rows[argument]));
+}
+
+func DirectMirScalarProgramLlvmRuntimeValueExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
+    result: String, left: String, right: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprRuntimeValueCall() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let call: CompilerRuntimeValueCallAbiFact =
+        CompilerRuntimeValueCallAbiFactForId(
+            expressions.node_runtime_call_abi_ids[node]);
+    if !call.valid {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let instructions: String = "";
+    let value: String = "";
+    if call.llvm_shape == "allocator_out_to_void" ||
+            call.llvm_shape == "builder_out_capacity_to_void" {
+        let aggregate_type: String = "%pgy.runtime.allocator";
+        if call.llvm_shape == "builder_out_capacity_to_void" {
+            aggregate_type = "%pgy.runtime.text_builder";
+        }
+        let storage: String = Concat(result, ".storage");
+        instructions = Concat("  ", Concat(storage, Concat(
+            " = alloca ", Concat(aggregate_type, ", align 8\n"))));
+        instructions = Concat(instructions, Concat("  call void @", Concat(
+            call.llvm_symbol, Concat("(ptr ", storage))));
+        if call.llvm_shape == "builder_out_capacity_to_void" {
+            instructions = Concat(instructions, Concat(", i64 ", left));
+        }
+        instructions = Concat(instructions, ")\n");
+        instructions = Concat(instructions, "  ");
+        instructions = Concat(instructions, result);
+        instructions = Concat(instructions, " = load ");
+        instructions = Concat(instructions, aggregate_type);
+        instructions = Concat(instructions, ", ptr ");
+        instructions = Concat(instructions, storage);
+        instructions = Concat(instructions, ", align 8\n");
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, result);
+    }
+    let left_owner: String =
+        DirectMirScalarProgramLlvmRuntimeValueLocalArgument(
+            expressions, expressions.node_lefts[node]);
+    if left_owner == "" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    if call.llvm_shape == "allocator_ptr_to_void" ||
+            call.llvm_shape == "builder_ptr_to_void" {
+        instructions = Concat("  call void @", Concat(call.llvm_symbol,
+            Concat("(ptr ", Concat(left_owner, ")\n"))));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, value);
+    }
+    if call.llvm_shape == "builder_ptr_string_to_void" {
+        instructions = Concat("  call void @", Concat(call.llvm_symbol,
+            Concat("(ptr ", Concat(left_owner, Concat(", ptr ", Concat(
+                right, ")\n"))))));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, value);
+    }
+    if call.llvm_shape == "builder_ptr_allocator_ptr_to_string" {
+        let right_owner: String =
+            DirectMirScalarProgramLlvmRuntimeValueLocalArgument(
+                expressions, expressions.node_rights[node]);
+        if right_owner == "" {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        instructions = Concat("  ", result);
+        instructions = Concat(instructions, " = call ptr @");
+        instructions = Concat(instructions, call.llvm_symbol);
+        instructions = Concat(instructions, "(ptr ");
+        instructions = Concat(instructions, left_owner);
+        instructions = Concat(instructions, ", ptr ");
+        instructions = Concat(instructions, right_owner);
+        instructions = Concat(instructions, ")\n");
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, result);
+    }
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, false, "", "");
+}
+
+func DirectMirScalarProgramLlvmRuntimeValueDeclarations(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    let output: String = "";
+    let call_row: Int = 0;
+    while call_row < 6 {
+        let call: CompilerRuntimeValueCallAbiFact =
+            CompilerRuntimeValueCallAbiFactForSource(
+                CompilerRuntimeValueCallSourceAt(call_row));
+        let present: Bool = false;
+        let node: Int = 0;
+        while node < ArrayLength(expressions.node_runtime_call_abi_ids) {
+            if call.valid && expressions.node_runtime_call_abi_ids[node] ==
+                    call.registry.runtime_call_abi_id { present = true; }
+            node = node + 1;
+        }
+        if present {
+            if call.llvm_shape == "allocator_out_to_void" ||
+                call.llvm_shape == "allocator_ptr_to_void" ||
+                call.llvm_shape == "builder_ptr_to_void" {
+                output = Concat(output, Concat("declare void @", Concat(
+                    call.llvm_symbol, "(ptr)\n")));
+            } else if call.llvm_shape == "builder_out_capacity_to_void" {
+                output = Concat(output, Concat("declare void @", Concat(
+                    call.llvm_symbol, "(ptr, i64)\n")));
+            } else if call.llvm_shape == "builder_ptr_string_to_void" {
+                output = Concat(output, Concat("declare void @", Concat(
+                    call.llvm_symbol, "(ptr, ptr)\n")));
+            } else if call.llvm_shape ==
+                    "builder_ptr_allocator_ptr_to_string" {
+                output = Concat(output, Concat("declare ptr @", Concat(
+                    call.llvm_symbol, "(ptr, ptr)\n")));
+            } else { Die("direct MIR LLVM runtime-value declaration is invalid"); }
+        }
+        call_row = call_row + 1;
+    }
+    return output;
+}

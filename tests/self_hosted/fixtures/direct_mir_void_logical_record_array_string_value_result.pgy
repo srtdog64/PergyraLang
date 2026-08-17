@@ -1,0 +1,24 @@
+// Exact Void envelope with Array<String> copyout and a logical-record value.
+
+struct StateEnvProbe {
+    let valid: Bool;
+    let text: String;
+}
+
+func StoreState(
+    inout state: Array<String>,
+    env: StateEnvProbe
+) -> Void {
+    if env.valid { return; }
+    return;
+}
+
+func Main() -> Void {
+    let state: Array<String> = [];
+    let ready: StateEnvProbe = StateEnvProbe(true, "ready");
+    let idle: StateEnvProbe = StateEnvProbe(false, "idle");
+    StoreState(state, ready);
+    StoreState(state, idle);
+    Log("void-record-array-string-copyout-ready");
+    Log(ArrayLength(state));
+}

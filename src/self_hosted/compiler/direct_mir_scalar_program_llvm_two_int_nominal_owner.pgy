@@ -8,7 +8,7 @@ func DirectMirScalarProgramLlvmTwoIntNominalTypeName() -> String {
 
 func DirectMirScalarProgramLlvmTwoIntNominalPreamble(
     ref fact: DirectMirScalarProgramTwoIntNominalAbiFact,
-    target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact
 ) -> String {
     if DirectMirScalarProgramTwoIntNominalAbiFactReady(fact) &&
             !fact.present { return ""; }

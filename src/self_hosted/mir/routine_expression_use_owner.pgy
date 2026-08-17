@@ -3,6 +3,20 @@
 import "routine_build_owner.pgy";
 import "../semantic/ast_expression_graph_node_view_owner.pgy";
 
+func SelfMirExpressionGraphLeafIsMemberSelector(
+    view: SemanticExpressionGraphView, node: Int
+) -> Bool {
+    if !view.ok || node < 0 || node >= view.root_id { return false; }
+    let parent: Int = node + 1;
+    let parent_kind: Option<Int> =
+        SemanticExpressionGraphNodeKind(view.graph, parent);
+    let parent_right: Option<Int> =
+        SemanticExpressionGraphRightChild(view.graph, parent);
+    return IsSome(parent_kind) && IsSome(parent_right) &&
+        UnwrapOption(parent_kind) == AstExpressionNodeMemberAccess() &&
+        UnwrapOption(parent_right) == node;
+}
+
 func SelfMirExpressionGraphContainsLeafBinding(
     view: SemanticExpressionGraphView, name: String
 ) -> Bool {
@@ -59,7 +73,8 @@ func SelfMirExpressionGraphUses(
             view.graph, node
         );
         if IsSome(kind) && IsSome(name_opt) &&
-            UnwrapOption(kind) == AstExpressionNodeLeaf() {
+            UnwrapOption(kind) == AstExpressionNodeLeaf() &&
+            !SelfMirExpressionGraphLeafIsMemberSelector(view, node) {
             let local_opt: Option<Int> = SelfMirRoutineLocalIndex(
                 build, UnwrapOption(name_opt)
             );

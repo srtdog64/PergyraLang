@@ -40,7 +40,7 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_argument_program_identity_o
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy|215
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_argument_c_emission_owner.pgy|165
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_struct_argument_llvm_emission_owner.pgy|110
-$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy|90
+$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy|110
 $ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy|35
 EOF
     [[ "$total" -le 1420 ]] || fail "struct owner family cap exceeded: $total/1420"

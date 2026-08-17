@@ -1,0 +1,19 @@
+// By-value Set<String> parameter and canonical SetHas call.
+func ContainsPath(paths: Set<String>, path: String) -> Bool {
+    return SetHas(paths, path);
+}
+
+func AddPath(inout paths: Set<String>, path: String) -> Void {
+    SetAdd(paths, path);
+    return;
+}
+
+func Main() -> Void {
+    let paths: Set<String> = SetNew();
+    AddPath(paths, "alpha");
+    if ContainsPath(paths, "alpha") && !ContainsPath(paths, "beta") {
+        Log("set-string-value-ready");
+    } else {
+        Log("set-string-value-failed");
+    }
+}

@@ -13,6 +13,17 @@ func DirectMirScalarProgramNonTrappingBoolNode(
     if kind == DirectMirScalarProgramExprLocal() ||
         kind == DirectMirScalarProgramExprParameter() ||
         kind == DirectMirScalarProgramExprBoolLiteral() ||
+        kind == DirectMirScalarProgramExprLogicalRecordMember() ||
+        kind == DirectMirScalarProgramExprEqualInt() ||
+        kind == DirectMirScalarProgramExprNotEqualInt() ||
+        kind == DirectMirScalarProgramExprLessInt() ||
+        kind == DirectMirScalarProgramExprGreaterEqualInt() ||
+        kind == DirectMirScalarProgramExprGreaterInt() ||
+        kind == DirectMirScalarProgramExprGreaterLong() ||
+        kind == DirectMirScalarProgramExprEqualLong() ||
+        kind == DirectMirScalarProgramExprNotEqualLong() ||
+        kind == DirectMirScalarProgramExprLessLong() ||
+        kind == DirectMirScalarProgramExprLessEqualInt() ||
         kind == DirectMirScalarProgramExprEqualString() ||
         kind == DirectMirScalarProgramExprNotEqualString() { return true; }
     if kind == DirectMirScalarProgramExprLogicalNot() {
@@ -21,6 +32,13 @@ func DirectMirScalarProgramNonTrappingBoolNode(
     }
     if kind == DirectMirScalarProgramExprLogicalAnd() ||
         kind == DirectMirScalarProgramExprLogicalOr() {
+        return DirectMirScalarProgramNonTrappingBoolNode(
+            facts, facts.node_lefts[node]) &&
+            DirectMirScalarProgramNonTrappingBoolNode(
+                facts, facts.node_rights[node]);
+    }
+    if kind == DirectMirScalarProgramExprEqualBool() ||
+        kind == DirectMirScalarProgramExprNotEqualBool() {
         return DirectMirScalarProgramNonTrappingBoolNode(
             facts, facts.node_lefts[node]) &&
             DirectMirScalarProgramNonTrappingBoolNode(

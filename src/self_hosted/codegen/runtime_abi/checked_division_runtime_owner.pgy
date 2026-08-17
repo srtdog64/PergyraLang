@@ -12,12 +12,46 @@
 // warning, which is why these can be emitted unconditionally instead of
 // threading another usage flag through the program emitter.
 
+import "../text/text_owner.pgy";
+
 func CheckedDivisionRuntimeCDivideFn() -> String {
     return "pgy_checked_div_ll";
 }
 
+func CheckedDivisionRuntimeCIntDivideFn() -> String {
+    return "pgy_checked_div_i32";
+}
+
 func CheckedDivisionRuntimeCModuloFn() -> String {
     return "pgy_checked_mod_ll";
+}
+
+func CheckedDivisionRuntimeCIntModuloFn() -> String {
+    return "pgy_checked_mod_i32";
+}
+
+struct CheckedDivisionRuntimeCSymbolFact {
+    divide: String;
+    modulo: String;
+}
+
+func CheckedDivisionRuntimeCSymbolFactForType(
+    type_name: String
+) -> CheckedDivisionRuntimeCSymbolFact {
+    if type_name == "Int" {
+        return CheckedDivisionRuntimeCSymbolFact(
+            CheckedDivisionRuntimeCIntDivideFn(),
+            CheckedDivisionRuntimeCIntModuloFn()
+        );
+    }
+    if type_name == "Long" {
+        return CheckedDivisionRuntimeCSymbolFact(
+            CheckedDivisionRuntimeCDivideFn(),
+            CheckedDivisionRuntimeCModuloFn()
+        );
+    }
+    Die(Concat("checked division runtime requires Int or Long, got: ", type_name));
+    return CheckedDivisionRuntimeCSymbolFact("", "");
 }
 
 // Integer division and modulo route through the checked helper; float division
@@ -25,21 +59,45 @@ func CheckedDivisionRuntimeCModuloFn() -> String {
 // truncate it. Owning the choice here keeps the expression emitter at its cap.
 func CheckedDivisionRuntimeCBinaryEmit(
     is_modulo: Bool,
-    integral: Bool,
+    type_name: String,
     left: String,
     right: String
 ) -> String {
-    if integral {
-        let checked_fn: String = CheckedDivisionRuntimeCDivideFn();
-        if is_modulo { checked_fn = CheckedDivisionRuntimeCModuloFn(); }
+    if type_name == "Int" || type_name == "Long" {
+        let symbols: CheckedDivisionRuntimeCSymbolFact =
+            CheckedDivisionRuntimeCSymbolFactForType(type_name);
+        let checked_fn: String = symbols.divide;
+        if is_modulo {
+            checked_fn = symbols.modulo;
+        }
         return "${checked_fn}(${left}, ${right})";
     }
     if is_modulo { return "(${left} % ${right})"; }
     return "(${left} / ${right})";
 }
 
-func CheckedDivisionRuntimeCGuard() -> String {
-    return "    if (b == 0) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO, PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO); }\n    if (a == (-9223372036854775807LL - 1) && b == -1) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW, PGY_RUNTIME_PANIC_REASON_DIVISION_OVERFLOW); }\n";
+func CheckedDivisionRuntimeCZeroGuard() -> String {
+    return "    if (b == 0) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO, PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO); }\n";
+}
+
+func CheckedDivisionRuntimeCDivideGuard() -> String {
+    return Concat(CheckedDivisionRuntimeCZeroGuard(),
+        "    if (a == (-9223372036854775807LL - 1) && b == -1) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW, PGY_RUNTIME_PANIC_REASON_DIVISION_OVERFLOW); }\n");
+}
+
+func CheckedDivisionRuntimeCIntDivideGuard() -> String {
+    return Concat(CheckedDivisionRuntimeCZeroGuard(),
+        "    if (a == (-2147483647 - 1) && b == -1) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW, PGY_RUNTIME_PANIC_REASON_DIVISION_OVERFLOW); }\n");
+}
+
+func CheckedDivisionRuntimeCModuloGuard() -> String {
+    return Concat(CheckedDivisionRuntimeCZeroGuard(),
+        "    if (a == (-9223372036854775807LL - 1) && b == -1) { return 0; }\n");
+}
+
+func CheckedDivisionRuntimeCIntModuloGuard() -> String {
+    return Concat(CheckedDivisionRuntimeCZeroGuard(),
+        "    if (a == (-2147483647 - 1) && b == -1) { return 0; }\n");
 }
 
 // The block carries its own panic-contract include: a program that uses no
@@ -47,5 +105,9 @@ func CheckedDivisionRuntimeCGuard() -> String {
 // emitted for every program. The header is guarded, so a second include where
 // the shared header already landed is inert.
 func CheckedDivisionRuntimeCProgramBlock() -> String {
-    return "#include \"pgy_runtime_panic_contract.h\"\n\nstatic inline long long ${CheckedDivisionRuntimeCDivideFn()}(long long a, long long b)\n{\n${CheckedDivisionRuntimeCGuard()}    return a / b;\n}\n\nstatic inline long long ${CheckedDivisionRuntimeCModuloFn()}(long long a, long long b)\n{\n${CheckedDivisionRuntimeCGuard()}    return a % b;\n}\n\n";
+    let int_divide: String = CheckedDivisionRuntimeCIntDivideFn();
+    let int_modulo: String = CheckedDivisionRuntimeCIntModuloFn();
+    let long_divide: String = CheckedDivisionRuntimeCDivideFn();
+    let long_modulo: String = CheckedDivisionRuntimeCModuloFn();
+    return "#include \"pgy_runtime_panic_contract.h\"\n\nstatic inline int32_t ${int_divide}(int32_t a, int32_t b)\n{\n${CheckedDivisionRuntimeCIntDivideGuard()}    return a / b;\n}\n\nstatic inline int32_t ${int_modulo}(int32_t a, int32_t b)\n{\n${CheckedDivisionRuntimeCIntModuloGuard()}    return a % b;\n}\n\nstatic inline int64_t ${long_divide}(int64_t a, int64_t b)\n{\n${CheckedDivisionRuntimeCDivideGuard()}    return a / b;\n}\n\nstatic inline int64_t ${long_modulo}(int64_t a, int64_t b)\n{\n${CheckedDivisionRuntimeCModuloGuard()}    return a % b;\n}\n\n";
 }

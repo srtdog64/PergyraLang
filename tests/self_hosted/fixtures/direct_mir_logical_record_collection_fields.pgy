@@ -1,0 +1,80 @@
+// Collection fields retain declaration identity and their existing ABI facts.
+
+struct CollectionIndex {
+    valid: Bool;
+    declaration_names: Array<String>;
+    declaration_kinds: Array<String>;
+    declaration_nominal_kinds: Array<String>;
+    field_owner_indices: Array<Int>;
+    field_names: Array<String>;
+    field_source_syntax_ids: Array<String>;
+    field_kinds: Array<String>;
+    field_type_names: Array<String>;
+}
+
+// An unreferenced same-shape declaration cannot substitute for CollectionIndex.
+struct WrongCollectionIndex {
+    valid: Bool;
+    declaration_names: Array<String>;
+    declaration_kinds: Array<String>;
+    declaration_nominal_kinds: Array<String>;
+    field_owner_indices: Array<Int>;
+    field_names: Array<String>;
+    field_source_syntax_ids: Array<String>;
+    field_kinds: Array<String>;
+    field_type_names: Array<String>;
+}
+
+func EmptyCollectionIndex() -> CollectionIndex {
+    let names: Array<String> = [];
+    let kinds: Array<String> = [];
+    let nominal_kinds: Array<String> = [];
+    let owner_indices: Array<Int> = [];
+    let field_names: Array<String> = [];
+    let field_ids: Array<String> = [];
+    let field_kinds: Array<String> = [];
+    let field_types: Array<String> = [];
+    return CollectionIndex(
+        false, names, kinds, nominal_kinds, owner_indices,
+        field_names, field_ids, field_kinds, field_types);
+}
+
+func CollectionIndexValid(ref index: CollectionIndex) -> Bool {
+    return index.valid;
+}
+
+func CollectionIndexValidityDiffers(
+    ref left: CollectionIndex, ref right: CollectionIndex
+) -> Bool {
+    return left.valid != right.valid;
+}
+
+func CollectionIndexOwnerAt(index: CollectionIndex, position: Int) -> Int {
+    let selected: Array<Int> = [0];
+    let target_index: Int = 0;
+    let value_index: Int = position;
+    ArraySet(
+        selected, target_index,
+        index.field_owner_indices[value_index]);
+    return selected[0];
+}
+
+func Main() -> Void {
+    let names: Array<String> = [];
+    let kinds: Array<String> = [];
+    let nominal_kinds: Array<String> = [];
+    let owner_indices: Array<Int> = [7];
+    let field_names: Array<String> = [];
+    let field_ids: Array<String> = [];
+    let field_kinds: Array<String> = [];
+    let field_types: Array<String> = [];
+    let index: CollectionIndex = CollectionIndex(
+        false, names, kinds, nominal_kinds, owner_indices,
+        field_names, field_ids, field_kinds, field_types);
+    let other: CollectionIndex = CollectionIndex(
+        true, names, kinds, nominal_kinds, owner_indices,
+        field_names, field_ids, field_kinds, field_types);
+    Log(ToString(CollectionIndexOwnerAt(index, 0)));
+    if CollectionIndexValidityDiffers(index, other) { Log(1); }
+    else { Log(0); }
+}

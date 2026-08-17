@@ -74,9 +74,7 @@ func MachineDeclarationNumberFact(
     return Some(ToInt(UnwrapOption(value)));
 }
 
-func MachineDeclarationFingerprintFact(
-    table: JsonObjectFactTable
-) -> String {
+func MachineDeclarationFingerprintFact(table: JsonObjectFactTable) -> String {
     let value: Option<String> =
         JsonObjectFactNumberFieldOpt(table, "fingerprint");
     if IsSome(value) { return UnwrapOption(value); }
@@ -191,12 +189,14 @@ func SelfHostMachineLayerDeclarationFromPath(
 func SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified(
     path: String
 ) -> String with caps io_read {
-    if path == "" { Die("installed machine declaration artifact path is empty"); }
+    if path == "" {
+        Log("installed machine declaration artifact path is empty"); Exit(1); return "";
+    }
     let payload: String = ReadFile(path);
     let declaration: SelfHostMachineLayerDeclaration =
         SelfHostMachineLayerDeclarationFromJson(payload);
     if !SelfHostMachineLayerDeclarationReady(declaration) {
-        Die("installed machine declaration artifact is invalid");
+        Log("installed machine declaration artifact is invalid"); Exit(1); return "";
     }
     let length: Int = StringLength(payload);
     if length >= 2 && CharCode(payload, length, length - 2) == 13 &&

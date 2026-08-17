@@ -1,0 +1,28 @@
+// ArrayString copyout plus same-record value and return.
+struct PresealTypeEnv {
+    let valid: Bool;
+    let text: String;
+}
+
+struct OtherTypeEnv {
+    let valid: Bool;
+    let text: String;
+}
+
+func AdvancePresealRows(
+    inout global_rows_box: Array<String>,
+    env: PresealTypeEnv,
+    rows: String
+) -> PresealTypeEnv {
+    if rows == "" { return env; }
+    return env;
+}
+
+func Main() -> Void {
+    let global_rows_box: Array<String> = [];
+    let env: PresealTypeEnv = PresealTypeEnv(true, "ready");
+    let advanced: PresealTypeEnv = AdvancePresealRows(
+        global_rows_box, env, "row");
+    if advanced.valid { Log("record-return-array-copyout-ready"); }
+    Log(ArrayLength(global_rows_box));
+}

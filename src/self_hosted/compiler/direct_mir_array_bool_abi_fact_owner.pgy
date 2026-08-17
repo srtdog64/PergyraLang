@@ -1,0 +1,13 @@
+// Canonical captured Array<Bool> ABI receipt.
+
+import "abi_layout_row_owner.pgy";
+import "direct_mir_array_captured_abi_fact_owner.pgy";
+
+func DirectMirArrayBoolCapturedAbiReady(
+    ref abi: MirAbiLayoutRowCapture
+) -> Bool {
+    return DirectMirArrayCapturedAbiReady(
+        abi, CompilerAbiLayoutArrayBoolTypeName(),
+        "pgy_array_new_Bool", "bool"
+    );
+}

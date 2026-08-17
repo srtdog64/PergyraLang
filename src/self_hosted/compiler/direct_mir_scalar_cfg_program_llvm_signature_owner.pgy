@@ -1,17 +1,24 @@
 // LLVM signatures projected from ordered GraphPlan routine parameter facts.
-
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
 
 func DirectMirScalarCfgProgramLlvmRoutineSignature(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
 ) -> String {
     if routine == plan.routines.entrypoint_ordinal {
+        if plan.program.runtime_abi.process_args_id != 0 {
+            return "define i32 @main(i32 %argc, ptr %argv)";
+        }
         return "define i32 @main()";
     }
     let output: String = Concat("define internal ",
-        DirectMirScalarProgramLlvmTypeForNominal(
-            plan.routines.return_types[routine], plan.program.nominal_abi));
+        DirectMirScalarProgramLlvmTypeForProgram(
+            plan.routines.return_types[routine], plan.program.nominal_abi,
+            plan.program.logical_record, plan.program.payload_free_enum));
     output = Concat(output, Concat(
         " @pgy.scalar.routine.", ToString(routine)));
     output = Concat(output, "(");
@@ -19,11 +26,39 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
     let start: Int = plan.routines.parameter_starts[routine];
     while ordinal < plan.routines.parameter_counts[routine] {
         if ordinal > 0 { output = Concat(output, ", "); }
-        output = Concat(output, DirectMirScalarProgramLlvmTypeForNominal(
-            plan.routines.parameter_types[start + ordinal],
-            plan.program.nominal_abi));
+        let value_result: Bool =
+            DirectMirScalarProgramArrayIntValueResultAt(
+                plan.program.array_int_value_result, routine, ordinal) ||
+            DirectMirScalarProgramArrayBoolValueResultAt(plan.program.array_bool_abi, routine, ordinal) ||
+            DirectMirScalarProgramArrayStringValueResultAt(
+                plan.program.array_string_abi, routine, ordinal) ||
+            DirectMirScalarProgramLogicalRecordValueResultAt(
+                plan, routine, ordinal) ||
+            DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+                plan, routine, ordinal) ||
+            DirectMirScalarProgramSetStringValueResultAt(
+                plan, routine, ordinal);
+        let parameter_row: Int = start + ordinal;
+        let readonly_record: Bool = plan.routines.parameter_carriages[
+                parameter_row] == "readonly-ref" &&
+            DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record,
+                plan.routines.parameter_types[parameter_row]);
+        let readonly_array_string: Bool =
+            DirectMirScalarProgramArrayStringReadonlyRefAt(
+                plan.routines, routine, ordinal);
+        if value_result || readonly_record || readonly_array_string {
+            output = Concat(output, "ptr");
+        }
+        else {
+            output = Concat(output, DirectMirScalarProgramLlvmTypeForProgram(
+                plan.routines.parameter_types[parameter_row],
+                plan.program.nominal_abi, plan.program.logical_record,
+                plan.program.payload_free_enum));
+        }
         output = Concat(output, Concat(
             " %pgy.param.", ToString(ordinal)));
+        if value_result { output = Concat(output, ".mutref"); }
         ordinal = ordinal + 1;
     }
     return Concat(output, ")");

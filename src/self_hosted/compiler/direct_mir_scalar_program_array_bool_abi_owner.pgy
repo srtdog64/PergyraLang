@@ -1,0 +1,146 @@
+// Program-wide Array<Bool> ABI, value-result, and owned-return identities.
+
+import "direct_mir_array_bool_abi_fact_owner.pgy";
+import "direct_mir_array_storage_layout_contract_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir_lower/abi_layout_admission_fact_owner.pgy";
+
+struct DirectMirScalarProgramArrayBoolAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let present: Bool;
+    let value_result_present: Bool;
+    let owned_return_present: Bool;
+    let layout_id: Int;
+    let size: Int;
+    let align: Int;
+    let data_offset: Int;
+    let length_offset: Int;
+    let capacity_offset: Int;
+    let allocator_offset: Int;
+    let value_result_routine_ordinals: Array<Int>;
+    let value_result_parameter_ordinals: Array<Int>;
+    let value_result_parameter_digests: Array<Int>;
+}
+
+func DirectMirScalarProgramArrayBoolAbiFactInvalid(
+) -> DirectMirScalarProgramArrayBoolAbiFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramArrayBoolAbiFact(
+        false, 0, false, false, false, 0, 0, 0, 0, 0, 0, 0,
+        rows, rows, rows);
+}
+
+func DirectMirScalarProgramArrayBoolAbiFactDigest(
+    ref fact: DirectMirScalarProgramArrayBoolAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(283L, fact.layout_id);
+    hash = DirectMirCfgHashInt(hash, fact.size);
+    hash = DirectMirCfgHashInt(hash, fact.align);
+    hash = DirectMirCfgHashInt(hash, fact.data_offset);
+    hash = DirectMirCfgHashInt(hash, fact.length_offset);
+    hash = DirectMirCfgHashInt(hash, fact.capacity_offset);
+    hash = DirectMirCfgHashInt(hash, fact.allocator_offset);
+    hash = DirectMirScalarCfgHashInts(
+        hash, fact.value_result_routine_ordinals);
+    hash = DirectMirScalarCfgHashInts(
+        hash, fact.value_result_parameter_ordinals);
+    hash = DirectMirScalarCfgHashInts(
+        hash, fact.value_result_parameter_digests);
+    if fact.present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    if fact.value_result_present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    if fact.owned_return_present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramArrayBoolAbiFactReady(
+    ref fact: DirectMirScalarProgramArrayBoolAbiFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramArrayBoolAbiFactDigest(fact) {
+        return false;
+    }
+    let count: Int = ArrayLength(fact.value_result_routine_ordinals);
+    if count != ArrayLength(fact.value_result_parameter_ordinals) ||
+        count != ArrayLength(fact.value_result_parameter_digests) ||
+        fact.value_result_present != (count > 0) { return false; }
+    if !fact.present {
+        return count == 0 && !fact.owned_return_present &&
+            fact.layout_id == 0 && fact.size == 0 &&
+            fact.align == 0 && fact.data_offset == 0 &&
+            fact.length_offset == 0 && fact.capacity_offset == 0 &&
+            fact.allocator_offset == 0;
+    }
+    let layout: DirectMirArrayStorageLayoutContract =
+        DirectMirArrayStorageLayoutContractFact();
+    if fact.layout_id <= 0 ||
+        !DirectMirArrayStorageLayoutContractReady(layout) ||
+        fact.size != layout.size || fact.align != layout.align ||
+        fact.data_offset != layout.data_offset ||
+        fact.length_offset != layout.length_offset ||
+        fact.capacity_offset != layout.capacity_offset ||
+        fact.allocator_offset != layout.allocator_offset { return false; }
+    let row: Int = 0;
+    while row < count {
+        if fact.value_result_routine_ordinals[row] <= 0 ||
+            fact.value_result_parameter_ordinals[row] < 0 ||
+            fact.value_result_parameter_digests[row] == 0 { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.value_result_routine_ordinals[prior] ==
+                    fact.value_result_routine_ordinals[row] &&
+                fact.value_result_parameter_ordinals[prior] ==
+                    fact.value_result_parameter_ordinals[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramArrayBoolAbiFactCanonicalEmpty(
+) -> DirectMirScalarProgramArrayBoolAbiFact {
+    let rows: Array<Int> = [];
+    let source: DirectMirScalarProgramArrayBoolAbiFact =
+        DirectMirScalarProgramArrayBoolAbiFact(
+            true, 0, false, false, false, 0, 0, 0, 0, 0, 0, 0,
+            rows, rows, rows);
+    return DirectMirScalarProgramArrayBoolAbiFact(
+        true, DirectMirScalarProgramArrayBoolAbiFactDigest(source),
+        false, false, false, 0, 0, 0, 0, 0, 0, 0, rows, rows, rows);
+}
+
+func DirectMirScalarProgramArrayBoolAbiCaptureMatches(
+    ref fact: DirectMirScalarProgramArrayBoolAbiFact,
+    ref abi: MirAbiLayoutRowCapture
+) -> Bool {
+    return DirectMirArrayBoolCapturedAbiReady(abi) &&
+        fact.layout_id == MirAbiLayoutIdFromCapture(abi) &&
+        fact.size == ToInt(abi.size_text) &&
+        fact.align == ToInt(abi.align_text) &&
+        fact.data_offset == ToInt(abi.field_offsets[0]) &&
+        fact.length_offset == ToInt(abi.field_offsets[1]) &&
+        fact.capacity_offset == ToInt(abi.field_offsets[2]) &&
+        fact.allocator_offset == ToInt(abi.field_offsets[3]);
+}
+
+func DirectMirScalarProgramArrayBoolValueResultAt(
+    ref fact: DirectMirScalarProgramArrayBoolAbiFact,
+    routine: Int, parameter: Int
+) -> Bool {
+    if !DirectMirScalarProgramArrayBoolAbiFactReady(fact) ||
+        !fact.value_result_present { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(fact.value_result_routine_ordinals) {
+        if fact.value_result_routine_ordinals[row] == routine &&
+            fact.value_result_parameter_ordinals[row] == parameter {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}

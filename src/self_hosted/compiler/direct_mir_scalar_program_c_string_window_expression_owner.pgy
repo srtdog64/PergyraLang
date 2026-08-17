@@ -14,6 +14,60 @@ func DirectMirScalarProgramCStringWindowExpression(
         return Some(Concat(runtime.string_length.symbol,
             Concat("(", Concat(left, ")"))));
     }
+    if kind == DirectMirScalarProgramExprCharAtN() {
+        if ArrayLength(arguments) != 3 ||
+            !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_char_at_n, "char-at-n",
+                StringRuntimeCCharAtNFn(), "string_int_to_string") {
+            Die("direct MIR scalar CharAtN ABI is invalid");
+        }
+        return Some(Concat(runtime.string_char_at_n.symbol, Concat("(",
+            Concat(arguments[0], Concat(", ", Concat(arguments[1],
+            Concat(", ", Concat(arguments[2], ")"))))))));
+    }
+    if kind == DirectMirScalarProgramExprCharCode() {
+        if ArrayLength(arguments) != 3 ||
+            !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_char_code, "char-code",
+                StringRuntimeCCharCodeFn(), "string_to_int") {
+            Die("direct MIR scalar CharCode ABI is invalid");
+        }
+        return Some(Concat(runtime.string_char_code.symbol, Concat("(",
+            Concat(arguments[0], Concat(", ", Concat(arguments[1],
+            Concat(", ", Concat(arguments[2], ")"))))))));
+    }
+    if kind == DirectMirScalarProgramExprSubIndexOfWithLen() {
+        if ArrayLength(arguments) != 5 ||
+            !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_sub_index_with_len, "sub-index-of-with-len",
+                StringRuntimeCSubIndexOfWithLenFn(),
+                "string_int_string_int_to_int") {
+            Die("direct MIR scalar SubIndexOfWithLen ABI is invalid");
+        }
+        let out: String = Concat(runtime.string_sub_index_with_len.symbol, "(");
+        let i: Int = 0;
+        while i < 5 {
+            if i > 0 { out = Concat(out, ", "); }
+            out = Concat(out, arguments[i]); i = i + 1;
+        }
+        return Some(Concat(out, ")"));
+    }
+    if kind == DirectMirScalarProgramExprSubEqualsWithLen() {
+        if ArrayLength(arguments) != 5 ||
+            !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+                runtime.string_sub_equals_with_len, "sub-equals-with-len",
+                StringRuntimeCSubEqualsWithLenFn(),
+                "string_int_string_int_to_bool") {
+            Die("direct MIR scalar SubEqualsWithLen ABI is invalid");
+        }
+        let out: String = Concat(runtime.string_sub_equals_with_len.symbol, "(");
+        let i: Int = 0;
+        while i < 5 {
+            if i > 0 { out = Concat(out, ", "); }
+            out = Concat(out, arguments[i]); i = i + 1;
+        }
+        return Some(Concat(out, ")"));
+    }
     let fact_symbol: String = runtime.string_substring.symbol;
     let operation: String = "substring";
     let symbol: String = StringRuntimeCSubstringFn();

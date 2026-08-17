@@ -1,7 +1,5 @@
 // Exact semantic-registry projection for the bounded collection builtin set.
-
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
-
 func DirectMirScalarProgramCollectionBuiltinSignatureExpected(
     name: String
 ) -> Array<String> {
@@ -13,21 +11,84 @@ func DirectMirScalarProgramCollectionBuiltinSignatureExpected(
         return ["Array<String>", "String|String", ToString(
             DirectMirScalarProgramExprStringSplit())];
     }
+    if name == "Join" || name == "StringJoin" { return ["String",
+        "Array<String>|String", ToString(DirectMirScalarProgramExprStringJoin())]; }
     if name == "ArrayLength" {
         return ["Int", "Unknown", ToString(
             DirectMirScalarProgramExprArrayStringLength())];
+    }
+    if name == "ArrayDropOwnedStrings" {
+        return ["Void", "Array<String>", ToString(
+            DirectMirScalarProgramExprArrayStringDropOwned())];
+    }
+    if name == "ArrayPushOwnedString" {
+        return ["Void", "Array<String>|String", ToString(
+            DirectMirScalarProgramExprArrayStringPushOwned())];
+    }
+    if name == "Args" {
+        return ["Array<String>", "", ToString(
+            DirectMirScalarProgramExprProcessArgs())];
+    }
+    if name == "DirWalk" {
+        return ["Array<String>", "String", ToString(
+            DirectMirScalarProgramExprDirWalk())];
+    }
+    if name == "FileExists" {
+        return ["Bool", "String", ToString(
+            DirectMirScalarProgramExprFileExists())];
+    }
+    if name == "ReadFile" {
+        return ["String", "String", ToString(
+            DirectMirScalarProgramExprReadFile())];
     }
     if name == "ToInt" {
         return ["Int", "Unknown", ToString(
             DirectMirScalarProgramExprToIntString())];
     }
+    if name == "SetNew" { return ["Set<Unknown>", "", ToString(
+        DirectMirScalarProgramExprSetStringNew())]; }
+    if name == "SetAdd" { return ["Void", "Unknown|Unknown", ToString(
+        DirectMirScalarProgramExprSetStringAdd())]; }
+    if name == "SetHas" { return ["Bool", "Unknown|Unknown", ToString(
+        DirectMirScalarProgramExprSetStringHas())]; }
     return [];
 }
 
 func DirectMirScalarProgramCollectionBuiltinArgumentType(
     name: String, expected: String
 ) -> String {
-    if name == "ArrayLength" { return "Array<String>"; }
+    if name == "ArrayLength" && expected == "Unknown" {
+        return "Array<String>";
+    }
     if name == "ToInt" { return "String"; }
     return expected;
+}
+
+func DirectMirScalarProgramSetStringBuiltinSelected(
+    name: String, actual_types: Array<String>, expected_type: String
+) -> Bool {
+    if name == "SetNew" {
+        return ArrayLength(actual_types) == 0 && expected_type ==
+            CompilerAbiLayoutSetStringTypeName();
+    }
+    if name != "SetAdd" && name != "SetHas" { return false; }
+    if (name == "SetAdd" && expected_type != "" &&
+            expected_type != CompilerAbiLayoutVoidTypeName()) ||
+            (name == "SetHas" && expected_type != CompilerAbiLayoutBoolTypeName()) ||
+            ArrayLength(actual_types) > 2 { return false; }
+    if ArrayLength(actual_types) > 0 && actual_types[0] !=
+            CompilerAbiLayoutSetStringTypeName() { return false; }
+    if ArrayLength(actual_types) > 1 && actual_types[1] !=
+            CompilerAbiLayoutStringTypeName() { return false; }
+    return true;
+}
+func DirectMirScalarProgramSetStringBuiltinReturnType(name: String) -> String {
+    if name == "SetNew" { return CompilerAbiLayoutSetStringTypeName(); }
+    if name == "SetAdd" { return CompilerAbiLayoutVoidTypeName(); }
+    if name == "SetHas" { return CompilerAbiLayoutBoolTypeName(); }
+    return "";
+}
+func DirectMirScalarProgramSetStringBuiltinParameterTypes(name: String) -> Array<String> {
+    if name == "SetNew" { return []; }
+    return [CompilerAbiLayoutSetStringTypeName(), CompilerAbiLayoutStringTypeName()];
 }

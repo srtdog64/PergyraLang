@@ -1,0 +1,25 @@
+// Validates one typed expression row against its owning routine range.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy";
+
+func DirectMirScalarCfgProgramExpressionRowReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    expression_row: Int, expected_type: String, routine: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+        expression_row < 0 || expression_row >=
+            ArrayLength(plan.program.expressions.graph_roots) { return false; }
+    let start: Int = plan.program.expressions.graph_starts[expression_row];
+    let count: Int = plan.program.expressions.graph_counts[expression_row];
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    if plan.program.expressions.node_types[root] !=
+            expected_type { return false; }
+    let node: Int = start;
+    while node < start + count {
+        if !DirectMirScalarCfgProgramExpressionIdentityReady(
+                plan, plan.program.expressions, node, routine, start
+        ) { return false; }
+        node = node + 1;
+    }
+    return true;
+}

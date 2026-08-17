@@ -1,5 +1,4 @@
 // Bounded scalar-program projection of canonical semantic builtin signatures.
-
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "../semantic/builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_collection_builtin_signature_owner.pgy";
@@ -7,7 +6,12 @@ import "direct_mir_scalar_program_case_math_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_string_window_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_option_int_builtin_signature_owner.pgy";
-
+import "direct_mir_scalar_program_option_string_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_option_bool_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_logical_record_option_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "runtime_value_call_abi_owner.pgy";
+import "../lib/intent_observability_abi_projection_owner.pgy";
 struct DirectMirScalarProgramBuiltinSignatureFact {
     let valid: Bool;
     let registry_row: Int;
@@ -15,18 +19,24 @@ struct DirectMirScalarProgramBuiltinSignatureFact {
     let return_type: String;
     let parameter_types: Array<String>;
     let expression_kind: Int;
+    let runtime_call_abi_id: Int;
 }
-
 func DirectMirScalarProgramBuiltinSignatureFactInvalid(
 ) -> DirectMirScalarProgramBuiltinSignatureFact {
     let types: Array<String> = [];
     return DirectMirScalarProgramBuiltinSignatureFact(
-        false, -1, "", "", types, 0);
+        false, -1, "", "", types, 0, -1);
 }
-
 func DirectMirScalarProgramBuiltinSignatureExpected(
-    name: String
+    name: String, ref observability: IntentObservabilityAbiRow,
+    ref runtime_value: CompilerRuntimeValueCallAbiFact
 ) -> Array<String> {
+    if observability.valid { return [observability.return_type, observability.parameter_types, ToString(DirectMirScalarProgramExprIntentObservabilityCall())]; }
+    if runtime_value.valid {
+        return [runtime_value.return_type,
+            CompilerRuntimeValueCallParameterSchema(runtime_value),
+            ToString(DirectMirScalarProgramExprRuntimeValueCall())];
+    }
     if name == "ToString" {
         return ["String", "Unknown", ToString(
             DirectMirScalarProgramExprToStringInt())];
@@ -38,6 +48,10 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
     if name == "ToLower" {
         return ["String", "Unknown", ToString(
             DirectMirScalarProgramExprToLowerString())];
+    }
+    if name == "Print" {
+        return ["Unknown", "Unknown", ToString(
+            DirectMirScalarProgramExprPrintString())];
     }
     let window: Array<String> =
         DirectMirScalarProgramStringWindowBuiltinSignatureExpected(name);
@@ -57,15 +71,17 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
     if ArrayLength(option_int) != 0 { return option_int; }
     return DirectMirScalarProgramCollectionBuiltinSignatureExpected(name);
 }
-
-func DirectMirScalarProgramBuiltinSignatureFactFromName(
-    name: String
-) -> DirectMirScalarProgramBuiltinSignatureFact {
+func DirectMirScalarProgramBuiltinSignatureFactFromName(name: String) -> DirectMirScalarProgramBuiltinSignatureFact {
     let invalid: DirectMirScalarProgramBuiltinSignatureFact =
         DirectMirScalarProgramBuiltinSignatureFactInvalid();
+    let observability: IntentObservabilityAbiRow = IntentObservabilityAbiRowForSource(name);
+    let runtime_value: CompilerRuntimeValueCallAbiFact = CompilerRuntimeValueCallAbiFactForSource(name);
+    if observability.valid && runtime_value.valid { return invalid; }
     let expected: Array<String> =
-        DirectMirScalarProgramBuiltinSignatureExpected(name);
+        DirectMirScalarProgramBuiltinSignatureExpected(name, observability, runtime_value);
     if ArrayLength(expected) != 3 { return invalid; }
+    let runtime_call_abi_id: Int = -1;
+    if observability.valid { runtime_call_abi_id = observability.runtime_call_abi_id; if runtime_call_abi_id <= 0 { return invalid; } }
     let names: Array<String> = []; let returns: Array<String> = [];
     let params: Array<String> = [];
     if !SeedSemanticBuiltinSignatures(names, returns, params) { return invalid; }
@@ -79,18 +95,98 @@ func DirectMirScalarProgramBuiltinSignatureFactFromName(
     }
     if registry_row < 0 || returns[registry_row] != expected[0] ||
         params[registry_row] != expected[1] { return invalid; }
+    if runtime_value.valid {
+        runtime_call_abi_id = runtime_value.registry.runtime_call_abi_id; if runtime_call_abi_id <= 0 { return invalid; }
+        return DirectMirScalarProgramBuiltinSignatureFact(
+            true, registry_row, name, runtime_value.return_type,
+            runtime_value.parameter_types,
+            DirectMirScalarProgramExprRuntimeValueCall(), runtime_call_abi_id);
+    }
     let return_type: String = DirectMirScalarProgramCaseMathBuiltinResultType(
         name, returns[registry_row]);
     return_type = DirectMirScalarProgramOptionIntBuiltinReturnType(
         name, return_type);
+    let registry_parameter_types: Array<String> = [];
+    if params[registry_row] != "" {
+        registry_parameter_types = Split(params[registry_row], "|");
+    }
     let parameter_types: Array<String> =
         DirectMirScalarProgramOptionIntBuiltinParameterTypes(
-            name, Split(params[registry_row], "|"));
+            name, registry_parameter_types);
     return DirectMirScalarProgramBuiltinSignatureFact(
         true, registry_row, name, return_type,
-        parameter_types, ToInt(expected[2]));
+        parameter_types, ToInt(expected[2]), runtime_call_abi_id);
 }
-
+func DirectMirScalarProgramBuiltinSignatureFactForCall(
+    name: String, actual_types: Array<String>, expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let fact: DirectMirScalarProgramBuiltinSignatureFact = DirectMirScalarProgramBuiltinSignatureFactFromName(name);
+    if !fact.valid { return fact; }
+    let record_array: Bool = false;
+    if name == "ArrayLength" && ArrayLength(actual_types) == 1 {
+        record_array = IsSome(DirectMirScalarProgramLogicalRecordArrayElementType(logical_record, actual_types[0]));
+    }
+    if name == "ArrayLength" && ArrayLength(actual_types) == 1 &&
+            (actual_types[0] == CompilerAbiLayoutArrayStringTypeName() ||
+             actual_types[0] == CompilerAbiLayoutArrayIntTypeName() ||
+             actual_types[0] == CompilerAbiLayoutArrayBoolTypeName() || record_array) {
+        let parameter_types: Array<String> = [actual_types[0]];
+        return DirectMirScalarProgramBuiltinSignatureFact(
+            true, fact.registry_row, fact.name,
+            CompilerAbiLayoutIntTypeName(), parameter_types,
+            fact.expression_kind, fact.runtime_call_abi_id);
+    }
+    if name == "ToString" && ArrayLength(actual_types) == 1 &&
+            actual_types[0] == CompilerAbiLayoutStringTypeName() {
+        let parameter_types: Array<String> = [CompilerAbiLayoutStringTypeName()];
+        return DirectMirScalarProgramBuiltinSignatureFact(
+            true, fact.registry_row, fact.name,
+            CompilerAbiLayoutStringTypeName(), parameter_types,
+            DirectMirScalarProgramExprToStringString(), fact.runtime_call_abi_id);
+    }
+    if name == "Print" && ArrayLength(actual_types) == 1 &&
+            actual_types[0] == CompilerAbiLayoutStringTypeName() {
+        let parameter_types: Array<String> = [
+            CompilerAbiLayoutStringTypeName()];
+        return DirectMirScalarProgramBuiltinSignatureFact(
+            true, fact.registry_row, fact.name,
+            CompilerAbiLayoutVoidTypeName(), parameter_types,
+            DirectMirScalarProgramExprPrintString(), fact.runtime_call_abi_id);
+    }
+    if DirectMirScalarProgramSetStringBuiltinSelected(
+            name, actual_types, expected_type) {
+        return DirectMirScalarProgramBuiltinSignatureFact(
+            true, fact.registry_row, fact.name,
+            DirectMirScalarProgramSetStringBuiltinReturnType(name),
+            DirectMirScalarProgramSetStringBuiltinParameterTypes(name),
+            fact.expression_kind, fact.runtime_call_abi_id);
+    }
+    let record_option: String = DirectMirScalarProgramLogicalRecordOptionBuiltinType(logical_record, name, actual_types, expected_type);
+    if record_option != "" {
+        let result_type: String = DirectMirScalarProgramLogicalRecordOptionBuiltinReturnType(logical_record, name, record_option);
+        let parameter_types: Array<String> = DirectMirScalarProgramLogicalRecordOptionBuiltinParameterTypes(logical_record, name, record_option);
+        return DirectMirScalarProgramBuiltinSignatureFact(
+            true, fact.registry_row, fact.name, result_type, parameter_types, DirectMirScalarProgramLogicalRecordOptionBuiltinExpressionKind(name), fact.runtime_call_abi_id);
+    }
+    if DirectMirScalarProgramOptionStringBuiltinSelected(
+            name, actual_types, expected_type) {
+        return DirectMirScalarProgramBuiltinSignatureFact(
+            true, fact.registry_row, fact.name,
+            DirectMirScalarProgramOptionStringBuiltinReturnType(name),
+            DirectMirScalarProgramOptionStringBuiltinParameterTypes(name),
+            DirectMirScalarProgramOptionStringBuiltinExpressionKind(name), fact.runtime_call_abi_id);
+    }
+    if DirectMirScalarProgramOptionBoolBuiltinSelected(
+            name, actual_types, expected_type) {
+        return DirectMirScalarProgramBuiltinSignatureFact(
+            true, fact.registry_row, fact.name,
+            DirectMirScalarProgramOptionBoolBuiltinReturnType(name),
+            DirectMirScalarProgramOptionBoolBuiltinParameterTypes(name),
+            DirectMirScalarProgramOptionBoolBuiltinExpressionKind(name), fact.runtime_call_abi_id);
+    }
+    return fact;
+}
 func DirectMirScalarProgramBuiltinArgumentPrefixReady(
     ref signature: DirectMirScalarProgramBuiltinSignatureFact,
     actual_types: Array<String>
@@ -100,7 +196,8 @@ func DirectMirScalarProgramBuiltinArgumentPrefixReady(
     let i: Int = 0;
     while i < ArrayLength(actual_types) {
         let expected: String = signature.parameter_types[i];
-        if signature.name == "ToString" { expected = "Int"; }
+        if signature.name == "ToString" && signature.expression_kind ==
+                DirectMirScalarProgramExprToStringInt() { expected = "Int"; }
         else if signature.name == "ToUpper" ||
                 signature.name == "ToLower" { expected = "String"; }
         expected = DirectMirScalarProgramCollectionBuiltinArgumentType(

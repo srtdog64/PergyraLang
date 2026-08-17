@@ -157,4 +157,15 @@ func Main() -> Void {
         post_work, post_actor, true, true, true, false
     );
     Observe("post", post_ok, post_actor);
+    Log("post.history.count=" + ToString(IntentHistoryCount()));
+    Log("post.history.name0=" + IntentHistoryStepName(0));
+    Log("post.history.phase0=" + IntentHistoryStepPhase(0));
+    Log("post.history.ok0=" + ToString(IntentHistoryStepOk(0)));
+    Log("post.history.name1=" + IntentHistoryStepName(1));
+    Log("post.history.phase1=" + IntentHistoryStepPhase(1));
+    Log("post.history.ok1=" + ToString(IntentHistoryStepOk(1)));
+    Log("post.history.failure1=" + IntentHistoryStepFailure(1));
+    Log("post.last.failed=" + ToString(IntentLastFailed()));
+    Log("post.last.failure=" + IntentLastFailure());
+    Log("post.active.after=" + ToString(IntentActiveCount()));
 }

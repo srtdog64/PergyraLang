@@ -1,8 +1,32 @@
 # Build Troubleshooting
 
-마지막 업데이트: 2026-08-05
+마지막 업데이트: 2026-08-16
 
 빌드/회귀 도중 자주 마주치는 문제와 대응. **항상 `mingw32-make rebuild`를 먼저 시도**하면 절반은 풀린다.
+
+---
+
+## A pressure run fails before emission when its AST carrier is stale
+
+Do not interpret an early semantic failure or low peak memory as a performance
+improvement. An AST-text carrier is valid evidence only for the parser revision
+and provenance schema that produced it. In particular, compiler-internal
+builtins require declaration module provenance; an older external parser can
+preserve function spelling and types while omitting the module-path fact needed
+for admission. A stale AST can also retain source that was corrected later, as
+with `let root = ArrayPop(fragments)` after `ArrayPop` became a Void mutator.
+
+For current-source bootstrap evidence, prefer the typed `--source` or
+`--observe-source-pressure` boundary. Use `--observe-pressure` with AST text
+only for a deliberately fixed-input comparison after recording and verifying
+the parser binary/hash, source revision, AST bytes/hash, and provenance schema.
+Before measuring, run the same carrier through the exact consumer's `--check`;
+`input:start` followed by a semantic diagnostic is a carrier rejection, not a
+memory result. A completed codegen pressure receipt requires process exit 0 and
+the ordered `definitions:done`, `support-blocks:done`, and `output:finished`
+markers. Never recover by accepting unknown provenance, guessing the caller
+from its function name, raising the memory cap, or silently falling back to the
+AST-text route.
 
 ---
 
@@ -141,20 +165,20 @@ The focused evidence is
 
 ---
 
-## A pure builtin expression is rejected as unbounded signed addition
+## A typed Int expression is rejected by an overflow proof owner
 
-Do not remove the arithmetic guard or replace LLVM `add nsw` with an unchecked
-operation merely because the fixture uses small literals. In
-`Abs(-5) + Max(1, 2)`, builtin admission was correct; the existing arithmetic
-owner only knew how to prove `local + 1` under a dominating positive loop
-bound.
+Do not add a CFG-, literal-magnitude-, or String-window-specific proof merely
+to admit typed Int addition. Pergyra defines `+`, `-`, and `*` overflow as
+two's-complement wrap. The C artifact is compiled with `-fwrapv`, while LLVM
+must use plain `add`/`sub`/`mul` without `nsw` or `nuw`. A proof owner that
+rejects a source expression because wrap may occur narrows the language and is
+therefore a semantic bug, not conservative admission.
 
-The correction is conservative evidence, not evaluation. The bounded
-constant-DAG magnitude owner accepts only canonical literals of at most 15
-digits and a maximum depth of seven through negate, abs, min, max, and
-subtract. Locals, parameters, direct calls, and arbitrary runtime results do
-not enter this proof. A mutation above the magnitude bound must fail before C
-or LLVM artifact publication.
+The focused falsifier must execute boundary values on both backends: at least
+`INT64_MAX + 1`, `INT64_MIN - 1`, and negation/`Abs` of `INT64_MIN`. It must
+also reject mixed operand types before artifact publication. Division,
+remainder, bounds, and unwrap failures retain their separate checked-runtime
+contracts; this wrap rule does not weaken those guards.
 
 ---
 
@@ -270,11 +294,10 @@ and formats still come from the runtime-call ABI owner.
 
 Raw C `%` and LLVM `srem` are equivalent only after admission proves a safe
 divisor. This rung accepts a literal divisor other than `0` and `-1`; both
-unsafe cases fail before artifact publication. Its only admitted signed add is
-`local + 1` under an earlier `local < positive-bound` condition whose true edge
-dominates the add block. The bound is canonical, positive, and at most 18
-decimal digits, and LLVM emits `add nsw` to preserve the C contract. A green
-fixture is not permission to emit unchecked arithmetic outside this evidence.
+unsafe cases fail before artifact publication. Signed `+`, `-`, and `*` are a
+different contract: they always use defined wrap semantics, so LLVM must not
+attach `nsw`/`nuw` and the emitted-C compile must retain `-fwrapv`. Do not use
+the modulo/division guard as authority to narrow ordinary Int arithmetic.
 
 The shared phi owner must validate every incoming predecessor, local identity,
 and type before appending any row. Validating and appending in one loop leaves
@@ -933,6 +956,113 @@ Its role fixture currently fails closed with
 `role receiver target nominal-kind fact is missing`. That is the next codegen
 receiver-admission blocker. It is not a failure of the closed direct-MIR role
 operator projection and must not be hidden by native codegen fallback.
+
+### Current source fails `compiler_internal_builtin` only with an old codegen seed
+
+The self-host codegen executable embeds the semantic builtin registry and its
+compiler-internal caller policy. Reading a current `.pgy` source file does not
+make that executable current. A pre-policy `gen2.exe` can therefore reject a
+valid current lifetime owner with `compiler_internal_builtin` even when the
+current native and self-host provenance gates are green.
+
+Rebuild in this order:
+
+1. Run the canonical `self-host-codegen-bootstrap-seed-test-smoke` owner, or use
+   an isolated `PGY_SELFHOST_CODEGEN_BUILD_DIR`, and record the resulting seed
+   hash.
+2. Pass that exact current seed to `self_host_compiler_build.sh`.
+3. Publish and consume current full MIR before treating the result as a
+   current-source compiler receipt.
+
+The 2026-08-17 falsifier was deterministic. An older bootstrap `gen2.exe`
+stopped after 86,254 ms at source node 168094 with
+`compiler_internal_builtin`. A current isolated seed with SHA-256
+`DC812B83506996CFE58541B24A7AFA68398B7B2764AB76CE18B1DD8B94003FB2`
+built the same current driver successfully. That driver published and consumed
+MIR with 7,430 nonempty `source_module_path` fields, and its host-compiled gen2
+and gen3 C artifacts were byte equal with SHA-256
+`3401A5DD1269E3489DF78046F67016C721A387765A995A12F72A532D71014F35`.
+
+Do not weaken the internal-builtin allowlist, restore an AST-text provenance
+fallback, invent an unknown module path, or label the stale-seed rejection as a
+current-source semantic failure. Also do not use the full driver's rejected
+`--verify-input` spelling as a MIR-consumer test; that option belongs to the
+MIR-lower component, while the full production driver owns `--mir-json`.
+
+### `make release` produces `pgy` without its self-host sibling
+
+The public launcher delegates ordinary source compilation to the adjacent
+`pgy-self-driver`. A successful native link is therefore not a complete release
+receipt. `all` and `release` must both consume the existing
+`self-host-compiler` installer and place the launcher, sibling, and machine
+manifest in the same `BIN_DIR`. Do not restore a native compilation fallback or
+copy a driver from another build directory to make the launcher appear usable.
+
+Verify the boundary in an isolated `BUILD_DIR`/`BIN_DIR`, then run installed
+CLI-mode, public MIR, public C emission, and plain compile/run gates with no
+`PGY_SELF_DRIVER_BIN` override inside the launcher process. The 2026-08-18
+staging release produced a 3,384,801-byte launcher, a 5,903,397-byte sibling,
+and a byte-identical 1,144-byte native/replayed machine manifest. Repository
+`bin/` promotion and remote CI are separate, intentional boundaries.
+
+### Public and self-host MIR differ only at `source_module_path`
+
+First verify that `pgy` and its installed `pgy-self-driver` sibling were built
+from the same source revision. A stale native launcher can emit a wire shape
+that a current canonicalizer rejects before any useful comparison. With a
+same-revision pair, a relative public source argument and the native import
+resolver's absolute path must still identify the same module. The launcher now
+passes the existing `import_resolver_canonicalize_path_dup` result to delegated
+MIR/C source-identity handoffs, and that owner uses `/` as the Windows canonical
+separator. User-facing `--tokens`, `--ast`, capability-manifest, and DIR stdout
+continue to receive the original argv spelling; canonicalizing those modes is
+an output regression, not an identity fix. `public_mir_json_installed_self_host_owner.sh`
+deliberately compares the relative public call with a canonical absolute direct
+call and then checks the independent native oracle.
+
+Do not delete `source_module_path`, make canonical MIR comparison ignore it, or
+teach downstream declaration/routine consumers multiple path spellings. The
+2026-08-18 fixed pair emitted identical 59,402-byte public/direct MIR and
+identical 64,494-byte native/self canonical MIR. If only this field differs,
+rebuild the launcher and inspect the canonical source handoff before changing
+MIR semantics.
+
+### A new declaration field breaks a specialized direct-MIR consumer
+
+Adding a required field to the canonical declaration wire is not complete when
+the main declaration index accepts it. Search every specialized consumer that
+reopens a raw declaration object and fixes its exact field count. On
+2026-08-17, `source_module_path` had reached the native/self-host producers and
+`MirProgramDeclarationIndex`, but six direct-MIR consumers still required the
+old six/seven-field schema. The installed LLVM route therefore passed Option
+and then failed at `generic_member_inferred_flow` with
+`direct MIR inferred generic member identity is invalid`.
+
+Do not merely increment the six counts. Each consumer must read the new raw
+field and cross-seal it against
+`MirProgramDeclarationIndex.source_module_paths[row]`; otherwise a mixed
+document/index pair can preserve the right object shape while losing the fact
+owner. Keep the specialized result free of a copied path when no downstream
+consumer needs it. The declaration index remains the owner. The component gate
+must require the join in each consumer and reject the retired counts.
+
+The final corrected candidate driver SHA-256 is
+`C111DAAD3B19F27CC2B087D788775D8F437BF8B3D9207E2267D01B490F5D2A9E`.
+It completed under the unchanged process-tree cap at 2.938 GiB private, and
+isolated installed C and LLVM public routes passed end to end. The first build
+attempt with the same semantic source failed at 3.012 GiB because
+`gen2.exe` and the CRLF-normalizing `tr` process were alive concurrently. An
+opt-in direct source-pressure run completed through `output:finished`, proving
+the source path itself was not stuck. The canonical build owner now writes a
+raw payload and starts normalization only after codegen exits. The normalized
+artifact remains the fingerprint and compile input.
+
+Do not solve this by excluding children from pressure accounting, raising the
+cap, accepting raw CRLF output, or calling a manually patched generated-C probe
+an authoritative build. Also do not call the memory issue closed: the observed
+definition stage still grew private memory from 2,622.4 MiB to 3,055.3 MiB
+across 6,727 definitions. Serialized orchestration restores build headroom; it
+does not retire the remaining per-definition compiler lifetime debt.
 
 ## 2026-07-30 exhaustive self-check and platform-contract failures
 

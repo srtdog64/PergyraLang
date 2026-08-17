@@ -1,0 +1,31 @@
+func ResolveOptionLocal(
+    choose: Bool, initial: Int, changed: Int
+) -> Int {
+    let selected: Option<Int> = None;
+    let option_string_seed: Option<String> = Some("seed");
+    if choose {
+        selected = Some(changed);
+    }
+    if IsSome(selected) {
+        return UnwrapOption(selected);
+    }
+    return initial;
+}
+
+func ResolveOptionString(
+    choose: Bool, initial: String, changed: String
+) -> String {
+    let chosen: Option<String> = None;
+    if choose {
+        chosen = Some(changed);
+    }
+    if IsSome(chosen) { return UnwrapOption(chosen); }
+    return initial;
+}
+
+func Main() -> Void {
+    Log(ToString(ResolveOptionLocal(true, 11, 29)));
+    Log(ToString(ResolveOptionLocal(false, 11, 29)));
+    Log(ResolveOptionString(true, "left", "right"));
+    Log(ResolveOptionString(false, "left", "right"));
+}

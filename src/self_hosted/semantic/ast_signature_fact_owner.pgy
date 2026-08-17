@@ -14,6 +14,7 @@ struct SemanticAstFunctionSignatureFacts {
     artifact_node_count: Int;
     action_contracts: SemanticAstActionContractFacts;
     function_node_ids: Array<Int>;
+    module_paths: Array<String>;
     owner_names: Array<String>;
     runtime_callables: Array<Bool>;
     names: Array<String>;
@@ -109,6 +110,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstFunctionSignatureFacts {
     let function_node_ids: Array<Int> = [];
+    let module_paths: Array<String> = [];
     let owner_names: Array<String> = [];
     let runtime_callables: Array<Bool> = [];
     let names: Array<String> = [];
@@ -348,7 +350,16 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             );
             continue;
         }
+        let module_path: String = "";
+        let module_path_opt: Option<String> = AstSourceModulePathForNode(artifact.source_modules, artifact.arena, node_id);
+        if IsSome(module_path_opt) { module_path = UnwrapOption(module_path_opt); }
+        else if artifact.source_modules.known {
+            ok = false;
+            diagnostic_fact = SemanticDiagnosticMessageFact2("function_signature_invalid", "node_id", ToString(node_id), "missing_fact", "source_module_path");
+            continue;
+        }
         ArrayPush(function_node_ids, node_id);
+        ArrayPush(module_paths, module_path);
         ArrayPush(owner_names, UnwrapOption(owner).name);
         ArrayPush(runtime_callables, UnwrapOption(owner).runtime_callable);
         ArrayPush(names, UnwrapOption(name));
@@ -392,7 +403,8 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         ok, diagnostic_fact.code,
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
         artifact.count, action_contracts,
-        function_node_ids, owner_names, runtime_callables, names, return_types,
+        function_node_ids, module_paths, owner_names, runtime_callables,
+        names, return_types,
         type_expressions,
         generic_starts, generic_counts, generic_names,
         param_starts, param_counts, param_node_ids, param_names,
@@ -433,6 +445,11 @@ func SemanticAstFunctionNodeAt(facts: SemanticAstFunctionSignatureFacts,
     if signature_index < 0 || signature_index >=
         SemanticAstFunctionSignatureCount(facts) { return None; }
     return Some(facts.function_node_ids[signature_index]);
+}
+
+func SemanticAstFunctionModulePathAt(ref facts: SemanticAstFunctionSignatureFacts, signature_index: Int) -> Option<String> {
+    if signature_index < 0 || signature_index >= SemanticAstFunctionSignatureCount(facts) { return None; }
+    return Some(facts.module_paths[signature_index]);
 }
 
 func SemanticAstFunctionOwnerNameAt(ref facts: SemanticAstFunctionSignatureFacts,

@@ -1,0 +1,13 @@
+// Exact String owner-handle reaches its explicit terminal storage consumer.
+
+func ReleaseOwnedString(own value: String) -> Void {
+    if value == "" { return; }
+    let owned_values: Array<String> = [value];
+    ArrayDropOwnedStrings(owned_values);
+}
+
+func Main() -> Void {
+    let value: String = Concat("owned", "-string");
+    ReleaseOwnedString(value);
+    Log("released");
+}

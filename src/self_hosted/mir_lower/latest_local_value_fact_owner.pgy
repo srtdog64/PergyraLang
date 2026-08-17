@@ -2,6 +2,36 @@
 
 import "routine_definition_dominance_fact_owner.pgy";
 
+func MirRoutineLatestDominatingLocalValueRow(
+    ref index: MirRoutineFactIndex,
+    ref value_names: Array<String>, ref value_local_rows: Array<Int>,
+    local_row: Int, use_block: Int, use_instruction_row: Int
+) -> Int {
+    if local_row < 0 || ArrayLength(value_names) !=
+            ArrayLength(value_local_rows) { return -1; }
+    let latest: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(value_names) {
+        let candidate: MirRoutineResultDefinitionFact =
+            MirRoutineFactIndexUniqueResultDefinition(index, value_names[row]);
+        if value_local_rows[row] == local_row &&
+            MirRoutineDefinitionDominatesInstruction(
+                index, candidate, use_block, use_instruction_row) {
+            if latest >= 0 {
+                let prior: MirRoutineResultDefinitionFact =
+                    MirRoutineFactIndexUniqueResultDefinition(
+                        index, value_names[latest]);
+                if MirRoutineDefinitionStrictlyPrecedes(
+                        index, prior, candidate) { latest = row;
+                } else if !MirRoutineDefinitionStrictlyPrecedes(
+                        index, candidate, prior) { return -1; }
+            } else { latest = row; }
+        }
+        row = row + 1;
+    }
+    return latest;
+}
+
 func MirRoutineLatestDominatingLocalValueMatches(
     ref index: MirRoutineFactIndex,
     ref value_names: Array<String>,
@@ -15,33 +45,8 @@ func MirRoutineLatestDominatingLocalValueMatches(
         ArrayLength(value_names) != ArrayLength(value_local_rows) {
         return false;
     }
-    let selected: MirRoutineResultDefinitionFact =
-        MirRoutineFactIndexUniqueResultDefinition(
-            index, value_names[selected_value_row]
-        );
-    if !MirRoutineDefinitionDominatesInstruction(
-        index, selected, use_block, use_instruction_row
-    ) {
-        return false;
-    }
-    let candidate_row: Int = 0;
-    while candidate_row < ArrayLength(value_names) {
-        if candidate_row != selected_value_row &&
-            value_local_rows[candidate_row] ==
-                value_local_rows[selected_value_row] {
-            let candidate: MirRoutineResultDefinitionFact =
-                MirRoutineFactIndexUniqueResultDefinition(
-                    index, value_names[candidate_row]
-                );
-            if MirRoutineDefinitionDominatesInstruction(
-                    index, candidate, use_block, use_instruction_row
-                ) && MirRoutineDefinitionStrictlyPrecedes(
-                    index, selected, candidate
-                ) {
-                return false;
-            }
-        }
-        candidate_row = candidate_row + 1;
-    }
-    return true;
+    return selected_value_row == MirRoutineLatestDominatingLocalValueRow(
+        index, value_names, value_local_rows,
+        value_local_rows[selected_value_row], use_block,
+        use_instruction_row);
 }

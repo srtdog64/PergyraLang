@@ -47,6 +47,10 @@ func OptionResultRuntimeOptionPayloadKindBool() -> Int {
     return 5;
 }
 
+func OptionResultRuntimeOptionPayloadKindLong() -> Int {
+    return 6;
+}
+
 func OptionResultRuntimeOptionPayloadKindFromExprKind(kind: String) -> Int {
     if kind == "String" {
         return OptionResultRuntimeOptionPayloadKindString();
@@ -61,7 +65,7 @@ func OptionResultRuntimeOptionPayloadKindFromExprKind(kind: String) -> Int {
         return OptionResultRuntimeOptionPayloadKindBool();
     }
     if kind == "Long" {
-        return OptionResultRuntimeOptionPayloadKindInt();
+        return OptionResultRuntimeOptionPayloadKindLong();
     }
     return OptionResultRuntimeOptionPayloadKindInt();
 }
@@ -79,7 +83,7 @@ func OptionResultRuntimeOptionPayloadKindForType(type_name: String) -> Int {
         return OptionResultRuntimeOptionPayloadKindInt();
     }
     if payload == "Long" {
-        return OptionResultRuntimeOptionPayloadKindInt();
+        return OptionResultRuntimeOptionPayloadKindLong();
     }
     if payload == "Float" {
         return OptionResultRuntimeOptionPayloadKindFloat();
@@ -135,6 +139,9 @@ func OptionResultRuntimeStructOptionFact(
                 if scalar_kind == OptionResultRuntimeOptionPayloadKindInt() {
                     inner_c_type = CompilerAbiLayoutOptionIntCValueType();
                 } else if scalar_kind ==
+                    OptionResultRuntimeOptionPayloadKindLong() {
+                    inner_c_type = CompilerAbiLayoutOptionLongCValueType();
+                } else if scalar_kind ==
                     OptionResultRuntimeOptionPayloadKindString() {
                     inner_c_type = CompilerAbiLayoutOptionStringCValueType();
                 } else if scalar_kind ==
@@ -174,7 +181,7 @@ func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
         return OptionResultRuntimeOptionPayloadKindBool();
     }
     if kind == "OptionLong" {
-        return OptionResultRuntimeOptionPayloadKindInt();
+        return OptionResultRuntimeOptionPayloadKindLong();
     }
     if kind == "OptionInt" {
         return OptionResultRuntimeOptionPayloadKindInt();
@@ -183,6 +190,9 @@ func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
 }
 
 func OptionResultRuntimeCOptionSomeFnForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindLong() {
+        return "pgy_option_some_long";
+    }
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "pgy_option_some_string";
     }
@@ -203,6 +213,9 @@ func OptionResultRuntimeCOptionNoneFn() -> String {
 }
 
 func OptionResultRuntimeCOptionNoneFnForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindLong() {
+        return "pgy_option_none_long";
+    }
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "pgy_option_none_string";
     }
@@ -227,6 +240,9 @@ func OptionResultRuntimeCOptionUnwrapFn() -> String {
 }
 
 func OptionResultRuntimeOptionEnvKindForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindLong() {
+        return "OptionLong";
+    }
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "OptionString";
     }
@@ -246,6 +262,9 @@ func OptionResultRuntimeOptionEnvKindForPayloadKind(kind: Int) -> String {
 }
 
 func OptionResultRuntimeOptionTypeNameForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindLong() {
+        return "Option<Long>";
+    }
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "Option<String>";
     }
@@ -265,6 +284,9 @@ func OptionResultRuntimeOptionTypeNameForPayloadKind(kind: Int) -> String {
 }
 
 func OptionResultRuntimeOptionValueTypeForPayloadKind(kind: Int) -> String {
+    if kind == OptionResultRuntimeOptionPayloadKindLong() {
+        return "Long";
+    }
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "String";
     }
@@ -343,23 +365,28 @@ func OptionResultRuntimeCResultIntBlock() -> String {
 
 func OptionResultRuntimeCOptionScalarBlock() -> String {
     let option_int_type: String = CompilerAbiLayoutOptionIntCValueType();
+    let option_long_type: String = CompilerAbiLayoutOptionLongCValueType();
     let option_string_type: String = CompilerAbiLayoutOptionStringCValueType();
     let option_float_type: String = CompilerAbiLayoutOptionFloatCValueType();
     let option_double_type: String = CompilerAbiLayoutOptionDoubleCValueType();
     let option_bool_type: String = CompilerAbiLayoutOptionBoolCValueType();
     let int_type: String = CompilerAbiLayoutIntCValueType();
+    let long_type: String = CompilerAbiLayoutLongCValueType();
     let string_type: String = CompilerAbiLayoutStringCValueType();
     let float_type: String = CompilerAbiLayoutFloatCValueType();
     let double_type: String = CompilerAbiLayoutDoubleCValueType();
     let bool_type: String = CompilerAbiLayoutBoolCValueType();
     let block: String = "";
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(int_type, Concat(" value; } ", Concat(option_int_type, ";\n")))));
+    block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(long_type, Concat(" value; } ", Concat(option_long_type, ";\n")))));
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(string_type, Concat(" value; } ", Concat(option_string_type, ";\n")))));
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(float_type, Concat(" value; } ", Concat(option_float_type, ";\n")))));
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(double_type, Concat(" value; } ", Concat(option_double_type, ";\n")))));
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(bool_type, Concat(" value; } ", Concat(option_bool_type, ";\n")))));
     block = Concat(block, Concat("static ", Concat(option_int_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFn(), Concat("(", Concat(int_type, " v) { ")))))));
     block = Concat(block, Concat(option_int_type, " o; o.is_some = true; o.value = v; return o; }\n"));
+    block = Concat(block, Concat("static ", Concat(option_long_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindLong()), Concat("(", Concat(long_type, " v) { ")))))));
+    block = Concat(block, Concat(option_long_type, " o; o.is_some = true; o.value = v; return o; }\n"));
     block = Concat(block, Concat("static ", Concat(option_string_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), Concat("(", Concat(string_type, " v) { ")))))));
     block = Concat(block, Concat(option_string_type, " o; o.is_some = true; o.value = v; return o; }\n"));
     block = Concat(block, Concat("static ", Concat(option_float_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), Concat("(", Concat(float_type, " v) { ")))))));
@@ -370,6 +397,8 @@ func OptionResultRuntimeCOptionScalarBlock() -> String {
     block = Concat(block, Concat(option_bool_type, " o; o.is_some = true; o.value = v; return o; }\n"));
     block = Concat(block, Concat("static ", Concat(option_int_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFn(), "(void) { ")))));
     block = Concat(block, Concat(option_int_type, " o; o.is_some = false; o.value = 0; return o; }\n"));
+    block = Concat(block, Concat("static ", Concat(option_long_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindLong()), "(void) { ")))));
+    block = Concat(block, Concat(option_long_type, " o; o.is_some = false; o.value = 0; return o; }\n"));
     block = Concat(block, Concat("static ", Concat(option_string_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), "(void) { ")))));
     block = Concat(block, Concat(option_string_type, " o; o.is_some = false; o.value = \"\"; return o; }\n"));
     block = Concat(block, Concat("static ", Concat(option_float_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), "(void) { ")))));

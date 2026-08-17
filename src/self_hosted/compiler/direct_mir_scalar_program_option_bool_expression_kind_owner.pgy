@@ -1,0 +1,6 @@
+// Stable normalized identities for the canonical Option<Bool> value family.
+
+func DirectMirScalarProgramExprSomeBool() -> Int { return 45; }
+func DirectMirScalarProgramExprNoneBool() -> Int { return 46; }
+func DirectMirScalarProgramExprIsSomeBool() -> Int { return 47; }
+func DirectMirScalarProgramExprUnwrapOptionBool() -> Int { return 48; }

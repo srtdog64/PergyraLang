@@ -1,0 +1,99 @@
+// C representation and expression projection for logical record identities.
+
+import "direct_mir_scalar_program_logical_record_target_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordTypeName(
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> String {
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, type_name);
+    if row < 0 { return ""; }
+    return Concat("pgy_scalar_logical_record_value_", ToString(row));
+}
+
+func DirectMirScalarProgramCLogicalRecordFieldType(
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
+) -> String {
+    if type_name == CompilerAbiLayoutBoolTypeName() { return "bool"; }
+    if type_name == CompilerAbiLayoutIntTypeName() { return "int64_t"; }
+    if type_name == CompilerAbiLayoutStringTypeName() {
+        return CompilerAbiLayoutStringCValueType();
+    }
+    if type_name == CompilerAbiLayoutArrayIntTypeName() { return CompilerAbiLayoutArrayIntCValueType(); }
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() { return CompilerAbiLayoutArrayBoolCValueType(); }
+    if type_name == CompilerAbiLayoutArrayStringTypeName() { return CompilerAbiLayoutArrayStringCValueType(); }
+    return DirectMirScalarProgramCLogicalRecordTypeName(fact, type_name);
+}
+
+func DirectMirScalarProgramCLogicalRecordPreamble(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramLogicalRecordFactReady(fact) {
+        Die("direct MIR logical record C fact is invalid");
+    }
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        let projection: DirectMirScalarProgramLogicalRecordTarget =
+            DirectMirScalarProgramLogicalRecordTargetFromFact(
+                fact, fact.names[row], target);
+        if !DirectMirScalarProgramLogicalRecordTargetReadyFor(
+                projection, CompilerTargetCpuCProjection()) {
+            Die("direct MIR logical record C target is invalid");
+        }
+        output = Concat(output, "#include <stdint.h>\ntypedef struct {");
+        let ordinal: Int = 0;
+        while ordinal < fact.field_counts[row] {
+            let field_type: String =
+                DirectMirScalarProgramCLogicalRecordFieldType(
+                    fact,
+                    DirectMirScalarProgramLogicalRecordFieldType(
+                        fact, fact.names[row], ordinal));
+            if field_type == "" {
+                Die("direct MIR logical record C field type is invalid");
+            }
+            output = Concat(output, Concat(" ", field_type));
+            output = Concat(output, Concat(
+                " field_", Concat(ToString(ordinal), ";")));
+            ordinal = ordinal + 1;
+        }
+        output = Concat(output, Concat(
+            " } ", Concat(projection.c_type_name, ";\n")));
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCLogicalRecordExpression(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    kind: Int, record_type: String, left: String,
+    arguments: Array<String>, member_ordinal: Int
+) -> Option<String> {
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(
+        fact, record_type);
+    if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
+        if row < 0 || ArrayLength(arguments) != fact.field_counts[row] ||
+            member_ordinal != -1 {
+            return None;
+        }
+        let output: String = Concat("(", Concat(
+            DirectMirScalarProgramCLogicalRecordTypeName(fact, record_type),
+            "){"));
+        let ordinal: Int = 0;
+        while ordinal < ArrayLength(arguments) {
+            if ordinal > 0 { output = Concat(output, ","); }
+            output = Concat(output, Concat(" .field_", ToString(ordinal)));
+            output = Concat(output, Concat(" = ", arguments[ordinal]));
+            ordinal = ordinal + 1;
+        }
+        return Some(Concat(output, " }"));
+    }
+    if kind != DirectMirScalarProgramExprLogicalRecordMember() || row < 0 ||
+        left == "" || member_ordinal < 0 ||
+        member_ordinal >= fact.field_counts[row] ||
+        ArrayLength(arguments) != 0 {
+        return None;
+    }
+    return Some(Concat("(", Concat(left, Concat(").field_",
+        ToString(member_ordinal)))));
+}

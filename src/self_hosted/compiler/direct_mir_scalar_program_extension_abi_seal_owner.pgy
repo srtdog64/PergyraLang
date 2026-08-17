@@ -3,44 +3,90 @@
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_admission_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_option_string_abi_owner.pgy";
+import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
 
 struct DirectMirScalarProgramExtensionAbiSeal {
     let valid: Bool;
+    let stage: String;
     let runtime: DirectMirScalarProgramRuntimeAbiFact;
     let option_int: DirectMirOptionMatchAbiFact;
+    let option_string: DirectMirOptionMatchAbiFact;
+    let option_bool: DirectMirOptionMatchAbiFact;
     let nominal: DirectMirScalarProgramTwoIntNominalAbiFact;
+    let logical_record: DirectMirScalarProgramLogicalRecordFact;
+    let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact;
+    let array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact;
+    let array_bool: DirectMirScalarProgramArrayBoolAbiFact;
     let array_string: DirectMirScalarProgramArrayStringAbiFact;
     let boundary: DirectMirScalarProgramArrayStringBoundaryFact;
 }
 
 func DirectMirScalarProgramExtensionAbiSealFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref route: DirectMirScalarProgramRouteFact,
+    own route: DirectMirScalarProgramRouteFact,
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
     option_int: DirectMirOptionMatchAbiFact,
+    option_string: DirectMirOptionMatchAbiFact,
+    option_bool: DirectMirOptionMatchAbiFact,
     ref callable: DirectMirScalarCfgProgramCallableFact
 ) -> DirectMirScalarProgramExtensionAbiSeal {
     let runtime: DirectMirScalarProgramRuntimeAbiFact =
         DirectMirScalarProgramRuntimeAbiFactFromExpressionKinds(expressions);
     let array_string: DirectMirScalarProgramArrayStringAbiFact =
-        DirectMirScalarProgramArrayStringAbiFactFromAdmitted(admitted, route);
+        route.array_string_abi;
     let boundary: DirectMirScalarProgramArrayStringBoundaryFact =
         DirectMirScalarProgramArrayStringBoundaryFactEmpty();
+    let stage: String = "ready";
     if !DirectMirScalarProgramRuntimeAbiFactReadyForExpressions(
-            runtime, expressions) ||
-        !DirectMirScalarProgramOptionIntAbiReadyForExpressions(
-            option_int, expressions) ||
-        !DirectMirScalarProgramTwoIntNominalAbiFactReady(route.nominal) ||
-        !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
+            runtime, expressions) {
+        stage = "runtime";
+    } else if !DirectMirScalarProgramOptionIntAbiReadyForExpressions(
+            option_int, expressions) {
+        stage = "option-int";
+    } else if !DirectMirScalarProgramOptionStringAbiReadyForExpressions(
+            option_string, expressions) {
+        stage = "option-string";
+    } else if !DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
+            option_bool, expressions) {
+        stage = "option-bool";
+    } else if !DirectMirScalarProgramTwoIntNominalAbiFactReady(route.nominal) {
+        stage = "nominal";
+    } else if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
+            route.logical_record, expressions) {
+        stage = "logical-record";
+    } else if !DirectMirScalarProgramPayloadFreeEnumFactReady(
+            route.payload_free_enum) {
+        stage = "payload-free-enum";
+    } else if !DirectMirScalarProgramArrayIntValueResultFactReady(
+            route.array_int_value_result) {
+        stage = "array-int";
+    } else if !DirectMirScalarProgramArrayBoolAbiFactReady(
+            route.array_bool_abi) {
+        stage = "array-bool";
+    } else if !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
             array_string, expressions) {
+        stage = "array-string";
+    } else if !DirectMirScalarProgramLogicalRecordCollectionAbiReady(
+            route.logical_record, route.array_int_value_result,
+            route.array_bool_abi, array_string) {
+        stage = "logical-record-collection";
+    }
+    if stage != "ready" {
         return DirectMirScalarProgramExtensionAbiSeal(
-            false, runtime, option_int, route.nominal, array_string,
+            false, stage, runtime, option_int, option_string, option_bool,
+            route.nominal, route.logical_record,
+            route.payload_free_enum,
+            route.array_int_value_result, route.array_bool_abi, array_string,
             boundary);
     }
-    if callable.valid && callable.signature.param.type_name ==
-            CompilerAbiLayoutArrayStringTypeName() {
+    if callable.valid &&
+        DirectMirScalarProgramArrayStringBoundarySignatureReady(
+            callable.signature) {
         boundary = DirectMirScalarProgramArrayStringBoundaryFactFromOwners(
             expressions, storage.operations.kinds,
             storage.operations.result_values,
@@ -51,10 +97,19 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
             DirectMirScalarCfgOpExpressionLog());
         if !DirectMirScalarProgramArrayStringBoundaryFactReady(boundary) {
             return DirectMirScalarProgramExtensionAbiSeal(
-                false, runtime, option_int, route.nominal, array_string,
+                false, "array-string-boundary", runtime, option_int,
+                option_string, option_bool,
+                route.nominal, route.logical_record,
+                route.payload_free_enum,
+                route.array_int_value_result, route.array_bool_abi,
+                array_string,
                 boundary);
         }
     }
     return DirectMirScalarProgramExtensionAbiSeal(
-        true, runtime, option_int, route.nominal, array_string, boundary);
+        true, "ready", runtime, option_int, option_string, option_bool,
+        route.nominal, route.logical_record,
+        route.payload_free_enum,
+        route.array_int_value_result, route.array_bool_abi,
+        array_string, boundary);
 }

@@ -5,11 +5,23 @@ import "direct_mir_scalar_cfg_c_emission_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_emission_owner.pgy";
 import "direct_mir_scalar_program_route_fact_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
+import "direct_mir_pressure_observation_owner.pgy";
 
 func CompileAdmittedDirectMirScalarProgramForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref route: DirectMirScalarProgramRouteFact,
+    own route: DirectMirScalarProgramRouteFact,
     target_projection: CompilerTargetProjectionFact
+) -> String {
+    return CompileAdmittedDirectMirScalarProgramForTargetObserved(
+        admitted, route, target_projection, false
+    );
+}
+
+func CompileAdmittedDirectMirScalarProgramForTargetObserved(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    own route: DirectMirScalarProgramRouteFact,
+    target_projection: CompilerTargetProjectionFact,
+    observe_pressure: Bool
 ) -> String {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuCProjection()
@@ -20,28 +32,41 @@ func CompileAdmittedDirectMirScalarProgramForTarget(
     if !is_c && !is_llvm {
         Die("direct MIR scalar program target projection is invalid");
     }
+    DirectMirPressureStage(observe_pressure, "graph-plan:start");
     let plan: DirectMirScalarCfgGraphPlan =
         DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
     if !DirectMirScalarCfgGraphPlanReady(plan) {
         Die("direct MIR scalar program plan is invalid before projection");
     }
+    DirectMirPressureStage(observe_pressure, "graph-plan:done");
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();
     let concat: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiStringConcatFact();
     let compare: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiStringCompareFact();
+    let process_exit: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiProcessExitFact();
+    if !CompilerRuntimeCallAbiProcessExitFactReady(process_exit) {
+        Die("direct MIR scalar program process-exit ABI is invalid");
+    }
     let int_line_format: String = StringRuntimeCIntLineFormat();
     let string_line_format: String = StringRuntimeCStringLineFormat();
+    DirectMirPressureStage(observe_pressure, "emission:start");
+    let payload: String = "";
     if is_llvm {
-        return DirectMirScalarCfgEmitLlvm(
-            plan, formatted_print, concat, compare, int_line_format,
+        payload = DirectMirScalarCfgEmitLlvm(
+            plan, formatted_print, concat, compare, process_exit,
+            int_line_format,
             string_line_format, target_projection
         );
+    } else {
+        payload = DirectMirScalarCfgEmitC(
+            plan, formatted_print, concat, compare, process_exit,
+            int_line_format, string_line_format,
+            CompilerAbiLayoutIntCValueType(), target_projection
+        );
     }
-    return DirectMirScalarCfgEmitC(
-        plan, formatted_print, concat, compare,
-        int_line_format, string_line_format,
-        CompilerAbiLayoutIntCValueType(), target_projection
-    );
+    DirectMirPressureStage(observe_pressure, "emission:done");
+    return payload;
 }

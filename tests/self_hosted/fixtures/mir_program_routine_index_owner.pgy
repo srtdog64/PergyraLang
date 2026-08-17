@@ -343,6 +343,7 @@ func Main() -> Void {
             index.block_instruction_counts,
             index.instruction_starts, index.instruction_ends,
             index.instruction_kinds, index.instruction_source_types,
+            index.instruction_abi_type_names,
             index.instruction_machine_contact_starts,
             index.instruction_machine_contact_ends,
             index.instruction_machine_layer_starts,
@@ -374,6 +375,10 @@ func Main() -> Void {
         abi_validation
     ) {
         Log("mir-program-routine-index-owner-positive-abi-failed");
+        failures = failures + 1;
+    }
+    if index.instruction_abi_type_names[0] != first_scalar.abi_type_name {
+        Log("mir-program-routine-index-owner-abi-type-carrier-drifted");
         failures = failures + 1;
     }
     let method_row: Option<Int> = MirProgramRoutineIndexFindMethodRow(

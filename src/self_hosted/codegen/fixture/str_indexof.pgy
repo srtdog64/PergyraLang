@@ -8,4 +8,11 @@ func Main() -> Void {
     let right: String = Substring(s, p + 1, StringLength(s) - p - 1);
     Log(left);
     Log(right);
+    Log(CharAtN(s, StringLength(s), 2));
+    Log(CharAtN(s, 1, 1));
+    Log(ToString(CharCode(s, StringLength(s), 2)));
+    Log(ToString(CharCode(s, 1, 1)));
+    Log(ToString(SubIndexOfWithLen(s, StringLength(s), 1, 5, "lo")));
+    Log(ToString(SubIndexOfWithLen(s, StringLength(s), 99, 5, "lo")));
+    Log("done");
 }

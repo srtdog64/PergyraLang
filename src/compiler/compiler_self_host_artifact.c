@@ -96,12 +96,15 @@ compiler_compile_link_self_host_llvm_artifact(
     bool verbose,
     PgyOptProfile opt_profile)
 {
-    const char *compile_link_argv[16];
+    const char *compile_link_argv[24];
     int argc = 0;
     int rc;
     double phase_start;
     CompilerResult *result;
     PgyLlvmIrCompilerSelection clang_selection;
+    char *runtime_obj_path;
+    bool compiled_runtime = false;
+    const char *runtime_error = NULL;
 
     if (input_llvm_path == NULL || output_binary_path == NULL
         || !pgy_path_is_safe(input_llvm_path)
@@ -111,6 +114,14 @@ compiler_compile_link_self_host_llvm_artifact(
     }
     if (!pgy_select_llvm_ir_compiler(&clang_selection))
         return compiler_error("Unable to detect an LLVM IR-capable clang");
+    /* The admitted self-host LLVM surface does not yet carry intent
+     * observability calls. Reuse the canonical external runtime object owner
+     * for every other runtime row; never infer linkage by scanning LLVM text. */
+    runtime_obj_path = compiler_llvm_runtime_object_ensure(
+        opt_profile, false, verbose, &compiled_runtime, &runtime_error);
+    if (runtime_obj_path == NULL)
+        return compiler_error(runtime_error != NULL ? runtime_error
+                              : "Self-host LLVM runtime object unavailable");
 
     compile_link_argv[argc++] = clang_selection.cc;
     if (clang_selection.target_flag != NULL)
@@ -118,20 +129,33 @@ compiler_compile_link_self_host_llvm_artifact(
     compile_link_argv[argc++] = "-x";
     compile_link_argv[argc++] = "ir";
     compile_link_argv[argc++] = input_llvm_path;
+    compile_link_argv[argc++] = "-x";
+    compile_link_argv[argc++] = "none";
+    compile_link_argv[argc++] = runtime_obj_path;
     compile_link_argv[argc++] =
         opt_profile == PGY_OPT_RELEASE ? "-O3" : "-O0";
+#if !defined(_WIN32) && !defined(__APPLE__)
+    compile_link_argv[argc++] = "-fopenmp";
+#endif
+    compile_link_argv[argc++] = PGY_CFLAGS_THREAD_FLAG;
     compile_link_argv[argc++] = "-o";
     compile_link_argv[argc++] = output_binary_path;
+    compile_link_argv[argc++] = PGY_CFLAGS_THREAD_LIB;
+    compile_link_argv[argc++] = "-lm";
     compile_link_argv[argc] = NULL;
 
     result = compiler_success(input_llvm_path, output_binary_path);
-    if (result == NULL)
+    if (result == NULL) {
+        free(runtime_obj_path);
         return NULL;
+    }
     phase_start = compiler_now_seconds();
     rc = pgy_exec_argv(compile_link_argv, verbose);
     result->backend_timings.native_compile =
         compiler_now_seconds() - phase_start;
     if (rc != 0) {
+        if (compiled_runtime)
+            remove(runtime_obj_path);
         remove(output_binary_path);
         result->success = false;
         result->exit_code = rc;
@@ -139,5 +163,6 @@ compiler_compile_link_self_host_llvm_artifact(
         result->error_message = pergyra_strdup(
             "Self-host LLVM artifact compilation/link failed");
     }
+    free(runtime_obj_path);
     return result;
 }

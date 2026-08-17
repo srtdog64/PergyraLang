@@ -1,0 +1,69 @@
+// Retires semantic body-type Array carriers after MIR rows consume them.
+// String elements remain shared with MIR facts and must not be freed.
+
+import "../semantic/ast_body_type_bundle_owner.pgy";
+
+func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
+    own body_types: SemanticAstBodyTypeBundle
+) -> Void {
+    let initializer_node_ids: Array<Int> = body_types.initializer_types.node_ids;
+    let initializer_inferred_types: Array<String> = body_types.initializer_types.inferred_type_names;
+    let initializer_verified: Array<Int> = body_types.initializer_types.verified;
+    let initializer_diagnostic_codes: Array<String> = body_types.initializer_types.diagnostic_codes;
+    let initializer_diagnostic_messages: Array<String> = body_types.initializer_types.diagnostic_messages;
+    let initializer_binding_kinds: Array<Int> = body_types.initializer_types.binding_kinds;
+    let initializer_binding_indices: Array<Int> = body_types.initializer_types.binding_indices;
+    let iteration_node_ids: Array<Int> = body_types.iteration_types.node_ids;
+    let iteration_binding_types: Array<String> = body_types.iteration_types.binding_type_names;
+    let iteration_iterable_types: Array<String> = body_types.iteration_types.iterable_type_names;
+    let iteration_collection_hoists: Array<Int> = body_types.iteration_types.collection_hoists;
+    let iteration_synthetic_names: Array<String> = body_types.iteration_types.synthetic_names;
+    let iteration_synthetic_roots: Array<Int> = body_types.iteration_types.synthetic_graph_root_ids;
+    let iteration_verified: Array<Int> = body_types.iteration_types.verified;
+    let iteration_diagnostic_codes: Array<String> = body_types.iteration_types.diagnostic_codes;
+    let iteration_diagnostic_messages: Array<String> = body_types.iteration_types.diagnostic_messages;
+    let assignment_node_ids: Array<Int> = body_types.assignment_types.node_ids;
+    let assignment_binding_modes: Array<String> = body_types.assignment_types.target_binding_modes;
+    let assignment_target_types: Array<String> = body_types.assignment_types.target_type_names;
+    let assignment_index_types: Array<String> = body_types.assignment_types.index_type_names;
+    let assignment_expected_types: Array<String> = body_types.assignment_types.expected_type_names;
+    let assignment_inferred_types: Array<String> = body_types.assignment_types.inferred_type_names;
+    let assignment_verified: Array<Int> = body_types.assignment_types.verified;
+    let assignment_diagnostic_codes: Array<String> = body_types.assignment_types.diagnostic_codes;
+    let assignment_diagnostic_messages: Array<String> = body_types.assignment_types.diagnostic_messages;
+    let statement_node_ids: Array<Int> = body_types.statement_types.node_ids;
+    let statement_kind_tags: Array<Int> = body_types.statement_types.kind_tags;
+    let statement_expected_types: Array<String> = body_types.statement_types.expected_type_names;
+    let statement_inferred_types: Array<String> = body_types.statement_types.inferred_type_names;
+    let statement_verified: Array<Int> = body_types.statement_types.verified;
+    let statement_diagnostic_codes: Array<String> = body_types.statement_types.diagnostic_codes;
+    let statement_diagnostic_messages: Array<String> = body_types.statement_types.diagnostic_messages;
+    let generic_call_node_ids: Array<Int> = body_types.generic_specializations.call_node_ids;
+    let generic_owner_node_ids: Array<Int> = body_types.generic_specializations.source_owner_node_ids;
+    let generic_source_lanes: Array<Int> = body_types.generic_specializations.source_lanes;
+    let generic_call_ordinals: Array<Int> = body_types.generic_specializations.source_call_ordinals;
+    let generic_signature_indexes: Array<Int> = body_types.generic_specializations.signature_indexes;
+    let generic_actual_starts: Array<Int> = body_types.generic_specializations.actual_starts;
+    let generic_actual_counts: Array<Int> = body_types.generic_specializations.actual_counts;
+    let generic_actual_types: Array<String> = body_types.generic_specializations.actual_type_names;
+    CompilerRetireArrayStorage(initializer_node_ids); CompilerRetireArrayStorage(initializer_inferred_types);
+    CompilerRetireArrayStorage(initializer_verified); CompilerRetireArrayStorage(initializer_diagnostic_codes);
+    CompilerRetireArrayStorage(initializer_diagnostic_messages); CompilerRetireArrayStorage(initializer_binding_kinds);
+    CompilerRetireArrayStorage(initializer_binding_indices); CompilerRetireArrayStorage(iteration_node_ids);
+    CompilerRetireArrayStorage(iteration_binding_types); CompilerRetireArrayStorage(iteration_iterable_types);
+    CompilerRetireArrayStorage(iteration_collection_hoists); CompilerRetireArrayStorage(iteration_synthetic_names);
+    CompilerRetireArrayStorage(iteration_synthetic_roots); CompilerRetireArrayStorage(iteration_verified);
+    CompilerRetireArrayStorage(iteration_diagnostic_codes); CompilerRetireArrayStorage(iteration_diagnostic_messages);
+    CompilerRetireArrayStorage(assignment_node_ids); CompilerRetireArrayStorage(assignment_binding_modes);
+    CompilerRetireArrayStorage(assignment_target_types); CompilerRetireArrayStorage(assignment_index_types);
+    CompilerRetireArrayStorage(assignment_expected_types); CompilerRetireArrayStorage(assignment_inferred_types);
+    CompilerRetireArrayStorage(assignment_verified); CompilerRetireArrayStorage(assignment_diagnostic_codes);
+    CompilerRetireArrayStorage(assignment_diagnostic_messages); CompilerRetireArrayStorage(statement_node_ids);
+    CompilerRetireArrayStorage(statement_kind_tags); CompilerRetireArrayStorage(statement_expected_types);
+    CompilerRetireArrayStorage(statement_inferred_types); CompilerRetireArrayStorage(statement_verified);
+    CompilerRetireArrayStorage(statement_diagnostic_codes); CompilerRetireArrayStorage(statement_diagnostic_messages);
+    CompilerRetireArrayStorage(generic_call_node_ids); CompilerRetireArrayStorage(generic_owner_node_ids);
+    CompilerRetireArrayStorage(generic_source_lanes); CompilerRetireArrayStorage(generic_call_ordinals);
+    CompilerRetireArrayStorage(generic_signature_indexes); CompilerRetireArrayStorage(generic_actual_starts);
+    CompilerRetireArrayStorage(generic_actual_counts); CompilerRetireArrayStorage(generic_actual_types);
+}

@@ -428,6 +428,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
         fprintf(out, ",\"source_syntax_id\":%u",
                 mir_decl_header_source_syntax_id(header));
+        fputs(",\"source_module_path\":", out);
+        mir_json_emit_str_or_null(out, header->source_module_path);
         mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_decl_fields(out, header);
         if (is_struct_decl) {
@@ -454,6 +456,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
         fprintf(out, ",\"source_syntax_id\":%u",
                 mir_decl_header_source_syntax_id(header));
+        fputs(",\"source_module_path\":", out);
+        mir_json_emit_str_or_null(out, header->source_module_path);
         mir_json_emit_decl_generic_params(out, header);
         mir_json_emit_decl_methods(out, header, true);
         fputc('}', out);
@@ -465,6 +469,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
         fprintf(out, ",\"source_syntax_id\":%u",
                 mir_decl_header_source_syntax_id(header));
+        fputs(",\"source_module_path\":", out);
+        mir_json_emit_str_or_null(out, header->source_module_path);
         mir_json_emit_enum_variants(out, header);
         fputc('}', out);
         return;
@@ -475,6 +481,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
         mir_json_emit_str_or_null(out, mir_decl_header_name(header));
         fprintf(out, ",\"source_syntax_id\":%u",
                 mir_decl_header_source_syntax_id(header));
+        fputs(",\"source_module_path\":", out);
+        mir_json_emit_str_or_null(out, header->source_module_path);
         fputs(",\"for_type\":", out);
         mir_json_emit_str_or_null(
             out, mir_decl_header_role_subject_type_name(header));
@@ -496,6 +504,8 @@ mir_json_emit_decl(FILE *out, const MIRDeclHeader *header)
     mir_json_emit_str_or_null(out, mir_decl_header_name(header));
     fprintf(out, ",\"source_syntax_id\":%u",
             mir_decl_header_source_syntax_id(header));
+    fputs(",\"source_module_path\":", out);
+    mir_json_emit_str_or_null(out, header->source_module_path);
     fputc('}', out);
 }
 
@@ -507,8 +517,10 @@ mir_json_emit_extern_block_decl(FILE *out, ASTNode *node)
 
     fputs("{\"kind\":\"extern\",\"nominal_kind\":\"extern\",\"name\":", out);
     mir_json_emit_str_or_null(out, ast_extern_block_abi(node));
-    fprintf(out, ",\"source_syntax_id\":%u,\"fields\":[],\"methods\":[",
+    fprintf(out, ",\"source_syntax_id\":%u,\"source_module_path\":",
             ast_node_stable_id(node));
+    mir_json_emit_str_or_null(out, node->origin_path);
+    fputs(",\"fields\":[],\"methods\":[", out);
     (void)ast_extern_block_declarations(node, &member_count);
     for (size_t i = 0; i < member_count; i++) {
         ASTNode *decl = ast_extern_block_declaration(node, i);

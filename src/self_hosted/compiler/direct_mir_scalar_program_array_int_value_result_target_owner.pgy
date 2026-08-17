@@ -1,0 +1,17 @@
+// Target-bound projection of the exact value-result Array<Int> ABI receipt.
+
+import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
+import "direct_mir_array_int_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramArrayIntValueResultTargetFromFact(
+    ref fact: DirectMirScalarProgramArrayIntValueResultFact,
+    ref target: CompilerTargetProjectionFact
+) -> DirectMirArrayIntAbiProjection {
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact) ||
+        !fact.present {
+        Die("direct MIR Array<Int> value-result target fact is invalid");
+    }
+    return DirectMirArrayIntAbiProjectionFromCanonicalLayout(
+        target, fact.layout_id, fact.size, fact.align, fact.data_offset,
+        fact.length_offset, fact.capacity_offset, fact.allocator_offset);
+}

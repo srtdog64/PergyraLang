@@ -1,0 +1,77 @@
+// Ordered Int literals and zero-argument Int calls share one Array<Int> owner.
+
+func FirstTag() -> Int {
+    Log("first");
+    return 1;
+}
+
+func SecondTag() -> Int {
+    Log("second");
+    return 2;
+}
+
+func ThirdTag() -> Int {
+    Log("third");
+    return 3;
+}
+
+func WrongTag() -> String {
+    return "wrong";
+}
+
+struct TagPair {
+    let first: Array<Int>;
+    let second: Array<Int>;
+    let local: Array<Int>;
+}
+
+func BoxedTags() -> TagPair {
+    let local: Int = 3;
+    return TagPair([FirstTag(), 4, 5], [SecondTag()], [local]);
+}
+
+func Tags() -> Array<Int> {
+    return [FirstTag(), SecondTag(), ThirdTag()];
+}
+
+func Mixed() -> Array<Int> {
+    return [FirstTag(), 0];
+}
+
+func Consume(values: Array<Int>) -> Int {
+    return 0;
+}
+
+func ParameterLiteral(first: Int, selected: Int, wrong: String) -> Int {
+    let values: Array<Int> = [selected];
+    ArrayPush(values, first);
+    return values[0];
+}
+
+func LocalLiteral(seed: Int) -> Int {
+    let root_id: Int = seed;
+    let pending: Array<Int> = [root_id];
+    return pending[0];
+}
+
+func Main() -> Void {
+    let tags: Array<Int> = [FirstTag(), SecondTag(), ThirdTag()];
+    Log(ToString(Consume(tags)));
+    let literal: Array<Int> = [1, 0];
+    Log(ToString(ArrayLength(literal)));
+    Log(ToString(literal[0]));
+    Log(ToString(literal[1]));
+    let computed: Array<Int> = [(0 - 1), (5 - 2), (9 - 4), (2 - 8)];
+    Log(ToString(computed[0]));
+    Log(ToString(computed[1]));
+    Log(ToString(computed[2]));
+    Log(ToString(computed[3]));
+    Log(ToString(ParameterLiteral(4, 9, "unused")));
+    let boxed: TagPair = BoxedTags();
+    Log(ToString(boxed.first[0]));
+    Log(ToString(boxed.first[1]));
+    Log(ToString(boxed.first[2]));
+    Log(ToString(boxed.second[0]));
+    Log(ToString(boxed.local[0]));
+    Log(ToString(LocalLiteral(7)));
+}

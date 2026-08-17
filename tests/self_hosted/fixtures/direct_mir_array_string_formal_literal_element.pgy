@@ -1,0 +1,10 @@
+func LogSingleton(text: String) -> Void {
+    let values: Array<String> = [text];
+    Log(values[0]);
+}
+
+func Main() -> Void {
+    LogSingleton("red");
+    LogSingleton("blue");
+    Log("array-string-formal-literal-ready");
+}

@@ -1,0 +1,18 @@
+// Exact Void envelope with Array<Int> copyout and a logical-record value.
+
+struct OperatorFacts {
+    let valid: Bool;
+    let precedence: Int;
+}
+
+func AppendOperatorRows(
+    inout rows: Array<Int>,
+    operators: OperatorFacts,
+    normalized_text: String
+) -> Void {
+    return;
+}
+
+func Main() -> Void {
+    Log("void-record-array-int-copyout-ready");
+}

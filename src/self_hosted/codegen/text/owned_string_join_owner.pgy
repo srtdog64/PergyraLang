@@ -1,10 +1,20 @@
 // Consuming join for codegen-owned text fragments.
 // Every element must be an owned string; the joined result is the sole survivor.
-
+import "text_owner.pgy";
 func CodegenJoinOwnedStringFragments(
     own fragments: Array<String>, separator: String
 ) -> String {
     let output: String = StringJoin(fragments, separator);
+    ArrayDropOwnedStrings(fragments);
+    return output;
+}
+func CodegenPrefixOwnedStatementLine(own fragment: String, prefix: String, leader: String, suffix: String) -> String {
+    let fragments: Array<String> = [fragment];
+    let terminated: String = Concat(fragment, suffix);
+    let statement: String = Concat(leader, terminated);
+    let output: String = Concat(prefix, statement);
+    ArrayPush(fragments, terminated);
+    ArrayPush(fragments, statement);
     ArrayDropOwnedStrings(fragments);
     return output;
 }

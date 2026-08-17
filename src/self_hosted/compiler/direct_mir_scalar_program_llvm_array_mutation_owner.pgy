@@ -1,0 +1,135 @@
+// LLVM materialization and operation emission for typed array mutation targets.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+func DirectMirScalarProgramLlvmArrayIntPushMaterialization() -> String {
+    return "define internal void @pgy_ai_push(ptr %array, i64 %value) {\nentry:\n  %data.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 0\n  %length.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 1\n  %capacity.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 2\n  %length = load i64, ptr %length.ptr, align 8\n  %capacity = load i64, ptr %capacity.ptr, align 8\n  %full = icmp eq i64 %length, %capacity\n  br i1 %full, label %grow, label %append\n\ngrow:\n  %empty = icmp eq i64 %capacity, 0\n  %doubled = mul i64 %capacity, 2\n  %next.capacity = select i1 %empty, i64 4, i64 %doubled\n  %bytes = mul i64 %next.capacity, 4\n  %old.data = load ptr, ptr %data.ptr, align 8\n  %next.data = call ptr @realloc(ptr %old.data, i64 %bytes)\n  %failed = icmp eq ptr %next.data, null\n  br i1 %failed, label %abort, label %grown\n\nabort:\n  call void @abort()\n  unreachable\n\ngrown:\n  store ptr %next.data, ptr %data.ptr, align 8\n  store i64 %next.capacity, ptr %capacity.ptr, align 8\n  br label %append\n\nappend:\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds i32, ptr %data, i64 %length\n  %element = trunc i64 %value to i32\n  store i32 %element, ptr %slot, align 4\n  %next.length = add i64 %length, 1\n  store i64 %next.length, ptr %length.ptr, align 8\n  ret void\n}\n\n";
+}
+func DirectMirScalarProgramLlvmLocalArraySetMaterialization(ref plan: DirectMirScalarCfgGraphPlan) -> String {
+    let int_set: Bool = false; let string_set: Bool = false; let bool_set: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[row] == DirectMirScalarCfgOpLocalArrayIntSet() ||
+            plan.operation_kinds[row] == DirectMirScalarCfgOpArrayIntValueResultSet() {
+            int_set = true;
+        }
+        if plan.operation_kinds[row] == DirectMirScalarCfgOpArrayStringSet() { string_set = true; }
+        let nested_type: String = DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(plan, row);
+        if nested_type == CompilerAbiLayoutIntTypeName() { int_set = true; }
+        if nested_type == CompilerAbiLayoutStringTypeName() { string_set = true; }
+        if plan.operation_kinds[row] == DirectMirScalarCfgOpArrayBoolSet() {
+            bool_set = true;
+        }
+        row = row + 1;
+    }
+    let output: String = "";
+    if int_set {
+        output = Concat(output, "define internal void @pgy_ai_set(ptr %array, i64 %index, i64 %value) {\nentry:\n  %length.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 1\n  %length = load i64, ptr %length.ptr, align 8\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %write\n\npanic:\n  call void @pgy_runtime_panic_out_of_bounds_export(ptr null)\n  unreachable\n\nwrite:\n  %data.ptr = getelementptr inbounds %pgy.array.int, ptr %array, i32 0, i32 0\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds i32, ptr %data, i64 %index\n  %element = trunc i64 %value to i32\n  store i32 %element, ptr %slot, align 4\n  ret void\n}\n\n");
+    }
+    if string_set {
+        output = Concat(output, "define internal void @pgy_as_set(ptr %array, i64 %index, ptr %value) {\nentry:\n  %length.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 1\n  %length = load i64, ptr %length.ptr, align 8\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %write\n\npanic:\n  call void @pgy_runtime_panic_out_of_bounds_export(ptr null)\n  unreachable\n\nwrite:\n  %data.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 0\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds ptr, ptr %data, i64 %index\n  store ptr %value, ptr %slot, align 8\n  ret void\n}\n\n");
+    }
+    if bool_set {
+        output = Concat(output, "define internal void @pgy_ab_set(ptr %array, i64 %index, i1 %value) {\nentry:\n  %length.ptr = getelementptr inbounds %pgy.array.bool, ptr %array, i32 0, i32 1\n  %length = load i64, ptr %length.ptr, align 8\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %write\n\npanic:\n  call void @pgy_runtime_panic_out_of_bounds_export(ptr null)\n  unreachable\n\nwrite:\n  %data.ptr = getelementptr inbounds %pgy.array.bool, ptr %array, i32 0, i32 0\n  %data = load ptr, ptr %data.ptr, align 8\n  %slot = getelementptr inbounds i8, ptr %data, i64 %index\n  %element = zext i1 %value to i8\n  store i8 %element, ptr %slot, align 1\n  ret void\n}\n\n");
+    }
+    return output;
+}
+func DirectMirScalarProgramLlvmArrayMutation(ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, operation: Int, index: String, value: String) -> String {
+    let kind: Int = plan.operation_kinds[operation];
+    let target_local: Int = plan.operation_left_locals[operation];
+    let target_parameter: Int = plan.operation_right_locals[operation];
+    if !DirectMirScalarProgramArrayMutationKind(kind) ||
+        ((target_local < 0) == (target_parameter < 0)) { Die(
+            "direct MIR LLVM array mutation target is invalid"); }
+    if target_parameter >= 0 {
+        if target_local != -1 ||
+            !DirectMirScalarProgramArrayMutationParameterTargetKind(kind) ||
+            DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) ||
+            kind == DirectMirScalarCfgOpArrayStringValueResultPush() ||
+            ((kind == DirectMirScalarCfgOpArrayIntPush() ||
+              kind == DirectMirScalarCfgOpArrayIntValueResultSet() ||
+              kind == DirectMirScalarCfgOpArrayIntPop()) &&
+             !DirectMirScalarProgramArrayIntValueResultAt(
+                plan.program.array_int_value_result, routine,
+                target_parameter)) ||
+            ((kind == DirectMirScalarCfgOpArrayBoolPush() ||
+              kind == DirectMirScalarCfgOpArrayBoolSet()) &&
+             !DirectMirScalarProgramArrayBoolValueResultAt(
+                plan.program.array_bool_abi, routine,
+                target_parameter)) { Die(
+                    "direct MIR LLVM array copyout mutation is invalid"); }
+        if (kind == DirectMirScalarCfgOpArrayStringSet() ||
+            kind == DirectMirScalarCfgOpArrayStringPop()) &&
+            !DirectMirScalarProgramArrayStringValueResultAt(
+                plan.program.array_string_abi, routine,
+                target_parameter) { Die(
+                    "direct MIR LLVM Array<String> copyout set is invalid"); }
+    } else if target_parameter != -1 || target_local < 0 ||
+        target_local >= ArrayLength(plan.local_types) ||
+        !DirectMirScalarProgramLocalArrayMutationTargetTypeReady(
+            kind, plan.local_types[target_local]) { Die(
+                "direct MIR LLVM local array mutation target is invalid"); }
+    let target: String = "";
+    if target_local >= 0 {
+        target = DirectMirScalarCfgLlvmOperandLocal(
+            plan, -1, target_local);
+    } else {
+        target = Concat(
+            "%pgy.param.", Concat(ToString(target_parameter), ".local"));
+    }
+    let symbol: String = "@pgy_as_push"; let value_type: String = "ptr";
+    if kind == DirectMirScalarCfgOpArrayIntPush() ||
+        kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+        kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
+        symbol = "@pgy_ai_push"; value_type = "i64";
+    }
+    if kind == DirectMirScalarCfgOpArrayBoolPush() {
+        symbol = "@pgy_ab_push"; value_type = "i1";
+    }
+    if DirectMirScalarProgramArraySetKind(kind) {
+        if index == "" { Die("direct MIR LLVM local array set index is invalid"); }
+        symbol = "@pgy_as_set";
+        if kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
+            kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
+            symbol = "@pgy_ai_set";
+        }
+        if kind == DirectMirScalarCfgOpArrayBoolSet() {
+            symbol = "@pgy_ab_set"; value_type = "i1";
+        }
+    }
+    if DirectMirScalarProgramArrayPopKind(kind) {
+        let array_type: String = "%pgy.array.string";
+        if kind == DirectMirScalarCfgOpArrayIntPop() {
+            array_type = "%pgy.array.int";
+        }
+        let stem: String = Concat("%pgy.pop.", ToString(operation));
+        let output: String = Concat("  ", Concat(stem,
+            Concat(".length.ptr = getelementptr inbounds ", array_type)));
+        output = Concat(output, Concat(", ptr ", target));
+        output = Concat(output, Concat(", i32 0, i32 1\n  ", stem));
+        output = Concat(output, Concat(
+            ".length = load i64, ptr ", Concat(stem, ".length.ptr, align 8\n  ")));
+        output = Concat(output, Concat(stem,
+            Concat(".nonempty = icmp ugt i64 ", Concat(stem, ".length, 0\n  "))));
+        output = Concat(output, Concat(stem,
+            Concat(".decremented = sub i64 ", Concat(stem, ".length, 1\n  "))));
+        output = Concat(output, Concat(stem, Concat(
+            ".next = select i1 ", Concat(stem, ".nonempty, i64 "))));
+        output = Concat(output, Concat(stem,
+            Concat(".decremented, i64 0\n  store i64 ", stem)));
+        output = Concat(output, Concat(".next, ptr ",
+            Concat(stem, ".length.ptr, align 8\n")));
+        return output;
+    }
+    let output: String = Concat("  call void ", Concat(symbol, "(ptr "));
+    output = Concat(output, target);
+    if DirectMirScalarProgramArraySetKind(kind) {
+        output = Concat(output, Concat(", i64 ", Concat(index, ", ")));
+    } else { output = Concat(output, ", "); }
+    output = Concat(output, Concat(value_type, Concat(" ", value)));
+    return Concat(output, ")\n");
+}

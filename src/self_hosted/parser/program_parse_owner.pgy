@@ -14,6 +14,7 @@ import "intent_parameter_resolution_owner.pgy";
 struct ParserProgramBuild {
     tree_text: String;
     expression_graphs: AstExpressionGraphRows;
+    declaration_module_paths: Array<String>;
 }
 
 func ParserProgramGraphFail(reason: String) -> Void {
@@ -44,10 +45,12 @@ func ParseProgramBuildWithImportPolicyObserved(
     let expression_graphs: Array<AstExpressionGraphRows> = [
         AstExpressionGraphRowsEmpty()
     ];
+    let declaration_module_paths: Array<String> = [];
     if observe_phases { Log("Phase: declaration-composition:start"); }
     let decls: String = ParseDecls(
-        content, i, cursor, "", false, src_dir, false, follow_imports, "",
-        involve_types, import_paths, expression_graphs
+        content, i, cursor, "", false, src_dir, source_path, false,
+        follow_imports, "", involve_types, import_paths, expression_graphs,
+        declaration_module_paths
     );
     if observe_phases { Log("Phase: declaration-composition:done"); }
     if !ParserIntentParameterResolutionContractReady() {
@@ -74,12 +77,14 @@ func ParseProgramBuildWithImportPolicyObserved(
     if StringLength(decls) == 0 {
         let empty_program: String = "Program:";
         return ParserProgramBuild(
-            Concat(empty_program, "\n"), composed_rows
+            Concat(empty_program, "\n"), composed_rows,
+            declaration_module_paths
         );
     }
     let program_text: String = Concat("Program:\n", decls);
     return ParserProgramBuild(
-        Concat(program_text, "\n"), composed_rows
+        Concat(program_text, "\n"), composed_rows,
+        declaration_module_paths
     );
 }
 
@@ -107,10 +112,15 @@ func ParseRootProgram(source_path: String) -> String {
 func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
     let build: ParserProgramBuild = ParseRootProgramBuild(source_path);
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(build.tree_text);
+    let source_modules: AstSourceModuleFacts =
+        AstSourceModuleFactsFromTopLevelPaths(
+            artifact.arena, build.declaration_module_paths
+        );
     let typed: AstTreeArtifact = AstTreeArtifact(
         artifact.tree_text, artifact.arena, artifact.count,
-        build.expression_graphs, AstTreeArtifactIdentityDigest(
-            artifact.tree_text, artifact.count, build.expression_graphs
+        build.expression_graphs, source_modules, AstTreeArtifactIdentityDigest(
+            artifact.tree_text, artifact.count, build.expression_graphs,
+            source_modules
         )
     );
     let owner_bound: AstTreeArtifact =

@@ -36,8 +36,7 @@ PARAM_ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_routine_parameter
 DIRECT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy"
 IDENTITY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy"
 RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy"
-MAGNITUDE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_arithmetic_magnitude_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v23'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78'
 require_text "$PARAMS" 'let type_names: Array<String>'
 require_text "$PARAMS" 'let param_digests: Array<Int>'
 reject_text "$PARAMS" 'Array<DirectMirRoutineParamFact>'
@@ -45,8 +44,7 @@ require_text "$PARAM_ADMISSION" 'cursor = bounds[1]'
 require_text "$DIRECT" 'DirectMirScalarProgramNaryOperandRows'
 require_text "$IDENTITY" 'ArrayLength(arguments) != plan.routines.parameter_counts[target]'
 require_text "$RUNTIME" 'DirectMirScalarProgramCaseMathRuntimeIdsDigest'
-require_text "$MAGNITUDE" 'DirectMirScalarCfgProgramAddBoundedByMagnitude'
-for owner in "$PARAMS" "$PARAM_ADMISSION" "$DIRECT" "$IDENTITY" "$RUNTIME" "$MAGNITUDE" \
+for owner in "$PARAMS" "$PARAM_ADMISSION" "$DIRECT" "$IDENTITY" "$RUNTIME" \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_case_math_expression_owner.pgy" \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_case_math_expression_owner.pgy"; do
     reject_text "$owner" 'str_case_math.pgy'
@@ -78,7 +76,7 @@ project() {
 goods=(program display-only semantic-change routine-order)
 bads=(bad-parameter-ordinal bad-parameter-type bad-direct-call-chain \
     bad-direct-target-syntax bad-return-type bad-min-argument-type \
-    bad-builtin-target bad-add-magnitude)
+    bad-builtin-target)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
     for good in "${goods[@]}"; do
@@ -112,7 +110,7 @@ require_text "$WORK_DIR/base.ll" 'define internal i64 @pgy.scalar.routine.1(i64 
 expected_base=$'HELLO, WORLD!\nhello, world!\nHello, Pergyra!\na+b+a+b\n42\n3\n7\n50\n7'
 expected_semantic=$'HELLO, CODEX!\nhello, codex!\nHello, Codex!\na+b+a+b\n42\n3\n7\n50\n7'
 for stem in base display-only semantic-change routine-order; do
-    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" ||
+    "$CC" -std=c11 -fwrapv "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" ||
         fail "C compile failed: $stem"
     "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" ||
         fail "LLVM compile failed: $stem"

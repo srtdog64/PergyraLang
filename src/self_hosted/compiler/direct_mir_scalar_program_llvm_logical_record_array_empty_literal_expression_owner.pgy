@@ -1,0 +1,25 @@
+// LLVM materialization of one empty declaration-owned Array<Record> value.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+
+func DirectMirScalarProgramLlvmLogicalRecordArrayEmptyLiteralExpressionAt(
+    kind: Int, array_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+            logical_record, array_type, target);
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
+            projected, CompilerTargetCpuLlvmProjection()) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, "", "zeroinitializer");
+}

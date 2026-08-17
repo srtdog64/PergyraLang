@@ -64,8 +64,13 @@ if mode == "compare":
     oracle = json.loads(target.read_text(encoding="utf-8"))
     left_decl = copy.deepcopy(declaration(baseline))
     right_decl = copy.deepcopy(declaration(oracle))
+    expected_module = \
+        "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
     for row in (left_decl, right_decl):
         row.pop("source_syntax_id")
+        module_path = row.pop("source_module_path", "").replace("\\", "/")
+        if not module_path.endswith(expected_module):
+            raise RuntimeError("Pair declaration source module drifted")
         for field in row["fields"]:
             field.pop("source_syntax_id")
     if left_decl != right_decl:
@@ -225,6 +230,10 @@ emit("pair-field-order",
          "fields", list(reversed(declaration(d)["fields"]))))
 emit("pair-field-type",
      lambda d: declaration(d)["fields"][0].__setitem__("type", "Long"))
+emit("missing-declaration-source-module-path",
+     lambda d: declaration(d).pop("source_module_path"))
+emit("empty-declaration-source-module-path",
+     lambda d: declaration(d).__setitem__("source_module_path", ""))
 emit("malformed-producer-some",
      lambda d: producer_graph(d)["nodes"][-1].__setitem__("kind", "leaf"))
 emit("stale-picked-use",

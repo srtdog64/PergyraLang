@@ -1,0 +1,9 @@
+func Main() -> Void {
+    Log(ToString(IntentHistoryCount()));
+    if IntentActiveConcurrent(0) {
+        Log("true");
+    } else {
+        Log("false");
+    }
+    Log(IntentActiveStepName(0, 0));
+}

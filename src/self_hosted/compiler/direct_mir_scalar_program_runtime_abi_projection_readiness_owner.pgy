@@ -10,7 +10,8 @@ func DirectMirScalarProgramRuntimeAbiProjectionReady(
     ref fact: DirectMirScalarProgramRuntimeAbiFact
 ) -> Bool {
     if !projection.valid || !fact.valid { return false; }
-    return (fact.string_compare_id == 0 ||
+    return CompilerRuntimeCallAbiPrintFactReady(projection.string_print) &&
+        (fact.string_compare_id == 0 ||
             (CompilerRuntimeCallAbiStringCompareFactReady(
                 projection.string_compare) && fact.string_compare_id ==
                 projection.string_compare.runtime_call_abi_id)) &&
@@ -34,6 +35,13 @@ func DirectMirScalarProgramRuntimeAbiProjectionReady(
             fact.string_length_id, projection.string_length, "length",
             StringRuntimeCStringLengthFn(), "string_to_int") &&
         DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_char_code_id, projection.string_char_code,
+            "char-code", StringRuntimeCCharCodeFn(), "string_to_int") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_char_at_n_id, projection.string_char_at_n,
+            "char-at-n", StringRuntimeCCharAtNFn(),
+            "string_int_to_string") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
             fact.string_substring_id, projection.string_substring, "substring",
             StringRuntimeCSubstringFn(), "string_int_int_to_string") &&
         DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
@@ -41,6 +49,16 @@ func DirectMirScalarProgramRuntimeAbiProjectionReady(
             projection.string_substring_with_len, "substring-with-len",
             StringRuntimeCSubstringWithLenFn(),
             "string_int_int_int_to_string") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_sub_equals_with_len_id,
+            projection.string_sub_equals_with_len, "sub-equals-with-len",
+            StringRuntimeCSubEqualsWithLenFn(),
+            "string_int_string_int_to_bool") &&
+        DirectMirScalarProgramRuntimeGeneratedAbiProjectionReady(
+            fact.string_sub_index_with_len_id,
+            projection.string_sub_index_with_len, "sub-index-of-with-len",
+            StringRuntimeCSubIndexOfWithLenFn(),
+            "string_int_string_int_to_int") &&
         DirectMirScalarProgramStringIndexRuntimeProjectionReady(
             projection.string_index, fact.string_index) &&
         DirectMirScalarProgramStringTrimRuntimeProjectionReady(

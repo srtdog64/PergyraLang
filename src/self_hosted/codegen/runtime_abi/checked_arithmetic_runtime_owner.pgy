@@ -1,4 +1,4 @@
-// Fail-closed numeric conversion runtime ABI facts.
+// Fail-closed numeric conversion and checked Long division/remainder ABI facts.
 
 func CheckedArithmeticRuntimeCFloatToIntegerFn(
     target_type: String
@@ -8,11 +8,23 @@ func CheckedArithmeticRuntimeCFloatToIntegerFn(
     return "";
 }
 
+func CheckedArithmeticRuntimeCLongModuloFn() -> String {
+    return "pgy_checked_mod_i64_export";
+}
+
+func CheckedArithmeticRuntimeCLongDivisionFn() -> String {
+    return "pgy_checked_div_i64_export";
+}
+
 func CheckedArithmeticRuntimeContractReady() -> Bool {
     return CheckedArithmeticRuntimeCFloatToIntegerFn("Int") ==
             "pgy_checked_f2i_i32_export" &&
         CheckedArithmeticRuntimeCFloatToIntegerFn("Long") ==
             "pgy_checked_f2i_i64_export" &&
+        CheckedArithmeticRuntimeCLongModuloFn() ==
+            "pgy_checked_mod_i64_export" &&
+        CheckedArithmeticRuntimeCLongDivisionFn() ==
+            "pgy_checked_div_i64_export" &&
         CheckedArithmeticRuntimeCFloatToIntegerFn("Float") == "";
 }
 

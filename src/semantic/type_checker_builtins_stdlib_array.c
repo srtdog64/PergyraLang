@@ -15,8 +15,8 @@
 #include <string.h>
 
 static bool
-compiler_retire_array_storage_path_matches(const char *path,
-                                           const char *suffix)
+compiler_internal_builtin_path_matches(const char *path,
+                                       const char *suffix)
 {
     size_t path_length;
     size_t suffix_length;
@@ -43,10 +43,6 @@ compiler_retire_array_storage_path_matches(const char *path,
 static bool
 compiler_retire_array_storage_context_ready(SemanticContext *ctx)
 {
-    static const char routine_owner_path[] =
-        "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy";
-    static const char artifact_owner_path[] =
-        "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy";
     const PgyBuiltinInfo *builtin =
         pgy_builtin_lookup("CompilerRetireArrayStorage");
     ASTNode *function;
@@ -55,7 +51,6 @@ compiler_retire_array_storage_context_ready(SemanticContext *ctx)
     const char *function_name;
     const char *param_type_name;
     const char *return_type_name;
-    bool owner_contract_ready;
 
     if (ctx == NULL || builtin == NULL
         || (builtin->flags & PGY_BUILTIN_FLAG_COMPILER_INTERNAL) == 0)
@@ -74,28 +69,22 @@ compiler_retire_array_storage_context_ready(SemanticContext *ctx)
     function_name = ast_declaration_name(function);
     param_type_name = ast_type_name(param->type);
     return_type_name = ast_type_name(return_type);
-    owner_contract_ready =
-        (strcmp(function_name,
-                 "SelfMirRoutineBuildStorageRetireAfterLastConsumer") == 0
-         && strcmp(param_type_name, "SelfMirRoutineBuild") == 0
-         && strcmp(return_type_name, "Void") == 0
-         && compiler_retire_array_storage_path_matches(
-             ctx->current_module_path, routine_owner_path))
-        ||
-        (strcmp(function_name,
-                "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection") == 0
-         && strcmp(param_type_name, "AstTreeArtifact") == 0
-         && strcmp(return_type_name, "AstTreeArtifact") == 0
-         && compiler_retire_array_storage_path_matches(
-             ctx->current_module_path, artifact_owner_path))
-        ||
-        (strcmp(function_name,
-                "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts") == 0
-         && strcmp(param_type_name, "AstTreeArtifact") == 0
-         && strcmp(return_type_name, "Void") == 0
-         && compiler_retire_array_storage_path_matches(
-             ctx->current_module_path, artifact_owner_path));
-    return owner_contract_ready;
+#define PGY_COMPILER_INTERNAL_PARAM_OWN PARAM_MODE_OWN
+#define PGY_COMPILER_INTERNAL_BUILTIN_CALLER(                              \
+    registry_builtin, module_path, caller_name, parameter_mode,            \
+    parameter_type, caller_return_type)                                    \
+    if (strcmp(builtin->name, (registry_builtin)) == 0                     \
+        && strcmp(function_name, (caller_name)) == 0                       \
+        && param->mode == (parameter_mode)                                 \
+        && strcmp(param_type_name, (parameter_type)) == 0                  \
+        && strcmp(return_type_name, (caller_return_type)) == 0             \
+        && compiler_internal_builtin_path_matches(                         \
+            ctx->current_module_path, (module_path)))                      \
+        return true;
+#include "../common/compiler_internal_builtin_caller_registry.def"
+#undef PGY_COMPILER_INTERNAL_BUILTIN_CALLER
+#undef PGY_COMPILER_INTERNAL_PARAM_OWN
+    return false;
 }
 
 static Type *

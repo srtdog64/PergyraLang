@@ -20,6 +20,7 @@ import "../semantic/ast_nominal_constructor_fact_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
 import "../semantic/ast_intent_signature_fact_owner.pgy";
 import "canonical_mir_field_identity_epoch_owner.pgy";
+import "canonical_mir_source_module_epoch_owner.pgy";
 
 struct CanonicalMirIdentityEpochArtifact {
     ok: Bool;
@@ -276,11 +277,11 @@ func CanonicalMirIdentityEpochAppendOwnerTopology(
 }
 
 func CanonicalMirIdentityEpochArtifactFromTreeText(
-    tree_text: String,
+    tree_text: String, source_module_paths: Array<String>,
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> CanonicalMirIdentityEpochArtifact {
     let empty_ids: Array<Int> = [];
-    let base_artifact: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    let base_artifact: AstTreeArtifact = CanonicalMirIdentityArtifactBindSourceModules(AstTreeArtifactFromText(tree_text), source_module_paths);
     if !admitted.domain_topology.present ||
         ArrayLength(admitted.domain_topology.kinds) == 0 {
         return CanonicalMirIdentityEpochArtifact(
@@ -366,7 +367,7 @@ func CanonicalMirIdentityEpochArtifactFromTreeText(
         }
         id_index = id_index + 1;
     }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(output);
+    let artifact: AstTreeArtifact = CanonicalMirIdentityArtifactBindSourceModules(AstTreeArtifactFromText(output), source_module_paths);
     return CanonicalMirIdentityEpochArtifact(
         AstTreeArtifactReady(artifact) && artifact.count == node_count,
         artifact, directive_node_ids
@@ -374,11 +375,11 @@ func CanonicalMirIdentityEpochArtifactFromTreeText(
 }
 
 func CanonicalMirIdentityArtifactFromTreeTextOrDie(
-    tree_text: String,
+    tree_text: String, source_module_paths: Array<String>,
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> AstTreeArtifact {
     let epoch: CanonicalMirIdentityEpochArtifact =
-        CanonicalMirIdentityEpochArtifactFromTreeText(tree_text, admitted);
+        CanonicalMirIdentityEpochArtifactFromTreeText(tree_text, source_module_paths, admitted);
     if !epoch.ok { Die("MIR-to-C canonical identity epoch is invalid"); }
     return epoch.artifact;
 }

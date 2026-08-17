@@ -12,7 +12,6 @@ import "../mir_lower/program_declaration_index_owner.pgy";
 import "../semantic/callable_receiver_carriage_policy_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
 import "direct_mir_exact_json_array_cardinality_owner.pgy";
-
 struct DirectMirCompileTimeDeclarationErasureFact {
     let valid: Bool;
     let digest: Int;
@@ -28,7 +27,6 @@ struct DirectMirCompileTimeDeclarationErasureFact {
     let runtime_symbol_count: Int;
     let storage_count: Int;
 }
-
 func DirectMirCompileTimeDeclarationErasureFactDigest(
     ref fact: DirectMirCompileTimeDeclarationErasureFact
 ) -> Int {
@@ -81,29 +79,11 @@ func DirectMirCompileTimeDeclarationErasureSeal(
 func DirectMirCompileTimeDeclarationErasureRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
-    if admitted.domain_topology_plan.present ||
-        JsonObjectFactCount(admitted.document.root) != 5 {
-        return false;
-    }
-    let row: Int = 0;
-    while row < ArrayLength(
-        admitted.domain_runtime_admission.declarations.starts
-    ) {
-        if (row < ArrayLength(
-                admitted.domain_runtime_admission.declarations.kinds
-            ) && CallableReceiverNominalKindOwnsCompileTimeContractOnly(
-                admitted.domain_runtime_admission.declarations.kinds[row]
-            )) ||
-            (row < ArrayLength(
-                admitted.domain_runtime_admission.declarations.nominal_kinds
-            ) && CallableReceiverNominalKindOwnsCompileTimeContractOnly(
-                admitted.domain_runtime_admission.declarations.nominal_kinds[row]
-            )) {
-            return true;
-        }
-        row = row + 1;
-    }
-    return false;
+    return !admitted.domain_topology_plan.present &&
+        JsonObjectFactCount(admitted.document.root) == 5 &&
+        admitted.domain_runtime_admission.declarations.valid &&
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) == 1;
 }
 
 func DirectMirCompileTimeDeclarationErasureEmpty(
@@ -163,7 +143,9 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
         declaration, "methods"
     );
     if !JsonObjectFactTableReady(declaration) ||
-        JsonObjectFactCount(declaration) != 6 || !IsSome(kind) ||
+        JsonObjectFactCount(declaration) != 7 ||
+        !JsonObjectFactStringFieldEquals(declaration, "source_module_path",
+            admitted.domain_runtime_admission.declarations.source_module_paths[0]) || !IsSome(kind) ||
         !IsSome(nominal_kind) || !IsSome(name) || !IsSome(syntax) ||
         UnwrapOption(kind) != UnwrapOption(nominal_kind) ||
         !CallableReceiverNominalKindOwnsCompileTimeContractOnly(

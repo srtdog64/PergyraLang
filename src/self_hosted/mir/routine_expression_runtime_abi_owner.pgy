@@ -1,0 +1,173 @@
+// Owns runtime-call ABI attachment for one admitted routine expression.
+// Resource calls and runtime-value calls consume distinct canonical row
+// schemas and are rejected when one instruction would require both primaries.
+
+import "cfg_instruction_mutation_owner.pgy";
+import "expression_runtime_abi_owner.pgy";
+import "../semantic/ast_expression_graph_node_view_owner.pgy";
+
+struct SelfMirRoutineExpressionRuntimeAbiResult {
+    ok: Bool;
+    diagnostic_message: String;
+    cfg: SelfMirCfgRows;
+}
+
+func SelfMirRoutineExpressionRuntimeAbiLocalType(
+    local_names: Array<String>, local_types: Array<String>, name: String
+) -> String {
+    if ArrayLength(local_names) != ArrayLength(local_types) { return ""; }
+    let i: Int = ArrayLength(local_names) - 1;
+    while i >= 0 {
+        if local_names[i] == name { return local_types[i]; }
+        i = i - 1;
+    }
+    return "";
+}
+
+func SelfMirRoutineExpressionRuntimeAbiSsaBaseName(
+    ssa_name: String
+) -> String {
+    let separator: Int = StringIndexOf(ssa_name, ".");
+    if separator < 0 { return ssa_name; }
+    return Substring(ssa_name, 0, separator);
+}
+
+func SelfMirRoutineExpressionResourceType(
+    view: SemanticExpressionGraphView,
+    ref cfg: SelfMirCfgRows,
+    instruction_index: Int,
+    operation: String,
+    local_names: Array<String>,
+    local_types: Array<String>
+) -> String {
+    if !view.ok { return ""; }
+    if operation == "Claim" {
+        return SelfMirRoutineExpressionRuntimeAbiLocalType(
+            local_names, local_types,
+            SelfMirRoutineExpressionRuntimeAbiSsaBaseName(
+                cfg.instructions.results[instruction_index]));
+    }
+    let start_opt: Option<Int> = SemanticExpressionGraphSubtreeStart(
+        view.graph, view.root_id);
+    if !IsSome(start_opt) { return ""; }
+    let start: Int = UnwrapOption(start_opt);
+    let end: Int = view.root_id + 1;
+    let receiver_wrapper: Int = view.root_id;
+    if operation == "Write" {
+        let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+            view.graph, receiver_wrapper);
+        if !IsSome(left_opt) { return ""; }
+        receiver_wrapper = UnwrapOption(left_opt);
+    }
+    let wrapper_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        view.graph, receiver_wrapper);
+    if receiver_wrapper < start || receiver_wrapper >= end ||
+        !IsSome(wrapper_kind) ||
+        UnwrapOption(wrapper_kind) != AstExpressionNodeCallArgument() {
+        return "";
+    }
+    let receiver_opt: Option<Int> = SemanticExpressionGraphRightChild(
+        view.graph, receiver_wrapper);
+    if !IsSome(receiver_opt) { return ""; }
+    let receiver_node: Int = UnwrapOption(receiver_opt);
+    if receiver_node < start || receiver_node >= end { return ""; }
+    let receiver_name: Option<String> = SemanticExpressionGraphNodeText(
+        view.graph, receiver_node);
+    if !IsSome(receiver_name) || UnwrapOption(receiver_name) == "" {
+        return "";
+    }
+    return SelfMirRoutineExpressionRuntimeAbiLocalType(
+        local_names, local_types, UnwrapOption(receiver_name));
+}
+
+func SelfMirRoutineExpressionRuntimeAbiAttach(
+    cfg: SelfMirCfgRows,
+    view: SemanticExpressionGraphView,
+    local_names: Array<String>,
+    local_types: Array<String>
+) -> SelfMirRoutineExpressionRuntimeAbiResult {
+    let instruction_index: Int = ArrayLength(cfg.instructions.ids) - 1;
+    if instruction_index < 0 {
+        return SelfMirRoutineExpressionRuntimeAbiResult(
+            false, "MIR runtime-call ABI instruction is missing", cfg);
+    }
+    let operation: String =
+        cfg.instructions.machine_layer_runtime_operations[instruction_index];
+    if operation != "" {
+        let resource_type: String = SelfMirRoutineExpressionResourceType(
+            view, cfg, instruction_index, operation, local_names, local_types);
+        if resource_type == "" {
+            return SelfMirRoutineExpressionRuntimeAbiResult(
+                false, "MIR resource runtime-call ABI type fact is missing",
+                cfg);
+        }
+        let fact: CompilerRuntimeCallAbiFact =
+            CompilerRuntimeCallAbiFactForNativeResource(
+                resource_type, operation);
+        if !fact.ok {
+            return SelfMirRoutineExpressionRuntimeAbiResult(
+                false, "MIR resource runtime-call ABI row is not declared",
+                cfg);
+        }
+        cfg = SelfMirCfgAttachLastRuntimeCallAbi(
+            cfg, resource_type, operation, fact);
+        if cfg.instructions.runtime_call_abi.present[instruction_index] != 1 {
+            return SelfMirRoutineExpressionRuntimeAbiResult(
+                false, "MIR resource runtime-call ABI attachment failed", cfg);
+        }
+        return SelfMirRoutineExpressionRuntimeAbiResult(true, "", cfg);
+    }
+
+    let resource: SelfMirExpressionRuntimeAbiProjection =
+        SelfMirExpressionRuntimeAbiProjectionFromGraph(
+            view, cfg.instructions.expr1s[instruction_index],
+            local_names, local_types);
+    if !resource.ok {
+        return SelfMirRoutineExpressionRuntimeAbiResult(
+            false, resource.diagnostic_message, cfg);
+    }
+    let runtime_value: SelfMirExpressionRuntimeValueCallProjection =
+        SelfMirExpressionRuntimeValueCallProjectionFromGraph(view);
+    if !runtime_value.ok {
+        return SelfMirRoutineExpressionRuntimeAbiResult(
+            false, runtime_value.diagnostic_message, cfg);
+    }
+    if runtime_value.fact.valid && ArrayLength(resource.operations) > 0 {
+        return SelfMirRoutineExpressionRuntimeAbiResult(
+            false, "MIR instruction mixes runtime-value and resource ABI rows",
+            cfg);
+    }
+    if runtime_value.fact.valid {
+        let runtime_fact: CompilerRuntimeValueCallAbiFact =
+            runtime_value.fact;
+        cfg = SelfMirCfgAttachLastRuntimeValueCallAbi(
+            cfg, runtime_fact);
+        if cfg.instructions.runtime_call_abi.runtime_values.present[
+                instruction_index] != 1 {
+            return SelfMirRoutineExpressionRuntimeAbiResult(
+                false, "MIR runtime-value call ABI attachment failed", cfg);
+        }
+        return SelfMirRoutineExpressionRuntimeAbiResult(true, "", cfg);
+    }
+    let abi_i: Int = 0;
+    while abi_i < ArrayLength(resource.operations) {
+        let fact: CompilerRuntimeCallAbiFact =
+            CompilerRuntimeCallAbiFactForNativeResource(
+                resource.type_names[abi_i], resource.operations[abi_i]);
+        if !fact.ok {
+            return SelfMirRoutineExpressionRuntimeAbiResult(
+                false, "MIR Slot runtime-call ABI row is not declared", cfg);
+        }
+        if abi_i == 0 {
+            cfg = SelfMirCfgAttachLastRuntimeCallAbi(
+                cfg, resource.type_names[abi_i],
+                resource.operations[abi_i], fact);
+        } else {
+            cfg = SelfMirCfgAttachLastRuntimeCallAbiAux(
+                cfg, resource.type_names[abi_i],
+                resource.operations[abi_i], fact);
+        }
+        abi_i = abi_i + 1;
+    }
+    return SelfMirRoutineExpressionRuntimeAbiResult(true, "", cfg);
+}

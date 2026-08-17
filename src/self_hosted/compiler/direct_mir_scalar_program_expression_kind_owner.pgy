@@ -2,18 +2,32 @@ import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_fact_owner.pgy";
 import "direct_mir_scalar_program_collection_expression_kind_owner.pgy";
-
+import "direct_mir_scalar_program_logical_record_array_index_expression_owner.pgy";
+import "direct_mir_scalar_program_string_literal_fact_owner.pgy";
+import "direct_mir_scalar_program_comparison_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_numeric_cast_expression_kind_owner.pgy";
 func DirectMirScalarProgramExpressionKindFactFromSource(
     source_kind: Int, text: String,
-    left_type: String, right_type: String, arity: Int
+    left_type: String, right_type: String, arity: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramExpressionKindFact {
     let invalid: DirectMirScalarProgramExpressionKindFact =
         DirectMirScalarProgramExpressionKindFactInvalid();
+    let numeric_cast: DirectMirScalarProgramExpressionKindFact = DirectMirScalarProgramNumericCastExpressionKindFact(source_kind, text, left_type, right_type, arity);
+    if numeric_cast.valid { return numeric_cast; }
     if source_kind == AstExpressionNodeIntegerLiteral() && arity == 0 &&
             DirectMirScalarCfgCanonicalInt(text) {
         return DirectMirScalarProgramExpressionKindFact(
             true, DirectMirScalarProgramExprIntLiteral(),
             CompilerAbiLayoutIntTypeName(), text);
+    }
+    if source_kind == AstExpressionNodeLongLiteral() && arity == 0 &&
+            AstExpressionLongLiteralPayloadReady(text) {
+        let length: Int = StringLength(text);
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprLongLiteral(),
+            CompilerAbiLayoutLongTypeName(),
+            SubstringWithLen(text, length, 0, length - 1));
     }
     if source_kind == AstExpressionNodeBoolLiteral() && arity == 0 &&
             (text == "true" || text == "false") {
@@ -22,7 +36,8 @@ func DirectMirScalarProgramExpressionKindFactFromSource(
             CompilerAbiLayoutBoolTypeName(), text);
     }
     if source_kind == AstExpressionNodeStringLiteral() && arity == 0 {
-        let content: Option<String> = DirectMirAsciiLiteralContent(text);
+        let content: Option<String> =
+            DirectMirScalarProgramStringLiteralContent(text);
         if !IsSome(content) || !DirectMirScalarProgramLiteralEmbeddable(
                 UnwrapOption(content)) { return invalid; }
         return DirectMirScalarProgramExpressionKindFact(
@@ -45,9 +60,19 @@ func DirectMirScalarProgramExpressionKindFactFromSource(
         DirectMirScalarProgramCollectionExpressionKindFact(
             source_kind, left_type, right_type, arity);
     if collection.valid { return collection; }
+    let record_array: DirectMirScalarProgramExpressionKindFact =
+        DirectMirScalarProgramLogicalRecordArrayIndexKindFact(
+            source_kind, left_type, right_type, arity, logical_record);
+    if record_array.valid { return record_array; }
+    let comparison: DirectMirScalarProgramExpressionKindFact =
+        DirectMirScalarProgramComparisonExpressionKindFact(
+            source_kind, left_type, right_type, arity);
+    if comparison.valid { return comparison; }
     if arity != 2 { return invalid; }
     let ints: Bool = left_type == CompilerAbiLayoutIntTypeName() &&
         right_type == CompilerAbiLayoutIntTypeName();
+    let longs: Bool = left_type == CompilerAbiLayoutLongTypeName() &&
+        right_type == CompilerAbiLayoutLongTypeName();
     let bools: Bool = left_type == CompilerAbiLayoutBoolTypeName() &&
         right_type == CompilerAbiLayoutBoolTypeName();
     if source_kind == AstExpressionNodeModulo() && ints {
@@ -55,25 +80,37 @@ func DirectMirScalarProgramExpressionKindFactFromSource(
             true, DirectMirScalarProgramExprModuloInt(),
             CompilerAbiLayoutIntTypeName(), "");
     }
-    if source_kind == AstExpressionNodeEquality() && ints {
+    if source_kind == AstExpressionNodeModulo() && longs {
         return DirectMirScalarProgramExpressionKindFact(
-            true, DirectMirScalarProgramExprEqualInt(),
-            CompilerAbiLayoutBoolTypeName(), "");
-    }
-    if source_kind == AstExpressionNodeLess() && ints {
-        return DirectMirScalarProgramExpressionKindFact(
-            true, DirectMirScalarProgramExprLessInt(),
-            CompilerAbiLayoutBoolTypeName(), "");
+            true, DirectMirScalarProgramExprModuloLong(),
+            CompilerAbiLayoutLongTypeName(), "");
     }
     if source_kind == AstExpressionNodeAdd() && ints {
         return DirectMirScalarProgramExpressionKindFact(
             true, DirectMirScalarProgramExprAddInt(),
             CompilerAbiLayoutIntTypeName(), "");
     }
+    if source_kind == AstExpressionNodeAdd() && longs {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprAddLong(),
+            CompilerAbiLayoutLongTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeDivide() && longs {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprDivideLong(),
+            CompilerAbiLayoutLongTypeName(), "");
+    }
     if source_kind == AstExpressionNodeSubtract() && ints {
         return DirectMirScalarProgramExpressionKindFact(
             true, DirectMirScalarProgramExprSubtractInt(), CompilerAbiLayoutIntTypeName(), "");
     }
+    if source_kind == AstExpressionNodeSubtract() && longs {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprSubtractLong(), CompilerAbiLayoutLongTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeMultiply() && ints { return DirectMirScalarProgramExpressionKindFact(true, DirectMirScalarProgramExprMultiplyInt(), CompilerAbiLayoutIntTypeName(), ""); }
+    if source_kind == AstExpressionNodeMultiply() && longs { return DirectMirScalarProgramExpressionKindFact(true, DirectMirScalarProgramExprMultiplyLong(), CompilerAbiLayoutLongTypeName(), ""); }
+    if source_kind == AstExpressionNodeDivide() && ints { return DirectMirScalarProgramExpressionKindFact(true, DirectMirScalarProgramExprDivideInt(), CompilerAbiLayoutIntTypeName(), ""); }
     if source_kind == AstExpressionNodeLogicalAnd() && bools {
         return DirectMirScalarProgramExpressionKindFact(
             true, DirectMirScalarProgramExprLogicalAnd(),

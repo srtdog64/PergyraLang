@@ -1,0 +1,35 @@
+// Operand shape for operation rows owned by the typed program extension.
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+func DirectMirScalarCfgProgramOperationKind(kind: Int) -> Bool {
+    return kind == DirectMirScalarCfgOpExpressionDefinition() ||
+        kind == DirectMirScalarCfgOpOptionIntTryDefinition() ||
+        kind == DirectMirScalarCfgOpExpressionLog() ||
+        kind == DirectMirScalarCfgOpExpressionStatement() ||
+        kind == DirectMirScalarCfgOpProcessExit() ||
+        kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() ||
+        kind == DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() ||
+        DirectMirScalarProgramArrayMutationKind(kind);
+}
+
+func DirectMirScalarCfgProgramOperationShapeReady(
+    kind: Int, result: Int, left_count: Int, right_count: Int,
+    phi_count: Int, program_valid: Bool
+) -> Bool {
+    if !program_valid || phi_count != 0 ||
+        !DirectMirScalarCfgProgramOperationKind(kind) { return false; }
+    if DirectMirScalarProgramArrayMutationKind(kind) {
+        return result == -1 && left_count + right_count == 1;
+    }
+    if kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() {
+        return result >= 0 && left_count == 0 && right_count == 1;
+    }
+    if kind == DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() {
+        return result >= 0 && left_count == 0 && right_count == 0;
+    }
+    return left_count == 0 && right_count == 0 &&
+        (((kind == DirectMirScalarCfgOpExpressionDefinition() || kind ==
+            DirectMirScalarCfgOpOptionIntTryDefinition()) && result >= 0) ||
+         (kind != DirectMirScalarCfgOpExpressionDefinition() && kind !=
+            DirectMirScalarCfgOpOptionIntTryDefinition() && result == -1));
+}

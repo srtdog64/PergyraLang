@@ -6,17 +6,30 @@ import "direct_mir_scalar_program_llvm_string_window_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_special_expression_owner.pgy";
 func DirectMirScalarProgramLlvmStringExpressionAt(
-    kind: Int, result: String, left: String, right: String,
+    kind: Int, result: String, left_type: String, left: String,
+    left_address: String, right: String,
     arguments: Array<String>,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind == DirectMirScalarProgramExprPrintString() {
+        if !CompilerRuntimeCallAbiPrintFactReady(runtime.string_print) {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        let output: String = Concat("  call void @", Concat(
+            runtime.string_print.symbol, Concat("(ptr ", Concat(left, ")\n"))));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, "");
+    }
     let special: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmStringSpecialExpressionAt(
             kind, result, left, right, runtime);
     if special.matched { return special; }
     let collection: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmStringCollectionExpressionAt(
-            kind, result, left, right, runtime);
+            kind, result, left_type, left, left_address, right,
+            runtime, logical_record);
     if collection.matched { return collection; }
     let window: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmStringWindowExpressionAt(
@@ -57,6 +70,10 @@ func DirectMirScalarProgramLlvmStringExpressionAt(
                     left, Concat(", ptr ", Concat(right, ")\n"))))))));
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, output, result);
+    }
+    if kind == DirectMirScalarProgramExprToStringString() {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, "", left);
     }
     let builtin_symbol: String = runtime.string_to_string.symbol;
     let argument_type: String = "i64";

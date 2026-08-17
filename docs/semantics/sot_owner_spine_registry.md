@@ -1,7 +1,7 @@
 # SoT Owner Spine Registry
 
 Status: `architecture-owner-registry`  
-Date: 2026-08-04
+Date: 2026-08-13
 
 This registry fixes the first whole-compiler owner outline. It is the
 machine-gated companion to `docs/125_source_of_truth_spine.md` and
@@ -80,7 +80,7 @@ projection.direct_mir_option_match_cfg_plan | projection | VerifiedProjectionPla
 abi.mir_option_match_layout_admission | abi | LayoutId | SFAbiOptionMatchLayoutAdmission | SOMirAbi | src/self_hosted/mir_lower/abi_layout_admission_fact_owner.pgy | MirCapturedRequiredAbiLayoutRowAdmission | src/self_hosted/compiler/direct_mir_option_match_cfg_plan_owner.pgy,src/self_hosted/compiler/direct_mir_option_match_abi_capture_owner.pgy,src/self_hosted/compiler/direct_mir_option_match_abi_fact_owner.pgy,src/self_hosted/compiler/direct_mir_option_match_abi_projection_owner.pgy | backend_local_option_layout,layout_id_without_reconstructible_row,tag_or_offset_guess,duplicate_layout_parse,post_issue_layout_identity_mutation | tests/self_hosted/parity/one_mir_option_match_projection.sh#Option<Int> match direct C/LLVM parity and seven mutations are fail-closed (sha256= | CLOSED | none
 abi.layout_rows | abi | LayoutId | SFAbiLayoutRows | SOMirAbi | src/compiler/mir_abi_layout.c | mir_abi_lookup | src/compiler/mir_json_dump.c,src/codegen/transpiler_entry.c,src/codegen/llvm_api.c,src/compiler/mir_fact_surface_validate.c,src/codegen/transpiler_mir_resource_op_core.c,src/compiler/mir_nominal_abi_layout.c,src/compiler/mir_signature_metadata.c,src/compiler/mir_call_fact.c,src/compiler/mir_hir_block_projection.c,src/compiler/mir_stmt_population_source.c,src/self_hosted/mir/nominal_abi_layout_fact_owner.pgy,src/self_hosted/mir/nominal_abi_layout_json_projection_owner.pgy,src/self_hosted/mir/option_nominal_abi_layout_fact_owner.pgy,src/self_hosted/mir/option_nominal_abi_layout_verify_owner.pgy,src/self_hosted/mir/option_nominal_abi_layout_json_projection_owner.pgy,src/self_hosted/mir/routine_param_json_projection_owner.pgy,src/self_hosted/mir/instruction_abi_receipt_fact_owner.pgy,src/self_hosted/mir/instruction_abi_receipt_verify_owner.pgy,src/self_hosted/mir/instruction_abi_receipt_json_projection_owner.pgy,src/self_hosted/mir_lower/abi_layout_fact_owner.pgy,src/self_hosted/compiler/direct_mir_nominal_declaration_abi_fact_owner.pgy,src/self_hosted/compiler/direct_mir_two_int_nominal_abi_shape_owner.pgy,src/self_hosted/compiler/direct_mir_instruction_abi_absence_owner.pgy,src/self_hosted/compiler/direct_mir_struct_argument_program_identity_owner.pgy,src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy,src/self_hosted/compiler/direct_mir_struct_value_flow_abi_fact_owner.pgy,src/self_hosted/compiler/direct_mir_struct_value_flow_plan_owner.pgy,src/self_hosted/compiler/direct_mir_option_struct_value_flow_abi_fact_owner.pgy,src/self_hosted/compiler/direct_mir_option_struct_value_flow_plan_owner.pgy,src/self_hosted/compiler/direct_mir_generic_struct_value_flow_abi_fact_owner.pgy,src/self_hosted/compiler/direct_mir_generic_struct_value_flow_plan_owner.pgy,src/self_hosted/compiler/direct_mir_inferred_generic_nominal_abi_fact_owner.pgy,src/self_hosted/compiler/direct_mir_inferred_generic_nominal_plan_owner.pgy,src/self_hosted/compiler/direct_mir_inferred_generic_scalar_abi_fact_owner.pgy,src/self_hosted/compiler/direct_mir_inferred_generic_scalar_plan_owner.pgy,src/self_hosted/compiler/direct_mir_inferred_generic_member_declaration_fact_owner.pgy,src/self_hosted/compiler/direct_mir_inferred_generic_member_representation_fact_owner.pgy,src/self_hosted/compiler/direct_mir_inferred_generic_member_plan_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_generic_member_option_abi_admission_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_generic_member_representation_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_generic_member_plan_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_array_member_abi_admission_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_array_member_representation_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_array_member_plan_owner.pgy,src/self_hosted/compiler/direct_mir_array_storage_layout_contract_owner.pgy,src/self_hosted/compiler/direct_mir_array_storage_abi_projection_owner.pgy,src/self_hosted/compiler/direct_mir_array_storage_c_assertion_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_record_array_member_point_abi_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_record_array_member_abi_projection_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_owner.pgy,src/self_hosted/compiler/direct_mir_constructed_record_array_member_array_abi_absence_owner.pgy,src/self_hosted/compiler/direct_mir_nominal_literal_abi_absence_owner.pgy,src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy,src/self_hosted/compiler/direct_mir_mutable_nominal_identity_plan_owner.pgy,src/self_hosted/compiler/direct_mir_mutable_nominal_identity_target_projection_owner.pgy,src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy,src/self_hosted/compiler/direct_mir_aggregate_value_flow_target_projection_owner.pgy | backend_local_layout_guess,implicit_option_niche,target_default_guess,mir_active_abi_type_lookup,transpiler_mir_layout_from_type_annotation,active_view_owner_inventory_scan,selfhost_static_layout_row_recovery,backend_nominal_offset_guess,type_spelling_layout_recovery,missing_value_parameter_receipt_success,layout_id_without_exact_declaration_row,producer_local_syntax_id_numeric_equality,struct_candidate_array_retry,aggregate_return_or_local_definition_layout_recovery,nested_option_nominal_payload_layout_recovery,option_struct_candidate_plain_struct_retry,nonrequired_nominal_promoted_to_physical_receipt,typed_scalar_no_layout_erases_type_identity,generic_nominal_layout_from_specialization_text,family_direct_array_storage_layout_import,C_reserved_double_underscore_hidden_storage,source_storage_symbol_collision | tests/abi_ownership_shape_smoke.sh#mir_abi_layout_id,tests/backend_fail_closed_smoke.sh#active C MIR view hooks must consume carried owner facts,Makefile#self-host-mir-abi-first-test-smoke,tests/self_hosted/parity/one_mir_struct_argument_projection.sh#PASS: one MIR, nominal ABI cross-seal, C/LLVM exact 6, permutations, 15 negatives,tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh#PASS: one MIR, nominal return/local ABI cross-seal, C/LLVM exact 11, routine permutation, 13 negatives,tests/self_hosted/parity/one_mir_option_struct_value_flow_projection.sh#PASS: one MIR, Option<Pair> ABI cross-seal, C/LLVM exact 7/11/5, routine permutation, 20 negatives,tests/self_hosted/parity/one_mir_generic_struct_value_flow_projection.sh#PASS: one MIR, real Identity<Int> C/LLVM calls, exact 7, two permutations, 29 negatives,tests/self_hosted/parity/one_mir_inferred_generic_nominal_projection.sh#PASS: one MIR, inferred Identity<Int> C/LLVM calls, exact 42, four metamorphics, 32 negatives,tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh#PASS: one MIR, mixed-lane inference, C/LLVM exact 41, five metamorphics, two value variants, 55 C negatives, 3 LLVM sentinels,tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh#C/LLVM receiver ABI parity,tests/self_hosted/parity/one_mir_passive_nominal_literal_projection.sh#PASS: tobject exact 12,tests/self_hosted/parity/one_mir_mutable_nominal_identity_projection.sh#Subject and vessel literals share one stable mutable-identity owner family,tests/self_hosted/parity/one_mir_constructed_generic_member_projection.sh#PASS: one MIR, two heterogeneous member specializations, C/LLVM exact 43,tests/self_hosted/parity/one_mir_constructed_array_member_projection.sh#PASS: one MIR, c,tests/self_hosted/parity/one_mir_constructed_record_array_member_projection.sh#PASS: one MIR, Point,Makefile#self-host-codegen-bootstrap-seed-test-smoke | BRIDGE | mir_abi_lookup owns static rows and mir_abi_layout_id owns stable content identity; native MIR JSON carries complete static rows and selfhost mir_lower rejects missing or mismatched IDs; selfhost producer materializes fixed scalar Slot/DeviceSlot/SecureSlot rows, bounded Array rows, program-owned fixed scalar/nested-value nominal struct receipts, and derived Option-of-nominal wrappers from one static tag contract plus one inner declaration receipt. The bounded Line parameter, Pair return/local, Option<Pair> return/local, explicit-generic Pair, inferred-generic Pair, mixed-lane inferred scalar return/assignment, and inferred generic member flows are target-specific SUBSTITUTING through installed C and LLVM; the member class and vessel carry distinct internal value and mutable-identity representation cross-seals and invent no physical ABI receipt; instruction-owned receipts keep JSON projection and backends from reopening expression text or declaration scans, while native residual assignment and self SSA remain representation-local. A nominal declaration with required=0 retains the neutral kind-0,row-minus-one,id-0 receipt; a typed scalar without physical layout retains its exact type with id zero, required false, and null layout; the shared nominal-literal admission now seals that typed absence to the actual definition-capture digest before exclusive passive-value or stable-identity projection; the mutable nominal identity plan binds one compiler-private storage identity to the same capture without inventing a physical ABI receipt; a statement receipt retains null type/layout with id zero and required false. Other pointer-bearing, unknown, target-dependent, broader nested wrapper, and general generic rows remain open; the bounded passive vessel pointer receiver is target-specific SUBSTITUTING; constructed Option, Array<Int>, and mixed-declaration Array<Point> member returns are target-specific SUBSTITUTING. Public four-field Array storage is separate from private three-field self-host compiler containers and from the closed-module call-classification receipt. DirectMirArrayStorageAbiProjection now owns the shared target-bound four-field mapping consumed by both substituting families, both C emitters publish the same six layout assertions, and collision-owned _pgy_array_storage_N avoids the reserved C __* namespace; the target-neutral aggregate value-flow promotion is closed while preserving captured physical Array versus typed-absence provenance; external target-profile interoperability remains open
 abi.runtime_call_rows | abi | RuntimeCallAbiId | SFAbiRuntimeCallRows | SOMirAbi | src/compiler/mir_abi_resource_runtime.c | mir_abi_resource_runtime_row_for_type_name | src/compiler/mir_lower_population.c,src/compiler/mir_fact_surface_validate.c,src/compiler/mir_decl_field_claim_abi.c,src/codegen/transpiler_slot_runtime_row.c,src/codegen/transpiler_class_decl_emit.c,src/codegen/llvm_runtime.c,src/codegen/llvm_runtime_row.c,src/compiler/mir_abi_resource_runtime_constructed.c,src/compiler/mir_abi_resource_runtime_mir.c,src/self_hosted/mir/routine_build_owner.pgy,src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy,src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy,src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy,src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy,src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy | mir_abi_resource_runtime_row_by_kind(,mir_abi_resource_runtime_fn_by_kind(,class_field_claim_type_recovery,claim_expr1_type_recovery,runtime_resource_expr_graph_receiver_type_recovery,serialized_runtime_row_reparse,direct_backend_runtime_symbol_guess | tests/abi_ownership_shape_smoke.sh#MIRResourceRuntimeRow,tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh#parity ok,tests/self_hosted/parity/driver_rung2_machine_mir_parity_owner.sh#Claim result-local and resource receiver graph owner,tests/self_hosted/parity/one_mir_dual_backend_projection.sh#One admitted graph directly drives C and LLVM; expected output is pinned,tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh#typed string line format drives both CFG emitters,tests/backend_fail_closed_smoke.sh#transpiler_slot_runtime_fn_for_decl_claim( | BRIDGE | routine instructions and declaration field claims carry owner-derived runtime rows; Claim projects the result SSA binding's routine-local type and non-Claim resource calls project the receiver from the attached expression graph; the named string formatted-print row input now projects one typed symbol/materialization/call-shape/stable-ID fact consumed by both direct backends without parsing the serialized row; missing and unknown facts fail closed; constructed nominal materialization and full C/LLVM/self-host compatibility promotion remain open
-abi.intent_observability_rows | abi | RuntimeCallAbiId | SFIntentObservabilityAbiRows | SOIntentObservabilityAbi | src/common/intent_observability_abi.def | PGY_INTENT_OBSERVABILITY_ABI_ROWS_OWNER | src/common/intent_observability_abi.c,src/semantic/type_checker_builtins_intent_observability.c,src/codegen/transpiler_intent_observability_builtin_emit.c,src/codegen/llvm_expr_intent_observability_calls.c,src/self_hosted/lib/intent_observability_abi_projection_owner.pgy,src/self_hosted/semantic/builtin_signature_owner.pgy | native_literal_observability_table,selfhost_literal_observability_signature_table,stable_id_from_sorted_index,argument_kind_from_count,parallel_scalar_observability_projection,stale_selfhost_projection,unknown_observability_success | tests/intent_observability_abi_registry_smoke.sh#51 native/self-host registry rows plus non-positional identity and parameter-shape negatives,tests/verified_projection_plan_smoke.sh#ABI rows must remain source-name sorted | BRIDGE | one append-only registry now owns stable ID, source/runtime names, explicit parameter shape, and result kind for native and self-host semantic admission; one generated complete row replaces six scalar ladders, while self-host DIR/MIR carriage and runtime emission of intent declarations remain open
+abi.intent_observability_rows | abi | RuntimeCallAbiId | SFIntentObservabilityAbiRows | SOIntentObservabilityAbi | src/common/intent_observability_abi.def | PGY_INTENT_OBSERVABILITY_ABI_ROWS_OWNER | src/common/intent_observability_abi.c,src/semantic/type_checker_builtins_intent_observability.c,src/codegen/transpiler_intent_observability_builtin_emit.c,src/codegen/llvm_expr_intent_observability_calls.c,src/self_hosted/lib/intent_observability_abi_projection_owner.pgy,src/self_hosted/semantic/builtin_signature_owner.pgy | native_literal_observability_table,selfhost_literal_observability_signature_table,stable_id_from_sorted_index,argument_kind_from_count,parallel_scalar_observability_projection,stale_selfhost_projection,unknown_observability_success,mir_runtime_call_abi_name_reconstruction,missing_carried_runtime_call_abi_success,forged_runtime_call_abi_success | tests/intent_observability_abi_registry_smoke.sh#51 native/self-host registry rows plus non-positional identity and parameter-shape negatives,tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh#public installed C/LLVM consume zero-, one-, and two-argument registry rows without native re-entry,tests/self_hosted/parity/intent_observability_mir_identity_owner.sh#native/self MIR carry IDs 25/1/13 through direct C/LLVM and reject missing/mismatched/forged/mixed identities,tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh#guard/expect/post failure + ordered compensation + history parity,tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh#v3 exact step-zone observability plus predecessor compensation parity,tests/verified_projection_plan_smoke.sh#ABI rows must remain source-name sorted | BRIDGE | one append-only registry owns stable ID, source/runtime names, explicit parameter shape, and result kind for native and self-host semantic admission; one generated complete row replaces six scalar ladders and drives installed C/LLVM usage, symbol rewrite, enabled runtime-header emission, and exact zero-/one-/two-argument execution; native 7-field and self-host complete 10-field pgy.mir.v1 expression nodes carry RuntimeCallAbiId, direct admission cross-seals name/shape/ID once, and both backends consume RowForId with identity mutations fail-closed; installed default-priority legacy intent execution emits typed enter/step/bind/materialize/fail/ok/exit events and matches native C/LLVM history plus reverse compensation; v3 typed-plan step-zone observability is reachable in stage-0 self C and native C/LLVM but is not installed, while non-default priority and the compiler-purpose root intent remain open
 resource.region_allocation_plan | resource | AllocationSiteId | SFRegionAllocationPlan | SORegionPlan | src/semantic/region_escape_fact.c | semantic_region_escape_collect | src/compiler/hir_region_escape_facts.c,src/compiler/hir_semantic_fact_projection.c,src/compiler/mir_region_escape_facts.c,src/compiler/verified_region_plan.c,src/compiler/driver_app.c,src/codegen/transpiler_context.c,src/codegen/llvm_expr_scalar_core.c,src/self_hosted/compiler/region_plan_owner.pgy | backend_ast_region_safety_guess,allocation_site_pointer_identity,missing_region_plan_success,compiler_region_escape_producer_recovery,driver_semantic_region_escape_read,driver_hir_region_escape_read | tests/region_escape_unit.c#semantic_region_escape_collect,src/test_hir.c#HIR carries semantic region rows,src/test_mir.c#MIR carries HIR region escape facts,tests/region_plan_unit.c#pgy_verified_region_plan_lookup(,tests/region_backend_wiring_smoke.sh#builtin and direct user-callee sinks are region-backed | BRIDGE | semantic analysis remains the fact owner; HIR and MIR own successive projected stable rows; driver consumes the MIR carrier before AIR-gated plan materialization; C/LLVM/self-host consumers validate stable AllocationSiteId rows; builtin and direct user-callee retention summaries are owner-directed and fail closed; complete region allocation ownership remains open
 target.capability_profile | target | TargetProfileId | SFTargetCapabilityProfile | SOTargetCapability | src/self_hosted/compiler/target_capability_owner.pgy | CompilerTargetCapabilityEnvelopeReady | src/compiler/verified_projection_plan.c,src/self_hosted/compiler/target_projection_fact_owner.pgy,src/self_hosted/compiler/direct_mir_cfg_plan_owner.pgy,src/self_hosted/codegen/emission/program_entry_owner.pgy | backend_target_default,compiler_command_guess,projection_fingerprint_recovery | tests/target_capability_projection_smoke.sh#planner is the sole native target-envelope consumer,tests/self_hosted/parity/target_capability_manifest_parity.sh#target_fingerprint_mutation_rejected,tests/self_hosted/parity/driver_rung2_target_projection_negative_owner.sh#self-host C emission target projection fact is missing or invalid,tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh#direct CFG plan target mutation rejects before output | BRIDGE | CompilerTargetCapabilityFingerprint is a bounded carriage digest derived under the canonical envelope producer; native planner remains the sole full-width target-envelope consumer; the direct CFG plan now binds the same global fingerprint before C/LLVM emission; concrete size/alignment/endian values, object format, full AIR references, and CompilerEmissionArtifact plan-digest carriage remain open
 projection.verified_plan | projection | ProjectionPlanId | SFProjectionPlan | SOProjectionPlanner | src/compiler/verified_projection_plan.c | pgy_verified_projection_plan_intent_observability_with_air | src/codegen/transpiler_entry.c,src/codegen/llvm_api.c | backend_materialization_guess,AST_HIR_usage_inference,MIR_only_plan_without_AIR_certificate,unbound_machine_manifest | tests/verified_projection_plan_smoke.sh#owner facts changed after verification | BRIDGE | first_intent_observability_row_is_AIR_certificate_and_target-envelope plus machine-manifest fingerprint bound; typed_layout_cleanup_materialization_artifact_and_selfhost rows remain open
@@ -97,7 +97,7 @@ selfhost.role_declaration_rows | semantic | SyntaxNodeId | SFRoleDeclarationRows
 selfhost.ability_generic_bounds | semantic | SyntaxNodeIdGenericParameterIndex | SFAbilityGenericBounds | SOSemanticRole | src/self_hosted/semantic/ast_role_fact_owner.pgy | SemanticAstAbilityGenericConstraintRowsFromNode | src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy,src/self_hosted/semantic/ast_artifact_verdict_owner.pgy,src/self_hosted/mir/declaration_rows_owner.pgy,src/self_hosted/mir_lower/decl_lower.pgy,src/compiler/mir_decl_header_generic_metadata.c,src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy,src/self_hosted/compiler/driver_rung2_owner.pgy | generic_params,missing generic bound was accepted,SemanticAstAbilityGenericBoundVerdict,generic multi-bound fact drifted,where T: Comparable + Cloneable | tests/self_hosted/parity/driver_rung2_generic_multi_bound_defaults_parity_owner.sh#Owns ordered ability-bound/default carriage and its fail-closed falsifier. | CLOSED | none
 selfhost.ability_bind_statement | semantic | SyntaxNodeId | SFAbilityBindStatement | SOAbilityBindStatement | src/self_hosted/semantic/ast_bind_statement_type_fact_owner.pgy | SemanticAstBindStatementTypeVerdictFor | src/self_hosted/semantic/ast_statement_type_fact_owner.pgy,src/self_hosted/mir/declaration_rows_owner.pgy,src/self_hosted/mir/declaration_json_projection_owner.pgy,src/self_hosted/mir_lower/routine_lower.pgy,src/self_hosted/codegen/emission/ability_bind_emit_owner.pgy,src/self_hosted/codegen/emission/expr_semantic_dynamic_ability_call_emit_owner.pgy,src/self_hosted/codegen/emission/role_dispatch_emit_owner.pgy | bind_party_slot_text_reparse,role_implementation_text_reparse,direct_ability_call_fallback,missing_role_slot_abi_fact_success | tests/self_hosted/parity/driver_rung2_ability_bind_dispatch_parity_owner.sh#Owns dynamic role-slot ABI dispatch and fail-closed bind validation. | CLOSED | none
 selfhost.expression_surface | semantic | SyntaxNodeId | SFExpressionSurface | SOSemanticExpressionSurface | src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy | SemanticAstExpressionSurfaceFacts | src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy,src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy,src/self_hosted/semantic/call_check_owner.pgy,src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy,src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy,src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy,src/self_hosted/codegen/input/ast_expression_usage_owner.pgy,src/self_hosted/codegen/input/ast_usage_owner.pgy,src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy,src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy,src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy,src/self_hosted/codegen/emission/option_value_emit_owner.pgy,src/self_hosted/codegen/emission/collection_element_emit_owner.pgy | TypedAstArenaAtomText,TypedAstArenaValueText,TypedAstArenaAuxValueText,ContainsCallOutsideStrings,CodegenExpressionUsageFactsFromArena,CodegenAstArenaExpressionPartsAt,FindTopLevelPlus,RewriteBool,RewriteIndexing,RewriteInoutCallArgs,ExprSequenceItemAt,generic_return_text_inference,codegen_generic_graph_rescan,expr_semantic_shape_emit_owner | tests/self_hosted/parity/driver_rung2_body_parity.sh#producer-first source/MIR parity ok,tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh#List<T> contextual construction and fail-closed ABI negatives | BRIDGE | logical_equality_and_string_compare_projection_without_text_reparse_relational_arithmetic_index_logical_not_numeric_negate_direct_identifier_call_simple_and_nested_member_field_method_namespace_qualified_call_log_argument_pipe_call_postfix_try_for_range_identifier_and_nonidentifier_foreach_payload_free_enum_argument_array_literal_call_argument_named_struct_literal_call_argument_general_named_struct_literal_value_struct_literal_nominal_and_field_types_option_struct_some_constructor_payload_contextual_option_struct_none_codegen_ast_text_node_array_push_array_set_array_literal_and_indexed_assignment_value_and_target_graphs_are_parser_owned_and_assignment_target/index_scalar_type_facts_are_semantic_owned;graph_owned_concrete_scalar_tree_results_operand_diagnostics_resolved_direct_namespace_receiver_generic_local_and_chained_field_receiver_call_target_identity_arity_argument_verdicts_exact_and_nested_formal_parameter_binding_nested_generic_direct_return_substitution_ordered_explicit_generic_actual_carriage_and_conflict_rejection_bounded_MIR_codegen_target_carriage_scalar_option_result_builtin_policy_with_target_consistency_collection_mutation_admission_across_specialized_statement_and_graph_call_consumers_and_aggregate_field_types_and_assignability_for_scalar_direct_or_wrapper_nominal_values_contextual_Result_value_to_explicit_Result_field_assignment_plus_explicit_top_level_and_local_initializer_inferred_generic_actual_aggregate_values_and_ref_inout_call_argument_addressability_from_node_binding_and_nominal_field_facts_are_C_LLVM_negative_gated;the_top_level_shape_emitter_and_its_dead_accessors_are_deleted_while_shape_rows_remain_graph_root_consistency_evidence;collection_result_or_element_typing_unknown_or_aggregate_wrapper_payloads_member_aggregate_field_values_return_or_assignment_rooted_inferred_generic_calls_member_generic_calls_nested_generic_locals_object_init_special_unary_and_initial_compact_tree_arena_construction_remain_bridged
-selfhost.semantic_artifact_admission | semantic | AstTreeArtifactIdentityDigest | SFSemanticAstArtifactAdmission | SOSemanticArtifact | src/self_hosted/semantic/ast_artifact_verdict_owner.pgy | SemanticAstArtifactAnalyzeFromExpressionSurfaces | src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy,src/self_hosted/semantic/ast_body_type_bundle_owner.pgy,src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy,src/self_hosted/codegen/emission/program_entry_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy,src/self_hosted/compiler/driver_pipeline_owner.pgy,src/self_hosted/compiler/driver_rung2_owner.pgy | emission_whole_artifact_semantic_reconstruction,identity_from_node_count_only,emission_digest_recalculation,admitted_path_checked_fallback,admitted_body_constructor_rows_revalidation,malformed_body_parallel_row,raw_analysis_without_deep_proof,timeout_as_correctness | tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh#semantic admission repeats an unbounded artifact proof,tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh#admitted body reopens checked constructor rows,tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh#direct codegen seed lost its one-analysis admitted path,src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy#stale_same_count,src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy#stale_same_tree,src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy#malformed_parallel_shape,tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh#zero-topology typed receipt and exact zone-definition bijection,tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh#installed self-host artifact owns plain C compile; host-only link is closed | ACTIVE | body materialization consumes one identity-and-row-shape receipt; admitted production consumers reuse constructor proof while arbitrary-pair wrappers retain the checked path; the installed C artifact, compile/link, and run targets consume the admitted compiler-root path with native semantic/codegen fallback deleted; released general LLVM, generated thread-safe zone construction/destruction, and composite-intent full DIR admission remain open
+selfhost.semantic_artifact_admission | semantic | AstTreeArtifactIdentityDigest | SFSemanticAstArtifactAdmission | SOSemanticArtifact | src/self_hosted/semantic/ast_artifact_verdict_owner.pgy | SemanticAstArtifactAnalyzeFromExpressionSurfaces | src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy,src/self_hosted/semantic/ast_body_type_bundle_owner.pgy,src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy,src/self_hosted/codegen/emission/program_entry_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy,src/self_hosted/compiler/driver_pipeline_owner.pgy,src/self_hosted/compiler/driver_rung2_owner.pgy | emission_whole_artifact_semantic_reconstruction,identity_from_node_count_only,emission_digest_recalculation,admitted_path_checked_fallback,admitted_body_constructor_rows_revalidation,malformed_body_parallel_row,raw_analysis_without_deep_proof,timeout_as_correctness | tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh#semantic admission repeats an unbounded artifact proof,tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh#admitted body reopens checked constructor rows,tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh#direct codegen seed lost its one-analysis admitted path,src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy#stale_same_count,src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy#stale_same_tree,src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy#malformed_parallel_shape,tests/self_hosted/parity/compiler_internal_builtin_caller_provenance_owner.sh#common caller registry and parser-owned declaration module provenance reject exact wrong-path impersonation in C/LLVM legacy and artifact routes while the production driver bootstrap requires typed --source and rejects its parser/AST-text detour,tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh#zero-topology typed receipt and exact zone-definition bijection,tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh#installed self-host artifact owns plain C compile; host-only link is closed,tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh#installed MIR and LLVM artifacts plus the canonical external runtime object own public default-runtime LLVM compile and host-I/O execution | ACTIVE | body materialization consumes one identity-and-row-shape receipt; admitted production consumers reuse constructor proof while arbitrary-pair wrappers retain the checked path; internal storage-retire caller identity is owned once by the common registry and parser-owned declaration module provenance reaches aligned semantic signatures, with consumer-local tuple and root-path guessing rejected; the production driver bootstrap consumes typed --source directly, while AST-text provenance remains unknown and compiler-internal calls fail closed; the installed C artifact, compile/link, and run targets consume the admitted compiler-root path with native semantic/codegen fallback deleted; released default-runtime LLVM now consumes the canonical runtime owner for the admitted host-I/O surface; intent-observability, generated thread-safe zone construction/destruction, and composite-intent full DIR admission remain open
 selfhost.initializer_type_verdict | semantic | SyntaxNodeId | SFInitializerTypeVerdict | SOSemanticInitializerType | src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy | SemanticAstInitializerTypeFacts | src/self_hosted/semantic/ast_body_type_bundle_owner.pgy,src/self_hosted/mir/artifact_lower_owner.pgy,src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy,src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy,src/self_hosted/semantic/ast_statement_type_fact_owner.pgy,src/self_hosted/semantic/ast_contextual_builtin_type_owner.pgy | source_initializer_type_rescan,backend_initializer_type_guess,semantic_normalization_char_at,semantic_normalization_trim_copy,semantic_validation_trim_copy | tests/self_hosted/parity/initializer_projection_probe_parity.sh#missing-initializer-row,tests/self_hosted/parity/driver_rung2_nested_generic_containers_parity_owner.sh#missing contextual List type fails closed,tests/self_hosted/parity/semantic_expression_normalization_owner_smoke.sh#byte-view normalization and source reuse are wired,tests/self_hosted/parity/semantic_expression_validation_lifetime_owner_smoke.sh#graph validation reuses normalized source | CLOSED | none
 selfhost.iteration_type_verdict | semantic | SyntaxNodeId | SFIterationTypeVerdict | SOSemanticIterationType | src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy | SemanticAstIterationTypeFacts | src/self_hosted/semantic/ast_body_type_bundle_owner.pgy,src/self_hosted/mir/artifact_lower_owner.pgy,src/self_hosted/mir/json_projection_owner.pgy,src/self_hosted/mir_lower/iteration_type_fact_owner.pgy,src/self_hosted/mir_lower/routine_fact_index_owner.pgy,src/self_hosted/mir_lower/routine_lower.pgy,src/self_hosted/codegen/emission/foreach_collection_runtime_owner.pgy,src/self_hosted/codegen/emission/stmt_emit.pgy,src/compiler/mir_source_local_types.c,src/compiler/mir_json_dump.c | source_iteration_type_rescan,backend_iteration_type_guess,source_local_type_as_iteration_authority,mir_foreach_collection_type_guess | tests/self_hosted/parity/driver_rung2_body_parity.sh#native_MIR_JSON_rows_and_C_LLVM_forloop_foreach_rows,tests/self_hosted/parity/driver_rung2_for_in_list_parity_owner.sh#Owns List<T> foreach iteration facts, graph shape, and List ABI use. | CLOSED | none
 selfhost.assignment_type_verdict | semantic | SyntaxNodeId | SFAssignmentTypeVerdict | SOSemanticAssignmentType | src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy | SemanticAstAssignmentTypeFacts | src/self_hosted/semantic/ast_body_type_bundle_owner.pgy,src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy,src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy,src/self_hosted/codegen/emission/stmt_emit.pgy,src/self_hosted/codegen/emission/assign_emit_owner.pgy | source_assignment_type_rescan,backend_assignment_type_guess,missing_expected_type_success,assignment_target_name_as_c_binding,assignment_target_local_sanitize,collection_target_name_as_c_binding,collection_target_cref_fallback,let_binding_name_as_c_binding | tests/self_hosted/parity/assignment_projection_probe_parity.sh#missing-expected-type,tests/self_hosted/parity/assignment_projection_probe_parity.sh#missing-c-binding,tests/self_hosted/parity/assignment_projection_probe_parity.sh#collection-cref-only | CLOSED | none
@@ -110,7 +110,7 @@ selfhost.type_runtime_usage_surface | semantic | SyntaxNodeId | SFTypeRuntimeUsa
 selfhost.node_kind_surface | semantic | SyntaxNodeId | SFNodeKindSurface | SOSemanticKindSurface | src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy | SemanticAstKindSurfaceFacts | src/self_hosted/codegen/input/ast_kind_usage_owner.pgy,src/self_hosted/codegen/input/ast_usage_owner.pgy,src/self_hosted/codegen/input/semantic_kind_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | TypedAstArenaNodeKindIs,CodegenAstArenaKindPresent,CodegenKindUsageFactsFromArena,CodegenAstKindArrayLiteral,CodegenAstArenaIsAbilityDecl,CodegenAstArenaIsEventDecl | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.entrypoint_selection | semantic | SyntaxNodeId | SFEntrypointSelection | SOSemanticSignature | src/self_hosted/semantic/ast_signature_fact_owner.pgy | SemanticAstFunctionSignatureFacts | src/self_hosted/semantic/ast_artifact_verdict_owner.pgy,src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | SemanticAstArtifactIsMainFunction,CodegenAstArenaIsMainFunction | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.function_declaration_rows | semantic | SyntaxNodeId | SFFunctionDeclarationRows | SOSemanticSignature | src/self_hosted/semantic/ast_signature_fact_owner.pgy | SemanticAstFunctionSignatureFacts | src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | CodegenAstArenaIsFunction | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
-selfhost.intent_declaration_rows | semantic | SyntaxNodeId | SFIntentDeclarationRows | SOSemanticIntentSignature | src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy | SemanticAstIntentSignatureFacts | src/self_hosted/semantic/ast_expression_environment_owner.pgy,src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy,src/self_hosted/dir/intent_fact_owner.pgy,src/self_hosted/dir/intent_row_owner.pgy,src/self_hosted/dir/intent_step_fact_owner.pgy,src/self_hosted/dir/intent_step_clause_fact_owner.pgy,src/self_hosted/dir/intent_step_carriage_contract_owner.pgy,src/self_hosted/mir/intent_routine_owner.pgy,src/self_hosted/mir/intent_phase_contract_owner.pgy,src/self_hosted/mir/intent_phase_emission_owner.pgy,src/self_hosted/mir/program_fact_owner.pgy,src/self_hosted/mir_lower/intent_lower_owner.pgy,src/self_hosted/mir_lower/intent_phase_projection_owner.pgy,src/self_hosted/mir_lower/intent_phase_tree_owner.pgy,src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy,src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy,src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy,src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy,src/self_hosted/codegen/emission/intent_execution_plan_emit_owner.pgy,src/self_hosted/codegen/emission/intent_execution_plan_control_emit_owner.pgy,src/self_hosted/codegen/emission/intent_execution_plan_local_emit_owner.pgy,src/self_hosted/codegen/emission/intent_emit_owner.pgy,src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy,src/self_hosted/codegen/emission/intent_control_flow_emit_owner.pgy | intent_signature_as_function_row,raw_source_intent_signature,unknown_intent_parameter_success,duplicate_intent_parameter_success,value_participant_as_authority,intent_kind_fallback,commit_identity_drift,binding_type_drift,zone_alias_drift,authorization_cross_carrier,rollback_identity_drift,outcome_bool_collapse,variant_spelling_classification,payload_type_reinfer,predecessor_from_source_order,completion_after_any_call,compensate_ast_rescan,unknown_intent_phase,orphan_intent_phase,wrong_intent_phase_step_or_slot,duplicate_intent_phase,check_or_compensate_result_type,on_result_type_asymmetry,missing_intent_phase_graph,old_direct_orchestration,consumer_plan_revalidation,expression_graph_reconstruction,name_only_payload_declaration_join,reachable_zero_compensation_scaffold,typed_direct_rollback_bypass | tests/self_hosted/parity/intent_callable_reachability_owner.sh#semantic + exact intent DIR reachability: PASS,tests/self_hosted/parity/intent_callable_execution_owner.sh#exact successful action path + MIR negatives: PASS,tests/self_hosted/parity/intent_typed_outcome_execution_owner.sh#enum<tobject> binding + exact-once parity + MIR negatives: PASS,tests/self_hosted/parity/intent_phase_carrier_negative_owner.sh#phase order + admitted MIR negatives: PASS,tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh#guard/expect/post failure + future-step exclusion + ordered compensation parity: PASS,tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh#v2 plan + predecessor compensation variants: PASS,tests/self_hosted/parity/intent_execution_protocol_static_owner.py#intent plan/CFG/digest revalidation escaped admission | BRIDGE | exact intent declaration and participant/value identities reach semantic call resolution, DIR, typed MIR and the general self C consumer; the v2 typed transition plan now carries exact variant/payload declarations, explicit predecessor and success-only completion evidence, admits once, and substitutes the bounded self MIR-to-C direct/rollback path with native C/LLVM plus self C parity and fail-closed protocol mutations; compiler-root PgyCompilerWorld still reaches no canonical real-purpose intent and the full participant/coordination/authority/effect/boundary/compensation/trace bundle plus formal transition ownership remain OPEN
+selfhost.intent_declaration_rows | semantic | SyntaxNodeId | SFIntentDeclarationRows | SOSemanticIntentSignature | src/self_hosted/semantic/ast_intent_signature_fact_owner.pgy | SemanticAstIntentSignatureFacts | src/self_hosted/semantic/ast_expression_environment_owner.pgy,src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy,src/self_hosted/dir/intent_fact_owner.pgy,src/self_hosted/dir/intent_row_owner.pgy,src/self_hosted/dir/intent_step_fact_owner.pgy,src/self_hosted/dir/intent_step_clause_fact_owner.pgy,src/self_hosted/dir/intent_step_carriage_contract_owner.pgy,src/self_hosted/mir/intent_routine_owner.pgy,src/self_hosted/mir/intent_phase_contract_owner.pgy,src/self_hosted/mir/intent_phase_emission_owner.pgy,src/self_hosted/mir/program_fact_owner.pgy,src/self_hosted/mir_lower/intent_lower_owner.pgy,src/self_hosted/mir_lower/intent_phase_projection_owner.pgy,src/self_hosted/mir_lower/intent_phase_tree_owner.pgy,src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy,src/self_hosted/mir_lower/intent_execution_plan_fact_owner.pgy,src/self_hosted/compiler/driver_rung2_intent_consumer_owner.pgy,src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy,src/self_hosted/codegen/emission/intent_execution_plan_emit_owner.pgy,src/self_hosted/codegen/emission/intent_execution_plan_control_emit_owner.pgy,src/self_hosted/codegen/emission/intent_execution_plan_local_emit_owner.pgy,src/self_hosted/codegen/emission/intent_emit_owner.pgy,src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy,src/self_hosted/codegen/emission/intent_control_flow_emit_owner.pgy | intent_signature_as_function_row,raw_source_intent_signature,unknown_intent_parameter_success,duplicate_intent_parameter_success,value_participant_as_authority,intent_kind_fallback,commit_identity_drift,binding_type_drift,zone_alias_drift,authorization_cross_carrier,rollback_identity_drift,outcome_bool_collapse,variant_spelling_classification,payload_type_reinfer,predecessor_from_source_order,completion_after_any_call,compensate_ast_rescan,unknown_intent_phase,orphan_intent_phase,wrong_intent_phase_step_or_slot,duplicate_intent_phase,check_or_compensate_result_type,on_result_type_asymmetry,missing_intent_phase_graph,old_direct_orchestration,consumer_plan_revalidation,expression_graph_reconstruction,name_only_payload_declaration_join,reachable_zero_compensation_scaffold,typed_direct_rollback_bypass | tests/self_hosted/parity/intent_callable_reachability_owner.sh#semantic + exact intent DIR reachability: PASS,tests/self_hosted/parity/intent_callable_execution_owner.sh#exact successful action path + MIR negatives: PASS,tests/self_hosted/parity/intent_typed_outcome_execution_owner.sh#enum<tobject> binding + exact-once parity + MIR negatives: PASS,tests/self_hosted/parity/intent_phase_carrier_negative_owner.sh#phase order + admitted MIR negatives: PASS,tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh#guard/expect/post failure + ordered compensation + history parity: PASS,tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh#v3 step-zone identity + predecessor compensation variants: PASS,tests/self_hosted/parity/intent_execution_protocol_static_owner.py#intent plan/CFG/digest revalidation escaped admission | BRIDGE | exact intent declaration and participant/value identities reach semantic call resolution, DIR, typed MIR and the general self C consumer; the installed v2 typed transition plan carries exact variant/payload declarations, explicit predecessor and success-only completion evidence, admits once, and substitutes the bounded self MIR-to-C direct/rollback path; current v3 additionally carries and cross-seals exact step-zone identity and reaches stage-0 self C plus native C/LLVM observability, but canonical Pergyra-built driver publication remains open; compiler-root PgyCompilerWorld still reaches no canonical real-purpose intent, while non-default-priority observability and formal transition ownership remain OPEN
 selfhost.zone_authority_rows | semantic | SyntaxNodeId | SFZoneAuthorityRows | SOSemanticZoneAuthority | src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy | SemanticAstZoneAuthorityFactsFromArtifact | src/self_hosted/semantic/ast_zone_authority_validation_owner.pgy,src/self_hosted/semantic/ast_artifact_verdict_owner.pgy,src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy,src/self_hosted/dir/domain_graph_fact_owner.pgy,src/self_hosted/codegen/emission/intent_step_binding_owner.pgy,src/self_hosted/codegen/emission/intent_emit_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | authority_from_participant_type,undeclared_subject_as_authority,where_using_zone_drift,ambiguous_subject_slot_success,missing_subject_slot_success,AST_domain_rescan,authority_child_rescan,ability_name_only_join | tests/self_hosted/parity/intent_step_binding_contract_owner.sh#distinct actor/authority plus where/value/inout/ambiguous/missing negatives: PASS,tests/self_hosted/parity/zone_authority_fact_owner.sh#semantic identity carriage + admitted mutation negatives + DIR no-rescan: PASS,tests/self_hosted_component_contract_smoke.sh#zone authority owner and consumer ratchets | BRIDGE | exact authority/zone/subject-slot/required-ability identities now reach DIR without AST rescans; legacy self-C intent binding remains reachable while the production MIR authority transition and shared zone-sync runtime plan remain open
 selfhost.action_contract | semantic | SyntaxNodeId | SFActionContract | SOSemanticActionContract | src/self_hosted/semantic/ast_action_contract_fact_owner.pgy | SemanticAstActionContractFactsFromArtifact | src/self_hosted/semantic/ast_signature_fact_owner.pgy,src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy,src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy,src/self_hosted/codegen/emission/function_emit.pgy,src/self_hosted/codegen/emission/program_emit.pgy,src/self_hosted/mir/declaration_rows_owner.pgy,src/self_hosted/mir/declaration_verify_owner.pgy,src/self_hosted/mir/declaration_json_projection_owner.pgy,src/self_hosted/mir_lower/declaration_method_contract_fact_owner.pgy,src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy,src/compiler/mir_decl_header_validate.c,src/compiler/mir_json_dump_decl.c | action_as_function_kind,action_clause_skip_to_body,action_clause_text_rescan,parser_caps_effects_discard,missing_contract_wire_success,callable_kind_default_function,backend_contract_recovery,independent_contract_vocabulary,multi_impl_role_declaration_drop | tests/self_hosted/parity/driver_rung2_action_contract_parity_owner.sh#ActionContract carriage and fail-closed wire mutations,tests/callable_contract_vocabulary_smoke.sh#18 semantic words and projections: ok | CLOSED | none
 selfhost.local_binding_statement_routing | semantic | SyntaxNodeId | SFLocalBindingStatementRouting | SOSemanticLocalBinding | src/self_hosted/semantic/ast_local_binding_fact_owner.pgy | SemanticAstLocalBindingFacts | src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy,src/self_hosted/codegen/emission/stmt_emit.pgy,src/self_hosted/codegen/emission/program_emit.pgy | CodegenAstArenaIsLetStmt | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
@@ -125,7 +125,7 @@ projection.direct_mir_array_return_plan | projection | VerifiedArrayReturnProjec
 projection.direct_mir_array_argument_program_identity | projection | DirectMirArrayArgumentProgramId | SFDirectMirArrayArgumentProgramIdentity | SOProjectionPlanner | src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy | DirectMirArrayArgumentProgramIdentityFromAdmitted | src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy | first_routine_entrypoint,row_order_authority,name_only_callee_without_signature,missing_param_abi,parameter_ssa_invention,call_target_text_fallback,two_routine_retry,native_codegen_fallback | tests/self_hosted/parity/one_mir_array_argument_projection.sh#One source-produced three-routine MIR graph drives runtime-free C and LLVM. | CLOSED | none
 projection.direct_mir_array_argument_plan | projection | VerifiedArrayArgumentProjectionPlanId | SFDirectMirCallParameterGraph | SOProjectionPlanner | src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy | DirectMirArrayArgumentPlanFromAdmitted | src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy,src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy | backend_mir_read,flattened_call_graph,raw_pointer_array_carriage,callee_owned_argument_storage,instruction_abi_fallback,stale_or_invented_ssa_use,backend_specific_parameter_plan,unbound_target_fingerprint,two_routine_retry,native_codegen_fallback,post_issue_plan_mutation | tests/self_hosted/parity/one_mir_array_argument_projection.sh#native/self parameter ABI, caller-owned by-value Array<Int> C/LLVM parity, cyclic row order, and sixteen negatives are fail-closed (sha256= | CLOSED | none
 projection.direct_mir_collection_program_plan | projection | DirectMirCollectionProgramPlanId | SFDirectMirCollectionProgramPlan | SOProjectionPlanner | src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy | DirectMirCollectionProgramPlanFromAdmitted | src/self_hosted/compiler/direct_mir_collection_program_projection_owner.pgy,src/self_hosted/compiler/direct_mir_collection_program_c_emission_owner.pgy,src/self_hosted/compiler/direct_mir_collection_program_llvm_emission_owner.pgy | fixture_or_constant_route,three_routine_count_classifier,raw_valueid_program_lookup,fixed_no_reallocation,backend_mir_read,array_argument_retry,stale_return_edge,unbound_parameter_abi,post_issue_plan_mutation | tests/self_hosted/parity/one_mir_array_param_projection.sh#collection return/parameter projection ok | BRIDGE | bounded one-producer one-entrypoint one-reduction Array<Int> program only; aliases, multiple collections, arbitrary reducers/effects, reserve policies, ownership-sensitive elements, and escaping cleanup remain separate rungs
-projection.direct_mir_scalar_cfg_program_extension | projection | DirectMirScalarCfgProgramExtensionId | SFDirectMirScalarCfgProgramExtension | SOProjectionPlanner | src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy | DirectMirScalarCfgGraphPlanFromAdmitted | src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_builtin_route_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_chain_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_builtin_call_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_nary_operand_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_nary_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_fact_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_identity_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_runtime_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_projection_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_minimum_plan_shape_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_window_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_window_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_window_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_window_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_collection_builtin_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_kind_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_query_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_collection_runtime_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_generated_runtime_projection_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_collection_runtime_projection_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy,src/self_hosted/compiler/direct_mir_routine_parameter_set_fact_owner.pgy,src/self_hosted/compiler/direct_mir_routine_parameter_set_admission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_parameter_identity_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_call_consumption_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_case_math_builtin_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_case_math_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_projection_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_arithmetic_magnitude_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_diagnostic_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_verification_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_direct_call_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_case_math_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_case_math_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_window_builtin_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_index_expression_kind_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_search_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_index_runtime_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_condition_bound_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_string_index_range_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_search_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_index_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_search_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_index_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_substring_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_trim_expression_kind_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_transform_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_trim_runtime_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_transform_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_special_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_trim_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_scalar_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_transform_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_special_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_trim_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy,src/self_hosted/compiler/direct_mir_array_string_literal_fact_owner.pgy,src/self_hosted/compiler/direct_mir_bounded_literal_index_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_fact_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_admission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_plan_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy, | second_cfg_plan,duplicate_ssa_or_phi_arrays,routine_or_block_count_route,string_concat_fixture_route,string_builtin_fixture_route,returned_array_retry,effectful_eager_logical_rhs,display_expression_fallback,fixture_output_constants,backend_mir_read,native_codegen_fallback,unbound_ssa_use,stale_phi_incoming,name_only_call_target,untyped_call_argument,partial_argument_chain,nary_operand_reparse,inactive_extension_payload,unchecked_modulo_divisor,unbounded_signed_add,partial_phi_append,backend_local_string_abi,builtin_registry_bypass,loose_runtime_abi_fields,exact_to_string_log_fusion,string_collection_fixture_route,compile_time_split_result,external_collection_plan_double_claim,consumer_local_expression_kind_range,copied_array_string_offsets,legacy_string_array_retry,struct_parameter_array_abi,parameter_json_cursor_replay,compile_time_string_replace_or_math,unchecked_constant_dag_add,opaque_program_expression_failure,compile_time_string_indexof_result,unproved_string_index_range,selfhost_substring_invalid_window_drift,string_trim_fixture_route,compile_time_string_trim_result,duplicate_llvm_foreign_declaration,array_string_literal_second_decoder,array_string_type_only_cleanup,unbounded_array_string_index | tests/self_hosted/parity/one_mir_bool_logic_projection.sh#ok: GraphPlan solely owns CFG/SSA/phi; typed Bool/call rows extend both backends,tests/self_hosted/parity/one_mir_string_equality_projection.sh#ok: one layered GraphPlan executes routine-partitioned String equality in C and LLVM,tests/self_hosted/parity/one_mir_string_equality_concat_projection.sh#ok: one GraphPlan executes typed String concat/equality in C and LLVM,tests/self_hosted/parity/one_mir_string_builtin_program_projection.sh#ok: nested String builtins execute from one typed GraphPlan in C and LLVM,tests/self_hosted/parity/one_mir_string_window_builtin_projection.sh#Registry-owned String length/window calls through one scalar GraphPlan.,tests/self_hosted/parity/one_mir_string_collection_builtin_projection.sh#ok: runtime String/Array<String> expressions execute from one typed GraphPlan in C and LLVM,tests/self_hosted/parity/one_mir_string_case_math_projection.sh#Ordered three-argument call plus StringReplace/Int math in one GraphPlan.,tests/self_hosted/parity/one_mir_string_indexof_projection.sh#ok: StringIndexOf range and checked windows execute from one typed GraphPlan in C and LLVM,tests/self_hosted/parity/one_mir_string_trim_projection.sh#ok: StringTrim executes from one typed GraphPlan with one LLVM declaration owner,tests/self_hosted/parity/one_mir_string_array_index_return_projection.sh#One GraphPlan carriage of a borrowed-static Array<String> through a call | BRIDGE | bounded nontrapping Bool and String expression DAGs over one or two routines, including ordered scalar parameters/direct calls and registry-owned ToString/ToUpper/ToLower/StringLength/Substring/SubstringWithLen/Concat/StringContains/Split/ToInt/StringReplace/StringIndexOf/StringTrim/Abs/Min/Max calls plus Array<String> length/index and the exact captured Array<String> layout; one canonical caller-frame Array<String> literal/parameter/index/borrowed-result boundary is closed; arbitrary collection ownership, dynamic indices, owned aggregate returns, effectful short-circuit ordering, temporary String allocations, recursive or multiple callables, and general value returns remain separate rungs
+projection.direct_mir_scalar_cfg_program_extension | projection | DirectMirScalarCfgProgramExtensionId | SFDirectMirScalarCfgProgramExtension | SOProjectionPlanner | src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy | DirectMirScalarCfgGraphPlanFromAdmitted | src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_builtin_route_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_chain_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_builtin_call_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_nary_operand_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_nary_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_fact_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_identity_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_runtime_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_projection_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_minimum_plan_shape_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_window_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_window_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_window_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_window_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_collection_builtin_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_kind_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_query_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_collection_runtime_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_generated_runtime_projection_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_collection_runtime_projection_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy,src/self_hosted/compiler/direct_mir_routine_parameter_set_fact_owner.pgy,src/self_hosted/compiler/direct_mir_routine_parameter_set_admission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_parameter_identity_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_call_consumption_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_case_math_builtin_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_case_math_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_projection_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_diagnostic_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_graph_plan_verification_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_direct_call_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_case_math_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_case_math_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_window_builtin_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_index_expression_kind_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_search_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_index_runtime_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_search_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_index_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_search_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_index_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_substring_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_trim_expression_kind_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_transform_expression_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_string_trim_runtime_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_transform_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_special_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_trim_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_string_scalar_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_transform_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_special_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_trim_materialization_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy,src/self_hosted/compiler/direct_mir_array_string_literal_fact_owner.pgy,src/self_hosted/compiler/direct_mir_bounded_literal_index_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_fact_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_admission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_plan_readiness_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy, | second_cfg_plan,duplicate_ssa_or_phi_arrays,routine_or_block_count_route,string_concat_fixture_route,string_builtin_fixture_route,returned_array_retry,effectful_eager_logical_rhs,display_expression_fallback,fixture_output_constants,backend_mir_read,native_codegen_fallback,unbound_ssa_use,stale_phi_incoming,name_only_call_target,untyped_call_argument,partial_argument_chain,nary_operand_reparse,inactive_extension_payload,unchecked_modulo_divisor,llvm_signed_add_nsw,partial_phi_append,backend_local_string_abi,builtin_registry_bypass,loose_runtime_abi_fields,exact_to_string_log_fusion,string_collection_fixture_route,compile_time_split_result,external_collection_plan_double_claim,consumer_local_expression_kind_range,copied_array_string_offsets,legacy_string_array_retry,struct_parameter_array_abi,parameter_json_cursor_replay,compile_time_string_replace_or_math,backend_divergent_integer_wrap,opaque_program_expression_failure,compile_time_string_indexof_result,integer_wrap_proof_narrowing,selfhost_substring_invalid_window_drift,string_trim_fixture_route,compile_time_string_trim_result,duplicate_llvm_foreign_declaration,array_string_literal_second_decoder,array_string_type_only_cleanup,unbounded_array_string_index | tests/self_hosted/parity/one_mir_bool_logic_projection.sh#ok: GraphPlan solely owns CFG/SSA/phi; typed Bool/call rows extend both backends,tests/self_hosted/parity/one_mir_string_equality_projection.sh#ok: one layered GraphPlan executes routine-partitioned String equality in C and LLVM,tests/self_hosted/parity/one_mir_string_equality_concat_projection.sh#ok: one GraphPlan executes typed String concat/equality in C and LLVM,tests/self_hosted/parity/one_mir_string_builtin_program_projection.sh#ok: nested String builtins execute from one typed GraphPlan in C and LLVM,tests/self_hosted/parity/one_mir_string_window_builtin_projection.sh#Registry-owned String length/window calls through one scalar GraphPlan.,tests/self_hosted/parity/one_mir_string_collection_builtin_projection.sh#ok: runtime String/Array<String> expressions execute from one typed GraphPlan in C and LLVM,tests/self_hosted/parity/one_mir_string_case_math_projection.sh#Ordered three-argument call plus StringReplace/Int math in one GraphPlan.,tests/self_hosted/parity/one_mir_string_indexof_projection.sh#ok: StringIndexOf range and checked windows execute from one typed GraphPlan in C and LLVM,tests/self_hosted/parity/one_mir_string_trim_projection.sh#ok: StringTrim executes from one typed GraphPlan with one LLVM declaration owner,tests/self_hosted/parity/one_mir_string_array_index_return_projection.sh#One GraphPlan carriage of a borrowed-static Array<String> through a call | BRIDGE | typed wrap-defined Int plus bounded nontrapping Bool and String expression DAGs over one or two routines, including ordered scalar parameters/direct calls and registry-owned ToString/ToUpper/ToLower/StringLength/Substring/SubstringWithLen/Concat/StringContains/Split/ToInt/StringReplace/StringIndexOf/StringTrim/Abs/Min/Max calls plus Array<String> length/index and the exact captured Array<String> layout; one canonical caller-frame Array<String> literal/parameter/index/borrowed-result boundary is closed; arbitrary collection ownership, dynamic indices, owned aggregate returns, effectful short-circuit ordering, temporary String allocations, recursive or multiple callables, and general value returns remain separate rungs
 abi.mir_array_int_layout_projection | abi | ArrayIntLayoutProjectionId | SFAbiArrayIntLayoutProjection | SOMirAbi | src/self_hosted/compiler/direct_mir_array_int_abi_fact_owner.pgy | DirectMirArrayIntCapturedAbiReady | src/self_hosted/compiler/direct_mir_array_int_plan_owner.pgy,src/self_hosted/compiler/direct_mir_array_return_plan_owner.pgy,src/self_hosted/compiler/direct_mir_array_int_producer_fact_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy,src/self_hosted/compiler/direct_mir_array_argument_program_identity_owner.pgy,src/self_hosted/compiler/direct_mir_array_argument_plan_owner.pgy,src/self_hosted/compiler/direct_mir_collection_program_instruction_abi_owner.pgy,src/self_hosted/compiler/direct_mir_collection_program_local_plan_owner.pgy,src/self_hosted/compiler/direct_mir_collection_program_plan_owner.pgy,src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy,src/self_hosted/compiler/direct_mir_array_int_emission_owner.pgy,src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy,src/self_hosted/compiler/direct_mir_array_argument_emission_owner.pgy | backend_local_array_layout,layout_id_without_row_admission,array_runtime_symbol_guess,both_backend_mappings_in_one_receipt,llvm_text_runtime_scan,implicit_runtime_link,callee_stack_pointer_return,missing_formal_parameter_receipt,post_issue_layout_mutation | tests/self_hosted/parity/one_mir_array_int_projection.sh#One admitted local Array<Int> graph drives runtime-free C and LLVM exactly,tests/self_hosted/parity/one_mir_array_return_projection.sh#The caller owns returned Array<Int> backing storage, and routine order is not,tests/self_hosted/parity/one_mir_array_argument_projection.sh#One source-produced three-routine MIR graph drives runtime-free C and LLVM.,tests/self_hosted/parity/one_mir_returned_array_foreach_projection.sh#returned-array producer receipt owns nested/sequential C/LLVM foreach,tests/self_hosted/parity/one_mir_array_param_projection.sh#collection return/parameter projection ok | CLOSED | none
 abi.mir_array_string_layout_projection | abi | ArrayStringLayoutProjectionId | SFAbiArrayStringLayoutProjection | SOMirAbi | src/self_hosted/compiler/direct_mir_array_string_abi_fact_owner.pgy | DirectMirArrayStringCapturedAbiReady | src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_string_collection_owner.pgy,src/self_hosted/compiler/direct_mir_array_string_abi_projection_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy,src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy | backend_local_array_layout,layout_id_without_row_admission,array_runtime_symbol_guess,backend_string_element_reconstruction,capacity_as_length,post_issue_layout_mutation | tests/self_hosted/parity/one_mir_mixed_collection_foreach_projection.sh#one typed receipt owns mixed Int/String foreach C/LLVM execution | BRIDGE | bounded local-literal Array<String> foreach only; returned and effectful String collection producers remain separate rungs
 ```
@@ -158,6 +158,7 @@ src/self_hosted/mir/destructure_type_fact_owner.pgy | SelfMirDestructureTypeFact
 src/self_hosted/mir/loop_reachability_fact_owner.pgy | SelfMirLoopReachabilityForBlock | hir.typed_control_flow | projection
 src/self_hosted/mir/parallel_capture_fact_owner.pgy | SelfMirParallelCaptureRows | mir.execution_graph | projection
 src/self_hosted/mir/expression_graph_fact_owner.pgy | SelfMirExpressionGraphRows | mir.execution_graph | projection
+src/self_hosted/mir/runtime_value_call_abi_fact_owner.pgy | SelfMirRuntimeValueCallAbiRows | abi.runtime_call_rows | projection
 src/self_hosted/mir/intent_execution_fact_owner.pgy | MirIntentExecutionPlanFromFacts | mir.execution_graph | projection
 src/self_hosted/mir/expression_fact_owner.pgy | SelfMirExpressionKind | mir.execution_graph | bridge
 src/self_hosted/mir/match_fact_owner.pgy | SelfMirMatchFactRows | mir.execution_graph | projection
@@ -200,9 +201,11 @@ src/self_hosted/compiler/direct_mir_collection_program_routine_fact_owner.pgy | 
 src/self_hosted/compiler/direct_mir_collection_program_edge_fact_owner.pgy | DirectMirCollectionProgramEdgeSet | projection.direct_mir_collection_program_plan | local_view
 src/self_hosted/compiler/direct_mir_loop_cfg_plan_fact_owner.pgy | DirectMirLoopCfgPlanFactReady | projection.direct_mir_cfg_plan | local_view
 src/self_hosted/compiler/direct_mir_scalar_cfg_range_fact_owner.pgy | DirectMirScalarCfgRangeIterationFactReady | projection.direct_mir_scalar_cfg_graph_plan | local_view
-src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy | DirectMirScalarProgramRouteFactFromAdmitted | projection.direct_mir_scalar_cfg_program_extension | local_view
+src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy | DirectMirScalarProgramRouteFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy | DirectMirScalarProgramExpressionSetReady | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_runtime_abi_fact_owner.pgy | DirectMirScalarProgramRuntimeAbiFact | projection.direct_mir_scalar_cfg_program_extension | projection
+src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_fact_owner.pgy | DirectMirScalarProgramIndexedAssignmentFactSetFromOwners | projection.direct_mir_scalar_cfg_program_extension | projection
+src/self_hosted/compiler/direct_mir_scalar_program_string_literal_fact_owner.pgy | DirectMirScalarProgramStringLiteralContent | mir.execution_graph | projection
 src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy | DirectMirScalarProgramLlvmStringExpression | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy | MirCodegenGenericSpecializationFacts | mir.generic_specialization | projection
 src/self_hosted/mir_lower/resource_flow_fact_owner.pgy | MirResourceFlowFacts | semantic.resource_flow_universe | projection
@@ -216,6 +219,7 @@ src/self_hosted/mir/runtime_call_abi_fact_owner.pgy | SelfMirRuntimeCallAbiRows 
 src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy | CompilerRuntimeCallAbiFactFromRowInput | abi.runtime_call_rows | projection
 src/self_hosted/compiler/target_projection_fact_owner.pgy | CompilerTargetProjectionFactFromOwner | target.capability_profile | projection
 src/self_hosted/hir/ast_text_row_fact_owner.pgy | CodegenAstTextRowFactInput | hir.typed_control_flow | bridge
+src/self_hosted/hir/ast_source_module_fact_owner.pgy | AstSourceModuleFactsFromTopLevelPaths | parser.syntax_provenance | projection
 src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy | SemanticAstGenericParameterRowsFromNode | selfhost.function_declaration_rows | local_view
 src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy | SemanticAstSignatureTypeExpressionFacts | selfhost.function_declaration_rows | local_view
 src/self_hosted/semantic/try_expression_fact_owner.pgy | SemanticTryOperand | selfhost.expression_graph | bridge
@@ -233,6 +237,7 @@ src/self_hosted/air/mir_identity_match_cfg_certificate_fact_owner.pgy | DirectMi
 src/self_hosted/air/mir_option_match_graph_fact_owner.pgy | DirectMirOptionMatchGraphAt | air.mir_cfg_certificate | projection
 src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy | DirectMirAggregateValueFlowFact | mir.execution_graph | projection
 src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy | DirectMirArrayArgumentMainGraphFact | projection.direct_mir_array_argument_plan | projection
+src/self_hosted/compiler/direct_mir_array_bool_abi_fact_owner.pgy | DirectMirArrayBoolCapturedAbiReady | abi.layout_rows | projection
 src/self_hosted/compiler/direct_mir_array_captured_abi_fact_owner.pgy | DirectMirArrayCapturedAbiReady | abi.layout_rows | projection
 src/self_hosted/compiler/direct_mir_array_int_graph_fact_owner.pgy | DirectMirArrayIntGraphFromExpressionFact | projection.direct_mir_array_int_program | projection
 src/self_hosted/compiler/direct_mir_array_int_producer_fact_owner.pgy | DirectMirArrayIntProducerFact | projection.direct_mir_array_int_program | projection
@@ -297,6 +302,9 @@ src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_fact_ow
 src/self_hosted/compiler/direct_mir_scalar_program_callable_fact_owner.pgy | DirectMirScalarCfgProgramCallableFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_fact_owner.pgy | DirectMirScalarProgramExpressionKindFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy | DirectMirScalarProgramTwoIntNominalAbiFact | abi.layout_rows | projection
+src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_fact_owner.pgy | DirectMirScalarProgramArrayIntValueResultFact | abi.layout_rows | projection
+src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy | DirectMirScalarProgramLogicalRecordFact | semantic.nominal_field_kind | projection
+src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy | DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted | selfhost.enum_declaration_rows | projection
 src/self_hosted/compiler/direct_mir_struct_argument_graph_fact_owner.pgy | DirectMirStructArgumentGraphFact | mir.execution_graph | projection
 src/self_hosted/compiler/direct_mir_struct_value_flow_abi_fact_owner.pgy | DirectMirStructValueFlowAbiFact | abi.layout_rows | projection
 src/self_hosted/compiler/direct_mir_struct_value_flow_graph_fact_owner.pgy | DirectMirStructValueFlowGraphFact | mir.execution_graph | projection
@@ -308,9 +316,580 @@ src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy | MirRoutineI
 src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy | SemanticExpressionIdentityRows | selfhost.call_target_identity | projection
 <!-- END sot-derived-fact-registry -->
 
-The 2026-08-10 GraphPlan v25 two-Int nominal closure extends
+The 2026-08-10 scalar-route diagnostic closure makes
+`DirectMirScalarProgramRouteAdmission` the single consumer-facing result of
+route selection. It contains either the ready immutable route or one stable
+owner/stage/routine/parameter rejection receipt. The callable-envelope owner
+produces its assessment once, the route admission preserves it, and the
+terminal dispatcher consumes it only after earlier route families decline.
+Reopening the MIR at the terminal boundary or restoring the generic
+`terminal multi-routine graph is unsupported` message is forbidden.
+
+The 2026-08-11 zero-parameter callable closure reuses the existing
+`DirectMirRoutineSignatureFact` and program callable inventory; it introduces
+no parallel signature authority. An empty parameter range is preserved and
+emitted as `(void)` in C and `()` in LLVM, while zero-argument call-expression
+support remains a separate admission decision. GraphPlan v30 corrected the
+first scalar-only version: `param_count == 0` now consumes the same admitted
+logical-record return inventory as every other signature instead of
+short-circuiting it. The focused positive carries both scalar and logical-record
+zero-parameter returns; the paired called fixture still rejects an unsupported
+zero-argument expression without artifact publication.
+
+The 2026-08-11 GraphPlan v30/v31 logical ordered-record closure makes
+`DirectMirScalarProgramLogicalRecordFact` one declaration-keyed inventory of
+all callable-referenced ordered logical-record identities. Its semantic
+authority is `semantic.nominal_field_kind` through the admitted declaration
+field index, cross-sealed by explicit absence of a persisted instruction ABI
+layout. Equal field shapes never merge declaration identities, and an
+unreferenced same-shape declaration is not selected. The fact carries ordered
+field identity, not size, alignment, or offsets. C and LLVM materialize only
+bounded target-local value carriers from those ordinals; neither target may
+infer a physical interoperability layout.
+
+GraphPlan v31 additionally persists routine `parameter_carriages` through the
+partition. A logical-record readonly parameter is admitted only when the exact
+signature row says `readonly-ref`, `resource=none`, `pass=indirect`, and ABI
+absent. C consumes it as a const pointer; LLVM consumes it as `ptr` plus a
+bounded aggregate load. Direct-call admission requires an addressable local or
+readonly formal and rejects temporary-by-address and by-value coercion. The
+focused executable gate proves three distinct logical-record identities,
+zero-parameter record construction, readonly parameter calls, member parity,
+and C/LLVM execution, while field-order, forged-layout, cross-identity, and
+carriage mutations fail before artifact publication. Before GraphPlan v32, the
+fixed production canary passed the former routine 57 readonly-carriage boundary
+and failed closed at routine 70, whose coherent unsupported shape was a `Void`
+return plus an `Array<String>` value-result parameter.
+
+GraphPlan v34 generalizes the same fact owner without adding a physical-layout
+authority. Return and parameter types are roots; scalar fields are terminal,
+and logical-record fields join only to declaration identities already selected
+in dependency-first order. Field counts are variable. A cycle, missing
+dependency, cross-identity field, or ABI-present declaration remains outside
+the projection and fails at its referenced callable envelope, while an
+unrelated unsupported declaration no longer poisons the complete optional
+subset. `DirectMirScalarCfgPhiOperationKind` owns the target-neutral
+`PhiValue` row used by Bool and admitted logical-record joins; C and LLVM keep
+that join memory-local and do not invent an integer, String, or target layout.
+`tests/self_hosted/parity/direct_mir_scalar_recursive_logical_record_phi_owner.sh`
+pins the five-field nested positive and the cycle, cross-identity, and phi-type
+negative cases. Its last-consumer ratchet also forbids the fact-free callable
+readiness wrapper after the fact-bearing admission has succeeded.
+
+GraphPlan v32 closes that routine-70 shape without widening general collection
+ownership. `DirectMirScalarProgramArrayStringAbiFact` now carries exact
+value-result routine/parameter identity and the captured four-field storage
+layout. The routine signature still owns carriage, and the C/LLVM signature,
+addressable call, copy-in, push, and every return-edge copy-out owners consume
+the joined fact. The focused recursive fixture observes the mutation in the
+caller after early and fallthrough Void returns; layout and carriage mutations
+fail before publication. The fixed production canary now passes routine 70 and
+fails closed at routine 71 `JsonScalarFieldValues() -> Array<String>`, leaving
+owned Array<String> return semantics as the next separate rung.
+
+GraphPlan v33 closes that routine-71 boundary without treating it as the
+borrowed-static array result or the value-result parameter contract. The exact
+two-String signature owns return identity, while the existing ArrayString ABI
+owner records owned-return presence and validates every Array<String> def and
+return capture in the same instruction scan. C/LLVM return values transfer the
+carrier into caller locals; only the entrypoint cleanup owner releases those
+owned carriers. The focused executable gate proves empty and populated returns
+and rejects both a forged layout and a return row relabeled as a definition.
+The fixed canary now fails closed at routine 80 `BuildMirDocumentFactIndex`, so
+nominal document-index representation remains a separate rung.
+
+GraphPlan v35 removes the exact two-String parameter fallback from that same
+owned-return row. The parameter list is nonempty and every parameter must be a
+direct value-carried Bool, Int, or String with no resource or ABI receipt. The
+return still joins the exact `DirectMirScalarProgramArrayStringAbiFact`; C/LLVM
+transfer and caller cleanup are unchanged. The focused gate now executes both
+two- and four-parameter callables and rejects the old fixed-arity source path.
+This does not authorize local `ArrayPush`, collection parameters, or a nominal
+record containing Array fields.
+
+GraphPlan v36 keeps the declaration-keyed logical-record fact as a projection
+of `semantic.nominal_field_kind` while allowing ArrayInt and ArrayString as
+terminal field identities. Physical authority stays in `abi.layout_rows`:
+`DirectMirScalarProgramLogicalRecordCollectionAbiReady` joins those existing
+facts, and the target emitters consume the join rather than copying offsets into
+the logical-record inventory. Final typed readiness additionally requires the
+ArrayInt fact to be present, so a canonical-empty receipt cannot authorize an
+ArrayInt local. The focused C/LLVM gate covers exact construction/member order
+and rejects same-shape identity and both collection-layout mutations.
+
+GraphPlan v37/v38 preserve the same ABI owners while admitting direct
+value-carried ArrayInt and ArrayString parameters. `DirectMirRoutineSignatureFact`
+owns `value` versus `value-result`; the program collection facts own only the
+physical layout, and their value-result identity arrays still contain only
+copy-in/copy-out rows. The ArrayString caller-frame boundary is a separate
+projection: `DirectMirScalarProgramArrayStringBoundarySignatureReady` restricts
+it to the exact one-parameter `Array<String> value -> String` signature, and
+both extension sealing and readiness consume that one predicate. The focused
+C/LLVM gates reject layout, carriage, and pass-shape drift without publishing
+an artifact.
+
+GraphPlan v39 extends the same declaration-keyed logical-record projection to a
+nested `ProgramIndex -> ReachabilityRows -> Array<Bool>` value. The physical
+ArrayBool layout remains owned by `abi.layout_rows`; the logical-record fact
+only records field identity and dependency order. Constructor readiness and
+both target emitters consume one normalized argument-row owner so the
+`left/right` encoding for one/two arguments and the nary encoding for larger
+calls cannot diverge. Mixed encodings fail closed. The focused gate includes an
+unreferenced same-shape declaration and rejects identity, field-order, layout,
+and pass-shape drift.
+
+GraphPlan v40 admits direct ArrayInt returns without adding a fact family or
+changing the v36 carrier schema. `DirectMirRoutineSignatureFact` owns return
+identity; `DirectMirScalarProgramArrayIntValueResultFact` joins matching
+definition, parameter, and return rows to the one physical ArrayInt receipt.
+Only formal `value-result` carriage contributes copy-in/copy-out identities.
+The three-routine C/LLVM gate stores the returned carrier in a caller local,
+passes it by value, and rejects return-layout, return-kind, and parameter-layout
+mutations before publication. The fixed canary now passes routine 229 and fails
+closed at routine 256 on the still-unsupported direct `Long` return.
+
+GraphPlan v41 changes the carrier schema to v37 because it adds stable normalized
+expression kind 53 for a canonical Long literal. The type and target width are
+not new authorities: `abi_layout_row_owner.pgy` already maps Long to C
+`long long` and LLVM `i64`. The expression owner validates the source `L`
+payload, stores suffix-free digits, and each backend adds only its target
+spelling. ArrayInt kind 51 and ArrayBool kind 52 remain distinct and are pinned
+beside Long to prevent another cross-owner collision. The focused gate compiles
+and executes both targets and rejects return-type and literal-kind mutations.
+The fixed canary passes routines 256/257 and next fails closed at routine 268,
+whose Bool return is combined with four ArrayString value-result formals.
+
+GraphPlan v42 keeps schema v37. `DirectMirRoutineSignatureFact` owns the exact
+Bool return and parameter order; `DirectMirScalarProgramArrayStringAbiFact`
+owns four distinct `(routine, parameter, digest)` copyout identities over one
+physical layout. The shared callable policy admits only the historical
+Void/one-copyout shape and the reached `String, Int, Int` plus four trailing
+ArrayString value-result shape. C and LLVM consume those rows for pointer
+signatures, copy-in, and copy-out before both early and final Bool returns. The
+focused execution gate rejects return-type and fourth-carriage mutations
+without artifact publication. The fixed canary now passes routine 268 and next
+fails closed at routine 275 on a declaration-keyed
+`MirAbiLayoutValidationSession` value-result parameter.
+
+GraphPlan v43 keeps schema v37 and joins that reached value-result parameter to
+the existing declaration-keyed logical-record fact. The signature owner admits
+exactly one logical-record copyout with direct scalar value parameters and a
+scalar return. The target-neutral copyout identity is consumed by direct-call
+readiness as well as the C/LLVM signature, entry copy-in, parameter read, and
+every-return copy-out owners. The complete ordered declaration carrier is
+copied; no field list or physical layout is recreated in a backend. The focused
+C/LLVM gate rejects carriage and pass-shape mutations before publication. The
+fixed canary now passes routines 275 and 276 and fails closed at routine 277
+`MirLowerFailClosed(String) -> Void`, leaving its Void callable and terminal
+statement effects as the next separate rung.
+
+GraphPlan v44 advances schema v37 to v38 for the stable `ProcessExit` operation.
+`DirectMirScalarProgramVoidScalarCallableSignatureReady` owns the exact Void
+callable shape and is consumed by both claimant-envelope and final-signature
+readiness. The operation row preserves admitted statement order, while
+`CompilerRuntimeCallAbiProcessExitFact` consumes the canonical runtime ABI row
+`host-io|exit|int_to_noreturn`; C and LLVM project that same symbol and integer
+argument contract. The focused gate independently pins stdout and exit status
+7 and rejects return, carriage, and Exit-argument mutations without artifact
+publication. The fixed canary passes routine 277 and next fails closed at
+routine 405 `TypedAstKindTags() -> Array<Int>`, leaving its zero-parameter
+populated ArrayInt return as a separate rung.
+
+GraphPlan v45 advances schema v38 to v39 for stable expression identity 54,
+the populated `Array<Int>` literal whose elements are zero-parameter direct
+calls returning `Int`. The persisted graph owns element order, call-target
+SyntaxNodeIds, and the canonical array spine; the callable inventory owns the
+joined target and return type; the existing ArrayInt ABI receipt owns physical
+storage. C and LLVM consume those facts without a tag-name table or backend MIR
+reread. The focused gate pins independent ordered output and rejects missing
+target, wrong target return, and storage-layout mutations before publication.
+The fixed canary now passes routine 405 and next fails closed at routine 495
+`CodegenAstTextNodeInventory`, leaving its mixed logical-record-array and
+ArrayInt value-result Void signature as a separate rung.
+
+GraphPlan v46 keeps schema v39. The existing logical-record inventory derives
+the element declaration of canonical `Array<T>` parameters, and
+`CompilerAbiNominalArrayLayoutFact` owns the compiler-internal three-field
+`data,len,cap` representation separately from the persisted public four-field
+ArrayInt ABI. One mixed Void signature carries exactly one record-array
+value-result plus one-or-more ArrayInt value-results and direct scalar values.
+C and LLVM consume those owners for type projection and every-return copyout;
+the focused gate rejects carriage, missing-element declaration, and false
+physical-ABI mutations before publication. The fixed canary passes routine 495
+and next rejects the by-value record-array parameter at routine 563, leaving
+that distinct value/read policy as the next rung.
+
+GraphPlan v47 advances schema v39 to v40 for stable expression identity 55,
+the declaration-keyed indexed read from a compiler-owned three-field
+`Array<Record>`. `DirectMirRoutineSignatureFact` owns value carriage,
+`DirectMirScalarProgramLogicalRecordFact` owns the element declaration and
+member order, and `CompilerAbiNominalArrayLayoutFact` owns `data,len,cap`.
+The C/LLVM consumers receive the admitted target projection and do not infer a
+public four-field Array layout or reopen MIR. The focused gate rejects carriage,
+missing-element, false physical-ABI, and missing-member mutations before
+publication. The fixed canary passes routine 563 and next rejects routine 568
+`CodegenAstTextTypedArenaFromNodes`, whose same by-value record Array feeds a
+logical-record return and local collection construction; that is a distinct
+next signature/operation rung.
+
+GraphPlan v48 advances schema v40 to v41 without a new expression identity.
+`MirRoutineInstructionUseFacts` owns the first `ArrayPush` use as the receiver;
+the existing routine-local value/type plans join it to `Array<Int>` or
+`Array<String>`, and the expression owner consumes uses from offset one. The
+sealed operation stores that target in `operation_left_locals`, with C/LLVM as
+the last consumers. Local identity and definition blocks are validated within
+their routine partition, and condition evidence indexes flat program rows only
+through the routine's explicit block offset. The focused gate executes the
+record-returning loop and rejects a receiver-use mutation. The fixed canary
+advances only the callable envelope from routine 568 to routine 569; it is not
+production-body execution evidence.
+
+GraphPlan v49 keeps schema v41. The declaration-keyed logical-record Array
+value-parameter policy now owns exact `Bool` return admission in addition to
+its existing public `Array<Int>` and logical-record returns. Claimant/final
+signature and both backend signature emitters consume that same policy. The
+focused fixture executes indexed record-member flow through a Bool-returning
+callable and rejects a Bool-to-String return mutation before publication. The
+fixed canary advances the callable-envelope scan from routine 569 to routine
+625 `LanguageWordSpelling(LanguageWordId) -> String`; it is not body-execution
+evidence for the intervening routines.
+
+GraphPlan v50 advances schema v41 to v42 for the optional declaration-keyed
+payload-free enum carrier. `MirProgramDeclarationIndex.enum_variants` remains
+the persisted identity owner; the derived
+`DirectMirScalarProgramPayloadFreeEnumFact` admits only callable-referenced enum
+declarations whose variants are all payload-free and have contiguous ordinals.
+Claimant/final signature and both backend type emitters consume the same exact
+`value`-carriage fact. There is no `LanguageWordId` spelling branch, general
+enum-to-Int widening, payload-bearing fallback, or backend MIR reconstruction.
+The focused C/LLVM fixture owns signature execution evidence. The fixed canary
+advances only the pre-body callable envelope from routine 625 to routine 670
+`ParserExpressionGraphsAppendInto(...)->Void`.
+
+GraphPlan v51 keeps schema v42. The existing declaration-keyed logical-record
+Array value-result owner now admits the exact four-parameter Void shape with
+one record-Array copyout, one distinct direct logical-record value, and two
+direct Int values. GraphPlan v52 keeps the same carrier and adds the separate
+two-parameter Void shape whose direct record value must be the array element's
+same declaration. The original record-Array plus public `Array<Int>` copyout
+shape remains unchanged. C and LLVM reuse the existing target-neutral record-
+Array copy lifecycle and logical-record value types; no routine-name branch,
+general aggregate widening, or backend MIR reread was added. Focused execution
+owns both new shapes. The fixed canary advances only the pre-body callable
+envelope through routines 670 and 672 to routine 710
+`SemanticExpressionGraphAppendNode`, where the next unsupported fact is a mixed
+`Array<Int>`/`Array<String>` value-result signature with a logical-record return.
+
+GraphPlan v53 keeps schema v42. The new
+`DirectMirScalarProgramLogicalRecordMixedCollectionValueResult` policy owns the
+exact ten-parameter signature reached at routine 710: a declaration-keyed
+logical-record return, four ordered `Array<Int>` value-results, two ordered
+`Array<String>` value-results, and an Int/String/Int/Int value tail. The
+existing persisted Array ABI facts and C/LLVM copy owners remain the only
+physical authorities. The focused gate executes both backends and rejects
+carriage, ABI, collection-count/order, scalar, and return mutations before
+publication. The fixed canary advances only the pre-body callable envelope to
+routine 711, which shares the 4+2 collection prefix but has a distinct single-
+String tail and therefore remains fail-closed.
+
+GraphPlan v54 keeps schema v42 and adds that exact seven-parameter String-tail
+family to the same mixed-collection signature owner. The focused gate now owns
+both complete signatures, two copies of every backend Array copy lifecycle,
+and compact-family carriage/type/cardinality negatives. The fixed canary passes
+the matching envelopes at routines 711–713 and next fails closed at routine
+714's separately persisted `Array<Bool>` value-result boundary; no ArrayBool
+layout or copyout is inferred from ArrayInt/ArrayString facts.
+
+GraphPlan v55 advances schema v42 to v43 because the existing
+`DirectMirScalarProgramArrayBoolAbiFact` now owns exact value-result
+routine/parameter/digest rows beside its sole physical layout receipt. A
+separate capture owner consumes only the selected admitted routine inventory;
+it does not become a second fact authority and the retired whole-program
+instruction scan cannot reappear. The exact Bool-returning signature has five
+ordered `Array<Int>`, one `Array<Bool>`, and two `Array<String>` copyouts plus a
+Bool/Bool/String value tail. C and LLVM consume the same rows for signature and
+every-return copyout. The focused gate executes both backends and rejects ABI,
+carriage, family order/count, scalar, and return mutations before publication.
+The fixed canary advances only the pre-body envelope through routine 730 and
+next fails closed at routine 731's exact Void return boundary.
+
+GraphPlan v56 keeps schema v43. The exact
+`DirectMirScalarProgramVoidLogicalRecordArrayIntValueResultSignatureReady`
+policy joins one persisted `Array<Int>` value-result, one by-value
+declaration-keyed logical record, and one direct String value in a complete
+three-parameter Void signature. It creates no physical carrier or target
+authority: existing ArrayInt and logical-record facts remain the SoTs and
+existing C/LLVM owners copy every explicit return. The focused gate executes
+both targets and rejects nine signature/ABI mutations before publication. The
+fixed canary advances only the callable envelope through routine 770 and next
+fails closed at routine 771's distinct two-record-value plus one-record-
+value-result Bool signature.
+
+GraphPlan v57 keeps schema v43. The exact
+`DirectMirScalarProgramLogicalRecordInputsValueResultSignatureReady` policy
+joins three distinct persisted logical-record declaration identities to one
+complete Bool signature: direct values at ordinals 0/1 and a direct
+value-result at ordinal 2, with no resource or physical ABI rows. It creates no
+new record fact or layout authority. The existing callable-signature owner is
+the final admission consumer and the existing C/LLVM logical-record owners
+copy ordinal 2 on every explicit return. The focused gate compiles both emitted
+callees and rejects nine signature mutations; its Main intentionally does not
+call the three-record routine because caller-side `AST_CALL` admission remains
+separately fail closed. The fixed canary advances only the callable envelope
+through routine 782 and next fails at routine 783's distinct readonly-record,
+two-String, two-ArrayString-copyout signature.
+
+GraphPlan v58 keeps schema v43. The exact
+`DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultSignatureReady`
+policy joins one persisted declaration-keyed logical record and two persisted
+ArrayString value-result rows to a complete Bool signature. The record is
+indirect readonly-ref at ordinal 0, ordinals 1/2 are ABI-free String values,
+and ordinals 3/4 are direct copyouts whose positive ABI layout identities must
+match. The policy is not a new carrier owner: the logical-record and
+`DirectMirScalarProgramArrayStringAbiFact` rows remain authoritative, and the
+existing C/LLVM emitters are their final consumers. The focused gate executes
+the combined call in both backends and rejects ten signature/ABI mutations.
+The fixed canary advances only the callable envelope through routine 792 and
+next fails at routine 793's distinct Int-returning two-ArrayString-copyout plus
+two-String signature.
+
+GraphPlan v59 keeps schema v43. It originally introduced the exact
+Int/two-ArrayString policy for the then-reached four-parameter signature. The
+current shared `DirectMirScalarProgramArrayStringValueResultSignatureReady`
+owner subsumes that temporary shape: Bool and Int returns admit one-or-more
+same-layout direct ArrayString value-results with scalar values in any ordinal,
+while Void retains its single-copyout boundary. The old positional owner is
+deleted and negatively gated. The existing ArrayString fact remains the sole
+carrier authority, and the C/LLVM owners copy every admitted value on each
+return. The focused gate executes both the original two-copyout case and the
+production-shaped three-copyout `EmitDeclFields` case.
+
+GraphPlan v60 keeps schema v43. The exact
+`DirectMirScalarProgramBoolTwoArrayStringTwoArrayIntValueResultSignatureReady`
+policy joins two persisted ArrayString value-result rows, two persisted
+ArrayInt value-result rows, and four direct String values to one complete Bool
+signature. The copyouts occupy ordinals 0..3; each same-family pair must carry
+one positive equal layout identity and the two family identities must differ.
+The existing ArrayString and ArrayInt facts remain the sole carrier authorities,
+and their existing C/LLVM owners copy all four values on every explicit return.
+The focused gate compiles both emitted callees and rejects thirteen mutations;
+its Main does not call the eight-parameter routine because caller-side mixed
+`AST_CALL` admission remains separately fail closed. The fixed canary advances
+through routine 794 and next fails at routine 795's distinct readonly logical-
+record plus Int/Bool parameters and owned ArrayBool return envelope.
+
+GraphPlan v61 keeps schema v43. The exact
+`DirectMirScalarProgramReadonlyLogicalRecordArrayBoolReturnSignatureReady`
+policy joins one declaration-keyed indirect readonly-ref logical record and
+direct ABI-free Int/Bool values to an owned ArrayBool return. The logical-record
+inventory remains the parameter identity owner. The existing
+`DirectMirScalarProgramArrayBoolAbiFact` remains the return carrier authority
+and now records `owned_return_present` only when every return instruction
+carries the same admitted four-field layout. Existing C/LLVM signature,
+expression, and return emitters are the last consumers; no general ArrayBool-
+return signature or copied record layout was introduced. The focused gate
+compiles both emitted callees and rejects twelve mutations. Its Main leaves the
+callee uncalled, so the evidence is limited to the callee ABI and return-
+expression boundary. The fixed canary advances through routine 795 and next
+fails at routine 796's distinct one-parameter `owner-handle` logical-record
+transfer and same-record return envelope.
+
+GraphPlan v62 keeps schema v43. The exact
+`DirectMirScalarProgramOwnedLogicalRecordReturnSignatureReady` policy admits
+one declaration-keyed logical record carried by `owner-handle`, with direct
+pass shape, no physical ABI row, and the same declaration identity as its
+return. `DirectMirRoutineSignatureFact`, the logical-record inventory, and the
+existing MIR ownership spelling remain the authorities; existing C/LLVM
+logical-record value emitters are the last consumers. No destructor, copied
+layout, name branch, or general owner-handle route was added. The focused gate
+compiles both emitted callees and rejects nine genuinely invalid mutations.
+Explicit value and readonly-ref variants are not negatives because existing
+owners admit them as different valid signatures; an unknown carriage and a
+same-record mismatch own the recurrence falsifier. The fixed canary advances
+through routine 796 and routines 797..806, then fails at routine 807's distinct
+readonly record, String value, and ArrayString value-result Bool envelope.
+
+GraphPlan v63 keeps schema v43. The exact
+`DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultSignatureReady`
+policy admits one declaration-keyed indirect readonly-ref record, one direct
+ABI-free String value, and one direct ArrayString value-result under a Bool
+return. `DirectMirRoutineSignatureFact`, the logical-record inventory, and the
+persisted ArrayString ABI fact remain the only authorities; existing C/LLVM
+readonly-record and ArrayString copy-in/out emitters are the last consumers.
+No name branch, general one-copyout route, record-as-value coercion, copied
+layout, or backend MIR reread was added. The focused gate executes both target
+calls and rejects eleven invalid mutations. Its initial C regex failure was a
+formatting-only `const char*` versus `const char *` mismatch, so the recurrence
+ratchet records semantic parameter order, pointer/mutref identity, and copy
+lifecycle rather than whitespace. The fixed canary advances through routine
+807 and routines 808..871, then fails at routine 872's distinct String,
+readonly record, and two logical-record value-result Bool envelope.
+
+GraphPlan v64 keeps schema v43. The exact
+`DirectMirScalarProgramReadonlyLogicalRecordTwoLogicalRecordValueResultSignatureReady`
+policy admits one direct ABI-free String, one declaration-keyed indirect
+readonly-ref record, and two distinct declaration-keyed direct record value-
+results under a Bool return. `DirectMirRoutineSignatureFact` and the logical-
+record inventory remain the only authorities; existing C/LLVM readonly and
+record copy-in/out emitters enumerate the admitted ordinals as last consumers.
+No name branch, broad two-copyout rule, record identity collapse, physical
+record layout, partial-field copy, or backend MIR reread was added. The focused
+gate executes both targets and rejects fourteen invalid mutations. Its first
+two failures were measurement defects: line-counting a one-line JSON document
+did not count repeated facts, and one monolithic C signature regex mixed
+formatting with ABI identity. The recurrence ratchet now counts occurrences
+and checks each parameter/copy lifecycle independently. The fixed canary
+advances through routine 872 and routines 873..915, then fails at routine 916's
+distinct ArrayString-copyout plus same-record return envelope.
+
+GraphPlan v65 keeps schema v43. The exact
+`DirectMirScalarProgramLogicalRecordReturnArrayStringValueResultSignatureReady`
+policy admits one direct ArrayString value-result, one direct declaration-keyed
+logical-record value, and one direct String value, with the return fixed to the
+same record identity as parameter 1. `DirectMirRoutineSignatureFact`, the
+logical-record inventory, and the persisted ArrayString ABI fact remain the
+authorities; existing C/LLVM collection copyout, record-value, and record-
+return emitters are the last consumers. The final signature guard recognizes
+this exact proof beside the prior mixed-collection proof; it does not create a
+general record-return/copyout route. The focused gate executes both targets and
+rejects nine genuinely invalid mutations. A proposed carriage mutation was
+removed because another owner already admits by-value ArrayString; a valid
+alternative signature is not a falsifier. The fixed canary advances through
+routine 916 and routines 917..920, then fails at routine 921's distinct Void,
+ArrayString-copyout, and record-value envelope.
+
+GraphPlan v66 keeps schema v43. The exact
+`DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady`
+policy admits one direct ArrayString value-result and one direct declaration-
+keyed logical-record value under a Void return. `DirectMirRoutineSignatureFact`,
+the logical-record inventory, and the persisted ArrayString ABI fact remain the
+only authorities; existing C/LLVM collection copyout and record-value emitters
+are the last consumers. No routine/record-name branch, broad Void widening,
+record-carriage coercion, copied layout, or backend MIR reread was added. The
+focused gate executes both backends across early/final exits and rejects ten
+invalid mutations. The thirty-nine-gate aggregate rebuilds the driver once and
+passes without errors or warnings. The fixed canary advances through routine
+921, then fails at routine 922's distinct five-parameter Void envelope with the
+same ArrayString copyout and record value plus three String values.
+
+GraphPlan v67 keeps schema v43. The exact
+`DirectMirScalarProgramVoidLogicalRecordThreeStringArrayStringValueResultSignatureReady`
+policy admits one direct ArrayString value-result, one direct declaration-keyed
+logical-record value, and three ordered direct String values under a Void
+return. It consumes the same `DirectMirRoutineSignatureFact`, logical-record
+inventory, and persisted ArrayString ABI fact without widening v66. Existing
+C/LLVM collection copyout, record-value, and String-value emitters are the last
+consumers. No name branch, arbitrary scalar tail, carriage coercion, copied
+layout, or backend MIR reread was added. The focused gate executes both targets
+and rejects twelve invalid mutations; the forty-gate aggregate passes without
+errors or warnings. The fixed canary advances through routine 922 and routines
+923..925, then fails at routine 926's distinct six-parameter Void envelope with
+four String values.
+
+GraphPlan v68 keeps schema v43 and replaces the v66/v67 cardinality-specific
+split with one exact reached-family owner:
+`DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady`.
+It admits one direct ArrayString value-result, one direct declaration-keyed
+logical-record value, and exactly 0, 3, or 4 ordered direct String values under
+a Void return. `DirectMirRoutineSignatureFact`, the logical-record inventory,
+and the persisted ArrayString ABI fact remain the only authorities. Existing
+C/LLVM copy-in/out and value emitters remain the last consumers; there is no
+new physical fact or backend route. The old three-String policy file and every
+consumer read are deleted, and the component gate rejects its reappearance.
+Counts other than 0, 3, and 4 fail closed, so this is not a general scalar-tail
+policy. The focused gates execute all three admitted family members and reject
+invalid carriage, type, pass, layout, record, String-tail, return, and arity
+facts. The forty-one-gate aggregate passes without errors or warnings. The
+fixed canary advances through the former routine 926 and routines 927..1105,
+then fails at routine 1106's distinct zero-parameter Void envelope.
+
+The first v68 canonical attempt was rejected by the parser because the merge
+had dropped one guard terminator and the next `if`. Source-inventory checks did
+not prove syntax. The recurrence contract is therefore to parse the changed
+owner root and its import graph with the current parser seed before a full
+compiler rebuild, then still require the canonical composed-graph build. This
+preflight is diagnostic evidence only; it does not replace the canonical
+parser/build authority.
+
+GraphPlan v69 keeps schema v43. The existing
+`DirectMirScalarProgramVoidScalarCallableSignatureReady` owner now admits zero
+or more direct ABI-free scalar value parameters under a Void return. The empty
+parameter list is not a new semantic family, so no zero-Void owner, routine
+allowlist, or dummy carrier was added. The claimant envelope and final
+signature owner's zero-parameter branches consume this same fact beside the
+existing non-Void zero-return policy; they no longer reconstruct Void support
+from a separate return-type list.
+
+For the reached body, `DirectMirScalarProgramDirectCallFact` remains the direct
+call identity owner. General expression admission now consumes its existing
+zero-argument projection when a persisted call marker resolves by source
+SyntaxNodeId to an exact zero-parameter callable. Nonzero calls continue through
+the ordered CallArgument owner, and complete call-marker coverage remains
+fail-closed. The C/LLVM direct-call emitters only consume the normalized
+callable ordinal and return type; no target spelling recovery or backend MIR
+reread exists. The focused and adjacent executable gates, component contract,
+and forty-one-gate aggregate pass. The fixed canary advances through routine
+1106 and routines 1107..1260, then fails at routine 1261's distinct nested
+`Option<OptionStructRuntimeFact>` return envelope.
+
+GraphPlan v70 keeps schema v43 and corrects that last description: the return
+is not a nested generic Option. `OptionStructRuntimeFact` is a declaration
+name, so the type is one ordinary `Option<T>` whose payload `T` is a logical
+record. `OptionPayloadTypeOpt` remains the wrapper-shape SoT, while
+`DirectMirScalarProgramLogicalRecordFact` remains the declaration/field-order
+SoT. The new join admits contextual Some/None/IsSome/UnwrapOption facts only
+when the parsed payload resolves to that inventory. `Option<Unknown>` remains
+limited to the persisted None leaf after an expected type is known.
+
+The C/LLVM tag-plus-record carrier is a target-local projection of those two
+facts, not a physical ABI fact: the declaration and reached instructions keep
+layout id zero, `required=false`, and null layout. LLVM foreign declarations
+remain owned once by `DirectMirScalarCfgLlvmForeignDeclarations`; dependent
+record types precede Option helpers. The focused gate rejects carrier and
+physical-layout mutations, the forty-two-gate aggregate passes, and the fixed
+canary advances through routine 1468 before reaching a separate logical-record
+value-result parameter at routine 1469. Record/routine-name branching,
+physical-layout inference, copied field inventories, and backend MIR rereads
+remain forbidden.
+
+The 2026-08-10 GraphPlan v28 `Option<Bool>` closure adds a third exact
+instance of the target-neutral Option physical carrier to
+`projection.direct_mir_scalar_cfg_program_extension`. The persisted MIR row is
+the sole layout authority: size eight, alignment four, a four-byte tag at
+offset zero, a one-byte Bool payload at offset four, and the canonical
+runtime/discriminant identity. C emits the matching asserted aggregate and
+LLVM emits `{ i32, i1 }`; callable returns, direct calls, locals,
+Some/IsSome/UnwrapOption, and both backends consume that same receipt. The
+generic source `None` is persisted as a `binding=none` leaf with
+`Option<Unknown>` instruction spelling, so
+`DirectMirScalarProgramOptionAbsenceExpressionKind` joins it to the expected
+Option<Int/String/Bool> type without treating that spelling as a physical ABI
+fact. The focused gate executes exact C/LLVM value flow and rejects a mutated
+Bool payload offset before artifact publication. The fixed 1,484-routine
+canary passes the former Option<Bool> callable-envelope boundary and next
+rejects the unsupported `JsonArrayStringFact` nominal return at routine 47.
+
+The 2026-08-10 GraphPlan v27 `Option<String>` closure extends
+`projection.direct_mir_scalar_cfg_program_extension` with another instance of
+the existing target-neutral Option physical carrier. Its sole input is the
+persisted required MIR ABI row: 16-byte size, 8-byte alignment, tag at offset
+zero, pointer payload at offset eight, and the canonical runtime/discriminant
+identity. Contextual Some/IsSome/UnwrapOption selection consumes actual and
+expected types once; expression admission may not reopen the builtin registry
+or fall back to the Option<Int> specialization. C and LLVM signatures,
+expressions, and local storage consume the same fact, and the focused gate
+executes value flow while rejecting a mutated payload offset before artifact
+publication. The later v28 absence owner now admits its persisted `None` leaf;
+that does not authorize any target to derive layout from `Option<Unknown>`.
+
+The 2026-08-10 GraphPlan v26 value-result `Array<Int>` closure extends
 `projection.direct_mir_scalar_cfg_program_extension` without adding a second
 top-level fact family. The derived
+`DirectMirScalarProgramArrayIntValueResultFact` joins the formal parameter's
+persisted `value-result` carriage to its complete `abi.layout_rows` receipt,
+and C/LLVM consume one target projection for representation plus copy-in and
+copy-out. Caller-side value-result invocation remains fail-closed instead of
+falling through the by-value direct-call path. The preceding v25 derived
 `DirectMirScalarProgramTwoIntNominalAbiFact` selects at most one eligible row
 from the admitted declaration index, joins its field identities to its required
 MIR ABI row, seals matching formal-parameter
@@ -332,7 +911,8 @@ authority; the program extension carries one target-neutral
 `direct_mir_scalar_option_int_owner.sh` proves exact four-routine execution and
 rejects a mutated value-field offset before either target publishes an
 artifact. This does not admit nominal declarations, `Option<String>`, Option
-locals, Array parameters, or arbitrary aggregate ownership.
+locals, Array parameters, or arbitrary aggregate ownership on the v24 path;
+the later v27 row owns the separate Option<String> physical/local boundary.
 
 The 2026-08-05 GraphPlan v23 Array<String> call closure extends
 `projection.direct_mir_scalar_cfg_program_extension` without adding a second
@@ -346,11 +926,16 @@ infer ownership from `Array<String>` spelling. The executable evidence is
 `one_mir_string_array_index_return_projection.sh`, including repaired-identity
 ABI, call, bound, topology, and literal-spine negatives with no artifact.
 
-The registry gate is independently red on six duplicate Coq fact groups over
-17 rows. That audit is detailed in
-`docs/self_hosted/18_self_host_layering_duplication_audit.md`. This row update
-records the reached GraphPlan consumers only; it does not classify duplicate
-ABI views or identity/plan stages as resolved authorities.
+The 2026-08-13 registry normalization removes the final duplicate Coq fact
+group. The exact Array<String> value-result and owned-return shapes remain
+executable GraphPlan evidence, but they are not peer top-level authorities.
+Their shared `DirectMirScalarProgramArrayStringAbiFactFromAdmitted` remains an
+explicit consumer-owned fact under
+`projection.direct_mir_scalar_cfg_program_extension`; the existing
+`DirectMirScalarProgramArrayStringBoundaryFact` is the classified derived
+projection. The earlier six-group audit remains historical evidence in
+`docs/self_hosted/18_self_host_layering_duplication_audit.md`; it is no longer
+the current registry state.
 
 The 2026-08-05 GraphPlan v20 closure extends
 `projection.direct_mir_scalar_cfg_program_extension` through the derived rows
@@ -463,6 +1048,47 @@ fingerprint, and rejects a missing or mutated row. The family remains `BRIDGE`
 until the native full-width target fingerprint, concrete size/alignment/endian
 values, object format, and AIR evidence references are carried instead of
 vocabulary plus a self-host carriage digest alone.
+
+## 2026-08-13 GraphPlan receiver-carriage evidence
+
+This evidence extends the existing
+`projection.direct_mir_scalar_cfg_graph_plan` substitution; it does not add a
+registry row or change its `CLOSED` status.
+
+- The source-to-MIR producer attaches one primary LocalRef to `ArrayPush`,
+  `ArraySet`, and `ArrayPop`. A value-result receiver is carried as
+  `parameter:<routine-source-syntax-id>:<ordinal>` and joins the existing
+  routine signature and collection ABI facts.
+- Program operation storage/readiness and both backends consume that exact row.
+  ArrayInt value-result set is operation 37; its index and value keep their
+  admitted expression identities. The old use-name receiver selection,
+  unique-parameter inference, local-only owner paths, and backend MIR rereads
+  are negative-gated.
+- The focused executable gate mutates only ordinal 1 of two same-typed
+  `Array<Int>` value-result formals and observes the untouched first formal in
+  C and LLVM. Canonical self-driver build, CI-profile inventory, and component
+  structural inventory also pass.
+- A shared control-transfer fact now owns exact break/continue edges for both
+  scalar CFG consumers. Its focused C/LLVM target-swap negatives and the old
+  loop snapshot/exit-phi gates pass.
+- `StringJoin`/`Join` now consume the existing semantic signature and runtime
+  ABI row in both targets; wrong type/order negatives fail closed.
+  `ToString(String)` consumes a target-neutral identity specialization while
+  `ToString(Int)` retains the existing formatting ABI. These are derived
+  GraphPlan projections and add no authority row. Their stable expression IDs
+  69 and 70 advance the current wire schema from `graph-plan.v44` to
+  `graph-plan.v46`; historical `GraphPlan vN` labels are migration-rung
+  identifiers, not wire-schema suffix ownership.
+- Stable operation 38 closes the reached OptionInt try-let without adding an
+  authority row. The persisted unary try graph, callable return identity, and
+  existing OptionInt ABI receipt are consumed once; C and LLVM execute the
+  same Some/None behavior and five malformed fact mutations fail closed. This
+  advances the current wire schema from `graph-plan.v46` to
+  `graph-plan.v47`.
+- The fixed canary now reaches global row 592, the Bool branch
+  `((start + 4) == end) && SubEqualsWithLen(...)`. Its conditional right-call
+  evaluation is the open executable frontier. No registry status or census
+  count changes.
 
 ## Current Judgment
 
@@ -691,3 +1317,280 @@ no backend MIR read, and no artifact for six repaired identity/type/CFG/return
 mutations. This is bounded consumer substitution evidence; the registry row
 remains `BRIDGE` because general execution-graph consumers and native owners
 remain open.
+
+GraphPlan v71 does not add a registry row or change a top-level fact identity.
+It tightens the existing declaration-keyed logical-record signature consumer:
+`DirectMirRoutineSignatureFact` owns carriage/pass/resource/ABI facts, and
+`DirectMirScalarProgramLogicalRecordFact` owns record identity and ordered
+fields. Their consumer may compose zero-or-more readonly record inputs with
+exactly one record value-result and direct scalar values. Routine spelling,
+parameter count, CFG size, and backend reconstruction are not alternate
+authorities. The fixed canary's move from routine 1469 to routine 1474 is
+executable evidence for this consumer substitution; the next two-copyout
+cardinality generalization remains OPEN until the exact old classifier is
+removed and its negative gate migrates.
+
+GraphPlan v72 closes that OPEN consumer seam without creating a registry row.
+`DirectMirScalarProgramLogicalRecordValueResultSignatureReady` is now the sole
+positive-cardinality logical-record copyout classifier. It consumes the same
+routine-signature and declaration facts for one or more copyouts, readonly
+record inputs, and direct scalar values. The former exact readonly-plus-two-
+copyout owner and every production reference to it are deleted; component
+inventory rejects their return. The old two-copyout executable gate now proves
+the generic consumer and rejects zero copyouts. This is `CLOSED` for signature
+copyout cardinality, while readonly-only record signatures and the coarse
+callable-inventory diagnostic remain OPEN separate consumers.
+
+GraphPlan v73/v74 also add no registry row and keep GraphPlan schema v43. V73
+moves final callable-signature rejection behind the existing route-admission
+receipt: `callable-signature/signature-family` owns the exact routine/name/type
+failure until the terminal diagnostic consumes it. The old graph-inventory
+message is no longer an alternate authority for this decision.
+
+V74 closes the direct scalar callable consumer as one owner.
+`DirectMirRoutineSignatureFact` remains the semantic fact owner;
+`DirectMirScalarProgramDirectScalarCallableSignatureReady` consumes it for a
+Void or scalar return plus zero-or-more direct scalar value parameters with no
+resource or layout receipt. The former exact Void owner and its production
+references are deleted and negative-gated. This consumer seam is `CLOSED` for
+direct scalar signatures. `Option<Int>` returns with general direct scalar
+parameters remain `OPEN` under their existing Option ABI owner; they are not
+silently reclassified as scalar.
+
+GraphPlan v75 closes that `Option<Int>` consumer without adding a registry row.
+`DirectMirScalarProgramDirectScalarParametersReady` is the reusable consumer of
+the routine-signature parameter roles; the ordinary direct-scalar callable and
+the `Option<Int>` final-signature path compose it with different return-family
+owners. `DirectMirOptionMatchAbiFact` remains the only physical Option layout
+authority, and Option is not added to the scalar type family. The fixed canary
+passes routine 3 and reaches routine 13 `ReadJsonString`; composing a String
+return with one ArrayInt value-result remains the next `OPEN` signature
+consumer.
+
+GraphPlan v76 also adds no registry row. The new
+`DirectMirScalarProgramArrayIntValueResultCallableSignatureReady` is a consumer
+of the existing routine-signature and ArrayInt ABI facts, not a second physical
+layout owner. It replaces and negative-gates the exact
+`json_string_value_result` arity branch with positive copyout cardinality plus
+per-parameter roles. This signature consumer is `CLOSED`; the fixed canary's
+next `Option<Int>` plus readonly logical-record input is `OPEN`.
+
+## Dynamic Long remainder consumer
+
+Dynamic Long remainder does not add a top-level registry family. Stable
+expression identity 75 consumes append-only `abi.runtime_call_rows` row 246,
+whose canonical symbol/call shape are
+`pgy_checked_mod_i64_export/long_long_to_long`. Both backends consume that row
+through the existing case-math projection, while the runtime owner defines
+zero-divisor panic and `INT64_MIN % -1 == 0`. GraphPlan schema advances to v52
+for the new normalized expression identity; no carrier column or parallel
+arithmetic graph is added. The ABI family remains `BRIDGE`, and the registry
+census remains `49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at row 4363, the first Long loop-header phi in raw
+routine row 258. That next consumer must extend the existing common PhiValue
+type admission and predecessor receipt. It does not authorize a new SoT row,
+Long-only opcode, or routine/backend exception.
+
+## Common Long PhiValue consumer
+
+Long PhiValue admission adds no top-level registry family and no operation
+identity. Existing operation 29 consumes the existing value-type plan and
+`MirPhiPredecessorBindingFact`; the C/LLVM memory-local emitters remain the last
+consumers. The focused executable gate rejects wrong type, non-dominating, and
+missing incoming facts. This closes the reached consumer seam without changing
+the registry census: `49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at row 4366, the exact `right > 0L` expression in
+raw routine row 258. The next comparison consumer may extend an existing stable
+expression family or add one append-only expression identity after its type
+contract is explicit, but it does not authorize a new top-level SoT row,
+routine exception, or backend-local comparison authority.
+
+## Typed Long comparison consumers
+
+Exact Long greater/equality adds no top-level registry family. Append-only
+expression identities 76 and 77 are owned by the shared typed comparison
+kind/readiness family; existing Int comparison identities remain unchanged.
+The C/LLVM expression and branch emitters are the last consumers, and the
+retired Int-only owner path is deleted and negative-gated. GraphPlan schema
+advances to v54 without a carrier column or parallel graph. The registry census therefore remains
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at row4368, node2 of
+`((result + left) % modulus)`. The next exact Long addition consumer must first
+identify the language-owned overflow contract. It does not authorize Int-add
+identity aliasing, raw C signed UB, routine/backend exceptions, or a new
+top-level SoT row.
+
+## Long wrap arithmetic consumers
+
+Exact Long addition, multiplication, and subtraction add no top-level registry
+family. Append-only expression identities 78, 81, and 82 are owned by the
+existing typed expression kind/readiness family. The language arithmetic UB
+model remains authoritative for wrap semantics; common C/LLVM emitters are the
+last consumers and checked-runtime rows are not synthesized for these
+operations. Checked Long division identity 79 and Long inequality identity 80
+remain separate exact consumers. The registry census therefore remains
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at row4397 node12 in raw routine row261
+`MirAbiLayoutHashString`, the `type_name Long` child of
+`CharCode(value, n, i) as Long`. The next consumer may add an append-only exact
+`Int -> Long` cast identity only after source, target, and graph shape are
+explicit. It does not authorize arbitrary casts, backend-local type-name
+parsing, routine exceptions, or a new top-level SoT row.
+
+## Exact Int-to-Long cast consumer
+
+Exact `TypeName(Long)` and `Cast(Int, Long)` add no top-level registry family.
+Append-only identities 83/84 are owned by one numeric-cast kind/readiness
+family, and the common C/LLVM expression projections are the last consumers.
+The physical GraphPlan representation is `long long`/`i64` for both Int and
+Long, but the semantic source/target distinction remains sealed in the typed
+expression facts. Arbitrary casts, arbitrary type-name leaves, and backend
+type inference remain negative-gated. The registry census stays
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at row4402 node2 in raw routine row262
+`MirAbiLayoutHashU32`, the exact Long-less root of `unsigned_value < 0L`. The
+next consumer may append one typed Long-less comparison identity; it does not
+authorize Int identity reuse, mixed operands, routine exceptions, or a new
+top-level SoT row.
+
+## Exact Long-less comparison consumer
+
+Exact `Long < Long -> Bool` adds no top-level registry family. Append-only
+identity 85 is owned by the existing typed comparison kind/readiness family;
+all earlier Int and Long identities stay unchanged. Common C/LLVM expression
+and branch emitters remain the last consumers. GraphPlan advances to v61 with
+no carrier column or parallel graph, so the registry census stays
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at row4513 node16 in raw routine row268
+`MirAbiLayoutFieldsCaptureWithin`, the outer spine of
+`[(0 - 1), (0 - 1), (0 - 1), (0 - 1)]`. The next consumer may extend the
+existing populated `Array<Int>` literal operand owner to ordered admitted Int
+expression roots; it does not authorize source-text evaluation, arbitrary
+element types, routine/backend exceptions, a second graph, or a new top-level
+SoT row.
+
+## Local logical-record Array consumers
+
+Exact local `Array<LogicalRecord>` storage and its empty literal add no
+top-level registry family. Append-only expression identity 88 consumes the
+existing declaration-keyed logical-record inventory and nominal-array target;
+CFG typed/value plans, direct-call value-result identity, and common C/LLVM
+emitters are the last consumers. The public Array ABI is not substituted and no
+parallel layout or type authority was created. The registry census therefore
+stays `49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at global row7044 in routine index613
+`SemanticExpressionGraphFactsFromAstRows`, at the value-formal leaf of
+`rows.roots[i]`. The next consumer may join that formal with the existing
+logical-record member and ArrayInt facts, but it does not authorize a new SoT
+row, member-name guessing, source-text evaluation, backend MIR reads, or a
+second expression graph.
+
+## Expr0 lane and Bool inequality consumers
+
+The row7044 repair adds no top-level owner or expression identity. It makes the
+existing LocalRef wire's `expr0` ownership explicit at its leaf-admission
+consumer, preventing later expression lanes from reinterpreting a coincident
+node ordinal. GraphPlan v69 then appends exact Bool-inequality identity 89 to
+the existing typed comparison family; Bool equality and inequality have one
+kind/readiness owner and common C/LLVM consumers. The registry census remains
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at row7201 node1 in routine index625
+`LanguageWordSpelling`, the declaration/variant side of
+`id == LanguageWordId.WordAbility`. The next consumer may join an exact
+value-formal payload-free enum to an existing declaration-owned variant fact.
+It does not authorize a new top-level row, enum spelling or ordinal inference,
+source evaluation, backend MIR reads, or a parallel expression graph.
+
+## Payload-free enum expression consumers
+
+Exact payload-free enum variant/equality adds no top-level registry family.
+GraphPlan v70 identities90/91 consume the existing declaration/variant
+inventory and scalar-ordinal representation. Expression readiness rejoins the
+stored variant ordinal to that fact; C/LLVM direct-call and comparison emitters
+are the last consumers. Enum/routine spelling, ordinal inference, generic
+member fallback, and backend MIR rereads remain negative-gated. The registry
+census stays `49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at row8457 node2 in routine index649
+`ParserExpressionLeaf`, exact source `[text]`. The next consumer may extend the
+existing populated Array<String> literal owner to one exact value-formal String
+element. It does not authorize a new top-level row, arbitrary expression
+elements, source evaluation, or a second array graph.
+
+## Owner-handle call and ArrayString Set consumer closure
+
+The exact logical-record `owner-handle` call and target-neutral ArrayString Set
+identity34 add no top-level registry family. The former consumes the existing
+callable signature and declaration-keyed logical-record inventory; the latter
+consumes the existing ArrayString ABI fact plus producer-owned LocalRef and
+formal ordinal. Common C/LLVM call, checked-set, and copyout emitters remain the
+last consumers. No move/lifetime authority, opcode, layout owner, or backend MIR
+read was added, so the registry census stays
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+The fixed canary now stops at raw routine index1111
+`CompilerSymbolCIdentifier`, source syntax ID28197, at `stage=local_inventory`.
+The exact reached unsupported locals are `Allocator` and `TextBuilder`.
+`abi_layout_row_owner.pgy` and `runtime_call_abi_row_owner.pgy` already own their
+physical and call identities, so the next consumer seam must derive one general
+runtime-value representation from those rows. A scalar-type allowlist edit,
+separate type-specific GraphPlans, copied layouts, or a new top-level SoT row is
+not authorized.
+
+## Typed logical-record indexed-array assignment consumer
+
+The reached nested indexed assignment adds no top-level registry row and does
+not create a second record, collection, or opcode authority. Stable operation
+44 consumes the existing declaration-keyed logical-record field inventory,
+routine LocalRef/value-type plan, formal carriage/ordinal, persisted
+`expr1_graph`, and resolved `Array<Int>`/`Array<String>` terminal type. It
+accepts both a routine-local root and the exact logical-record value-result
+parameter root. The full target graph remains the secondary operation
+expression, the RHS is primary, and the typed fact carries the element type.
+
+The canonical latest-dominating LocalRef row owns predecessor selection. A
+first value-result mutation may start at the parameter entry, but an existing
+explicit predecessor must occur as the first persisted use; missing or stale
+predecessors fail closed. C and LLVM root the member chain at that admitted
+operation-result LocalRef and finish through the existing bounds-checked
+`pgy_ai_set` or `pgy_as_set`. Source-path splitting, member-name lookup in a
+backend, fixed nesting depth, parameter-entry fallback after an SSA
+definition, and a parallel value-result opcode are forbidden.
+
+The original focused gate still covers a three-member local `Array<String>`
+path and eight damaged identity/use/edge/source facts. The value-result
+`Array<Int>` gate covers two ordered writes, exact C/LLVM stdout `8`, copyout,
+and eight formal-binding/carriage/predecessor/member/RHS/result mutations. On
+the fixed 48,531,749-byte MIR these consumers advance the first failure from
+global row 17147 through row 17618 to row 17851.
+
+## Populated ArrayInt local-SSA literal consumer
+
+The existing populated `Array<Int>` literal owner now consumes an element leaf
+from the canonical instruction-use, LocalRef, and value-type plans in addition
+to its existing literal, zero-call, formal-parameter, and computed Int forms.
+It advances the caller's ordered use cursor and persists the admitted local row
+in the same expression arena. Readiness and C/LLVM materializers already own
+the local operand kind, so no new expression identity, operation, ABI row, or
+backend route is introduced. Missing or foreign use identity, an untyped local,
+spelling inference, and backend MIR rereads remain forbidden.
+
+The strengthened existing fixture reproduces the old
+`stage=literal-uses node=2` failure with `let pending: Array<Int> = [root_id]`.
+The current driver executes that form and all existing operand families in C
+and LLVM and rejects `local-missing-use`. On the same fixed MIR this advances
+the first failure from row 17851 to row 18392. The next RED is routine 1197
+`SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody`: local SSA
+`graph.21` is assigned into value-result member target
+`analysis.expression_surfaces.expression_graph` and fails at
+`stage=admitted-type`. That existing member-rebind type join is the next
+consumer seam; it is not permission for a new operation, V, cache, shard,
+timeout, cap, or top-level SoT row.

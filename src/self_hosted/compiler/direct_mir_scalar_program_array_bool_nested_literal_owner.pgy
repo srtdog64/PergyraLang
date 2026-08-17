@@ -1,0 +1,40 @@
+// Ordered admitted Bool expressions carried by a nested Array<Bool> literal.
+import "direct_mir_scalar_program_nested_array_literal_seed_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+
+func DirectMirScalarProgramNestedArrayBoolLiteralOperandRows(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    ref source_rows: Array<Int>,
+    ref normalized_types: Array<String>
+) -> Array<Int> {
+    let reverse_rows: Array<Int> = [];
+    if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeArrayElement() { return reverse_rows; }
+    let cursor: Int = node;
+    while sequence.arena.topology.node_kinds[cursor] ==
+            AstExpressionNodeArrayElement() {
+        let source_left: Int = sequence.arena.topology.left_children[cursor];
+        let source_right: Int = sequence.arena.topology.right_children[cursor];
+        if source_left < 0 || source_left >= cursor || source_right < 0 ||
+            source_right >= cursor || source_right >= ArrayLength(source_rows) ||
+            sequence.arena.call_target_kinds[cursor] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[cursor] != "" ||
+            sequence.arena.identities.binding_kinds[cursor] !=
+                SemanticExpressionBindingNone() { return []; }
+        let operand: Int = source_rows[source_right];
+        if operand < 0 || operand >= ArrayLength(normalized_types) ||
+            normalized_types[operand] != CompilerAbiLayoutBoolTypeName() {
+            return [];
+        }
+        ArrayPush(reverse_rows, operand);
+        cursor = source_left;
+    }
+    if !DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(
+            sequence, cursor) { return []; }
+    let rows: Array<Int> = [];
+    let row: Int = ArrayLength(reverse_rows);
+    while row > 0 { row = row - 1; ArrayPush(rows, reverse_rows[row]); }
+    return rows;
+}

@@ -1,0 +1,12 @@
+// Populated Array<Bool> literals preserve exact element order in both targets.
+
+func BoolLiteralProgramRouteCanary() -> Bool {
+    return true;
+}
+
+func Main() -> Void {
+    let flags: Array<Bool> = [true, false, true];
+    if flags[0] { Log("first"); } else { Log("wrong-first"); }
+    if flags[1] { Log("wrong-second"); } else { Log("second"); }
+    if flags[2] { Log("third"); } else { Log("wrong-third"); }
+}

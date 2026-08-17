@@ -1,0 +1,152 @@
+// C three-field Array<Record> type and value-result copy lifecycle.
+
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
+
+func DirectMirScalarProgramCLogicalRecordArrayPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    let output: String = "#include \"pgy_runtime_panic_contract.h\"\n";
+    let record: Int = 0;
+    while record < ArrayLength(plan.program.logical_record.names) {
+        let array_type: String = Concat("Array<", Concat(
+            plan.program.logical_record.names[record], ">"));
+        let referenced: Bool = false;
+        let parameter: Int = 0;
+        while parameter < ArrayLength(plan.routines.parameter_types) {
+            if plan.routines.parameter_types[parameter] == array_type {
+                referenced = true;
+            }
+            parameter = parameter + 1;
+        }
+        let local_row: Int = 0;
+        while local_row < ArrayLength(plan.local_types) {
+            if plan.local_types[local_row] == array_type { referenced = true; }
+            local_row = local_row + 1;
+        }
+        if referenced {
+            let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+                DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+                    plan.program.logical_record, array_type, target);
+            let record_type: String =
+                DirectMirScalarProgramCLogicalRecordTypeName(
+                    plan.program.logical_record,
+                    plan.program.logical_record.names[record]);
+            output = Concat(output, "typedef ");
+            output = Concat(output, record_type);
+            output = Concat(output, " ");
+            output = Concat(output, projected.c_element_type);
+            output = Concat(output, ";\n");
+            output = Concat(output, "typedef struct { ");
+            output = Concat(output, projected.c_element_type);
+            output = Concat(output, " *data; ");
+            output = Concat(output, projected.c_length_type);
+            output = Concat(output, " len; ");
+            output = Concat(output, projected.c_length_type);
+            output = Concat(output, " cap; } ");
+            output = Concat(output, projected.c_array_type);
+            output = Concat(output, ";\n");
+            output = Concat(output, "static void pgy_scalar_logical_record_array_push_");
+            output = Concat(output, ToString(projected.record_row));
+            output = Concat(output, "(");
+            output = Concat(output, projected.c_array_type);
+            output = Concat(output, " *a, ");
+            output = Concat(output, projected.c_element_type);
+            output = Concat(output, " v) {\n");
+            output = Concat(output, "    if (a->len == a->cap) { long long n = a->cap ? a->cap * 2 : 4; ");
+            output = Concat(output, projected.c_element_type);
+            output = Concat(output, " *p = (");
+            output = Concat(output, projected.c_element_type);
+            output = Concat(output, " *)realloc(a->data, (size_t)n * sizeof(");
+            output = Concat(output, projected.c_element_type);
+            output = Concat(output, ")); if (p == NULL) abort(); a->data = p; a->cap = n; }\n");
+            output = Concat(output, "    a->data[a->len++] = v;\n}\n");
+            if DirectMirScalarProgramLogicalRecordArraySetRequired(
+                    plan.operation_kinds) {
+                output = Concat(output, CollectionRuntimeCGuardedSet(
+                    Concat("pgy_scalar_logical_record_array_set_",
+                        ToString(projected.record_row)), projected.c_array_type,
+                    projected.c_element_type));
+            }
+        }
+        record = record + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCLogicalRecordArrayValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+                plan, routine, ordinal) {
+            let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+            output = Concat(output,
+                DirectMirScalarProgramCLogicalRecordArrayTypeName(
+                    plan.program.logical_record,
+                    plan.routines.parameter_types[row]));
+            output = Concat(output, Concat(" pgy_param_", ToString(ordinal)));
+            output = Concat(output, Concat(" = *pgy_param_", ToString(ordinal)));
+            output = Concat(output, "_mutref;\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCLogicalRecordArrayValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+                plan, routine, ordinal) {
+            output = Concat(output, Concat("    *pgy_param_",
+                ToString(ordinal)));
+            output = Concat(output, Concat("_mutref = pgy_param_",
+                ToString(ordinal)));
+            output = Concat(output, ";\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramCLogicalRecordArrayValueResultMutation(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    parameter: Int, index: String, value_type: String, value: String,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+            plan, routine, parameter) || value == "" {
+        Die("direct MIR C logical-record Array mutation identity is invalid");
+    }
+    let parameter_row: Int = plan.routines.parameter_starts[routine] +
+        parameter;
+    let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
+        DirectMirScalarProgramLogicalRecordArrayTargetFromType(
+            plan.program.logical_record,
+            plan.routines.parameter_types[parameter_row], target);
+    if !DirectMirScalarProgramLogicalRecordArrayTargetReadyFor(
+            projected, CompilerTargetCpuCProjection()) ||
+        projected.element_type != value_type {
+        Die("direct MIR C logical-record Array mutation type is invalid");
+    }
+    let operation: String = "push_";
+    if index != "" { operation = "set_"; }
+    let output: String = "    pgy_scalar_logical_record_array_";
+    output = Concat(output, operation);
+    output = Concat(output, ToString(projected.record_row));
+    output = Concat(output, "(&pgy_param_");
+    output = Concat(output, ToString(parameter));
+    if index != "" { output = Concat(output, Concat(", ", index)); }
+    output = Concat(output, ", ");
+    return Concat(output, Concat(value, ");\n"));
+}

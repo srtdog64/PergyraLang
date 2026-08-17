@@ -1,0 +1,15 @@
+// C materialization for one ABI-sealed empty Array<Bool> value.
+
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramCArrayBoolEmptyLiteralExpression(
+    kind: Int
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprArrayBoolEmptyLiteral() {
+        return None;
+    }
+    return Some(Concat("((", Concat(
+        CompilerAbiLayoutArrayBoolCValueType(),
+        "){NULL, 0, 0, NULL})")));
+}

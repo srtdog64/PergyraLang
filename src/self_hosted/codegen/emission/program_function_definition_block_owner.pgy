@@ -62,7 +62,8 @@ func CodegenProgramFunctionDefinitionBlock(
                         count, arena, signatures, receiver_facts,
                         local_bindings, assignments, statements, body_types,
                         expression_surfaces, specializations, cur, method_indent,
-                        base_env, machine_startup, uses_args, domain_runtime
+                        base_env, machine_startup, uses_args, domain_runtime,
+                        observe_pressure, definition_count
                     );
                     if definition != "" {
                         let owned_definition: Array<String> = [definition];
@@ -88,7 +89,8 @@ func CodegenProgramFunctionDefinitionBlock(
                         count, arena, signatures, receiver_facts,
                         local_bindings, assignments, statements, body_types,
                         expression_surfaces, specializations, cur, method_indent,
-                        base_env, machine_startup, uses_args, domain_runtime
+                        base_env, machine_startup, uses_args, domain_runtime,
+                        observe_pressure, definition_count
                     );
                     if definition != "" {
                         let owned_definition: Array<String> = [definition];
@@ -107,7 +109,8 @@ func CodegenProgramFunctionDefinitionBlock(
                 count, arena, signatures, receiver_facts,
                 local_bindings, assignments, statements, body_types,
                 expression_surfaces, specializations, cur, f_indent,
-                base_env, machine_startup, uses_args, domain_runtime
+                base_env, machine_startup, uses_args, domain_runtime,
+                observe_pressure, definition_count
             );
             if definition != "" {
                 let owned_definition: Array<String> = [definition];

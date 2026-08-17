@@ -115,10 +115,6 @@ def main() -> int:
     maximum["nodes"][1]["call_target_name"] = "UnknownMath"
     write(output, "bad-builtin-target", bad)
 
-    bad = clone(program)
-    addition = graph_with_expr(bad, "(Abs((-5)) + Max(1, 2))")
-    addition["nodes"][7]["text"] = "9999999999999999"
-    write(output, "bad-add-magnitude", bad)
     return 0
 
 

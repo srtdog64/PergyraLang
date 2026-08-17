@@ -1,0 +1,85 @@
+// Ordered C materializers for heap-backed populated Array<Int> literals.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
+
+func DirectMirScalarProgramCArrayIntPopulatedLiteralMaterialization(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramHasArrayIntPopulatedLiteral(
+            plan.program.expressions) { return ""; }
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirScalarProgramArrayIntValueResultTargetFromFact(
+            plan.program.array_int_value_result, target);
+    if !DirectMirArrayIntAbiProjectionReadyFor(
+            abi, CompilerTargetCpuCProjection()) {
+        Die("direct MIR scalar C populated Array<Int> literal ABI is invalid");
+    }
+    let output: String = "";
+    let node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        if plan.program.expressions.node_kinds[node] !=
+                DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
+            node = node + 1; continue;
+        }
+        let operands: Array<Int> =
+            DirectMirScalarProgramArrayIntPopulatedLiteralOperandRows(
+                plan.program.expressions, node);
+        output = Concat(output, "static ");
+        output = Concat(output, abi.c_array_type);
+        output = Concat(output, " pgy_array_int_populated_literal_");
+        output = Concat(output, ToString(node));
+        output = Concat(output, "(const int64_t *pgy_values) {\n    ");
+        output = Concat(output, abi.c_array_type);
+        output = Concat(output, " out = {NULL, 0, 0, NULL};\n");
+        output = Concat(output, "    out.data = (");
+        output = Concat(output, abi.c_element_type);
+        output = Concat(output, " *)malloc(");
+        output = Concat(output, ToString(ArrayLength(operands)));
+        output = Concat(output, " * sizeof(");
+        output = Concat(output, abi.c_element_type);
+        output = Concat(output, "));\n    if (out.data == NULL) abort();\n");
+        output = Concat(output, "    out.length = ");
+        output = Concat(output, ToString(ArrayLength(operands)));
+        output = Concat(output, "; out.capacity = out.length;\n");
+        let item: Int = 0;
+        let parameter: Int = 0;
+        while item < ArrayLength(operands) {
+            let operand: Int = operands[item];
+            output = Concat(output, "    out.data[");
+            output = Concat(output, ToString(item));
+            output = Concat(output, "] = (");
+            output = Concat(output, abi.c_element_type);
+            output = Concat(output, ")");
+            if plan.program.expressions.node_kinds[operand] ==
+                    DirectMirScalarProgramExprIntLiteral() {
+                output = Concat(output,
+                    plan.program.expressions.node_literals[operand]);
+            } else if plan.program.expressions.node_kinds[operand] ==
+                    DirectMirScalarProgramExprDirectCall() {
+                output = Concat(output, "pgy_scalar_routine_");
+                output = Concat(output, ToString(
+                    plan.program.expressions.node_callable_rows[operand]));
+                output = Concat(output, "()");
+            } else if plan.program.expressions.node_kinds[operand] ==
+                    DirectMirScalarProgramExprParameter() ||
+                plan.program.expressions.node_kinds[operand] ==
+                    DirectMirScalarProgramExprLocal() ||
+                plan.program.expressions.node_kinds[operand] ==
+                    DirectMirScalarProgramExprSubtractInt() {
+                output = Concat(output, "pgy_values[");
+                output = Concat(output, ToString(parameter));
+                output = Concat(output, "]"); parameter = parameter + 1;
+            } else {
+                Die("direct MIR scalar C populated Array<Int> operand is invalid");
+            }
+            output = Concat(output, ";\n");
+            item = item + 1;
+        }
+        output = Concat(output, "    return out;\n}\n\n");
+        node = node + 1;
+    }
+    return output;
+}

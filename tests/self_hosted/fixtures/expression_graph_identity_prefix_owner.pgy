@@ -13,11 +13,14 @@ func ExpressionGraphIdentityPrefixReady(
             expected_count ||
         ArrayLength(sequence.arena.identities.call_target_syntax_ids) !=
             expected_count ||
+        ArrayLength(sequence.arena.identities.runtime_call_abi_ids) !=
+            expected_count ||
         ArrayLength(sequence.arena.identities.binding_kinds) !=
             expected_count ||
         ArrayLength(sequence.arena.identities.binding_ordinals) !=
             expected_count ||
         sequence.arena.identities.call_target_syntax_ids[0] != 713 ||
+        sequence.arena.identities.runtime_call_abi_ids[0] != 0 ||
         sequence.arena.identities.binding_kinds[0] !=
             SemanticExpressionBindingFormalParameter() ||
         sequence.arena.identities.binding_ordinals[0] != 4 {
@@ -26,6 +29,7 @@ func ExpressionGraphIdentityPrefixReady(
     let row: Int = 1;
     while row < expected_count {
         if sequence.arena.identities.call_target_syntax_ids[row] != 0 ||
+            sequence.arena.identities.runtime_call_abi_ids[row] != 0 ||
             sequence.arena.identities.binding_kinds[row] !=
                 SemanticExpressionBindingNone() ||
             sequence.arena.identities.binding_ordinals[row] != -1 {
@@ -44,7 +48,7 @@ func Main() -> Void {
             ),
             ["prefix"], [SemanticCallTargetNone()], [""], [""],
             SemanticExpressionIdentityRows(
-                [713], [SemanticExpressionBindingFormalParameter()], [4]
+                [713], [0], [SemanticExpressionBindingFormalParameter()], [4]
             ),
             [SemanticExpressionPlaceBinding()]
         );

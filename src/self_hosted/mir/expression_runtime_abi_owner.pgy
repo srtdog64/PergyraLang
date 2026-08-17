@@ -5,6 +5,7 @@ import "../semantic/ast_expression_graph_fact_owner.pgy";
 import "../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../compiler/runtime_call_abi_structured_fact_owner.pgy";
+import "../compiler/runtime_value_call_abi_owner.pgy";
 import "../semantic/ast_expression_graph_node_view_owner.pgy";
 
 struct SelfMirExpressionRuntimeAbiProjection {
@@ -12,6 +13,57 @@ struct SelfMirExpressionRuntimeAbiProjection {
     diagnostic_message: String;
     type_names: Array<String>;
     operations: Array<String>;
+}
+
+struct SelfMirExpressionRuntimeValueCallProjection {
+    ok: Bool;
+    diagnostic_message: String;
+    fact: CompilerRuntimeValueCallAbiFact;
+}
+
+func SelfMirExpressionRuntimeValueCallProjectionFromGraph(
+    view: SemanticExpressionGraphView
+) -> SelfMirExpressionRuntimeValueCallProjection {
+    let missing: CompilerRuntimeValueCallAbiFact =
+        CompilerRuntimeValueCallAbiFactMissing();
+    if !view.ok {
+        return SelfMirExpressionRuntimeValueCallProjection(
+            false, "MIR runtime-value call graph is invalid", missing);
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        view.graph, view.root_id);
+    if !call.ok {
+        return SelfMirExpressionRuntimeValueCallProjection(true, "", missing);
+    }
+    let call_node: Int = call.call_node;
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        view.graph, call_node);
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        view.graph, call_node);
+    let syntax_id: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+        view.graph, call_node);
+    let binding_kind: Option<Int> = SemanticExpressionGraphBindingKind(
+        view.graph, call_node);
+    let binding_ordinal: Option<Int> = SemanticExpressionGraphBindingOrdinal(
+        view.graph, call_node);
+    if !IsSome(target_kind) || !IsSome(target_name) || !IsSome(syntax_id) ||
+        !IsSome(binding_kind) || !IsSome(binding_ordinal) {
+        return SelfMirExpressionRuntimeValueCallProjection(
+            false, "MIR runtime-value call identity is missing", missing);
+    }
+    let fact: CompilerRuntimeValueCallAbiFact =
+        CompilerRuntimeValueCallAbiFactForSource(UnwrapOption(target_name));
+    if !fact.valid {
+        return SelfMirExpressionRuntimeValueCallProjection(true, "", missing);
+    }
+    if UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
+        UnwrapOption(syntax_id) != 0 ||
+        UnwrapOption(binding_kind) != SemanticExpressionBindingNone() ||
+        UnwrapOption(binding_ordinal) != -1 {
+        return SelfMirExpressionRuntimeValueCallProjection(
+            true, "", missing);
+    }
+    return SelfMirExpressionRuntimeValueCallProjection(true, "", fact);
 }
 
 func SelfMirSlotRuntimeOperation(source_name: String) -> String {

@@ -35,9 +35,9 @@ func SemanticAstArtifactVerdictContractReady() -> Bool {
         AstExpressionArena([AstExpressionNodeLeaf()], ["1"], [0], [0])
     );
     let stale_same_tree: AstTreeArtifact = AstTreeArtifact(
-        valid.tree_text, valid.arena, valid.count, mutated_graph,
+        valid.tree_text, valid.arena, valid.count, mutated_graph, valid.source_modules,
         AstTreeArtifactIdentityDigest(
-            valid.tree_text, valid.count, mutated_graph
+            valid.tree_text, valid.count, mutated_graph, valid.source_modules
         )
     );
     if !AstTreeArtifactReady(stale_same_tree) ||

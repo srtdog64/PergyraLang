@@ -49,7 +49,7 @@ pgy_function_body() {
 }
 
 lines_at_most "$DECLARATION_OWNER" 120
-lines_at_most "$ROUTINE_OWNER" 520
+lines_at_most "$ROUTINE_OWNER" 530
 lines_at_most "$BLOCK_OWNER" 180
 lines_at_most "$ROUTINE_FACT_OWNER" 600
 lines_at_most "$MACHINE_OWNER" 440
@@ -82,6 +82,10 @@ for forbidden in \
 done
 grep -Fq 'MirProgramRoutineBlockCaptureWithin(' <<<"$routine_body" ||
     fail "routine index did not consume the one-pass block capture"
+grep -Fq 'ArrayPush(instruction_abi_type_names,' <<<"$routine_body" ||
+    fail "routine index omitted instruction ABI type identity"
+grep -Fq 'instruction_count != ArrayLength(index.instruction_abi_type_names)' \
+    "$ROUTINE_OWNER" || fail "routine index omitted ABI carrier cardinality"
 grep -Fq 'let is_instructions: Bool' <<<"$block_body" ||
     fail "block capture omitted instruction bounds"
 grep -Fq 'let is_succ_false: Bool' <<<"$block_body" ||

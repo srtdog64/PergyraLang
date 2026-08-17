@@ -1,0 +1,11 @@
+func IntToLong(value: Int) -> Long {
+    return value as Long;
+}
+
+func LongToInt(value: Long) -> Int {
+    return value as Int;
+}
+
+func Main() -> Void {
+    Log("int-to-long-cast-ready");
+}

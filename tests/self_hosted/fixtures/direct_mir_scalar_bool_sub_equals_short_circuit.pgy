@@ -1,0 +1,13 @@
+func JsonTrueAt(json: String, end: Int, start: Int) -> Bool {
+    return ((start + 4) == end) &&
+        SubEqualsWithLen(json, end, start, 4, "true");
+}
+
+func Main() -> Void {
+    if JsonTrueAt("true", 4, 0) {
+        Log(1);
+    }
+    if !JsonTrueAt("false", 5, 0) {
+        Log(0);
+    }
+}

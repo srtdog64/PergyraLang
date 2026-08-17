@@ -1,0 +1,17 @@
+func EchoAt(text: String, index: Int) -> String {
+    return text;
+}
+
+func CodeAt(text: String, length: Int, index: Int) -> Int {
+    return index;
+}
+
+func Main() -> Void {
+    EchoAt("discarded", 0);
+    Print("print:");
+    Print(EchoAt("nested", 0));
+    Log(EchoAt("direct-scalar-ready", 0));
+    let escaped: String = "line\nquote\"slash\\x";
+    Log(EchoAt(escaped, 0));
+    Log(CodeAt("x", 1, 7));
+}

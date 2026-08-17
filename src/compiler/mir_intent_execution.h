@@ -4,7 +4,7 @@
 #include "mir.h"
 
 #define PGY_MIR_INTENT_EXECUTION_SCHEMA \
-    "pgy.selfhost.mir-intent-execution-plan.v2"
+    "pgy.selfhost.mir-intent-execution-plan.v3"
 
 bool mir_materialize_intent_execution_plan(MIRRoutine *routine,
                                             const DIRProgram *dir);

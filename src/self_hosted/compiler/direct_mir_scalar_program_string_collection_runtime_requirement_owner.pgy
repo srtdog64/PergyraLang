@@ -8,6 +8,7 @@ struct DirectMirScalarProgramStringCollectionRuntimeIds {
     let valid: Bool;
     let contains_id: Int;
     let split_id: Int;
+    let join_id: Int;
     let to_int_id: Int;
     let array_length_id: Int;
     let array_get_id: Int;
@@ -41,10 +42,23 @@ func DirectMirScalarProgramStringCollectionRuntimeRequirement(
         expressions, DirectMirScalarProgramExprStringContains());
     let split_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprStringSplit());
+    let join_required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprStringJoin());
     let to_int_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprToIntString());
-    let length_required: Bool = DirectMirScalarProgramExpressionContainsKind(
-        expressions, DirectMirScalarProgramExprArrayStringLength());
+    let length_required: Bool = false;
+    let node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprArrayStringLength() {
+            let left: Int = expressions.node_lefts[node];
+            if left >= 0 && expressions.node_types[left] ==
+                    CompilerAbiLayoutArrayStringTypeName() {
+                length_required = true;
+            }
+        }
+        node = node + 1;
+    }
     let get_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprArrayStringIndex());
     let contains: CompilerRuntimeCallAbiFact =
@@ -53,6 +67,9 @@ func DirectMirScalarProgramStringCollectionRuntimeRequirement(
     let split: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "split", StringRuntimeCSplitFn());
+    let join: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "join", StringRuntimeCStringJoinFn());
     let to_int: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "to-int", StringRuntimeCToIntFn());
@@ -70,6 +87,10 @@ func DirectMirScalarProgramStringCollectionRuntimeRequirement(
          !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
             split, "split", StringRuntimeCSplitFn(),
             "string_string_to_array_string")) ||
+        (join_required &&
+         !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+            join, "join", StringRuntimeCStringJoinFn(),
+            "array_string_string_to_string")) ||
         (to_int_required &&
          !CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
             to_int, "to-int", StringRuntimeCToIntFn(), "string_to_int")) ||
@@ -80,16 +101,17 @@ func DirectMirScalarProgramStringCollectionRuntimeRequirement(
             get, "array-string.get", CollectionRuntimeCGetFn(2),
             "collection_index_to_value")) {
         return DirectMirScalarProgramStringCollectionRuntimeIds(
-            false, 0, 0, 0, 0, 0);
+            false, 0, 0, 0, 0, 0, 0);
     }
     let contains_id: Int = 0; let split_id: Int = 0;
-    let to_int_id: Int = 0; let length_id: Int = 0;
+    let join_id: Int = 0; let to_int_id: Int = 0; let length_id: Int = 0;
     let get_id: Int = 0;
     if contains_required { contains_id = contains.runtime_call_abi_id; }
     if split_required { split_id = split.runtime_call_abi_id; }
+    if join_required { join_id = join.runtime_call_abi_id; }
     if to_int_required { to_int_id = to_int.runtime_call_abi_id; }
     if length_required { length_id = length.runtime_call_abi_id; }
     if get_required { get_id = get.runtime_call_abi_id; }
     return DirectMirScalarProgramStringCollectionRuntimeIds(
-        true, contains_id, split_id, to_int_id, length_id, get_id);
+        true, contains_id, split_id, join_id, to_int_id, length_id, get_id);
 }

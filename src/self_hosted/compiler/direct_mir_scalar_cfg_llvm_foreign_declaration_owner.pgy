@@ -1,37 +1,95 @@
 // Unique foreign declarations derived from one sealed scalar GraphPlan.
-
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
-
+import "direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_bool_populated_literal_readiness_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
+import "../codegen/runtime_abi/set_runtime_owner.pgy";
 func DirectMirScalarCfgLlvmForeignDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
+    let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement =
+        DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
+    if !array_int_runtime.valid { Die("direct MIR LLVM Array<Int> runtime requirement is invalid"); }
     let collection: Bool =
         plan.program.runtime_abi.string_contains_id != 0 ||
         plan.program.runtime_abi.string_split_id != 0 ||
+        plan.program.runtime_abi.string_join_id != 0 ||
         plan.program.runtime_abi.string_to_int_id != 0 ||
         plan.program.runtime_abi.array_string_length_id != 0 ||
-        plan.program.runtime_abi.array_string_get_id != 0;
+        plan.program.runtime_abi.array_string_get_id != 0 ||
+        plan.program.runtime_abi.process_args_id != 0 ||
+        plan.program.runtime_abi.dir_walk_id != 0 ||
+        DirectMirScalarProgramArrayStringAbiFactReady(
+            plan.program.array_string_abi) || array_int_runtime.push ||
+        DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) ||
+        DirectMirScalarProgramLogicalRecordArrayMutationRequired(
+            plan.operation_kinds);
     let replace: Bool = plan.program.runtime_abi.case_math.replace_id != 0;
+    let set_new: Bool = DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprSetStringNew());
+    let set_add: Bool = DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprSetStringAdd());
+    let set_has: Bool = DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprSetStringHas());
+    let owned_string_push: Bool = DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprArrayStringPushOwned());
+    let scalar_array_index: Bool =
+        DirectMirScalarProgramExpressionContainsKind(
+            plan.program.expressions,
+            DirectMirScalarProgramExprArrayIntIndex()) ||
+        DirectMirScalarProgramExpressionContainsKind(
+            plan.program.expressions,
+            DirectMirScalarProgramExprArrayBoolIndex());
+    let bounded_array_set: Bool = false;
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        if DirectMirScalarProgramArraySetKind(
+                plan.operation_kinds[operation]) ||
+            plan.operation_kinds[operation] ==
+                DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() {
+            bounded_array_set = true;
+        }
+        operation = operation + 1;
+    }
     let needs_strlen: Bool = plan.string_concat_runtime_call_abi_id != 0 ||
         plan.program.runtime_abi.string_to_upper_id != 0 ||
         plan.program.runtime_abi.string_to_lower_id != 0 ||
         plan.program.runtime_abi.string_length_id != 0 ||
+        plan.program.runtime_abi.string_sub_equals_with_len_id != 0 ||
+        plan.program.runtime_abi.string_sub_index_with_len_id != 0 ||
         plan.program.runtime_abi.string_substring_id != 0 ||
         plan.program.runtime_abi.string_trim.runtime_call_abi_id != 0 ||
-        plan.program.runtime_abi.string_split_id != 0 || replace;
+        plan.program.runtime_abi.string_split_id != 0 || replace || owned_string_push;
+    if plan.program.runtime_abi.process_args_id != 0 { needs_strlen = true; }
+    if plan.program.runtime_abi.string_join_id != 0 { needs_strlen = true; }
     let needs_malloc: Bool = plan.string_concat_runtime_call_abi_id != 0 ||
         plan.program.runtime_abi.string_to_string_id != 0 ||
         plan.program.runtime_abi.string_to_upper_id != 0 ||
         plan.program.runtime_abi.string_to_lower_id != 0 ||
         plan.program.runtime_abi.string_substring_id != 0 ||
         plan.program.runtime_abi.string_substring_with_len_id != 0 ||
+        plan.program.runtime_abi.string_char_at_n_id != 0 ||
         plan.program.runtime_abi.string_trim.runtime_call_abi_id != 0 ||
-        plan.program.runtime_abi.string_split_id != 0 || replace;
+        plan.program.runtime_abi.string_split_id != 0 || replace ||
+        plan.program.runtime_abi.string_join_id != 0 ||
+        DirectMirScalarProgramHasArrayIntPopulatedLiteral(
+            plan.program.expressions) ||
+        DirectMirScalarProgramHasArrayBoolPopulatedLiteral(
+            plan.program.expressions) || owned_string_push;
+    if plan.program.runtime_abi.process_args_id != 0 { needs_malloc = true; }
     let needs_memcpy: Bool = plan.string_concat_runtime_call_abi_id != 0 ||
         plan.program.runtime_abi.string_substring_id != 0 ||
         plan.program.runtime_abi.string_substring_with_len_id != 0 ||
         plan.program.runtime_abi.string_trim.runtime_call_abi_id != 0 ||
-        plan.program.runtime_abi.string_split_id != 0 || replace;
+        plan.program.runtime_abi.string_split_id != 0 || replace || owned_string_push;
+    if plan.program.runtime_abi.process_args_id != 0 { needs_memcpy = true; }
+    if plan.program.runtime_abi.string_join_id != 0 { needs_memcpy = true; }
+    let needs_memcmp: Bool =
+        plan.program.runtime_abi.string_sub_index_with_len_id != 0 ||
+        plan.program.runtime_abi.string_sub_equals_with_len_id != 0;
     let needs_strstr: Bool =
         plan.program.runtime_abi.string_index.runtime_call_abi_id != 0 ||
         plan.program.runtime_abi.string_contains_id != 0 ||
@@ -41,16 +99,27 @@ func DirectMirScalarCfgLlvmForeignDeclarations(
     if needs_malloc { output = Concat(output, "declare ptr @malloc(i64)\n"); }
     if needs_memcpy { output = Concat(output,
         "declare ptr @memcpy(ptr, ptr, i64)\n"); }
+    if needs_memcmp { output = Concat(output,
+        "declare i32 @memcmp(ptr, ptr, i64)\n"); }
     if needs_strstr { output = Concat(output,
         "declare ptr @strstr(ptr, ptr)\n"); }
     if replace { output = Concat(output,
         "declare i32 @strncmp(ptr, ptr, i64)\n"); }
-    if collection {
-        output = Concat(output,
-            "declare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\ndeclare void @abort()\n");
-    } else if plan.program.runtime_abi.string_length_id != 0 {
+    if set_new { output = Concat(output, Concat("declare void @",
+        Concat(CollectionSetRuntimeLlvmNewRawFn(), "(ptr, i64)\n"))); }
+    if set_add { output = Concat(output, Concat("declare void @",
+        Concat(CollectionSetRuntimeLlvmAddStringRawFn(), "(ptr, ptr)\n"))); }
+    if set_has { output = Concat(output, Concat("declare i1 @",
+        Concat(CollectionSetRuntimeLlvmHasStringRawFn(), "(ptr, ptr)\n"))); }
+    if collection { output = Concat(output,
+        "declare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\n"); }
+    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.option_int_abi.valid || plan.program.option_string_abi.valid || plan.program.option_bool_abi.valid || plan.program.logical_record.present {
         output = Concat(output, "declare void @abort()\n");
     }
+    if scalar_array_index || bounded_array_set {
+        output = Concat(output, Concat(
+        "declare void @", Concat(
+        CollectionRuntimeLlvmBoundsPanicFn(), "(ptr)\n"))); }
     if plan.program.runtime_abi.string_to_int_id != 0 {
         output = Concat(output, "declare i64 @atoll(ptr)\n");
     }

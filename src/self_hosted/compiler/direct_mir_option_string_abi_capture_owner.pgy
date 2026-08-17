@@ -1,0 +1,47 @@
+// One-way projection of the persisted Option<String> ABI row into the shared
+// target-neutral Option aggregate receipt.
+
+import "direct_mir_option_match_abi_fact_owner.pgy";
+import "../codegen/text/text_owner.pgy";
+
+func DirectMirOptionStringAbiFactFromCapture(
+    own row: MirAbiLayoutRowCapture
+) -> DirectMirOptionMatchAbiFact {
+    let layout_id: Int = MirAbiLayoutIdFromCapture(row);
+    if !row.valid || layout_id <= 0 ||
+        row.type_name != CompilerAbiLayoutOptionStringTypeName() ||
+        row.size_text != "16" || row.align_text != "8" ||
+        ArrayLength(row.field_names) != 2 ||
+        ArrayLength(row.field_offsets) != 2 ||
+        ArrayLength(row.field_sizes) != 2 ||
+        ArrayLength(row.field_aligns) != 2 ||
+        row.field_names[0] != "tag" || row.field_offsets[0] != "0" ||
+        row.field_sizes[0] != "4" || row.field_aligns[0] != "4" ||
+        row.field_names[1] != "value" || row.field_offsets[1] != "8" ||
+        row.field_sizes[1] != "8" || row.field_aligns[1] != "8" ||
+        row.runtime_fn != "pgy_option_some_String" ||
+        row.inner_c_type != "char*" || row.representation_text != "1" ||
+        row.discriminant != "tag" || row.primary_tag_text != "0" ||
+        row.secondary_tag_text != "1" || row.niche_none_pattern != "" {
+        Die("direct MIR Option<String> ABI layout is unsupported or mutated");
+    }
+    let fact: DirectMirOptionMatchAbiFact = DirectMirOptionMatchAbiFact(
+        true, 0, layout_id, row.type_name, ToInt(row.size_text),
+        ToInt(row.align_text), row.field_names[0],
+        ToInt(row.field_offsets[0]), ToInt(row.field_sizes[0]),
+        ToInt(row.field_aligns[0]), row.field_names[1],
+        ToInt(row.field_offsets[1]), ToInt(row.field_sizes[1]),
+        ToInt(row.field_aligns[1]), row.runtime_fn, row.inner_c_type,
+        ToInt(row.representation_text), row.discriminant,
+        row.primary_tag_text, row.secondary_tag_text,
+        row.niche_none_pattern
+    );
+    let verified: DirectMirOptionMatchAbiFact =
+        DirectMirOptionMatchAbiFactWithDigest(
+            fact, DirectMirOptionMatchAbiFactDigest(fact));
+    if verified.digest == 0 || verified.layout_id !=
+            DirectMirOptionMatchAbiCanonicalLayoutId(verified) {
+        Die("direct MIR Option<String> ABI receipt identity is invalid");
+    }
+    return verified;
+}

@@ -114,6 +114,27 @@ func SemanticReason(code: String) -> String {
     if code == "statement_type_unresolved" {
         return "statement expression type cannot be resolved from semantic artifact facts";
     }
+    if code == "array_drop_storage_arity" {
+        return "compiler storage retirement requires exactly one array binding";
+    }
+    if code == "array_drop_storage_requires_array" {
+        return "compiler storage retirement requires an Array<T> receiver";
+    }
+    if code == "array_drop_storage_requires_binding" {
+        return "compiler storage retirement requires a named owned binding";
+    }
+    if code == "compiler_internal_builtin" {
+        return "compiler-internal builtin is unavailable outside its admitted owner";
+    }
+    if code == "destructure_binding_invalid" {
+        return "destructure binding facts are incomplete or ambiguous";
+    }
+    if code == "destructure_initializer_not_array" {
+        return "destructure initializer does not provide the required array element";
+    }
+    if code == "intent_signature_invalid" {
+        return "intent signature facts are incomplete or ambiguous";
+    }
     if code == "unregistered_diagnostic_code" {
         return "semantic diagnostic code is not registered in the code owner";
     }
@@ -190,6 +211,27 @@ func SemanticFix(code: String) -> String {
     }
     if code == "statement_type_unresolved" {
         return "add the missing statement environment or expression fact instead of guessing in the backend";
+    }
+    if code == "array_drop_storage_arity" {
+        return "pass exactly one named owned Array<T> binding";
+    }
+    if code == "array_drop_storage_requires_array" {
+        return "bind an Array<T> value before invoking compiler storage retirement";
+    }
+    if code == "array_drop_storage_requires_binding" {
+        return "move the array into a named owned binding before retiring its storage";
+    }
+    if code == "compiler_internal_builtin" {
+        return "remove the call outside the admitted compiler storage lifetime owner";
+    }
+    if code == "destructure_binding_invalid" {
+        return "repair the parser-owned destructure pattern, scope, or binding facts";
+    }
+    if code == "destructure_initializer_not_array" {
+        return "destructure an array value with a compatible element position";
+    }
+    if code == "intent_signature_invalid" {
+        return "repair the parser-owned intent name, parameters, or result signature";
     }
     if code == "unregistered_diagnostic_code" {
         return "add the code to diagnostic_code_owner before emitting it";

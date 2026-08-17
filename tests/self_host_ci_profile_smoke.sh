@@ -23,10 +23,53 @@ for file in \
 done
 
 for required in \
+    'all: $(PGY) $(PGY_LSP) self-host-compiler' \
+    'release: $(PGY) self-host-compiler' \
     'self-host-preparation-platform-test-smoke:' \
     'self-host-preparation-platform-parity-test-smoke:' \
     'self-host-preparation-exhaustive-parity-test-smoke:' \
     'self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke' \
+    'SELFHOST_SCALAR_GRAPH_PLAN_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-direct-mir-scalar-graph-plan-test-smoke)' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-readonly-logical-record-single-value-result-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-owned-string-parameter-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-direct-scalar-callable-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-value-parameter-rebind-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-int-comparison-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-array-index-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-array-mutation-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-array-int-value-result-indexed-assignment-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-array-string-dynamic-indexed-assignment-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-nested-logical-record-array-string-indexed-assignment-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-value-result-logical-record-array-int-indexed-assignment-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-collection-phi-value-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-program-control-transfer-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-option-int-try-let-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-bool-sub-equals-short-circuit-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-option-bool-equality-short-circuit-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-process-args-direct-call-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-dir-walk-direct-call-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-file-exists-direct-call-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-populated-array-bool-literal-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-read-file-direct-call-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-array-string-nested-expression-literal-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-int-multiply-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-int-divide-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-long-remainder-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-long-addition-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-long-multiplication-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-long-subtraction-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-int-to-long-cast-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-long-division-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-long-phi-value-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-long-greater-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-program-routine-admission-diagnostic-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-set-string-value-parameter-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-array-string-readonly-ref-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-entrypoint-early-return-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-namespace-internal-call-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-one-mir-string-indexof-projection-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-one-mir-string-collection-builtin-projection-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-multi-routine-test-smoke self-host-direct-mir-scalar-option-int-test-smoke self-host-direct-mir-scalar-option-string-test-smoke self-host-direct-mir-scalar-option-bool-test-smoke self-host-direct-mir-scalar-two-int-nominal-test-smoke self-host-direct-mir-scalar-logical-record-test-smoke self-host-direct-mir-scalar-logical-record-option-return-test-smoke self-host-direct-mir-scalar-recursive-logical-record-phi-test-smoke self-host-direct-mir-scalar-zero-parameter-callable-test-smoke self-host-direct-mir-scalar-array-int-value-result-test-smoke self-host-direct-mir-scalar-array-int-value-parameter-test-smoke self-host-direct-mir-scalar-array-string-value-parameter-test-smoke self-host-direct-mir-scalar-array-string-value-result-void-test-smoke self-host-direct-mir-scalar-owned-array-string-return-test-smoke self-host-direct-mir-scalar-logical-record-collection-fields-test-smoke self-host-direct-mir-scalar-nested-logical-record-array-bool-return-test-smoke self-host-direct-mir-scalar-array-int-return-test-smoke self-host-direct-mir-scalar-long-literal-return-test-smoke self-host-direct-mir-scalar-bool-array-string-value-result-test-smoke self-host-direct-mir-scalar-logical-record-value-result-test-smoke self-host-direct-mir-scalar-void-process-exit-test-smoke self-host-direct-mir-scalar-populated-array-int-literal-test-smoke self-host-direct-mir-scalar-logical-record-array-value-result-test-smoke self-host-direct-mir-scalar-logical-record-array-record-input-test-smoke self-host-direct-mir-scalar-logical-record-array-element-input-test-smoke self-host-direct-mir-scalar-logical-record-mixed-collection-value-result-test-smoke self-host-direct-mir-scalar-bool-mixed-collection-value-result-test-smoke self-host-direct-mir-scalar-void-logical-record-array-int-value-result-test-smoke self-host-direct-mir-scalar-logical-record-inputs-value-result-test-smoke self-host-direct-mir-scalar-readonly-logical-record-two-array-string-value-result-test-smoke self-host-direct-mir-scalar-int-two-array-string-value-result-test-smoke self-host-direct-mir-scalar-bool-two-array-string-two-array-int-value-result-test-smoke self-host-direct-mir-scalar-readonly-logical-record-array-bool-return-test-smoke self-host-direct-mir-scalar-owned-logical-record-return-test-smoke self-host-direct-mir-scalar-readonly-logical-record-string-array-string-value-result-test-smoke self-host-direct-mir-scalar-readonly-logical-record-two-logical-record-value-result-test-smoke self-host-direct-mir-scalar-logical-record-return-array-string-value-result-test-smoke self-host-direct-mir-composable-logical-record-return-test-smoke self-host-direct-mir-scalar-void-logical-record-array-string-value-result-test-smoke self-host-direct-mir-scalar-void-logical-record-three-string-array-string-value-result-test-smoke self-host-direct-mir-scalar-void-logical-record-four-string-array-string-value-result-test-smoke self-host-direct-mir-scalar-logical-record-array-value-parameter-test-smoke self-host-direct-mir-scalar-payload-free-enum-parameter-test-smoke' \
     'tests/self_hosted/parity/parser_parity.sh' \
     'tests/self_hosted/parity/semantic_parity.sh' \
     'tests/self_hosted/parity/codegen_parity.sh' \
@@ -36,6 +79,18 @@ for required in \
         exit 1
     fi
 done
+
+array_param_recipe="$(
+    sed -n \
+        '/^self-host-one-mir-array-param-projection-test-smoke:/,/^self-host-one-mir-bool-logic-projection-test-smoke:/p' \
+        "$MAKEFILE"
+)"
+if ! grep -Fq 'PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))"' \
+        <<<"$array_param_recipe" ||
+    grep -Fq 'PGY_BIN=' <<<"$array_param_recipe"; then
+    echo "[self-host-ci-profile] Array parameter gate must consume the built self-host driver explicitly" >&2
+    exit 1
+fi
 
 require_job_timeout() {
     local job="$1"
@@ -62,6 +117,17 @@ require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "build-windows" 45
 
+self_host_parity_job="$(
+    sed -n \
+        '/^  self-host-parity-linux:/,/^  self-host-bootstrap-linux:/p' \
+        "$WORKFLOW"
+)"
+if [[ "$(grep -Ec '^[[:space:]]+make ' <<<"$self_host_parity_job")" != "1" ]] ||
+    ! grep -Fq 'make release' <<<"$self_host_parity_job"; then
+    echo "[self-host-ci-profile] parity job must use one make invocation with the release pair first" >&2
+    exit 1
+fi
+
 for steps in "$LINUX_STEPS" "$MACOS_STEPS" "$WINDOWS_STEPS"; do
     if ! grep -Fq 'self-host-preparation-platform-test-smoke' "$steps"; then
         echo "[self-host-ci-profile] platform profile missing from $steps" >&2
@@ -80,7 +146,15 @@ for required in \
     'timeout-minutes: 40' \
     'timeout-minutes: 60' \
     'timeout-minutes: 30' \
-    'make self-host-preparation-exhaustive-parity-test-smoke' \
+    'make release' \
+    'self-host-hard-contract-test-smoke' \
+    'self-host-intent-observability-runtime-test-smoke' \
+    'self-host-preparation-exhaustive-parity-test-smoke' \
+    'self-host-codegen-type-env-preseal-epoch-test-smoke' \
+    'self-host-compiler-internal-caller-provenance-test-smoke' \
+    'self-host-routine-build-storage-lifetime-test-smoke' \
+    'self-host-direct-mir-scalar-graph-plan-test-smoke' \
+    'self-host-public-mir-json-replacement-test-smoke' \
     'run: make self-host-codegen-bootstrap-test-smoke' \
     'make self-host-driver-bootstrap-full-test-smoke' \
     'bash tests/selfhost_bootstrap_policy_corpus_smoke.sh' \
@@ -122,12 +196,19 @@ done
 for required in \
     'while sleep 60' \
     '[self-host-driver-bootstrap] still running' \
-    'trap driver_bootstrap_stop_heartbeat EXIT'; do
+    'trap driver_bootstrap_stop_heartbeat EXIT' \
+    '"$CODEGEN_BIN" --source "$driver_rel"' \
+    '>"$DRIVER_SEED_C_RAW"' \
+    'tr -d '\''\r'\'' <"$DRIVER_SEED_C_RAW" >"$DRIVER_SEED_C"'; do
     if ! grep -Fq "$required" "$DRIVER_BOOTSTRAP"; then
         echo "[self-host-ci-profile] driver bootstrap heartbeat missing: $required" >&2
         exit 1
     fi
 done
+if grep -Fq '| tr -d '\''\r'\''' "$DRIVER_BOOTSTRAP"; then
+    echo "[self-host-ci-profile] driver bootstrap overlaps codegen and normalization lifetimes" >&2
+    exit 1
+fi
 
 platform_recipe="$(
     sed -n \

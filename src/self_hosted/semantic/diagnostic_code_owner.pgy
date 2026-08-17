@@ -30,6 +30,13 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "initializer_type_unresolved",
         "assignment_type_unresolved",
         "statement_type_unresolved",
+        "array_drop_storage_arity",
+        "array_drop_storage_requires_array",
+        "array_drop_storage_requires_binding",
+        "compiler_internal_builtin",
+        "destructure_binding_invalid",
+        "destructure_initializer_not_array",
+        "intent_signature_invalid",
         "unregistered_diagnostic_code"
     ];
     return codes;
@@ -100,6 +107,19 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     }
     if code == "assign_type_mismatch" {
         return "PGY_SEM_TYPE_MISMATCH";
+    }
+    if code == "array_drop_storage_arity" ||
+        code == "array_drop_storage_requires_array" ||
+        code == "array_drop_storage_requires_binding" ||
+        code == "compiler_internal_builtin" {
+        return "PGY_SEM_BUILTIN_ARGS_INVALID";
+    }
+    if code == "destructure_binding_invalid" ||
+        code == "destructure_initializer_not_array" {
+        return "PGY_SEM_TYPE_MISMATCH";
+    }
+    if code == "intent_signature_invalid" {
+        return "PGY_SEM_INTENT_STEP_INVALID";
     }
     return "";
 }

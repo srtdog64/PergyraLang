@@ -1,0 +1,7 @@
+func LongAddition(left: Long, right: Long) -> Long {
+    return left + right;
+}
+
+func Main() -> Void {
+    Log("long-addition-ready");
+}

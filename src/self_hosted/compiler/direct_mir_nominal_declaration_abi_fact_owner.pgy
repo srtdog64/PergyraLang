@@ -1,6 +1,5 @@
 // Exact semantic identity plus producer-owned physical receipt for one
 // direct-MIR value-struct declaration.
-
 import "../mir_lower/abi_layout_admission_fact_owner.pgy";
 import "../mir_lower/program_declaration_index_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
@@ -11,6 +10,7 @@ struct DirectMirNominalDeclarationAbiFact {
     let row: Int;
     let name: String;
     let source_syntax_id: Int;
+    let source_module_path: String;
     let field_names: Array<String>;
     let field_types: Array<String>;
     let field_kinds: Array<String>;
@@ -18,20 +18,15 @@ struct DirectMirNominalDeclarationAbiFact {
     let abi_layout_id: Int;
     let abi: MirAbiLayoutRowCapture;
 }
-
-func InvalidDirectMirNominalDeclarationAbiFact(
-) -> DirectMirNominalDeclarationAbiFact {
+func InvalidDirectMirNominalDeclarationAbiFact() -> DirectMirNominalDeclarationAbiFact {
     let strings: Array<String> = [];
     let ints: Array<Int> = [];
     return DirectMirNominalDeclarationAbiFact(
-        false, 0, 0 - 1, "", 0, strings, strings, strings, ints, 0,
+        false, 0, 0 - 1, "", 0, "", strings, strings, strings, ints, 0,
         InvalidMirAbiLayoutRowCapture()
     );
 }
-
-func DirectMirNominalDeclarationAbiFactDigest(
-    ref fact: DirectMirNominalDeclarationAbiFact
-) -> Int {
+func DirectMirNominalDeclarationAbiFactDigest(ref fact: DirectMirNominalDeclarationAbiFact) -> Int {
     if !fact.valid { return 0; }
     let count: Int = ArrayLength(fact.field_names);
     if ArrayLength(fact.field_types) != count || ArrayLength(fact.field_kinds) != count ||
@@ -42,6 +37,7 @@ func DirectMirNominalDeclarationAbiFactDigest(
     }
     let hash: Long = DirectMirCfgHashString(137L, fact.name);
     hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.source_module_path);
     let row: Int = 0;
     while row < count {
         hash = DirectMirCfgHashString(hash, fact.field_names[row]);
@@ -67,18 +63,6 @@ func DirectMirNominalDeclarationAbiFactDigest(
     hash = DirectMirCfgHashInt(hash, ToInt(fact.abi.align_text));
     return DirectMirCfgBoundedDigest(hash);
 }
-
-func DirectMirNominalDeclarationAbiFactWithDigest(
-    fact: DirectMirNominalDeclarationAbiFact,
-    digest: Int
-) -> DirectMirNominalDeclarationAbiFact {
-    return DirectMirNominalDeclarationAbiFact(
-        fact.valid, digest, fact.row, fact.name, fact.source_syntax_id,
-        fact.field_names, fact.field_types, fact.field_kinds,
-        fact.field_source_syntax_ids, fact.abi_layout_id, fact.abi
-    );
-}
-
 func DirectMirNominalDeclarationAbiFactReady(
     ref fact: DirectMirNominalDeclarationAbiFact
 ) -> Bool {
@@ -86,6 +70,7 @@ func DirectMirNominalDeclarationAbiFactReady(
     if !fact.valid || fact.digest == 0 ||
         fact.digest != DirectMirNominalDeclarationAbiFactDigest(fact) ||
         fact.row < 0 || fact.name == "" || fact.source_syntax_id <= 0 ||
+        fact.source_module_path == "" ||
         count == 0 || count > 8 ||
         ArrayLength(fact.field_types) != count ||
         ArrayLength(fact.field_kinds) != count ||
@@ -117,7 +102,6 @@ func DirectMirNominalDeclarationAbiFactReady(
     }
     return true;
 }
-
 func DirectMirNominalDeclarationAbiFactFromDocument(
     json: String,
     ref declarations: MirProgramDeclarationIndex,
@@ -135,16 +119,17 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
         json, start, end
     );
     let keys: Array<String> = [
-        "kind", "nominal_kind", "name", "source_syntax_id", "fields",
-        "abi_layout_id", "abi_layout_required", "abi_layout"
+        "kind", "nominal_kind", "name", "source_syntax_id",
+        "source_module_path", "fields", "abi_layout_id",
+        "abi_layout_required", "abi_layout"
     ];
     let starts: Array<Int> = [
-        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
     let ends: Array<Int> = [
-        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
-    if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 8 ||
+    if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 9 ||
         !MirAbiSelectedObjectBoundsWithin(
             json, start, end, keys, starts, ends
         ) || !MirAbiAllBoundsPresent(starts, ends) {
@@ -156,11 +141,16 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
     let syntax_id: Option<String> = MirAbiIntegerValueAtBounds(
         json, starts[3], ends[3]
     );
-    let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[5], ends[5]
+    let source_path: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[4], ends[4], false
     );
-    if !IsSome(name) || !IsSome(syntax_id) || !IsSome(abi_id) ||
+    let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[6], ends[6]
+    );
+    if !IsSome(name) || !IsSome(syntax_id) || !IsSome(source_path) ||
+        !IsSome(abi_id) ||
         UnwrapOption(name) != declarations.names[row] ||
+        UnwrapOption(source_path) != declarations.source_module_paths[row] ||
         ToInt(UnwrapOption(syntax_id)) <= 0 ||
         ToInt(UnwrapOption(abi_id)) <= 0 {
         return InvalidDirectMirNominalDeclarationAbiFact();
@@ -168,7 +158,7 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
     let admitted_abi: Option<MirAbiLayoutRowCapture> =
         MirCapturedRequiredAbiLayoutRowAdmission(
             json, UnwrapOption(name), true, starts[2], ends[2],
-            starts[5], ends[5], starts[6], ends[6], starts[7], ends[7]
+            starts[6], ends[6], starts[7], ends[7], starts[8], ends[8]
         );
     let fields: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(object_table, "fields");
@@ -205,13 +195,18 @@ func DirectMirNominalDeclarationAbiFactFromDocument(
     let fact: DirectMirNominalDeclarationAbiFact =
         DirectMirNominalDeclarationAbiFact(
             true, 0, row, UnwrapOption(name),
-            ToInt(UnwrapOption(syntax_id)), field_names, field_types,
+            ToInt(UnwrapOption(syntax_id)), UnwrapOption(source_path),
+            field_names, field_types,
             field_kinds, field_ids, ToInt(UnwrapOption(abi_id)),
             UnwrapOption(admitted_abi)
-        );
+    );
     let verified: DirectMirNominalDeclarationAbiFact =
-        DirectMirNominalDeclarationAbiFactWithDigest(
-            fact, DirectMirNominalDeclarationAbiFactDigest(fact)
+        DirectMirNominalDeclarationAbiFact(
+            fact.valid, DirectMirNominalDeclarationAbiFactDigest(fact),
+            fact.row, fact.name, fact.source_syntax_id,
+            fact.source_module_path, fact.field_names, fact.field_types,
+            fact.field_kinds, fact.field_source_syntax_ids,
+            fact.abi_layout_id, fact.abi
         );
     if !DirectMirNominalDeclarationAbiFactReady(verified) {
         return InvalidDirectMirNominalDeclarationAbiFact();

@@ -189,7 +189,8 @@ func Main() -> Void with caps io_read, env {
             SemanticAstFunctionSignatureFacts(
                 base.ok, base.diagnostic_code, base.diagnostic_message,
                 base.diagnostic_fact, base.artifact_node_count,
-                base.action_contracts, unique_nodes, unique_owners,
+                base.action_contracts, unique_nodes, base.module_paths,
+                unique_owners,
                 base.runtime_callables, unique_names, base.return_types,
                 base.type_expressions, base.generic_starts,
                 base.generic_counts, base.generic_names, base.param_starts,
@@ -213,7 +214,8 @@ func Main() -> Void with caps io_read, env {
             SemanticAstFunctionSignatureFacts(
                 base.ok, base.diagnostic_code, base.diagnostic_message,
                 base.diagnostic_fact, base.artifact_node_count,
-                base.action_contracts, collision_nodes, collision_owners,
+                base.action_contracts, collision_nodes, base.module_paths,
+                collision_owners,
                 base.runtime_callables, collision_names, base.return_types,
                 base.type_expressions, base.generic_starts,
                 base.generic_counts, base.generic_names, base.param_starts,
@@ -230,7 +232,8 @@ func Main() -> Void with caps io_read, env {
             SemanticAstFunctionSignatureFacts(
                 base.ok, base.diagnostic_code, base.diagnostic_message,
                 base.diagnostic_fact, base.artifact_node_count,
-                base.action_contracts, invalid_nodes, invalid_owners,
+                base.action_contracts, invalid_nodes, base.module_paths,
+                invalid_owners,
                 base.runtime_callables, invalid_names, base.return_types,
                 base.type_expressions, base.generic_starts,
                 base.generic_counts, base.generic_names, base.param_starts,

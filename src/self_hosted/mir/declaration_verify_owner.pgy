@@ -62,6 +62,9 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
     let count: Int = ArrayLength(rows.names);
     if !SelfMirDeclarationParallelStringCount(count, rows.kinds) ||
         !SelfMirDeclarationParallelStringCount(count, rows.nominal_kinds) ||
+        !SelfMirDeclarationParallelStringCount(
+            count, rows.source_module_paths
+        ) ||
         !SelfMirDeclarationParallelStringCount(count, rows.target_types) ||
         !SelfMirDeclarationParallelCount(count, rows.uses_pointer_self) ||
         !SelfMirDeclarationParallelCount(count, rows.field_starts) ||
@@ -140,6 +143,7 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
     let i: Int = 0;
     while i < count {
         if rows.names[i] == "" || rows.kinds[i] == "" ||
+            rows.source_module_paths[i] == "" ||
             rows.nominal_kinds[i] == "" ||
             !CallableReceiverNominalKindKnown(rows.nominal_kinds[i]) ||
             rows.uses_pointer_self[i] !=

@@ -1,4 +1,4 @@
-// Target-neutral Option<Int> ABI receipt. Every physical field needed to
+// Target-neutral Option aggregate ABI receipt. Every physical field needed to
 // reconstruct the canonical layout identity survives admission; emitters may
 // project it, but cannot re-invent aggregate shape or field positions.
 

@@ -158,6 +158,8 @@ func CompilerRuntimeCallAbiCheckedArithmeticCallShape(
 ) -> String {
     if operation == "float-to-int" { return "double_to_int"; }
     if operation == "float-to-long" { return "double_to_long"; }
+    if operation == "long-modulo" { return "long_long_to_long"; }
+    if operation == "long-division" { return "long_long_to_long"; }
     return "checked_arithmetic_runtime_call";
 }
 
@@ -251,7 +253,7 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
 }
 
 func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
-    return 246;
+    return 256;
 }
 
 func CompilerRuntimeCallAbiNativeScalarTypeAt(index: Int) -> String {
@@ -399,6 +401,12 @@ func CompilerRuntimeCallAbiCollectionRowAt(index: Int) -> String {
     if index == 19 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.reverse", CollectionRuntimeCIntReverseFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 20 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.map", CollectionRuntimeCIntMapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 21 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.filter", CollectionRuntimeCIntFilterFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 22 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-long.new", CollectionRuntimeCNewFn(7), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 23 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-long.push", CollectionRuntimeCPushFn(7), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 24 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-long.set", CollectionRuntimeCSetFn(7), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 25 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-long.get", CollectionRuntimeCGetFn(7), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 26 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-long.len", CollectionRuntimeCLenFn(7), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 27 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-long.pop", CollectionRuntimeCPopFn(7), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 
@@ -419,6 +427,8 @@ func CompilerRuntimeCallAbiOptionResultRowAt(index: Int) -> String {
     if index == 13 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.is-err", OptionResultRuntimeCResultIsErrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 14 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.unwrap", OptionResultRuntimeCResultUnwrapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 15 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.unwrap-or", OptionResultRuntimeCResultUnwrapOrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 16 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-long.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindLong()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 17 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-long.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindLong()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 
@@ -497,6 +507,8 @@ func CompilerRuntimeCallAbiTextBuilderRowAt(index: Int) -> String {
 func CompilerRuntimeCallAbiCheckedArithmeticRowAt(index: Int) -> String {
     if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "float-to-int", CheckedArithmeticRuntimeCFloatToIntegerFn("Int"), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
     if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "float-to-long", CheckedArithmeticRuntimeCFloatToIntegerFn("Long"), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "long-modulo", CheckedArithmeticRuntimeCLongModuloFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "long-division", CheckedArithmeticRuntimeCLongDivisionFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
     return "";
 }
 
@@ -513,6 +525,10 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index >= 237 && index < 243 { return CompilerRuntimeCallAbiTextBuilderRowAt(index - 237); }
     if index >= 243 && index < 245 { return CompilerRuntimeCallAbiCheckedArithmeticRowAt(index - 243); }
     if index == 245 { return CompilerRuntimeCallAbiStringRowAt(24); }
+    if index == 246 { return CompilerRuntimeCallAbiCheckedArithmeticRowAt(2); }
+    if index == 247 { return CompilerRuntimeCallAbiCheckedArithmeticRowAt(3); }
+    if index >= 248 && index < 254 { return CompilerRuntimeCallAbiCollectionRowAt(index - 226); }
+    if index >= 254 && index < 256 { return CompilerRuntimeCallAbiOptionResultRowAt(index - 238); }
     return "";
 }
 
@@ -545,12 +561,16 @@ func CompilerRuntimeCallAbiRowsReady() -> Bool {
         CompilerRuntimeCallAbiConcreteRowCount() > 0 &&
         CompilerRuntimeCallAbiRowAt(CompilerRuntimeCallAbiConcreteRowCount()) == "" &&
         CompilerRuntimeCallAbiRowFor("collection", "array-int.new") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("collection", "array-long.new") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-long.new", CollectionRuntimeCNewFn(7), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowFor("option-result", "option-int.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("option-result", "option-long.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-long.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindLong()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowFor("option-result", "option-float.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-float.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowFor("option-result", "option-double.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-double.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindDouble()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowFor("math", "abs") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowFor("checked-arithmetic", "float-to-int") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "float-to-int", CheckedArithmeticRuntimeCFloatToIntegerFn("Int"), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
         CompilerRuntimeCallAbiRowFor("checked-arithmetic", "float-to-long") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "float-to-long", CheckedArithmeticRuntimeCFloatToIntegerFn("Long"), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("checked-arithmetic", "long-modulo") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "long-modulo", CheckedArithmeticRuntimeCLongModuloFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("checked-arithmetic", "long-division") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "long-division", CheckedArithmeticRuntimeCLongDivisionFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
         CompilerRuntimeCallAbiRowFor("string", "concat") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowFor("host-io", "file-exists") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowFor("host-io", "exit") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&

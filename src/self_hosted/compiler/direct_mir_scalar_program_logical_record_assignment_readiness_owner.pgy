@@ -1,0 +1,160 @@
+// Cross-checks direct and nested logical-record assignment operations.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
+    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+) -> String {
+    if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+        plan.operation_kinds[operation] !=
+            DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() {
+        return "";
+    }
+    let target: Int =
+        plan.program.operation_secondary_expression_rows[operation];
+    if target < 0 || target >=
+            ArrayLength(plan.program.expressions.graph_roots) {
+        return "";
+    }
+    let root: Int = plan.program.expressions.graph_roots[target];
+    if root < 0 || root >= ArrayLength(plan.program.expressions.node_types) {
+        return "";
+    }
+    let element_type: String = plan.program.expressions.node_types[root];
+    let index_kind: Int = DirectMirScalarProgramExprArrayIntIndex();
+    let array_type: String = CompilerAbiLayoutArrayIntTypeName();
+    if element_type == CompilerAbiLayoutStringTypeName() {
+        index_kind = DirectMirScalarProgramExprArrayStringIndex();
+        array_type = CompilerAbiLayoutArrayStringTypeName();
+    } else if element_type != CompilerAbiLayoutIntTypeName() { return ""; }
+    let array_node: Int = plan.program.expressions.node_lefts[root];
+    let index_node: Int = plan.program.expressions.node_rights[root];
+    if plan.program.expressions.node_kinds[root] != index_kind ||
+        array_node < 0 || index_node < 0 ||
+        plan.program.expressions.node_types[array_node] != array_type ||
+        plan.program.expressions.node_types[index_node] !=
+            CompilerAbiLayoutIntTypeName() { return ""; }
+    return element_type;
+}
+func DirectMirScalarProgramLogicalRecordAssignmentTargetReady(
+    ref plan: DirectMirScalarCfgGraphPlan, target_root: Int,
+    result: Int, routine: Int
+) -> Bool {
+    let local_row: Int = plan.value_local_rows[result];
+    let base: Int = target_root;
+    while base >= 0 && plan.program.expressions.node_kinds[base] ==
+            DirectMirScalarProgramExprLogicalRecordMember() {
+        base = plan.program.expressions.node_lefts[base];
+    }
+    if base < 0 { return false; }
+    let parameter: Int = SelfMirLocalRefParameterOrdinalForOwner(
+        plan.local_ref_value_ids[local_row], plan.routines.source_syntax_ids[routine]);
+    if parameter < 0 {
+        return plan.program.expressions.node_kinds[base] ==
+                DirectMirScalarProgramExprLocal() &&
+            plan.program.expressions.node_local_rows[base] == local_row &&
+            plan.local_ref_kinds[local_row] ==
+                DirectMirScalarCfgLocalRefValue();
+    }
+    if plan.program.expressions.node_kinds[base] !=
+            DirectMirScalarProgramExprParameter() {
+        return false;
+    }
+    let ordinal: Int = plan.program.expressions.node_parameter_ordinals[base];
+    if ordinal != parameter || ordinal >=
+            plan.routines.parameter_counts[routine] {
+        return false;
+    }
+    let parameter_row: Int = plan.routines.parameter_starts[routine] + ordinal;
+    if plan.routines.parameter_types[parameter_row] !=
+            plan.value_types[result] { return false; }
+    let carriage: String = plan.routines.parameter_carriages[parameter_row];
+    if carriage == "value-result" {
+        return local_row == DirectMirScalarProgramLogicalRecordValueResultLocalRow(
+            plan, routine, ordinal);
+    }
+    return carriage == "value" &&
+        plan.local_ref_value_ids[local_row] == SelfMirLocalRef(
+            "parameter", plan.routines.source_syntax_ids[routine], ordinal);
+}
+func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, routine: Int
+) -> Bool {
+    let result: Int = plan.operation_result_values[operation];
+    if result < 0 || result >= ArrayLength(plan.value_types) ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            plan.program.logical_record, plan.value_types[result]) {
+        return false;
+    }
+    let local_row: Int = plan.value_local_rows[result];
+    if local_row < 0 || local_row >= ArrayLength(plan.local_types) ||
+        plan.local_types[local_row] != plan.value_types[result] {
+        return false;
+    }
+    let value_expression: Int =
+        plan.program.operation_expression_rows[operation];
+    let target_expression: Int =
+        plan.program.operation_secondary_expression_rows[operation];
+    let root: Int = plan.program.expressions.graph_roots[target_expression];
+    let element_type: String =
+        DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
+            plan, operation);
+    if element_type == "" { return false; }
+    if !DirectMirScalarCfgProgramExpressionRowReady(
+            plan, value_expression, element_type,
+            routine) ||
+        !DirectMirScalarCfgProgramExpressionRowReady(
+            plan, target_expression, element_type,
+            routine) {
+        return false;
+    }
+    let array_node: Int = plan.program.expressions.node_lefts[root];
+    return DirectMirScalarProgramLogicalRecordAssignmentTargetReady(
+        plan, array_node, result, routine);
+}
+func DirectMirScalarProgramLogicalRecordAssignmentReadinessCode(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, routine: Int
+) -> Int {
+    let kind: Int = plan.operation_kinds[operation];
+    if kind == DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() {
+        if DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentReady(
+                plan, operation, routine) { return 0; }
+        return 23;
+    }
+    if kind != DirectMirScalarCfgOpLogicalRecordMemberRebind() { return 16; }
+    let result: Int = plan.operation_result_values[operation];
+    if result < 0 || result >= ArrayLength(plan.value_types) { return 16; }
+    let local_row: Int = plan.value_local_rows[result];
+    if local_row < 0 ||
+        local_row >= ArrayLength(plan.local_ref_value_ids) { return 17; }
+    let target_expression: Int =
+        plan.program.operation_secondary_expression_rows[operation];
+    if target_expression < 0 || target_expression >=
+            ArrayLength(plan.program.expressions.graph_roots) { return 19; }
+    let target_root: Int =
+        plan.program.expressions.graph_roots[target_expression];
+    let member: Int = plan.operation_right_locals[operation];
+    if target_root < 0 || plan.program.expressions.node_kinds[target_root] !=
+            DirectMirScalarProgramExprLogicalRecordMember() ||
+        plan.program.expressions.node_member_ordinals[target_root] != member {
+        return 19;
+    }
+    let receiver: Int = plan.program.expressions.node_lefts[target_root];
+    let field_type: String = plan.program.expressions.node_types[target_root];
+    if receiver < 0 || field_type == "" || field_type !=
+            DirectMirScalarProgramLogicalRecordFieldType(
+                plan.program.logical_record,
+                plan.program.expressions.node_types[receiver], member) {
+        return 19;
+    }
+    if !DirectMirScalarProgramLogicalRecordAssignmentTargetReady(
+            plan, target_root, result, routine) { return 20; }
+    if !DirectMirScalarCfgProgramExpressionRowReady(
+            plan, target_expression, field_type, routine) { return 21; }
+    if !DirectMirScalarCfgProgramExpressionRowReady(
+            plan, plan.program.operation_expression_rows[operation],
+            field_type, routine) { return 21; }
+    return 0;
+}

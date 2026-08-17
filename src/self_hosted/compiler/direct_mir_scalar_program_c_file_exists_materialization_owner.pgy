@@ -1,0 +1,18 @@
+// C adapter from the sealed host-io FileExists receipt to native runtime facts.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
+
+func DirectMirScalarProgramCFileExistsBlock(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    if plan.program.runtime_abi.file_exists_id == 0 { return ""; }
+    if !runtime.file_exists.ok || runtime.file_exists.symbol !=
+            HostIORuntimeCFileExistsFn() {
+        Die("direct MIR scalar C file-exists ABI is invalid");
+    }
+    return Concat("#include \"pgy_runtime.h\"\nstatic int ", Concat(
+        runtime.file_exists.symbol,
+        "(const char *path) { return pgy_file_exists(path) ? 1 : 0; }\n\n"));
+}

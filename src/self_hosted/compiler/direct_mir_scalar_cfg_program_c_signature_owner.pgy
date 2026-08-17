@@ -1,58 +1,131 @@
 // C signatures projected from ordered GraphPlan routine parameter facts.
-
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_c_option_int_owner.pgy";
+import "direct_mir_scalar_program_c_option_string_owner.pgy";
+import "direct_mir_scalar_program_c_option_bool_owner.pgy";
 import "direct_mir_scalar_program_c_two_int_nominal_owner.pgy";
-
+import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 func DirectMirScalarCfgProgramCType(
     type_name: String, int_c_type: String,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> String {
+    if type_name == "Void" { return "void"; }
+    if type_name == CompilerAbiLayoutIntTypeName() && int_c_type != CompilerAbiLayoutIntCValueType() { Die("direct MIR scalar C Int ABI spelling is stale"); }
     if type_name == CompilerAbiLayoutIntTypeName() { return int_c_type; }
+    if type_name == CompilerAbiLayoutLongTypeName() { return CompilerAbiLayoutLongCValueType(); }
     if type_name == CompilerAbiLayoutBoolTypeName() { return "bool"; }
-    if type_name == CompilerAbiLayoutStringTypeName() {
-        return CompilerAbiLayoutStringCValueType();
+    if type_name == CompilerAbiLayoutStringTypeName() { return CompilerAbiLayoutStringCValueType(); }
+    if type_name == CompilerAbiLayoutArrayStringTypeName() { return CompilerAbiLayoutArrayStringCValueType(); }
+    if type_name == CompilerAbiLayoutArrayIntTypeName() {
+        return CompilerAbiLayoutArrayIntCValueType();
     }
-    if type_name == CompilerAbiLayoutArrayStringTypeName() {
-        return CompilerAbiLayoutArrayStringCValueType();
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() {
+        return CompilerAbiLayoutArrayBoolCValueType();
+    }
+    if type_name == CompilerAbiLayoutSetStringTypeName() {
+        return CompilerAbiLayoutSetStringCValueType();
     }
     if type_name == CompilerAbiLayoutOptionIntTypeName() {
         return DirectMirScalarProgramCOptionIntTypeName();
     }
+    if type_name == CompilerAbiLayoutOptionStringTypeName() {
+        return DirectMirScalarProgramCOptionStringTypeName();
+    }
+    if type_name == CompilerAbiLayoutOptionBoolTypeName() {
+        return DirectMirScalarProgramCOptionBoolTypeName();
+    }
     if DirectMirScalarProgramTwoIntNominalTypeReady(nominal, type_name) {
         return DirectMirScalarProgramCTwoIntNominalTypeName();
     }
+    if DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) {
+        return DirectMirScalarProgramCLogicalRecordTypeName(logical_record, type_name);
+    }
+    if DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name) {
+        return DirectMirScalarProgramCLogicalRecordOptionTypeName(logical_record, type_name);
+    }
+    if DirectMirScalarProgramLogicalRecordArrayTypeReady(logical_record, type_name) {
+        return DirectMirScalarProgramCLogicalRecordArrayTypeName(
+            logical_record, type_name);
+    }
+    if DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            payload_free_enum, type_name) {
+        return CompilerAbiLayoutPayloadFreeEnumCValueType();
+    }
     return "";
 }
-
 func DirectMirScalarCfgProgramCRoutineName(routine: Int) -> String {
     return Concat("pgy_scalar_routine_", ToString(routine));
 }
-
 func DirectMirScalarCfgProgramCSignature(
     ref plan: DirectMirScalarCfgGraphPlan,
     routine: Int, int_c_type: String, prototype: Bool
 ) -> String {
     if routine == plan.routines.entrypoint_ordinal {
         if prototype { return ""; }
+        if plan.program.runtime_abi.process_args_id != 0 {
+            return HostIORuntimeCEntrypointSignature(true);
+        }
         return "int main(void)";
     }
     let output: String = Concat("static ", Concat(
         DirectMirScalarCfgProgramCType(
             plan.routines.return_types[routine], int_c_type,
-            plan.program.nominal_abi), " "));
+            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.payload_free_enum), " "));
     output = Concat(output,
         DirectMirScalarCfgProgramCRoutineName(routine));
     output = Concat(output, "(");
+    if plan.routines.parameter_counts[routine] == 0 {
+        output = Concat(output, "void");
+    }
     let ordinal: Int = 0;
     let start: Int = plan.routines.parameter_starts[routine];
     while ordinal < plan.routines.parameter_counts[routine] {
         if ordinal > 0 { output = Concat(output, ", "); }
+        let value_result: Bool =
+            DirectMirScalarProgramArrayIntValueResultAt(
+                plan.program.array_int_value_result, routine, ordinal) ||
+            DirectMirScalarProgramArrayBoolValueResultAt(
+                plan.program.array_bool_abi, routine, ordinal) ||
+            DirectMirScalarProgramArrayStringValueResultAt(
+                plan.program.array_string_abi, routine, ordinal) ||
+            DirectMirScalarProgramLogicalRecordValueResultAt(
+                plan, routine, ordinal) ||
+            DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+                plan, routine, ordinal) ||
+            DirectMirScalarProgramSetStringValueResultAt(
+                plan, routine, ordinal);
+        let parameter_row: Int = start + ordinal;
+        let readonly_record: Bool = plan.routines.parameter_carriages[
+                parameter_row] == "readonly-ref" &&
+            DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record,
+                plan.routines.parameter_types[parameter_row]);
+        let readonly_array_string: Bool =
+            DirectMirScalarProgramArrayStringReadonlyRefAt(
+                plan.routines, routine, ordinal);
+        if readonly_record || readonly_array_string {
+            output = Concat(output, "const ");
+        }
         output = Concat(output, DirectMirScalarCfgProgramCType(
-            plan.routines.parameter_types[start + ordinal], int_c_type,
-            plan.program.nominal_abi));
+            plan.routines.parameter_types[parameter_row], int_c_type,
+            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.payload_free_enum));
+        if value_result || readonly_record || readonly_array_string {
+            output = Concat(output, " *");
+        }
+        else { output = Concat(output, " "); }
         output = Concat(output, Concat(
-            " pgy_param_", ToString(ordinal)));
+            "pgy_param_", ToString(ordinal)));
+        if value_result { output = Concat(output, "_mutref"); }
         ordinal = ordinal + 1;
     }
     output = Concat(output, ")");

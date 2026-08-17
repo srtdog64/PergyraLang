@@ -34,7 +34,8 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                                       const char *zone_alias,
                                       const char *from_alias,
                                       const char **who_aliases,
-                                      size_t who_alias_count)
+                                      size_t who_alias_count,
+                                      bool emit_observability)
 {
     const char *from_zone_type_name;
     LLVMVarEntry zone_var;
@@ -62,9 +63,9 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
         return;
 
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
-    trace_materialize_fn = ctx->uses_intent_observability
+    trace_materialize_fn = ctx->uses_intent_observability && emit_observability
         ? llvm_lookup_function(ctx, "pgy_intent_trace_materialize_export") : NULL;
-    trace_transfer_fn = ctx->uses_intent_observability
+    trace_transfer_fn = ctx->uses_intent_observability && emit_observability
         ? llvm_lookup_function(ctx, "pgy_intent_trace_transfer_export") : NULL;
     from_zone_type_name = llvm_intent_zone_binding_type_name(ctx, from_alias);
 

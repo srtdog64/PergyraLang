@@ -1,0 +1,78 @@
+// LLVM copy and mutation boundary for admitted Array<String> value-result formals.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayStringValueResultAt(
+                plan.program.array_string_abi, routine, parameter) {
+            let spelling: String = ToString(parameter);
+            output = Concat(output, "  %pgy.param.");
+            output = Concat(output, spelling);
+            output = Concat(output,
+                ".local = alloca %pgy.array.string, align 8\n");
+            output = Concat(output, "  %pgy.param.");
+            output = Concat(output, spelling);
+            output = Concat(output,
+                ".copyin = load %pgy.array.string, ptr %pgy.param.");
+            output = Concat(output, spelling);
+            output = Concat(output, ".mutref, align 8\n");
+            output = Concat(output,
+                "  store %pgy.array.string %pgy.param.");
+            output = Concat(output, spelling);
+            output = Concat(output, ".copyin, ptr %pgy.param.");
+            output = Concat(output, spelling);
+            output = Concat(output, ".local, align 8\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayStringValueResultAt(
+                plan.program.array_string_abi, routine, parameter) {
+            let spelling: String = ToString(parameter);
+            output = Concat(output, "  %pgy.param.");
+            output = Concat(output, spelling);
+            output = Concat(output, ".copyout.");
+            output = Concat(output, ToString(exit_block));
+            output = Concat(output,
+                " = load %pgy.array.string, ptr %pgy.param.");
+            output = Concat(output, spelling);
+            output = Concat(output, ".local, align 8\n");
+            output = Concat(output,
+                "  store %pgy.array.string %pgy.param.");
+            output = Concat(output, spelling);
+            output = Concat(output, ".copyout.");
+            output = Concat(output, ToString(exit_block));
+            output = Concat(output, ", ptr %pgy.param.");
+            output = Concat(output, spelling);
+            output = Concat(output, ".mutref, align 8\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmArrayStringValueResultPush(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, parameter: Int, value: String
+) -> String {
+    if parameter < 0 || value == "" ||
+        !DirectMirScalarProgramArrayStringValueResultAt(
+            plan.program.array_string_abi, routine, parameter) {
+        Die("direct MIR LLVM Array<String> value-result push is invalid");
+    }
+    return Concat("  call void @pgy_as_push(ptr %pgy.param.", Concat(
+        ToString(parameter), Concat(".local, ptr ", Concat(value, ")\n"))));
+}

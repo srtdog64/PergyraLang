@@ -1,0 +1,15 @@
+// Array<Int> return reuses the admitted storage ABI without a mutref.
+
+func EmptyValues(seed: Int) -> Array<Int> {
+    let values: Array<Int> = [];
+    return values;
+}
+
+func CountValues(values: Array<Int>) -> Int {
+    return 0;
+}
+
+func Main() -> Void {
+    let returned: Array<Int> = EmptyValues(7);
+    Log(ToString(CountValues(returned)));
+}

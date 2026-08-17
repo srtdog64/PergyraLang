@@ -325,6 +325,9 @@ func SelfMirJsonDeclaration(
             "source_syntax_id",
             ToString(rows.source_syntax_ids[declaration_index])
         ),
+        JsonEmitFieldString(
+            "source_module_path", rows.source_module_paths[declaration_index]
+        ),
         JsonEmitFieldRaw("fields", JsonEmitArray(fields_rows))
     ];
     if rows.nominal_kinds[declaration_index] == "struct" {

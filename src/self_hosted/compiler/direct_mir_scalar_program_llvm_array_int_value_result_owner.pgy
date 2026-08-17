@@ -1,0 +1,138 @@
+// LLVM representation and value-result copy boundary for Array<Int> parameters.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_mutation_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+
+func DirectMirScalarProgramLlvmArrayIntGetMaterialization() -> String {
+    return "define internal i64 @${CollectionRuntimeCGetFn(1)}(%pgy.array.int %array, i64 %index) {\nentry:\n  %length = extractvalue %pgy.array.int %array, 1\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %read\n\npanic:\n  call void @${CollectionRuntimeLlvmBoundsPanicFn()}(ptr null)\n  unreachable\n\nread:\n  %data = extractvalue %pgy.array.int %array, 0\n  %slot = getelementptr inbounds i32, ptr %data, i64 %index\n  %stored = load i32, ptr %slot, align 4\n  %value = sext i32 %stored to i64\n  ret i64 %value\n}\n\n";
+}
+func DirectMirScalarProgramLlvmArrayIntValueResultPreamble(
+    ref fact: DirectMirScalarProgramArrayIntValueResultFact,
+    requirement: DirectMirScalarProgramArrayIntRuntimeRequirement,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact) {
+        Die("direct MIR LLVM Array<Int> value-result fact is invalid");
+    }
+    if !fact.present { return ""; }
+    if !requirement.valid { Die("direct MIR LLVM Array<Int> helper requirement is invalid"); }
+    let abi: DirectMirArrayIntAbiProjection =
+        DirectMirScalarProgramArrayIntValueResultTargetFromFact(fact, target);
+    let output: String = Concat("%pgy.array.int = type ",
+        Concat(abi.llvm_aggregate_type, "\n"));
+    if requirement.push { output = Concat(output,
+        DirectMirScalarProgramLlvmArrayIntPushMaterialization()); }
+    if requirement.get { output = Concat(output,
+        DirectMirScalarProgramLlvmArrayIntGetMaterialization()); }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmArrayIntMutationTarget(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, parameter: Int
+) -> Bool {
+    let offset: Int = 0;
+    while offset < plan.routines.operation_counts[routine] {
+        let operation: Int = plan.routines.operation_starts[routine] + offset;
+        let kind: Int = plan.operation_kinds[operation];
+        if (kind == DirectMirScalarCfgOpArrayIntPush() ||
+            kind == DirectMirScalarCfgOpArrayIntValueResultSet() ||
+            kind == DirectMirScalarCfgOpArrayIntPop()) &&
+            plan.operation_right_locals[operation] == parameter {
+            return true;
+        }
+        offset = offset + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayIntValueResultAt(
+                plan.program.array_int_value_result, routine, parameter) {
+            let mutated: Bool =
+                DirectMirScalarProgramLlvmArrayIntMutationTarget(
+                    plan, routine, parameter);
+            if mutated {
+                output = Concat(output, "  %pgy.param.");
+                output = Concat(output, ToString(parameter));
+                output = Concat(output,
+                    ".local = alloca %pgy.array.int, align 8\n");
+            }
+            output = Concat(output, "  %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output,
+                " = load %pgy.array.int, ptr %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ".mutref, align 8\n");
+            if mutated {
+                output = Concat(output,
+                    "  store %pgy.array.int %pgy.param.");
+                output = Concat(output, ToString(parameter));
+                output = Concat(output, ", ptr %pgy.param.");
+                output = Concat(output, ToString(parameter));
+                output = Concat(output, ".local, align 8\n");
+            }
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        let row: Int = plan.routines.parameter_starts[routine] + parameter;
+        if plan.routines.parameter_carriages[row] == "value" &&
+            plan.routines.parameter_types[row] ==
+                CompilerAbiLayoutArrayIntTypeName() {
+            let spelling: String = ToString(parameter);
+            output = Concat(output, Concat("  %pgy.param.", Concat(
+                spelling, ".local = alloca %pgy.array.int, align 8\n")));
+            output = Concat(output, Concat("  store %pgy.array.int %pgy.param.",
+                Concat(spelling, Concat(", ptr %pgy.param.", Concat(
+                    spelling, ".local, align 8\n")))));
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmArrayIntValueResultCopyOut(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramArrayIntValueResultAt(
+                plan.program.array_int_value_result, routine, parameter) {
+            let spelling: String = ToString(parameter);
+            let value: String = Concat("%pgy.param.", spelling);
+            if DirectMirScalarProgramLlvmArrayIntMutationTarget(
+                    plan, routine, parameter) {
+                value = Concat(Concat(value, ".copyout."), ToString(exit_block));
+                output = Concat(output, Concat("  ", Concat(
+                    value, " = load %pgy.array.int, ptr ")));
+                output = Concat(output, Concat(
+                    Concat("%pgy.param.", spelling), ".local, align 8\n"));
+            }
+            output = Concat(output,
+                "  store %pgy.array.int ");
+            output = Concat(output, value);
+            output = Concat(output, ", ptr %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ".mutref, align 8\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}

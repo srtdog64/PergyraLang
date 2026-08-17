@@ -1,5 +1,4 @@
-// Exact semantic shape for StringReplace and integer math expressions.
-
+// Exact semantic shape for StringReplace and checked numeric expressions.
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 
 func DirectMirScalarProgramCaseMathExpressionNodeReady(
@@ -10,6 +9,9 @@ func DirectMirScalarProgramCaseMathExpressionNodeReady(
         kind != DirectMirScalarProgramExprAbsInt() &&
         kind != DirectMirScalarProgramExprMinInt() &&
         kind != DirectMirScalarProgramExprMaxInt() &&
+        kind != DirectMirScalarProgramExprModuloInt() &&
+        kind != DirectMirScalarProgramExprModuloLong() &&
+        kind != DirectMirScalarProgramExprDivideLong() &&
         kind != DirectMirScalarProgramExprStringReplace() { return None; }
     if facts.node_local_rows[node] != -1 ||
         facts.node_parameter_ordinals[node] != -1 ||
@@ -34,6 +36,13 @@ func DirectMirScalarProgramCaseMathExpressionNodeReady(
     }
     let left: Int = facts.node_lefts[node];
     let right: Int = facts.node_rights[node];
+    if kind == DirectMirScalarProgramExprModuloLong() ||
+            kind == DirectMirScalarProgramExprDivideLong() {
+        return Some(left >= 0 && left < node && right >= 0 && right < node &&
+            facts.node_types[left] == CompilerAbiLayoutLongTypeName() &&
+            facts.node_types[right] == CompilerAbiLayoutLongTypeName() &&
+            facts.node_types[node] == CompilerAbiLayoutLongTypeName());
+    }
     if left < 0 || left >= node || facts.node_types[left] !=
             CompilerAbiLayoutIntTypeName() || facts.node_types[node] !=
             CompilerAbiLayoutIntTypeName() { return Some(false); }

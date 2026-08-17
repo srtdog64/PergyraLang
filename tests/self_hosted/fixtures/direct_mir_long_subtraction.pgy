@@ -1,0 +1,7 @@
+func LongSubtraction(left: Long, right: Long) -> Long {
+    return left - right;
+}
+
+func Main() -> Void {
+    Log("long-subtraction-ready");
+}

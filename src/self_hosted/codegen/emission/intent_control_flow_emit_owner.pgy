@@ -4,6 +4,7 @@ import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
+import "intent_observability_emit_owner.pgy";
 
 func CodegenIntentExecutableStepCount(
     artifact: AstTreeArtifact,
@@ -28,7 +29,13 @@ func CodegenIntentExecutableStepCount(
 
 func CodegenIntentEmitControlPrologue(
     inout body: Array<String>,
-    step_count: Int
+    step_count: Int,
+    uses_intent_observability: Bool,
+    artifact: AstTreeArtifact,
+    intent_node: Int,
+    ref intents: SemanticAstIntentSignatureFacts,
+    intent_index: Int,
+    env: CodegenTypeEnv
 ) -> Void {
     if step_count <= 0 { Die("self-host intent has no executable step"); }
     ArrayPush(body, "    bool __intent_failed = false;\n");
@@ -37,6 +44,11 @@ func CodegenIntentEmitControlPrologue(
             ToString(step_count), "] = { false };\n"
         )
     ));
+    CodegenIntentObservabilityEmitPrologue(
+        body, uses_intent_observability, artifact, intent_node,
+        intents, intent_index, env,
+        "        __intent_failed = true;\n        goto __intent_cleanup;\n"
+    );
 }
 
 func CodegenIntentEmitStepCompleted(
@@ -55,6 +67,8 @@ func CodegenIntentEmitPredicate(
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     expression_node: Int,
     clause_name: String,
+    step_name: String,
+    uses_intent_observability: Bool,
     step_env: CodegenTypeEnv
 ) -> Void {
     let graph: SemanticExpressionGraphView =
@@ -74,9 +88,12 @@ func CodegenIntentEmitPredicate(
     );
     ArrayPush(body, Concat(
         "    if (!( ", Concat(expression, Concat(
-            " )) {\n        __intent_failed = true;\n",
+            " )) {\n        __intent_failed = true;\n", Concat(
+            CodegenIntentObservabilityFailureLine(
+                uses_intent_observability, clause_name, step_name
+            ),
             "        goto __intent_cleanup;\n    }\n"
-        ))
+        )))
     ));
 }
 
@@ -101,7 +118,8 @@ func CodegenIntentEmitCleanup(
     compensation_counts: Array<Int>,
     compensation_expressions: Array<String>,
     step_sync_expressions: Array<String>,
-    step_writeback_expressions: Array<String>
+    step_writeback_expressions: Array<String>,
+    uses_intent_observability: Bool
 ) -> Void {
     if ArrayLength(compensation_starts) != step_count ||
         ArrayLength(compensation_counts) != step_count ||
@@ -151,5 +169,6 @@ func CodegenIntentEmitCleanup(
         }
     }
     ArrayPush(body, "    }\n");
+    CodegenIntentObservabilityEmitExit(body, uses_intent_observability);
     ArrayPush(body, "    return !__intent_failed;\n");
 }

@@ -45,6 +45,8 @@ struct MirIntentStepTransitionFacts {
     compensation_starts: Array<Int>;
     compensation_counts: Array<Int>;
     compensations: MirIntentCompensationFacts;
+    where_zone_names: Array<String>;
+    where_zone_syntax_ids: Array<Int>;
 }
 
 struct MirIntentTerminalTransitionFacts {
@@ -85,7 +87,7 @@ struct MirIntentExecutionPlan {
 }
 
 func MirIntentExecutionPlanSchema() -> String {
-    return "pgy.selfhost.mir-intent-execution-plan.v2";
+    return "pgy.selfhost.mir-intent-execution-plan.v3";
 }
 
 func MirIntentCompensationFactsEmpty() -> MirIntentCompensationFacts {
@@ -138,6 +140,8 @@ func MirIntentStepTransitionFactsEmpty(
     let completion_instruction_ids: Array<Int> = [];
     let compensation_starts: Array<Int> = [];
     let compensation_counts: Array<Int> = [];
+    let where_zone_names: Array<String> = [];
+    let where_zone_syntax_ids: Array<Int> = [];
     return MirIntentStepTransitionFacts(
         transition_ids, routine_syntax_ids, step_syntax_ids, step_names,
         predecessor_transition_ids, predecessor_step_syntax_ids,
@@ -153,7 +157,8 @@ func MirIntentStepTransitionFactsEmpty(
         failure_successor_block_ids,
         completion_block_ids, completion_instruction_ids,
         compensation_starts, compensation_counts,
-        MirIntentCompensationFactsEmpty()
+        MirIntentCompensationFactsEmpty(), where_zone_names,
+        where_zone_syntax_ids
     );
 }
 

@@ -1,0 +1,72 @@
+// Struct-constructor call emission from admitted semantic graph and field rows.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../../lib/nominal_field_kind_owner.pgy";
+import "expr_semantic_call_argument_owner.pgy";
+
+func RewriteSemanticStructCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    type_name: String,
+    env: CodegenTypeEnv
+) -> String {
+    let fields: String = LookupKindType(env, type_name, "constructor_fields");
+    if !LookupKindTypeRowPresent(env, type_name, "constructor_fields") {
+        Die(Concat("struct call constructor-field inventory is missing: ", type_name));
+    }
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(128);
+    TextBuilderAppend(output, "(");
+    TextBuilderAppend(output, AbiLayoutCStructTypeName(type_name));
+    TextBuilderAppend(output, "){ ");
+    let i: Int = 0;
+    while i < ArrayLength(view.argument_nodes) {
+        let field_name: String = CsvAt(fields, i);
+        let field_type: String = LookupFieldType(env, type_name, field_name);
+        if field_name == "" || field_type == "" {
+            Die(Concat("struct call field fact is missing: ", type_name));
+        }
+        let value: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[i], field_type, "default", env
+        );
+        if i > 0 { TextBuilderAppend(output, ", "); }
+        TextBuilderAppend(output, ".");
+        TextBuilderAppend(output, CompilerSymbolCFieldName(field_name));
+        TextBuilderAppend(output, " = (");
+        TextBuilderAppend(output, value);
+        TextBuilderAppend(output, ")");
+        i = i + 1;
+    }
+    // Prefix construction is the admitted arity (semantic: at_most_N; native
+    // emits the same shape): supplied arguments bind leading constructor
+    // fields, every unmentioned field is C zero-initialized.
+    let initializer_count: Int = ArrayLength(view.argument_nodes);
+    let all_fields: String = LookupKindType(env, type_name, "fields");
+    let field_index: Int = 0;
+    while CsvAt(all_fields, field_index) != "" {
+        let field_name: String = CsvAt(all_fields, field_index);
+        let field_kind: String = LookupQualifiedKindType(
+            env, type_name, field_name, "field_kind"
+        );
+        if field_kind == NominalFieldKindObjectSlot() ||
+            field_kind == NominalFieldKindTObjectSlot() {
+            if initializer_count > 0 { TextBuilderAppend(output, ", "); }
+            TextBuilderAppend(output, ".__projection_dirty_");
+            TextBuilderAppend(output, CompilerSymbolCFieldName(field_name));
+            TextBuilderAppend(output, " = true");
+            initializer_count = initializer_count + 1;
+        }
+        field_index = field_index + 1;
+    }
+    if initializer_count == 0 {
+        TextBuilderAppend(output, AbiLayoutCFieldlessNominalInitializer());
+    }
+    TextBuilderAppend(output, " }");
+    let expression: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return expression;
+}

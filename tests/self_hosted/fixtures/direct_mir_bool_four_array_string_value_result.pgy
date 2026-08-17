@@ -1,0 +1,48 @@
+// Bool return with both four-copyout and scalar-prefix/single-copyout shapes.
+func CaptureFields(
+    json: String, start: Int, end: Int,
+    inout names: Array<String>, inout offsets: Array<String>,
+    inout sizes: Array<String>, inout aligns: Array<String>
+) -> Bool {
+    if start < 0 {
+        return false;
+    }
+    return true;
+}
+
+func ReadStringArray(
+    json: String, start: Int, end: Int, field: String,
+    reject_duplicates: Bool, inout values: Array<String>
+) -> Bool {
+    if start < 0 {
+        return false;
+    }
+    ArrayPush(values, Concat("", field));
+    return true;
+}
+
+func Main() -> Void {
+    let names: Array<String> = [];
+    let offsets: Array<String> = [];
+    let sizes: Array<String> = [];
+    let aligns: Array<String> = [];
+    let captured: Bool = CaptureFields(
+        "[]", 0, 2, names, offsets, sizes, aligns);
+    if captured {
+        Log("bool-copyout-ready");
+    } else {
+        Log("bool-copyout-failed");
+    }
+    Log(ArrayLength(names));
+    Log(ArrayLength(offsets));
+    Log(ArrayLength(sizes));
+    Log(ArrayLength(aligns));
+    let values: Array<String> = [];
+    let read: Bool = ReadStringArray("{}", 0, 2, "name", true, values);
+    if read {
+        Log("single-copyout-ready");
+    } else {
+        Log("single-copyout-failed");
+    }
+    Log(ArrayLength(values));
+}

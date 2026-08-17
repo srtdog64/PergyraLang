@@ -1,0 +1,27 @@
+// Read-only Array<String> parameter and forwarding preserve one pointer view.
+func ContainsString(
+    ref values: Array<String>, expected: String
+) -> Bool {
+    let index: Int = 0;
+    while index < ArrayLength(values) {
+        if values[index] == expected { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+func ForwardContainsString(
+    ref values: Array<String>, expected: String
+) -> Bool {
+    return ContainsString(values, expected);
+}
+
+func Main() -> Void {
+    let values: Array<String> = StringSplit("alpha,beta", ",");
+    if ForwardContainsString(values, "beta") &&
+        !ForwardContainsString(values, "gamma") {
+        Log("array-string-readonly-ref-ready");
+    } else {
+        Log("array-string-readonly-ref-failed");
+    }
+}

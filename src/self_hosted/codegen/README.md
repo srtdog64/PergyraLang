@@ -68,7 +68,10 @@ Option values: `Option<Int>` / `Option<String>` with `Some`, `None`, `IsSome`,
 and `UnwrapOption`.
 Defer: block-local `Defer: / Block:` scope-exit statements with LIFO ordering
 for the supported statement subset.
-Tool I/O: `FileExists`, `ReadFile`, `WriteFile`, `Args`.
+Tool I/O: `FileExists`, `ReadFile`, `WriteFile`, `Args`. The installed C route
+also lowers the 51 intent-observability calls from the canonical ABI row and
+enables `pgy_runtime.h` only when that usage receipt is present; it does not
+own a second source-name/runtime-symbol table.
 Deterministic RNG: `SeedRandom(seed)` plus `Random(n)`, with parity fixtures
 checking replay semantics instead of pinning a cross-libc random sequence.
 Arrays: growable `Array<Int>` / `Array<String>` locals plus `Array<Int>`
@@ -90,15 +93,17 @@ function; non-`Main` functions get forward declarations, so call order and
 recursion are free. `Main` lowers through the host/process entrypoint ABI owner,
 including the argv-capable entrypoint when the fixture uses `Args()`.
 
-- `Int` param -> `long long`, return -> `long long`
+- `Int` param/return -> `int32_t`; `Long` param/return -> `int64_t`
 - `Bool` param/return -> `bool` (`<stdbool.h>`); `true` / `false` / `!` pass through
 - `Float` param/return -> `double`
 - `String` param -> `const char*`, return -> `const char*`
-- `Array<Int>` param/return -> `pgy_ai`; `Array<String>` param/return -> `pgy_as`
+- `Array<Int>` param/return -> `pgy_ai` with `int32_t` elements;
+  `Array<Long>` -> `pgy_al` with `int64_t` elements; `Array<String>` -> `pgy_as`
 - struct param/return -> value-passed C typedef for the generated struct
 - `Result<Int>` param/return -> value-passed `pgy_result_int`; explicit
   `Result<T,E>` -> one generated tagged value type from `ResultRuntimeFact`
-- `Option<Int>` param/return -> value-passed `pgy_option_int`
+- `Option<Int>` param/return -> value-passed `pgy_option_int`;
+  `Option<Long>` -> distinct value-passed `pgy_option_long`
 - `Option<String>` param/return -> value-passed `pgy_option_string`
 - `Allocator` local -> value-passed `PgyAllocator`; `TextBuilder` local ->
   move-only `PgyTextBuilder` consumed by `Finish` or `Drop`
@@ -169,8 +174,9 @@ including the argv-capable entrypoint when the fixture uses `Args()`.
 
 `<intexpr>` / `<cond>` is the C-compatible parenthesized infix the AST printer
 produces (`+ - * / %`, comparisons, `&& ||`, `!`, identifiers, `Name(args)`
-calls). `Int` is C `long long`, with `/` and `%` matching the oracle including
-negatives. Conditions are re-parenthesized so bare predicates (`if flag`) emit
+calls). `Int` is C `int32_t` and `Long` is `int64_t`; `/` and `%` select the
+matching checked-width helper, including negative and signed-minimum cases.
+Conditions are re-parenthesized so bare predicates (`if flag`) emit
 valid C. `<strexpr>` is a string literal, `Concat(<strexpr>, <strexpr>)`, a
 string-typed identifier, or a string-returning call. The builtins
 `StringLength(x)`, `Substring(s, start, len)`, `StringIndexOf(hay, needle)`, `StringTrim(s)`,

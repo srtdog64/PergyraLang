@@ -3,6 +3,8 @@
 import "direct_mir_array_string_literal_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_mutation_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy";
+import "direct_mir_scalar_program_array_string_nested_literal_owner.pgy";
 
 struct DirectMirScalarProgramArrayStringLiteralAdmission {
     let recognized: Bool;
@@ -13,7 +15,12 @@ func DirectMirScalarProgramAppendArrayStringLiteral(
     facts: DirectMirScalarProgramExpressionSet,
     ref sequence: MirExpressionGraphSequence,
     ref uses: MirRoutineInstructionUseFacts,
-    global_row: Int, expected_type: String
+    global_row: Int, local_instruction: Int, local_offset: Int,
+    inout use_offset: Int, expected_type: String,
+    ref locals_plan: DirectMirScalarCfgLocalRefPlan,
+    ref value_types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref signature: DirectMirRoutineSignatureFact
 ) -> DirectMirScalarProgramArrayStringLiteralAdmission {
     let root: Int = sequence.roots[0];
     let source_kind: Int = sequence.arena.topology.node_kinds[root];
@@ -28,8 +35,22 @@ func DirectMirScalarProgramAppendArrayStringLiteral(
         DirectMirScalarProgramExpressionSetInvalid(facts);
     let literal: DirectMirArrayStringLiteralFact =
         DirectMirArrayStringLiteralFactFromGraph(sequence);
-    if !literal.valid ||
-        MirRoutineInstructionUseCountAtGlobal(uses, global_row) != 0 {
+    let single: DirectMirScalarProgramArrayStringLiteralOperandAdmission =
+        DirectMirScalarProgramArrayStringLiteralOperandAdmission(
+            false, 0, -1, -1, 0);
+    if !literal.valid {
+        single = DirectMirScalarProgramArrayStringSingleElementFromOwners(
+            sequence, uses, global_row, use_offset, local_instruction,
+            local_offset, locals_plan, value_types, wire, signature);
+    }
+    if !literal.valid && !single.valid &&
+        DirectMirScalarProgramNestedArrayStringLiteralCandidateReady(
+            sequence, root) {
+        return DirectMirScalarProgramArrayStringLiteralAdmission(false, facts);
+    }
+    if (!literal.valid && !single.valid) ||
+        MirRoutineInstructionUseCountAtGlobal(uses, global_row) !=
+            use_offset + single.consumed_uses {
         return DirectMirScalarProgramArrayStringLiteralAdmission(true, invalid);
     }
     let graph_rows: Array<Int> = facts.graph_global_rows;
@@ -42,20 +63,31 @@ func DirectMirScalarProgramAppendArrayStringLiteral(
     let rights: Array<Int> = facts.node_rights;
     let locals: Array<Int> = facts.node_local_rows;
     let params: Array<Int> = facts.node_parameter_ordinals;
+    let members: Array<Int> = facts.node_member_ordinals;
     let literals: Array<String> = facts.node_literals;
     let callables: Array<Int> = facts.node_callable_rows;
+    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
     let nary: DirectMirScalarProgramNaryOperands = facts.nary_operands;
     let start: Int = ArrayLength(kinds);
     let operands: Array<Int> = [];
     let element: Int = 0;
     while element < ArrayLength(literal.elements) {
         DirectMirScalarProgramAppendExpressionNode(
-            kinds, types, lefts, rights, locals, params, literals, callables,
+            kinds, types, lefts, rights, locals, params, members,
+            literals, callables, runtime_ids,
             DirectMirScalarProgramExprStringLiteral(),
-            CompilerAbiLayoutStringTypeName(), -1, -1, -1, -1,
-            literal.elements[element], -1);
+            CompilerAbiLayoutStringTypeName(), -1, -1, -1, -1, -1,
+            literal.elements[element], -1, -1);
         ArrayPush(operands, ArrayLength(kinds) - 1);
         element = element + 1;
+    }
+    if single.valid {
+        DirectMirScalarProgramAppendExpressionNode(
+            kinds, types, lefts, rights, locals, params, members,
+            literals, callables, runtime_ids, single.kind,
+            CompilerAbiLayoutStringTypeName(), -1, -1, single.local_row,
+            single.parameter_ordinal, -1, "", -1, -1);
+        ArrayPush(operands, ArrayLength(kinds) - 1);
     }
     let left: Int = -1; let right: Int = -1;
     if ArrayLength(operands) == 1 { left = operands[0]; }
@@ -63,9 +95,11 @@ func DirectMirScalarProgramAppendArrayStringLiteral(
         left = operands[0]; right = operands[1];
     }
     DirectMirScalarProgramAppendExpressionNode(
-        kinds, types, lefts, rights, locals, params, literals, callables,
+        kinds, types, lefts, rights, locals, params, members,
+        literals, callables, runtime_ids,
         DirectMirScalarProgramExprArrayStringLiteral(),
-        CompilerAbiLayoutArrayStringTypeName(), left, right, -1, -1, "", -1);
+        CompilerAbiLayoutArrayStringTypeName(), left, right,
+        -1, -1, -1, "", -1, -1);
     let normalized_root: Int = ArrayLength(kinds) - 1;
     if ArrayLength(operands) >= 3 {
         nary = DirectMirScalarProgramNaryOperandsAppend(
@@ -74,8 +108,11 @@ func DirectMirScalarProgramAppendArrayStringLiteral(
     ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
     ArrayPush(counts, ArrayLength(kinds) - start);
     ArrayPush(roots, normalized_root);
+    use_offset = use_offset + single.consumed_uses;
     return DirectMirScalarProgramArrayStringLiteralAdmission(
         true, DirectMirScalarProgramExpressionSet(
             true, 0, graph_rows, starts, counts, roots, kinds, types,
-            lefts, rights, locals, params, literals, callables, nary));
+            lefts, rights, locals, params, members, literals, callables,
+            runtime_ids,
+            nary));
 }

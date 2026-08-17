@@ -82,20 +82,26 @@ func SemanticCallSpineViewFromGraph(
         UnwrapOption(callee_kind) == AstExpressionNodeGenericCallee() {
         return SemanticCallSpineView(false, 0, 0, reversed, no_actuals);
     }
-    let arguments: Array<Int> = [];
-    let i: Int = ArrayLength(reversed) - 1;
-    while i >= 0 {
-        ArrayPush(arguments, reversed[i]);
-        i = i - 1;
+    let i: Int = 0;
+    let last: Int = ArrayLength(reversed) - 1;
+    while i < last {
+        let argument: Int = reversed[i];
+        ArraySet(reversed, i, reversed[last]);
+        ArraySet(reversed, last, argument);
+        i = i + 1;
+        last = last - 1;
     }
-    let actuals: Array<String> = [];
-    i = ArrayLength(reversed_actuals) - 1;
-    while i >= 0 {
-        ArrayPush(actuals, reversed_actuals[i]);
-        i = i - 1;
+    i = 0;
+    last = ArrayLength(reversed_actuals) - 1;
+    while i < last {
+        let actual: String = reversed_actuals[i];
+        ArraySet(reversed_actuals, i, reversed_actuals[last]);
+        ArraySet(reversed_actuals, last, actual);
+        i = i + 1;
+        last = last - 1;
     }
     return SemanticCallSpineView(
-        true, node, base_callee, arguments, actuals
+        true, node, base_callee, reversed, reversed_actuals
     );
 }
 

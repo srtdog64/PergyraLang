@@ -1,17 +1,18 @@
 // Canonical scalar-CFG type family admitted by the shared graph planner.
-
 import "abi_layout_row_owner.pgy";
+import "runtime_value_representation_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
-
 func DirectMirScalarCfgScalarTypeSupported(type_name: String) -> Bool {
     return type_name == CompilerAbiLayoutIntTypeName() ||
+        type_name == CompilerAbiLayoutLongTypeName() ||
         type_name == CompilerAbiLayoutBoolTypeName() ||
         type_name == CompilerAbiLayoutStringTypeName();
 }
 
 func DirectMirScalarCfgCollectionTypeSupported(type_name: String) -> Bool {
     return type_name == CompilerAbiLayoutArrayIntTypeName() ||
-        type_name == CompilerAbiLayoutArrayStringTypeName();
+        type_name == CompilerAbiLayoutArrayStringTypeName() ||
+        type_name == CompilerAbiLayoutSetStringTypeName();
 }
 
 func DirectMirScalarCfgIterationTypePairSupported(
@@ -25,7 +26,21 @@ func DirectMirScalarCfgIterationTypePairSupported(
 
 func DirectMirScalarCfgSourceLocalTypeSupported(type_name: String) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
-        DirectMirScalarCfgCollectionTypeSupported(type_name);
+        DirectMirScalarCfgCollectionTypeSupported(type_name) ||
+        type_name == CompilerAbiLayoutArrayBoolTypeName() ||
+        type_name == CompilerAbiLayoutOptionIntTypeName() ||
+        type_name == CompilerAbiLayoutOptionStringTypeName() ||
+        type_name == CompilerAbiLayoutOptionBoolTypeName();
+}
+
+func DirectMirScalarCfgSourceLocalTypeMatchesResolved(
+    source_type: String, resolved_type: String
+) -> Bool {
+    return source_type == resolved_type ||
+        (source_type == "Option<Unknown>" &&
+         (resolved_type == CompilerAbiLayoutOptionIntTypeName() ||
+          resolved_type == CompilerAbiLayoutOptionStringTypeName() ||
+          resolved_type == CompilerAbiLayoutOptionBoolTypeName()));
 }
 
 func DirectMirScalarCfgRoutineSourceLocalTypesSupported(
@@ -37,8 +52,9 @@ func DirectMirScalarCfgRoutineSourceLocalTypesSupported(
     let row: Int = 0;
     while row < ArrayLength(index.source_local_types) {
         if !DirectMirScalarCfgSourceLocalTypeSupported(
-            index.source_local_types[row]
-        ) { return false; }
+                index.source_local_types[row]) &&
+            !CompilerRuntimeValueTypeReady(
+                index.source_local_types[row]) { return false; }
         row = row + 1;
     }
     return true;

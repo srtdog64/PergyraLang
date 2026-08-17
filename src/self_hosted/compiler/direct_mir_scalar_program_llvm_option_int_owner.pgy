@@ -47,7 +47,7 @@ func DirectMirScalarProgramLlvmOptionIntExpressionAt(
 
 func DirectMirScalarProgramLlvmOptionIntPreamble(
     ref fact: DirectMirOptionMatchAbiFact,
-    target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact
 ) -> String {
     if DirectMirScalarProgramOptionIntAbiCanonicalEmpty(fact) { return ""; }
     let abi: DirectMirOptionMatchAbiProjection =
@@ -60,7 +60,7 @@ func DirectMirScalarProgramLlvmOptionIntPreamble(
     let output: String = t;
     output = Concat(output, " = type ");
     output = Concat(output, abi.llvm_aggregate_type);
-    output = Concat(output, "\n\ndeclare void @abort()\n\n");
+    output = Concat(output, "\n\n");
     output = Concat(output, "define internal ");
     output = Concat(output, t);
     output = Concat(output, " @pgy.scalar.option.int.some(");

@@ -1,0 +1,5 @@
+// Stable normalized identity for the bounded empty Array<Bool> expression.
+
+func DirectMirScalarProgramExprArrayBoolEmptyLiteral() -> Int { return 52; }
+func DirectMirScalarProgramExprArrayBoolIndex() -> Int { return 63; }
+func DirectMirScalarProgramExprArrayBoolPopulatedLiteral() -> Int { return 98; }

@@ -7,8 +7,15 @@ import "direct_mir_scalar_program_expression_kind_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_value_type_owner.pgy";
 import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
-import "direct_mir_scalar_program_array_string_literal_admission_owner.pgy";
-
+import "direct_mir_scalar_program_literal_expression_admission_owner.pgy";
+import "direct_mir_scalar_program_array_int_populated_literal_admission_owner.pgy";
+import "direct_mir_scalar_program_array_string_nested_literal_owner.pgy";
+import "direct_mir_scalar_program_array_bool_nested_literal_owner.pgy";
+import "direct_mir_scalar_program_option_absence_expression_owner.pgy";
+import "direct_mir_scalar_program_logical_record_expression_owner.pgy";
+import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_expression_admission_failure_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_expression_owner.pgy";
 func DirectMirScalarProgramAppendExpression(
     facts: DirectMirScalarProgramExpressionSet,
     ref instruction: JsonObjectFactTable,
@@ -18,23 +25,63 @@ func DirectMirScalarProgramAppendExpression(
     ref value_types: DirectMirScalarCfgValueTypePlan,
     ref wire: DirectMirScalarCfgWireLocalRefs,
     local_offset: Int, parameter_types: Array<String>,
+    ref signature: DirectMirRoutineSignatureFact,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
-    expected_type: String
-) -> DirectMirScalarProgramExpressionSet {
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    graph_field: String, inout use_offset: Int,
+    require_all_uses: Bool, expected_type: String,
+    try_operand_only: Bool, source_root_override: Int
+) -> DirectMirScalarProgramExpressionAdmission {
     let sequence: MirExpressionGraphSequence =
-        DirectMirScalarCfgExpressionSequence(instruction);
-    let invalid: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramExpressionSetInvalid(facts);
+        DirectMirScalarCfgExpressionSequenceForField(
+            instruction, graph_field);
     if !facts.valid || !sequence.ok || ArrayLength(sequence.roots) != 1 {
-        return invalid;
+        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "graph-sequence", -1);
     }
-    let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
-    if count < 1 || sequence.roots[0] < 0 ||
-        sequence.roots[0] >= count { return invalid; }
-    let array_literal: DirectMirScalarProgramArrayStringLiteralAdmission =
-        DirectMirScalarProgramAppendArrayStringLiteral(
-            facts, sequence, uses, global_row, expected_type);
-    if array_literal.recognized { return array_literal.facts; }
+    let total_count: Int = ArrayLength(sequence.arena.topology.node_kinds); let count: Int = total_count;
+    let source_root: Int = sequence.roots[0];
+    if source_root_override >= 0 { source_root = source_root_override; count = source_root + 1; }
+    if total_count < 1 || source_root < 0 || source_root >= total_count {
+        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "graph-root", source_root);
+    }
+    if try_operand_only {
+        if sequence.arena.topology.node_kinds[source_root] !=
+                AstExpressionNodeTry() ||
+            sequence.arena.topology.right_children[source_root] != 0 {
+            return DirectMirScalarProgramExpressionAdmissionRejected(facts, "try-root", source_root);
+        }
+        source_root = sequence.arena.topology.left_children[source_root];
+        if source_root < 0 || source_root >= sequence.roots[0] {
+            return DirectMirScalarProgramExpressionAdmissionRejected(facts, "try-operand", source_root);
+        }
+        count = source_root + 1;
+    }
+    let total_uses: Int = MirRoutineInstructionUseCountAtGlobal(
+        uses, global_row);
+    if use_offset < 0 || total_uses < use_offset {
+        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "instruction-uses", -1);
+    }
+    let initial_use_offset: Int = use_offset;
+    if !try_operand_only && initial_use_offset == 0 &&
+            graph_field == "expr0_graph" {
+        let literal_admission:
+            DirectMirScalarProgramLiteralExpressionAdmission =
+            DirectMirScalarProgramAppendLiteralExpression(
+                facts, sequence, uses, global_row, local_instruction,
+                local_offset, use_offset, expected_type, locals, value_types,
+                wire, signature, callables, logical_record);
+        if literal_admission.recognized {
+            if require_all_uses && total_uses != use_offset {
+                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "literal-uses", source_root);
+            }
+            if !literal_admission.facts.valid {
+                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "literal", source_root);
+            }
+            return DirectMirScalarProgramExpressionAdmissionAccepted(
+                literal_admission.facts);
+        }
+    }
     let graph_rows: Array<Int> = facts.graph_global_rows;
     let starts: Array<Int> = facts.graph_starts;
     let counts: Array<Int> = facts.graph_counts;
@@ -45,8 +92,11 @@ func DirectMirScalarProgramAppendExpression(
     let rights: Array<Int> = facts.node_rights;
     let local_rows: Array<Int> = facts.node_local_rows;
     let params: Array<Int> = facts.node_parameter_ordinals;
+    let member_ordinals: Array<Int> = facts.node_member_ordinals;
     let literals: Array<String> = facts.node_literals;
     let callable_rows: Array<Int> = facts.node_callable_rows;
+    let runtime_call_abi_ids: Array<Int> =
+        facts.node_runtime_call_abi_ids;
     let nary_operands: DirectMirScalarProgramNaryOperands =
         facts.nary_operands;
     let source_rows: Array<Int> = [];
@@ -54,56 +104,146 @@ func DirectMirScalarProgramAppendExpression(
     let bound_leaf_texts: Array<String> = [];
     let bound_leaf_locals: Array<Int> = [];
     let start: Int = ArrayLength(kinds);
-    let expected_uses: Int = 0;
+    let expected_uses: Int = initial_use_offset;
     let initialize: Int = 0;
-    while initialize < count {
+    while initialize < total_count {
         ArrayPush(consumed_calls, false); initialize = initialize + 1;
     }
     let node: Int = 0;
     while node < count {
         let source_kind: Int = sequence.arena.topology.node_kinds[node];
-        if DirectMirScalarProgramCallCalleeLeafReady(sequence, node) ||
-            DirectMirScalarProgramCallMarkerReady(sequence, node) {
+        if DirectMirScalarProgramCallCalleeNodeReady(sequence, node) ||
+            DirectMirScalarProgramPayloadFreeEnumMarkerReady(
+                sequence, node, payload_free_enum) ||
+            DirectMirScalarProgramLogicalRecordMemberMarkerReady(
+                sequence, node, "", logical_record) ||
+            DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(
+                sequence, node) {
             ArrayPush(source_rows, -1); node = node + 1; continue;
         }
         let kind: Int = 0; let type_name: String = "";
         let left: Int = -1; let right: Int = -1;
         let local_row: Int = -1; let param: Int = -1;
+        let member_ordinal: Int = -1;
         let literal: String = "";
         let call_arguments: Array<Int> = [];
         let call_callable: Int = -1;
-        if source_kind == AstExpressionNodeCallArgument() {
-            let call: DirectMirScalarProgramBuiltinCallFact =
-                DirectMirScalarProgramBuiltinCallFactFromGraph(
-                    sequence, node, source_rows, types);
-            if call.recognized {
-                if !call.valid { return invalid; }
-                if !call.complete {
-                    ArrayPush(source_rows, -1); node = node + 1; continue;
+        let runtime_call_abi_id: Int = -1;
+        if DirectMirScalarProgramCallMarkerReady(sequence, node) {
+            let builtin: DirectMirScalarProgramBuiltinCallFact =
+                DirectMirScalarProgramZeroArgumentBuiltinCallFactFromGraph(
+                    sequence, node, expected_type, logical_record);
+            if builtin.recognized {
+                if !builtin.valid || !builtin.complete ||
+                    builtin.call_node < 0 || builtin.call_node >= total_count {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "runtime-value-call", node);
                 }
-                if consumed_calls[call.call_node] { return invalid; }
-                consumed_calls[call.call_node] = true;
-                kind = call.expression_kind;
-                call_arguments = call.argument_rows;
-                let signature: DirectMirScalarProgramBuiltinSignatureFact =
-                    DirectMirScalarProgramBuiltinSignatureFactFromName(
-                        sequence.arena.call_target_names[call.call_node]);
-                if !signature.valid { return invalid; }
-                type_name = signature.return_type;
+                if builtin.expression_kind == DirectMirScalarProgramExprRuntimeValueCall() {
+                    let runtime_value: CompilerRuntimeValueCallAbiFact =
+                        CompilerRuntimeValueCallAbiFactForSource(
+                            sequence.arena.call_target_names[
+                                builtin.call_node]);
+                    if !CompilerRuntimeValueCallInstructionRowReady(
+                            instruction, runtime_value) {
+                        return DirectMirScalarProgramExpressionAdmissionRejected(
+                            facts, "runtime-value-call", node);
+                    }
+                }
+                if consumed_calls[builtin.call_node] {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "runtime-value-call-consumption", node);
+                }
+                consumed_calls[builtin.call_node] = true;
+                kind = builtin.expression_kind;
+                call_arguments = builtin.argument_rows;
+                type_name = builtin.return_type;
+                runtime_call_abi_id = builtin.runtime_call_abi_id;
             } else {
                 let direct: DirectMirScalarProgramDirectCallFact =
-                    DirectMirScalarProgramDirectCallFactFromGraph(
-                        sequence, node, source_rows, types, callables);
-                if !direct.recognized || !direct.valid { return invalid; }
-                if !direct.complete {
+                    DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
+                        sequence, node, callables);
+                if !direct.valid || !direct.complete {
                     ArrayPush(source_rows, -1); node = node + 1; continue;
                 }
-                if consumed_calls[direct.call_node] { return invalid; }
+                if consumed_calls[direct.call_node] {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "direct-call-consumption", node);
+                }
                 consumed_calls[direct.call_node] = true;
                 kind = DirectMirScalarProgramExprDirectCall();
                 call_arguments = direct.argument_rows;
                 call_callable = direct.callable_ordinal;
                 type_name = direct.return_type;
+            }
+        } else if source_kind == AstExpressionNodeCallArgument() {
+            let constructor:
+                DirectMirScalarProgramLogicalRecordExpressionFact =
+                    DirectMirScalarProgramLogicalRecordConstructorFromGraph(
+                        sequence, node, source_rows, types, logical_record);
+            if constructor.recognized {
+                if !constructor.valid {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "logical-record-constructor", node);
+                }
+                if !constructor.complete {
+                    ArrayPush(source_rows, -1); node = node + 1; continue;
+                }
+                if consumed_calls[constructor.call_node] {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "logical-record-constructor-consumption", node);
+                }
+                consumed_calls[constructor.call_node] = true;
+                kind = constructor.kind;
+                call_arguments = constructor.argument_rows;
+                type_name = constructor.type_name;
+            } else {
+            let call: DirectMirScalarProgramBuiltinCallFact =
+                DirectMirScalarProgramBuiltinCallFactFromGraph(
+                    sequence, node, source_rows, types, expected_type,
+                    logical_record);
+            if call.recognized {
+                if !call.valid {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "builtin-call", node);
+                }
+                if !call.complete {
+                    ArrayPush(source_rows, -1); node = node + 1; continue;
+                }
+                if consumed_calls[call.call_node] {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "builtin-call-consumption", node);
+                }
+                consumed_calls[call.call_node] = true;
+                kind = call.expression_kind;
+                call_arguments = call.argument_rows;
+                type_name = call.return_type;
+                runtime_call_abi_id = call.runtime_call_abi_id;
+                if call.expression_kind == DirectMirScalarProgramExprRuntimeValueCall() {
+                    let runtime_value: CompilerRuntimeValueCallAbiFact =
+                        CompilerRuntimeValueCallAbiFactForSource(
+                            sequence.arena.call_target_names[call.call_node]);
+                    if !CompilerRuntimeValueCallInstructionRowReady(
+                            instruction, runtime_value) {
+                        return DirectMirScalarProgramExpressionAdmissionRejected(
+                            facts, "runtime-value-call-row", node);
+                    }
+                }
+            } else {
+                let direct: DirectMirScalarProgramDirectCallFact =
+                    DirectMirScalarProgramDirectCallFactFromGraph(
+                        sequence, node, source_rows, types, callables);
+                if !direct.recognized || !direct.valid {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "direct-call", node);
+                }
+                if !direct.complete {
+                    ArrayPush(source_rows, -1); node = node + 1; continue;
+                }
+                if consumed_calls[direct.call_node] {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "direct-call-consumption", node);
+                }
+                consumed_calls[direct.call_node] = true;
+                kind = DirectMirScalarProgramExprDirectCall();
+                call_arguments = direct.argument_rows;
+                call_callable = direct.callable_ordinal;
+                type_name = direct.return_type;
+            }
             }
             if ArrayLength(call_arguments) == 1 {
                 left = call_arguments[0];
@@ -111,20 +251,37 @@ func DirectMirScalarProgramAppendExpression(
                 left = call_arguments[0]; right = call_arguments[1];
             }
         } else if source_kind == AstExpressionNodeLeaf() {
-            if sequence.arena.identities.binding_kinds[node] ==
+            let absence_expected_type: String = DirectMirScalarProgramDirectCallArgumentExpectedType(
+                    sequence, node, callables);
+            if absence_expected_type == "" { absence_expected_type = expected_type; }
+            let absence: DirectMirScalarProgramExpressionKindFact =
+                DirectMirScalarProgramOptionAbsenceExpressionKind(
+                    sequence.arena.node_texts[node], absence_expected_type,
+                    logical_record);
+            if absence.valid && sequence.arena.identities.binding_kinds[node] ==
+                    SemanticExpressionBindingNone() {
+                kind = absence.kind;
+                type_name = absence.type_name;
+                literal = absence.literal;
+            } else if sequence.arena.identities.binding_kinds[node] ==
                     SemanticExpressionBindingFormalParameter() &&
                     sequence.arena.identities.binding_ordinals[node] >= 0 &&
                     sequence.arena.identities.binding_ordinals[node] <
-                        ArrayLength(parameter_types) {
+                        ArrayLength(parameter_types) &&
+                    DirectMirScalarCfgUseValueRow(
+                        uses, global_row, expected_uses,
+                        sequence.arena.node_texts[node],
+                        locals.value_names) < 0 {
                 kind = DirectMirScalarProgramExprParameter();
                 param = sequence.arena.identities.binding_ordinals[node];
                 type_name = parameter_types[param];
-            } else {
+            } else if !absence.valid {
                 let operand: DirectMirScalarCfgLeafOperand =
                     DirectMirScalarCfgLeafOperandFromOwners(
                         uses, global_row, expected_uses, local_instruction,
                         node, sequence.arena.node_texts[node],
-                        locals.value_names, locals, wire);
+                        locals.value_names, locals, wire,
+                        graph_field == "expr0_graph");
                 let operand_local: Int = operand.local_row;
                 if operand.value_row >= 0 && operand.value_row <
                         ArrayLength(locals.value_local_rows) {
@@ -138,12 +295,16 @@ func DirectMirScalarProgramAppendExpression(
                         if bound_leaf_texts[bound] ==
                                 sequence.arena.node_texts[node] {
                             if operand_local >= 0 && operand_local !=
-                                    bound_leaf_locals[bound] { return invalid; }
+                                    bound_leaf_locals[bound] {
+                                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-alias", node);
+                            }
                             operand_local = bound_leaf_locals[bound];
                         }
                         bound = bound + 1;
                     }
-                    if operand_local < 0 { return invalid; }
+                    if operand_local < 0 {
+                        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-operand", node);
+                    }
                     consumed_uses = 0;
                 } else {
                     ArrayPush(bound_leaf_texts,
@@ -151,44 +312,106 @@ func DirectMirScalarProgramAppendExpression(
                     ArrayPush(bound_leaf_locals, operand_local);
                 }
                 if operand_local >= ArrayLength(value_types.local_types) {
-                    return invalid;
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-type", node);
                 }
                 kind = DirectMirScalarProgramExprLocal();
                 type_name = value_types.local_types[operand_local];
                 local_row = operand_local + local_offset;
                 expected_uses = expected_uses + consumed_uses;
+            } else {
+                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-binding", node);
+            }
+        } else if source_kind == AstExpressionNodeMemberAccess() {
+            let enum_variant:
+                DirectMirScalarProgramPayloadFreeEnumExpressionFact =
+                DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(
+                    sequence, node, payload_free_enum);
+            if enum_variant.recognized {
+                if !enum_variant.valid {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "payload-free-enum-variant", node);
+                }
+                kind = enum_variant.kind;
+                type_name = enum_variant.type_name;
+                member_ordinal = enum_variant.variant_ordinal;
+            } else {
+                let member:
+                    DirectMirScalarProgramLogicalRecordExpressionFact =
+                    DirectMirScalarProgramLogicalRecordMemberFromGraph(
+                        sequence, node, source_rows, types, logical_record);
+                if !member.recognized || !member.valid || !member.complete {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "logical-record-member", node);
+                }
+                kind = member.kind;
+                type_name = member.type_name;
+                left = member.left_row;
+                member_ordinal = member.member_ordinal;
             }
         } else {
+            let nested_operands: Array<Int> = DirectMirScalarProgramNestedArrayStringLiteralOperandRows(sequence, node, source_rows, types);
+            let nested_kind: Int = DirectMirScalarProgramExprArrayStringLiteral();
+            let nested_type: String = CompilerAbiLayoutArrayStringTypeName();
+            if ArrayLength(nested_operands) == 0 {
+                nested_operands = DirectMirScalarProgramNestedArrayIntLiteralOperandRows(sequence, node, source_rows, types);
+                nested_kind = DirectMirScalarProgramExprArrayIntPopulatedLiteral(); nested_type = CompilerAbiLayoutArrayIntTypeName();
+            }
+            if ArrayLength(nested_operands) == 0 {
+                nested_operands = DirectMirScalarProgramNestedArrayBoolLiteralOperandRows(sequence, node, source_rows, types);
+                nested_kind = DirectMirScalarProgramExprArrayBoolPopulatedLiteral(); nested_type = CompilerAbiLayoutArrayBoolTypeName();
+            }
+            if ArrayLength(nested_operands) >= 1 {
+                kind = nested_kind; type_name = nested_type;
+                if ArrayLength(nested_operands) == 1 { left = nested_operands[0]; }
+                else if ArrayLength(nested_operands) == 2 {
+                    left = nested_operands[0]; right = nested_operands[1];
+                } else { nary_operands = DirectMirScalarProgramNaryOperandsAppend(
+                    nary_operands, ArrayLength(kinds), nested_operands); }
+            } else {
             let arity: Int = AstExpressionNodeArity(source_kind);
             if arity >= 1 {
                 let source_left: Int =
                     sequence.arena.topology.left_children[node];
                 if source_left < 0 || source_left >= node ||
-                    source_rows[source_left] < start { return invalid; }
+                    source_rows[source_left] < start {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "left-edge", node);
+                }
                 left = source_rows[source_left];
             }
             if arity == 2 {
                 let source_right: Int =
                     sequence.arena.topology.right_children[node];
                 if source_right < 0 || source_right >= node ||
-                    source_rows[source_right] < start { return invalid; }
+                    source_rows[source_right] < start {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "right-edge", node);
+                }
                 right = source_rows[source_right];
             }
             let left_type: String = ""; let right_type: String = "";
             if left >= 0 { left_type = types[left]; }
             if right >= 0 { right_type = types[right]; }
             let classified: DirectMirScalarProgramExpressionKindFact =
-                DirectMirScalarProgramExpressionKindFactFromSource(
+                DirectMirScalarProgramPayloadFreeEnumComparisonKindFact(
+                    source_kind, left_type, right_type, arity,
+                    payload_free_enum);
+            if !classified.valid {
+                classified = DirectMirScalarProgramExpressionKindFactFromSource(
                     source_kind, sequence.arena.node_texts[node],
-                    left_type, right_type, arity);
-            if !classified.valid { return invalid; }
+                    left_type, right_type, arity, logical_record);
+            }
+            if !classified.valid {
+                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "expression-kind", node);
+            }
             kind = classified.kind; type_name = classified.type_name;
             literal = classified.literal;
+            }
         }
         DirectMirScalarProgramAppendExpressionNode(
-            kinds, types, lefts, rights, local_rows, params, literals,
-            callable_rows, kind, type_name, left, right, local_row,
-            param, literal, call_callable);
+            kinds, types, lefts, rights, local_rows, params,
+            member_ordinals, literals, callable_rows, runtime_call_abi_ids,
+            kind, type_name, left, right,
+            local_row, param, member_ordinal, literal, call_callable,
+            runtime_call_abi_id);
         if source_kind == AstExpressionNodeCallArgument() &&
                 ArrayLength(call_arguments) > 2 {
             nary_operands = DirectMirScalarProgramNaryOperandsAppend(
@@ -198,16 +421,24 @@ func DirectMirScalarProgramAppendExpression(
         ArrayPush(source_rows, ArrayLength(kinds) - 1);
         node = node + 1;
     }
-    let root: Int = source_rows[sequence.roots[0]];
-    if root < start ||
-        expected_uses != MirRoutineInstructionUseCountAtGlobal(
-            uses, global_row) ||
-        !DirectMirScalarProgramCallsComplete(
-            sequence, consumed_calls) { return invalid; }
+    let root: Int = source_rows[source_root];
+    if root < start {
+        return DirectMirScalarProgramExpressionAdmissionRejected(
+            facts, "graph-root-mapping", source_root);
+    }
+    if require_all_uses && expected_uses != total_uses {
+        return DirectMirScalarProgramExpressionAdmissionRejected(
+            facts, "graph-use-completeness", source_root);
+    }
+    if !DirectMirScalarProgramCallsComplete(sequence, consumed_calls) {
+        return DirectMirScalarProgramExpressionAdmissionRejected(
+            facts, "graph-call-completeness", source_root);
+    }
+    use_offset = expected_uses;
     ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
     ArrayPush(counts, ArrayLength(kinds) - start); ArrayPush(roots, root);
-    return DirectMirScalarProgramExpressionSet(
+    return DirectMirScalarProgramExpressionAdmissionAccepted(DirectMirScalarProgramExpressionSet(
         true, 0, graph_rows, starts, counts, roots, kinds, types,
-        lefts, rights, local_rows, params, literals, callable_rows,
-        nary_operands);
+        lefts, rights, local_rows, params, member_ordinals, literals,
+        callable_rows, runtime_call_abi_ids, nary_operands));
 }

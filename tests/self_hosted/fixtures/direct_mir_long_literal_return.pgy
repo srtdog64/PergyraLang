@@ -1,0 +1,9 @@
+// Zero-parameter Long literal return; zero-argument calls remain a later rung.
+
+func LongModulus() -> Long {
+    return 268435456L;
+}
+
+func Main() -> Void {
+    Log("long-ready");
+}

@@ -1,0 +1,34 @@
+func LogNestedStringLiteral(indent: String) -> Void {
+    let callable_label: String = "func ";
+    let routine: String = "Example";
+    let chunks: Array<String> = [Concat(
+        indent, Concat(callable_label, Concat(routine, "\n")))];
+    Log(chunks[0]);
+    ArrayPush(chunks, "tail\n");
+    Log(chunks[1]);
+}
+
+func FormatMixedStringLiteral(
+    prefix: String, first: String, second: String, third: String
+) -> String {
+    return Concat(prefix, Concat(first, Concat(second, third)));
+}
+
+func LogMixedStringLiteral(prefix: String) -> Void {
+    let first: String = "r";
+    let second: String = "o";
+    let third: String = "w\n";
+    let chunks: Array<String> = [
+        "Program:\n",
+        FormatMixedStringLiteral(prefix, first, second, third)
+    ];
+    Log(chunks[0]);
+    Log(chunks[1]);
+    ArrayPush(chunks, "done\n");
+    Log(chunks[2]);
+}
+
+func Main() -> Void {
+    LogNestedStringLiteral(">");
+    LogMixedStringLiteral(">");
+}

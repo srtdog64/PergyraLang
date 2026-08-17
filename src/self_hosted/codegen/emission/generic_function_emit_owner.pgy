@@ -20,21 +20,35 @@ func EmitFunctionSet(
     base_env: CodegenTypeEnv,
     machine_startup: String,
     uses_args: Bool,
-    ref domain_runtime: CodegenDomainRuntimeFacts
+    ref domain_runtime: CodegenDomainRuntimeFacts,
+    observe_pressure: Bool,
+    definition_ordinal: Int
 ) -> String {
     let function_node: Int = cur[0];
+    let observe_definition: Bool = observe_pressure &&
+        (definition_ordinal < 8 || definition_ordinal % 128 == 0);
+    if observe_definition {
+        Log(Concat("[codegen-pressure-stage] definition:start:", Concat(
+            ToString(definition_ordinal), Concat(":node=", ToString(function_node))
+        )));
+    }
     let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
         signatures, function_node
     );
     if CodegenSemanticFunctionGenericCountOrDie(
         signatures, signature_index
     ) == 0 {
-        return EmitFunction(
+        let direct_definition: String = EmitFunction(
             count, arena, signatures, receiver_facts,
             local_bindings, assignments,
             statements, body_types, expression_surfaces, cur, f_indent,
             base_env, machine_startup, uses_args, domain_runtime
         );
+        if observe_definition {
+            Log(Concat("[codegen-pressure-stage] definition:done:",
+                ToString(definition_ordinal)));
+        }
+        return direct_definition;
     }
 
     let definitions: Array<String> = [];
@@ -72,8 +86,17 @@ func EmitFunctionSet(
             CodegenAstArenaIsDescendantOf(arena, cur[0], function_node) {
             ArraySet(cur, 0, cur[0] + 1);
         }
+        if observe_definition {
+            Log(Concat("[codegen-pressure-stage] definition:done:",
+                ToString(definition_ordinal)));
+        }
         return "";
     }
     ArraySet(cur, 0, after_function);
-    return CodegenJoinOwnedStringFragments(definitions, "\n");
+    let joined: String = CodegenJoinOwnedStringFragments(definitions, "\n");
+    if observe_definition {
+        Log(Concat("[codegen-pressure-stage] definition:done:",
+            ToString(definition_ordinal)));
+    }
+    return joined;
 }

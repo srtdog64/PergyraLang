@@ -16,6 +16,9 @@ func SemanticCompilerRetireArrayStorageCallerReady(
     if !IsSome(index) { return false; }
     let row: Int = UnwrapOption(index);
     let name: Option<String> = SemanticAstFunctionNameAt(signatures, row);
+    let module_path: Option<String> = SemanticAstFunctionModulePathAt(
+        signatures, row
+    );
     let returns: Option<String> = SemanticAstFunctionReturnTypeAt(
         signatures, row
     );
@@ -26,26 +29,16 @@ func SemanticCompilerRetireArrayStorageCallerReady(
     let param_mode: Option<Int> = SemanticAstFunctionParamModeAt(
         signatures, row, 0
     );
-    if !IsSome(name) || !IsSome(returns) || !IsSome(count) ||
-        !IsSome(param_type) || !IsSome(param_mode) ||
-        UnwrapOption(count) != 1 ||
-        UnwrapOption(param_mode) != 2 {
+    if !IsSome(name) || !IsSome(module_path) || !IsSome(returns) ||
+        !IsSome(count) ||
+        !IsSome(param_type) || !IsSome(param_mode) {
         return false;
     }
-    let routine_build_owner: Bool = UnwrapOption(name) ==
-        "SelfMirRoutineBuildStorageRetireAfterLastConsumer" &&
-        UnwrapOption(param_type) == "SelfMirRoutineBuild" &&
-        UnwrapOption(returns) == "Void";
-    let artifact_non_traversal_owner: Bool = UnwrapOption(name) ==
-        "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection" &&
-        UnwrapOption(param_type) == "AstTreeArtifact" &&
-        UnwrapOption(returns) == "AstTreeArtifact";
-    let artifact_traversal_owner: Bool = UnwrapOption(name) ==
-        "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts" &&
-        UnwrapOption(param_type) == "AstTreeArtifact" &&
-        UnwrapOption(returns) == "Void";
-    return routine_build_owner || artifact_non_traversal_owner ||
-        artifact_traversal_owner;
+    return SemanticCompilerRetireArrayStorageCallerContractReady(
+        UnwrapOption(module_path), UnwrapOption(name), UnwrapOption(returns),
+        UnwrapOption(count),
+        UnwrapOption(param_type), UnwrapOption(param_mode) == 2
+    );
 }
 
 struct SemanticExpressionGraphCollectionMutationFact {
@@ -102,6 +95,17 @@ func SemanticExpressionGraphCollectionMutationFactFromGraph(
         return SemanticExpressionGraphCollectionMutationNotApplicable();
     }
     let callee: String = UnwrapOption(callee_text);
+    if callee == "CompilerRetireArrayStorage" {
+        let caller_error: String =
+            SemanticCompilerRetireArrayStorageCallerError(
+                internal_caller_ready
+            );
+        if caller_error != "" {
+            return SemanticExpressionGraphCollectionMutationError(
+                "compiler_internal_builtin", caller_error
+            );
+        }
+    }
     if ArrayLength(names) != ArrayLength(types) ||
         ArrayLength(names) != ArrayLength(modes) {
         return SemanticExpressionGraphCollectionMutationError(

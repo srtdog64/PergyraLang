@@ -1,0 +1,45 @@
+// Exact normalized shape and type proof for admitted Int/Long numeric casts.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramNumericCastExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind != DirectMirScalarProgramExprTypeNameLong() &&
+            kind != DirectMirScalarProgramExprCastIntToLong() &&
+            kind != DirectMirScalarProgramExprTypeNameInt() &&
+            kind != DirectMirScalarProgramExprCastLongToInt() {
+        return None;
+    }
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    if facts.node_local_rows[node] != -1 ||
+            facts.node_parameter_ordinals[node] != -1 ||
+            facts.node_member_ordinals[node] != -1 ||
+            facts.node_callable_rows[node] != -1 {
+        return Some(false);
+    }
+    if kind == DirectMirScalarProgramExprTypeNameLong() {
+        return Some(facts.node_types[node] == CompilerAbiLayoutLongTypeName() &&
+            facts.node_literals[node] == CompilerAbiLayoutLongTypeName() &&
+            left == -1 && right == -1);
+    }
+    if kind == DirectMirScalarProgramExprTypeNameInt() {
+        return Some(facts.node_types[node] == CompilerAbiLayoutIntTypeName() &&
+            facts.node_literals[node] == CompilerAbiLayoutIntTypeName() &&
+            left == -1 && right == -1);
+    }
+    if kind == DirectMirScalarProgramExprCastIntToLong() {
+        return Some(facts.node_types[node] == CompilerAbiLayoutLongTypeName() &&
+        facts.node_literals[node] == "" && left >= 0 && right >= 0 &&
+        facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
+        facts.node_kinds[right] == DirectMirScalarProgramExprTypeNameLong() &&
+        facts.node_types[right] == CompilerAbiLayoutLongTypeName());
+    }
+    return Some(facts.node_types[node] == CompilerAbiLayoutIntTypeName() &&
+        facts.node_literals[node] == "" && left >= 0 && right >= 0 &&
+        facts.node_types[left] == CompilerAbiLayoutLongTypeName() &&
+        facts.node_kinds[right] == DirectMirScalarProgramExprTypeNameInt() &&
+        facts.node_types[right] == CompilerAbiLayoutIntTypeName());
+}

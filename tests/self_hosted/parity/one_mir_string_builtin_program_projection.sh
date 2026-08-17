@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-string-builtin-program"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -41,7 +42,7 @@ GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner
     fail "one loop must own every scalar-program routine admission"
 [[ "$(grep -Fc 'DirectMirScalarCfgSealGraphPlan(' "$PROGRAM")" -eq 1 ]] ||
     fail "program graph must seal exactly once"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v23'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78'
 reject_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v18'
 require_text "$BUILTIN" 'direct_mir_scalar_program_builtin_signature_projection_owner.pgy'
 require_text "$BUILTIN_SIGNATURE" '../semantic/builtin_signature_owner.pgy'
@@ -63,7 +64,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "994A28363848AD3F60504BFA95B71C25D02842CACBC0C88CC89342AB9B3A1DF7" ]] ||
+[[ "$mir_sha" == "C39CF0215F9ACA7CA5841D027966786C418967831A66ADE527FD05B9A04E03CA" ]] ||
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_builtin_program_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"
@@ -81,7 +82,8 @@ project() {
 
 goods=(program display-only semantic-change builtin-semantic-change)
 bads=(bad-to-string-syntax bad-call-marker-edge bad-call-argument-edge \
-    bad-to-string-argument-type bad-to-upper-argument-type \
+    bad-to-string-argument-type bad-to-string-string-argument-type \
+    bad-to-upper-argument-type \
     bad-unregistered-builtin bad-duplicate-call-consumption)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
@@ -111,11 +113,16 @@ for symbol in pgy_concat pgy_tostr pgy_toupper pgy_tolower; do
     require_text "$WORK_DIR/base.c" "$symbol"
     require_text "$WORK_DIR/base.ll" "$symbol"
 done
-expected_base=$'foobar\nxyz\nHello, Pergyra!\nfoo/bar/end\nn=7\nABcd'
-expected_semantic=$'zapbar\nxyz\nHello, Pergyra!\nzap/bar/end\nn=7\nABcd'
-expected_builtin=$'foobar\nxyz\nHello, Pergyra!\nfoo/bar/end\nn=8\nAZxy'
+expected_base=$'foobar\nxyz\nHello, Pergyra!\nfoo/bar/end\nn=7\nfoo\nABcd'
+expected_semantic=$'zapbar\nxyz\nHello, Pergyra!\nzap/bar/end\nn=7\nzap\nABcd'
+expected_builtin=$'foobar\nxyz\nHello, Pergyra!\nfoo/bar/end\nn=8\nfoo\nAZxy'
 for stem in base display-only semantic-change builtin-semantic-change; do
-    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" || fail "C compile failed: $stem"
+    c_command=("$CC" -std=c11 "$WORK_DIR/$stem.c")
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/$stem.c"; then
+        c_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    fi
+    c_command+=(-o "$WORK_DIR/$stem.c.exe")
+    "${c_command[@]}" || fail "C compile failed: $stem"
     "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" || fail "LLVM compile failed: $stem"
     expected="$expected_base"
     [[ "$stem" == semantic-change ]] && expected="$expected_semantic"

@@ -2,24 +2,35 @@
 import "direct_mir_scalar_program_runtime_abi_fact_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 import "direct_mir_scalar_program_case_math_runtime_projection_owner.pgy";
 struct DirectMirScalarProgramRuntimeAbiProjection {
     let valid: Bool;
+    let string_print: CompilerRuntimeCallAbiFact;
     let string_compare: CompilerRuntimeCallAbiFact;
     let string_concat: CompilerRuntimeCallAbiFact;
     let string_to_string: CompilerRuntimeCallAbiFact;
     let string_to_upper: CompilerRuntimeCallAbiFact;
     let string_to_lower: CompilerRuntimeCallAbiFact;
     let string_length: CompilerRuntimeCallAbiFact;
+    let string_char_code: CompilerRuntimeCallAbiFact;
+    let string_char_at_n: CompilerRuntimeCallAbiFact;
     let string_substring: CompilerRuntimeCallAbiFact;
     let string_substring_with_len: CompilerRuntimeCallAbiFact;
+    let string_sub_equals_with_len: CompilerRuntimeCallAbiFact;
+    let string_sub_index_with_len: CompilerRuntimeCallAbiFact;
     let string_index: CompilerRuntimeCallAbiFact;
     let string_trim: CompilerRuntimeCallAbiFact;
     let string_contains: CompilerRuntimeCallAbiFact;
     let string_split: CompilerRuntimeCallAbiFact;
+    let string_join: CompilerRuntimeCallAbiFact;
     let string_to_int: CompilerRuntimeCallAbiFact;
     let array_string_length: CompilerRuntimeCallAbiFact;
     let array_string_get: CompilerRuntimeCallAbiFact;
+    let process_args: CompilerRuntimeCallAbiFact;
+    let dir_walk: CompilerRuntimeCallAbiFact;
+    let file_exists: CompilerRuntimeCallAbiFact;
+    let read_file: CompilerRuntimeCallAbiFact;
     let case_math: DirectMirScalarProgramCaseMathRuntimeProjection;
 }
 
@@ -27,7 +38,8 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
     ref fact: DirectMirScalarProgramRuntimeAbiFact
 ) -> DirectMirScalarProgramRuntimeAbiProjection {
     return DirectMirScalarProgramRuntimeAbiProjection(
-        fact.valid, CompilerRuntimeCallAbiStringCompareFact(),
+        fact.valid, CompilerRuntimeCallAbiPrintFact(),
+        CompilerRuntimeCallAbiStringCompareFact(),
         CompilerRuntimeCallAbiStringConcatFact(),
         CompilerRuntimeCallAbiStringToStringFact(),
         CompilerRuntimeCallAbiStringToUpperFact(),
@@ -35,9 +47,17 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "length", StringRuntimeCStringLengthFn()),
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "char-code", StringRuntimeCCharCodeFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "char-at-n", StringRuntimeCCharAtNFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "substring", StringRuntimeCSubstringFn()),
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "substring-with-len", StringRuntimeCSubstringWithLenFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "sub-equals-with-len", StringRuntimeCSubEqualsWithLenFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "sub-index-of-with-len", StringRuntimeCSubIndexOfWithLenFn()),
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "index-of", StringRuntimeCStringIndexOfFn()),
         DirectMirScalarProgramStringTrimRuntimeProjection(),
@@ -45,6 +65,8 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
             "contains", StringRuntimeCStringContainsFn()),
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "split", StringRuntimeCSplitFn()),
+        CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+            "join", StringRuntimeCStringJoinFn()),
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
             "to-int", StringRuntimeCToIntFn()),
         CompilerRuntimeCallAbiFactFromRowInput(
@@ -54,6 +76,22 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
         CompilerRuntimeCallAbiFactFromRowInput(
             CompilerRuntimeCallAbiRowInput(
                 "collection", "array-string.get", CollectionRuntimeCGetFn(2),
+                CompilerRuntimeCallAbiMaterialGeneratedHelper())),
+        CompilerRuntimeCallAbiFactFromRowInput(
+            CompilerRuntimeCallAbiRowInput(
+                "host-io", "args", HostIORuntimeCArgsFn(),
+                CompilerRuntimeCallAbiMaterialGeneratedHelper())),
+        CompilerRuntimeCallAbiFactFromRowInput(
+            CompilerRuntimeCallAbiRowInput(
+                "host-io", "dir-walk", HostIORuntimeCDirWalkFn(),
+                CompilerRuntimeCallAbiMaterialGeneratedHelper())),
+        CompilerRuntimeCallAbiFactFromRowInput(
+            CompilerRuntimeCallAbiRowInput(
+                "host-io", "file-exists", HostIORuntimeCFileExistsFn(),
+                CompilerRuntimeCallAbiMaterialGeneratedHelper())),
+        CompilerRuntimeCallAbiFactFromRowInput(
+            CompilerRuntimeCallAbiRowInput(
+                "host-io", "read-file", HostIORuntimeCReadFileFn(),
                 CompilerRuntimeCallAbiMaterialGeneratedHelper())),
         DirectMirScalarProgramCaseMathRuntimeProjectionFromIds(fact.case_math));
 }

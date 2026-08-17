@@ -58,7 +58,9 @@ func MirIntentStepTransitionFactsAligned(
         count == ArrayLength(rows.completion_instruction_ids) &&
         count == ArrayLength(rows.compensation_starts) &&
         count == ArrayLength(rows.compensation_counts) &&
-        MirIntentCompensationFactsAligned(rows.compensations);
+        MirIntentCompensationFactsAligned(rows.compensations) &&
+        count == ArrayLength(rows.where_zone_names) &&
+        count == ArrayLength(rows.where_zone_syntax_ids);
 }
 
 func MirIntentTerminalTransitionFactsAligned(
@@ -164,6 +166,8 @@ func MirIntentStepTransitionFactsReady(
         if rows.transition_ids[row] <= 0 ||
             rows.transition_ids[row] != rows.step_syntax_ids[row] ||
             rows.routine_syntax_ids[row] <= 0 || rows.step_names[row] == "" ||
+            rows.where_zone_names[row] == "" ||
+            rows.where_zone_syntax_ids[row] <= 0 ||
             rows.action_syntax_ids[row] <= 0 ||
             rows.outcome_instruction_block_ids[row] < 0 ||
             rows.outcome_instruction_ids[row] < 0 ||

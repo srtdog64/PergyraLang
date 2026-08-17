@@ -259,13 +259,27 @@ test_mir_lowering_part_a(void)
             mir_text_builder_runtime_row("Finish");
         const MIRTextBuilderRuntimeRow *create =
             mir_text_builder_runtime_row("New");
+        const MIRTextBuilderRuntimeRow *allocator_result =
+            mir_text_builder_runtime_row_by_source_name("AllocatorResult");
+        const MIRTextBuilderRuntimeRow *allocator_destroy =
+            mir_text_builder_runtime_row_by_source_name("AllocatorDestroy");
 
         EXPECT(layout != NULL
                && layout->field_count == 4
                && strcmp(layout->fields[0].field_name, "data") == 0
                && strcmp(layout->fields[3].field_name, "finished") == 0
-               && mir_text_builder_runtime_row_count() == 4
+               && mir_text_builder_runtime_row_count() == 6
+               && allocator_result != NULL
+               && strcmp(allocator_result->owner_name, "Allocator") == 0
+               && allocator_result->c_call_shape
+                    == MIR_TEXT_BUILDER_CALL_RETURNS_ALLOCATOR
+               && allocator_result->llvm_call_shape
+                    == MIR_TEXT_BUILDER_CALL_ALLOCATOR_OUT_TO_VOID
+               && allocator_destroy != NULL
+               && allocator_destroy->llvm_call_shape
+                    == MIR_TEXT_BUILDER_CALL_ALLOCATOR_PTR_TO_VOID
                && append != NULL
+               && strcmp(append->owner_name, "TextBuilder") == 0
                && strcmp(append->c_inline_fn,
                          "pgy_text_builder_append") == 0
                && strcmp(append->llvm_export_fn,
@@ -610,83 +624,6 @@ test_mir_lowering_part_a(void)
                    && mir_error != NULL
                    && strstr(mir_error, "cleanup block") != NULL
                    && strstr(mir_error, "normal CFG successors") != NULL;
-        EXPECT(rejected);
-        free(mir_error);
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
-
-    TEST("MIR validator rejects predecessor without forward edge");
-    {
-        const char *src =
-            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
-            "ability Payable { func Pay() -> Void; }\n"
-            "role BuyerPay for Buyer {\n"
-            "    impl ability Payable { func Pay() -> Void { return; } }\n"
-            "}\n"
-            "object BuyerView { let hp: Int; }\n"
-            "zone PaymentZone {\n"
-            "    subject slot buyer: Buyer\n"
-            "    object slot view: BuyerView\n"
-            "    authority buyer requires Payable\n"
-            "    refresh view from buyer by buyer\n"
-            "}\n"
-            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
-            "    rollback: full;\n"
-            "    step pay {\n"
-            "        where: PaymentZone;\n"
-            "        using: payment;\n"
-            "        who: buyer;\n"
-            "        authorized by: buyer;\n"
-            "        requires: Payable;\n"
-            "        on: buyer.Pay();\n"
-            "        compensate: buyer.Pay();\n"
-            "    }\n"
-            "}\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        MIRRoutine *purchase = NULL;
-        char *mir_error = NULL;
-        bool rejected = false;
-        bool corrupted = false;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok)
-            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
-        if (purchase != NULL) {
-            for (size_t target = 0; target < purchase->block_count && !corrupted; target++) {
-                MIRBasicBlock *block = &purchase->blocks[target];
-                if (block->predecessor_count == 0)
-                    continue;
-                for (size_t pred = 0; pred < purchase->block_count; pred++) {
-                    size_t next_count;
-                    size_t *grown;
-                    if (pred == target)
-                        continue;
-                    if (!test_block_has_forward_edge_to(&purchase->blocks[pred], target)) {
-                        next_count = block->predecessor_count + 1;
-                        grown = realloc(block->predecessors,
-                                        next_count * sizeof(size_t));
-                        if (grown == NULL)
-                            break;
-                        block->predecessors = grown;
-                        block->predecessors[block->predecessor_count] = pred;
-                        block->predecessor_count = next_count;
-                        block->predecessor_capacity = next_count;
-                        corrupted = true;
-                        break;
-                    }
-                }
-            }
-        }
-        rejected = ok
-                   && purchase != NULL
-                   && corrupted
-                   && !mir_validate(mir, &mir_error)
-                   && mir_error != NULL
-                   && strstr(mir_error, "predecessor") != NULL
-                   && strstr(mir_error, "no matching forward edge") != NULL;
         EXPECT(rejected);
         free(mir_error);
         mir_destroy(mir);

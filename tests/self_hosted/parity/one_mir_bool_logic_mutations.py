@@ -49,24 +49,35 @@ def instruction(document, block_id, instruction_id):
 
 
 def other_true(document):
-    target = instruction(document, 0, 9)
+    matches = [
+        item for item in block(document, 0)["instructions"]
+        if item.get("result") == "other.1"
+    ]
+    if len(matches) != 1:
+        raise RuntimeError("expected the Main other.1 definition")
+    target = matches[0]
     target["expr0_graph"]["nodes"][0]["text"] = "true"
-
 def logical_and_variant(document):
     target = instruction(document, 6, 3)
     target["expr0_graph"]["nodes"][5]["kind"] = "logical_and"
 
 def modulo_three(document):
-    target = routine(document, "IsEven")["blocks"][0]["instructions"][0]
+    target = next(
+        item
+        for item_block in routine(document, "IsEven")["blocks"]
+        for item in item_block["instructions"]
+        if item.get("kind") == "return"
+    )
     target["expr0_graph"]["nodes"][1]["text"] = "3"
 
 def set_is_even_modulo(document, text):
-    target = routine(document, "IsEven")["blocks"][0]["instructions"][0]
+    target = next(
+        item
+        for item_block in routine(document, "IsEven")["blocks"]
+        for item in item_block["instructions"]
+        if item.get("kind") == "return"
+    )
     target["expr0_graph"]["nodes"][1]["text"] = text
-
-def bad_add_unbounded(document):
-    target = instruction(document, 11, 6)
-    target["expr0_graph"]["nodes"][1]["text"] = "-1"
 
 def display_only(document):
     for item in document["routines"]:
@@ -144,7 +155,6 @@ emit("bad-call-target", bad_call_target)
 emit("bad-call-argument-type", bad_call_argument_type)
 emit("bad-short-circuit-rhs", bad_short_circuit_rhs)
 emit("bad-phi-incoming-identity", bad_phi_incoming_identity)
-emit("bad-modulo-zero", lambda document: set_is_even_modulo(document, "0"))
-emit("bad-modulo-minus-one", lambda document: set_is_even_modulo(document, "-1"))
-emit("bad-add-unbounded", bad_add_unbounded)
+emit("modulo-zero", lambda document: set_is_even_modulo(document, "0"))
+emit("modulo-minus-one", lambda document: set_is_even_modulo(document, "-1"))
 emit("non-scalar-callable-signature", non_scalar_callable_signature)

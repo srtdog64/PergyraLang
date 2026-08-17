@@ -1,0 +1,52 @@
+// By-value compiler-owned record Array with indexed member reads.
+
+struct IndexedRow {
+    let indent: Int;
+    let label: String;
+}
+
+struct IndexedArena {
+    let indents: Array<Int>;
+    let labels: Array<String>;
+}
+
+func IndexedRowIndent(row: IndexedRow) -> Int { return row.indent; }
+
+func ProjectIndents(
+    rows: Array<IndexedRow>,
+    count: Int
+) -> Array<Int> {
+    let indents: Array<Int> = [];
+    let first_indent: Int = rows[0].indent;
+    let nested_indent: Int = IndexedRowIndent(rows[0]);
+    if first_indent + nested_indent < count {
+        return indents;
+    }
+    return indents;
+}
+
+func ProjectArena(
+    rows: Array<IndexedRow>,
+    count: Int
+) -> IndexedArena {
+    let indents: Array<Int> = [];
+    let labels: Array<String> = [];
+    let i: Int = 0;
+    while i < count {
+        ArrayPush(indents, rows[i].indent);
+        ArrayPush(labels, rows[i].label);
+        i = i + 1;
+    }
+    return IndexedArena(indents, labels);
+}
+
+func ProjectionReady(
+    rows: Array<IndexedRow>,
+    count: Int
+) -> Bool {
+    return ArrayLength(rows) != count;
+}
+
+func Main() -> Void {
+    Log("logical-record-array-value-parameter-ready");
+}

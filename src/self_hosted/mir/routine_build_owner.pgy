@@ -5,6 +5,7 @@ import "instruction_scalar_mutation_owner.pgy";
 import "cfg_instruction_mutation_owner.pgy";
 import "expression_fact_owner.pgy";
 import "expression_runtime_abi_owner.pgy";
+import "routine_expression_runtime_abi_owner.pgy";
 import "../semantic/ast_expression_graph_node_view_owner.pgy";
 
 struct SelfMirRoutineBuild {
@@ -143,91 +144,6 @@ func SelfMirRoutineAttachLastAbiTypeName(
     );
 }
 
-func SelfMirSsaBaseName(ssa_name: String) -> String {
-    let separator: Int = StringIndexOf(ssa_name, ".");
-    if separator < 0 { return ssa_name; }
-    return Substring(ssa_name, 0, separator);
-}
-
-func SelfMirRoutineResourceTypeForInstruction(
-    build: SelfMirRoutineBuild,
-    view: SemanticExpressionGraphView,
-    cfg: SelfMirCfgRows,
-    instruction_index: Int,
-    operation: String
-) -> String {
-    if !view.ok {
-        return "";
-    }
-    if operation == "Claim" {
-        let result_local: Option<Int> = SelfMirRoutineLocalIndex(
-            build,
-            SelfMirSsaBaseName(cfg.instructions.results[instruction_index])
-        );
-        if IsSome(result_local) {
-            return build.local_types[UnwrapOption(result_local)];
-        }
-        return "";
-    }
-    let start_opt: Option<Int> = SemanticExpressionGraphSubtreeStart(
-        view.graph, view.root_id
-    );
-    if !IsSome(start_opt) {
-        return "";
-    }
-    let start: Int = UnwrapOption(start_opt);
-    let end: Int = view.root_id + 1;
-    let receiver_wrapper: Int = view.root_id;
-    if receiver_wrapper < start || receiver_wrapper >= end {
-        return "";
-    }
-    if operation == "Write" {
-        let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
-            view.graph, receiver_wrapper
-        );
-        if !IsSome(left_opt) {
-            return "";
-        }
-        receiver_wrapper = UnwrapOption(left_opt);
-    }
-    let wrapper_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        view.graph, receiver_wrapper
-    );
-    if receiver_wrapper < start || receiver_wrapper >= end ||
-        !IsSome(wrapper_kind) ||
-        UnwrapOption(wrapper_kind) != AstExpressionNodeCallArgument() {
-        return "";
-    }
-    let receiver_opt: Option<Int> = SemanticExpressionGraphRightChild(
-        view.graph, receiver_wrapper
-    );
-    if !IsSome(receiver_opt) {
-        return "";
-    }
-    let receiver_node: Int = UnwrapOption(receiver_opt);
-    if receiver_node < start || receiver_node >= end {
-        return "";
-    }
-    let receiver_name_opt: Option<String> = SemanticExpressionGraphNodeText(
-        view.graph, receiver_node
-    );
-    if !IsSome(receiver_name_opt) {
-        return "";
-    }
-    let receiver_name: String = UnwrapOption(receiver_name_opt);
-    if receiver_name == "" {
-        return "";
-    }
-    let i: Int = ArrayLength(build.local_names) - 1;
-    while i >= 0 {
-        if build.local_names[i] == receiver_name {
-            return build.local_types[i];
-        }
-        i = i - 1;
-    }
-    return "";
-}
-
 func SelfMirRoutineAttachLastExpressionGraph(
     build: SelfMirRoutineBuild,
     view: SemanticExpressionGraphView,
@@ -248,77 +164,14 @@ func SelfMirRoutineAttachLastExpressionGraph(
             build, "MIR expression graph attachment failed"
         );
     }
-    let operation: String =
-        cfg.instructions.machine_layer_runtime_operations[instruction_index];
-    if operation != "" {
-        let resource_type: String = SelfMirRoutineResourceTypeForInstruction(
-            build, view, cfg, instruction_index, operation
-        );
-        if resource_type == "" {
-            return SelfMirRoutineBuildError(
-                build,
-                "MIR resource runtime-call ABI row is missing its type fact"
-            );
-        }
-        let abi_fact: CompilerRuntimeCallAbiFact =
-            CompilerRuntimeCallAbiFactForNativeResource(
-                resource_type, operation
-            );
-        if !abi_fact.ok {
-            return SelfMirRoutineBuildError(
-                build,
-                Concat(
-                    "MIR resource runtime-call ABI row is not declared: ",
-                    Concat(resource_type, Concat("/", operation))
-                )
-            );
-        }
-        cfg = SelfMirCfgAttachLastRuntimeCallAbi(
-            cfg, resource_type, operation, abi_fact
-        );
-        if cfg.instructions.runtime_call_abi.present[instruction_index] != 1 {
-            return SelfMirRoutineBuildError(
-                build,
-                "MIR resource runtime-call ABI row attachment failed"
-            );
-        }
-    } else {
-        let projection: SelfMirExpressionRuntimeAbiProjection =
-            SelfMirExpressionRuntimeAbiProjectionFromGraph(
-                view, cfg.instructions.expr1s[instruction_index],
-                build.local_names, build.local_types
-            );
-        if !projection.ok {
-            return SelfMirRoutineBuildError(
-                build, projection.diagnostic_message
-            );
-        }
-        let abi_i: Int = 0;
-        while abi_i < ArrayLength(projection.operations) {
-            let abi_fact: CompilerRuntimeCallAbiFact =
-                CompilerRuntimeCallAbiFactForNativeResource(
-                    projection.type_names[abi_i],
-                    projection.operations[abi_i]
-                );
-            if !abi_fact.ok {
-                return SelfMirRoutineBuildError(
-                    build, "MIR Slot runtime-call ABI row is not declared"
-                );
-            }
-            if abi_i == 0 {
-                cfg = SelfMirCfgAttachLastRuntimeCallAbi(
-                    cfg, projection.type_names[abi_i],
-                    projection.operations[abi_i], abi_fact
-                );
-            } else {
-                cfg = SelfMirCfgAttachLastRuntimeCallAbiAux(
-                    cfg, projection.type_names[abi_i],
-                    projection.operations[abi_i], abi_fact
-                );
-            }
-            abi_i = abi_i + 1;
-        }
+    let runtime_abi: SelfMirRoutineExpressionRuntimeAbiResult =
+        SelfMirRoutineExpressionRuntimeAbiAttach(
+            cfg, view, build.local_names, build.local_types);
+    if !runtime_abi.ok {
+        return SelfMirRoutineBuildError(
+            build, runtime_abi.diagnostic_message);
     }
+    cfg = runtime_abi.cfg;
     cfg = SelfMirCfgRows(
         cfg.blocks, cfg.instructions,
         SelfMirInstructionLocalRefRowsAttachExpr0(

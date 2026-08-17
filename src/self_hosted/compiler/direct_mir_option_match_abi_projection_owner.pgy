@@ -58,7 +58,7 @@ func DirectMirOptionMatchAbiProjectionReadyFor(
 
 func DirectMirOptionMatchAbiProjectionFromFact(
     ref abi: DirectMirOptionMatchAbiFact,
-    target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact
 ) -> DirectMirOptionMatchAbiProjection {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target, CompilerTargetCpuCProjection()

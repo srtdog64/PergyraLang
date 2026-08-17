@@ -1,0 +1,44 @@
+// Exact Bool signature with one readonly record, String, and ArrayString copyout.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.return_type != CompilerAbiLayoutBoolTypeName() ||
+        signature.param_count != 3 ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, signature.parameters.type_names[0]) {
+        return false;
+    }
+    return signature.parameters.carriages[0] == "readonly-ref" &&
+        signature.parameters.resources[0] == "none" &&
+        signature.parameters.pass_shapes[0] == "indirect" &&
+        !signature.parameters.abi_required[0] &&
+        signature.parameters.abi_layout_ids[0] == 0 &&
+        signature.parameters.type_names[1] == CompilerAbiLayoutStringTypeName() &&
+        signature.parameters.carriages[1] == "value" &&
+        signature.parameters.resources[1] == "none" &&
+        signature.parameters.pass_shapes[1] == "direct" &&
+        !signature.parameters.abi_required[1] &&
+        signature.parameters.abi_layout_ids[1] == 0 &&
+        signature.parameters.type_names[2] == CompilerAbiLayoutArrayStringTypeName() &&
+        signature.parameters.carriages[2] == "value-result" &&
+        signature.parameters.resources[2] == "none" &&
+        signature.parameters.pass_shapes[2] == "direct" &&
+        signature.parameters.abi_required[2] &&
+        signature.parameters.abi_layout_ids[2] > 0;
+}
+
+func DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultSignatureReady(
+            signature, logical_record);
+}

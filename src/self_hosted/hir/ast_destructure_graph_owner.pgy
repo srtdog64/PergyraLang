@@ -134,8 +134,10 @@ func AstTreeArtifactBindDestructurePayloads(
         );
         return AstTreeArtifact(
             artifact.tree_text, artifact.arena, artifact.count,
-            invalid_rows0, AstTreeArtifactIdentityDigest(
-                artifact.tree_text, artifact.count, invalid_rows0
+            invalid_rows0, artifact.source_modules,
+            AstTreeArtifactIdentityDigest(
+                artifact.tree_text, artifact.count, invalid_rows0,
+                artifact.source_modules
             )
         );
     }
@@ -166,8 +168,10 @@ func AstTreeArtifactBindDestructurePayloads(
             );
             return AstTreeArtifact(
                 artifact.tree_text, artifact.arena, artifact.count,
-                invalid_rows, AstTreeArtifactIdentityDigest(
-                    artifact.tree_text, artifact.count, invalid_rows
+                invalid_rows, artifact.source_modules,
+                AstTreeArtifactIdentityDigest(
+                    artifact.tree_text, artifact.count, invalid_rows,
+                    artifact.source_modules
                 )
             );
         }
@@ -198,8 +202,10 @@ func AstTreeArtifactBindDestructurePayloads(
         );
         return AstTreeArtifact(
             artifact.tree_text, artifact.arena, artifact.count,
-            invalid_rows2, AstTreeArtifactIdentityDigest(
-                artifact.tree_text, artifact.count, invalid_rows2
+            invalid_rows2, artifact.source_modules,
+            AstTreeArtifactIdentityDigest(
+                artifact.tree_text, artifact.count, invalid_rows2,
+                artifact.source_modules
             )
         );
     }
@@ -212,6 +218,7 @@ func AstTreeArtifactBindDestructurePayloads(
     );
     return AstTreeArtifact(
         artifact.tree_text, bound_arena, artifact.count,
-        artifact.expression_graphs, artifact.identity_digest
+        artifact.expression_graphs, artifact.source_modules,
+        artifact.identity_digest
     );
 }

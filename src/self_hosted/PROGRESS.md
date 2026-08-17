@@ -1,6 +1,102 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-10 public AST dump substitution
+## Active self-host context - 2026-08-18 iterative else-if O3 fixed point
+
+- HEAD `330c82ca5f67` remains intentionally dirty at 867 paths (431 tracked
+  and 436 untracked). This aggregate is not a progress numerator; preserve
+  unrelated work.
+- The reached compiler-scale failure was direct `else if` MIR lowering through
+  source-depth recursion. The old oracle stack-overflowed (`0xC00000FD`) on a
+  41-condition fixture and stopped the full source at routine 2743. The new
+  owner descends direct else-if topology with admitted entry/then frames and
+  unwinds through the existing merge owner in reverse order. Ordinary nested
+  block recursion and SSA/local restoration semantics remain unchanged.
+- Seed/native verified MIR for the 41-condition falsifier is byte-equal at
+  90,132 bytes; emitted C is byte-equal at 11,788 bytes and executes exact
+  `neg/zero/small/big`. Adjacent ordinary/nested/loop If MIR cases are also
+  byte-equal.
+- The canonical full driver bootstrap ran with release flags
+  `-O3 -fwrapv -fno-strict-aliasing` and exited 0. Seed/oracle MIR is
+  byte-identical at 232,242,252 bytes/SHA-256
+  `47679723ED88B38972ACCA78488268277EF7BDFCD3980D33F60DCDC7CDA10F48`.
+  O3 gen2/gen3 C is byte-identical at 10,265,701 bytes/SHA-256
+  `9187E188FBA6C0EC405643E14D6A33197B34E025AEA7677962C5214BBE88D0C1`.
+- The repository installer also passes with an isolated output. Its
+  5,903,397-byte candidate completes typed-source emission, O3 compilation,
+  bounded source smoke, exact machine-manifest replay, and the installed
+  CLI-mode gate. The public sibling under `bin/` was not overwritten, so this
+  is local install-transaction evidence rather than product promotion.
+- A fresh same-revision native release/LTO launcher now passes beside that
+  isolated sibling. Public/direct MIR is byte-identical at 59,402 bytes/SHA-256
+  `447440EC0547886CBC0216C70F6466FDF4B4E10A84D3F7C2149CC6072038F491`;
+  native/self canonical MIR is byte-identical at 64,494 bytes/SHA-256
+  `CADA3C569501FD2CB18E071D5F0B0A89DF195B57690E8923B2F9D8A344B16DE9`.
+  The public handoff consumes the existing canonical import-path owner, so a
+  relative CLI spelling and native absolute spelling can no longer split
+  `source_module_path`. The identity handoff does not rewrite user-facing
+  source labels: public tokens, AST, capability-manifest, and DIR stdout retain
+  relative argv spelling and pass their executable gates. Public C emission
+  and plain compile/run gates are also green, and the Linux parity job now names
+  the public MIR gate explicitly.
+- This is executable bootstrap progress, not another SoT registry closure.
+  `all` and `release` now install the existing self-host compiler sibling, and
+  one isolated `make release` produced a coherent same-directory launcher,
+  DRV-2, and machine manifest. Installed CLI-mode, public MIR, public C emit,
+  and plain compile/run gates pass against that staging pair without an
+  override. The next boundary is intentional repository `bin/` promotion and
+  current remote CI reproduction;
+  do not add another SoT-only change, source split, stack/cap/timeout increase,
+  cache, or shard while that promotion is open. Hard closure stays 49/86,
+  integrated forecast 78%, and strict beta 83%.
+
+## Historical self-host context - 2026-08-18 match-pattern fixed point
+
+- HEAD `330c82ca5f67` remains intentionally dirty at 859 paths (423 tracked,
+  including tracked deletions, and 436 untracked). This accumulated breadth is
+  not one closure or a progress numerator; preserve unrelated work.
+- The refreshed Pergyra-built codegen seed is 2,490,793 bytes, SHA-256
+  `EF39A1AC8BFD79BBAF375115232D24ADCFD72B9EB8F45CF68B45AC3A8E8D33B9`.
+  The current Pergyra-built DRV-2 is 5,893,469 bytes, SHA-256
+  `B55C21CF153067EE09C90ECA46D8F005E5895178125C6109CD597C15F03B5AB9`;
+  its canonical typed-source build, bounded source smoke, and machine-manifest
+  replay pass.
+- The collection route now claims exactly three routines with one `Main`, one
+  Array producer, and one Array consumer. The exclusive multi-routine owner
+  consumes it before the broad scalar route; the terminal owner neither
+  reconstructs the fact nor retries another family after claim. The shared
+  Array<Int> ABI also uses the canonical C `long long` print-argument type for
+  `%lld` rather than the 32-bit language `Int` storage type.
+- The focused collection gate passes exact `12/4` and alternate `20/5` output
+  through C and LLVM, routine-row-order equality, and malformed ABI/call/
+  return/collision negatives. The routine-build lifetime gate proves exactly
+  43 Int plus 50 String backing leaves, and the compiler-internal provenance
+  gate admits only the registered owners while rejecting external and wrong-
+  path impersonation in C and LLVM.
+- DRV-2 published a 232,060,222-byte current-source MIR, SHA-256
+  `507723B927045A0D12085218B16B172347C1FDB1371538969A4B5D4B88A8F51F`,
+  under the unchanged 3,072MiB cap. It consumed that MIR into 10,257,044-byte
+  C, SHA-256
+  `140C241E86C026CDC1433251D70ED400448F4179775672D3F004216E20044D2D`.
+  The host-compiled gen2 consumed the same MIR and emitted byte-identical gen3
+  C. Consumer peaks were 1.681/1.694GiB private; source-MIR production peaked
+  at 2.781GiB and remains above the 2.4GiB attention line.
+- Existing Make/CI targets already include the collection, lifetime, and
+  provenance gates. The collection recipe now passes the built
+  `PGY_SELF_DRIVER_BIN` explicitly and the CI-profile inventory pins and passes
+  that contract. No new job, V, cache, shard, retry, timeout, or memory
+  allowance was added. The broad component
+  inventory is still not green because its pre-existing 125-line cap RED is
+  outside this executable slice.
+- Next objective card: integrate this exact current-source fixed point through
+  the existing canonical CI/release boundary before opening another SoT family;
+  preserve MIR identity, route exclusivity, C/LLVM negatives, and installed
+  evidence, then reduce the measured producer-lifetime peak. Any-role claims,
+  duplicate terminal classification, legacy/scalar retry, backend MIR reads,
+  new V/cache/shard/timeout/cap work are forbidden. Hard closure remains 49/86
+  (57.0%), integrated forecast 78%, and strict beta 83% until committed/remote
+  release evidence changes those denominators.
+
+## Historical self-host context - 2026-08-10 public AST dump substitution
 
 - Executable checkpoint `37624de9` removes the final native fallback for exact
   public `pgy --ast <source>`. `DriverFlags` admission selects one installed
@@ -69,11 +165,12 @@
   program extension contributes typed expression rows, one `(Int) -> Bool`
   callable, and closed-module ABI; shared target loops consume it. No sibling
   microcompiler, block-count route, backend MIR read, or legacy retry remains.
-- Arithmetic and control are fail-closed: eager logical RHS must be nontrapping,
-  modulo divisors cannot be `0` or `-1`, `local + 1` requires a dominating
-  positive bound, LLVM uses `add nsw`, and phi rows append only after complete
-  validation. Focused variants and all corresponding no-artifact negatives are
-  green for C and LLVM.
+- Arithmetic and control remain explicit: eager logical RHS must be
+  nontrapping, modulo divisors cannot be `0` or `-1`, while typed signed
+  addition/subtraction/negation follow the language's defined wrap semantics.
+  LLVM therefore uses plain `add`/`sub` and emitted C retains `-fwrapv`; the
+  retired CFG/magnitude proof path must not narrow ordinary Int arithmetic.
+  Phi rows append only after complete validation.
 - Final build: 170.616 seconds, 2.327 GiB peak working set, 2.536 GiB peak
   private. The 3 GiB stop line held; the 2.4 GiB attention line was crossed on
   private memory. Five adjacent installed-driver regressions plus hard and
@@ -589,7 +686,7 @@ mutations reject before either artifact opens.
 
 The v2 certificate adds one predecessor-resolved phi digest while retaining
 one `mir_terminator` AIR evidence row and zero fallback/drift. Certificate
-issuance performs the MIR/CFG/phi validation once. The v2 plan copies only the
+issuance performs the MIR/CFG/phi validation once. The v3 plan copies only the
 certificate, MIR, CFG, and phi digests plus fixed normalized shape facts; it no
 longer retains or revalidates the full certificate during C/LLVM emission.
 Plan readiness binds the phi digest back to the normalized SSA fields, and a

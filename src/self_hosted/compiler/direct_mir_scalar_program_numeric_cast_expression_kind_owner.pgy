@@ -1,0 +1,44 @@
+// Exact normalized identities for the admitted Int/Long numeric casts.
+
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_fact_owner.pgy";
+
+func DirectMirScalarProgramExprTypeNameLong() -> Int { return 83; }
+func DirectMirScalarProgramExprCastIntToLong() -> Int { return 84; }
+func DirectMirScalarProgramExprTypeNameInt() -> Int { return 86; }
+func DirectMirScalarProgramExprCastLongToInt() -> Int { return 87; }
+
+func DirectMirScalarProgramNumericCastExpressionKindFact(
+    source_kind: Int, text: String,
+    left_type: String, right_type: String, arity: Int
+) -> DirectMirScalarProgramExpressionKindFact {
+    let invalid: DirectMirScalarProgramExpressionKindFact =
+        DirectMirScalarProgramExpressionKindFactInvalid();
+    if source_kind == AstExpressionNodeTypeName() && arity == 0 &&
+            text == CompilerAbiLayoutLongTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprTypeNameLong(),
+            CompilerAbiLayoutLongTypeName(), CompilerAbiLayoutLongTypeName());
+    }
+    if source_kind == AstExpressionNodeTypeName() && arity == 0 &&
+            text == CompilerAbiLayoutIntTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprTypeNameInt(),
+            CompilerAbiLayoutIntTypeName(), CompilerAbiLayoutIntTypeName());
+    }
+    if source_kind == AstExpressionNodeCast() && arity == 2 &&
+            left_type == CompilerAbiLayoutIntTypeName() &&
+            right_type == CompilerAbiLayoutLongTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprCastIntToLong(),
+            CompilerAbiLayoutLongTypeName(), "");
+    }
+    if source_kind == AstExpressionNodeCast() && arity == 2 &&
+            left_type == CompilerAbiLayoutLongTypeName() &&
+            right_type == CompilerAbiLayoutIntTypeName() {
+        return DirectMirScalarProgramExpressionKindFact(
+            true, DirectMirScalarProgramExprCastLongToInt(),
+            CompilerAbiLayoutIntTypeName(), "");
+    }
+    return invalid;
+}

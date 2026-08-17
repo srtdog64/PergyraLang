@@ -1,24 +1,44 @@
 // Value-carriage and ABI policy for scalar-program callable parameters.
-
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_array_string_abi_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
-
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_logical_record_mixed_collection_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_bool_mixed_collection_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_void_logical_record_array_int_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_readonly_logical_record_array_string_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_bool_two_array_string_two_array_int_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy";
+import "direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_logical_record_return_array_string_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_void_logical_record_array_string_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_set_string_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy";
 func DirectMirScalarProgramCallableValueTypeSupported(
     type_name: String
 ) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
-        type_name == CompilerAbiLayoutArrayStringTypeName();
+        type_name == CompilerAbiLayoutArrayStringTypeName() ||
+        type_name == CompilerAbiLayoutArrayIntTypeName() ||
+        type_name == CompilerAbiLayoutArrayBoolTypeName() ||
+        type_name == CompilerAbiLayoutOptionIntTypeName() ||
+        type_name == CompilerAbiLayoutOptionStringTypeName() ||
+        type_name == CompilerAbiLayoutSetStringTypeName();
 }
-
 func DirectMirScalarProgramCallableReturnTypeSupported(
     type_name: String
 ) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
-        type_name == CompilerAbiLayoutOptionIntTypeName();
+        type_name == CompilerAbiLayoutArrayIntTypeName() ||
+        type_name == CompilerAbiLayoutOptionIntTypeName() ||
+        type_name == CompilerAbiLayoutOptionStringTypeName() ||
+        type_name == CompilerAbiLayoutOptionBoolTypeName();
 }
-
 func DirectMirScalarProgramCallableReturnTypeSupportedWithNominal(
     type_name: String,
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
@@ -26,27 +46,141 @@ func DirectMirScalarProgramCallableReturnTypeSupportedWithNominal(
     return DirectMirScalarProgramCallableReturnTypeSupported(type_name) ||
         DirectMirScalarProgramTwoIntNominalTypeReady(nominal, type_name);
 }
-
+func DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(
+    type_name: String,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    return DirectMirScalarProgramCallableReturnTypeSupportedWithNominal(
+            type_name, nominal) ||
+        DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) ||
+        DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name);
+}
+func DirectMirScalarProgramOwnedStringParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return DirectMirRoutineSignatureFactReady(signature) && ordinal >= 0 &&
+        ordinal < signature.param_count &&
+        signature.parameters.type_names[ordinal] ==
+            CompilerAbiLayoutStringTypeName() &&
+        signature.parameters.carriages[ordinal] == "owner-handle" &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0;
+}
+func DirectMirScalarProgramZeroParameterReturnTypeSupportedWithFacts(type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    return DirectMirScalarCfgScalarTypeSupported(type_name) ||
+        type_name == CompilerAbiLayoutArrayIntTypeName() ||
+        DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, type_name) ||
+        DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name);
+}
 func DirectMirScalarProgramCallableParameterSupported(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int
 ) -> Bool {
     if ordinal < 0 || ordinal >= signature.param_count { return false; }
+    if DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal) {
+        return true;
+    }
     let type_name: String = signature.parameters.type_names[ordinal];
     if !DirectMirScalarProgramCallableValueTypeSupported(type_name) ||
-        signature.parameters.carriages[ordinal] != "value" ||
         signature.parameters.resources[ordinal] != "none" ||
         signature.parameters.pass_shapes[ordinal] != "direct" {
         return false;
     }
-    if type_name != CompilerAbiLayoutArrayStringTypeName() {
-        return !signature.parameters.abi_required[ordinal];
+    if type_name == CompilerAbiLayoutArrayIntTypeName() {
+        return (signature.parameters.carriages[ordinal] == "value" ||
+                signature.parameters.carriages[ordinal] == "value-result") &&
+            signature.parameters.abi_required[ordinal] &&
+            signature.parameters.abi_layout_ids[ordinal] > 0;
     }
-    return signature.param_count == 1 && ordinal == 0 &&
-        signature.return_type == CompilerAbiLayoutStringTypeName() &&
-        signature.param.abi_required &&
-        DirectMirArrayStringCapturedAbiReady(signature.param.abi);
+    if type_name == CompilerAbiLayoutArrayStringTypeName() {
+        if signature.parameters.carriages[ordinal] == "value-result" {
+            return signature.parameters.abi_required[ordinal] &&
+                signature.parameters.abi_layout_ids[ordinal] > 0;
+        }
+        if DirectMirScalarProgramArrayStringReadonlyRefParameterReady(signature, ordinal) { return true; }
+        return signature.parameters.carriages[ordinal] == "value" &&
+            signature.parameters.abi_required[ordinal] &&
+            signature.parameters.abi_layout_ids[ordinal] > 0;
+    }
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() {
+        return signature.parameters.carriages[ordinal] == "value" &&
+            signature.parameters.abi_required[ordinal] &&
+            signature.parameters.abi_layout_ids[ordinal] > 0;
+    }
+    if type_name == CompilerAbiLayoutOptionIntTypeName() ||
+        type_name == CompilerAbiLayoutOptionStringTypeName() {
+        return signature.parameters.carriages[ordinal] == "value" &&
+            signature.parameters.abi_required[ordinal] &&
+            signature.parameters.abi_layout_ids[ordinal] > 0;
+    }
+    if type_name == CompilerAbiLayoutSetStringTypeName() {
+        if DirectMirScalarProgramSetStringValueResultParameterReady(signature, ordinal) { return true; }
+        return signature.parameters.carriages[ordinal] == "value" &&
+            !signature.parameters.abi_required[ordinal] &&
+            signature.parameters.abi_layout_ids[ordinal] == 0;
+    }
+    if signature.parameters.carriages[ordinal] != "value" { return false; }
+    return !signature.parameters.abi_required[ordinal];
 }
-
+func DirectMirScalarProgramArrayStringValueResultSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.param_count < 1 {
+        return false;
+    }
+    let void_return: Bool = signature.return_type == "Void";
+    let bool_return: Bool = signature.return_type ==
+        CompilerAbiLayoutBoolTypeName();
+    let int_return: Bool = signature.return_type ==
+        CompilerAbiLayoutIntTypeName();
+    if !void_return && !bool_return && !int_return { return false; }
+    let value_result_count: Int = 0;
+    let value_result_layout: Int = 0;
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        let type_name: String = signature.parameters.type_names[ordinal];
+        if type_name == CompilerAbiLayoutArrayStringTypeName() {
+            if signature.parameters.carriages[ordinal] != "value-result" ||
+                signature.parameters.resources[ordinal] != "none" ||
+                signature.parameters.pass_shapes[ordinal] != "direct" ||
+                !signature.parameters.abi_required[ordinal] ||
+                signature.parameters.abi_layout_ids[ordinal] <= 0 {
+                return false;
+            }
+            let layout: Int = signature.parameters.abi_layout_ids[ordinal];
+            if value_result_layout == 0 { value_result_layout = layout; }
+            else if value_result_layout != layout { return false; }
+            value_result_count = value_result_count + 1;
+        } else if !DirectMirScalarCfgScalarTypeSupported(type_name) ||
+            signature.parameters.carriages[ordinal] != "value" ||
+            signature.parameters.resources[ordinal] != "none" ||
+            signature.parameters.pass_shapes[ordinal] != "direct" ||
+            signature.parameters.abi_required[ordinal] {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    if void_return { return value_result_count == 1; }
+    return value_result_count >= 1;
+}
+func DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(ref signature: DirectMirRoutineSignatureFact) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) || signature.return_type !=
+            CompilerAbiLayoutArrayStringTypeName() { return false; }
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        if !DirectMirScalarCfgScalarTypeSupported(signature.parameters.type_names[ordinal]) ||
+            signature.parameters.carriages[ordinal] != "value" || signature.parameters.resources[ordinal] != "none" ||
+            signature.parameters.pass_shapes[ordinal] != "direct" || signature.parameters.abi_required[ordinal] { return false; }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}
 func DirectMirScalarProgramCallableParameterSupportedWithNominal(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
@@ -60,4 +194,46 @@ func DirectMirScalarProgramCallableParameterSupportedWithNominal(
         signature.parameters.pass_shapes[0] == "direct" &&
         DirectMirScalarProgramTwoIntNominalParameterReady(
             nominal, signature.param);
+}
+func DirectMirScalarProgramLogicalRecordParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if ordinal < 0 || ordinal >= signature.param_count ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, signature.parameters.type_names[ordinal]) ||
+        signature.parameters.resources[ordinal] != "none" ||
+        signature.parameters.abi_required[ordinal] {
+        return false;
+    }
+    if signature.parameters.carriages[ordinal] == "value" {
+        return signature.parameters.pass_shapes[ordinal] == "direct";
+    }
+    return signature.parameters.carriages[ordinal] == "readonly-ref" &&
+        signature.parameters.pass_shapes[ordinal] == "indirect";
+}
+func DirectMirScalarProgramCallableParameterSupportedWithFacts(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> Bool {
+    return DirectMirScalarProgramCallableParameterSupportedWithNominal(
+            signature, ordinal, nominal) ||
+        DirectMirScalarProgramLogicalRecordParameterReady(
+            signature, ordinal, logical_record) ||
+        DirectMirScalarProgramLogicalRecordValueResultParameterReady(
+            signature, ordinal, logical_record) ||
+        DirectMirScalarProgramLogicalRecordArrayValueResultParameterReady(
+            signature, ordinal, logical_record) ||
+        DirectMirScalarProgramLogicalRecordArrayValueParameterReady(
+            signature, ordinal, logical_record) ||
+        DirectMirScalarProgramLogicalRecordMixedCollectionValueResultParameterReady(
+            signature, ordinal, logical_record) ||
+        DirectMirScalarProgramBoolMixedCollectionValueResultParameterReady(
+            signature, ordinal) || DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultParameterReady(signature, ordinal, logical_record) || DirectMirScalarProgramBoolTwoArrayStringTwoArrayIntValueResultParameterReady(signature, ordinal) || DirectMirScalarProgramLogicalRecordReturnArrayStringValueResultParameterReady(signature, ordinal, logical_record) || DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultParameterReady(signature, ordinal, logical_record) ||
+        (ordinal == 0 && DirectMirScalarProgramOwnedLogicalRecordReturnSignatureReady(signature, logical_record)) ||
+        DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultParameterReady(signature, ordinal, logical_record) ||
+        DirectMirScalarProgramPayloadFreeEnumParameterReady(
+            signature, ordinal, payload_free_enum);
 }

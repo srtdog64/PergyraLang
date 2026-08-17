@@ -368,7 +368,7 @@ func SelfMirIntentAppendEmptyRoutineFacts(
     ArrayPush(loop_counts, 0);
     return SelfMirRoutineRows(
         rows.node_ids, rows.names, rows.kinds, rows.owners,
-        rows.receiver_carriages, rows.return_types,
+        rows.source_module_paths, rows.receiver_carriages, rows.return_types,
         rows.generic_starts, rows.generic_counts, rows.generic_names,
         rows.param_starts, rows.param_counts, rows.param_names, rows.param_types,
         rows.param_abi_kinds, rows.param_resource_kinds,
@@ -393,12 +393,19 @@ func SelfMirAppendIntentRoutine(
     facts: SelfMirProgramFacts,
     intents: SelfDirIntentFacts,
     intent_index: Int,
+    source_module_path: String,
     build: SelfMirRoutineBuild
 ) -> SelfMirProgramFacts {
     if !SelfDirIntentResultContractReady(intents, intent_index) {
         return SelfMirProgramFactsError(
             facts, "mir_intent_signature_invalid",
             "MIR intent projection requires one explicit DIR result contract"
+        );
+    }
+    if source_module_path == "" {
+        return SelfMirProgramFactsError(
+            facts, "mir_source_module_path_missing",
+            "MIR intent requires admitted source module provenance"
         );
     }
     let result_mode: String = intents.result_modes[intent_index];
@@ -415,6 +422,7 @@ func SelfMirAppendIntentRoutine(
     let names: Array<String> = rows.names;
     let kinds: Array<String> = rows.kinds;
     let owners: Array<String> = rows.owners;
+    let source_module_paths: Array<String> = rows.source_module_paths;
     let receiver_carriages: Array<String> = rows.receiver_carriages;
     let return_types: Array<String> = rows.return_types;
     let generic_starts: Array<Int> = rows.generic_starts;
@@ -431,6 +439,7 @@ func SelfMirAppendIntentRoutine(
     ArrayPush(names, intents.names[intent_index]);
     ArrayPush(kinds, "intent");
     ArrayPush(owners, "");
+    ArrayPush(source_module_paths, source_module_path);
     ArrayPush(receiver_carriages, "none");
     ArrayPush(return_types, return_type_name);
     ArrayPush(generic_starts, ArrayLength(rows.generic_names));
@@ -445,7 +454,8 @@ func SelfMirAppendIntentRoutine(
     ArrayPush(iteration_counts, 0);
     let appended: SelfMirRoutineRows = SelfMirIntentAppendEmptyRoutineFacts(
         SelfMirRoutineRows(
-            node_ids, names, kinds, owners, receiver_carriages, return_types,
+            node_ids, names, kinds, owners, source_module_paths,
+            receiver_carriages, return_types,
             generic_starts, generic_counts, rows.generic_names,
             param_starts, param_counts, rows.param_names, rows.param_types,
             rows.param_abi_kinds, rows.param_resource_kinds,

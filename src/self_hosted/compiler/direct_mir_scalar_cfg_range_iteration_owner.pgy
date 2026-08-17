@@ -16,20 +16,25 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
 ) -> DirectMirScalarCfgRangeFactSet {
     let invalid: DirectMirScalarCfgRangeFactSet =
         DirectMirScalarCfgRangeFactSetInvalid();
-    if !index.valid || !wire.valid ||
-        ArrayLength(index.loop_flow_state_stable_indices) != 0 {
+    if !index.valid || !wire.valid {
         return invalid;
     }
     let range_count: Int = 0;
-    let flow_row: Int = 0;
-    while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
-        if index.loop_flow_summary_kinds[flow_row] == 1 &&
-            !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
-                foreach_sources, index.loop_flow_summary_loop_ids[flow_row]
+    let type_scan: Int = 0;
+    while type_scan < ArrayLength(
+            index.iteration_type_facts.iteration_syntax_ids) {
+        let loop_id: Int =
+            index.iteration_type_facts.iteration_syntax_ids[type_scan];
+        if !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
+                foreach_sources, loop_id
             ).valid {
             range_count = range_count + 1;
         }
-        flow_row = flow_row + 1;
+        type_scan = type_scan + 1;
+    }
+    if range_count > 0 &&
+        ArrayLength(index.loop_flow_state_stable_indices) != 0 {
+        return invalid;
     }
     if range_count + DirectMirScalarCfgForEachFactCount(foreach_sources) !=
         ArrayLength(
@@ -40,22 +45,23 @@ func DirectMirScalarCfgRangeIterationFactsFromOwners(
     let prior_loop_id: Int = -1;
     while DirectMirScalarCfgRangeFactCount(facts) < range_count {
         let loop_id: Int = -1;
-        flow_row = 0;
-        while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
-            let candidate: Int = index.loop_flow_summary_loop_ids[flow_row];
-            if index.loop_flow_summary_kinds[flow_row] == 1 &&
-                !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
+        type_scan = 0;
+        while type_scan < ArrayLength(
+                index.iteration_type_facts.iteration_syntax_ids) {
+            let candidate: Int =
+                index.iteration_type_facts.iteration_syntax_ids[type_scan];
+            if !DirectMirScalarCfgForEachFactAtLoopSyntaxId(
                     foreach_sources, candidate
                 ).valid &&
                 candidate > prior_loop_id &&
                 (loop_id < 0 || candidate < loop_id) {
                 loop_id = candidate;
             }
-            flow_row = flow_row + 1;
+            type_scan = type_scan + 1;
         }
         if loop_id < 0 { Die("direct MIR scalar CFG range loop identity is missing"); }
         let matched_flow: Int = -1;
-        flow_row = 0;
+        let flow_row: Int = 0;
         while flow_row < ArrayLength(index.loop_flow_summary_loop_ids) {
             if index.loop_flow_summary_kinds[flow_row] == 1 &&
                 !DirectMirScalarCfgForEachFactAtLoopSyntaxId(

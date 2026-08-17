@@ -1,0 +1,44 @@
+enum Tone {
+    Warm,
+    Cool,
+}
+
+enum Direction {
+    North,
+    South,
+}
+
+func ToneLabel(id: Tone) -> String {
+    return "tone";
+}
+
+func DirectionLabel(id: Direction) -> String {
+    return "direction";
+}
+
+func ToneOrdinal(id: Tone) -> Int {
+    if id == Tone.Warm {
+        return 1;
+    }
+    return 0;
+}
+
+func DirectionReady(id: Direction) -> Bool {
+    return id == Direction.North;
+}
+
+func Main() -> Void {
+    Log(ToneOrdinal(Tone.Warm));
+    Log(ToneOrdinal(Tone.Cool));
+    if DirectionReady(Direction.North) {
+        Log(1);
+    } else {
+        Log(0);
+    }
+    if DirectionReady(Direction.South) {
+        Log(1);
+    } else {
+        Log(0);
+    }
+    Log("payload-free-enum-parameter-ready");
+}

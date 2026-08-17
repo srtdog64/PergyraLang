@@ -1,0 +1,139 @@
+// LLVM control-flow projection for logical operands that may not be evaluated.
+
+import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+
+struct DirectMirScalarProgramLlvmShortCircuit {
+    let matched: Bool;
+    let valid: Bool;
+    let instructions: String;
+}
+
+func DirectMirScalarProgramLlvmExpressionChunksJoin(
+    chunks: Array<String>
+) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(chunks) {
+        output = Concat(output, chunks[row]);
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramExpressionSubtreeStart(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, graph_start: Int
+) -> Int {
+    if node < graph_start || node >= ArrayLength(expressions.node_kinds) {
+        return 0 - 1;
+    }
+    let start: Int = node;
+    let left: Int = expressions.node_lefts[node];
+    let right: Int = expressions.node_rights[node];
+    if left >= graph_start {
+        let left_start: Int = DirectMirScalarProgramExpressionSubtreeStart(
+            expressions, left, graph_start);
+        if left_start < graph_start { return 0 - 1; }
+        start = left_start;
+    }
+    if right >= graph_start {
+        let right_start: Int = DirectMirScalarProgramExpressionSubtreeStart(
+            expressions, right, graph_start);
+        if right_start < graph_start { return 0 - 1; }
+        if right_start < start { start = right_start; }
+    }
+    let arguments: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+        expressions.nary_operands, node);
+    let argument: Int = 0;
+    while argument < ArrayLength(arguments) {
+        let argument_start: Int = DirectMirScalarProgramExpressionSubtreeStart(
+            expressions, arguments[argument], graph_start);
+        if argument_start < graph_start { return 0 - 1; }
+        if argument_start < start { start = argument_start; }
+        argument = argument + 1;
+    }
+    return start;
+}
+
+func DirectMirScalarProgramLlvmNeedsShortCircuit(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, graph_start: Int
+) -> Bool {
+    if node < graph_start || node >= ArrayLength(expressions.node_kinds) {
+        return false;
+    }
+    let kind: Int = expressions.node_kinds[node];
+    let right: Int = expressions.node_rights[node];
+    return (kind == DirectMirScalarProgramExprLogicalAnd() ||
+            kind == DirectMirScalarProgramExprLogicalOr()) &&
+        right >= graph_start &&
+        !DirectMirScalarProgramNonTrappingBoolNode(expressions, right);
+}
+
+func DirectMirScalarProgramLlvmShortLabel(
+    expression_row: Int, node: Int, suffix: String
+) -> String {
+    return Concat("pgy.expr.short.", Concat(
+        ToString(expression_row), Concat(".", Concat(
+            ToString(node), Concat(".", suffix)))));
+}
+
+func DirectMirScalarProgramLlvmShortCircuitAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    expression_row: Int, node: Int, graph_start: Int,
+    inout chunks: Array<String>, left: String, right: String, result: String
+) -> DirectMirScalarProgramLlvmShortCircuit {
+    if !DirectMirScalarProgramLlvmNeedsShortCircuit(
+            expressions, node, graph_start) {
+        return DirectMirScalarProgramLlvmShortCircuit(false, true, "");
+    }
+    let right_node: Int = expressions.node_rights[node];
+    let right_start: Int = DirectMirScalarProgramExpressionSubtreeStart(
+        expressions, right_node, graph_start);
+    if right_start < graph_start || right_start > right_node ||
+        ArrayLength(chunks) != node - graph_start {
+        return DirectMirScalarProgramLlvmShortCircuit(true, false, "");
+    }
+    let right_instructions: String = "";
+    let row: Int = right_start;
+    while row <= right_node {
+        right_instructions = Concat(
+            right_instructions, chunks[row - graph_start]);
+        chunks[row - graph_start] = "";
+        row = row + 1;
+    }
+    let entry_label: String = DirectMirScalarProgramLlvmShortLabel(
+        expression_row, node, "entry");
+    let right_label: String = DirectMirScalarProgramLlvmShortLabel(
+        expression_row, node, "right");
+    let merge_label: String = DirectMirScalarProgramLlvmShortLabel(
+        expression_row, node, "merge");
+    let right_exit_label: String = right_label;
+    if DirectMirScalarProgramLlvmNeedsShortCircuit(
+            expressions, right_node, graph_start) {
+        right_exit_label = DirectMirScalarProgramLlvmShortLabel(
+            expression_row, right_node, "merge");
+    }
+    let short_value: String = "false";
+    let true_label: String = right_label;
+    let false_label: String = merge_label;
+    if expressions.node_kinds[node] == DirectMirScalarProgramExprLogicalOr() {
+        short_value = "true";
+        true_label = merge_label;
+        false_label = right_label;
+    }
+    let output: String = Concat("  br label %", Concat(entry_label, "\n"));
+    output = Concat(output, Concat(entry_label, ":\n"));
+    output = Concat(output, Concat("  br i1 ", Concat(left, Concat(
+        ", label %", Concat(true_label, Concat(", label %", Concat(
+            false_label, "\n")))))));
+    output = Concat(output, Concat(right_label, ":\n"));
+    output = Concat(output, right_instructions);
+    output = Concat(output, Concat("  br label %", Concat(merge_label, "\n")));
+    output = Concat(output, Concat(merge_label, ":\n"));
+    output = Concat(output, Concat("  ", Concat(result, Concat(
+        " = phi i1 [ ", Concat(short_value, Concat(", %", Concat(
+            entry_label, Concat(" ], [ ", Concat(right, Concat(", %", Concat(
+                right_exit_label, " ]\n")))))))))));
+    return DirectMirScalarProgramLlvmShortCircuit(true, true, output);
+}

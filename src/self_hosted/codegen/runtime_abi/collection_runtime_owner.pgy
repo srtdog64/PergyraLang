@@ -25,9 +25,11 @@ struct CollectionRuntimeFact {
 func CollectionRuntimeBuiltinKindFromTypeName(
     type_name: String
 ) -> Option<String> {
-    if type_name == "Array<Int>" || type_name == "Array<Int: Int>" ||
-        type_name == "Array<Long>" || type_name == "Array<Long: Long>" {
+    if type_name == "Array<Int>" || type_name == "Array<Int: Int>" {
         return Some("ArrayInt");
+    }
+    if type_name == "Array<Long>" || type_name == "Array<Long: Long>" {
+        return Some("ArrayLong");
     }
     if type_name == "Array<String>" ||
         type_name == "Array<String: String>" {
@@ -59,7 +61,7 @@ func CollectionRuntimeKindFromTypeName(type_name: String) -> String {
     if IsSome(kind) {
         return UnwrapOption(kind);
     }
-    Die(Concat("unsupported collection type (only Array<Int>/Array<String>/Array<Bool>/Array<Float>/Array<Double>/Array<CodegenAstTextNode> bridge forms): ", type_name));
+    Die(Concat("unsupported collection type (only Array<Int>/Array<Long>/Array<String>/Array<Bool>/Array<Float>/Array<Double>/Array<CodegenAstTextNode> bridge forms): ", type_name));
     return "";
 }
 
@@ -68,12 +70,13 @@ func CollectionRuntimeRecordElementType(kind: String) -> Option<String> {
 }
 
 func CollectionRuntimeRequireKind(kind: String, context: String) -> String {
-    if kind == "ArrayInt" || kind == "ArrayString" || kind == "ArrayBool" ||
+    if kind == "ArrayInt" || kind == "ArrayLong" ||
+        kind == "ArrayString" || kind == "ArrayBool" ||
         kind == "ArrayFloat" || kind == "ArrayDouble" ||
         kind == "ArrayCodegenAstTextNode" {
         return kind;
     }
-    Die(Concat(context, Concat(" requires Array<Int>, Array<String>, Array<Bool>, Array<Float>, Array<Double>, or Array<CodegenAstTextNode>, got: ", kind)));
+    Die(Concat(context, Concat(" requires Array<Int>, Array<Long>, Array<String>, Array<Bool>, Array<Float>, Array<Double>, or Array<CodegenAstTextNode>, got: ", kind)));
     return "";
 }
 
@@ -94,6 +97,9 @@ func CollectionRuntimeKindCode(kind: String) -> Int {
     if checked == "ArrayDouble" {
         return 6;
     }
+    if checked == "ArrayLong" {
+        return 7;
+    }
     return 1;
 }
 
@@ -113,136 +119,55 @@ func CollectionRuntimeElementTypeFromKindCode(kind_code: Int) -> String {
     if kind_code == 6 {
         return "Double";
     }
+    if kind_code == 7 {
+        return "Long";
+    }
     return "Int";
 }
 
 func CollectionRuntimeKindCodeOrDie(kind_code: Int, context: String) -> Int {
-    if kind_code == 1 || kind_code == 2 || kind_code == 3 ||
-        kind_code == 4 || kind_code == 5 || kind_code == 6 {
+    if kind_code >= 1 && kind_code <= 7 {
         return kind_code;
     }
-    Die(Concat(context, Concat(" requires collection kind code 1, 2, 3, 4, 5, or 6, got: ", ToString(kind_code))));
+    Die(Concat(context, Concat(" requires collection kind code 1 through 7, got: ", ToString(kind_code))));
     return 0;
 }
 
+func CollectionRuntimeCSymbolPrefix(kind_code: Int) -> String {
+    let checked: Int = CollectionRuntimeKindCodeOrDie(
+        kind_code, "collection runtime symbol"
+    );
+    if checked == 2 { return "pgy_as"; }
+    if checked == 3 { return "pgy_CodegenAstTextNode_array"; }
+    if checked == 4 { return "pgy_ab"; }
+    if checked == 5 { return "pgy_af"; }
+    if checked == 6 { return "pgy_ad"; }
+    if checked == 7 { return "pgy_al"; }
+    return "pgy_ai";
+}
+
 func CollectionRuntimeCNewFn(kind_code: Int) -> String {
-    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array new");
-    if checked == 2 {
-        return "pgy_as_new";
-    }
-    if checked == 3 {
-        return "pgy_CodegenAstTextNode_array_new";
-    }
-    if checked == 4 {
-        return "pgy_ab_new";
-    }
-    if checked == 5 {
-        return "pgy_af_new";
-    }
-    if checked == 6 {
-        return "pgy_ad_new";
-    }
-    return "pgy_ai_new";
+    return Concat(CollectionRuntimeCSymbolPrefix(kind_code), "_new");
 }
 
 func CollectionRuntimeCPushFn(kind_code: Int) -> String {
-    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array push");
-    if checked == 2 {
-        return "pgy_as_push";
-    }
-    if checked == 3 {
-        return "pgy_CodegenAstTextNode_array_push";
-    }
-    if checked == 4 {
-        return "pgy_ab_push";
-    }
-    if checked == 5 {
-        return "pgy_af_push";
-    }
-    if checked == 6 {
-        return "pgy_ad_push";
-    }
-    return "pgy_ai_push";
+    return Concat(CollectionRuntimeCSymbolPrefix(kind_code), "_push");
 }
 
 func CollectionRuntimeCSetFn(kind_code: Int) -> String {
-    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array set");
-    if checked == 2 {
-        return "pgy_as_set";
-    }
-    if checked == 3 {
-        return "pgy_CodegenAstTextNode_array_set";
-    }
-    if checked == 4 {
-        return "pgy_ab_set";
-    }
-    if checked == 5 {
-        return "pgy_af_set";
-    }
-    if checked == 6 {
-        return "pgy_ad_set";
-    }
-    return "pgy_ai_set";
+    return Concat(CollectionRuntimeCSymbolPrefix(kind_code), "_set");
 }
 
 func CollectionRuntimeCGetFn(kind_code: Int) -> String {
-    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array get");
-    if checked == 2 {
-        return "pgy_as_get";
-    }
-    if checked == 3 {
-        return "pgy_CodegenAstTextNode_array_get";
-    }
-    if checked == 4 {
-        return "pgy_ab_get";
-    }
-    if checked == 5 {
-        return "pgy_af_get";
-    }
-    if checked == 6 {
-        return "pgy_ad_get";
-    }
-    return "pgy_ai_get";
+    return Concat(CollectionRuntimeCSymbolPrefix(kind_code), "_get");
 }
 
 func CollectionRuntimeCLenFn(kind_code: Int) -> String {
-    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array length");
-    if checked == 2 {
-        return "pgy_as_len";
-    }
-    if checked == 3 {
-        return "pgy_CodegenAstTextNode_array_len";
-    }
-    if checked == 4 {
-        return "pgy_ab_len";
-    }
-    if checked == 5 {
-        return "pgy_af_len";
-    }
-    if checked == 6 {
-        return "pgy_ad_len";
-    }
-    return "pgy_ai_len";
+    return Concat(CollectionRuntimeCSymbolPrefix(kind_code), "_len");
 }
 
 func CollectionRuntimeCPopFn(kind_code: Int) -> String {
-    let checked: Int = CollectionRuntimeKindCodeOrDie(kind_code, "array pop");
-    if checked == 2 {
-        return "pgy_as_pop";
-    }
-    if checked == 3 {
-        return "pgy_CodegenAstTextNode_array_pop";
-    }
-    if checked == 4 {
-        return "pgy_ab_pop";
-    }
-    if checked == 5 {
-        return "pgy_af_pop";
-    }
-    if checked == 6 {
-        return "pgy_ad_pop";
-    }
-    return "pgy_ai_pop";
+    return Concat(CollectionRuntimeCSymbolPrefix(kind_code), "_pop");
 }
 
 func CollectionRuntimeCDropStorageFn(kind_code: Int) -> String {
@@ -259,12 +184,14 @@ func CollectionRuntimeCDropStorageFn(kind_code: Int) -> String {
 func CollectionRuntimeFactFromKind(
     kind: String, env: CodegenTypeEnv
 ) -> CollectionRuntimeFact {
-    if kind == "ArrayInt" || kind == "ArrayString" ||
+    if kind == "ArrayInt" || kind == "ArrayLong" || kind == "ArrayString" ||
         kind == "ArrayBool" || kind == "ArrayFloat" || kind == "ArrayDouble" ||
         kind == "ArrayCodegenAstTextNode" {
         let kind_code: Int = CollectionRuntimeKindCode(kind);
         let c_array_type: String = CompilerAbiLayoutArrayIntCValueType();
-        if kind == "ArrayString" {
+        if kind == "ArrayLong" {
+            c_array_type = CompilerAbiLayoutArrayLongCValueType();
+        } else if kind == "ArrayString" {
             c_array_type = CompilerAbiLayoutArrayStringCValueType();
         } else if kind == "ArrayBool" {
             c_array_type = CompilerAbiLayoutArrayBoolCValueType();
@@ -372,26 +299,28 @@ func CollectionRuntimeCOwnedStringDropFn() -> String {
 func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Bool,
                                   uses_array_map: Bool, uses_array_filter: Bool) -> String {
     let int_array_type: String = CompilerAbiLayoutArrayIntCValueType();
+    let long_array_type: String = CompilerAbiLayoutArrayLongCValueType();
     let string_array_type: String = CompilerAbiLayoutArrayStringCValueType();
     let bool_array_type: String = CompilerAbiLayoutArrayBoolCValueType();
     let block: String = "";
-    block = Concat(block, Concat("typedef struct { long long *data; long long len; long long cap; } ", Concat(int_array_type, ";\n")));
+    block = Concat(block, Concat("typedef struct { int32_t *data; long long len; long long cap; } ", Concat(int_array_type, ";\n")));
+    block = Concat(block, Concat("typedef struct { int64_t *data; long long len; long long cap; } ", Concat(long_array_type, ";\n")));
     block = Concat(block, Concat("typedef struct { const char **data; long long len; long long cap; } ", Concat(string_array_type, ";\n\n")));
     block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCNewFn(1), Concat("(void) { ", Concat(int_array_type, " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n")))))));
-    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(1), Concat("(", Concat(int_array_type, " *a, long long v) {\n")))));
-    block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (long long *)realloc(a->data, (size_t)a->cap * sizeof(long long)); }\n");
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(1), Concat("(", Concat(int_array_type, " *a, int32_t v) {\n")))));
+    block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (int32_t *)realloc(a->data, (size_t)a->cap * sizeof(int32_t)); }\n");
     block = Concat(block, "    a->data[a->len++] = v;\n}\n");
-    block = Concat(block, CollectionRuntimeCGuardedGet("long long", CollectionRuntimeCGetFn(1), int_array_type));
-    block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(1), int_array_type, "long long"));
-    block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(1), Concat("(", Concat(int_array_type, " a) { return a.len; }\n")))));
-    block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCPopFn(1), Concat("(", Concat(int_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n")))));
+    block = Concat(block, CollectionRuntimeCGuardedGet("int32_t", CollectionRuntimeCGetFn(1), int_array_type));
+    block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(1), int_array_type, "int32_t"));
+    block = Concat(block, Concat("static int32_t ", Concat(CollectionRuntimeCLenFn(1), Concat("(", Concat(int_array_type, " a) { return (int32_t)a.len; }\n")))));
+    block = Concat(block, Concat("static int32_t ", Concat(CollectionRuntimeCPopFn(1), Concat("(", Concat(int_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n")))));
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCDropStorageFn(1), Concat("(", Concat(int_array_type, " *a) { if (a == NULL) return; free(a->data); a->data = NULL; a->len = 0; a->cap = 0; }\n\n")))));
     if uses_array_sort {
         block = Concat(block, "static int pgy_ai_cmp(const void *pa, const void *pb)\n{\n");
-        block = Concat(block, "    long long a = *(const long long *)pa;\n    long long b = *(const long long *)pb;\n");
+        block = Concat(block, "    int32_t a = *(const int32_t *)pa;\n    int32_t b = *(const int32_t *)pb;\n");
         block = Concat(block, "    return (a > b) - (a < b);\n}\n");
         block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntSortFn(), Concat("(", Concat(int_array_type, " a)\n{\n")))))));
-        block = Concat(block, "    if (a.len > 1) { qsort(a.data, (size_t)a.len, sizeof(long long), pgy_ai_cmp); }\n");
+        block = Concat(block, "    if (a.len > 1) { qsort(a.data, (size_t)a.len, sizeof(int32_t), pgy_ai_cmp); }\n");
         block = Concat(block, "    return a;\n}\n\n");
     }
     if uses_array_reverse {
@@ -401,17 +330,23 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
         block = Concat(block, "    return out;\n}\n\n");
     }
     if uses_array_map {
-        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntMapFn(), Concat("(", Concat(int_array_type, " a, long long (*fn)(long long))\n{\n")))))));
+        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntMapFn(), Concat("(", Concat(int_array_type, " a, int32_t (*fn)(int32_t))\n{\n")))))));
         block = Concat(block, Concat("    ", Concat(int_array_type, Concat(" out = ", Concat(CollectionRuntimeCNewFn(1), "();\n")))));
         block = Concat(block, Concat("    for (long long i = 0; i < a.len; i++) { ", Concat(CollectionRuntimeCPushFn(1), "(&out, fn(a.data[i])); }\n")));
         block = Concat(block, "    return out;\n}\n\n");
     }
     if uses_array_filter {
-        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntFilterFn(), Concat("(", Concat(int_array_type, " a, bool (*pred)(long long))\n{\n")))))));
+        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntFilterFn(), Concat("(", Concat(int_array_type, " a, bool (*pred)(int32_t))\n{\n")))))));
         block = Concat(block, Concat("    ", Concat(int_array_type, Concat(" out = ", Concat(CollectionRuntimeCNewFn(1), "();\n")))));
         block = Concat(block, Concat("    for (long long i = 0; i < a.len; i++) { if (pred(a.data[i])) { ", Concat(CollectionRuntimeCPushFn(1), "(&out, a.data[i]); } }\n")));
         block = Concat(block, "    return out;\n}\n\n");
     }
+    block = Concat(block, Concat("static ", Concat(long_array_type, Concat(" ", Concat(CollectionRuntimeCNewFn(7), Concat("(void) { ", Concat(long_array_type, " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n")))))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(7), Concat("(", Concat(long_array_type, " *a, int64_t v) { if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (int64_t *)realloc(a->data, (size_t)a->cap * sizeof(int64_t)); } a->data[a->len++] = v; }\n")))));
+    block = Concat(block, CollectionRuntimeCGuardedGet("int64_t", CollectionRuntimeCGetFn(7), long_array_type));
+    block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(7), long_array_type, "int64_t"));
+    block = Concat(block, Concat("static int32_t ", Concat(CollectionRuntimeCLenFn(7), Concat("(", Concat(long_array_type, " a) { return (int32_t)a.len; }\n")))));
+    block = Concat(block, Concat("static int64_t ", Concat(CollectionRuntimeCPopFn(7), Concat("(", Concat(long_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n")))));
     block = Concat(block, Concat("static ", Concat(string_array_type, Concat(" ", Concat(CollectionRuntimeCNewFn(2), Concat("(void) { ", Concat(string_array_type, " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n")))))));
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(2), Concat("(", Concat(string_array_type, " *a, const char *v) {\n")))));
     block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (const char **)realloc(a->data, (size_t)a->cap * sizeof(const char *)); }\n");

@@ -23,7 +23,15 @@ func CollectionRuntimeCGuardedGet(
     fn_name: String,
     array_type: String
 ) -> String {
-    return "static ${return_type} ${fn_name}(${array_type} a, long long i) {\n    if (i < 0 || i >= a.len) { ${CollectionRuntimeCBoundsPanic()}; }\n    return a.data[i];\n}\n";
+    return CollectionRuntimeCGuardedGetWithLength(
+        return_type, fn_name, array_type, "len");
+}
+
+func CollectionRuntimeCGuardedGetWithLength(
+    return_type: String, fn_name: String,
+    array_type: String, length_field: String
+) -> String {
+    return "static ${return_type} ${fn_name}(${array_type} a, long long i) {\n    if (i < 0 || i >= (long long)a.${length_field}) { ${CollectionRuntimeCBoundsPanic()}; }\n    return a.data[i];\n}\n";
 }
 
 // Writer: the array arrives by pointer, so the length is `a->len`.
@@ -32,5 +40,18 @@ func CollectionRuntimeCGuardedSet(
     array_type: String,
     value_type: String
 ) -> String {
-    return "static void ${fn_name}(${array_type} *a, long long i, ${value_type} v) {\n    if (i < 0 || i >= a->len) { ${CollectionRuntimeCBoundsPanic()}; }\n    a->data[i] = v;\n}\n";
+    return CollectionRuntimeCGuardedSetWithLength(
+        fn_name, array_type, value_type, "len"
+    );
+}
+
+func CollectionRuntimeCGuardedSetWithLength(
+    fn_name: String, array_type: String,
+    value_type: String, length_field: String
+) -> String {
+    return "static void ${fn_name}(${array_type} *a, long long i, ${value_type} v) {\n    if (i < 0 || i >= (long long)a->${length_field}) { ${CollectionRuntimeCBoundsPanic()}; }\n    a->data[i] = v;\n}\n";
+}
+
+func CollectionRuntimeLlvmBoundsPanicFn() -> String {
+    return "pgy_runtime_panic_out_of_bounds_export";
 }

@@ -187,7 +187,7 @@ func RunLspDiagnosticsFromArgs(args: Array<String>) -> Void with caps io_read {
         return;
     }
     let content: String = LoadSemanticSourceBundle(source_path);
-    let error: String = CheckProgram(content);
+    let error: String = CheckProgram(source_path, content);
     let block: String = SemanticOk();
     if StringLength(error) > 0 {
         block = error;

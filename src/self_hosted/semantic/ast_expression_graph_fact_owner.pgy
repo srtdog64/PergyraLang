@@ -308,6 +308,8 @@ func SemanticExpressionGraphArenaReady(
         let call_return_type_name: String = arena.call_return_type_names[i];
         let call_target_syntax_id: Int =
             arena.identities.call_target_syntax_ids[i];
+        let runtime_call_abi_id: Int =
+            arena.identities.runtime_call_abi_ids[i];
         let binding_kind: Int = arena.identities.binding_kinds[i];
         let place_kind: Int = arena.place_kinds[i];
         if place_kind < SemanticExpressionPlaceUnknown() ||
@@ -316,7 +318,7 @@ func SemanticExpressionGraphArenaReady(
         }
         if call_target_kind == SemanticCallTargetNone() {
             if call_target_name != "" || call_return_type_name != "" ||
-                call_target_syntax_id != 0 {
+                call_target_syntax_id != 0 || runtime_call_abi_id != 0 {
                 return false;
             }
         } else if call_target_kind == SemanticCallTargetDirect() ||
@@ -334,8 +336,14 @@ func SemanticExpressionGraphArenaReady(
             return false;
         }
         if call_target_syntax_id > 0 &&
-            (call_target_kind != SemanticCallTargetDirect() ||
+            ((call_target_kind != SemanticCallTargetDirect() &&
+              call_target_kind != SemanticCallTargetNamespace()) ||
              kind != AstExpressionNodeCall()) {
+            return false;
+        }
+        if runtime_call_abi_id > 0 &&
+            (call_target_kind != SemanticCallTargetDirect() ||
+             call_target_syntax_id != 0 || kind != AstExpressionNodeCall()) {
             return false;
         }
         if binding_kind == SemanticExpressionBindingFormalParameter() &&
@@ -527,6 +535,8 @@ func SemanticExpressionGraphFactsEqual(
                 right.arena.call_return_type_names[i] ||
             left.arena.identities.call_target_syntax_ids[i] !=
                 right.arena.identities.call_target_syntax_ids[i] ||
+            left.arena.identities.runtime_call_abi_ids[i] !=
+                right.arena.identities.runtime_call_abi_ids[i] ||
             left.arena.identities.binding_kinds[i] !=
                 right.arena.identities.binding_kinds[i] ||
             left.arena.identities.binding_ordinals[i] !=

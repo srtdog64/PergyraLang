@@ -82,3 +82,45 @@ func DirectMirRoutineParameterSetFactReady(
     }
     return true;
 }
+
+func DirectMirRoutineLocalParameterOrdinalAtName(
+    ref fact: DirectMirRoutineParameterSetFact, name: String
+) -> Int {
+    if !DirectMirRoutineParameterSetFactReady(fact) || name == "" { return -1; }
+    let row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        if fact.names[row] == name {
+            if (fact.carriages[row] != "value" &&
+                    fact.carriages[row] != "value-result") ||
+                fact.resources[row] != "none" ||
+                fact.pass_shapes[row] != "direct" { return -1; }
+            return row;
+        }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirRoutineValueParameterOrdinalAtName(
+    ref fact: DirectMirRoutineParameterSetFact, name: String
+) -> Int {
+    let ordinal: Int = DirectMirRoutineLocalParameterOrdinalAtName(fact, name);
+    if ordinal < 0 || fact.carriages[ordinal] != "value" { return -1; }
+    return ordinal;
+}
+
+func DirectMirRoutineLocalParameterTypeAtName(
+    ref fact: DirectMirRoutineParameterSetFact, name: String
+) -> String {
+    let ordinal: Int = DirectMirRoutineLocalParameterOrdinalAtName(fact, name);
+    if ordinal >= 0 { return fact.type_names[ordinal]; }
+    return "";
+}
+
+func DirectMirRoutineValueParameterTypeAtName(
+    ref fact: DirectMirRoutineParameterSetFact, name: String
+) -> String {
+    let ordinal: Int = DirectMirRoutineValueParameterOrdinalAtName(fact, name);
+    if ordinal >= 0 { return fact.type_names[ordinal]; }
+    return "";
+}

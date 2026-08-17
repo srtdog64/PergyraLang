@@ -29,6 +29,7 @@ func ParseDeclsInto(
     name_prefix: String,
     until_brace: Bool,
     source_dir: String,
+    source_path: String,
     force_export: Bool,
     follow_imports: Bool,
     within_zone: String,
@@ -37,6 +38,7 @@ func ParseDeclsInto(
     inout expression_graphs: Array<AstExpressionGraphRows>,
     inout script_graphs: Array<AstExpressionGraphRows>,
     inout out_blocks: Array<String>,
+    inout out_module_paths: Array<String>,
     inout script_blocks: Array<String>
 ) -> Void {
     let i: Int = start;
@@ -103,9 +105,9 @@ func ParseDeclsInto(
                 let imp_cursor: Array<Int> = [0];
                 ParseDeclsInto(
                     imp_content, 0, imp_cursor, name_prefix, false, imp_dir,
-                    true, true, active_within_zone, involve_types,
+                    imp_path, true, true, active_within_zone, involve_types,
                     import_paths, expression_graphs, script_graphs,
-                    out_blocks, script_blocks
+                    out_blocks, out_module_paths, script_blocks
                 );
             }
             continue;
@@ -131,9 +133,9 @@ func ParseDeclsInto(
             ArraySet(cursor_out, 0, i);
             ParseDeclsInto(
                 content, i, cursor_out, new_prefix, true, source_dir,
-                force_export, follow_imports, active_within_zone,
+                source_path, force_export, follow_imports, active_within_zone,
                 involve_types, import_paths, expression_graphs, script_graphs,
-                out_blocks, script_blocks
+                out_blocks, out_module_paths, script_blocks
             );
             i = cursor_out[0];
             continue;
@@ -157,9 +159,9 @@ func ParseDeclsInto(
             ArraySet(cursor_out, 0, i);
             ParseDeclsInto(
                 content, i, cursor_out, name_prefix, true, source_dir,
-                force_export, follow_imports, wz_name, involve_types,
+                source_path, force_export, follow_imports, wz_name, involve_types,
                 import_paths, expression_graphs, script_graphs,
-                out_blocks, script_blocks
+                out_blocks, out_module_paths, script_blocks
             );
             i = cursor_out[0];
             continue;
@@ -226,6 +228,7 @@ func ParseDeclsInto(
                 extern_out = AppendLine(extern_out, extern_sig);
             }
             ArrayPush(out_blocks, extern_out);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordLifecycle) {
@@ -280,6 +283,7 @@ func ParseDeclsInto(
             let type_block: String = ParseTypeDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             ArrayPush(out_blocks, type_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -289,6 +293,7 @@ func ParseDeclsInto(
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, ability_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -299,6 +304,7 @@ func ParseDeclsInto(
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, zone_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -307,6 +313,7 @@ func ParseDeclsInto(
             let effect_block: String = ParseEffectDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             ArrayPush(out_blocks, effect_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -315,6 +322,7 @@ func ParseDeclsInto(
             let relation_block: String = ParseRelationDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             ArrayPush(out_blocks, relation_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -326,6 +334,7 @@ func ParseDeclsInto(
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, role_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -336,6 +345,7 @@ func ParseDeclsInto(
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, intent_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -348,6 +358,7 @@ func ParseDeclsInto(
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, nominal_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -356,6 +367,7 @@ func ParseDeclsInto(
             let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             ArrayPush(out_blocks, event_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -363,6 +375,7 @@ func ParseDeclsInto(
             let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
             ArrayPush(out_blocks, enum_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -382,6 +395,7 @@ func ParseDeclsInto(
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, fn_block);
+            ArrayPush(out_module_paths, source_path);
             continue;
         }
 
@@ -408,6 +422,7 @@ func ParseDeclsInto(
             ParserExpressionGraphsAppendRowsInto(script_graphs, statement_graphs[0]);
         } else {
             ArrayPush(out_blocks, stmt_block);
+            ArrayPush(out_module_paths, source_path);
             ParserExpressionGraphsAppendRowsInto(expression_graphs, statement_graphs[0]);
         }
     }
@@ -421,12 +436,14 @@ func ParseDecls(
     name_prefix: String,
     until_brace: Bool,
     source_dir: String,
+    source_path: String,
     force_export: Bool,
     follow_imports: Bool,
     within_zone: String,
     inout involve_types: Array<String>,
     inout import_paths: Set<String>,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout declaration_module_paths: Array<String>
 ) -> String {
     let out_blocks: Array<String> = [];
     let script_blocks: Array<String> = [];
@@ -435,9 +452,9 @@ func ParseDecls(
     ];
     ParseDeclsInto(
         content, start, cursor_out, name_prefix, until_brace, source_dir,
-        force_export, follow_imports, within_zone, involve_types,
+        source_path, force_export, follow_imports, within_zone, involve_types,
         import_paths, expression_graphs, script_graphs,
-        out_blocks, script_blocks
+        out_blocks, declaration_module_paths, script_blocks
     );
     ParserExpressionGraphsAppendRowsInto(expression_graphs, script_graphs[0]);
     let out: TextBuilder = TextBuilderNew(4096);
@@ -461,6 +478,9 @@ func ParseDecls(
         script_body, script_allocator
     );
     let program_text: String = AppendImplicitMain(output_text, script_text);
+    if ArrayLength(script_blocks) > 0 {
+        ArrayPush(declaration_module_paths, source_path);
+    }
     AllocatorDestroy(script_allocator);
     AllocatorDestroy(output_allocator);
     return program_text;

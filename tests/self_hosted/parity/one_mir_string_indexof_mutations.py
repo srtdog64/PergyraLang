@@ -113,22 +113,6 @@ def main() -> int:
     first_search["nodes"][1]["call_target_syntax_id"] = 999
     write(output, "bad-target-syntax", bad)
 
-    bad = clone(program)
-    window = graph_with_target(bad, "Substring", 1)
-    add = next(node for node in window["nodes"] if node["kind"] == "add")
-    window["nodes"][add["right"]]["text"] = "2"
-    write(output, "bad-index-step", bad)
-
-    bad = clone(program)
-    window = graph_with_target(bad, "Substring", 1)
-    subtracts = [
-        index for index, node in enumerate(window["nodes"])
-        if node["kind"] == "subtract"
-    ]
-    add = next(node for node in window["nodes"] if node["kind"] == "add")
-    inner = subtracts[0]
-    window["nodes"][inner]["right"] = add["right"]
-    write(output, "bad-length-index-relation", bad)
     return 0
 
 

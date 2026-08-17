@@ -13,3 +13,24 @@ func TextBuilderRuntimeCNewFn() -> String { return "pgy_text_builder_new"; }
 func TextBuilderRuntimeCAppendFn() -> String { return "pgy_text_builder_append"; }
 func TextBuilderRuntimeCFinishFn() -> String { return "pgy_text_builder_finish"; }
 func TextBuilderRuntimeCDropFn() -> String { return "pgy_text_builder_drop"; }
+
+// LLVM consumes the same logical runtime-value rows through pointer-oriented
+// exports.  These are target spellings, not a second operation registry.
+func TextBuilderRuntimeLlvmAllocatorResultFn() -> String {
+    return "pgy_allocator_result_init";
+}
+func TextBuilderRuntimeLlvmAllocatorDestroyFn() -> String {
+    return "pgy_allocator_destroy_export";
+}
+func TextBuilderRuntimeLlvmNewFn() -> String {
+    return "pgy_text_builder_new_export";
+}
+func TextBuilderRuntimeLlvmAppendFn() -> String {
+    return "pgy_text_builder_append_export";
+}
+func TextBuilderRuntimeLlvmFinishFn() -> String {
+    return "pgy_text_builder_finish_export";
+}
+func TextBuilderRuntimeLlvmDropFn() -> String {
+    return "pgy_text_builder_drop_export";
+}

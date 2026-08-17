@@ -1,6 +1,51 @@
 // C direct-call syntax from ordered GraphPlan argument values.
 
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy";
+
+func DirectMirScalarProgramCDirectCallArgumentValue(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    routine: Int, callable: Int, argument: Int,
+    argument_node: Int, value: String
+) -> String {
+    if routine < 0 || routine >= ArrayLength(routines.roles) ||
+        callable < 0 || callable >= ArrayLength(routines.roles) ||
+        argument < 0 || argument >= routines.parameter_counts[callable] ||
+        argument_node < 0 || argument_node >=
+            ArrayLength(expressions.node_kinds) { Die(
+                "direct MIR scalar C call argument identity is invalid"); }
+    let parameter_row: Int = routines.parameter_starts[callable] + argument;
+    if routines.parameter_carriages[parameter_row] == "value-result" {
+        if expressions.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprLocal() {
+            return Concat("&pgy_local_", ToString(
+                expressions.node_local_rows[argument_node]));
+        }
+        if expressions.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprParameter() {
+            return Concat("&pgy_param_", ToString(
+                expressions.node_parameter_ordinals[argument_node]));
+        }
+        Die("direct MIR scalar C value-result argument is not addressable");
+    }
+    if DirectMirScalarProgramArrayStringReadonlyRefAt(
+            routines, callable, argument) {
+        let readonly_value: String =
+            DirectMirScalarProgramCArrayStringReadonlyRefCallArgument(
+                expressions, routines, routine, callable, argument,
+                argument_node);
+        if readonly_value == "" { Die(
+            "direct MIR scalar C readonly Array<String> argument is invalid"); }
+        return readonly_value;
+    }
+    return DirectMirScalarProgramCLogicalRecordCallArgument(
+        routines, logical_record, callable, argument, value);
+}
 
 func DirectMirScalarProgramCDirectCallExpression(
     kind: Int, left: String, right: String,
@@ -12,7 +57,7 @@ func DirectMirScalarProgramCDirectCallExpression(
         if left != "" { ArrayPush(values, left); }
         if right != "" { ArrayPush(values, right); }
     }
-    if callable_ordinal < 0 || ArrayLength(values) < 1 { return None; }
+    if callable_ordinal < 0 { return None; }
     let output: String = Concat("pgy_scalar_routine_",
         Concat(ToString(callable_ordinal), "("));
     let ordinal: Int = 0;

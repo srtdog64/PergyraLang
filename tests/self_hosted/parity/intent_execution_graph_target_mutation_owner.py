@@ -27,6 +27,7 @@ def graph_digest(graph):
     for node in graph["nodes"]:
         for key in ("kind", "text", "call_target_kind", "call_target_name"):
             value = hash_string(value, node[key])
+        value = hash_int(value, node["runtime_call_abi_id"])
         value = hash_int(value, -1 if node["left"] is None else node["left"])
         value = hash_int(value, -1 if node["right"] is None else node["right"])
     return 1073741824 + value

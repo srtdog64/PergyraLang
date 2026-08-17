@@ -1,0 +1,37 @@
+// A value-result record keeps its predecessor while one nested Array<Int> slot changes.
+
+struct CallTargetArena {
+    call_target_kinds: Array<Int>;
+}
+
+struct CallTargetGraph {
+    arena: CallTargetArena;
+}
+
+struct CallTargetAnalysis {
+    expression_graph: CallTargetGraph;
+}
+
+struct CallTarget {
+    ok: Bool;
+    kind: Int;
+    name: String;
+    parameter_offset: Int;
+}
+
+func ResolveTarget(inout analysis: CallTargetAnalysis) -> Void {
+    let first_id: Int = 0;
+    analysis.expression_graph.arena.call_target_kinds[first_id] = 7;
+    let node_id: Int = 1;
+    let target: CallTarget = CallTarget(true, 8, "", 0);
+    analysis.expression_graph.arena.call_target_kinds[node_id] = target.kind;
+}
+
+func Main() -> Void {
+    let kinds: Array<Int> = [1, 2, 3];
+    let arena: CallTargetArena = CallTargetArena(kinds);
+    let graph: CallTargetGraph = CallTargetGraph(arena);
+    let analysis: CallTargetAnalysis = CallTargetAnalysis(graph);
+    ResolveTarget(analysis);
+    Log(ToString(analysis.expression_graph.arena.call_target_kinds[1]));
+}

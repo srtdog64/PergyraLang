@@ -63,12 +63,16 @@ func MirPhiPredecessorBindingFactFromOwners(
                 MirRoutineFactIndexUniqueResultDefinition(
                     index, phi.incoming_results[candidate]
                 );
-            if !MirRoutineResultDefinitionFactReady(definition) ||
-                definition.block_id !=
+            let parameter_entry: Bool =
+                phi.incoming_definition_blocks[candidate] == -1;
+            if (!parameter_entry &&
+                (!MirRoutineResultDefinitionFactReady(definition) ||
+                 definition.block_id !=
                     phi.incoming_definition_blocks[candidate] ||
-                !MirRoutineBlockDominates(
-                    index, definition.block_id, predecessor
-                ) {
+                 !MirRoutineBlockDominates(
+                    index, definition.block_id, predecessor))) ||
+                (parameter_entry && phi.incoming_results[candidate] !=
+                    Concat(phi.local_name, ".0")) {
                 candidate = candidate + 1;
                 continue;
             }
@@ -85,9 +89,9 @@ func MirPhiPredecessorBindingFactFromOwners(
                     if MirRoutineResultDefinitionFactReady(later) &&
                         MirRoutineBlockDominates(
                             index, later.block_id, predecessor
-                        ) && MirRoutineDefinitionStrictlyPrecedes(
-                            index, definition, later
-                        ) {
+                        ) && (parameter_entry ||
+                         MirRoutineDefinitionStrictlyPrecedes(
+                            index, definition, later)) {
                         shadowed = true;
                     }
                 }

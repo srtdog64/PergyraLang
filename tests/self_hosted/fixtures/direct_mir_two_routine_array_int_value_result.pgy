@@ -1,0 +1,25 @@
+struct SpanTable {
+    let valid: Bool;
+}
+
+func ReadSpan(
+    text: String, end: Int, inout ends: Array<Int>
+) -> String {
+    return text;
+}
+
+func ValueBounds(
+    ref table: SpanTable, field: String, inout bounds: Array<Int>
+) -> Bool {
+    return table.valid;
+}
+
+func ObserveWindow(
+    text: String, start: Int, end: Int, inout ends: Array<Int>
+) -> String {
+    return text;
+}
+
+func Main() -> Void {
+    Log(ToString(11));
+}

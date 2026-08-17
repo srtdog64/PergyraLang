@@ -89,6 +89,9 @@ typedef struct
 
 typedef enum MIRTextBuilderCallShape
 {
+    MIR_TEXT_BUILDER_CALL_RETURNS_ALLOCATOR,
+    MIR_TEXT_BUILDER_CALL_ALLOCATOR_OUT_TO_VOID,
+    MIR_TEXT_BUILDER_CALL_ALLOCATOR_PTR_TO_VOID,
     MIR_TEXT_BUILDER_CALL_CAPACITY_TO_BUILDER,
     MIR_TEXT_BUILDER_CALL_OUT_CAPACITY_TO_VOID,
     MIR_TEXT_BUILDER_CALL_BUILDER_STRING_TO_VOID,
@@ -98,6 +101,7 @@ typedef enum MIRTextBuilderCallShape
 
 typedef struct MIRTextBuilderRuntimeRow
 {
+    const char *owner_name;
     const char *source_name;
     const char *operation;
     const char *c_inline_fn;

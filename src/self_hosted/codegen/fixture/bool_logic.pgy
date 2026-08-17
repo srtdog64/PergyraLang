@@ -1,4 +1,7 @@
 func IsEven(n: Int) -> Bool {
+    if n < 0 {
+        Log("rhs-ran");
+    }
     return n % 2 == 0;
 }
 func Main() -> Void {
@@ -25,5 +28,11 @@ func Main() -> Void {
             Log(ToString(i));
         }
         i = i + 1;
+    }
+    if true || IsEven(0 - 1) {
+        Log("short-or");
+    }
+    if false && IsEven(0 - 1) {
+        Log("short-and");
     }
 }

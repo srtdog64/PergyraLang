@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_expr_allocator_calls.h"
+#include "../compiler/mir_abi_layout.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -86,6 +87,9 @@ llvm_emit_allocator_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                                  const char *callee_name, LLVMValueRef *out)
 {
     const LLVMAllocatorSpec *spec;
+    const MIRInstruction *inst;
+    const MIRTextBuilderRuntimeRow *declared_row;
+    const MIRTextBuilderRuntimeRow *carried_row;
     LLVMFuncEntry *fn;
     LLVMVarEntry var;
     LLVMValueRef storage;
@@ -99,13 +103,21 @@ llvm_emit_allocator_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     if (spec == NULL)
         return false;
 
+    inst = ctx != NULL ? ctx->current_mir_instruction : NULL;
+    declared_row = mir_text_builder_runtime_row_by_source_name(callee_name);
+    carried_row = inst != NULL ? inst->text_builder_runtime_row : NULL;
+    if (declared_row != NULL && carried_row != declared_row)
+        return llvm_allocator_emit_error(node, ctx, callee_name,
+            "requires its MIR-owned runtime-call ABI row", out);
+
     argc = ast_call_arg_count(node);
     if (argc != spec->argc)
         return llvm_allocator_emit_error(node, ctx, callee_name,
             "has invalid argument count", out);
 
     fn = llvm_required_runtime_function(ctx, node,
-        "allocator", callee_name, spec->runtime_name);
+        "allocator", callee_name, declared_row != NULL
+            ? declared_row->llvm_export_fn : spec->runtime_name);
     if (fn == NULL)
         return true;
 

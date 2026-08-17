@@ -1,0 +1,37 @@
+struct JsonIndexView {
+    let valid: Bool;
+}
+
+func FindField(ref table: JsonIndexView, field: String) -> Option<Int> {
+    return Some(5);
+}
+
+func FindValue(table: JsonIndexView) -> Option<Int> {
+    if table.valid { return Some(6); }
+    return None;
+}
+
+func FindFrom(haystack: String, needle: String, start: Int) -> Option<Int> {
+    return Some(start);
+}
+
+func Relay(value: Int) -> Option<Int> {
+    return FindFrom("abc", "b", value);
+}
+
+func Extract(value: Int) -> Int {
+    return UnwrapOption(Relay(value));
+}
+
+func RelayOption(value: Option<Int>) -> Option<Int> {
+    return value;
+}
+
+func Main() -> Void {
+    let relayed: Option<Int> = Relay(11);
+    Log(UnwrapOption(relayed));
+    let table: JsonIndexView = JsonIndexView(true);
+    Log(UnwrapOption(FindField(table, "field")));
+    Log(UnwrapOption(FindValue(table)));
+    Log(UnwrapOption(RelayOption(Some(7))));
+}

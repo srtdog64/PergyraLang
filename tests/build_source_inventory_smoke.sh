@@ -890,22 +890,22 @@ if ! awk '
 fi
 
 if ! awk '
-    /^AIR_CORE_OBJECTS[[:space:]]*=/ { in_air = 1 }
-    /^MIR_CORE_OBJECTS[[:space:]]*=/ { in_air = 0 }
-    in_air && /\$\(BUILD_DIR\)\/compiler\/mir_type_helpers[.]o/ { found = 1 }
+    /^MIR_CORE_OBJECTS[[:space:]]*=/ { in_mir = 1 }
+    /^ALL_BUILD_OBJECTS[[:space:]]*=/ { in_mir = 0 }
+    in_mir && /\$\(BUILD_DIR\)\/compiler\/mir_type_helpers[.]o/ { found = 1 }
     END { exit found ? 0 : 1 }
 ' "$ROOT_DIR/Makefile"; then
-    echo "[build-source-inventory] MIR type helper object is not linked by AIR_CORE_OBJECTS" >&2
+    echo "[build-source-inventory] MIR type helper object is not linked by MIR_CORE_OBJECTS" >&2
     missing=1
 fi
 
 if ! awk '
-    /^AIR_CORE_OBJECTS[[:space:]]*=/ { in_air = 1 }
-    /^MIR_CORE_OBJECTS[[:space:]]*=/ { in_air = 0 }
-    in_air && /\$\(BUILD_DIR\)\/compiler\/mir_decl_header_access[.]o/ { found = 1 }
+    /^MIR_CORE_OBJECTS[[:space:]]*=/ { in_mir = 1 }
+    /^ALL_BUILD_OBJECTS[[:space:]]*=/ { in_mir = 0 }
+    in_mir && /\$\(BUILD_DIR\)\/compiler\/mir_decl_header_access[.]o/ { found = 1 }
     END { exit found ? 0 : 1 }
 ' "$ROOT_DIR/Makefile"; then
-    echo "[build-source-inventory] MIR declaration header accessor object is not linked by AIR_CORE_OBJECTS" >&2
+    echo "[build-source-inventory] MIR declaration header accessor object is not linked by MIR_CORE_OBJECTS" >&2
     missing=1
 fi
 

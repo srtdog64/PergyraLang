@@ -134,18 +134,60 @@ func StringRuntimeCStringTrimBlock() -> String {
     return Concat(block, "    return r;\n}\n\n");
 }
 
+func StringRuntimeCCharAtNBlock() -> String {
+    let block: String = Concat("static char *", Concat(
+        StringRuntimeCCharAtNFn(),
+        "(const char *s, long long len, long long i)\n{\n"));
+    block = Concat(block,
+        "    char *r;\n    if (s != NULL && i >= 0 && i < len) {\n");
+    block = Concat(block,
+        "        r = (char *)malloc(2);\n        if (r != NULL) { r[0] = s[i]; r[1] = '\\0'; return r; }\n    }\n");
+    block = Concat(block,
+        "    r = (char *)malloc(1);\n    if (r != NULL) r[0] = '\\0';\n    return r;\n}\n\n");
+    return block;
+}
+
+func StringRuntimeCCharCodeBlock() -> String {
+    let block: String = Concat("static long long ", Concat(
+        StringRuntimeCCharCodeFn(),
+        "(const char *s, long long len, long long i)\n{\n"));
+    block = Concat(block,
+        "    if (s == NULL || i < 0 || i >= len) return -1;\n");
+    return Concat(block,
+        "    return (long long)(unsigned char)s[i];\n}\n\n");
+}
+
+func StringRuntimeCSubIndexOfWithLenBlock() -> String {
+    let block: String = Concat("static long long ", Concat(
+        StringRuntimeCSubIndexOfWithLenFn(),
+        "(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n"));
+    block = Concat(block, "    if (s == NULL || needle == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return -1;\n");
+    block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n    size_t nl = strlen(needle);\n    if (nl == 0) return 0;\n    if ((size_t)len < nl) return -1;\n");
+    block = Concat(block, "    if (nl == 1) { const char *m = (const char *)memchr(s + start, needle[0], (size_t)len); return m ? (long long)(m - (s + start)) : -1; }\n");
+    return Concat(block, "    const char *base = s + start; const char *cur = base; size_t remaining = (size_t)len;\n    while (remaining >= nl) { const char *m = (const char *)memchr(cur, (unsigned char)needle[0], remaining - nl + 1u); if (m == NULL) return -1; if (memcmp(m, needle, nl) == 0) return (long long)(m - base); size_t advanced = (size_t)(m - cur) + 1u; cur += advanced; remaining -= advanced; }\n    return -1;\n}\n\n");
+}
+
+func StringRuntimeCSubEqualsWithLenBlock() -> String {
+    let block: String = Concat("static int ", Concat(
+        StringRuntimeCSubEqualsWithLenFn(),
+        "(const char *s, long long source_len, long long start, long long len, const char *other)\n{\n"));
+    block = Concat(block, "    if (other == NULL) return 0;\n    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return strlen(other) == 0 ? 1 : 0;\n");
+    block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n    size_t n = strlen(other);\n    if ((size_t)len != n) return 0;\n");
+    block = Concat(block, "    if (n == 0) return 1;\n    if (n == 1) return s[start] == other[0];\n    if (n == 2) return s[start] == other[0] && s[start + 1] == other[1];\n");
+    block = Concat(block, "    if (n == 3) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2];\n");
+    block = Concat(block, "    if (n == 4) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2] && s[start + 3] == other[3];\n");
+    return Concat(block,
+        "    return memcmp(s + start, other, n) == 0;\n}\n\n");
+}
+
 func StringRuntimeCStringCoreBlock(
     runtime_header_owns_bool_to_string: Bool
 ) -> String {
     let block: String = "";
     block = Concat(block, StringRuntimeCConcatBlock());
     block = Concat(block, StringRuntimeCStringLengthBlock());
-    block = Concat(block, Concat("static char *", Concat(StringRuntimeCCharAtNFn(), "(const char *s, long long len, long long i)\n{\n")));
-    block = Concat(block, "    if (s == NULL || i < 0 || i >= len) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
-    block = Concat(block, "    char *r = (char *)malloc(2);\n    r[0] = s[i];\n    r[1] = '\\0';\n    return r;\n}\n\n");
-    block = Concat(block, Concat("static long long ", Concat(StringRuntimeCCharCodeFn(), "(const char *s, long long len, long long i)\n{\n")));
-    block = Concat(block, "    if (s == NULL || i < 0 || i >= len) return -1;\n");
-    block = Concat(block, "    return (long long)(unsigned char)s[i];\n}\n\n");
+    block = Concat(block, StringRuntimeCCharAtNBlock());
+    block = Concat(block, StringRuntimeCCharCodeBlock());
     block = Concat(block, StringRuntimeCSubstringBlock());
     block = Concat(block, StringRuntimeCSubstringWithLenBlock());
     block = Concat(block, StringRuntimeCStringIndexOfBlock());
@@ -158,18 +200,8 @@ func StringRuntimeCStringCoreBlock(
         block = Concat(block, "    if (r != NULL) { memcpy(r, s, n + 1); }\n    return r;\n}\n\n");
     }
     block = Concat(block, StringRuntimeCStringContainsBlock());
-    block = Concat(block, Concat("static long long ", Concat(StringRuntimeCSubIndexOfWithLenFn(), "(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n")));
-    block = Concat(block, "    if (s == NULL || needle == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return -1;\n");
-    block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n    size_t nl = strlen(needle);\n    if (nl == 0) return 0;\n    if ((size_t)len < nl) return -1;\n");
-    block = Concat(block, "    if (nl == 1) { const char *m = (const char *)memchr(s + start, needle[0], (size_t)len); return m ? (long long)(m - (s + start)) : -1; }\n");
-    block = Concat(block, "    const char *base = s + start; const char *cur = base; size_t remaining = (size_t)len;\n    while (remaining >= nl) { const char *m = (const char *)memchr(cur, (unsigned char)needle[0], remaining - nl + 1u); if (m == NULL) return -1; if (memcmp(m, needle, nl) == 0) return (long long)(m - base); size_t advanced = (size_t)(m - cur) + 1u; cur += advanced; remaining -= advanced; }\n    return -1;\n}\n\n");
-    block = Concat(block, Concat("static int ", Concat(StringRuntimeCSubEqualsWithLenFn(), "(const char *s, long long source_len, long long start, long long len, const char *other)\n{\n")));
-    block = Concat(block, "    if (other == NULL) return 0;\n    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return strlen(other) == 0 ? 1 : 0;\n");
-    block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n    size_t n = strlen(other);\n    if ((size_t)len != n) return 0;\n");
-    block = Concat(block, "    if (n == 0) return 1;\n    if (n == 1) return s[start] == other[0];\n    if (n == 2) return s[start] == other[0] && s[start + 1] == other[1];\n");
-    block = Concat(block, "    if (n == 3) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2];\n");
-    block = Concat(block, "    if (n == 4) return s[start] == other[0] && s[start + 1] == other[1] && s[start + 2] == other[2] && s[start + 3] == other[3];\n");
-    block = Concat(block, "    return memcmp(s + start, other, n) == 0;\n}\n\n");
+    block = Concat(block, StringRuntimeCSubIndexOfWithLenBlock());
+    block = Concat(block, StringRuntimeCSubEqualsWithLenBlock());
     block = Concat(block, Concat("static int ", Concat(StringRuntimeCSubContainsWithLenFn(), "(const char *s, long long source_len, long long start, long long len, const char *needle)\n{\n")));
     block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubIndexOfWithLenFn(), "(s, source_len, start, len, needle) >= 0;\n}\n\n")));
     block = Concat(block, Concat("static int ", Concat(StringRuntimeCSubStartsWithLenFn(), "(const char *s, long long source_len, long long start, const char *prefix)\n{\n")));
@@ -231,12 +263,13 @@ func StringRuntimeCStringJoinBlock() -> String {
     let block: String = "";
     block = Concat(block, Concat("static char *", Concat(StringRuntimeCStringJoinFn(), "(pgy_as a, const char *sep)\n{\n")));
     block = Concat(block, "    size_t sl = strlen(sep);\n    size_t total = 0;\n");
-    block = Concat(block, "    for (long long i = 0; i < a.len; i++) { total += strlen(a.data[i]); }\n");
-    block = Concat(block, "    if (a.len > 1) { total += sl * (size_t)(a.len - 1); }\n");
+    block = Concat(block, "    long long count = pgy_as_len(a);\n");
+    block = Concat(block, "    for (long long i = 0; i < count; i++) { total += strlen(pgy_as_get(a, i)); }\n");
+    block = Concat(block, "    if (count > 1) { total += sl * (size_t)(count - 1); }\n");
     block = Concat(block, "    char *r = (char *)malloc(total + 1);\n    char *p = r;\n");
-    block = Concat(block, "    for (long long i = 0; i < a.len; i++) {\n");
+    block = Concat(block, "    for (long long i = 0; i < count; i++) {\n");
     block = Concat(block, "        if (i > 0) { memcpy(p, sep, sl); p += sl; }\n");
-    block = Concat(block, "        size_t el = strlen(a.data[i]);\n        memcpy(p, a.data[i], el); p += el;\n    }\n");
+    block = Concat(block, "        const char *item = pgy_as_get(a, i);\n        size_t el = strlen(item);\n        memcpy(p, item, el); p += el;\n    }\n");
     block = Concat(block, "    *p = '\\0';\n    return r;\n}\n\n");
     return block;
 }

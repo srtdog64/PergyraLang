@@ -1,0 +1,58 @@
+// Exact Bool signature with one readonly record and two ArrayString copyouts.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.return_type != CompilerAbiLayoutBoolTypeName() ||
+        signature.param_count != 5 ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, signature.parameters.type_names[0]) ||
+        signature.parameters.carriages[0] != "readonly-ref" ||
+        signature.parameters.resources[0] != "none" ||
+        signature.parameters.pass_shapes[0] != "indirect" ||
+        signature.parameters.abi_required[0] ||
+        signature.parameters.abi_layout_ids[0] != 0 {
+        return false;
+    }
+    let ordinal: Int = 1;
+    while ordinal < signature.param_count {
+        let string_value: Bool = ordinal == 1 || ordinal == 2;
+        let array_copyout: Bool = ordinal == 3 || ordinal == 4;
+        let expected: String = CompilerAbiLayoutArrayStringTypeName();
+        if string_value { expected = CompilerAbiLayoutStringTypeName(); }
+        if signature.parameters.type_names[ordinal] != expected ||
+            signature.parameters.resources[ordinal] != "none" ||
+            signature.parameters.pass_shapes[ordinal] != "direct" {
+            return false;
+        }
+        if string_value {
+            if signature.parameters.carriages[ordinal] != "value" ||
+                signature.parameters.abi_required[ordinal] ||
+                signature.parameters.abi_layout_ids[ordinal] != 0 {
+                return false;
+            }
+        } else if signature.parameters.carriages[ordinal] != "value-result" ||
+            !signature.parameters.abi_required[ordinal] ||
+            signature.parameters.abi_layout_ids[ordinal] <= 0 {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return signature.parameters.abi_layout_ids[3] ==
+        signature.parameters.abi_layout_ids[4];
+}
+
+func DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultSignatureReady(
+            signature, logical_record);
+}

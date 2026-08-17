@@ -1,0 +1,11 @@
+func LongRemainder(left: Long, right: Long) -> Long {
+    return left % right;
+}
+
+func IntRemainder(left: Int, right: Int) -> Int {
+    return left % right;
+}
+
+func Main() -> Void {
+    Log("long-remainder-ready");
+}

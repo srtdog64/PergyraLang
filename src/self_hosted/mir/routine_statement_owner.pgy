@@ -2,6 +2,7 @@
 
 import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
+import "routine_local_ref_attachment_owner.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
 import "../semantic/ast_expression_graph_fact_owner.pgy";
 
@@ -34,6 +35,24 @@ func SelfMirCollectionMutationKind(kind: Int) -> Bool {
     return kind == TypedAstKindArrayPopStmtTag() ||
         kind == TypedAstKindArrayPushStmtTag() ||
         kind == TypedAstKindArraySetStmtTag();
+}
+
+func SelfMirCollectionMutationTargetLocal(
+    build: SelfMirRoutineBuild,
+    target_graph: SemanticExpressionGraphView
+) -> Option<Int> {
+    if !target_graph.ok { return None; }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        target_graph.graph, target_graph.root_id
+    );
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        target_graph.graph, target_graph.root_id
+    );
+    if !IsSome(kind) || !IsSome(text) ||
+        UnwrapOption(kind) != AstExpressionNodeLeaf() {
+        return None;
+    }
+    return SelfMirRoutineLocalIndex(build, UnwrapOption(text));
 }
 
 func SelfMirLowerGraphOwnedSimpleStatement(
@@ -76,6 +95,13 @@ func SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
     value_graph: SemanticExpressionGraphView,
     auxiliary_graph: SemanticExpressionGraphView
 ) -> SelfMirRoutineBuild {
+    let target_local: Option<Int> =
+        SelfMirCollectionMutationTargetLocal(build, target_graph);
+    if !IsSome(target_local) {
+        return SelfMirRoutineBuildError(
+            build, "MIR collection mutation target binding is missing"
+        );
+    }
     let uses: Array<String> = [];
     if !SelfMirExpressionGraphUsesAppend(build, uses, target_graph) {
         return SelfMirRoutineBuildError(
@@ -118,9 +144,12 @@ func SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
         );
         arg0 = "ArrayPush";
     }
-    return SelfMirRoutineAddInstruction(
+    build = SelfMirRoutineAddInstruction(
         build, "stmt", "stmt", "", arg0, "", expression,
         secondary_expression, "AST_CALL", uses
+    );
+    return SelfMirRoutineAttachLastPrimaryLocalRef(
+        build, UnwrapOption(target_local)
     );
 }
 

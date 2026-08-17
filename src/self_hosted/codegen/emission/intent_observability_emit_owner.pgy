@@ -1,0 +1,200 @@
+// Projects admitted intent observability facts at the C execution boundary.
+import "../../hir/ast_text_arena_projection_owner.pgy";
+import "../../semantic/ast_intent_signature_fact_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+func CodegenIntentObservabilityConcurrent(
+    artifact: AstTreeArtifact,
+    intent_node: Int
+) -> Bool {
+    let mode_count: Int = 0;
+    let concurrent: Bool = false;
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, intent_node, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindIntentModeTag()
+        ) {
+            let mode: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, child_id
+            );
+            if mode_count != 0 || !IsSome(mode) ||
+                (UnwrapOption(mode) != "exclusive" &&
+                 UnwrapOption(mode) != "concurrent") {
+                Die("self-host intent observability mode is invalid");
+            }
+            mode_count = mode_count + 1;
+            concurrent = UnwrapOption(mode) == "concurrent";
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, intent_node, child_index
+        );
+    }
+    if mode_count != 1 {
+        Die("self-host intent observability mode is missing");
+    }
+    return concurrent;
+}
+
+func CodegenIntentObservabilityEmitPrologue(
+    inout body: Array<String>,
+    enabled: Bool,
+    artifact: AstTreeArtifact,
+    intent_node: Int,
+    ref intents: SemanticAstIntentSignatureFacts,
+    intent_index: Int,
+    env: CodegenTypeEnv,
+    admission_failure_body: String
+) -> Void {
+    if !enabled { return; }
+    if admission_failure_body == "" {
+        Die("self-host intent observability admission failure is missing");
+    }
+    if intent_index < 0 || intent_index >= ArrayLength(intents.names) ||
+        intent_index >= ArrayLength(intents.param_starts) ||
+        intent_index >= ArrayLength(intents.param_counts) {
+        Die("self-host intent observability signature is missing");
+    }
+    let start: Int = intents.param_starts[intent_index];
+    let count: Int = intents.param_counts[intent_index];
+    if start < 0 || count < 0 ||
+        start + count > ArrayLength(intents.param_names) ||
+        start + count > ArrayLength(intents.param_types) ||
+        start + count > ArrayLength(intents.param_is_values) {
+        Die("self-host intent observability parameter range is invalid");
+    }
+    let subjects: Array<String> = [];
+    let row: Int = start;
+    while row < start + count {
+        if !intents.param_is_values[row] &&
+            LookupKindType(env, intents.param_types[row], "nk") == "subject" {
+            ArrayPush(subjects, CompilerSymbolCBindingName(
+                intents.param_names[row]
+            ));
+        }
+        row = row + 1;
+    }
+    ArrayPush(body, "    int32_t __intent_handle = 0;\n");
+    let subject_count: Int = ArrayLength(subjects);
+    if subject_count > 0 {
+        ArrayPush(body, Concat(
+            "    void *__intent_subjects[", Concat(
+                ToString(subject_count), "];\n"
+            )
+        ));
+        let subject_index: Int = 0;
+        while subject_index < subject_count {
+            ArrayPush(body, Concat(
+                "    __intent_subjects[", Concat(ToString(subject_index),
+                Concat("] = (void *)", Concat(
+                    subjects[subject_index], ";\n"
+                )))
+            ));
+            subject_index = subject_index + 1;
+        }
+    }
+    let concurrent: String = ToString(
+        CodegenIntentObservabilityConcurrent(artifact, intent_node)
+    );
+    let enter_suffix: String = Concat(
+        ", ", Concat(ToString(subject_count), Concat(", ", Concat(
+            concurrent, ", 0);\n"
+        )))
+    );
+    if subject_count > 0 {
+        ArrayPush(body, Concat(
+            "    __intent_handle = pgy_intent_enter_export(\"",
+            Concat(intents.names[intent_index], Concat(
+                "\", __intent_subjects", enter_suffix
+            ))
+        ));
+    } else {
+        ArrayPush(body, Concat(
+            "    __intent_handle = pgy_intent_enter_export(\"",
+            Concat(intents.names[intent_index], Concat("\", NULL", enter_suffix))
+        ));
+    }
+    ArrayPush(body, Concat(
+        "    if (__intent_handle == 0) {\n",
+        Concat(admission_failure_body, "    }\n")
+    ));
+}
+
+func CodegenIntentObservabilityEmitStepBegin(
+    inout body: Array<String>, enabled: Bool, step_name: String,
+    zone_name: String, participant_name: String, slot_name: String
+) -> Void {
+    if !enabled { return; }
+    ArrayPush(body, Concat(
+        "    pgy_intent_trace_step_export(__intent_handle, \"", Concat(
+            step_name, Concat("\", \"", Concat(zone_name, "\");\n"))
+        ))
+    );
+    ArrayPush(body, Concat(
+        "    pgy_intent_trace_bind_export(__intent_handle, \"", Concat(
+            participant_name, Concat("\", \"", Concat(
+                slot_name, "\");\n"
+            ))
+        ))
+    );
+}
+
+func CodegenIntentObservabilityEmitTypedStepBegin(
+    inout body: Array<String>, enabled: Bool,
+    step_name: String, zone_name: String
+) -> Void {
+    if !enabled { return; }
+    if step_name == "" || zone_name == "" {
+        Die("typed intent observability step identity is missing");
+    }
+    ArrayPush(body, Concat(
+        "    pgy_intent_trace_step_export(__intent_handle, \"",
+        Concat(step_name, Concat("\", \"", Concat(zone_name, "\");\n")))
+    ));
+}
+
+func CodegenIntentObservabilityEmitMaterialize(
+    inout body: Array<String>, enabled: Bool, participant_name: String,
+    slot_name: String, zone_name: String
+) -> Void {
+    if !enabled { return; }
+    ArrayPush(body, Concat(
+        "    pgy_intent_trace_materialize_export(__intent_handle, \"",
+        Concat(participant_name, Concat("\", \"", Concat(slot_name,
+        Concat("\", \"", Concat(zone_name, "\");\n")))))
+    ));
+}
+
+func CodegenIntentObservabilityFailureLine(
+    enabled: Bool, phase: String, step_name: String
+) -> String {
+    if !enabled { return ""; }
+    return Concat(
+        "        pgy_intent_trace_fail_export(__intent_handle, \"",
+        Concat(phase, Concat(":", Concat(step_name, "\");\n")))
+    );
+}
+
+func CodegenIntentObservabilityEmitStepOk(
+    inout body: Array<String>, enabled: Bool, step_name: String
+) -> Void {
+    if !enabled { return; }
+    ArrayPush(body, Concat(
+        "    pgy_intent_trace_step_ok_export(__intent_handle, \"",
+        Concat(step_name, "\");\n")
+    ));
+}
+
+func CodegenIntentObservabilityEmitExit(
+    inout body: Array<String>, enabled: Bool
+) -> Void {
+    if enabled {
+        ArrayPush(body,
+            "    if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+    }
+}

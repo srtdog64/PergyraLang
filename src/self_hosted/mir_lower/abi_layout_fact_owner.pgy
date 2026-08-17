@@ -209,17 +209,7 @@ func MirAbiStringValueAtBounds(
 func MirAbiIntegerValueAtBounds(
     json: String, start: Int, end: Int
 ) -> Option<String> {
-    if start < 0 || end <= start { return None; }
-    let i: Int = start;
-    if JsonCharCodeAt(json, end, i) == JsonAsciiCode("-") {
-        i = i + 1;
-        if i >= end { return None; }
-    }
-    while i < end {
-        if !JsonIsDigitCode(JsonCharCodeAt(json, end, i)) { return None; }
-        i = i + 1;
-    }
-    return Some(Substring(json, start, end - start));
+    return JsonIntegerValueOptWithin(json, start, end);
 }
 
 func MirAbiLayoutFieldsCaptureWithin(
@@ -500,7 +490,9 @@ func MirCapturedAbiLayoutFactReady(
                 json, layout_end, layout_start, 4, "null"
             );
     }
-    let id_text: String = Substring(json, id_start, id_end - id_start);
+    let id_text: String = SubstringWithLen(
+        json, id_end, id_start, id_end - id_start
+    );
     if id_text == "" || ToString(ToInt(id_text)) != id_text {
         return false;
     }
@@ -510,11 +502,11 @@ func MirCapturedAbiLayoutFactReady(
     ) != JsonAsciiCode("{") {
         return false;
     }
-    let type_key: String = Substring(
-        json, type_start, type_end - type_start
+    let type_key: String = SubstringWithLen(
+        json, type_end, type_start, type_end - type_start
     );
-    let layout_key: String = Substring(
-        json, layout_start, layout_end - layout_start
+    let layout_key: String = SubstringWithLen(
+        json, layout_end, layout_start, layout_end - layout_start
     );
     if MirAbiRequiredTupleSeen(session, type_key, id, layout_key) {
         return true;

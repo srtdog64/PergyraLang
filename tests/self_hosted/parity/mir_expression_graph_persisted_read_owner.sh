@@ -80,6 +80,14 @@ run_backend() {
     local extended="$($probe --extended-identity | tr -d '\r')"
     [[ "$extended" == *"persisted-graph-read=one-pass-exact"* ]] \
         || fail "$backend extended identity reconstruction drifted"
+    local runtime_identity="$($probe --runtime-identity | tr -d '\r')"
+    [[ "$runtime_identity" == *"persisted-graph-read=one-pass-exact"* ]] \
+        || fail "$backend native runtime ABI identity reconstruction drifted"
+    local complete_runtime_identity
+    complete_runtime_identity="$($probe --complete-runtime-identity | tr -d '\r')"
+    [[ "$complete_runtime_identity" == \
+        *"persisted-graph-read=one-pass-exact"* ]] \
+        || fail "$backend self-host runtime ABI identity reconstruction drifted"
 
     local mode
     local negative
@@ -90,7 +98,11 @@ run_backend() {
         --overflow-root \
         --unknown-node-kind \
         --unknown-target-kind \
-        --unknown-binding-kind; do
+        --unknown-binding-kind \
+        --runtime-with-syntax \
+        --runtime-without-direct \
+        --negative-runtime-id \
+        --duplicate-runtime-field; do
         negative="$($probe "$mode" | tr -d '\r')"
         [[ "$negative" == *"persisted-graph-negative=closed"* ]] \
             || fail "$backend negative graph was not rejected: $mode"

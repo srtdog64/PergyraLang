@@ -1,0 +1,11 @@
+func LogLocalSingleton(text: String) -> Void {
+    let source_text: String = Concat(text, "!");
+    let values: Array<String> = [source_text];
+    Log(values[0]);
+}
+
+func Main() -> Void {
+    LogLocalSingleton("red");
+    LogLocalSingleton("blue");
+    Log("array-string-local-literal-ready");
+}

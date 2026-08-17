@@ -1,0 +1,51 @@
+// Bool-returning collection copyout policy with an Array<Bool> owner row.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+
+func DirectMirScalarProgramBoolMixedCollectionValueResultSignatureReady(
+    ref signature: DirectMirRoutineSignatureFact
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.return_type != CompilerAbiLayoutBoolTypeName() ||
+        signature.param_count < 1 { return false; }
+    let array_bool_count: Int = 0;
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        let type_name: String = signature.parameters.type_names[ordinal];
+        let array_int: Bool = type_name ==
+            CompilerAbiLayoutArrayIntTypeName();
+        let array_bool: Bool = type_name ==
+            CompilerAbiLayoutArrayBoolTypeName();
+        let array_string: Bool = type_name ==
+            CompilerAbiLayoutArrayStringTypeName();
+        let collection: Bool = array_int || array_bool || array_string;
+        if signature.parameters.resources[ordinal] != "none" ||
+            signature.parameters.pass_shapes[ordinal] != "direct" {
+            return false;
+        }
+        if collection {
+            if signature.parameters.carriages[ordinal] != "value-result" ||
+                !signature.parameters.abi_required[ordinal] ||
+                signature.parameters.abi_layout_ids[ordinal] <= 0 {
+                return false;
+            }
+            if array_bool { array_bool_count = array_bool_count + 1; }
+        } else if !DirectMirScalarCfgScalarTypeSupported(type_name) ||
+            signature.parameters.carriages[ordinal] != "value" ||
+            signature.parameters.abi_required[ordinal] ||
+            signature.parameters.abi_layout_ids[ordinal] != 0 {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return array_bool_count >= 1;
+}
+
+func DirectMirScalarProgramBoolMixedCollectionValueResultParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        DirectMirScalarProgramBoolMixedCollectionValueResultSignatureReady(
+            signature);
+}

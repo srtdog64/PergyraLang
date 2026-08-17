@@ -1,0 +1,63 @@
+// LLVM heap materialization for one ordered populated Array<Int> literal.
+
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramLlvmArrayIntPopulatedLiteralExpressionAt(
+    kind: Int, result: String, left: String, right: String,
+    arguments: Array<String>
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let values: Array<String> = [];
+    let value_row: Int = 0;
+    while value_row < ArrayLength(arguments) {
+        ArrayPush(values, arguments[value_row]); value_row = value_row + 1;
+    }
+    if ArrayLength(values) == 0 {
+        if left != "" { ArrayPush(values, left); }
+        if right != "" { ArrayPush(values, right); }
+    }
+    if ArrayLength(values) < 1 {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let bytes: Int = ArrayLength(values) * 4;
+    let output: String = Concat("  ", Concat(result, ".data = call ptr @malloc(i64 "));
+    output = Concat(output, Concat(ToString(bytes), ")\n"));
+    let item: Int = 0;
+    while item < ArrayLength(values) {
+        output = Concat(output, Concat("  ", Concat(result, ".value.")));
+        output = Concat(output, ToString(item));
+        output = Concat(output, " = trunc i64 ");
+        output = Concat(output, values[item]);
+        output = Concat(output, " to i32\n  ");
+        output = Concat(output, Concat(result, ".slot."));
+        output = Concat(output, ToString(item));
+        output = Concat(output, " = getelementptr inbounds i32, ptr ");
+        output = Concat(output, Concat(result, ".data, i64 "));
+        output = Concat(output, Concat(ToString(item), "\n  store i32 "));
+        output = Concat(output, Concat(result, ".value."));
+        output = Concat(output, ToString(item));
+        output = Concat(output, Concat(", ptr ", Concat(result, ".slot.")));
+        output = Concat(output, Concat(ToString(item), ", align 4\n"));
+        item = item + 1;
+    }
+    output = Concat(output, Concat("  ", Concat(result,
+        ".data.value = insertvalue %pgy.array.int zeroinitializer, ptr ")));
+    output = Concat(output, Concat(result, ".data, 0\n  "));
+    output = Concat(output, Concat(result,
+        ".length.value = insertvalue %pgy.array.int "));
+    output = Concat(output, Concat(result, ".data.value, i64 "));
+    output = Concat(output, Concat(ToString(ArrayLength(values)), ", 1\n  "));
+    output = Concat(output, Concat(result,
+        ".capacity.value = insertvalue %pgy.array.int "));
+    output = Concat(output, Concat(result, ".length.value, i64 "));
+    output = Concat(output, Concat(ToString(ArrayLength(values)), ", 2\n  "));
+    output = Concat(output, Concat(result, " = insertvalue %pgy.array.int "));
+    output = Concat(output, Concat(result,
+        ".capacity.value, ptr null, 3\n"));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

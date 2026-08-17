@@ -351,6 +351,8 @@
         MIRInstruction *append_inst = NULL;
         bool saw_new = false;
         bool saw_finish = false;
+        bool saw_allocator_result = false;
+        bool saw_allocator_destroy = false;
         bool rejected_missing_row = false;
         char *mir_error = NULL;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
@@ -368,6 +370,10 @@
                         continue;
                     if (strcmp(row->operation, "New") == 0)
                         saw_new = true;
+                    else if (strcmp(row->source_name, "AllocatorResult") == 0)
+                        saw_allocator_result = true;
+                    else if (strcmp(row->source_name, "AllocatorDestroy") == 0)
+                        saw_allocator_destroy = true;
                     else if (strcmp(row->operation, "Append") == 0)
                         append_inst = inst;
                     else if (strcmp(row->operation, "Finish") == 0)
@@ -381,7 +387,7 @@
             append_inst->text_builder_runtime_row = NULL;
             rejected_missing_row = !mir_validate(mir, &mir_error)
                 && mir_error != NULL
-                && strstr(mir_error, "TextBuilder runtime-call ABI fact")
+                && strstr(mir_error, "runtime-value runtime-call ABI fact")
                     != NULL;
             append_inst->text_builder_runtime_row = saved;
         }
@@ -389,6 +395,8 @@
                && mir_validate(mir, NULL)
                && routine != NULL
                && saw_new
+               && saw_allocator_result
+               && saw_allocator_destroy
                && append_inst != NULL
                && saw_finish
                && rejected_missing_row);

@@ -1,41 +1,167 @@
 // LLVM direct-call instruction from ordered GraphPlan arguments.
-
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
-
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy";
+struct DirectMirScalarProgramLlvmCallArgument {
+    let valid: Bool;
+    let instructions: String;
+    let value: String;
+    let carriage: String;
+}
+func DirectMirScalarProgramLlvmCallArgumentInvalid(
+) -> DirectMirScalarProgramLlvmCallArgument {
+    return DirectMirScalarProgramLlvmCallArgument(false, "", "", "");
+}
+func DirectMirScalarProgramLlvmCallArgumentValue(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    routine: Int, callable: Int, argument: Int,
+    argument_node: Int, value: String
+) -> DirectMirScalarProgramLlvmCallArgument {
+    let invalid: DirectMirScalarProgramLlvmCallArgument =
+        DirectMirScalarProgramLlvmCallArgumentInvalid();
+    if routine < 0 || routine >= ArrayLength(routines.roles) ||
+        callable < 0 || callable >= ArrayLength(routines.roles) ||
+        argument < 0 || argument >= routines.parameter_counts[callable] ||
+        argument_node < 0 || argument_node >=
+            ArrayLength(expressions.node_kinds) { return invalid; }
+    let parameter_row: Int = routines.parameter_starts[callable] + argument;
+    let carriage: String = routines.parameter_carriages[parameter_row];
+    if carriage == "value-result" {
+        if expressions.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprLocal() {
+            return DirectMirScalarProgramLlvmCallArgument(
+                true, "", DirectMirScalarProgramLlvmLocalName(
+                    expressions.node_local_rows[argument_node]), carriage);
+        }
+        if expressions.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprParameter() {
+            return DirectMirScalarProgramLlvmCallArgument(
+                true, "", Concat("%pgy.param.", Concat(ToString(
+                    expressions.node_parameter_ordinals[argument_node]),
+                    ".local")), carriage);
+        }
+        return invalid;
+    }
+    let projected: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmStringExpression(false, true, "", value);
+    if DirectMirScalarProgramArrayStringReadonlyRefAt(
+            routines, callable, argument) {
+        projected = DirectMirScalarProgramLlvmArrayStringReadonlyRefCallArgument(
+            expressions, routines, routine, argument_node);
+    } else {
+        projected = DirectMirScalarProgramLlvmLogicalRecordCallArgument(
+            expressions, routines, logical_record, routine, callable,
+            argument, argument_node, value);
+    }
+    if projected.matched && !projected.valid { return invalid; }
+    return DirectMirScalarProgramLlvmCallArgument(
+        true, projected.instructions, projected.value, carriage);
+}
 func DirectMirScalarProgramLlvmDirectCallExpressionAt(
     kind: Int, result: String, result_type: String,
     left: String, left_type: String, right: String, right_type: String,
     arguments: Array<String>, argument_types: Array<String>,
-    callable_ordinal: Int
+    argument_kinds: Array<Int>,
+    argument_carriages: Array<String>,
+    callable_ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind != DirectMirScalarProgramExprDirectCall() {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
     let values: Array<String> = arguments;
     let types: Array<String> = argument_types;
+    let kinds: Array<Int> = argument_kinds;
+    let carriages: Array<String> = argument_carriages;
     if ArrayLength(values) == 0 {
-        if left != "" { ArrayPush(values, left); ArrayPush(types, left_type); }
-        if right != "" { ArrayPush(values, right); ArrayPush(types, right_type); }
+        if left != "" { ArrayPush(values, left); ArrayPush(types, left_type);
+            ArrayPush(kinds, 0);
+            ArrayPush(carriages, "value"); }
+        if right != "" { ArrayPush(values, right); ArrayPush(types, right_type);
+            ArrayPush(kinds, 0);
+            ArrayPush(carriages, "value"); }
     }
-    if callable_ordinal < 0 || ArrayLength(values) < 1 ||
-        ArrayLength(values) != ArrayLength(types) {
+    if callable_ordinal < 0 ||
+        ArrayLength(values) != ArrayLength(types) ||
+        ArrayLength(values) != ArrayLength(kinds) ||
+        ArrayLength(values) != ArrayLength(carriages) {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let output: String = Concat("  ", Concat(result, Concat(
-        " = call ", Concat(DirectMirScalarProgramLlvmType(result_type),
+    let result_llvm_type: String = DirectMirScalarProgramLlvmType(result_type);
+    if DirectMirScalarProgramLogicalRecordTypeReady(logical_record, result_type) {
+        result_llvm_type = DirectMirScalarProgramLlvmLogicalRecordTypeName(
+            logical_record, result_type);
+    }
+    if DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, result_type) {
+        result_llvm_type = DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+            logical_record, result_type);
+    }
+    if result_llvm_type == "" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = "  ";
+    if result_type != "Void" {
+        output = Concat(output, Concat(result, " = "));
+    }
+    output = Concat(output, Concat("call ", Concat(result_llvm_type,
         Concat(" @pgy.scalar.routine.", Concat(
-        ToString(callable_ordinal), "("))))));
+        ToString(callable_ordinal), "(")))));
     let ordinal: Int = 0;
     while ordinal < ArrayLength(values) {
         if ordinal > 0 { output = Concat(output, ", "); }
-        output = Concat(output, DirectMirScalarProgramLlvmType(types[ordinal]));
+        let argument_type: String = "";
+        if carriages[ordinal] == "readonly-ref" ||
+            carriages[ordinal] == "value-result" {
+            argument_type = "ptr";
+        } else if carriages[ordinal] == "value" ||
+                carriages[ordinal] == "owner-handle" {
+            if carriages[ordinal] == "owner-handle" &&
+                types[ordinal] != CompilerAbiLayoutStringTypeName() &&
+                !DirectMirScalarProgramLogicalRecordTypeReady(
+                    logical_record, types[ordinal]) {
+                return DirectMirScalarProgramLlvmStringExpression(
+                    true, false, "", "");
+            }
+            argument_type = DirectMirScalarProgramLlvmType(types[ordinal]);
+            if kinds[ordinal] ==
+                    DirectMirScalarProgramExprPayloadFreeEnumVariant() {
+                argument_type = "i64";
+            }
+        }
+        if (carriages[ordinal] == "value" ||
+                carriages[ordinal] == "owner-handle") &&
+            DirectMirScalarProgramLogicalRecordTypeReady(
+                logical_record, types[ordinal]) {
+            argument_type = DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                logical_record, types[ordinal]);
+        }
+        if carriages[ordinal] == "value" &&
+            DirectMirScalarProgramLogicalRecordOptionTypeReady(
+                logical_record, types[ordinal]) {
+            argument_type =
+                DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+                    logical_record, types[ordinal]);
+        }
+        if argument_type == "" {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        output = Concat(output, argument_type);
         output = Concat(output, Concat(" ", values[ordinal]));
         ordinal = ordinal + 1;
     }
     output = Concat(output, ")\n");
+    let value: String = result;
+    if result_type == "Void" { value = ""; }
     return DirectMirScalarProgramLlvmStringExpression(
-        true, true, output, result);
+        true, true, output, value);
 }

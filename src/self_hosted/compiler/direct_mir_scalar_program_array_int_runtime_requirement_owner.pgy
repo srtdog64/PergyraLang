@@ -1,0 +1,36 @@
+// Target-neutral Array<Int> runtime bodies required by a sealed GraphPlan.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "direct_mir_scalar_program_array_int_expression_kind_owner.pgy";
+
+struct DirectMirScalarProgramArrayIntRuntimeRequirement {
+    let valid: Bool;
+    let push: Bool;
+    let get: Bool;
+}
+
+func DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> DirectMirScalarProgramArrayIntRuntimeRequirement {
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(
+            plan.program.array_int_value_result) {
+        return DirectMirScalarProgramArrayIntRuntimeRequirement(
+            false, false, false);
+    }
+    let push: Bool = false;
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[operation] ==
+                DirectMirScalarCfgOpArrayIntPush() { push = true; }
+        operation = operation + 1;
+    }
+    let get: Bool = DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprArrayIntIndex());
+    if (push || get) && !plan.program.array_int_value_result.present {
+        return DirectMirScalarProgramArrayIntRuntimeRequirement(
+            false, false, false);
+    }
+    return DirectMirScalarProgramArrayIntRuntimeRequirement(
+        true, push, get);
+}
