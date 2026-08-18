@@ -129,7 +129,7 @@ pgy_selfhost_verify_driver_rung2_role_implicit_self_emitted_c() {
     [[ "$base" == "function_clause_order_minimal" ]] || return 0
 
     for signature in \
-        'long long HeroCombat_Ping(void *_pgy_raw_self)' \
+        'int32_t HeroCombat_Ping(void *_pgy_raw_self)' \
         'void HeroCombat_Move(void *_pgy_raw_self)'; do
         grep -Fq "$signature" "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend implicit role-self ABI drifted: $signature" >&2

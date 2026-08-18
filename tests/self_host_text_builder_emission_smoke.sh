@@ -24,8 +24,10 @@ reject_region_text() {
 
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     'let output: TextBuilder = TextBuilderNew(4096);'
+require_text "src/self_hosted/codegen/emission/program_function_definition_block_owner.pgy" \
+    'TextBuilderAppend(output, owned_definition[0]);'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    'TextBuilderAppend(output, defs[definition_index]);'
+    'TextBuilderAppend(output, definition_block);'
 require_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy" \
     'let out: TextBuilder = TextBuilderNew(n + 1);'
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" \

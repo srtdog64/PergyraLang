@@ -50,11 +50,12 @@ pgy_selfhost_driver_rung2_machine_manifest_init() {
 }
 
 pgy_selfhost_verify_driver_rung2_machine_claim_type_owner() {
-    local owner="$ROOT_DIR/src/self_hosted/mir/routine_build_owner.pgy"
+    local owner="$ROOT_DIR/src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy"
     local layout_owner="$ROOT_DIR/src/self_hosted/mir/abi_layout_json_projection_owner.pgy"
     grep -Fq \
-        'SelfMirSsaBaseName(cfg.instructions.results[instruction_index])' \
-        "$owner" || {
+        'SelfMirRoutineExpressionRuntimeAbiSsaBaseName(' "$owner" && \
+    grep -Fq \
+        'cfg.instructions.results[instruction_index]' "$owner" || {
         echo "[self-host-parity:driver-rung2] Claim ABI type lost result-local owner" >&2
         return 1
     }

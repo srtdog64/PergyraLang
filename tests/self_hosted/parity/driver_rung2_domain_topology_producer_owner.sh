@@ -49,8 +49,13 @@ grep -Fq '=constructor_fields:' "$constructor_layout_owner" || {
     echo "[self-host-parity:driver-rung2] constructor field inventory projection drifted" >&2
     return 1 2>/dev/null || exit 1
 }
-grep -Fq '"constructor_fields"' "$constructor_call_owner" || {
+grep -Fq '"constructor_fields"' \
+    "$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_struct_call_emit_owner.pgy" || {
     echo "[self-host-parity:driver-rung2] struct call reopened storage-field arity" >&2
+    return 1 2>/dev/null || exit 1
+}
+grep -Fq 'RewriteSemanticStructCall(' "$constructor_call_owner" || {
+    echo "[self-host-parity:driver-rung2] call owner no longer delegates struct calls to the struct-call owner" >&2
     return 1 2>/dev/null || exit 1
 }
 if grep -Eq 'TypedAstArenaProvenanceText|native_oracle|ordinal|source_syntax_id[[:space:]]*\+' \

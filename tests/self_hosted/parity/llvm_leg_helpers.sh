@@ -41,8 +41,24 @@ pgy_selfhost_path_relative_to_root() {
     printf '%s\n' "$rel"
 }
 
+pgy_selfhost_root_forward_slash() {
+    # Repo root in the forward-slash spelling the native compiler's
+    # import-resolver canonicalizer emits (D:/... on Windows, /... elsewhere).
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -m "$ROOT_DIR"
+    else
+        printf '%s\n' "$ROOT_DIR"
+    fi
+}
+
 pgy_selfhost_normalize_text_artifact() {
-    tr -d '\r' | awk '
+    # The native oracle canonicalizes CLI source paths to machine-absolute
+    # spellings while the self-host verified flow admits only repo-relative
+    # ones, so source_module_path provenance is compared machine-independently:
+    # strip the repo-root prefix from that one JSON field on both sides.
+    local root_fwd
+    root_fwd="$(pgy_selfhost_root_forward_slash)"
+    tr -d '\r' | sed "s|\"source_module_path\":\"${root_fwd}/|\"source_module_path\":\"|g" | awk '
         { lines[NR] = $0 }
         END {
             last = NR

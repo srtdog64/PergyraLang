@@ -1,7 +1,9 @@
 yes
 3
 bb
+a|bb|c
 43
 1
 2
 left
+left/right
