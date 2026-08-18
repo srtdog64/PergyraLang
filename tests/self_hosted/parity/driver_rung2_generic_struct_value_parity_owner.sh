@@ -70,11 +70,11 @@ pgy_selfhost_verify_driver_rung2_generic_struct_emitted_c() {
     local emitted_c="$3"
 
     [[ "$base" == "generic_struct_field_value_flow" ]] || return 0
-    grep -Fq 'long long Identity_Int(long long value)' "$emitted_c" || {
+    grep -Fq 'int32_t Identity_Int(int32_t value)' "$emitted_c" || {
         echo "[self-host-parity:driver-rung2] $backend generic symbol was not emitted" >&2
         exit 1
     }
-    if grep -Fq 'long long Identity(long long value)' "$emitted_c"; then
+    if grep -Eq '(long long|int32_t) Identity\((long long|int32_t) value\)' "$emitted_c"; then
         echo "[self-host-parity:driver-rung2] $backend generic template leaked into C" >&2
         exit 1
     fi

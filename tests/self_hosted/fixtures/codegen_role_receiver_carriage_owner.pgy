@@ -34,7 +34,7 @@ func Main() -> Void {
         if scalar.pointer_identity || scalar.self_c_expression != "self" ||
             !StringContains(
                 scalar.prologue,
-                "long long self = _pgy_raw_self ? *(long long *)_pgy_raw_self"
+                "int32_t self = _pgy_raw_self ? *(int32_t *)_pgy_raw_self"
             ) {
             Exit(1);
         }

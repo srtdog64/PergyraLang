@@ -34,7 +34,8 @@ pgy_selfhost_verify_driver_rung2_fieldless_class() {
     [[ "$base" == "fieldless_class_method" ]] || return 0
 
     for fact in \
-        '"kind":"class","nominal_kind":"class","name":"Calc","source_syntax_id":1,"fields":[]' \
+        '"kind":"class","nominal_kind":"class","name":"Calc","source_syntax_id":1,' \
+        '"fields":[]' \
         '"call_target_kind":"direct","call_target_name":"Calc"' \
         '"call_target_kind":"member","call_target_name":"Calc_Add"'; do
         grep -Fq "$fact" "$self_mir_json" || {

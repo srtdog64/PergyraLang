@@ -98,7 +98,7 @@ pgy_selfhost_verify_driver_rung2_inferred_generic_emitted_c() {
         "$base" != "generic_return_assignment_inferred_flow" ]]; then
         return 0
     fi
-    grep -Eq 'long long Identity_Int\(long long [A-Za-z_][A-Za-z0-9_]*\)' \
+    grep -Eq '(long long|int32_t) Identity_Int\((long long|int32_t) [A-Za-z_][A-Za-z0-9_]*\)' \
         "$emitted_c" || {
         echo "[self-host-parity:driver-rung2] $backend inferred generic symbol was not emitted" >&2
         exit 1
@@ -107,7 +107,7 @@ pgy_selfhost_verify_driver_rung2_inferred_generic_emitted_c() {
         echo "[self-host-parity:driver-rung2] $backend inferred call was not specialized" >&2
         exit 1
     }
-    if grep -Fq 'long long Identity(long long value)' "$emitted_c"; then
+    if grep -Eq '(long long|int32_t) Identity\((long long|int32_t) value\)' "$emitted_c"; then
         echo "[self-host-parity:driver-rung2] $backend generic template leaked into C" >&2
         exit 1
     fi

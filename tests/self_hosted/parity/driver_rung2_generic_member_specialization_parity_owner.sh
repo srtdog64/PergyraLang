@@ -295,7 +295,7 @@ pgy_selfhost_verify_driver_rung2_generic_member_specialization_emitted_c() {
     if [[ "$array_constructed" -eq 1 ]]; then
         grep -Eq "pgy_ai ${specialized}\\(ArrayWrapper [A-Za-z_][A-Za-z0-9_]*, pgy_ai [A-Za-z_][A-Za-z0-9_]*\\)" \
             "$emitted_c" &&
-            grep -Eq "pgy_ai ${inner_specialized}\\(ArrayWrapper [A-Za-z_][A-Za-z0-9_]*, long long [A-Za-z_][A-Za-z0-9_]*\\)" \
+            grep -Eq "pgy_ai ${inner_specialized}\\(ArrayWrapper [A-Za-z_][A-Za-z0-9_]*, (long long|int32_t) [A-Za-z_][A-Za-z0-9_]*\\)" \
                 "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend Array generic member bodies were not specialized" >&2
             exit 1
@@ -314,7 +314,7 @@ pgy_selfhost_verify_driver_rung2_generic_member_specialization_emitted_c() {
     if [[ "$constructed" -eq 1 ]]; then
         grep -Eq "pgy_option_int ${specialized}\\(Wrapper [A-Za-z_][A-Za-z0-9_]*, pgy_option_int [A-Za-z_][A-Za-z0-9_]*\\)" \
             "$emitted_c" &&
-            grep -Eq "pgy_option_int ${inner_specialized}\\(Wrapper [A-Za-z_][A-Za-z0-9_]*, long long [A-Za-z_][A-Za-z0-9_]*\\)" \
+            grep -Eq "pgy_option_int ${inner_specialized}\\(Wrapper [A-Za-z_][A-Za-z0-9_]*, (long long|int32_t) [A-Za-z_][A-Za-z0-9_]*\\)" \
                 "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend constructed generic member bodies were not specialized" >&2
             exit 1
@@ -336,7 +336,7 @@ pgy_selfhost_verify_driver_rung2_generic_member_specialization_emitted_c() {
         owner_param="${owner} \\*[A-Za-z_][A-Za-z0-9_]*"
         receiver_expr="&($receiver)"
     fi
-    grep -Eq "long long ${specialized}\\(${owner_param}, long long [A-Za-z_][A-Za-z0-9_]*\\)" \
+    grep -Eq "(long long|int32_t) ${specialized}\\(${owner_param}, (long long|int32_t) [A-Za-z_][A-Za-z0-9_]*\\)" \
         "$emitted_c" || {
         echo "[self-host-parity:driver-rung2] $backend generic member body was not specialized" >&2
         exit 1
@@ -345,7 +345,7 @@ pgy_selfhost_verify_driver_rung2_generic_member_specialization_emitted_c() {
         echo "[self-host-parity:driver-rung2] $backend generic member call was not specialized" >&2
         exit 1
     }
-    if grep -Eq "long long ${owner}_Echo\\(${owner} " "$emitted_c"; then
+    if grep -Eq "(long long|int32_t) ${owner}_Echo\\(${owner} " "$emitted_c"; then
         echo "[self-host-parity:driver-rung2] $backend raw generic member leaked into C" >&2
         exit 1
     fi

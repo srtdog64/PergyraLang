@@ -78,7 +78,7 @@ pgy_selfhost_verify_driver_rung2_spawn_await_emitted_c() {
                 exit 1
             }
         done
-        if grep -Fq 'long long task =' "$emitted_c" ||
+        if grep -Eq '(long long|int32_t) task =' "$emitted_c" ||
             grep -Fq 'task = Inc(4)' "$emitted_c"; then
             echo "[self-host-parity:driver-rung2] $backend named Future used a scalar or sequential fallback" >&2
             exit 1

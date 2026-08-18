@@ -35,7 +35,8 @@ pgy_selfhost_verify_driver_rung2_result_field() {
     [[ "$base" == "result_as_class_field" ]] || return 0
 
     for fact in \
-        '"kind":"class","nominal_kind":"class","name":"Wallet","source_syntax_id":2,"fields":[{"name":"balance","type":"Result<Int, CardErr>"' \
+        '"kind":"class","nominal_kind":"class","name":"Wallet","source_syntax_id":2,' \
+        '"fields":[{"name":"balance","type":"Result<Int, CardErr>"' \
         '"call_target_kind":"direct","call_target_name":"Wallet"' \
         '"kind":"call_argument","text":"Ok(100)"' \
         '"kind":"call_argument","text":"Err(Empty)"'; do

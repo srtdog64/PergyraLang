@@ -18,7 +18,7 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
         missing_row='"name":"missing_val","type":"Int"'
         # Decl fields carry field_kind and sealed source ids now; pin the
         # identity columns, not the whole row spelling.
-        grep -Eq '"name":"Inc","kind":"method","source_syntax_id":[1-9][0-9]*,"receiver_carriage":"value","owner":"Builder"' \
+        grep -Eq '"name":"Inc","kind":"method","source_syntax_id":[1-9][0-9]*,("source_module_path":"[^"]*",)?"receiver_carriage":"value","owner":"Builder"' \
             "$self_mir_json" && grep -Fq \
             '"name":"val","type":"Int","field_kind":"field"' \
             "$self_mir_json" && grep -Fq \
@@ -32,7 +32,7 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
         field_name="tier"
         field_row='"name":"tier","type":"Tier"'
         missing_row='"name":"missing_tier","type":"Tier"'
-        grep -Eq '"name":"Score","kind":"method","source_syntax_id":[1-9][0-9]*,"receiver_carriage":"value","owner":"Player"' \
+        grep -Eq '"name":"Score","kind":"method","source_syntax_id":[1-9][0-9]*,("source_module_path":"[^"]*",)?"receiver_carriage":"value","owner":"Player"' \
             "$self_mir_json" && grep -Fq 'self.tier' "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend match owner field facts drifted" >&2
             exit 1
@@ -41,7 +41,7 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
         field_name="balance"
         field_row='"name":"balance","type":"Int"'
         missing_row='"name":"missing_balance","type":"Int"'
-        grep -Eq '"name":"Deposit","kind":"method","source_syntax_id":[1-9][0-9]*,"receiver_carriage":"value","owner":"Account"' \
+        grep -Eq '"name":"Deposit","kind":"method","source_syntax_id":[1-9][0-9]*,("source_module_path":"[^"]*",)?"receiver_carriage":"value","owner":"Account"' \
             "$self_mir_json" && grep -Fq '"result":"balance.1"' \
             "$self_mir_json" && grep -Fq '"uses":["balance.0"]' \
             "$self_mir_json" && grep -Fq '"kind":"leaf","text":"amount"' \

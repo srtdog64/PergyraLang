@@ -25,8 +25,8 @@ pgy_selfhost_verify_driver_rung2_generic_spawn_mixed_emitted_c() {
         '.int_unary = Identity_Int }, PGY_SELFHOST_SPAWN_INT1' \
         '.int_binary = PickSecond_Int }, PGY_SELFHOST_SPAWN_INT2' \
         '.string_unary = Identity_String }, PGY_SELFHOST_SPAWN_STRING1' \
-        'pgy_await_take(first, long long)' \
-        'pgy_await_take(second, long long)' \
+        'pgy_await_take(first, int32_t)' \
+        'pgy_await_take(second, int32_t)' \
         'pgy_await_take(text, const char*)'; do
         grep -Fq "$term" "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend mixed generic spawn C fact drifted: $term" >&2
