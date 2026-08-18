@@ -274,8 +274,10 @@ func DirectMirScalarProgramLogicalRecordCandidateAt(
         field = field + 1;
     }
     let rows: Array<Int> = [declaration_row];
-    let names: Array<String> = [UnwrapOption(name)];
-    let syntax_ids: Array<Int> = [ToInt(UnwrapOption(syntax))];
+    let unwrapped_name: String = UnwrapOption(name);
+    let names: Array<String> = [unwrapped_name];
+    let unwrapped_syntax: String = UnwrapOption(syntax);
+    let syntax_ids: Array<Int> = [ToInt(unwrapped_syntax)];
     let field_starts: Array<Int> = [0];
     let field_counts: Array<Int> = [ArrayLength(field_names)];
     let source: DirectMirScalarProgramLogicalRecordFact =

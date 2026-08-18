@@ -44,11 +44,15 @@ pgy_selfhost_path_relative_to_root() {
 pgy_selfhost_root_forward_slash() {
     # Repo root in the forward-slash spelling the native compiler's
     # import-resolver canonicalizer emits (D:/... on Windows, /... elsewhere).
-    if command -v cygpath >/dev/null 2>&1; then
-        cygpath -m "$ROOT_DIR"
+    # Path conversion goes through the sanctioned helper owner; the
+    # backslash-to-slash respelling matches the canonicalizer's own pass.
+    local windows_root
+    if declare -f pgy_path_for_windows_tool >/dev/null 2>&1; then
+        windows_root="$(pgy_path_for_windows_tool "$ROOT_DIR")"
     else
-        printf '%s\n' "$ROOT_DIR"
+        windows_root="$ROOT_DIR"
     fi
+    printf '%s\n' "${windows_root//\\//}"
 }
 
 pgy_selfhost_normalize_text_artifact() {

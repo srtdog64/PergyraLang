@@ -272,9 +272,11 @@ func SelfMirRoutineDeclareLocal(
     }
     let version: Int = binding_version;
     let active: Option<Int> = SelfMirRoutineLocalIndex(build, name);
-    if IsSome(active) &&
-        build.local_versions[UnwrapOption(active)] >= version {
-        version = build.local_versions[UnwrapOption(active)] + 1;
+    if IsSome(active) {
+        let active_row: Int = UnwrapOption(active);
+        if build.local_versions[active_row] >= version {
+            version = build.local_versions[active_row] + 1;
+        }
     }
     return SelfMirRoutinePushLocal(
         build, name, type_name, version, local_ref

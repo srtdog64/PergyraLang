@@ -98,7 +98,8 @@ func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
             let preseal_row: Option<String> =
                 LookupKindTypeRows(env.preseal_rows, name, kind);
             if IsSome(preseal_row) {
-                preseal_value = UnwrapOption(preseal_row);
+                let preseal_found: String = UnwrapOption(preseal_row);
+                preseal_value = preseal_found;
             }
         }
     }
@@ -106,7 +107,8 @@ func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
     let local_row_value: Option<String> =
         LookupKindTypeRows(env.local_rows, name, kind);
     if !IsSome(local_row_value) { return ""; }
-    return UnwrapOption(local_row_value);
+    let local_value: String = UnwrapOption(local_row_value);
+    return local_value;
 }
 
 func LookupKindTypeRowPresent(

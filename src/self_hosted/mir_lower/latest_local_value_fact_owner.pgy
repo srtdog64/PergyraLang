@@ -50,6 +50,7 @@ func MirRoutineLatestDominatingLocalValueMatches(
         index, value_names, value_local_rows,
         value_local_rows[selected_value_row], use_block,
         use_instruction_row);
-    return IsSome(latest_row) &&
-        selected_value_row == UnwrapOption(latest_row);
+    if !IsSome(latest_row) { return false; }
+    let latest_value: Int = UnwrapOption(latest_row);
+    return selected_value_row == latest_value;
 }

@@ -84,14 +84,17 @@ func DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(
     let latest_row: Option<Int> = MirRoutineLatestDominatingLocalValueRow(
         index, locals.value_names, locals.value_local_rows, target_local,
         definition.block_id, definition.block_instruction_row);
-    if predecessor >= 0 && IsSome(latest_row) &&
-        predecessor == UnwrapOption(latest_row) {
-        if types.value_types[predecessor] != types.local_types[target_local] ||
-            definition.global_row != global ||
-            !MirRoutineResultDefinitionFactReady(definition) {
-            return -1;
+    if predecessor >= 0 && IsSome(latest_row) {
+        let latest_value: Int = UnwrapOption(latest_row);
+        if predecessor == latest_value {
+            if types.value_types[predecessor] !=
+                types.local_types[target_local] ||
+                definition.global_row != global ||
+                !MirRoutineResultDefinitionFactReady(definition) {
+                return -1;
+            }
+            return 1;
         }
-        return 1;
     }
     if local_target ||
         definition.global_row != global ||
