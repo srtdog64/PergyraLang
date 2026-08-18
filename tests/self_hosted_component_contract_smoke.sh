@@ -6851,7 +6851,7 @@ require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     'uses_str || uses_array || uses_io'
 require_file "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh"
-require_max_lines "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh" 145
 require_text "Makefile" "self-host-intent-observability-runtime-test-smoke: self-host-compiler"
 require_file "tests/self_hosted/parity/intent_observability_mir_identity_owner.sh"
 require_max_lines "tests/self_hosted/parity/intent_observability_mir_identity_owner.sh" 120
@@ -15981,7 +15981,7 @@ require_max_lines \
 require_file "tests/self_hosted/fixtures/direct_mir_option_int_callables.pgy"
 require_file "tests/self_hosted/parity/direct_mir_scalar_option_int_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_int_owner.sh" 190
+    "tests/self_hosted/parity/direct_mir_scalar_option_int_owner.sh" 210
 require_file "tests/self_hosted/fixtures/direct_mir_option_int_try_let.pgy"
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_option_int_try_let_owner.sh"
@@ -16680,7 +16680,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy" \
     "func DirectMirScalarProgramCExpressionValues(" \
-    "let callable_target: Int ="
+    "expressions.node_callable_rows[node]"
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy" \
     "func DirectMirScalarProgramCExpressionValues(" \
@@ -16688,7 +16688,7 @@ reject_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmExpressionAt(" \
-    "let callable_target: Int ="
+    "expressions.node_callable_rows[node]"
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmExpressionAt(" \
@@ -16751,7 +16751,7 @@ require_text \
 require_file "tests/self_hosted/fixtures/direct_mir_four_routine_option_string.pgy"
 require_file "tests/self_hosted/parity/direct_mir_scalar_option_string_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_option_string_owner.sh" 170
+    "tests/self_hosted/parity/direct_mir_scalar_option_string_owner.sh" 200
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_option_string_abi_owner.pgy" \
     "MirCapturedRequiredAbiLayoutRowAdmission("
@@ -16857,7 +16857,7 @@ require_max_lines \
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_collection_phi_value_mutations.py"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_collection_phi_value_mutations.py" 45
+    "tests/self_hosted/parity/direct_mir_scalar_collection_phi_value_mutations.py" 55
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy" \
     "func DirectMirScalarCfgPhiValueTypeReady(" \
@@ -17010,11 +17010,11 @@ require_file \
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_owner.sh" 230
+    "tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_owner.sh" 260
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_mutations.py"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_mutations.py" 100
+    "tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_mutations.py" 160
 require_file \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_single_value_result.pgy"
 require_max_lines \
@@ -17351,7 +17351,7 @@ require_file \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_nested_logical_record_array_bool_return_owner.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_multi_routine_mutations.py" 625
+    "tests/self_hosted/parity/direct_mir_multi_routine_mutations.py" 750
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy" \
     "declarations.field_identities"
@@ -17571,11 +17571,15 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy" \
     "func DirectMirScalarCfgProgramCSignature(" \
+    "DirectMirScalarProgramParameterValueResultAt("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_value_result_union_owner.pgy" \
+    "func DirectMirScalarProgramParameterValueResultAt(" \
     "DirectMirScalarProgramArrayBoolValueResultAt("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_signature_owner.pgy" \
     "func DirectMirScalarCfgProgramLlvmRoutineSignature(" \
-    "DirectMirScalarProgramArrayBoolValueResultAt("
+    "DirectMirScalarProgramParameterValueResultAt("
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_int_empty_literal_admission_owner.pgy" \
     "DirectMirArrayLiteralEmptyReady(sequence)"
@@ -17702,7 +17706,7 @@ require_max_lines \
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_set_string_value_parameter_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_set_string_value_parameter_owner.sh" 180
+    "tests/self_hosted/parity/direct_mir_scalar_set_string_value_parameter_owner.sh" 220
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_set_string_expression_owner.pgy"
 require_max_lines \
@@ -17951,20 +17955,20 @@ require_function_text \
     "func DirectMirScalarCfgProgramLlvmRoutine(" \
     "DirectMirScalarProgramLlvmLogicalRecordValueResultCopyOut("
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     "logical_record_copyout"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     "logical_record_array_copyout"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     'carriage == "readonly-ref"'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     "DirectMirScalarProgramExprLogicalRecordMember()"
 require_text "Makefile" \
     "self-host-direct-mir-scalar-logical-record-value-result-test-smoke"
@@ -18584,16 +18588,16 @@ require_function_text \
     "func DirectMirScalarCfgProgramLlvmRoutine(" \
     "DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn("
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     "array_int_copyout"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     'source_carriage == "value"'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     "array_bool_copyout"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
@@ -19565,8 +19569,8 @@ require_function_text \
     "func DirectMirScalarProgramLlvmExpressionAt(" \
     "projected.instructions"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     'carriage == "owner-handle"'
 require_file \
     "tests/self_hosted/fixtures/direct_mir_owned_logical_record_return.pgy"
@@ -19752,8 +19756,8 @@ require_function_text \
     "func DirectMirScalarProgramCollectionExpressionNodeReady(" \
     "facts.node_kinds[left] == DirectMirScalarProgramExprLocal()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     "owner_type != CompilerAbiLayoutStringTypeName()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \

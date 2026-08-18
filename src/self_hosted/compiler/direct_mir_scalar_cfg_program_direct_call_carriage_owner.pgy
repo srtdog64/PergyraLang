@@ -1,0 +1,114 @@
+// Admit one direct-call argument against its declared parameter carriage.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
+import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+func DirectMirScalarCfgProgramDirectCallCarriageReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, routine: Int, graph_start: Int,
+    target: Int, argument_node: Int, ordinal: Int
+) -> Bool {
+    let parameter_row: Int = plan.routines.parameter_starts[target] +
+        ordinal;
+    let carriage: String =
+        plan.routines.parameter_carriages[parameter_row];
+    if argument_node < graph_start || argument_node >= node ||
+        facts.node_types[argument_node] !=
+            plan.routines.parameter_types[parameter_row] ||
+        (carriage != "value" &&
+         (facts.node_kinds[argument_node] !=
+                DirectMirScalarProgramExprLocal() &&
+          facts.node_kinds[argument_node] !=
+                DirectMirScalarProgramExprParameter() &&
+          !(carriage == "readonly-ref" &&
+            facts.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprLogicalRecordMember()))) {
+        return false;
+    }
+    if carriage == "readonly-ref" {
+        let readonly_array_string: Bool =
+            DirectMirScalarProgramArrayStringReadonlyRefAt(
+                plan.routines, target, ordinal);
+        if !readonly_array_string &&
+            !DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record,
+                plan.routines.parameter_types[parameter_row]) {
+            return false;
+        }
+        if readonly_array_string &&
+            facts.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprParameter() &&
+            !DirectMirScalarProgramArrayStringReadonlyRefAt(
+                plan.routines, routine,
+                facts.node_parameter_ordinals[argument_node]) {
+            return false;
+        }
+    }
+    if carriage == "value-result" {
+        let array_string_copyout: Bool =
+            DirectMirScalarProgramArrayStringValueResultAt(
+                plan.program.array_string_abi, target, ordinal);
+        let array_int_copyout: Bool =
+            DirectMirScalarProgramArrayIntValueResultAt(
+                plan.program.array_int_value_result, target, ordinal);
+        let array_bool_copyout: Bool = DirectMirScalarProgramArrayBoolValueResultAt(plan.program.array_bool_abi, target, ordinal);
+        let logical_record_copyout: Bool =
+            DirectMirScalarProgramLogicalRecordValueResultAt(
+                plan, target, ordinal);
+        let logical_record_array_copyout: Bool =
+            DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+                plan, target, ordinal);
+        let set_string_copyout: Bool =
+            DirectMirScalarProgramSetStringValueResultAt(
+                plan, target, ordinal);
+        if !array_string_copyout && !array_int_copyout && !array_bool_copyout &&
+            !logical_record_copyout &&
+            !logical_record_array_copyout &&
+            !set_string_copyout { return false; }
+        if facts.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprParameter() {
+            let source_ordinal: Int =
+                facts.node_parameter_ordinals[argument_node];
+            let source_parameter_row: Int =
+                plan.routines.parameter_starts[routine] + source_ordinal;
+            let source_carriage: String =
+                plan.routines.parameter_carriages[source_parameter_row];
+            let array_int_value_input: Bool = array_int_copyout &&
+                source_carriage == "value";
+            if !array_int_value_input && ((array_string_copyout &&
+                    !DirectMirScalarProgramArrayStringValueResultAt(
+                        plan.program.array_string_abi, routine,
+                        source_ordinal)) ||
+                (array_int_copyout &&
+                    !DirectMirScalarProgramArrayIntValueResultAt(
+                        plan.program.array_int_value_result, routine,
+                        source_ordinal)) ||
+                (array_bool_copyout && !DirectMirScalarProgramArrayBoolValueResultAt(plan.program.array_bool_abi, routine, source_ordinal)) ||
+                (logical_record_copyout &&
+                    !DirectMirScalarProgramLogicalRecordValueResultAt(
+                        plan, routine, source_ordinal)) ||
+                (logical_record_array_copyout &&
+                    !DirectMirScalarProgramLogicalRecordArrayValueResultAt(
+                        plan, routine, source_ordinal)) ||
+                (set_string_copyout &&
+                    !DirectMirScalarProgramSetStringValueResultAt(
+                        plan, routine, source_ordinal))) {
+                return false;
+            }
+        }
+    } else if carriage == "owner-handle" {
+        let owner_type: String =
+            plan.routines.parameter_types[parameter_row];
+        if owner_type != CompilerAbiLayoutStringTypeName() &&
+            !DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record, owner_type) {
+            return false;
+        }
+    } else if carriage != "value" && carriage != "readonly-ref" {
+        return false;
+    }
+    return true;
+}

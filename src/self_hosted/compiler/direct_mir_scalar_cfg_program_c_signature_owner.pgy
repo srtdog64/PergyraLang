@@ -91,17 +91,7 @@ func DirectMirScalarCfgProgramCSignature(
     while ordinal < plan.routines.parameter_counts[routine] {
         if ordinal > 0 { output = Concat(output, ", "); }
         let value_result: Bool =
-            DirectMirScalarProgramArrayIntValueResultAt(
-                plan.program.array_int_value_result, routine, ordinal) ||
-            DirectMirScalarProgramArrayBoolValueResultAt(
-                plan.program.array_bool_abi, routine, ordinal) ||
-            DirectMirScalarProgramArrayStringValueResultAt(
-                plan.program.array_string_abi, routine, ordinal) ||
-            DirectMirScalarProgramLogicalRecordValueResultAt(
-                plan, routine, ordinal) ||
-            DirectMirScalarProgramLogicalRecordArrayValueResultAt(
-                plan, routine, ordinal) ||
-            DirectMirScalarProgramSetStringValueResultAt(
+            DirectMirScalarProgramParameterValueResultAt(
                 plan, routine, ordinal);
         let parameter_row: Int = start + ordinal;
         let readonly_record: Bool = plan.routines.parameter_carriages[
