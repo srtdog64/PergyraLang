@@ -82,13 +82,29 @@ func DirectMirScalarProgramSetStringBuiltinSelected(
             CompilerAbiLayoutStringTypeName() { return false; }
     return true;
 }
-func DirectMirScalarProgramSetStringBuiltinReturnType(name: String) -> String {
-    if name == "SetNew" { return CompilerAbiLayoutSetStringTypeName(); }
-    if name == "SetAdd" { return CompilerAbiLayoutVoidTypeName(); }
-    if name == "SetHas" { return CompilerAbiLayoutBoolTypeName(); }
-    return "";
+struct DirectMirScalarProgramSetStringBuiltinSignature {
+    let selected: Bool;
+    let return_type: String;
+    let parameter_types: Array<String>;
 }
-func DirectMirScalarProgramSetStringBuiltinParameterTypes(name: String) -> Array<String> {
-    if name == "SetNew" { return []; }
-    return [CompilerAbiLayoutSetStringTypeName(), CompilerAbiLayoutStringTypeName()];
+func DirectMirScalarProgramSetStringBuiltinSignatureFor(
+    name: String, actual_types: Array<String>, expected_type: String
+) -> DirectMirScalarProgramSetStringBuiltinSignature {
+    let no_parameters: Array<String> = [];
+    if !DirectMirScalarProgramSetStringBuiltinSelected(
+            name, actual_types, expected_type) {
+        return DirectMirScalarProgramSetStringBuiltinSignature(
+            false, "", no_parameters);
+    }
+    if name == "SetNew" {
+        return DirectMirScalarProgramSetStringBuiltinSignature(
+            true, CompilerAbiLayoutSetStringTypeName(), no_parameters);
+    }
+    let return_type: String = CompilerAbiLayoutVoidTypeName();
+    if name == "SetHas" { return_type = CompilerAbiLayoutBoolTypeName(); }
+    let set_parameter_types: Array<String> = [
+        CompilerAbiLayoutSetStringTypeName(),
+        CompilerAbiLayoutStringTypeName()];
+    return DirectMirScalarProgramSetStringBuiltinSignature(
+        true, return_type, set_parameter_types);
 }

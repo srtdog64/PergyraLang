@@ -6,9 +6,9 @@ func MirRoutineLatestDominatingLocalValueRow(
     ref index: MirRoutineFactIndex,
     ref value_names: Array<String>, ref value_local_rows: Array<Int>,
     local_row: Int, use_block: Int, use_instruction_row: Int
-) -> Int {
+) -> Option<Int> {
     if local_row < 0 || ArrayLength(value_names) !=
-            ArrayLength(value_local_rows) { return -1; }
+            ArrayLength(value_local_rows) { return None; }
     let latest: Int = -1;
     let row: Int = 0;
     while row < ArrayLength(value_names) {
@@ -24,12 +24,13 @@ func MirRoutineLatestDominatingLocalValueRow(
                 if MirRoutineDefinitionStrictlyPrecedes(
                         index, prior, candidate) { latest = row;
                 } else if !MirRoutineDefinitionStrictlyPrecedes(
-                        index, candidate, prior) { return -1; }
+                        index, candidate, prior) { return None; }
             } else { latest = row; }
         }
         row = row + 1;
     }
-    return latest;
+    if latest < 0 { return None; }
+    return Some(latest);
 }
 
 func MirRoutineLatestDominatingLocalValueMatches(
@@ -45,8 +46,10 @@ func MirRoutineLatestDominatingLocalValueMatches(
         ArrayLength(value_names) != ArrayLength(value_local_rows) {
         return false;
     }
-    return selected_value_row == MirRoutineLatestDominatingLocalValueRow(
+    let latest_row: Option<Int> = MirRoutineLatestDominatingLocalValueRow(
         index, value_names, value_local_rows,
         value_local_rows[selected_value_row], use_block,
         use_instruction_row);
+    return IsSome(latest_row) &&
+        selected_value_row == UnwrapOption(latest_row);
 }

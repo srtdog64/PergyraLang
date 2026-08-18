@@ -22,9 +22,13 @@ func EnumAbiValueFactForRows(
     type_name: String,
     env_rows: String
 ) -> EnumAbiValueFact {
-    let layout: String = LookupKindTypeRows(
+    let layout_row: Option<String> = LookupKindTypeRows(
         env_rows, type_name, "enum"
     );
+    if !IsSome(layout_row) {
+        return EnumAbiValueFactMissing(type_name);
+    }
+    let layout: String = UnwrapOption(layout_row);
     if layout == "payload_free" {
         return EnumAbiValueFact(
             true,

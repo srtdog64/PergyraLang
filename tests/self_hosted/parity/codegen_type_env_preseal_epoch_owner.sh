@@ -72,7 +72,7 @@ grep -Fq 'CodegenTypeLocalRowValueStart(rows, name, kind)' \
     echo "[self-host-parity:codegen-type-env-preseal] local value lookup bypasses the row-start owner" >&2
     exit 1
 }
-grep -Fq 'CodegenTypeLocalRowValueStart(rows, name, kind) >= 0' \
+grep -Fq 'IsSome(CodegenTypeLocalRowValueStart(rows, name, kind))' \
     <<<"$present_rows_body" || {
     echo "[self-host-parity:codegen-type-env-preseal] local presence lookup bypasses the row-start owner" >&2
     exit 1

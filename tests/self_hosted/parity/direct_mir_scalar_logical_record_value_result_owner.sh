@@ -75,7 +75,7 @@ grep -Fq 'capture.arg1 == "local"' "$MEMBER" ||
     fail "member rebind omits exact local target admission"
 grep -Fq 'MirRoutineLatestDominatingLocalValueRow(' "$MEMBER" ||
     fail "member rebind omits latest local predecessor identity"
-grep -Fq 'predecessor >= 0 && predecessor == latest' "$MEMBER" ||
+grep -Fq 'predecessor == UnwrapOption(latest_row)' "$MEMBER" ||
     fail "member rebind omits target LocalRef join"
 grep -Fq 'plan.local_ref_kinds[local_row] ==' "$READINESS" ||
     fail "member rebind readiness omits admitted local identity"
@@ -95,8 +95,11 @@ grep -Fq 'DirectMirScalarCfgOpLogicalRecordMemberRebind() -> Int { return 40; }'
     fail "member rebind operation identity drifted"
 grep -Fq '.field_' "$C_MEMBER" || fail "C member store is missing"
 grep -Fq ' = insertvalue ' "$LLVM_MEMBER" || fail "LLVM member insertvalue is missing"
-grep -Fq 'logical_record_copyout' "$IDENTITY" ||
-    fail "direct-call identity does not consume logical-record copyout facts"
+grep -Fq 'logical_record_copyout' \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" ||
+    fail "direct-call carriage owner does not consume logical-record copyout facts"
+grep -Fq 'DirectMirScalarCfgProgramDirectCallCarriageReady(' "$IDENTITY" ||
+    fail "direct-call identity does not delegate carriage admission to the carriage owner"
 grep -Fq 'DirectMirRoutineLocalParameterOrdinalAtName(' "$PARAMETERS" ||
     fail "parameter owner omits direct value-result local identity"
 grep -Fq 'fact.carriages[row] != "value-result"' "$PARAMETERS" ||

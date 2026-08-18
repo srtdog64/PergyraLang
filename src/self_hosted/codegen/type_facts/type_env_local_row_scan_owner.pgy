@@ -5,12 +5,12 @@ import "../text/text_owner.pgy";
 
 func CodegenTypeLocalRowValueStart(
     rows: String, name: String, kind: String
-) -> Int {
+) -> Option<Int> {
     let rows_length: Int = StringLength(rows);
     let name_length: Int = StringLength(name);
     let kind_length: Int = StringLength(kind);
     if name_length == 0 {
-        return -1;
+        return None;
     }
     let cursor: Int = 0;
     while cursor < rows_length {
@@ -18,7 +18,7 @@ func CodegenTypeLocalRowValueStart(
             rows, rows_length, cursor, rows_length - cursor, name
         );
         if name_offset < 0 {
-            return -1;
+            return None;
         }
         let name_start: Int = cursor + name_offset;
         let kind_start: Int = name_start + name_length + 1;
@@ -39,29 +39,33 @@ func CodegenTypeLocalRowValueStart(
             SubEqualsWithLen(
                 rows, rows_length, kind_start + kind_length, 1, ":"
             ) {
-            return value_start;
+            return Some(value_start);
         }
         cursor = name_start + name_length;
     }
-    return -1;
+    return None;
 }
 
-func LookupKindTypeRows(rows: String, name: String, kind: String) -> String {
+func LookupKindTypeRows(
+    rows: String, name: String, kind: String
+) -> Option<String> {
     let rows_length: Int = StringLength(rows);
-    let value_start: Int = CodegenTypeLocalRowValueStart(rows, name, kind);
-    if value_start < 0 { return ""; }
+    let value_start_row: Option<Int> =
+        CodegenTypeLocalRowValueStart(rows, name, kind);
+    if !IsSome(value_start_row) { return None; }
+    let value_start: Int = UnwrapOption(value_start_row);
     let value_length: Int = SubIndexOfWithLen(
         rows, rows_length, value_start,
         rows_length - value_start, "|"
     );
     if value_length < 0 {
-        return Substring(rows, value_start, rows_length - value_start);
+        return Some(Substring(rows, value_start, rows_length - value_start));
     }
-    return Substring(rows, value_start, value_length);
+    return Some(Substring(rows, value_start, value_length));
 }
 
 func LookupKindTypeRowPresentRows(
     rows: String, name: String, kind: String
 ) -> Bool {
-    return CodegenTypeLocalRowValueStart(rows, name, kind) >= 0;
+    return IsSome(CodegenTypeLocalRowValueStart(rows, name, kind));
 }

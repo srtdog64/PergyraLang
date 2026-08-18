@@ -322,7 +322,10 @@ SENTINEL_MAX=24
 # logical-record, and scalar C declaration owners carry optional identities and
 # admission outcomes as Option/Result facts. Re-base to the measured pending-
 # tree total so those errors-as-data gains cannot disappear later.
-RESULT_USE_MIN=4101
+# 4101 -> 4157 (2026-08-18): the type-env local row scan, latest dominating
+# value fact, and Set-builtin signature owners now carry absence as
+# Option<Int>/Option<String> rows instead of '-1'/empty-string sentinels.
+RESULT_USE_MIN=4157
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=20
 # The import closure declares 20 resource-zone types, but the runtime world

@@ -154,12 +154,13 @@ func DirectMirScalarProgramBuiltinSignatureFactForCall(
             CompilerAbiLayoutVoidTypeName(), parameter_types,
             DirectMirScalarProgramExprPrintString(), fact.runtime_call_abi_id);
     }
-    if DirectMirScalarProgramSetStringBuiltinSelected(
-            name, actual_types, expected_type) {
+    let set_string: DirectMirScalarProgramSetStringBuiltinSignature =
+        DirectMirScalarProgramSetStringBuiltinSignatureFor(
+            name, actual_types, expected_type);
+    if set_string.selected {
         return DirectMirScalarProgramBuiltinSignatureFact(
             true, fact.registry_row, fact.name,
-            DirectMirScalarProgramSetStringBuiltinReturnType(name),
-            DirectMirScalarProgramSetStringBuiltinParameterTypes(name),
+            set_string.return_type, set_string.parameter_types,
             fact.expression_kind, fact.runtime_call_abi_id);
     }
     let record_option: String = DirectMirScalarProgramLogicalRecordOptionBuiltinType(logical_record, name, actual_types, expected_type);
