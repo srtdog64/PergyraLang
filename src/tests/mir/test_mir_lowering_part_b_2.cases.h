@@ -406,6 +406,59 @@
         hir_destroy(hir);
     }
 
+    TEST("MIR defer carries and validates its nested runtime-call ABI fact");
+    {
+        const char *src =
+            "func DeferredAllocatorDestroy() -> Void {\n"
+            "    let scratch: Allocator = AllocatorScratch();\n"
+            "    defer { AllocatorDestroy(scratch); }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *defer_inst = NULL;
+        bool rejected_missing_row = false;
+        char *mir_error = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(
+                mir, "DeferredAllocatorDestroy", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    const MIRTextBuilderRuntimeRow *row =
+                        inst->text_builder_runtime_row;
+                    if (row != NULL && row->source_name != NULL
+                        && strcmp(row->source_name, "AllocatorDestroy") == 0) {
+                        defer_inst = inst;
+                    }
+                }
+            }
+        }
+        if (defer_inst != NULL) {
+            const MIRTextBuilderRuntimeRow *saved =
+                defer_inst->text_builder_runtime_row;
+            defer_inst->text_builder_runtime_row = NULL;
+            rejected_missing_row = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "runtime-value runtime-call ABI fact")
+                    != NULL;
+            defer_inst->text_builder_runtime_row = saved;
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && defer_inst != NULL
+               && rejected_missing_row);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects DEF without initializer expression fact");
     {
         const char *src =

@@ -87,8 +87,45 @@ source compile의 필수 sibling 없이 public `pgy`만 만들 수 있었으나,
 `make release`가 3,384,801-byte `pgy.exe`, 5,903,397-byte
 `pgy-self-driver.exe`, 1,144-byte machine manifest를 함께 설치했고, 환경 override 없이
 installed CLI-mode/public MIR/public C emit/plain compile-run gate가 모두 green이다.
-Linux parity CI도 이 동일 `make release`를 첫 목표로 사용한다. 원격 CI와 실제
-repository `bin/` promotion은 아직 관측하지 않았으므로 위 퍼센트는 유지한다.
+Linux parity CI도 이 동일 `make release`를 첫 목표로 사용한다. Remote run
+`32071813850`은 완료됐지만 RED였고, 실제 repository `bin/` promotion도 아직
+관측하지 않았으므로 위 퍼센트는 유지한다.
+
+같은 설치 경계의 반복 host compile도 source-artifact identity로 좁혔다. 기존
+installer stamp는 실제 생성 C 해시를 이미 갖고도 codegen PE 해시를 함께 넣어,
+동일 C를 내는 재링크마다 DRV-2를 다시 컴파일·설치했다. 로컬 v4 key는 codegen
+binary identity를 제거하고 normalized C, machine manifest, runtime headers,
+output, compiler profile/flags/version만 소비한다. 한 바이트가 다른 실행 가능한
+seed와, phony bootstrap으로 SHA가 다시 달라진 gen2가 모두 동일한
+9,850,372-byte C/SHA-256
+`512B512339A70444DAF599361FED30A1CB8F716126E35C3F63FEC94C5C10B0E2`를 냈고,
+staging `make all`은 5,903,397-byte driver/SHA-256
+`E32850D01A68074CF7E713AE3FC3299671FB6B5724C885B1F38D4B0B958C08D0`의 hash와
+mtime을 보존한 채 fingerprint reuse로 끝났다. Invalid profile은 emission 전에
+fail-closed다. Codegen bootstrap 자체의 반복 생성은 아직 남아 있으며 이번
+변경은 이를 cache로 숨기지 않는다. Commit `c363a94a`의 remote CI run
+`32071813850`은 실패로 완료됐으며 이 로컬 v4 delta를 포함하지 않는다.
+
+그 remote 결과에서 현재 source로 재현 가능한 실패는 owner 경계에서 좁게
+교정했다. Defer 안의 `AllocatorDestroy`는 defer MIR instruction이 소유한 runtime-
+call ABI row를 지연 emit 시점까지 운반하고, intent compensation은 정상 경로와
+동일한 final materialization trace를 남긴다. MIR 162/162와 C/LLVM focused
+backend 2/2가 green이다. 낡은 default `all` inventory, generated language-word
+inventory, 2,600-line beta status gate도 각각 owner 기준으로 갱신해 local green이다.
+Installed intent-observability C/LLVM 네 경로도 실행 통과하며, 다음 Linux 실패는
+compile phase stdout/stderr를 보존한다. Mac C-only의 typed-intent MIR 실패는 Ubuntu
+GCC에서 같은 `step zone identity cross-seal` 진단으로 재현했다. DIR이 소유하고
+`dir_destroy`가 해제하는 `step->where_type_name`을 MIR이 얕게 보관한 수명 결함이었다.
+MIR materialization은 이제 그 spelling을 routine scratch arena에 복사하고, 정적
+negative gate는 옛 borrow를 거부한다. Ubuntu GCC normal/ASan+UBSan과 Windows
+GCC/Clang C-only 핵심 MIR가 모두 162/162다. Linux `test-asan`의 중앙 배터리에도
+`test_mir`를 편입했고, 의도적 UAF witness, 40-source compiler corpus, AIR/semantic/
+parser/MIR 네 배터리가 한 실행에서 clean이다. Native typed-intent gate도 모든
+source compile/run에 `--native-pipeline`을 명시하고 32행 observability oracle을
+검사한다. 존재하지 않는 self-driver를 지정해도 C/LLVM이 통과했고, 별도 prebuilt
+self-host v3 compensation/history parity도 다시 통과했다. Current remote macOS/Linux
+재실행은 아직 필요하다. SoT `49/86`, 통합 78%, strict beta 83%, bootstrap 3/4는
+그대로다.
 
 2026-08-18 실행 갱신: statement/body 분석의 큰 메모리 증폭은 SoT 문서가
 아니라 admitted/checked API 경계 결함이었다. 이미 승인된 match case ancestor를

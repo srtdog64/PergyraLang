@@ -369,6 +369,10 @@ require_text "src/pgy_driver.c" "if (flags.emit_c_only) {"
 require_text "src/pgy_driver.c" "if (flags.dump_mir_json) {"
 require_text "src/pgy_driver.c" "driver_run_self_host_mir_json("
 require_text "src/pgy_driver.c" "--test-native-mir-json-oracle"
+native_intent_gate_pipeline_count="$(grep -Fc -- '--native-pipeline' \
+    "$ROOT_DIR/tests/intent_typed_transition_native_execution_smoke.sh")"
+[[ "$native_intent_gate_pipeline_count" -eq 2 ]] ||
+    fail "native typed-intent gate must use the native pipeline for emit and run"
 require_text "src/pgy_driver.c" "driver_run_self_host_c_emit_artifact("
 require_text "src/pgy_driver.c" "driver_plain_c_binary_target_requested("
 require_text "src/pgy_driver.c" "c_runner_execute_installed_self_host_c("
@@ -1078,6 +1082,29 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '"source_artifact_c=$(hash_file "$C_NEXT")"'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '"machine_manifest=$(hash_file "$MANIFEST_SOURCE")"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"schema=pgy.selfhost.compiler-build.v4-source-artifact"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"runtime_headers=$runtime_header_fingerprint"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"cc_profile=${PGY_SELFHOST_CC_PROFILE:-release}"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"cc_flags=${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[*]}"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    "find \"\$ROOT_DIR/src/runtime\" -type f -name '*.h'"
+forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    '"codegen=$(hash_file "$CODEGEN_BIN")"'
+compiler_build_owner="$ROOT_DIR/tests/self_hosted/parity/self_host_compiler_build.sh"
+profile_selection_line="$(grep -nF \
+    'pgy_selfhost_select_emitted_c_compile_profile ||' \
+    "$compiler_build_owner" | cut -d: -f1)"
+typed_source_emit_line="$(grep -nF \
+    'echo "[self-host-compiler-build] emitting DRV-2 from typed source artifact"' \
+    "$compiler_build_owner" | cut -d: -f1)"
+if [[ -z "$profile_selection_line" || -z "$typed_source_emit_line" \
+    || "$profile_selection_line" -ge "$typed_source_emit_line" ]]; then
+    fail "self-host compiler profile must fail closed before typed-source emission"
+fi
 forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'PARSER_BIN='
 forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \

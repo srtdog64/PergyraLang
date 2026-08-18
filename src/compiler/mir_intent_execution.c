@@ -309,7 +309,10 @@ mir_materialize_intent_execution_plan(MIRRoutine *routine,
         row->routine_syntax_id = routine->source_syntax_id;
         row->step_syntax_id = step->syntax_id;
         row->step_name = step->name;
-        row->where_zone_name = step->where_type_name;
+        row->where_zone_name = pgy_arena_strdup(
+            &routine->scratch, step->where_type_name);
+        if (row->where_zone_name == NULL)
+            goto fail;
         row->where_zone_syntax_id =
             step->where_type_node_id < dir->node_count
                 ? dir->nodes[step->where_type_node_id].source_syntax_id : 0;

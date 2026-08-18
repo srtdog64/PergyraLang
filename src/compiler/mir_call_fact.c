@@ -126,11 +126,15 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
     if (inst == NULL || stmt == NULL)
         return;
     if (stmt->type == AST_DEFER_STMT) {
+        ASTNode *deferred_call;
+
         inst->expr0 = ast_defer_body(stmt);
+        deferred_call = mir_defer_single_call_statement(inst->expr0);
         if (mir_defer_single_log_expression(inst->expr0) != NULL)
             inst->arg0 = "Log";
-        else if (mir_defer_single_call_statement(inst->expr0) != NULL)
+        else if (deferred_call != NULL)
             inst->arg0 = "Call";
+        mir_attach_text_builder_runtime_row(inst, deferred_call);
         return;
     }
     if (stmt->type == AST_LET_DECL) {

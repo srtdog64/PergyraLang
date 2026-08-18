@@ -1005,6 +1005,30 @@ staging release produced a 3,384,801-byte launcher, a 5,903,397-byte sibling,
 and a byte-identical 1,144-byte native/replayed machine manifest. Repository
 `bin/` promotion and remote CI are separate, intentional boundaries.
 
+### `make all` relinks the self-host driver although emitted C is unchanged
+
+The codegen executable is a producer, not the installed driver's semantic
+payload. A PE relink can change its bytes while the normalized `driver.c` stays
+identical. If the installer hashes both, every phony codegen-bootstrap run
+forces an unnecessary host compile, bounded smoke, and install transaction.
+
+The v4 installer key therefore consumes the normalized generated C, native
+machine manifest, runtime-header inventory, output identity, compiler profile
+and flags, and compiler version. It deliberately does not consume the codegen
+binary hash. Typed-source emission still runs on every invocation; identical C
+is proved rather than assumed. Runtime-header or profile changes invalidate the
+key, and an invalid profile fails before emission instead of slipping through a
+cached output.
+
+The 2026-08-18 falsifier used an executable seed with one harmless PE overlay
+byte. Its SHA-256 differed from the original, but it emitted the same
+9,850,372-byte C. The installer printed `reusing fingerprinted Pergyra-built
+driver`, and the 5,903,397-byte driver's SHA-256 and mtime were unchanged. A
+subsequent full staging `make all` regenerated a different gen2 PE and reached
+the same reuse verdict. The remaining repeated cost is codegen seed generation
+and typed-source emission; do not call that closed, skip emission, or introduce
+a broad cache based on this host-compile result.
+
 ### Public and self-host MIR differ only at `source_module_path`
 
 First verify that `pgy` and its installed `pgy-self-driver` sibling were built
@@ -2517,6 +2541,30 @@ lost its sole `MirIntentExecutionPlanReady` call, whether a consumer restored
 started reparsing graph subtrees. Validate once at the owner boundary, carry
 the receipt, and join later consumers by exact routine/block/instruction and
 declaration identities.
+
+The 2026-08-18 macOS C-only `step zone identity cross-seal` failure was a
+lifetime defect, not a platform-specific semantic rule. `DIRIntentStep` owns
+`where_type_name` only until `dir_destroy`; MIR must copy that spelling into the
+routine scratch arena while materializing its execution plan. A direct pointer
+assignment can appear green on Windows when freed heap contents remain intact,
+but Ubuntu reproduced the same failed clause and ASan/UBSan verified the owned
+copy. Keep the static negative gate that rejects
+`row->where_zone_name = step->where_type_name`; do not weaken cross-seal
+validation or classify this as an Apple-only failure.
+
+The sanitizer CI battery must include `test_mir`, not only AIR, semantic, and
+parser tests. This defect becomes observable only after DIR-owned storage is
+destroyed and MIR validation/serialization reads the materialized identity.
+The `ASAN_UNIT_BATTERIES` owner and the focused intent-execution static gate
+pin that coverage; do not replace it with a source-only compile corpus.
+
+Keep `intent_typed_transition_native_execution_smoke.sh` independent of the
+installed self-host sibling: its source emit and run commands must spell
+`--native-pipeline`. Otherwise the gate's native MIR oracle is followed by an
+unrelated public self-host compile, and a stale or missing sibling is
+misreported as a native backend regression. The native oracle includes the
+fixture's complete intent-history output; self-host v3 parity remains a separate
+`intent_typed_outcome_compensation_owner.sh` responsibility.
 
 #### 2026-07-31 completeness program graph and repeated source scans
 

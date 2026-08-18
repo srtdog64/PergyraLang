@@ -32,6 +32,7 @@ C_RAW="$BUILD_DIR/driver.c.raw"
 C_NEXT="$BUILD_DIR/driver.c.next"
 STAMP="$BUILD_DIR/driver.build.key"
 KEY_INPUT="$BUILD_DIR/driver.build.key.input"
+RUNTIME_HEADER_KEY_INPUT="$BUILD_DIR/driver.runtime-headers.build.key.input"
 SMOKE_OUT="$BUILD_DIR/driver.smoke.c"
 MANIFEST_SOURCE="$BUILD_DIR/machine-layer-manifest.json"
 MANIFEST_SMOKE="$BUILD_DIR/machine-layer-manifest.smoke.json"
@@ -82,6 +83,8 @@ mkdir -p "$BUILD_DIR" "$(dirname "$OUTPUT")"
 pgy_require_runnable_binary_here "self-host-compiler-build" "$CODEGEN_BIN" || exit 1
 pgy_require_runnable_binary_here "self-host-compiler-build" "$NATIVE_PGY" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
+pgy_selfhost_select_emitted_c_compile_profile ||
+    fail self-host-emitted-c-profile-invalid
 
 # The native serializer remains the sole physical-declaration producer. The
 # installed Pergyra driver only validates and replays this immutable companion.
@@ -112,12 +115,27 @@ if grep -q '^CODEGEN ERROR' "$C_NEXT"; then
 fi
 [[ -s "$C_NEXT" ]] || fail "Pergyra-built codegen emitted empty C"
 
+runtime_header_fingerprint=none
+if pgy_selfhost_emitted_c_uses_runtime_headers "$C_NEXT"; then
+    : >"$RUNTIME_HEADER_KEY_INPUT"
+    while IFS= read -r runtime_header; do
+        runtime_header_key="${runtime_header#"$ROOT_DIR"/}"
+        printf '%s=%s\n' "$runtime_header_key" "$(hash_file "$runtime_header")" \
+            >>"$RUNTIME_HEADER_KEY_INPUT"
+    done < <(find "$ROOT_DIR/src/runtime" -type f -name '*.h' -print | LC_ALL=C sort)
+    runtime_header_fingerprint="$(hash_file "$RUNTIME_HEADER_KEY_INPUT")"
+else
+    rm -f "$RUNTIME_HEADER_KEY_INPUT"
+fi
+
 printf '%s\n' \
-    "schema=pgy.selfhost.compiler-build.v3-typed-source" \
-    "codegen=$(hash_file "$CODEGEN_BIN")" \
+    "schema=pgy.selfhost.compiler-build.v4-source-artifact" \
     "source_artifact_c=$(hash_file "$C_NEXT")" \
     "machine_manifest=$(hash_file "$MANIFEST_SOURCE")" \
+    "runtime_headers=$runtime_header_fingerprint" \
     "output=$OUTPUT_KEY" \
+    "cc_profile=${PGY_SELFHOST_CC_PROFILE:-release}" \
+    "cc_flags=${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[*]}" \
     "cc=$($CC --version 2>/dev/null | head -1)" \
     >"$KEY_INPUT"
 build_key="$(hash_file "$KEY_INPUT")"
@@ -139,7 +157,6 @@ mv -f "$C_NEXT" "$C_FILE"
 
 tmp_output="${OUTPUT}.tmp"
 rm -f "$tmp_output"
-pgy_selfhost_select_emitted_c_compile_profile || fail self-host-emitted-c-profile-invalid
 compile_command=("$CC" -x c -std=c11)
 compile_command+=(${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]})
 if pgy_selfhost_emitted_c_uses_runtime_headers "$C_FILE"; then

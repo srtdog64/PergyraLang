@@ -50,6 +50,6 @@ fi
 [[ "$LIFETIME_TEST" == *"resource-flow facts outlive inner-block Symbol storage"* ]]
 [[ "$LIFETIME_TEST" == *"ast_assign_stable_ids(program)"* ]]
 [[ "$LIFETIME_TEST" == *"result->resource_flow_facts[i]"* ]]
-[[ "$MAKEFILE_TEXT" == *"ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser"* ]]
+[[ "$MAKEFILE_TEXT" == *"ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser test_mir"* ]]
 
 echo "[dir-resource-flow] HIR-only stable identity, no DIR reserialization, inner-block lifetime, and ASan coverage are closed"

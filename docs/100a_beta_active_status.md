@@ -66,6 +66,29 @@ emission, and plain compile/run gates pass without a sibling override. The
 Linux parity job begins with this same release target. This is local staged
 release evidence, not a remote-CI result or an authorized repository `bin/`
 promotion, so the percentages remain unchanged.
+The local installer key now follows that same artifact boundary. It no longer
+rebuilds DRV-2 merely because the codegen PE was relinked: normalized emitted C,
+the machine manifest, runtime headers, output identity, compiler profile/flags,
+and compiler version own schema v4. Both a one-byte-different runnable seed and
+a full repeated `make all` emitted the same 9,850,372-byte C, and the staged
+5,903,397-byte driver kept identical SHA-256 and mtime while the installer
+reported fingerprint reuse. Invalid profiles fail before emission rather than
+being hidden by a cached output. Codegen bootstrap generation itself remains a
+separate repeated cost. Commit `c363a94a` is on `origin/main`; remote run
+`32071813850` completed RED and does not contain the local v4 delta. Current
+local evidence closes its stale build/generated-document gates and the defer-
+allocator plus intent-compensation C/LLVM failures (MIR 162/162, focused
+backend 2/2). Installed intent-observability C/LLVM also passes with explicit
+phase diagnostics. The macOS typed-intent MIR failure reproduced under Ubuntu
+GCC as `step zone identity cross-seal`: MIR shallow-borrowed the DIR-owned
+`step->where_type_name` after `dir_destroy`. Materialization now copies that
+spelling into routine scratch and a negative gate rejects the old borrow.
+Ubuntu GCC normal/ASan+UBSan and Windows GCC/Clang C-only core MIR pass 162/162.
+Linux `test-asan` includes `test_mir`; its UAF witness, 40-source corpus, and all
+four unit batteries pass. The native typed-intent gate opts out of self-host
+delegation, checks all 32 lines, and passes C/LLVM with a missing sibling; the
+separate self-host v3 parity also passes. Remote macOS/Linux reruns remain
+required. This is lifetime/CI closure, not another SoT row, so percentages stay.
 
 Current bootstrap route update (2026-08-18): the collection-program claim is
 now exact to one entrypoint, one Array producer, and one Array consumer. The
@@ -105,102 +128,15 @@ aggregate is not one coherent SoT closure. Strict beta therefore stays 83%,
 project forecast 78%, and the SoT registry remains 49 CLOSED / 36 BRIDGE /
 1 ACTIVE.
 
-Installed C substitution update (2026-08-01): the admitted public C artifact,
-compile/link, and `--run` envelopes now obtain exactly one C artifact from the
-sibling fixed-point `pgy-self-driver`; native code owns only host compile/link
-and optional execution. Missing driver and unsupported envelopes fail closed,
-and an exactly-once shim gate rejects native semantic/codegen fallback. This is
-target-specific `SUBSTITUTING` evidence. LLVM-enabled default builds now also
-consume the canonical external runtime object for the admitted host-I/O
-surface, but intent observability, composite-intent runtime, package,
-dump/check/repl, and production-root intent remain open.
-
-Installed LLVM substitution update (2026-08-01): plain public LLVM binary
-requests use the sibling Pergyra-built driver for exactly one source-to-MIR
-production and one direct LLVM projection. `clang -x ir` plus the canonical
-external runtime object is the final host boundary; native semantic/AIR/libLLVM
-and artifact-text runtime inference are closed. Missing, unsupported,
-producer/projector, malformed-IR, and unresolved-runtime cases fail without
-publishing a new or stale binary. The default-runtime path now executes the
-host-I/O `FileExists`/`ReadFile` fixture exactly; intent observability remains
-outside this admitted surface. This is executable `SUBSTITUTING` evidence for
-the sealed runtime-free Option, local `Array<Int>`,
-the bounded two-routine Array return, and three-routine Array parameter
-frontiers, including the bounded three-routine nominal-struct parameter slice.
-The bounded nominal-struct and Option-of-nominal return/local value-flow slices
-are also substituting; this is not evidence for general, heap-backed,
-runtime-bearing, or arbitrary multi-routine programs. The bounded explicit and
-  inferred `Identity<Int>` nominal value-flow slices are now also substituting.
-
-Constructed generic member update (2026-08-02):
-`generic_member_constructed_return_flow.pgy` is now target-specific
-`SUBSTITUTING` through the installed self-host driver. One 9,309-byte MIR drives
-real `Wrapper_Wrap_Int` and `Wrapper_Echo_Option_Int_` calls in C and LLVM,
-preserves `Some(Int) -> Echo(Option<Int>) -> checked unwrap`, and executes exact
-`43`. An exact three-routine classifier and separate declaration, signature,
-heterogeneous-specialization, substitution, graph, instruction/SSA, Option ABI,
-internal-representation, plan, and emitter owners prevent fallback to the
-uniform two-routine or unrelated planners. The focused gate proves eight order/
-identity invariants, five value/name variants, 40 C negatives, and five LLVM
-sentinels; public installed C/LLVM and adjacent inferred generic routes are
-green. The next falsifier is `generic_member_array_return_flow.pgy`: its
-9,225-byte MIR reaches both direct backends but fails before publication at the
-Option-specific constructed-specialization owner. The next closure must own
-`Array<T>` substitution, fixed `Array<Int>` storage/lifetime, nested member
-carriage, and indexing without weakening the completed Option plan.
-
-Constructed Array member update (2026-08-02):
-`generic_member_array_return_flow.pgy` is now target-specific `SUBSTITUTING`
-through the installed self-host driver. Its final 9,228-byte self MIR drives
-real `ArrayWrapper_Wrap_Int` and `ArrayWrapper_Echo_Array_Int_` calls in C and
-LLVM and executes exact `44`. `Main` uniquely owns the one-element backing
-storage; Wrap fills it through a hidden pointer, Echo carries the admitted
-Array shell by value, and Main performs the real index/load. A neutral
-specialization-pair owner parses the wire once before an exclusive Option or
-Array projection, so neither family can retry or reopen the other. Native/self
-return-source identity is also aligned on `AST_ARRAY_LITERAL`. Six ordering and
-formal invariants, two value/name variants, 27 C negatives, seven LLVM
-sentinels, installed public C/LLVM, hard contract, and component inventory are
-green. The next falsifier is `generic_member_record_array_return_flow.pgy`:
-its 11,952-byte MIR adds a `Point` declaration and `Array<Point>` carriage, and
-both direct targets currently fail closed at the exact three-routine structural
-shape boundary. The next closure must own the mixed declaration class, Point
-and Array ABI facts, caller storage, nested calls, index and field projection
-without broadening the completed single-class path.
-
-Constructed record-Array member update (2026-08-02):
-`generic_member_record_array_return_flow.pgy` is now target-specific
-`SUBSTITUTING` at `8bd92069`. The same 11,952-byte self MIR drives real
-`RecordArrayWrapper_Wrap_Point` and
-`RecordArrayWrapper_Echo_Array_Point_` definitions/calls in C and LLVM,
-preserves caller-owned fixed storage, by-value `Array<Point>`, index zero,
-the loaded `Point` and `.x`, and executes exact `45`. Exact admission owns the
-mixed declaration class, three-routine identity, cross-domain unique positive
-source IDs, Main instruction envelopes, Point and Array receipts, nested graph,
-storage lifetime, representation and Log. Three variants, 35 C negatives, ten
-LLVM sentinels, installed C/LLVM, the hard substitution contract and full
-component contract are green.
-
-The public direct-MIR Array storage contract is explicitly four-field
-`{data,length,capacity,allocator}` under
-`pgy.runtime.pointer64-size_t64.v1`. It is not the private three-field growable
-container used by the self-host compiler itself. Storage layout is not calling
-convention: this slice also carries a separate closed-module call-ABI fact and
-makes no external interoperability claim. A fresh full DRV-2 build completed in
-104.381 seconds with peak private 1.937 GiB and peak working set 1.836 GiB,
-below the 2.4 GiB attention threshold.
-
-Architecture review disposition (2026-08-02): the review's Pair and
-`Array<Point>` implementation claims were observed against an older HEAD and
-are no longer current. Its structural warning is accepted: the exact fixture
-families have reached the point where another topology-named planner/emitter
-would be a mini-compiler, not healthy closure. Before adding a third aggregate
-shape, the active ratchet is to promote the completed constructed
-`Array<Int>`/`Array<Point>` decisions into one representation-parameterized
-aggregate value-flow plan and make the old duplicate decision entries
-shrink-only. Exact `44` and `45` plus every existing storage/call/ABI/SSA
-negative must remain green. This consolidation is architecture work and is not
-counted as new self-host substitution progress.
+Installed C/LLVM and constructed generic/Array substitution history
+(2026-08-01 through 2026-08-02) is archived in the executable log shards and
+git history. The durable active contract is unchanged: public source-to-C and
+source-to-LLVM use the installed Pergyra-built sibling exactly once, native code
+owns only the final host boundary, and missing or unsupported envelopes fail
+without native semantic/codegen retry. The completed bounded Option,
+`Array<Int>`, and `Array<Point>` slices retain their storage/call-ABI/SSA
+negative gates. They are not evidence for arbitrary heap-backed or
+multi-routine programs, and another fixture-shaped planner remains forbidden.
 
 Aggregate storage promotion update (2026-08-02): checkpoint `96b7f88e` moves
 the shared target-bound Array storage decision behind

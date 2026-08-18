@@ -17,6 +17,9 @@ self_schema = self_root / "mir/intent_execution_schema_owner.pgy"
 self_fact = self_root / "mir/intent_execution_fact_owner.pgy"
 self_digest = self_root / "mir/intent_execution_digest_owner.pgy"
 self_identity = self_root / "mir_lower/intent_execution_identity_index_owner.pgy"
+makefile = root / "Makefile"
+
+
 def require_terms(path, terms):
     text = path.read_text(encoding="utf-8")
     missing = [term for term in terms if term not in text]
@@ -46,7 +49,15 @@ native_execution_text = require_terms(native_digest, [
     "intent_execution_materialize_step(",
     "intent_execution_set_branch(",
     "intent_execution_set_goto(",
+    "pgy_arena_strdup(\n            &routine->scratch, step->where_type_name)",
     "dir->nodes[step->where_type_node_id].source_syntax_id",
+])
+assert "row->where_zone_name = step->where_type_name" not in native_execution_text, (
+    "MIR intent execution must not borrow DIR-owned zone spelling",
+    native_digest,
+)
+require_terms(makefile, [
+    "ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser test_mir",
 ])
 require_terms(native_graph, [
     "intent_execution_materialize_step",

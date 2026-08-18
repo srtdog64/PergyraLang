@@ -478,10 +478,12 @@ require_term "src/runtime/pgy_runtime_lib_allocator_exports.h" "pgy_allocator_re
 require_term "src/runtime/pgy_runtime_lib_allocator_exports.h" "pgy_allocator_persistent_init"
 require_term "src/runtime/pgy_runtime_lib_allocator_exports.h" "pgy_allocator_destroy_export"
 require_term "src/codegen/transpiler_allocator_builtin_emit.c" "pgy_allocator_scratch()"
-require_term "src/codegen/transpiler_allocator_builtin_emit.c" "pgy_allocator_result()"
 require_term "src/codegen/transpiler_allocator_builtin_emit.c" "pgy_allocator_persistent()"
 require_term "src/codegen/transpiler_allocator_builtin_emit.c" "AllocatorDestroy requires a named Allocator local"
-require_term "src/codegen/transpiler_allocator_builtin_emit.c" "pgy_allocator_destroy(&%s)"
+require_term "src/codegen/transpiler_allocator_builtin_emit.c" "declared_row->c_inline_fn"
+require_term "src/codegen/transpiler_allocator_builtin_emit.c" "missing its canonical runtime-call ABI row"
+reject_term "src/codegen/transpiler_allocator_builtin_emit.c" '"pgy_allocator_result"'
+reject_term "src/codegen/transpiler_allocator_builtin_emit.c" '"pgy_allocator_destroy"'
 require_term "src/codegen/llvm_expr_allocator_calls.c" "pgy_allocator_scratch_init"
 require_term "src/codegen/llvm_expr_allocator_calls.c" "pgy_allocator_result_init"
 require_term "src/codegen/llvm_expr_allocator_calls.c" "pgy_allocator_persistent_init"

@@ -68,6 +68,8 @@ transpiler_register_defer(ASTNode *body, TranspilerCtx *ctx)
     }
 
     ctx->defer_bodies[scope][count] = body;
+    ctx->defer_mir_instructions[scope][count] =
+        ctx->active_mir_instruction;
     ctx->defer_body_counts[scope]++;
 }
 
@@ -82,8 +84,14 @@ transpiler_emit_defers_from(TranspilerCtx *ctx, int start_depth)
     for (int depth = ctx->defer_scope_depth - 1; depth >= start_depth; depth--) {
         for (int i = ctx->defer_body_counts[depth] - 1; i >= 0; i--) {
             ASTNode *body = ctx->defer_bodies[depth][i];
-            if (body != NULL)
+            const MIRInstruction *saved_mir_instruction =
+                ctx->active_mir_instruction;
+            if (body != NULL) {
+                ctx->active_mir_instruction =
+                    ctx->defer_mir_instructions[depth][i];
                 emit_statement(body, ctx);
+                ctx->active_mir_instruction = saved_mir_instruction;
+            }
         }
     }
 }

@@ -18,6 +18,32 @@ fail() {
     exit 1
 }
 
+run_compile_phase() {
+    local phase="$1"
+    local rc
+    shift
+
+    set +e
+    (cd "$ROOT_DIR" && "$@") \
+        >"$WORK_DIR/$phase.out" 2>"$WORK_DIR/$phase.err"
+    rc=$?
+    set -e
+    if [[ "$rc" -eq 0 ]]; then
+        return
+    fi
+
+    echo "[self-host-intent-observability] $phase compile failed (exit $rc)" >&2
+    if [[ -s "$WORK_DIR/$phase.out" ]]; then
+        echo "--- $phase stdout ---" >&2
+        cat "$WORK_DIR/$phase.out" >&2
+    fi
+    if [[ -s "$WORK_DIR/$phase.err" ]]; then
+        echo "--- $phase stderr ---" >&2
+        cat "$WORK_DIR/$phase.err" >&2
+    fi
+    fail "$phase did not produce an executable"
+}
+
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
 fi
@@ -40,24 +66,21 @@ fi
 
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
-(cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && PGY_DEBUG_PIPELINE_TIMING=1 \
-    "$PGY" "$SOURCE" --backend=c -o \
-        ".tmp/self_hosted/intent_observability_installed/installed-c$suffix") \
-    >"$WORK_DIR/installed-c.out" 2>"$WORK_DIR/installed-c.err"
+run_compile_phase installed-c env -u PGY_SELF_DRIVER_BIN \
+    PGY_DEBUG_PIPELINE_TIMING=1 "$PGY" "$SOURCE" --backend=c -o \
+    ".tmp/self_hosted/intent_observability_installed/installed-c$suffix"
 ! grep -Fq '[pipeline timing]' "$WORK_DIR/installed-c.err" ||
     fail "public C route re-entered the native compiler"
-(cd "$ROOT_DIR" && "$PGY" "$SOURCE" --native-pipeline --backend=c -o \
-    ".tmp/self_hosted/intent_observability_installed/native-c$suffix") \
-    >"$WORK_DIR/native-c.out" 2>"$WORK_DIR/native-c.err"
-(cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && PGY_DEBUG_PIPELINE_TIMING=1 \
-    "$PGY" "$SOURCE" --backend=llvm -o \
-        ".tmp/self_hosted/intent_observability_installed/installed-llvm$suffix") \
-    >"$WORK_DIR/installed-llvm.out" 2>"$WORK_DIR/installed-llvm.err"
+run_compile_phase native-c "$PGY" "$SOURCE" --native-pipeline --backend=c -o \
+    ".tmp/self_hosted/intent_observability_installed/native-c$suffix"
+run_compile_phase installed-llvm env -u PGY_SELF_DRIVER_BIN \
+    PGY_DEBUG_PIPELINE_TIMING=1 "$PGY" "$SOURCE" --backend=llvm -o \
+    ".tmp/self_hosted/intent_observability_installed/installed-llvm$suffix"
 ! grep -Fq '[pipeline timing]' "$WORK_DIR/installed-llvm.err" ||
     fail "public LLVM route re-entered the native compiler"
-(cd "$ROOT_DIR" && "$PGY" "$SOURCE" --native-pipeline --backend=llvm -o \
-    ".tmp/self_hosted/intent_observability_installed/native-llvm$suffix") \
-    >"$WORK_DIR/native-llvm.out" 2>"$WORK_DIR/native-llvm.err"
+run_compile_phase native-llvm "$PGY" "$SOURCE" --native-pipeline \
+    --backend=llvm -o \
+    ".tmp/self_hosted/intent_observability_installed/native-llvm$suffix"
 
 for backend in installed-c native-c installed-llvm native-llvm; do
     "$WORK_DIR/$backend$suffix" | tr -d '\r' >"$WORK_DIR/$backend.run"

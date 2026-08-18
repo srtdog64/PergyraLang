@@ -1,10 +1,11 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-18 iterative else-if O3 fixed point
+## Active self-host context - 2026-08-18 DIR-to-MIR lifetime and CI verification
 
-- HEAD `330c82ca5f67` remains intentionally dirty at 867 paths (431 tracked
-  and 436 untracked). This aggregate is not a progress numerator; preserve
-  unrelated work.
+- HEAD `c363a94a1409` matches `origin/main`. The accumulated frontier was
+  committed externally during this session; the remaining installer, runtime,
+  CI, and documentation delta is intentionally local at 27 paths (26 tracked
+  and the unrelated untracked `pgy-80135c2c/` directory).
 - The reached compiler-scale failure was direct `else if` MIR lowering through
   source-depth recursion. The old oracle stack-overflowed (`0xC00000FD`) on a
   41-condition fixture and stopped the full source at routine 2743. The new
@@ -48,6 +49,39 @@
   do not add another SoT-only change, source split, stack/cap/timeout increase,
   cache, or shard while that promotion is open. Hard closure stays 49/86,
   integrated forecast 78%, and strict beta 83%.
+- The local installer-key owner is now schema v4 and keys host compilation from
+  normalized emitted C, machine manifest, runtime headers, output identity,
+  compiler profile/flags, and compiler version. It deliberately does not key
+  on the relink-volatile codegen PE. A runnable one-byte-overlay seed and a full
+  repeated staging `make all` both emitted the same 9,850,372-byte C; the
+  5,903,397-byte driver kept SHA-256
+  `E32850D01A68074CF7E713AE3FC3299671FB6B5724C885B1F38D4B0B958C08D0`
+  and its mtime while the installer reported fingerprint reuse. Invalid
+  profiles fail before emission. Hard-contract, CI-profile, shell syntax, and
+  public default-C emit gates are green. The phony codegen seed generation is
+  still repeated and remains the next measured build-cost seam, not permission
+  for a broad cache. Remote run `32071813850` completed RED for committed
+  `c363a94a`; it does not include this local v4 delta.
+- Two reached backend failures from that run are closed locally. Deferred
+  allocator calls retain their originating MIR runtime-call ABI row until
+  delayed C/LLVM emission, and compensation emits the same final intent trace
+  as the normal path. MIR is 162/162 and the two exact backend fixtures are
+  2/2. Build-source inventory, generated language-word inventory, beta status,
+  hard contract, CI profile, and installed intent-observability C/LLVM gates
+  are green. The formerly silent installed compile gate now preserves phase
+  stdout/stderr. The macOS C-only typed-intent MIR failure reproduced under
+  Ubuntu GCC with the exact `step zone identity cross-seal` clause. MIR had
+  shallow-borrowed DIR-owned `step->where_type_name` past `dir_destroy`; it now
+  copies that spelling into routine scratch and the static owner gate rejects
+  the old borrow. Ubuntu GCC normal/ASan+UBSan plus Windows GCC/Clang C-only
+  core MIR all pass 162/162. The central Linux `test-asan` battery now includes
+  `test_mir`; the UAF witness, 40-source corpus, and all four unit batteries
+  pass together. The native typed-intent gate now explicitly uses
+  `--native-pipeline`, checks the fixture's full 32-line observability output,
+  and passes C/LLVM with an intentionally missing sibling. The separate
+  prebuilt Pergyra driver also passes self C/native C/native LLVM v3 zone,
+  compensation, and history parity. A current remote macOS/Linux rerun remains required.
+  No intentional `bin/` promotion or current-worktree remote run occurred.
 
 ## Historical self-host context - 2026-08-18 match-pattern fixed point
 

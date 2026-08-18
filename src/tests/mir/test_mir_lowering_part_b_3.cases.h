@@ -77,6 +77,7 @@ test_mir_lowering_part_b_3(void)
         bool rejected_predecessor = false;
         bool rejected_completion = false;
         bool rejected_terminal_variant = false;
+        bool final_valid = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
 
         if (ok)
@@ -163,6 +164,10 @@ test_mir_lowering_part_b_3(void)
             routine->intent_execution_plan_digest =
                 mir_intent_execution_routine_digest(routine);
             rejected_variant = !mir_validate(mir, &mir_error);
+            if (!rejected_variant) {
+                fprintf(stderr,
+                    "[mir-intent-execution-test] variant drift was accepted\n");
+            }
             free(mir_error);
             mir_error = NULL;
             root->success.variant_index = saved_variant;
@@ -174,6 +179,11 @@ test_mir_lowering_part_b_3(void)
             rejected_payload = !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error, "payload tobject cross-seal") != NULL;
+            if (!rejected_payload) {
+                fprintf(stderr,
+                    "[mir-intent-execution-test] payload drift diagnostic: %s\n",
+                    mir_error != NULL ? mir_error : "(none)");
+            }
             free(mir_error);
             mir_error = NULL;
             root->success.payload_type_name = saved_payload;
@@ -185,6 +195,11 @@ test_mir_lowering_part_b_3(void)
             rejected_payload_identity = !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error, "payload tobject cross-seal") != NULL;
+            if (!rejected_payload_identity) {
+                fprintf(stderr,
+                    "[mir-intent-execution-test] payload identity diagnostic: %s\n",
+                    mir_error != NULL ? mir_error : "(none)");
+            }
             free(mir_error);
             mir_error = NULL;
             root->success.payload_decl_syntax_id = saved_payload_identity;
@@ -193,6 +208,10 @@ test_mir_lowering_part_b_3(void)
             routine->intent_execution_plan_digest =
                 mir_intent_execution_routine_digest(routine);
             rejected_action_identity = !mir_validate(mir, &mir_error);
+            if (!rejected_action_identity) {
+                fprintf(stderr,
+                    "[mir-intent-execution-test] action identity drift was accepted\n");
+            }
             free(mir_error);
             mir_error = NULL;
             root->action_syntax_id = saved_action_identity;
@@ -201,6 +220,10 @@ test_mir_lowering_part_b_3(void)
             routine->intent_execution_plan_digest =
                 mir_intent_execution_routine_digest(routine);
             rejected_predecessor = !mir_validate(mir, &mir_error);
+            if (!rejected_predecessor) {
+                fprintf(stderr,
+                    "[mir-intent-execution-test] predecessor drift was accepted\n");
+            }
             free(mir_error);
             mir_error = NULL;
             child->predecessor_transition_id = saved_predecessor;
@@ -209,6 +232,10 @@ test_mir_lowering_part_b_3(void)
             routine->intent_execution_plan_digest =
                 mir_intent_execution_routine_digest(routine);
             rejected_completion = !mir_validate(mir, &mir_error);
+            if (!rejected_completion) {
+                fprintf(stderr,
+                    "[mir-intent-execution-test] completion drift was accepted\n");
+            }
             free(mir_error);
             mir_error = NULL;
             child->completion_instruction_id = saved_completion;
@@ -220,11 +247,58 @@ test_mir_lowering_part_b_3(void)
             rejected_terminal_variant = !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error, "payload tobject cross-seal") != NULL;
+            if (!rejected_terminal_variant) {
+                fprintf(stderr,
+                    "[mir-intent-execution-test] terminal variant diagnostic: %s\n",
+                    mir_error != NULL ? mir_error : "(none)");
+            }
             free(mir_error);
             mir_error = NULL;
             terminal->result_variant_index = saved_terminal_variant;
             routine->intent_execution_plan_digest =
                 mir_intent_execution_routine_digest(routine);
+        }
+        final_valid = mir_validate(mir, &mir_error);
+        if (!final_valid && routine != NULL) {
+            fprintf(stderr,
+                "[mir-intent-execution-test] final diagnostic: %s\n",
+                mir_error != NULL ? mir_error : "(none)");
+            for (size_t i = 0;
+                 i < routine->intent_step_transition_count; i++) {
+                const MIRIntentStepTransitionFact *step =
+                    &routine->intent_step_transitions[i];
+                fprintf(stderr,
+                    "[mir-intent-execution-test] step[%llu] zone=%s syntax=%u\n",
+                    (unsigned long long)i,
+                    step->where_zone_name != NULL
+                        ? step->where_zone_name : "(none)",
+                    step->where_zone_syntax_id);
+            }
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                const MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->ast_type != AST_ZONE_DECL)
+                    continue;
+                fprintf(stderr,
+                    "[mir-intent-execution-test] zone-header[%llu] name=%s syntax=%u\n",
+                    (unsigned long long)i,
+                    header->name != NULL ? header->name : "(none)",
+                    header->source_syntax_id);
+            }
+        }
+        if (!(ok && routine != NULL && exact_shape
+              && rejected_variant && rejected_payload
+              && rejected_payload_identity
+              && rejected_action_identity
+              && rejected_predecessor && rejected_completion
+              && rejected_terminal_variant && final_valid)) {
+            fprintf(stderr,
+                "[mir-intent-execution-test] flags ok=%d routine=%d shape=%d "
+                "variant=%d payload=%d payload-id=%d action=%d predecessor=%d "
+                "completion=%d terminal=%d final=%d\n",
+                ok, routine != NULL, exact_shape, rejected_variant,
+                rejected_payload, rejected_payload_identity,
+                rejected_action_identity, rejected_predecessor,
+                rejected_completion, rejected_terminal_variant, final_valid);
         }
         EXPECT(ok && routine != NULL && exact_shape
                && rejected_variant && rejected_payload
@@ -232,7 +306,7 @@ test_mir_lowering_part_b_3(void)
                && rejected_action_identity
                && rejected_predecessor && rejected_completion
                && rejected_terminal_variant
-               && mir_validate(mir, NULL));
+               && final_valid);
         free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);

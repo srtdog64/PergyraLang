@@ -46,7 +46,7 @@ run_backend() {
     local raw="$output.raw"
 
     (cd "$ROOT_DIR" && "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$source")" \
+        "$(pgy_path_for_compiler "$PGY" "$source")" --native-pipeline \
         --backend="$backend" --run \
         -o "$(pgy_path_for_compiler "$PGY" "$binary")") \
         >"$raw" 2>"$output.err" \
@@ -60,7 +60,8 @@ run_backend() {
     >"$MIR_JSON" 2>"$BUILD_DIR/intent.mir.err" \
     || { cat "$BUILD_DIR/intent.mir.err" >&2; fail "MIR JSON emission failed"; }
 (cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" --backend=c --emit-c \
+    "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" --native-pipeline \
+    --backend=c --emit-c \
     -o "$(pgy_path_for_compiler "$PGY" "$EMITTED_C")") \
     >"$BUILD_DIR/intent.emit.out" 2>"$BUILD_DIR/intent.emit.err" \
     || { cat "$BUILD_DIR/intent.emit.err" >&2; fail "C emission failed"; }
@@ -156,6 +157,17 @@ second_failure.a_calls=1
 second_failure.b_calls=1
 second_failure.undo_a=1
 second_failure.undo_b=0
+history.count=2
+history.name0=A
+history.phase0=ok
+history.ok0=true
+history.name1=B
+history.phase1=fail
+history.ok1=false
+history.failure1=outcome:B
+last.failed=true
+last.failure=outcome:B
+active.after=0
 EXPECTED
 cmp -s "$BUILD_DIR/expected.run" "$BUILD_DIR/c.run" \
     || { diff -u "$BUILD_DIR/expected.run" "$BUILD_DIR/c.run" >&2; fail "C output drifted"; }

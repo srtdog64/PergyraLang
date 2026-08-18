@@ -2326,8 +2326,9 @@ ASAN_PGY       ?= $(ASAN_BIN_DIR)/pgy$(EXEEXT)
 # process, which is the only way to see a Type freed by analysis N and read by
 # analysis N+1. A single compile cannot: it never gets to N+1. That is exactly
 # the use-after-free the singleton registry bug produced, and the shape pgy-lsp
-# runs in.
-ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser
+# runs in. test_mir also crosses the DIR destruction boundary before validating
+# and serializing MIR, so borrowed cross-stage identity strings are observable.
+ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser test_mir
 ASAN_UNIT_BINARIES  := $(addprefix $(ASAN_BIN_DIR)/,$(addsuffix $(EXEEXT),$(ASAN_UNIT_BATTERIES)))
 
 # TSan is a separate instrumentation lane. It cannot be combined with ASan,

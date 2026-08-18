@@ -511,6 +511,8 @@ typedef struct LLVMGenCtx
     int              loop_depth;
 
     ASTNode         *defer_bodies[MAX_SCOPE_DEPTH][MAX_DEFER_PER_SCOPE];
+    const MIRInstruction *defer_mir_instructions[MAX_SCOPE_DEPTH]
+                                                     [MAX_DEFER_PER_SCOPE];
     int              defer_body_counts[MAX_SCOPE_DEPTH];
     int              defer_scope_depth;
 

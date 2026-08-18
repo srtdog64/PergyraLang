@@ -12,12 +12,13 @@ self-host, bootstrap, and CI/release together; strict language beta remains at
 the official 83% line. V numbers, `.tmp` artifacts, owner count, and gate count
 do not increment either percentage by themselves.
 
-## Active self-host context - iterative else-if canonical O3 fixed point
+## Active self-host context - DIR-to-MIR lifetime and CI verification
 
-- HEAD is `330c82ca5f679d2b41d42c16c72ddb2049113101` on `main`.
-  The intentionally uncommitted worktree currently has 867 dirty paths (431
-  tracked and 436 untracked). Preserve all unrelated accumulated work; do not
-  stage, discard, or rewrite it.
+- HEAD is `c363a94a14091f8e479607c4550c054272fd7e1f` on `main` and matches
+  `origin/main`. The previous accumulated frontier was committed externally
+  while this session was running. The remaining local delta is intentionally
+  uncommitted at 27 paths (26 tracked and the unrelated untracked
+  `pgy-80135c2c/` directory); do not stage, discard, or rewrite it.
 - The next reached failure after the match-pattern lifetime closure was an
   executable control-flow defect, not an SoT inventory gap. The previous
   oracle lowered every direct `else if` tail through recursive
@@ -103,8 +104,62 @@ do not increment either percentage by themselves.
   public C emission, and plain C compile/run gates all pass. The first staging
   attempt was externally terminated with Windows status `0x40010004` during a
   deliberately interrupted turn and produced no sibling; the owner-clean
-  rerun completed, so it is not recorded as a compiler failure. Current remote
-  CI and an intentional repository `bin/` promotion remain unobserved.
+  rerun completed, so it is not recorded as a compiler failure. An intentional
+  repository `bin/` promotion remains unobserved.
+- The reached repeat-build seam is also locally closed without skipping typed-
+  source emission. Installer schema
+  `pgy.selfhost.compiler-build.v4-source-artifact` no longer hashes the
+  relink-volatile codegen PE: the normalized generated C, native machine
+  manifest, runtime-header inventory, output identity, compiler profile/flags,
+  and compiler version own the host-compile key. A one-byte PE-overlay seed
+  changed the seed SHA-256 from
+  `4B655A49B5DFD6BAD4159C0A8916FCF3BB1FD206EB2E6AEC3B05B406059E5A5A`
+  to `15AC11E920A1646815EE649A88809C76D196B8663D7BB3DF2600B5A73D4BF2E1`
+  while emitting the same 9,850,372-byte C; the installer printed
+  `reusing fingerprinted Pergyra-built driver`, and the 5,903,397-byte driver
+  retained SHA-256
+  `E32850D01A68074CF7E713AE3FC3299671FB6B5724C885B1F38D4B0B958C08D0`
+  and the exact same mtime. A full staging `make all` then regenerated gen2
+  with SHA-256
+  `39D8B961E187A6A9D9E0F30F0D241A49188C39F048A5B5C92C46731F9D2763FD`
+  but emitted C remained SHA-256
+  `512B512339A70444DAF599361FED30A1CB8F716126E35C3F63FEC94C5C10B0E2`
+  and the installed driver was again reused without relink. An invalid compile
+  profile now fails before source emission and cannot pass through a cached
+  output. Hard-contract, CI-profile, public default-C emit, and shell syntax
+  gates are green. Codegen seed generation itself remains phony/repeated and
+  is the next measured build-cost seam; no cache architecture has been added.
+- Commit `c363a94a` remote run `32071813850` completed with failure. TSan,
+  sanitizers, Rocq, codegen bootstrap, and most backend shards were green. The
+  deterministic failures were stale default-build inventory, stale generated
+  language-word inventory, the 2,600-line beta-status cap, backend shard 18
+  (`allocator_defer_cleanup`), backend shard 19 (`intent_trace_compensate`),
+  one silent installed intent-observability compile phase, and a macOS C-only
+  composite MIR assertion. The self-host full-bootstrap job was cancelled
+  while installing dependencies and is not compiler evidence.
+- Current local source closes the two backend execution failures. Defer
+  registration now carries its originating MIR instruction to delayed C/LLVM
+  emission, so `AllocatorDestroy` consumes the attached runtime-call ABI row;
+  compensation uses the normal path's final trace materialization. The MIR
+  suite is 162/162 and the exact backend pair is 2/2. The C allocator emitter
+  also fails closed instead of spelling a runtime fallback locally.
+- Build inventory, language registry generation, beta status,
+  ABI shape, hard self-host contract, CI profile, and installed
+  intent-observability C/LLVM execution are locally green. The installed gate
+  now prints the failing compile phase and its captured stdout/stderr instead
+  of exiting silently. The macOS composite retains all nine acceptance clauses
+  and now reports the exact false clause/diagnostic. Ubuntu GCC reproduced that
+  failure as `step zone identity cross-seal`: MIR had shallow-borrowed DIR-owned
+  `step->where_type_name` after `dir_destroy`. Materialization now copies the
+  spelling into routine scratch; the static owner gate requires the copy and
+  rejects the old borrow. Ubuntu GCC normal/ASan+UBSan and Windows GCC/Clang
+  C-only core MIR all pass 162/162. Linux `test-asan` now owns `test_mir` beside
+  AIR/semantic/parser; its intentional UAF witness, 40-source compiler corpus,
+  and all four sanitizer batteries pass in one isolated run. The native typed-intent gate now explicitly
+  uses `--native-pipeline` for source emission/execution, checks all 32 fixture
+  lines, and passes C/LLVM with an intentionally missing sibling. The separate
+  prebuilt Pergyra driver also passes self C/native C/native LLVM v3 zone,
+  compensation, and history parity. Current remote Apple/Linux runners are still required.
 - `driver_rung2_if_graph_use_owner.sh` and shell syntax checks are green. The
   broader filtered body-parity command remains blocked before the selected
   fixture by the unrelated existing domain-topology structural guard
@@ -114,19 +169,17 @@ do not increment either percentage by themselves.
   163 lines against a 125-line cap. Do not misreport either broad gate as green,
   and do not reopen this control-flow owner merely to absorb those independent
   failures.
-- Next objective card: objective = promote this canonical local fixed point
-  from the verified release-owned staging pair through current remote CI and
-  an intentional repository-installed release boundary before opening another
-  SoT family; priority = preserve branch/SSA identity, bounded source-stack
-  usage, exact seed/oracle MIR, gen2/gen3 fixed point, then installed and remote
-  evidence; fact owner = admitted statement facts plus
-  `routine_if_owner.pgy`'s branch/merge frames; last consumer = reverse
-  `SelfMirMergeIfBranches` unwinding; forbidden = source-depth else-if
-  recursion, source splitting, stack/cap/timeout increase, AST-text provenance
-  detour, cache/shard/retry, or another SoT-only commit; falsifier = the
-  41-condition executable parity plus the canonical full bootstrap above.
-  Progress is the executable fixed point, not a new registry row or owner
-  count.
+- Next objective card: objective = verify the DIR-to-MIR lifetime correction on
+  current platform jobs, then continue the installed self-host/bootstrap rung;
+  priority = exact zone identity, owned lifetime, runtime behavior, current CI,
+  then installer reuse; fact owner = DIR intent-step zone identity, copied at
+  MIR materialization into routine scratch; last consumers = MIR validation,
+  serialization, and typed-intent C/LLVM execution; forbidden = borrowing DIR
+  storage past `dir_destroy`, weakening the macOS assertion, stale driver reuse,
+  another broad SoT cleanup, cache/shard/retry, or cap/timeout increase;
+  falsifier = MIR 162/162 under normal and sanitizer C-only builds, self/native
+  typed-intent execution, and a current macOS/Linux remote run. Progress is
+  executable substitution and current CI, not registry or gate count.
 
 ### Previous match-pattern ready-artifact context (inactive)
 

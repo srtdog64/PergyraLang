@@ -177,7 +177,7 @@ llvm_emit_intent_cleanup_tail(LLVMGenCtx *ctx,
                 }
                 llvm_emit_intent_step_bind_bound_zone(
                     ctx, node, zone_type_name, zone_alias, from_alias,
-                    who_aliases, who_alias_count, false);
+                    who_aliases, who_alias_count, true);
                 if (ctx->has_error)
                     return false;
                 if (ast_intent_decl_rollback_policy(node) == INTENT_ROLLBACK_CURRENT)

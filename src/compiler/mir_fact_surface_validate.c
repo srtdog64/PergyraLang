@@ -1,5 +1,6 @@
 #include "mir_fact_validate_internal.h"
 #include "mir_abi_layout.h"
+#include "mir_call_fact.h"
 #include "mir_machine_layer.h"
 #include "mir_nominal_abi_layout.h"
 #include "mir_stmt_population_internal.h"
@@ -13,10 +14,20 @@
 static const char *
 mir_instruction_root_call_name(const MIRInstruction *inst)
 {
+    ASTNode *deferred_call;
+    ASTNode *callee;
+
     if (inst == NULL)
         return NULL;
-    if (inst->kind == MIR_INST_STMT)
+    if (inst->kind == MIR_INST_STMT) {
+        deferred_call = mir_defer_call_expression_fact(inst);
+        if (deferred_call != NULL) {
+            callee = ast_call_callee(deferred_call);
+            if (callee != NULL && callee->type == AST_IDENTIFIER)
+                return ast_identifier_name(callee);
+        }
         return inst->arg0;
+    }
     if (inst->kind == MIR_INST_DEF)
         return inst->arg1;
     return NULL;
