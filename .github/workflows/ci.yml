@@ -292,7 +292,10 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    timeout-minutes: 45  # hang budget (docs/190 C1)
+    # hang budget (docs/190 C1). 45 was sized while early gate walls cut the
+    # job short; with the full 57-step ladder green it needs the same budget
+    # as ci-linux (the 4836cfe3 run was cancelled at 45:15 mid-ladder).
+    timeout-minutes: 60
     # ci-windows runs the SoT-authority adequacy gate, which machine-checks
     # SoTAuthority.v -- but this runner ships no Coq/Rocq. Those Coq checks are
     # fail-closed on a missing prover (they used to skip quietly and still
