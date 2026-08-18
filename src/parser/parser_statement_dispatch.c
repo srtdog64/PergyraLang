@@ -6,7 +6,7 @@
 #include "parser_internal.h"
 #include "ast_constructors_internal.h"
 
-ASTNode* parser_parse_statement(Parser* parser) {
+static ASTNode* parser_parse_statement_dispatch(Parser* parser) {
     parser_collect_doc_comments(parser);
 
     if (parser_match(parser, TOKEN_AT)) {
@@ -489,4 +489,22 @@ ASTNode* parser_parse_statement(Parser* parser) {
 
     // 표현식 문장
     return parser_finalize_statement(parser, parser_parse_expression_statement(parser));
+}
+
+/*
+ * Statement nesting (an `else if` tail, a statement inside a statement)
+ * recurses through this dispatch without touching the expression/type/block
+ * chokepoints, so an unguarded chain turns source-controlled depth into host
+ * call-stack depth: a 50,000-arm else-if chain crashed the parser with no
+ * diagnostic. The same shared budget bounds every downstream AST walker by
+ * construction.
+ */
+ASTNode* parser_parse_statement(Parser* parser) {
+    ASTNode* stmt;
+
+    if (!parser_enter_recursion(parser))
+        return NULL;
+    stmt = parser_parse_statement_dispatch(parser);
+    parser_leave_recursion(parser);
+    return stmt;
 }

@@ -191,7 +191,64 @@ ASTNode* parse_match_statement(Parser* parser) {
     return match;
 }
 
+/*
+ * Else-if chain safety. An `else if` tail used to recurse through this parser
+ * directly, bypassing the expression/type/block/statement chokepoints, so a
+ * 50,000-arm chain crashed the native parser with no diagnostic. The tail is
+ * now stitched iteratively, and the arm count is capped like the
+ * operator-chain cap: past the cap the remaining arms are still parsed but
+ * discarded, so the whole chain is consumed and exactly one named diagnostic
+ * surfaces. The cap equals the semantic analyzer's 512-depth statement
+ * backstop, so the accept/reject boundary is exactly what semantic analysis
+ * already enforced: over-cap chains now fail at parse with a chain-specific
+ * diagnostic instead of crashing before semantic analysis could see them.
+ */
+#define PARSER_MAX_ELSE_IF_CHAIN 512
+
+static ASTNode* parse_if_statement_arm(Parser* parser);
+
 ASTNode* parse_if_statement(Parser* parser) {
+    ASTNode* head = parse_if_statement_arm(parser);
+    ASTNode* tail = head;
+    int arm_count = 0;
+    bool chain_capped = false;
+
+    while (tail != NULL && tail->type == AST_IF_STMT &&
+           parser_match(parser, TOKEN_ELSE)) {
+        if (!parser_match(parser, TOKEN_IF)) {
+            parser_consume(parser, TOKEN_LBRACE, "Expected '{' after else");
+            tail->data.if_stmt.else_branch = parser_parse_block(parser);
+            break;
+        }
+        ASTNode* arm = parse_if_statement_arm(parser);
+        if (parser->has_error) {
+            if (arm_count < PARSER_MAX_ELSE_IF_CHAIN && !chain_capped)
+                tail->data.if_stmt.else_branch = arm;
+            else
+                ast_destroy(arm);
+            break;
+        }
+        arm_count++;
+        if (arm_count > PARSER_MAX_ELSE_IF_CHAIN) {
+            chain_capped = true;
+            ast_destroy(arm);
+            continue;
+        }
+        tail->data.if_stmt.else_branch = arm;
+        if (arm->type != AST_IF_STMT)
+            break;  /* an if-let arm owns its own else clause */
+        tail = arm;
+    }
+    if (chain_capped && !parser->has_error) {
+        parser_error(parser,
+            "If statement has too many chained else-if arms (limit is "
+            "512); refactor into a match statement or a lookup table");
+    }
+    return head;
+}
+
+/* Parse one arm only: the driver loop above owns the else-if tail. */
+static ASTNode* parse_if_statement_arm(Parser* parser) {
     /* if-let: `if let <pattern> = <expr> { then } [else { else }]` desugars
      * to a single-case match on <expr> with a default for the else branch. */
     if (parser_check(parser, TOKEN_LET)) {
@@ -231,15 +288,6 @@ ASTNode* parse_if_statement(Parser* parser) {
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after if condition");
     if_stmt->data.if_stmt.then_branch = parser_parse_block(parser);
-
-    if (parser_match(parser, TOKEN_ELSE)) {
-        if (parser_match(parser, TOKEN_IF)) {
-            if_stmt->data.if_stmt.else_branch = parse_if_statement(parser);
-        } else {
-            parser_consume(parser, TOKEN_LBRACE, "Expected '{' after else");
-            if_stmt->data.if_stmt.else_branch = parser_parse_block(parser);
-        }
-    }
 
     return if_stmt;
 }

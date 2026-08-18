@@ -14,11 +14,11 @@
  * (Wrap<Wrap<...>>), parenthesized expressions, and nested blocks; without a
  * bound a deeply nested input overflows the native call stack (SIGSEGV).
  * The chokepoint functions (parse_type, parser_parse_expression,
- * parser_parse_block) call parser_enter_recursion on entry and
- * parser_leave_recursion on exit through thin wrappers.
+ * parser_parse_block, parser_parse_statement) call parser_enter_recursion
+ * on entry and parser_leave_recursion on exit through thin wrappers.
+ * Statement dispatch is guarded because statement-in-statement nesting
+ * (an else-if tail) otherwise bypasses the other three chokepoints.
  */
-#define PARSER_MAX_RECURSION_DEPTH 400
-
 void
 parser_set_recovered_error_output(Parser *parser, bool enabled)
 {
@@ -33,8 +33,8 @@ parser_enter_recursion(Parser *parser)
         return false;
     if (parser->recursion_depth >= PARSER_MAX_RECURSION_DEPTH) {
         parser_error(parser,
-            "Expression, type, or block nesting is too deep (limit is "
-            "400); refactor the deeply nested construct");
+            "Expression, type, statement, or block nesting is too deep "
+            "(limit is 400); refactor the deeply nested construct");
         return false;
     }
     parser->recursion_depth++;

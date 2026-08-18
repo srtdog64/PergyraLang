@@ -2,8 +2,9 @@
 # Adversarial-input gate (docs/189 C8/C10/C14): the compiler must terminate
 # with a diagnostic -- never hang, never crash -- on hostile input. This is
 # the executable exercise for the guards that otherwise only exist as code:
-# the parser depth cap (400), the expression-operator cap (4096), and the
-# front-end's tolerance of garbage bytes and megabyte-scale sources.
+# the parser depth cap (400), the expression-operator cap (4096), the
+# else-if chain cap (512), and the front-end's tolerance of garbage bytes
+# and megabyte-scale sources.
 # Complements tests/semantic_termination_security_smoke.sh (step budget +
 # embedded NUL).
 set -euo pipefail
@@ -38,8 +39,12 @@ run_case() {
     local budget_s="$3"
     local rc
 
+    # --native-pipeline: the guards under test (parser depth cap, operator
+    # cap, else-if chain cap, AST node budget) are native front-end subjects;
+    # with an installed sibling the default route would delegate to the
+    # self-host driver and test a different compiler.
     set +e
-    timeout "$budget_s" "$PGY" \
+    timeout "$budget_s" "$PGY" --native-pipeline \
         "$(pgy_path_for_compiler "$PGY" "$WORK_DIR/$name.pgy")" \
         --emit-c -o "$(pgy_path_for_compiler "$PGY" "$WORK_DIR/$name.c")" \
         >"$WORK_DIR/$name.log" 2>&1
@@ -83,6 +88,50 @@ awk 'BEGIN {
     print ";\n    Log(ToString(x));\n}";
 }' > "$WORK_DIR/operator_bomb.pgy"
 run_case "operator_bomb" "reject" 20
+
+# 2b. 600-arm else-if chain -- exercises the else-if chain cap (512). The
+#     tail recursed through parse_if before the iterative driver landed, so
+#     a 50,000-arm chain crashed the parser with no diagnostic instead of
+#     reaching the semantic analyzer's 512-depth statement backstop.
+awk 'BEGIN {
+    print "func Classify(value: Int) -> Int {";
+    print "    if value == 0 {";
+    print "        return 0;";
+    for (i = 1; i < 600; i++) {
+        printf "    } else if value == %d {\n", i;
+        printf "        return %d;\n", i;
+    }
+    print "    }";
+    print "    return -1;";
+    print "}";
+    print "func Main() -> Void {";
+    print "    Log(ToString(Classify(3)));";
+    print "}";
+}' > "$WORK_DIR/else_if_bomb.pgy"
+run_case "else_if_bomb" "reject" 60
+grep -q "too many chained else-if arms" "$WORK_DIR/else_if_bomb.log" || {
+    echo "[adversarial] else_if_bomb rejected without the chain diagnostic" >&2
+    exit 1
+}
+
+# 2c. 500-arm chain inside the cap: must be ACCEPTED end to end -- the cap
+#     must not move the accept boundary the semantic backstop already drew.
+awk 'BEGIN {
+    print "func Classify(value: Int) -> Int {";
+    print "    if value == 0 {";
+    print "        return 0;";
+    for (i = 1; i < 500; i++) {
+        printf "    } else if value == %d {\n", i;
+        printf "        return %d;\n", i;
+    }
+    print "    }";
+    print "    return -1;";
+    print "}";
+    print "func Main() -> Void {";
+    print "    Log(ToString(Classify(3)));";
+    print "}";
+}' > "$WORK_DIR/else_if_wide_valid.pgy"
+run_case "else_if_wide_valid" "accept" 120
 
 # 3. One-megabyte identifier token. There is deliberately no identifier
 #    length cap (gcc has none either); the contract here is only
@@ -136,4 +185,4 @@ grep -q "AST node budget exceeded" "$WORK_DIR/node_budget_bound.log" || {
     exit 1
 }
 
-echo "[adversarial] deep-nesting, operator-bomb, huge-token, garbage, big-valid, and node-budget inputs all terminate with the contracted outcome"
+echo "[adversarial] deep-nesting, operator-bomb, else-if-chain, huge-token, garbage, big-valid, and node-budget inputs all terminate with the contracted outcome"

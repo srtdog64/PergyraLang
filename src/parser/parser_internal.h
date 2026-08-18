@@ -18,6 +18,15 @@
 #include <stdarg.h>
 #include <assert.h>
 
+/*
+ * The parser nesting number. The recursion chokepoints consume it, and the
+ * semantic analyzer's statement depth cap (512) is sized against it:
+ * parser-accepted programs must stay inside the analyzer's cap by
+ * construction. The iterative else-if chain cap (parser_stmt.c) aligns with
+ * the 512 backstop instead, because chain arms never consume parse recursion.
+ */
+#define PARSER_MAX_RECURSION_DEPTH 400
+
 bool parser_enter_recursion(Parser *parser);
 void parser_leave_recursion(Parser *parser);
 void ast_reset_node_budget(void);
