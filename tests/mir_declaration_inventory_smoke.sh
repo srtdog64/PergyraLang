@@ -1184,7 +1184,7 @@ require_each_following_term "src/codegen/llvm_intent_cleanup.c" \
 require_term "src/codegen/llvm_intent.c" \
     "step_ctx.who_aliases, step_ctx.who_alias_count, true);"
 require_term "src/codegen/llvm_intent_cleanup.c" \
-    "who_aliases, who_alias_count, false);"
+    "who_aliases, who_alias_count, true);"
 require_term "src/codegen/llvm_intent_forward.c" \
     "llvm_collect_mir_intent_bindings"
 require_term "src/codegen/llvm_intent_forward.c" \

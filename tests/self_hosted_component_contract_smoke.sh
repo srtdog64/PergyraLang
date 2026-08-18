@@ -17759,15 +17759,15 @@ done
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy" \
     "func DirectMirScalarProgramArrayStringReadonlyRefParameterReady(" \
-    'signature.parameters.carriages[parameter] == "readonly-ref"'
+    'signature.parameters.carriages[ordinal] == "readonly-ref"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy" \
     "func DirectMirScalarProgramCArrayStringReadonlyRefCallArgument(" \
-    'return Concat("&pgy_local_", ToString(local));'
+    'return Concat("&pgy_local_", ToString('
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
     "func DirectMirScalarProgramLlvmArrayStringReadonlyRefCallArgument(" \
-    'return Concat("%pgy_local_", ToString(local));'
+    'Concat("%pgy.local.", ToString('
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy" \
     "func DirectMirScalarProgramCallMarkerReady(" \
@@ -17894,7 +17894,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_member_rebind_owner.pgy" \
     "func DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(" \
-    "MirRoutineLatestDominatingLocalValueMatches("
+    "MirRoutineLatestDominatingLocalValueRow("
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_member_rebind_owner.pgy" \
     "previous_results"
@@ -17911,8 +17911,8 @@ require_function_text \
     "func DirectMirScalarCfgProgramRouteDefinition(" \
     'payload_free_enum, "expr1_graph", use_offset, false'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy" \
-    "func DirectMirScalarCfgProgramExtensionReadinessCode(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_runtime_value_lifecycle_owner.pgy" \
+    "func DirectMirScalarProgramRuntimeValueLocalReady(" \
     "plan.local_ref_kinds[local_row] !="
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_member_rebind_owner.pgy" \
@@ -18694,16 +18694,16 @@ reject_function_text \
     "func DirectMirScalarCfgLocalRefPlanFromOwners(" \
     "!DirectMirScalarProgramIndexedAssignmentOwnsDefinition("
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy" \
-    "func DirectMirScalarCfgProgramAppendRoutine(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy" \
+    "func DirectMirScalarCfgProgramRouteDefinition(" \
     "DirectMirScalarCfgOpArrayIntValueResultSet()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy" \
-    "func DirectMirScalarCfgProgramAppendRoutine(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy" \
+    "func DirectMirScalarCfgProgramRouteDefinition(" \
     "DirectMirScalarCfgOpArrayStringSet()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy" \
-    "func DirectMirScalarCfgProgramAppendRoutine(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy" \
+    "func DirectMirScalarCfgProgramRouteDefinition(" \
     "indexed_assignment.index_root"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_owner.pgy" \
@@ -18767,7 +18767,7 @@ require_function_text \
     "DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix("
 require_function_text \
     "src/self_hosted/mir_lower/latest_local_value_fact_owner.pgy" \
-    "func MirRoutineLatestDominatingLocalValueRow(" \
+    "func MirRoutineLatestDominatingLocalValueMatches(" \
     "selected_value_row"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_member_rebind_owner.pgy" \
@@ -18788,11 +18788,11 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(" \
-    'pgy_as_set(&'
+    'symbol = "pgy_as_set"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(" \
-    'pgy_ai_set(&'
+    'let symbol: String = "pgy_ai_set";'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(" \
@@ -18804,11 +18804,11 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(" \
-    'call void @pgy_as_set(ptr '
+    'symbol = "@pgy_as_set"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(" \
-    'call void @pgy_ai_set(ptr '
+    'let symbol: String = "@pgy_ai_set";'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(" \
@@ -19565,8 +19565,8 @@ require_function_text \
     "func DirectMirScalarProgramLlvmLogicalRecordCallArgument(" \
     '" = getelementptr inbounds "'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
-    "func DirectMirScalarProgramLlvmExpressionAt(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmCallArgumentValue(" \
     "projected.instructions"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
@@ -20114,7 +20114,7 @@ require_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExpressionKindLast(" \
-    "DirectMirScalarProgramExprSetStringHas()"
+    "DirectMirScalarProgramExprArrayStringPushOwned()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
     "func DirectMirScalarProgramBuiltinSignatureFactForCall(" \
