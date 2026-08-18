@@ -92,7 +92,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
       # Keep the release-owned native launcher/self-host sibling pair in the
       # same serial make invocation as its consumers. A separate invocation
