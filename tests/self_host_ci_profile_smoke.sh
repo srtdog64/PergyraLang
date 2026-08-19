@@ -115,7 +115,7 @@ require_job_timeout() {
 require_job_timeout "self-host-parity-linux" 40
 require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
-require_job_timeout "build-windows" 60
+require_job_timeout "build-windows" 90
 
 self_host_parity_job="$(
     sed -n \
