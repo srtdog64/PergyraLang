@@ -100,6 +100,8 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
         >"$missing_row.out" 2>"$missing_row.err"); then
         cmp -s "$baseline_c" "$missing_row.out" || {
             echo "[self-host-parity:driver-rung2] $backend missing ABI-layout tuple silently reshaped the C: $base" >&2
+            echo "[self-host-parity:driver-rung2] baseline vs mutated C (first 20 diff lines):" >&2
+            diff "$baseline_c" "$missing_row.out" | head -20 >&2
             return 1
         }
     else
