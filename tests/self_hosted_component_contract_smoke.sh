@@ -172,7 +172,14 @@ require_make_target_recipe_line() {
     local target="$1"
     local recipe_line="$2"
 
-    awk -v target="$target" -v recipe_line="$recipe_line" '
+    # awk -v runs escape processing on the value, and implementations
+    # disagree on a trailing lone backslash (gawk keeps it, mawk drops
+    # it), so a recipe continuation line must travel through ENVIRON.
+    PGY_RECIPE_TARGET="$target" PGY_RECIPE_LINE="$recipe_line" awk '
+        BEGIN {
+            target = ENVIRON["PGY_RECIPE_TARGET"]
+            recipe_line = ENVIRON["PGY_RECIPE_LINE"]
+        }
         {
             line = $0
             sub(/\r$/, "", line)
