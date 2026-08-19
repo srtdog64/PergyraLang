@@ -100,9 +100,13 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
     if [[ -n "$machine_declaration" ]]; then
         consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
-    if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
-        >"$missing_row.out.raw" 2>"$missing_row.err"); then
-        tr -d '\r' <"$missing_row.out.raw" >"$missing_row.out"
+    missing_row_accepted=1
+    (cd "$ROOT_DIR" && "${consumer_command[@]}" \
+        >"$missing_row.out.raw" 2>"$missing_row.err") || missing_row_accepted=0
+    # Normalize on both branches: the reject-path diagnostic grep reads the
+    # same .out file, and the Windows runner varies CR placement.
+    tr -d '\r' <"$missing_row.out.raw" >"$missing_row.out"
+    if [[ "$missing_row_accepted" -eq 1 ]]; then
         cmp -s "$baseline_c" "$missing_row.out" || {
             echo "[self-host-parity:driver-rung2] $backend missing ABI-layout tuple silently reshaped the C: $base" >&2
             echo "[self-host-parity:driver-rung2] baseline vs mutated C (first 10 differing lines):" >&2
@@ -147,9 +151,11 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
     if [[ -n "$machine_declaration" ]]; then
         consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
-    if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
-        >"$identity_row.out.raw" 2>"$identity_row.err"); then
-        tr -d '\r' <"$identity_row.out.raw" >"$identity_row.out"
+    identity_row_accepted=1
+    (cd "$ROOT_DIR" && "${consumer_command[@]}" \
+        >"$identity_row.out.raw" 2>"$identity_row.err") || identity_row_accepted=0
+    tr -d '\r' <"$identity_row.out.raw" >"$identity_row.out"
+    if [[ "$identity_row_accepted" -eq 1 ]]; then
         cmp -s "$baseline_c" "$identity_row.out" || {
             echo "[self-host-parity:driver-rung2] $backend wrong ABI-layout identity silently reshaped the C: $base" >&2
             return 1

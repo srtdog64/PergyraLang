@@ -64,10 +64,14 @@ pgy_selfhost_verify_driver_rung2_wrapper_match_loop_phi() {
     missing_state_input="$BUILD_DIR/${base}_${backend}.missing-wrapper-loop-state-input.mir.json"
     pgy_replace_first_literal "$self_mir_json" "$missing_state_input" \
         "$merge_uses" "$missing_uses"
-    if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+    missing_state_accepted=1
+    (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$missing_state_input")" \
-        >"$missing_state_input.out.raw" 2>"$missing_state_input.err"); then
-        tr -d '\r' <"$missing_state_input.out.raw" >"$missing_state_input.out"
+        >"$missing_state_input.out.raw" 2>"$missing_state_input.err") \
+        || missing_state_accepted=0
+    # Normalize on both branches: the reject-path grep reads the same .out.
+    tr -d '\r' <"$missing_state_input.out.raw" >"$missing_state_input.out"
+    if [[ "$missing_state_accepted" -eq 1 ]]; then
         cmp -s "$wrapper_baseline_c" "$missing_state_input.out" || {
             echo "[self-host-parity:driver-rung2] $backend missing wrapper-loop $missing_label phi input silently reshaped the C" >&2
             exit 1
