@@ -52,17 +52,22 @@ pgy_selfhost_verify_driver_rung2_wrapper_match_loop_phi() {
     wrapper_baseline_c="$BUILD_DIR/${base}_${backend}.wrapper-loop-baseline.c"
     if ! (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$self_mir_json")" \
-        >"$wrapper_baseline_c" 2>"$wrapper_baseline_c.err"); then
+        >"$wrapper_baseline_c.raw" 2>"$wrapper_baseline_c.err"); then
         echo "[self-host-parity:driver-rung2] $backend wrapper-loop baseline consumption failed" >&2
         cat "$wrapper_baseline_c.err" >&2
         exit 1
     fi
+    # Strip CR before comparing: the Windows runner's stdout text mode may
+    # vary CR placement between invocations (same fix as the ABI-layout
+    # negative owner).
+    tr -d '\r' <"$wrapper_baseline_c.raw" >"$wrapper_baseline_c"
     missing_state_input="$BUILD_DIR/${base}_${backend}.missing-wrapper-loop-state-input.mir.json"
     pgy_replace_first_literal "$self_mir_json" "$missing_state_input" \
         "$merge_uses" "$missing_uses"
     if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$missing_state_input")" \
-        >"$missing_state_input.out" 2>"$missing_state_input.err"); then
+        >"$missing_state_input.out.raw" 2>"$missing_state_input.err"); then
+        tr -d '\r' <"$missing_state_input.out.raw" >"$missing_state_input.out"
         cmp -s "$wrapper_baseline_c" "$missing_state_input.out" || {
             echo "[self-host-parity:driver-rung2] $backend missing wrapper-loop $missing_label phi input silently reshaped the C" >&2
             exit 1

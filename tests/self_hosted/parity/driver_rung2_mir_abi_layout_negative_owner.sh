@@ -73,11 +73,15 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
         consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if ! (cd "$ROOT_DIR" && "${consumer_command[@]}" \
-        >"$baseline_c" 2>"$baseline_c.err"); then
+        >"$baseline_c.raw" 2>"$baseline_c.err"); then
         echo "[self-host-parity:driver-rung2] $backend ABI-layout baseline consumption failed: $base" >&2
         cat "$baseline_c.err" >&2
         return 1
     fi
+    # The Windows runner's stdout text mode may vary CR placement between
+    # invocations; strip CR like the sibling producer legs so the compare
+    # sees the C shape, not the line-ending mode.
+    tr -d '\r' <"$baseline_c.raw" >"$baseline_c"
 
     missing_row="$BUILD_DIR/${base}_${backend}.missing-abi-layout-fact.mir.json"
     # The mutation removes the required-field key itself. Do not mutate a
@@ -97,7 +101,8 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
         consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
-        >"$missing_row.out" 2>"$missing_row.err"); then
+        >"$missing_row.out.raw" 2>"$missing_row.err"); then
+        tr -d '\r' <"$missing_row.out.raw" >"$missing_row.out"
         cmp -s "$baseline_c" "$missing_row.out" || {
             echo "[self-host-parity:driver-rung2] $backend missing ABI-layout tuple silently reshaped the C: $base" >&2
             echo "[self-host-parity:driver-rung2] baseline vs mutated C (first 10 differing lines):" >&2
@@ -143,7 +148,8 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
         consumer_command+=(--machine-manifest-json "$machine_declaration")
     fi
     if (cd "$ROOT_DIR" && "${consumer_command[@]}" \
-        >"$identity_row.out" 2>"$identity_row.err"); then
+        >"$identity_row.out.raw" 2>"$identity_row.err"); then
+        tr -d '\r' <"$identity_row.out.raw" >"$identity_row.out"
         cmp -s "$baseline_c" "$identity_row.out" || {
             echo "[self-host-parity:driver-rung2] $backend wrong ABI-layout identity silently reshaped the C: $base" >&2
             return 1
