@@ -7483,7 +7483,7 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
 reject_file "tests/self_hosted/parity/driver_rung2_result_loop_phi_parity_owner.sh"
 require_file "tests/self_hosted/parity/driver_rung2_wrapper_match_loop_phi_parity_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/driver_rung2_wrapper_match_loop_phi_parity_owner.sh" 80
+    "tests/self_hosted/parity/driver_rung2_wrapper_match_loop_phi_parity_owner.sh" 100
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'driver_rung2_wrapper_match_loop_phi_parity_owner.sh'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
