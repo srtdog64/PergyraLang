@@ -324,6 +324,22 @@ jobs:
         shell: msys2 {0}
         run: CC=gcc make ci-windows
 
+      # Runner-only failure evidence: the device_slot_routine ABI-layout
+      # negative reproduces only on this runner, so on failure ship the
+      # compared artifacts instead of debugging through one log line per run.
+      - name: Upload driver-rung2 negative-leg evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-driver-rung2-evidence
+          if-no-files-found: ignore
+          retention-days: 3
+          path: |
+            .tmp/self_hosted/driver_rung2/*abi-layout-baseline*
+            .tmp/self_hosted/driver_rung2/*missing-abi-layout-fact*
+            .tmp/self_hosted/driver_rung2/*wrong-abi-layout-identity*
+            .tmp/self_hosted/driver_rung2/device_slot_routine*
+
   build-macos-c-only:
     runs-on: macos-latest
     timeout-minutes: 45  # hang budget (docs/190 C1)
