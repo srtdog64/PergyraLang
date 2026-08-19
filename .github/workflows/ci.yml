@@ -23,12 +23,14 @@ jobs:
       - name: Install dependencies
         # A degraded apt mirror must fail this step fast (rerunnable), not
         # hang silently until the job's whole hang budget cancels the job.
+        # The Acquire hardening lives in apt.conf.d so the apt-get lines keep
+        # the literal spellings the formal-semantics/beta-readiness pins read.
         timeout-minutes: 10
         run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y gcc make llvm-dev llvm coq
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm coq
 
       - name: Run Linux CI target
         # ci-linux already shards backend comparison; do not multiply each
@@ -47,12 +49,14 @@ jobs:
       - name: Install dependencies
         # A degraded apt mirror must fail this step fast (rerunnable), not
         # hang silently until the job's whole hang budget cancels the job.
+        # The Acquire hardening lives in apt.conf.d so the apt-get lines keep
+        # the literal spellings the formal-semantics/beta-readiness pins read.
         timeout-minutes: 10
         run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y gcc make
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make
 
       # pgy delegates ordinary compiles to the installed self-host driver, and
       # bin/ is gitignored, so a fresh checkout has none and every compile
@@ -88,12 +92,14 @@ jobs:
       - name: Install dependencies
         # A degraded apt mirror must fail this step fast (rerunnable), not
         # hang silently until the job's whole hang budget cancels the job.
+        # The Acquire hardening lives in apt.conf.d so the apt-get lines keep
+        # the literal spellings the formal-semantics/beta-readiness pins read.
         timeout-minutes: 10
         run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y gcc make
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make
 
       - name: Calibrate TSan and run the runtime concurrency battery
         run: make LLVM_ENABLED=0 test-tsan
@@ -107,12 +113,14 @@ jobs:
       - name: Install dependencies
         # A degraded apt mirror must fail this step fast (rerunnable), not
         # hang silently until the job's whole hang budget cancels the job.
+        # The Acquire hardening lives in apt.conf.d so the apt-get lines keep
+        # the literal spellings the formal-semantics/beta-readiness pins read.
         timeout-minutes: 10
         run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y gcc make llvm-dev llvm libomp-dev
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
       # Keep the release-owned native launcher/self-host sibling pair in the
       # same serial make invocation as its consumers. A separate invocation
@@ -211,12 +219,14 @@ jobs:
       - name: Install dependencies
         # A degraded apt mirror must fail this step fast (rerunnable), not
         # hang silently until the job's whole hang budget cancels the job.
+        # The Acquire hardening lives in apt.conf.d so the apt-get lines keep
+        # the literal spellings the formal-semantics/beta-readiness pins read.
         timeout-minutes: 10
         run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y gcc make llvm-dev llvm
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm
 
       - name: Run the full self-host fixed point and policy-corpus census
         # Reuse one fixed-point build. A second bootstrap job duplicates the
@@ -234,12 +244,14 @@ jobs:
       - name: Install dependencies
         # A degraded apt mirror must fail this step fast (rerunnable), not
         # hang silently until the job's whole hang budget cancels the job.
+        # The Acquire hardening lives in apt.conf.d so the apt-get lines keep
+        # the literal spellings the formal-semantics/beta-readiness pins read.
         timeout-minutes: 10
         run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y gcc make llvm-dev llvm
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm
 
       - name: Run self-host codegen fixed point and breadth
         run: make self-host-codegen-bootstrap-test-smoke
@@ -301,12 +313,14 @@ jobs:
       - name: Install dependencies
         # A degraded apt mirror must fail this step fast (rerunnable), not
         # hang silently until the job's whole hang budget cancels the job.
+        # The Acquire hardening lives in apt.conf.d so the apt-get lines keep
+        # the literal spellings the formal-semantics/beta-readiness pins read.
         timeout-minutes: 10
         run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \
-            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y gcc make llvm-dev llvm
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm
 
       # Each shard needs the installed self-host driver: pgy delegates both the
       # C and the LLVM leg to it, and bin/ is gitignored so a fresh checkout has
