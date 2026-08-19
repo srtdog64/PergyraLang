@@ -315,8 +315,12 @@ jobs:
         with:
           msystem: UCRT64
           update: true
+          # diffutils: the parity gates compare emitted artifacts with cmp;
+          # the rolled msys2 image stopped shipping it and a missing cmp
+          # exits 127, which reads as "artifacts differ" (false red).
           install: >-
             make
+            diffutils
             mingw-w64-ucrt-x86_64-python
             mingw-w64-ucrt-x86_64-gcc
 
