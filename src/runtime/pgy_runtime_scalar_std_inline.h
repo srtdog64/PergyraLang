@@ -70,13 +70,19 @@ pgy_log_banner(const char *v)
 #endif
 
 
+/* Integer associations are spelled with builtin types: fixed-width typedefs
+ * resolve differently per ABI (glibc LP64 makes int64_t 'long'; LLP64 and
+ * Apple make it 'long long'), which left an emitted 'long long' literal
+ * (e.g. 0LL) with no association on Linux. int, long, and long long are
+ * formally distinct types on every ABI, so all three never collide. */
 #define pgy_log(x) _Generic((x), \
-    int32_t:  pgy_log_int,    \
-    int64_t:  pgy_log_long,   \
-    float:    pgy_log_float,  \
-    double:   pgy_log_double, \
-    bool:     pgy_log_bool,   \
-    char*:    pgy_log_string, \
+    int:      pgy_log_int,     \
+    long:     pgy_log_long,    \
+    long long: pgy_log_long,   \
+    float:    pgy_log_float,   \
+    double:   pgy_log_double,  \
+    bool:     pgy_log_bool,    \
+    char*:    pgy_log_string,  \
     const char*: pgy_log_string \
 )(x)
 
