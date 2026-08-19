@@ -119,7 +119,14 @@ pgy_selfhost_verify_driver_rung2_abi_layout_negative() {
                         if (++shown >= 10) exit
                     }
                 }' "$baseline_c" "$missing_row.out" >&2
+            # Line-identical yet cmp-different means the divergence hides in
+            # the byte tail; print counts and the last bytes of each side.
             wc -l "$baseline_c" "$missing_row.out" >&2
+            wc -c "$baseline_c" "$missing_row.out" >&2
+            echo "baseline tail bytes:" >&2
+            tail -c 32 "$baseline_c" | od -c | tail -4 >&2
+            echo "mutated tail bytes:" >&2
+            tail -c 32 "$missing_row.out" | od -c | tail -4 >&2
             return 1
         }
     else
