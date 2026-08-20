@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_c_option_bool_owner.pgy";
 import "direct_mir_scalar_program_c_two_int_nominal_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_value_result_union_owner.pgy";
 import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";

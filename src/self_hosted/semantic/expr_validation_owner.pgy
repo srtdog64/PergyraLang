@@ -13,6 +13,19 @@ import "expression_operator_fact_owner.pgy";
 import "try_expression_fact_owner.pgy";
 import "callable_resolution_owner.pgy";
 
+// A member name is whatever follows a `.`, and the source may wrap the line
+// after the dot. Looking only at the byte before the name reads the wrap as
+// "not a member" and validates the member as a local, so walk back over
+// whitespace before deciding.
+func SemanticIdentifierFollowsDot(text: String, n: Int, start: Int) -> Bool {
+    let dot: Int = SourceByteOf(".");
+    let back: Int = start;
+    while back > 0 && SourceByteIsWhitespace(SourceByteAt(text, n, back - 1)) {
+        back = back - 1;
+    }
+    return back > 0 && SourceByteAt(text, n, back - 1) == dot;
+}
+
 func CheckUndefinedIdentifiers(
     expr: String,
     names: Array<String>,
@@ -60,7 +73,7 @@ func CheckUndefinedIdentifiers(
                 }
                 continue;
             }
-            if start > 0 && SourceByteAt(text, n, start - 1) == dot {
+            if SemanticIdentifierFollowsDot(text, n, start) {
                 continue;
             }
             let after: Int = SkipWhitespaceAndComments(text, i);

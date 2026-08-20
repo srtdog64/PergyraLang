@@ -1,6 +1,7 @@
 // Focused executable proof for semantic-owned assignment projections.
 
 import "../../codegen/emission/assign_emit_owner.pgy";
+import "../../codegen/type_facts/type_env_state_lifetime_owner.pgy";
 import "../../codegen/emission/function_binding_env_owner.pgy";
 import "../../semantic/ast_expression_call_target_capture_owner.pgy";
 import "../../semantic/ast_expression_place_fact_owner.pgy";
@@ -115,7 +116,7 @@ func ProbeOptionAssignment(
             );
         local_rows = Concat(local_rows, binding.env_rows);
     }
-    let env_state: Array<String> = ["|", local_rows];
+    let env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(local_rows);
     let env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", local_rows);
     return EmitAssign(
         assignments, 0, expected_type, expected_type,
@@ -142,12 +143,8 @@ func ProbeIndexedAssignment(
     if carry_c_binding {
         local_rows = Concat(local_rows, "nums=cbind:nums|");
     }
-    let env_state: Array<String> = [
-        "|", local_rows
-    ];
-    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
-        env_state[0], env_state[1]
-    );
+    let env_state: CodegenTypeEnvState = CodegenTypeEnvStateOwned(local_rows);
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", local_rows);
     return EmitAssign(
         assignments, 0, "Int", target_type,
         env_state, env, value_graph, target_graph
