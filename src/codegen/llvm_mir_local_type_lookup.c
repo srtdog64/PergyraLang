@@ -100,6 +100,12 @@ llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
     value_expr = llvm_mir_local_initializer_expr(inst->expr0);
     if (llvm_mir_value_expr_is_method_call(value_expr))
         return NULL;
+    /* A member access projects a field out of its receiver: the used value
+     * is the receiver, so its type is not a fact about the defined value
+     * (`failure = admission.failure` must not type `failure` as the
+     * admission struct). Fall through to the owned-fact paths instead. */
+    if (value_expr != NULL && value_expr->type == AST_MEMBER_ACCESS)
+        return NULL;
     if (inst->use_count > 0 && inst->uses != NULL) {
         bool value_is_binary = value_expr != NULL
             && value_expr->type == AST_BINARY;

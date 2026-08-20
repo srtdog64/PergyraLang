@@ -514,6 +514,23 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
                 "LLVM floating binary expression could not align operand types");
     }
 
+    if (!is_float
+        && ((left_type == ctx->type_i32 && right_type == ctx->type_i64)
+            || (left_type == ctx->type_i64 && right_type == ctx->type_i32))) {
+        /* Int meets Long: the C backend inherits C's usual arithmetic
+         * conversions, which widen the Int side (signed) before any
+         * integer op or compare. Mixed i32/i64 operands are otherwise
+         * an LLVM verifier error, not a lowering choice. */
+        if (left_type == ctx->type_i32)
+            left = LLVMBuildSExt(ctx->builder, left, ctx->type_i64,
+                                 llvm_tmp_name(ctx));
+        else
+            right = LLVMBuildSExt(ctx->builder, right, ctx->type_i64,
+                                  llvm_tmp_name(ctx));
+        left_type = LLVMTypeOf(left);
+        right_type = LLVMTypeOf(right);
+    }
+
     if (!is_float && (op_type == TOKEN_SLASH
         || op_type == TOKEN_PERCENT)) {
         bool use_i64 = left_type == ctx->type_i64 || right_type == ctx->type_i64;

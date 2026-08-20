@@ -459,7 +459,7 @@ typedef struct LLVMGenCtx
     int                    weak_var_count;
     int                    weak_var_capacity;
 
-    LLVMClassTypeEntry   *class_types;
+    LLVMClassTypeEntry  **class_types;
     int                   class_type_count;
     int                   class_type_capacity;
 

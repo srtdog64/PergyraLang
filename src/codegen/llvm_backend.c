@@ -417,6 +417,8 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     free(ctx->channel_vars);
     free(ctx->rc_vars);
     free(ctx->weak_vars);
+    for (int i = 0; i < ctx->class_type_count; i++)
+        free(ctx->class_types[i]);
     free(ctx->class_types);
     free(ctx->var_classes);
     free(ctx->projection_borrows);

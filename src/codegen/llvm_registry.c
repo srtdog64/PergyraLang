@@ -396,10 +396,19 @@ llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
                     bool is_subject,
                     bool is_pointer_self_host)
 {
+    /* The registry owns POINTERS, never inline entries: callers legitimately
+     * hold an entry across later registrations (an enum registers one payload
+     * class per variant while filling the enum's own field table), and a
+     * growing inline array would move every live entry out from under them. */
     PGY_DYNARR_ENSURE_RET(ctx->class_types, ctx->class_type_count,
-                          ctx->class_type_capacity, LLVMClassTypeEntry);
+                          ctx->class_type_capacity, LLVMClassTypeEntry *);
 
-    LLVMClassTypeEntry *entry = &ctx->class_types[ctx->class_type_count++];
+    LLVMClassTypeEntry *entry = calloc(1, sizeof(*entry));
+    if (entry == NULL) {
+        llvm_set_error(ctx, "out of memory registering LLVM class entry");
+        return NULL;
+    }
+    ctx->class_types[ctx->class_type_count++] = entry;
     entry->owner_ctx   = ctx;
     entry->class_name  = class_name;
     entry->struct_type = struct_type;
@@ -453,8 +462,8 @@ llvm_lookup_class(LLVMGenCtx *ctx, const char *class_name)
     if (ctx == NULL || class_name == NULL)
         return NULL;
     for (int i = 0; i < ctx->class_type_count; i++) {
-        if (strcmp(ctx->class_types[i].class_name, class_name) == 0)
-            return &ctx->class_types[i];
+        if (strcmp(ctx->class_types[i]->class_name, class_name) == 0)
+            return ctx->class_types[i];
     }
     return NULL;
 }
@@ -470,8 +479,8 @@ llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx, LLVMTypeRef struct_type)
     if (LLVMGetTypeKind(struct_type) == LLVMPointerTypeKind)
         return NULL;
     for (int i = 0; i < ctx->class_type_count; i++) {
-        if (ctx->class_types[i].struct_type == struct_type)
-            return &ctx->class_types[i];
+        if (ctx->class_types[i]->struct_type == struct_type)
+            return ctx->class_types[i];
     }
     return NULL;
 }
@@ -487,17 +496,17 @@ llvm_lookup_vtable_class_with_method(LLVMGenCtx *ctx,
         return NULL;
 
     for (int i = 0; i < ctx->class_type_count; i++) {
-        const char *class_name = ctx->class_types[i].class_name;
+        const char *class_name = ctx->class_types[i]->class_name;
         int method_index;
 
         if (class_name == NULL || strstr(class_name, "_vtable") == NULL)
             continue;
-        method_index = llvm_class_field_index(&ctx->class_types[i], method_name);
+        method_index = llvm_class_field_index(ctx->class_types[i], method_name);
         if (method_index < 0)
             continue;
         if (out_method_index != NULL)
             *out_method_index = method_index;
-        return &ctx->class_types[i];
+        return ctx->class_types[i];
     }
 
     return NULL;
