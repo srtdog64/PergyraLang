@@ -1,18 +1,81 @@
 # Current Work Handoff
 
-Updated: 2026-08-18 (Asia/Seoul)
+Updated: 2026-08-21 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
-Project-wide progress is tracked separately in `docs/00_progress.md`. The
-2026-08-18 working forecast is 78% (75-81% range) for language beta plus SoT,
-self-host, bootstrap, and CI/release together; strict language beta remains at
-the official 83% line. V numbers, `.tmp` artifacts, owner count, and gate count
-do not increment either percentage by themselves.
+Project-wide progress is tracked separately in `docs/00_progress.md`. The last
+published 2026-08-18 working forecast is 78% (75-81% range) for language beta
+plus SoT, self-host, bootstrap, and CI/release together; strict language beta
+remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
+gate count do not increment either percentage by themselves.
 
-## Active self-host context - DIR-to-MIR lifetime and CI verification
+## Active self-host context - CI parity closure and remote verification
+
+- The exact source checkpoint is commit
+  `9f6b03aa563a5ad8c654598b5ee85fb45653667b` on `main`, one commit ahead of
+  `origin/main` before publication. The commit containing this card is a
+  handoff-only successor. The only remaining worktree path is the unrelated
+  untracked `pgy-80135c2c/`; do not stage, discard, or rewrite it.
+- Current remote evidence is CI run `32408205595` at parent commit
+  `afaee1b198ef9c31f27677bf58ae751e41c4d6fe`. Bootstrap, codegen bootstrap,
+  Windows, macOS C-only, sanitizers, TSan, Rocq, and all backend-compare shards
+  were green. The two deterministic red jobs were `self-host-parity-linux`
+  (first stop: compensation execution parity) and `build-linux` (self-hosted
+  driver was incorrectly selected by native compiler-subject gates, plus the
+  stale production-header golden).
+- Objective card: objective = make those two CI jobs green without widening
+  self-host authority; priority = executable C/LLVM parity, explicit owner
+  identity, old-path rejection, then structural ratchets; fact owners = the
+  direct-MIR payload-free enum declaration/match graph and the intent forward
+  trace transition; last consumers = direct C/LLVM emission and installed
+  compensation execution; forbidden = node-spelling enum inference, duplicate
+  trace materialization during cleanup, or letting native compiler gates
+  silently exercise the installed self-host sibling; falsifier = a current
+  `main` CI run in which both jobs pass from clean Ubuntu checkout.
+- The direct-MIR scalar program now admits payload-free enum values across
+  parameters, return values, logical-record fields, direct calls, equality,
+  and exhaustive match CFGs through declaration-keyed enum facts. Match
+  admission proves one stable scrutinee, unique variant ordinals, exact CFG
+  edges, and the otherwise-empty terminal fallthrough; malformed declaration,
+  payload, physical ABI, graph owner, duplicate variant, or non-exhaustive
+  shapes fail closed. There is no source-text or node-shape fallback.
+- Intent compensation still restores bound values, but cleanup no longer emits
+  the forward-path materialize/transfer observability events a second time.
+  C and LLVM consume the same explicit `emit_observability=false` cleanup fact;
+  normal execution remains `true`. The installed parity fixture compares
+  emitted C and all runtime outputs through the repository comparator and uses
+  the exact native C/LLVM route for its oracle.
+- Native compiler-subject gates now declare `PGY_NATIVE_PIPELINE=1`; the
+  gate-subject ratchet reports 54 declared subjects. This removes the false
+  authority handoff that made channel, region, runtime-frontier, campaign, and
+  emitted-C gates fail on syntax outside the current direct self-host slice.
+  Imported self-host parsing also recognizes explicit `export` as a token fact
+  while ignoring comments and strings, so imported declarations keep stable
+  identity without substring inference.
+- Observed local green evidence includes: fresh installed-driver C and LLVM
+  execution-lane parity (35/35 each), focused payload-free enum C/LLVM parity
+  and mutation negatives, compensation self/native C/native LLVM execution,
+  ABI specification 83/83 plus C/LLVM ABI pipeline, self-host component and MIR
+  declaration ratchets, language-word registry generation, formal Coq tail,
+  AIR backend non-impact over all 926 fixtures in both backends, and the
+  production-header owner-size check with the canonical 728-header golden.
+  The Linux parser/semantic/codegen platform suites passed 189/114/85.
+- Local WSL is a mixed Windows-driver environment. Absolute `/mnt/d/...`
+  source identities and `/tmp` sibling discovery can differ from a clean Linux
+  runner; those cases were rerun through the owning native/Windows route and
+  are not reported as product failures. A separate Windows filtered
+  `driver_rung2_body_parity.sh` rerun is still in progress and is not counted
+  as green evidence in this card.
+- Next executable rung: publish the source and handoff commits to `main`, then
+  inspect the new GitHub Actions run. The first falsifiers are the exact
+  `self-host-parity-linux` compensation successor gates and the original-order
+  `build-linux` path past production-header size. If either fails, resume from
+  that first clean-run failure; do not open another general SoT cleanup.
+
+### Previous DIR-to-MIR lifetime and CI context (inactive)
 
 - HEAD is `c363a94a14091f8e479607c4550c054272fd7e1f` on `main` and matches
   `origin/main`. The previous accumulated frontier was committed externally
