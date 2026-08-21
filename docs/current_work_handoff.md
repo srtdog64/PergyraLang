@@ -81,10 +81,24 @@ gate count do not increment either percentage by themselves.
   the same `libomp-dev`-bearing command as the workflow. This is CI contract
   migration fallout; the macOS compiler/runtime surface itself passed through
   the exhaustive C-only self-host parity before the static pins failed.
-- Next executable rung: publish the synchronized CI dependency contract and
-  inspect the newest clean GitHub Actions run. The falsifier is the full job
-  set, with the reached Linux execution-lane link as the first focused witness.
-  If the run is green,
+- Fourth publication run `32510788380` at `644d7dd3` made 28 jobs green,
+  including `build-linux`, macOS, Windows, both bootstrap jobs, and every
+  backend shard. `build-linux` passed the formerly failing OpenMP execution
+  lane and its complete `test-all` tail. The remaining exhaustive parity job
+  completed the 1,566-source ledger, incremental/impact checks, and C/LLVM
+  85-fixture codegen parity twice; both attempts then received an external
+  GitHub runner shutdown while compiling the assignment projection probe. No
+  assertion failed and neither attempt reached its 90-minute timeout.
+- The completeness/cache and codegen parity scratch has no legitimate consumer
+  after `codegen_parity.sh`, while the assignment and later probes each create
+  their own scratch. The exhaustive recipe now invokes its existing
+  `clean-scratch` owner exactly once between codegen parity and the assignment
+  probe. The CI profile fixes that order so compiler-scale scratch cannot again
+  accumulate across this peak boundary.
+- Next executable rung: publish the scratch lifetime boundary and inspect the
+  newest clean GitHub Actions run. The falsifier is the full job set, with
+  exhaustive parity reaching and completing assignment projection on one
+  runner. If the run is green,
   return to the next production self-host replacement named by current
   executable evidence. If it is red, resume from its first deterministic
   failure and do not open another general SoT cleanup.

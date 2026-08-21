@@ -196,6 +196,26 @@ exhaustive_recipe="$(
         '/^self-host-preparation-exhaustive-parity-test-smoke:/,/^self-host-runtime-boundary-parity-test-smoke:/p' \
         "$MAKEFILE"
 )"
+codegen_parity_line="$(
+    grep -nF 'tests/self_hosted/parity/codegen_parity.sh' \
+        <<<"$exhaustive_recipe" | tail -n 1 | cut -d: -f1 || true
+)"
+scratch_reset_line="$(
+    grep -nF '$(MAKE) clean-scratch' \
+        <<<"$exhaustive_recipe" | cut -d: -f1 || true
+)"
+assignment_probe_line="$(
+    grep -nF 'tests/self_hosted/parity/assignment_projection_probe_parity.sh' \
+        <<<"$exhaustive_recipe" | cut -d: -f1 || true
+)"
+if [[ "$(grep -Fc '$(MAKE) clean-scratch' <<<"$exhaustive_recipe")" != "1" ]] ||
+    [[ -z "$codegen_parity_line" || -z "$scratch_reset_line" ||
+       -z "$assignment_probe_line" ]] ||
+    (( codegen_parity_line >= scratch_reset_line ||
+       scratch_reset_line >= assignment_probe_line )); then
+    echo "[self-host-ci-profile] exhaustive parity must release consumed scratch before the assignment probe" >&2
+    exit 1
+fi
 for forbidden in \
     'codegen_bootstrap.sh' \
     'driver_bootstrap.sh'; do

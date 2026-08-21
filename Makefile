@@ -2998,6 +2998,9 @@ self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_run_group_runner.sh
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
+	# The completeness/cache and dual-backend codegen scratch has no consumer
+	# past this point. Release it before the next compiler-scale C/LLVM probe.
+	$(MAKE) clean-scratch
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/assignment_projection_probe_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/initializer_projection_probe_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/generic_return_probe_parity.sh
