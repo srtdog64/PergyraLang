@@ -34,35 +34,39 @@ func DirectMirScalarProgramPayloadFreeEnumMatchConditionAt(
             DirectMirScalarCfgConditionExpression() {
         return invalid;
     }
-    let expressions: DirectMirScalarProgramExpressionSet =
-        plan.program.expressions;
     let expression_row: Int =
         plan.program.block_condition_expression_rows[block];
     if expression_row < 0 || expression_row >=
-            ArrayLength(expressions.graph_starts) { return invalid; }
-    let start: Int = expressions.graph_starts[expression_row];
-    let count: Int = expressions.graph_counts[expression_row];
-    let root: Int = expressions.graph_roots[expression_row];
+            ArrayLength(plan.program.expressions.graph_starts) {
+        return invalid;
+    }
+    let start: Int = plan.program.expressions.graph_starts[expression_row];
+    let count: Int = plan.program.expressions.graph_counts[expression_row];
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
     if count < 3 || root != start + count - 1 ||
-        root >= ArrayLength(expressions.node_kinds) ||
-        expressions.node_kinds[root] !=
+        root >= ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_kinds[root] !=
             DirectMirScalarProgramExprEqualPayloadFreeEnum() ||
-        expressions.node_types[root] != CompilerAbiLayoutBoolTypeName() {
+        plan.program.expressions.node_types[root] !=
+            CompilerAbiLayoutBoolTypeName() {
         return invalid;
     }
     let source_count: Int = count - 2;
     let variant: Int = start + source_count;
-    let scrutinee: Int = expressions.node_lefts[root];
-    if expressions.node_rights[root] != variant ||
+    let scrutinee: Int = plan.program.expressions.node_lefts[root];
+    if plan.program.expressions.node_rights[root] != variant ||
         scrutinee < start || scrutinee >= start + source_count ||
-        expressions.node_kinds[variant] !=
+        plan.program.expressions.node_kinds[variant] !=
             DirectMirScalarProgramExprPayloadFreeEnumVariant() ||
-        expressions.node_types[scrutinee] != expressions.node_types[variant] {
+        plan.program.expressions.node_types[scrutinee] !=
+            plan.program.expressions.node_types[variant] {
         return invalid;
     }
     let enum_row: Int = DirectMirScalarProgramPayloadFreeEnumRow(
-        plan.program.payload_free_enum, expressions.node_types[variant]);
-    let ordinal: Int = expressions.node_member_ordinals[variant];
+        plan.program.payload_free_enum,
+        plan.program.expressions.node_types[variant]);
+    let ordinal: Int =
+        plan.program.expressions.node_member_ordinals[variant];
     if enum_row < 0 || ordinal < 0 || ordinal >=
             plan.program.payload_free_enum.variant_counts[enum_row] {
         return invalid;
@@ -70,9 +74,9 @@ func DirectMirScalarProgramPayloadFreeEnumMatchConditionAt(
     let node: Int = start;
     while node < start + source_count {
         if !DirectMirScalarProgramPayloadFreeEnumStableScrutineeKind(
-                expressions.node_kinds[node]) ||
-            expressions.node_callable_rows[node] != -1 ||
-            expressions.node_runtime_call_abi_ids[node] != -1 {
+                plan.program.expressions.node_kinds[node]) ||
+            plan.program.expressions.node_callable_rows[node] != -1 ||
+            plan.program.expressions.node_runtime_call_abi_ids[node] != -1 {
             return invalid;
         }
         node = node + 1;
