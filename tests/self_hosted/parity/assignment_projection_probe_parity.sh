@@ -135,15 +135,64 @@ compile_probe() {
     local backend="$1"
     local bin="$BUILD_DIR/probe_${backend}.exe"
     local log="$BUILD_DIR/probe_${backend}.compile.log"
+    local compile_pid
+    local compile_rc
+    local elapsed=0
+    local subtree_rss_kib
+    local mem_available_kib
+    local swap_free_kib
     # This gate owns projection semantics and fail-closed runtime behavior, not
     # optimizer throughput. Both profiles use the installed self-host artifact
     # owners; dev keeps the fixed compiler-scale C/LLVM probes at -O0 instead
     # of making this focused gate pay the unrelated -O3 resource peak.
-    if ! (cd "$ROOT_DIR" && "$PGY" \
+    (cd "$ROOT_DIR" && "$PGY" \
         "$(pgy_path_for_compiler "$PGY" "$PROBE_SOURCE")" \
         --backend="$backend" \
         --opt=dev \
-        -o "$(pgy_path_for_compiler "$PGY" "$bin")" >"$log" 2>&1); then
+        -o "$(pgy_path_for_compiler "$PGY" "$bin")" >"$log" 2>&1) &
+    compile_pid="$!"
+    while kill -0 "$compile_pid" 2>/dev/null; do
+        sleep 15
+        if ! kill -0 "$compile_pid" 2>/dev/null; then
+            break
+        fi
+        elapsed=$((elapsed + 15))
+        subtree_rss_kib="unknown"
+        if command -v ps >/dev/null 2>&1 && command -v awk >/dev/null 2>&1; then
+            subtree_rss_kib="$(
+                ps -eo pid=,ppid=,rss= 2>/dev/null |
+                    awk -v root="$compile_pid" '
+                        { rss[$1] = $3; parent[$1] = $2 }
+                        END {
+                            for (p in rss) {
+                                q = p
+                                while (q > 1 && q != root && (q in parent)) {
+                                    q = parent[q]
+                                }
+                                if (q == root) { total += rss[p] }
+                            }
+                            print total + 0
+                        }
+                    ' || true
+            )"
+        fi
+        mem_available_kib="unknown"
+        swap_free_kib="unknown"
+        if [[ -r /proc/meminfo ]]; then
+            mem_available_kib="$(
+                awk '$1 == "MemAvailable:" { print $2 }' /proc/meminfo
+            )"
+            swap_free_kib="$(
+                awk '$1 == "SwapFree:" { print $2 }' /proc/meminfo
+            )"
+        fi
+        echo "[$LABEL] backend=$backend compile heartbeat elapsed=${elapsed}s subtree_rss_kib=${subtree_rss_kib:-unknown} mem_available_kib=${mem_available_kib:-unknown} swap_free_kib=${swap_free_kib:-unknown}"
+    done
+    set +e
+    wait "$compile_pid"
+    compile_rc="$?"
+    set -e
+    if [[ "$compile_rc" -ne 0 ]]; then
         if [[ "$backend" == "llvm" ]] \
             && pgy_selfhost_log_reports_no_llvm "$log"; then
             return 2

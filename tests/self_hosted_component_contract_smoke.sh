@@ -15402,6 +15402,10 @@ require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     '--opt=dev'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
+    'compile heartbeat elapsed='
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
+    'MemAvailable:'
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'run_missing_fact_negative "$backend" "missing-target-type"'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'run_missing_fact_negative "$backend" "missing-call-target"'
