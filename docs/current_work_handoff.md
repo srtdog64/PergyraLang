@@ -64,12 +64,21 @@ gate count do not increment either percentage by themselves.
   Restoring the multi-line signature and recovering the line in the shared
   mutation-policy call returns the measured surface to 76/76 without relaxing
   either cap or changing emitted behavior.
-- Next executable rung: publish the compiler checkpoint and handoff successor,
-  then inspect the newest clean GitHub Actions run. The first falsifier is the
-  exact `self-host-parity-linux` result; all other jobs remain independent
-  witnesses. If the run is green, return to the next production self-host
-  replacement named by current executable evidence. If it is red, resume from
-  its first deterministic failure and do not open another general SoT cleanup.
+- Second publication run `32501978243` made macOS, Windows, both bootstrap
+  jobs, sanitizers, TSan, Rocq, and all 20 backend shards green. Its
+  `build-linux` job reached `self-host-execution-lane-parity-test-smoke` and
+  failed only while linking the LLVM projection because Ubuntu could not find
+  `-lomp`. The exhaustive parity job already installed `libomp-dev`; the
+  integrated Linux job did not. The workflow now installs that exact link
+  dependency in `build-linux`, and `self_host_ci_profile_smoke.sh` rejects its
+  removal. This is runner provisioning evidence, not a new compiler-semantic
+  failure or substitution delta.
+- Next executable rung: publish the CI dependency fix and inspect the newest
+  clean GitHub Actions run. The falsifier is the full job set, with the reached
+  Linux execution-lane link as the first focused witness. If the run is green,
+  return to the next production self-host replacement named by current
+  executable evidence. If it is red, resume from its first deterministic
+  failure and do not open another general SoT cleanup.
 
 ### Previous CI parity closure and budget context (inactive)
 

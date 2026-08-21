@@ -117,6 +117,18 @@ require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "build-windows" 90
 
+build_linux_job="$(
+    sed -n \
+        '/^  build-linux:/,/^  sanitizers-linux:/p' \
+        "$WORKFLOW"
+)"
+if ! grep -Eq \
+        'sudo apt-get install -y .*([[:space:]])libomp-dev([[:space:]]|$)' \
+        <<<"$build_linux_job"; then
+    echo "[self-host-ci-profile] build-linux must install the LLVM OpenMP link dependency" >&2
+    exit 1
+fi
+
 self_host_parity_job="$(
     sed -n \
         '/^  self-host-parity-linux:/,/^  self-host-bootstrap-linux:/p' \

@@ -30,7 +30,7 @@ jobs:
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm coq
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
 
       - name: Run Linux CI target
         # ci-linux already shards backend comparison; do not multiply each
