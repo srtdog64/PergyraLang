@@ -241,108 +241,110 @@ func DirectMirScalarCfgEmitProgramLlvm(
         DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
     if !array_int_runtime.valid { Die(
         "direct MIR scalar LLVM Array<Int> runtime requirement is invalid"); }
-    let output: String =
-        "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [";
-    output = Concat(
-        CompilerRuntimeValueLlvmLocalPreamble(plan.local_types),
-        output);
-    output = Concat(
-        DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
-            plan.program.logical_record, target), output);
-    output = Concat(DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(plan, target), output);
-    output = Concat(
-        DirectMirScalarProgramLlvmLogicalRecordPreamble(
-            plan.program.logical_record, target), output);
-    output = Concat(
-        DirectMirScalarProgramLlvmArrayIntValueResultPreamble(
-            plan.program.array_int_value_result, array_int_runtime, target),
-        output);
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(4096);
+    TextBuilderAppend(output,
+        DirectMirScalarProgramLlvmOptionBoolPreamble(
+            plan.program.option_bool_abi, target));
+    TextBuilderAppend(output,
+        DirectMirScalarProgramLlvmOptionStringPreamble(
+            plan.program.option_string_abi, target));
+    TextBuilderAppend(output,
+        DirectMirScalarProgramLlvmOptionIntPreamble(
+            plan.program.option_int_abi, target));
+    TextBuilderAppend(output,
+        DirectMirScalarProgramLlvmTwoIntNominalPreamble(
+            plan.program.nominal_abi, target));
+    TextBuilderAppend(output,
+        DirectMirScalarProgramLlvmStringCollectionMaterialization(
+            plan, runtime));
     let array_bool_get_required: Bool =
         DirectMirScalarProgramExpressionContainsKind(
             plan.program.expressions,
             DirectMirScalarProgramExprArrayBoolIndex());
-    let array_bool_preamble: String =
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmArrayBoolPreamble(
-            plan.program.array_bool_abi, array_bool_get_required, target);
+            plan.program.array_bool_abi, array_bool_get_required, target));
     if DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) {
-        array_bool_preamble = Concat(
-            array_bool_preamble,
+        TextBuilderAppend(output,
             DirectMirScalarProgramLlvmArrayBoolPushMaterialization());
     }
-    output = Concat(array_bool_preamble, output);
-    output = Concat(
-        DirectMirScalarProgramLlvmStringCollectionMaterialization(
-            plan, runtime), output);
-    output = Concat(
-        DirectMirScalarProgramLlvmTwoIntNominalPreamble(
-            plan.program.nominal_abi, target), output);
-    output = Concat(
-        DirectMirScalarProgramLlvmOptionIntPreamble(
-            plan.program.option_int_abi, target), output);
-    output = Concat(
-        DirectMirScalarProgramLlvmOptionStringPreamble(
-            plan.program.option_string_abi, target), output);
-    output = Concat(
-        DirectMirScalarProgramLlvmOptionBoolPreamble(
-            plan.program.option_bool_abi, target), output);
-    output = Concat(output, ToString(int_size));
-    output = Concat(output, " x i8] c\"");
-    output = Concat(output,
+    TextBuilderAppend(output,
+        DirectMirScalarProgramLlvmArrayIntValueResultPreamble(
+            plan.program.array_int_value_result, array_int_runtime, target));
+    TextBuilderAppend(output,
+        DirectMirScalarProgramLlvmLogicalRecordPreamble(
+            plan.program.logical_record, target));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(plan, target));
+    TextBuilderAppend(output,
+        DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
+            plan.program.logical_record, target));
+    TextBuilderAppend(output,
+        CompilerRuntimeValueLlvmLocalPreamble(plan.local_types));
+    TextBuilderAppend(output,
+        "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [");
+    TextBuilderAppend(output, ToString(int_size));
+    TextBuilderAppend(output, " x i8] c\"");
+    TextBuilderAppend(output,
         DirectMirScalarLlvmFormatPayload(int_line_format));
-    output = Concat(output, "\\00\", align 1\n");
-    output = Concat(output,
+    TextBuilderAppend(output, "\\00\", align 1\n");
+    TextBuilderAppend(output,
         "@.pgy.scalar.cfg.string.format = private unnamed_addr constant [");
-    output = Concat(output, ToString(string_size));
-    output = Concat(output, " x i8] c\"");
-    output = Concat(output,
+    TextBuilderAppend(output, ToString(string_size));
+    TextBuilderAppend(output, " x i8] c\"");
+    TextBuilderAppend(output,
         DirectMirScalarLlvmFormatPayload(string_line_format));
-    output = Concat(output, "\\00\", align 1\n");
-    output = Concat(output, DirectMirScalarProgramLlvmStringGlobals(
+    TextBuilderAppend(output, "\\00\", align 1\n");
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmStringGlobals(
         plan.program.expressions));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarCfgLlvmForeignDeclarations(plan));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmRuntimeValueDeclarations(
             plan.program.expressions));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmIntentObservabilityDeclarations(
             plan.program.expressions));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarCfgStringLlvmConcatBlock(
             plan, runtime.string_concat));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmBuiltinMaterialization(
             plan, runtime, formatted_print));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLocalArraySetMaterialization(
             plan));
-    output = Concat(output, "\ndeclare i32 @");
-    output = Concat(output, formatted_print.symbol);
-    output = Concat(output, "(ptr, ...)\n");
+    TextBuilderAppend(output, "\ndeclare i32 @");
+    TextBuilderAppend(output, formatted_print.symbol);
+    TextBuilderAppend(output, "(ptr, ...)\n");
     if DirectMirScalarProgramHasProcessExit(plan.operation_kinds) {
         if !CompilerRuntimeCallAbiProcessExitFactReady(process_exit) {
             Die("direct MIR scalar LLVM process-exit ABI is invalid");
         }
-        output = Concat(output, "declare void @");
-        output = Concat(output, process_exit.symbol);
-        output = Concat(output, "(i32)\n");
+        TextBuilderAppend(output, "declare void @");
+        TextBuilderAppend(output, process_exit.symbol);
+        TextBuilderAppend(output, "(i32)\n");
     }
     if plan.program.runtime_abi.string_compare_id != 0 {
         if !CompilerRuntimeCallAbiStringCompareFactReady(
                 runtime.string_compare) {
             Die("direct MIR scalar CFG program LLVM compare ABI is invalid");
         }
-        output = Concat(output, "declare i32 @");
-        output = Concat(output, runtime.string_compare.symbol);
-        output = Concat(output, "(ptr, ptr)\n");
+        TextBuilderAppend(output, "declare i32 @");
+        TextBuilderAppend(output, runtime.string_compare.symbol);
+        TextBuilderAppend(output, "(ptr, ptr)\n");
     }
-    output = Concat(output, "\n");
+    TextBuilderAppend(output, "\n");
     let routine: Int = 0;
     while routine < ArrayLength(plan.routines.roles) {
-        output = Concat(output, DirectMirScalarCfgProgramLlvmRoutine(
+        let owned_routine: Array<String> = [DirectMirScalarCfgProgramLlvmRoutine(
             plan, routine, formatted_print, process_exit, runtime,
-            int_line_format, string_line_format, target));
+            int_line_format, string_line_format, target)];
+        TextBuilderAppend(output, owned_routine[0]);
+        ArrayDropOwnedStrings(owned_routine);
         routine = routine + 1;
     }
-    return output;
+    let program: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return program;
 }

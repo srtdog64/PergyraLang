@@ -17528,6 +17528,26 @@ require_function_text \
     "func DirectMirScalarCfgEmitProgramLlvm(" \
     "DirectMirScalarProgramLlvmLogicalRecordOptionPreamble("
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgEmitProgramLlvm(" \
+    "let output: TextBuilder = TextBuilderNew(4096)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgEmitProgramLlvm(" \
+    "TextBuilderAppend(output, owned_routine[0])"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgEmitProgramLlvm(" \
+    "ArrayDropOwnedStrings(owned_routine)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgEmitProgramLlvm(" \
+    "TextBuilderFinish(output, output_allocator)"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgEmitProgramLlvm(" \
+    "output = Concat(output"
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy" \
     "func DirectMirScalarCfgLlvmForeignDeclarations(" \
     "plan.program.logical_record.present"
