@@ -17,9 +17,9 @@ gate count do not increment either percentage by themselves.
 - The exact compiler-semantic checkpoint is commit
   `7230cd07a416b5e2a4215f91f7393a809f3cb409` on `main`. Following publication
   successors only restore ratchet-compatible signature formatting, repair CI
-  provisioning/static pins, or change exhaustive-gate execution order; they do
+  provisioning/static pins, or bound exhaustive-gate execution cost; they do
   not change compiler semantics. The CI execution checkpoint is commit
-  `37fb90701dcee1c95a4fc5b56a8daed76e2f2f77`; this handoff refresh is its
+  `666db88d12c2f5cec628a58a39368cc222a1a004`; this handoff refresh is its
   documentation-only successor. After publication, the only remaining
   worktree path is the unrelated untracked `pgy-80135c2c/`; do not stage,
   discard, or rewrite it.
@@ -95,23 +95,30 @@ gate count do not increment either percentage by themselves.
 - Fifth publication run `32522281489` executed that exact `clean-scratch`
   boundary, then received the same runner shutdown 3m22s after entering the
   first assignment C compile. The deletion therefore falsifies the scratch-
-  directory lifetime hypothesis; it must not remain as an alleged fix. At the
-  checkpoint, 27 jobs are green and Windows is still running, so the only
-  observed red remains exhaustive parity. No assignment assertion or
-  missing-fact negative failed.
-- A local native-driver C-only measurement of the identical assignment probe
-  passed in 64.45s with a recorded 1,860,136 KiB maximum resident set. This is
-  bounded compiler-scale work, but it is a materially larger resource peak
-  than the 7.9 KiB root source suggests because its imported owner closure is
-  the compiler projection. Commit `37fb9070` moves the unchanged C/LLVM
-  positive and missing-fact-negative gate to the start of exhaustive parity,
-  before the cumulative 1,566-source ledger and 85-fixture codegen corpus. The
-  CI profile requires it exactly once as the first falsifier and rejects the
-  disproven `clean-scratch` detour.
-- Next executable rung: publish the falsifier-order checkpoint and inspect the
+  directory lifetime hypothesis; it must not remain as an alleged fix. The run
+  ended with 27 green jobs, the parity failure, and Windows cancelled by the
+  next publication. No assignment assertion or missing-fact negative failed.
+- Sixth publication run `32528582687` at `f1ff39b9` moved the unchanged
+  assignment gate before the cumulative ledger/codegen corpus. It still
+  received the runner shutdown 3m19s after entering the first C compile, which
+  falsifies cumulative-work ordering as the cause. The first-falsifier order
+  remains only as a fail-fast budget rule. At observation, 26 jobs are green,
+  parity is the sole failure, and two long platform jobs remain active.
+- An apples-to-apples local C-only measurement with the same installed stale
+  driver took 64.45s and 1,860,136 KiB maximum resident set at the default
+  release profile, versus 32.12s and 359,480 KiB with `--opt=dev`. The root
+  source is only 7.9 KiB, but its imported owner closure is the fixed compiler-
+  scale projection. Both profiles use the installed self-host artifact owners;
+  the gate owns projection semantics and fail-closed runtime behavior, not
+  optimizer throughput. Commit `666db88d` therefore keeps both C/LLVM positive
+  paths and every missing-fact negative while compiling their artifacts at
+  `-O0`. A fresh current-source release pair then passed the complete focused
+  gate locally in 4m30.19s. The component contract, CI profile, documentation
+  quality, shell syntax, and diff checks are green.
+- Next executable rung: publish the optimizer-cost checkpoint and inspect the
   newest clean GitHub Actions run. The falsifier is the full job set, with
-  exhaustive parity completing assignment projection first and then its
-  unchanged cumulative tail on one runner. If the run is green,
+  exhaustive parity completing the dev-profile assignment projection first
+  and then its unchanged cumulative tail on one runner. If the run is green,
   return to the next production self-host replacement named by current
   executable evidence. If it is red, resume from its first deterministic
   failure and do not open another general SoT cleanup.
