@@ -15,17 +15,27 @@ gate count do not increment either percentage by themselves.
 ## Active self-host context - CI parity closure and remote verification
 
 - The exact source checkpoint is commit
-  `9f6b03aa563a5ad8c654598b5ee85fb45653667b` on `main`, one commit ahead of
+  `167d81ee1b385990ad83224df3d61e33ed46bddc` on `main`, one commit ahead of
   `origin/main` before publication. The commit containing this card is a
   handoff-only successor. The only remaining worktree path is the unrelated
   untracked `pgy-80135c2c/`; do not stage, discard, or rewrite it.
-- Current remote evidence is CI run `32408205595` at parent commit
+- Parent remote evidence was CI run `32408205595` at commit
   `afaee1b198ef9c31f27677bf58ae751e41c4d6fe`. Bootstrap, codegen bootstrap,
   Windows, macOS C-only, sanitizers, TSan, Rocq, and all backend-compare shards
   were green. The two deterministic red jobs were `self-host-parity-linux`
   (first stop: compensation execution parity) and `build-linux` (self-hosted
   driver was incorrectly selected by native compiler-subject gates, plus the
   stale production-header golden).
+- The first publication run, `32456845688` at `a8275469`, advanced the parent
+  failures and exposed one clean-checkout bootstrap defect: the new exhaustive
+  enum-match owner copied `plan.program.expressions` out of borrowed `ref plan`.
+  Commit `167d81ee` removes that local binding and reads the nested owner path
+  directly. The exact production `driver_bootstrap_main.pgy` entrypoint with
+  `--native-pipeline --emit-c` now completes locally with 0 errors; the four
+  TextBuilder diagnostics printed beside the borrow error were cascading and
+  disappear on the corrected source. At the observation point, codegen bootstrap,
+  sanitizers, TSan, Rocq, and completed backend shards were green while the
+  original run continued to collect independent failures.
 - Objective card: objective = make those two CI jobs green without widening
   self-host authority; priority = executable C/LLVM parity, explicit owner
   identity, old-path rejection, then structural ratchets; fact owners = the
@@ -69,8 +79,8 @@ gate count do not increment either percentage by themselves.
   are not reported as product failures. A separate Windows filtered
   `driver_rung2_body_parity.sh` rerun is still in progress and is not counted
   as green evidence in this card.
-- Next executable rung: publish the source and handoff commits to `main`, then
-  inspect the new GitHub Actions run. The first falsifiers are the exact
+- Next executable rung: publish the borrow fix and this handoff to `main`, then
+  inspect the successor GitHub Actions run. The first falsifiers are the exact
   `self-host-parity-linux` compensation successor gates and the original-order
   `build-linux` path past production-header size. If either fails, resume from
   that first clean-run failure; do not open another general SoT cleanup.
