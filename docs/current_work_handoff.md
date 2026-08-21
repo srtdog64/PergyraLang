@@ -19,7 +19,7 @@ gate count do not increment either percentage by themselves.
   successors only restore ratchet-compatible signature formatting, repair CI
   provisioning/static pins, or bound exhaustive-gate execution cost; they do
   not change compiler semantics. The CI execution checkpoint is commit
-  `666db88d12c2f5cec628a58a39368cc222a1a004`; this handoff refresh is its
+  `5d2149028a5a8c3b57dbfdb083853121f1e9acad`; this handoff refresh is its
   documentation-only successor. After publication, the only remaining
   worktree path is the unrelated untracked `pgy-80135c2c/`; do not stage,
   discard, or rewrite it.
@@ -115,10 +115,28 @@ gate count do not increment either percentage by themselves.
   `-O0`. A fresh current-source release pair then passed the complete focused
   gate locally in 4m30.19s. The component contract, CI profile, documentation
   quality, shell syntax, and diff checks are green.
-- Next executable rung: publish the optimizer-cost checkpoint and inspect the
+- Seventh publication run `32532254522` at `289c019c` used that dev profile,
+  but the runner still shut down 2m27s after entering the first C compile. No
+  assignment assertion ran or failed. This falsifies final-artifact `-O3` cost
+  as the sole cause; the remaining ambiguity is self-host projection resource
+  pressure versus an external runner-service termination. At observation, 24
+  jobs are green, parity is the sole failure, and four platform jobs remain
+  active.
+- GitHub's runner message is a generic service/VM shutdown report, not an OOM
+  or compiler diagnostic; the official runner tracker contains the same signal
+  even in cases with live log streaming and healthy memory
+  (`actions/runner#4492`, `actions/runner-images#6709`). Commit `5d214902`
+  therefore adds a bounded 15-second observer only around the reached
+  assignment compiler child. It reports recursive process RSS, Linux
+  `MemAvailable`, and swap without changing source, backend coverage, runtime
+  negatives, timeout, or artifact authority. The local C gate emitted the
+  heartbeat and passed; component/profile/docs/syntax/diff ratchets are green.
+- Next executable rung: publish the resource-observer checkpoint and inspect the
   newest clean GitHub Actions run. The falsifier is the full job set, with
   exhaustive parity completing the dev-profile assignment projection first
-  and then its unchanged cumulative tail on one runner. If the run is green,
+  and then its unchanged cumulative tail on one runner. If the runner exits,
+  use its last heartbeat to distinguish low available memory from an external
+  shutdown before changing execution shape. If the run is green,
   return to the next production self-host replacement named by current
   executable evidence. If it is red, resume from its first deterministic
   failure and do not open another general SoT cleanup.
