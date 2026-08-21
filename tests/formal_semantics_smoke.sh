@@ -974,7 +974,7 @@ if [[ -s "$global_forbid_files" ]] &&
 fi
 
 require_terms "$CI_PATH" ".github/workflows/ci.yml" <<'TERMS'
-sudo apt-get install -y gcc make llvm-dev llvm coq
+sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
 make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 TERMS
 

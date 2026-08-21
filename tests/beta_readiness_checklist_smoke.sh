@@ -546,7 +546,7 @@ rc_ctrl_int_alive_at_8
 EOF
 
 require_terms ".github/workflows/ci.yml" <<'EOF'
-sudo apt-get install -y gcc make llvm-dev llvm coq
+sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
 make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 mingw-w64-ucrt-x86_64-python
 build-macos-c-only

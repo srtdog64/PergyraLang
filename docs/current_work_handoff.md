@@ -73,9 +73,18 @@ gate count do not increment either percentage by themselves.
   dependency in `build-linux`, and `self_host_ci_profile_smoke.sh` rejects its
   removal. This is runner provisioning evidence, not a new compiler-semantic
   failure or substitution delta.
-- Next executable rung: publish the CI dependency fix and inspect the newest
-  clean GitHub Actions run. The falsifier is the full job set, with the reached
-  Linux execution-lane link as the first focused witness. If the run is green,
+- Third publication run `32506892987` installed `libomp-dev` successfully in
+  `build-linux` and kept that job alive beyond the predecessor's 33m18s
+  `-lomp` failure point. It reached 25 green jobs before macOS reported two
+  static contract failures: the beta-readiness and formal-semantics gates still
+  required the predecessor apt command byte-for-byte. Both pins now require
+  the same `libomp-dev`-bearing command as the workflow. This is CI contract
+  migration fallout; the macOS compiler/runtime surface itself passed through
+  the exhaustive C-only self-host parity before the static pins failed.
+- Next executable rung: publish the synchronized CI dependency contract and
+  inspect the newest clean GitHub Actions run. The falsifier is the full job
+  set, with the reached Linux execution-lane link as the first focused witness.
+  If the run is green,
   return to the next production self-host replacement named by current
   executable evidence. If it is red, resume from its first deterministic
   failure and do not open another general SoT cleanup.
