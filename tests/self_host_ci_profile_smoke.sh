@@ -112,7 +112,7 @@ require_job_timeout() {
     fi
 }
 
-require_job_timeout "self-host-parity-linux" 40
+require_job_timeout "self-host-parity-linux" 90
 require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "build-windows" 90
@@ -143,7 +143,7 @@ for required in \
     'self-host-parity-linux:' \
     'self-host-bootstrap-linux:' \
     'self-host-codegen-bootstrap-linux:' \
-    'timeout-minutes: 40' \
+    'timeout-minutes: 90' \
     'timeout-minutes: 60' \
     'timeout-minutes: 30' \
     'make release' \

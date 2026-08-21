@@ -106,7 +106,12 @@ jobs:
 
   self-host-parity-linux:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # Hang budget (docs/190 C1): the current 1,556-row completeness ledger is
+    # still making linear progress, but the old 40-minute ceiling cancelled a
+    # clean run at codegen row 899 after the job had spent ~22 minutes reaching
+    # the ledger. Ninety minutes covers the measured cold-checkout shape and
+    # the parity tail while remaining far below GitHub's 360-minute default.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
 

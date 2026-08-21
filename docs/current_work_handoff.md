@@ -14,11 +14,12 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - CI parity closure and remote verification
 
-- The exact source checkpoint is commit
-  `167d81ee1b385990ad83224df3d61e33ed46bddc` on `main`, one commit ahead of
-  `origin/main` before publication. The commit containing this card is a
-  handoff-only successor. The only remaining worktree path is the unrelated
-  untracked `pgy-80135c2c/`; do not stage, discard, or rewrite it.
+- The exact compiler-source checkpoint is commit
+  `167d81ee1b385990ad83224df3d61e33ed46bddc` on `main`. Published handoff
+  successor `0a600447b64925eb109f593d9e29b56117d40cfc` matches `origin/main`; the
+  commit containing this card is a CI-budget successor with no compiler
+  semantic change. The only remaining worktree path after publication is the
+  unrelated untracked `pgy-80135c2c/`; do not stage, discard, or rewrite it.
 - Parent remote evidence was CI run `32408205595` at commit
   `afaee1b198ef9c31f27677bf58ae751e41c4d6fe`. Bootstrap, codegen bootstrap,
   Windows, macOS C-only, sanitizers, TSan, Rocq, and all backend-compare shards
@@ -31,11 +32,21 @@ gate count do not increment either percentage by themselves.
   enum-match owner copied `plan.program.expressions` out of borrowed `ref plan`.
   Commit `167d81ee` removes that local binding and reads the nested owner path
   directly. The exact production `driver_bootstrap_main.pgy` entrypoint with
-  `--native-pipeline --emit-c` now completes locally with 0 errors; the four
+  `--native-pipeline --emit-c` completes locally with 0 errors; the four
   TextBuilder diagnostics printed beside the borrow error were cascading and
-  disappear on the corrected source. At the observation point, codegen bootstrap,
-  sanitizers, TSan, Rocq, and completed backend shards were green while the
-  original run continued to collect independent failures.
+  disappear on the corrected source. Successor run `32458203430` then proved
+  clean Ubuntu bootstrap in 23m06s; codegen bootstrap, sanitizers, TSan, Rocq,
+  macOS C-only, and all 20 backend shards were also green.
+- Run `32458203430` exposed one CI-budget defect rather than another compiler
+  failure. `self-host-parity-linux` made continuous linear progress through the
+  current 1,556-row completeness ledger but the stale 40-minute job ceiling
+  cancelled it at codegen row 899, after the job spent about 22 minutes reaching
+  the ledger. Recent history contains the same 40-minute cancellation shape,
+  while the last successful July runs were 26.6-33.7 minutes on a smaller source
+  set. The workflow and its profile ratchet now own a 90-minute hang budget:
+  enough for the measured cold-checkout ledger and parity tail, still bounded
+  far below GitHub's 360-minute default. Do not report the cancelled job as a
+  semantic red or bypass its exhaustive surface.
 - Objective card: objective = make those two CI jobs green without widening
   self-host authority; priority = executable C/LLVM parity, explicit owner
   identity, old-path rejection, then structural ratchets; fact owners = the
@@ -76,14 +87,15 @@ gate count do not increment either percentage by themselves.
 - Local WSL is a mixed Windows-driver environment. Absolute `/mnt/d/...`
   source identities and `/tmp` sibling discovery can differ from a clean Linux
   runner; those cases were rerun through the owning native/Windows route and
-  are not reported as product failures. A separate Windows filtered
-  `driver_rung2_body_parity.sh` rerun is still in progress and is not counted
-  as green evidence in this card.
-- Next executable rung: publish the borrow fix and this handoff to `main`, then
-  inspect the successor GitHub Actions run. The first falsifiers are the exact
-  `self-host-parity-linux` compensation successor gates and the original-order
-  `build-linux` path past production-header size. If either fails, resume from
-  that first clean-run failure; do not open another general SoT cleanup.
+  are not reported as product failures. The separate Windows/MSYS filtered
+  `driver_rung2_body_parity.sh` rerun ended at local oracle MIR canonicalization
+  in that mixed environment and is not counted as green or as a product failure.
+- Next executable rung: publish the bounded CI-budget repair and inspect the
+  successor GitHub Actions run. The first falsifier is the exact
+  `self-host-parity-linux` continuation beyond completeness codegen row 899;
+  `build-linux` and `build-windows` remain independent clean-run witnesses. If
+  any job fails, resume from that first clean-run failure; do not open another
+  general SoT cleanup.
 
 ### Previous DIR-to-MIR lifetime and CI context (inactive)
 
