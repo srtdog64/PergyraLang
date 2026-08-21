@@ -2962,9 +2962,9 @@ self-host-preparation-platform-parity-test-smoke: $(PGY)
 self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE) $(SELFHOST_SCALAR_GRAPH_PLAN_GATE) $(SELFHOST_ONE_MIR_CFG_AIR_PLAN_GATE) $(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE) $(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE) $(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_CONCAT_GATE) $(SELFHOST_ONE_MIR_STRING_BUILTIN_PROGRAM_GATE) $(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_OPTION_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_NOMINAL_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_SCALAR_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_MEMBER_GATE) $(SELFHOST_ONE_MIR_PASSIVE_NOMINAL_LITERAL_GATE) $(SELFHOST_ONE_MIR_MUTABLE_NOMINAL_IDENTITY_GATE) $(SELFHOST_ONE_MIR_COMPILE_TIME_DECLARATION_LITERAL_GATE) $(SELFHOST_ONE_MIR_ENUM_VALUE_MATCH_GATE) $(SELFHOST_ONE_MIR_ROLE_OPERATOR_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_ARRAY_MEMBER_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE)
 
 self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-driver-execution-action-optional-within-parity-test-smoke self-host-driver-source-mir-execution-action-test-smoke
-	# Run the reached compiler-scale falsifier before the cumulative ledger and
-	# codegen corpus raise the runner's artifact/cache pressure. This remains the
-	# same C/LLVM positive and missing-fact-negative gate; only its order changes.
+	# Run the reached compiler-scale falsifier first so a projection regression
+	# fails before the cumulative ledger/codegen budget is spent. This remains
+	# the same C/LLVM positive and missing-fact-negative gate.
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/assignment_projection_probe_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_id_uniqueness_parity.sh

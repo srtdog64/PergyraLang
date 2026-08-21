@@ -15400,6 +15400,8 @@ require_max_lines "tests/self_hosted/parity/assignment_projection_probe_parity.s
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'pgy_selfhost_read_test_harness_manifest'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
+    '--opt=dev'
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'run_missing_fact_negative "$backend" "missing-target-type"'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'run_missing_fact_negative "$backend" "missing-call-target"'

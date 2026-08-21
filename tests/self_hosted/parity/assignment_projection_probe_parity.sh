@@ -135,9 +135,14 @@ compile_probe() {
     local backend="$1"
     local bin="$BUILD_DIR/probe_${backend}.exe"
     local log="$BUILD_DIR/probe_${backend}.compile.log"
+    # This gate owns projection semantics and fail-closed runtime behavior, not
+    # optimizer throughput. Both profiles use the installed self-host artifact
+    # owners; dev keeps the fixed compiler-scale C/LLVM probes at -O0 instead
+    # of making this focused gate pay the unrelated -O3 resource peak.
     if ! (cd "$ROOT_DIR" && "$PGY" \
         "$(pgy_path_for_compiler "$PGY" "$PROBE_SOURCE")" \
         --backend="$backend" \
+        --opt=dev \
         -o "$(pgy_path_for_compiler "$PGY" "$bin")" >"$log" 2>&1); then
         if [[ "$backend" == "llvm" ]] \
             && pgy_selfhost_log_reports_no_llvm "$log"; then
