@@ -8,7 +8,8 @@ import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy"
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 func DirectMirScalarProgramCArrayPushMaterialization(
-    symbol: String, array_type: String, element_type: String) -> String {
+    symbol: String, array_type: String, element_type: String
+) -> String {
     if symbol == "" || array_type == "" || element_type == "" {
         Die("direct MIR C local array push type is invalid");
     }
@@ -105,8 +106,7 @@ func DirectMirScalarProgramCArrayMutation(
                     "direct MIR C array copyout mutation is invalid"); }
         if (kind == DirectMirScalarCfgOpArrayStringSet() ||
             kind == DirectMirScalarCfgOpArrayStringPop()) &&
-            !DirectMirScalarProgramArrayStringParameterMutationReady(
-                plan, routine, target_parameter, kind) { Die(
+            !DirectMirScalarProgramArrayStringParameterMutationReady(plan, routine, target_parameter, kind) { Die(
                 "direct MIR C Array<String> copyout set is invalid"); }
     } else if target_parameter != -1 || target_local < 0 ||
         target_local >= ArrayLength(plan.local_types) ||

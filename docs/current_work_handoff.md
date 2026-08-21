@@ -14,9 +14,10 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - collection ABI projection remote verification
 
-- The exact compiler-source checkpoint is commit
-  `7230cd07a416b5e2a4215f91f7393a809f3cb409` on `main`. The following
-  handoff-only successor does not change compiler semantics. After publication,
+- The exact compiler-semantic checkpoint is commit
+  `7230cd07a416b5e2a4215f91f7393a809f3cb409` on `main`. Following publication
+  successors only restore ratchet-compatible signature formatting and refresh
+  this handoff; they do not change compiler semantics. After publication,
   the only remaining worktree path is the unrelated untracked
   `pgy-80135c2c/`; do not stage, discard, or rewrite it.
 - Remote run `32461860319` at predecessor `287868a609fc9c7589163858500942cca929d244`
@@ -55,6 +56,14 @@ gate count do not increment either percentage by themselves.
   `tests/self_host_ci_profile_smoke.sh`, and `git diff --check` are green.
   Temporary driver/MIR/backend artifacts remain ignored and do not count as
   progress.
+- First publication run `32499479384` reached 24 green jobs before
+  `build-macos-c-only` failed the shared self-host-likeness ratchet:
+  `core_string_munge_sig` was 77 with a maximum of 76. The increase came from
+  folding the pre-existing C array-push materialization signature onto one
+  line while satisfying an owner line cap, not from a new text transform.
+  Restoring the multi-line signature and recovering the line in the shared
+  mutation-policy call returns the measured surface to 76/76 without relaxing
+  either cap or changing emitted behavior.
 - Next executable rung: publish the compiler checkpoint and handoff successor,
   then inspect the newest clean GitHub Actions run. The first falsifier is the
   exact `self-host-parity-linux` result; all other jobs remain independent
