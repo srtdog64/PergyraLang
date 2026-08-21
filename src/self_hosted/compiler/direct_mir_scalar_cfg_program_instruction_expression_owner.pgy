@@ -1,8 +1,8 @@
 // One typed expression admission seam shared by def, Log, branch, and return.
-
 import "direct_mir_scalar_program_expression_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
 import "direct_mir_scalar_program_int_literal_expression_row_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy";
 
 func DirectMirScalarCfgProgramAppendTypedExpression(
     inout expressions: DirectMirScalarProgramExpressionSet,
@@ -28,7 +28,6 @@ func DirectMirScalarCfgProgramAppendTypedExpression(
         "expr0_graph", cursor, true, expected_type, -1
     );
 }
-
 func DirectMirScalarCfgProgramAppendTypedExpressionField(
     inout expressions: DirectMirScalarProgramExpressionSet,
     inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
@@ -59,9 +58,14 @@ func DirectMirScalarCfgProgramAppendTypedExpressionField(
         if !failure.present { failure = admission.failure; }
         return None;
     }
-    let appended: DirectMirScalarProgramExpressionSet = admission.facts;
-    if !appended.valid ||
-            ArrayLength(appended.graph_starts) != expression_row + 1 {
+    let appended: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
+            admission.facts, instruction, expression_row, payload_free_enum);
+    if !appended.valid {
+        if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("payload-free-enum-match", -1); }
+        return None;
+    }
+    if ArrayLength(appended.graph_starts) != expression_row + 1 {
         if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("admitted-cardinality", -1); }
         return None;
     }

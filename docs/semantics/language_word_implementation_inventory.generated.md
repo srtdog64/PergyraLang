@@ -13,7 +13,7 @@ evidence.
 
 - `BRIDGE`: stable IDs and projections exist, but row implementation
   remains split across native, typed self-host, and direct selectors.
-- Typed-selector evidence: 172 calls across 86 language words.
+- Typed-selector evidence: 173 calls across 86 language words.
 - Direct-selector debt: 52 occurrences across 36 language words.
 - No row is promoted to `CLOSED` by this inventory.
 
@@ -62,7 +62,7 @@ evidence.
 | `by` | contextual | native+self_host | 3 | 6 | 0 | 26 | hover, TextMate:keyword.other.domain.pergyra | native+selfhost-typed |
 | `capacity` | contextual | native | 1 | 0 | 0 | 1 | none | native-only |
 | `caps` | contextual | native+self_host | 2 | 1 | 0 | 6 | none | native+selfhost-typed |
-| `case` | reserved | native+self_host | 3 | 2 | 0 | 23 | TextMate:keyword.control.pergyra | native+selfhost-typed |
+| `case` | reserved | native+self_host | 3 | 2 | 0 | 24 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `causes` | contextual | native+self_host | 3 | 1 | 1 | 6 | completion, hover, TextMate:keyword.other.domain.pergyra | native+selfhost-typed |
 | `class` | reserved | native+self_host | 7 | 2 | 0 | 27 | hover, TextMate:storage.type.pergyra | native+selfhost-typed |
 | `collapse` | reserved | native+self_host | 1 | 0 | 0 | 1 | TextMate:keyword.control.pergyra | native-only |
@@ -84,7 +84,7 @@ evidence.
 | `every` | contextual | native+self_host | 1 | 2 | 0 | 0 | none | native+selfhost-typed |
 | `exclusive` | contextual | native+self_host | 1 | 1 | 0 | 7 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
 | `expect` | contextual | native+self_host | 1 | 0 | 3 | 25 | none | native+selfhost-direct-only |
-| `export` | reserved | native+self_host | 2 | 2 | 0 | 8 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
+| `export` | reserved | native+self_host | 2 | 3 | 0 | 8 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `extends` | reserved | native+self_host | 1 | 1 | 0 | 1 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `extern` | reserved | native+self_host | 3 | 1 | 0 | 2 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `fail` | reserved | native+self_host | 1 | 0 | 1 | 2 | TextMate:keyword.control.pergyra | native+selfhost-direct-only |
@@ -118,7 +118,7 @@ evidence.
 | `loop` | contextual | native+self_host | 1 | 0 | 1 | 1 | none | native+selfhost-direct-only |
 | `maintain` | contextual | native | 2 | 0 | 0 | 0 | none | native-only |
 | `map` | contextual | native+self_host | 1 | 1 | 0 | 12 | none | native+selfhost-typed |
-| `match` | reserved | native+self_host | 1 | 0 | 1 | 24 | hover, TextMate:keyword.control.pergyra | native+selfhost-direct-only |
+| `match` | reserved | native+self_host | 1 | 0 | 1 | 25 | hover, TextMate:keyword.control.pergyra | native+selfhost-direct-only |
 | `max` | contextual | native | 1 | 0 | 0 | 5 | none | native-only |
 | `min` | contextual | native | 1 | 0 | 0 | 0 | none | native-only |
 | `move` | contextual | native+self_host | 1 | 0 | 1 | 2 | none | native+selfhost-direct-only |

@@ -33,7 +33,7 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
     let expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.routines, routine, target);
+            plan.program.logical_record, plan.program.payload_free_enum, plan.routines, routine, target);
     if local_row < 0 || field_type == "" || llvm_record == "" ||
         llvm_field == "" || !expression.valid ||
         expression.type_name != field_type ||

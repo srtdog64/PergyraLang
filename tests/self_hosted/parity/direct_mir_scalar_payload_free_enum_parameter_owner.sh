@@ -21,7 +21,9 @@ EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_p
 EXPRESSION_READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy"
 KIND_IDS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
 ROLE_PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy"
+CALLABLE_SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
 PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
+LLVM_DIRECT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
@@ -36,6 +38,8 @@ grep -Fq 'payload_free_enum_value_count' "$ROLE_PLAN" ||
     fail "parameter-role plan omits payload-free enum cardinality"
 grep -Fq 'DirectMirScalarProgramPayloadFreeEnumParameterReady(' "$ROLE_PLAN" ||
     fail "parameter-role plan omits the declaration-keyed enum role"
+grep -Fq 'DirectMirScalarProgramPayloadFreeEnumTypeReady(' "$CALLABLE_SIGNATURE" ||
+    fail "callable signature omits the declaration-keyed enum return role"
 grep -Fq 'DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(' "$EXPRESSION_OWNER" ||
     fail "enum expression owner omits declaration-owned variant projection"
 grep -Fq 'DirectMirScalarProgramPayloadFreeEnumComparisonKindFact(' "$EXPRESSION_OWNER" ||
@@ -48,6 +52,15 @@ grep -Fq 'DirectMirScalarProgramExprEqualPayloadFreeEnum() -> Int { return 91; }
     fail "enum equality expression identity drifted"
 grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78' "$PLAN" ||
     fail "GraphPlan schema did not advance for enum expressions"
+llvm_direct_body="$(awk '/^func DirectMirScalarProgramLlvmDirectCallExpressionAt\(/,/^}/' "$LLVM_DIRECT")"
+[[ "$llvm_direct_body" == *'DirectMirScalarProgramPayloadFreeEnumTypeReady('* ]] ||
+    fail "LLVM direct-call ABI does not consume payload-free enum identity"
+[[ "$llvm_direct_body" != *'DirectMirScalarProgramExprPayloadFreeEnumVariant('* ]] ||
+    fail "LLVM direct-call ABI reintroduced node-shape enum inference"
+grep -Fq 'ToneOrdinal(EchoTone(Tone.Warm))' "$ROOT_DIR/$SOURCE_REL" ||
+    fail "fixture omits a returned enum value consumed by another call"
+grep -Fq 'ToneName(EchoTone(Tone.Cool))' "$ROOT_DIR/$SOURCE_REL" ||
+    fail "fixture omits a returned enum value passed to a String-return call"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
@@ -65,7 +78,7 @@ grep -Fq '"type":"Tone","carriage":"value"' "$MIR" ||
     fail "producer omitted the Tone value parameter"
 grep -Fq '"type":"Direction","carriage":"value"' "$MIR" ||
     fail "producer omitted the Direction value parameter"
-printf '1\n0\n1\n0\npayload-free-enum-parameter-ready\n' \
+printf '1\n0\n1\n0\nwarm\ncool\npayload-free-enum-parameter-ready\n' \
     >"$WORK_DIR/expected.run"
 
 for backend in c llvm; do
@@ -81,8 +94,8 @@ for backend in c llvm; do
         }
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        [[ "$(grep -Ec 'static const char\* pgy_scalar_routine_[0-9]+\(int32_t pgy_param_0\) \{$' "$artifact")" == 2 ]] ||
-            fail "C artifact omitted the two enum-identity signatures"
+        [[ "$(grep -Ec 'static const char\* pgy_scalar_routine_[0-9]+\(int32_t pgy_param_0\) \{$' "$artifact")" == 3 ]] ||
+            fail "C artifact omitted the three String-return enum signatures"
         grep -Eq 'static int32_t pgy_scalar_routine_[0-9]+\(int32_t pgy_param_0\)' "$artifact" ||
             fail "C artifact omitted the Int-return enum signature"
         grep -Eq 'static bool pgy_scalar_routine_[0-9]+\(int32_t pgy_param_0\)' "$artifact" ||
@@ -95,8 +108,8 @@ for backend in c llvm; do
         "${command[@]}" >"$WORK_DIR/c.compile.out" \
             2>"$WORK_DIR/c.compile.err" || fail "C artifact did not compile"
     else
-        [[ "$(grep -Ec 'define internal ptr @pgy\.scalar\.routine\.[0-9]+\(i64 %pgy\.param\.0\)' "$artifact")" == 2 ]] ||
-            fail "LLVM artifact omitted the two enum-identity signatures"
+        [[ "$(grep -Ec 'define internal ptr @pgy\.scalar\.routine\.[0-9]+\(i64 %pgy\.param\.0\)' "$artifact")" == 3 ]] ||
+            fail "LLVM artifact omitted the three String-return enum signatures"
         grep -Eq 'define internal i64 @pgy\.scalar\.routine\.[0-9]+\(i64 %pgy\.param\.0\)' "$artifact" ||
             fail "LLVM artifact omitted the Int-return enum signature"
         grep -Eq 'define internal i1 @pgy\.scalar\.routine\.[0-9]+\(i64 %pgy\.param\.0\)' "$artifact" ||
@@ -114,7 +127,7 @@ for mutation in enum-parameter-carriage enum-parameter-physical-abi \
     enum-variant-payload enum-missing-declaration enum-declaration-kind \
     enum-return-collection enum-expression-wrong-owner \
     enum-expression-wrong-variant enum-expression-missing-binding \
-    enum-expression-wrong-type; do
+    enum-expression-wrong-type enum-match-duplicate-variant; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

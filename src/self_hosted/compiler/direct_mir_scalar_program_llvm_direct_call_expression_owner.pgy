@@ -7,6 +7,7 @@ import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 struct DirectMirScalarProgramLlvmCallArgument {
     let valid: Bool;
     let instructions: String;
@@ -71,7 +72,8 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
     argument_kinds: Array<Int>,
     argument_carriages: Array<String>,
     callable_ordinal: Int,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind != DirectMirScalarProgramExprDirectCall() {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
@@ -104,6 +106,8 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
         result_llvm_type = DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
             logical_record, result_type);
     }
+    if DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            payload_free_enum, result_type) { result_llvm_type = "i64"; }
     if result_llvm_type == "" {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
@@ -132,8 +136,9 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
                     true, false, "", "");
             }
             argument_type = DirectMirScalarProgramLlvmType(types[ordinal]);
-            if kinds[ordinal] ==
-                    DirectMirScalarProgramExprPayloadFreeEnumVariant() {
+            if carriages[ordinal] == "value" &&
+                DirectMirScalarProgramPayloadFreeEnumTypeReady(
+                    payload_free_enum, types[ordinal]) {
                 argument_type = "i64";
             }
         }

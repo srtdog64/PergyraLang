@@ -17,6 +17,36 @@ import "decl_intent_owner.pgy";
 import "decl_nominal_owner.pgy";
 import "diagnostic_owner.pgy";
 
+// Imported-module visibility is a token fact, not a substring fact. Comments
+// and string literals may legitimately contain the word `export`; treating
+// either as a declaration modifier would rename every ordinary declaration in
+// the module and leave its type references pointing at a different identity.
+func ParserImportedSourceHasExplicitExport(content: String) -> Bool {
+    let n: Int = StringLength(content);
+    let cursor: Array<Int> = [0];
+    let i: Int = 0;
+    while i < n {
+        i = SkipWhitespaceAndCommentsWithin(content, n, i);
+        if i >= n {
+            return false;
+        }
+        if SourceByteAt(content, n, i) == SourceByteOf("\"") {
+            ArraySet(cursor, 0, i);
+            ReadString(content, i, cursor);
+            if cursor[0] <= i {
+                return false;
+            }
+            i = cursor[0];
+            continue;
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordExport) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 // Parse zero or more top-level declarations. `name_prefix` is prepended
 // to each emitted decl name and is non-empty inside `namespace` blocks
 // (e.g. `Math_` for `namespace Math { ... }`, `Outer_Inner_` for nested
@@ -47,12 +77,8 @@ func ParseDeclsInto(
     let collect_script: Bool = !until_brace && !force_export && StringLength(name_prefix) == 0 && StringLength(active_within_zone) == 0;
 
     let is_imported: Bool = StringIndexOf(content, "__imported__") >= 0;
-    let has_exports: Bool = false;
-    if is_imported {
-        if (StringIndexOf(content, "export ") >= 0) || (StringIndexOf(content, "export\t") >= 0) || (StringIndexOf(content, "export\n") >= 0) {
-            has_exports = true;
-        }
-    }
+    let has_exports: Bool = is_imported &&
+        ParserImportedSourceHasExplicitExport(content);
 
     while true {
         i = SkipWhitespaceAndComments(content, i);

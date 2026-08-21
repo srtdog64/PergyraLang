@@ -22,17 +22,12 @@ func DirectMirScalarProgramPayloadFreeEnumExpressionNodeReady(
     }
     let left: Int = expressions.node_lefts[node];
     let right: Int = expressions.node_rights[node];
-    let left_parameter: Bool = left >= 0 &&
-        expressions.node_kinds[left] == DirectMirScalarProgramExprParameter();
-    let right_parameter: Bool = right >= 0 &&
-        expressions.node_kinds[right] == DirectMirScalarProgramExprParameter();
     let left_variant: Bool = left >= 0 && expressions.node_kinds[left] ==
         DirectMirScalarProgramExprPayloadFreeEnumVariant();
     let right_variant: Bool = right >= 0 && expressions.node_kinds[right] ==
         DirectMirScalarProgramExprPayloadFreeEnumVariant();
     return Some(left >= 0 && left < node && right >= 0 && right < node &&
-        ((left_parameter && right_variant) ||
-         (left_variant && right_parameter)) &&
+        (left_variant != right_variant) &&
         expressions.node_types[left] == expressions.node_types[right] &&
         expressions.node_types[node] == CompilerAbiLayoutBoolTypeName() &&
         expressions.node_local_rows[node] == -1 &&

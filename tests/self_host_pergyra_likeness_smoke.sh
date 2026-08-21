@@ -325,7 +325,9 @@ SENTINEL_MAX=24
 # 4101 -> 4157 (2026-08-18): the type-env local row scan, latest dominating
 # value fact, and Set-builtin signature owners now carry absence as
 # Option<Int>/Option<String> rows instead of '-1'/empty-string sentinels.
-RESULT_USE_MIN=4157
+# 4157 -> 4158 (2026-08-21): direct-MIR payload-free enum match admission now
+# returns typed absence when the semantic match condition cannot be admitted.
+RESULT_USE_MIN=4158
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=20
 # The import closure declares 20 resource-zone types, but the runtime world

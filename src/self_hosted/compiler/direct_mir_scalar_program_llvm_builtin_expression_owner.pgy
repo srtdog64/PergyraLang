@@ -21,8 +21,8 @@ func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     argument_kinds: Array<Int>,
     argument_carriages: Array<String>,
     callable_ordinal: Int,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
     let record_option: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(logical_record, kind, result, result_type, left_type, left);
     if record_option.matched { return record_option; }
@@ -58,7 +58,7 @@ func DirectMirScalarProgramLlvmBuiltinExpressionAt(
         DirectMirScalarProgramLlvmDirectCallExpressionAt(
             kind, result, result_type, left, left_type, right, right_type,
             arguments, argument_types, argument_kinds, argument_carriages,
-            callable_ordinal, logical_record);
+            callable_ordinal, logical_record, payload_free_enum);
     if direct.matched { return direct; }
     let case_math: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmCaseMathExpressionAt(

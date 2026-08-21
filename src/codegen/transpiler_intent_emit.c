@@ -427,7 +427,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             emit_intent_step_bind_bound_zone_with_metadata(
                 ctx->out, ctx, node, step_zone_name, step_zone_alias, step_from_alias,
                 who_aliases, who_alias_count,
-                &binding_metadata);
+                &binding_metadata, true);
             if (mir_only_intent && ctx->backend_error != NULL) {
                 free(on_exprs);
                 free((void *)who_aliases);
@@ -447,7 +447,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 goto intent_emit_fail;
             }
         } else {
-            emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+            emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step, true);
             rebound_aliases = emit_intent_step_rebind_bound_zone_aliases(ctx->out, ctx, node, step, i);
         }
 
@@ -587,7 +587,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 emit_intent_step_bind_bound_zone_with_metadata(
                     ctx->out, ctx, node, step_zone_name, step_zone_alias, step_from_alias,
                     who_aliases, who_alias_count,
-                    &binding_metadata);
+                    &binding_metadata, true);
                 if (ctx->backend_error != NULL) {
                     free(on_exprs);
                     free((void *)who_aliases);
@@ -596,7 +596,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     goto intent_emit_fail;
                 }
             } else {
-                emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+                emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step, true);
             }
         }
         if (rebound_aliases) {

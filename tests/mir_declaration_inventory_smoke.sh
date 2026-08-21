@@ -1076,6 +1076,10 @@ require_each_following_term "src/codegen/transpiler_intent_emit.c" \
 require_each_following_term "src/codegen/transpiler_intent_cleanup_emit.c" \
     "emit_intent_step_bind_bound_zone_with_metadata(" \
     "ctx->backend_error" 6
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "&binding_metadata, true);"
+require_term "src/codegen/transpiler_intent_cleanup_emit.c" \
+    "who_aliases, who_alias_count, bindings, false);"
 require_term "src/codegen/transpiler_intent_prologue_emit.c" \
     "transpiler_require_type_name_c_type_copy(ctx"
 require_term "src/codegen/transpiler_intent_prologue_emit.c" \
@@ -1184,7 +1188,7 @@ require_each_following_term "src/codegen/llvm_intent_cleanup.c" \
 require_term "src/codegen/llvm_intent.c" \
     "step_ctx.who_aliases, step_ctx.who_alias_count, true);"
 require_term "src/codegen/llvm_intent_cleanup.c" \
-    "who_aliases, who_alias_count, true);"
+    "who_aliases, who_alias_count, false);"
 require_term "src/codegen/llvm_intent_forward.c" \
     "llvm_collect_mir_intent_bindings"
 require_term "src/codegen/llvm_intent_forward.c" \

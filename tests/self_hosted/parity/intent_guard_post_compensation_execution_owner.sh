@@ -8,6 +8,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 export PATH
 
@@ -60,8 +61,9 @@ NATIVE_LLVM_EXE="$BUILD_DIR/native.llvm.exe"
 (cd "$ROOT_DIR" && "$DRIVER" "$FIXTURE_REL" --emit-c-verified \
     >"$SELF_DIRECT_C" 2>"$BUILD_DIR/self.direct.err") \
     || { cat "$SELF_DIRECT_C" "$BUILD_DIR/self.direct.err" >&2; fail "direct source C emission failed"; }
-cmp -s "$SELF_FROM_MIR_C" "$SELF_DIRECT_C" \
-    || fail "direct source entrypoint bypassed admitted intent control MIR"
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-intent-compensation" "$BUILD_DIR" \
+    "$SELF_FROM_MIR_C" "$SELF_DIRECT_C" "emitted_c"
 
 "$PYTHON_BIN" - "$SELF_DIRECT_C" <<'PY'
 from pathlib import Path
@@ -89,7 +91,7 @@ PY
 "$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
     -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread \
     "$SELF_DIRECT_C" -o "$SELF_EXE"
-(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --backend=c -o "$NATIVE_C_EXE" \
+(cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --native-pipeline --backend=c -o "$NATIVE_C_EXE" \
     >"$BUILD_DIR/native.c.compile.log" 2>&1) \
     || { cat "$BUILD_DIR/native.c.compile.log" >&2; fail "native C compile failed"; }
 (cd "$ROOT_DIR" && "$PGY" "$FIXTURE_REL" --native-pipeline --backend=llvm -o "$NATIVE_LLVM_EXE" \
@@ -151,11 +153,14 @@ printf '%s\n' \
     'post.last.failed=true' \
     'post.last.failure=post:ForwardB' \
     'post.active.after=0' >"$BUILD_DIR/expected.run"
-cmp -s "$BUILD_DIR/expected.run" "$BUILD_DIR/self.run" \
-    || { cat "$BUILD_DIR/self.run" >&2; fail "self runtime output drifted"; }
-cmp -s "$BUILD_DIR/self.run" "$BUILD_DIR/native.c.run" \
-    || fail "self/native C compensation execution differs"
-cmp -s "$BUILD_DIR/self.run" "$BUILD_DIR/native.llvm.run" \
-    || fail "self/native LLVM compensation execution differs"
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-intent-compensation" "$BUILD_DIR" \
+    "$BUILD_DIR/expected.run" "$BUILD_DIR/self.run" "run_output"
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-intent-compensation" "$BUILD_DIR" \
+    "$BUILD_DIR/self.run" "$BUILD_DIR/native.c.run" "run_output"
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-intent-compensation" "$BUILD_DIR" \
+    "$BUILD_DIR/self.run" "$BUILD_DIR/native.llvm.run" "run_output"
 
 echo "[self-host-intent-compensation] guard/expect/post failure + ordered compensation + history parity: PASS"

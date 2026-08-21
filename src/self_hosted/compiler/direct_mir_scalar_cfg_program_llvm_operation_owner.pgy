@@ -45,11 +45,12 @@ func DirectMirScalarCfgProgramLlvmOperation(
                 plan.program.expressions,
                 plan.program.operation_secondary_expression_rows[operation],
                 runtime, plan.program.logical_record,
-                plan.routines, routine, target);
+                plan.program.payload_free_enum, plan.routines, routine, target);
         let value: DirectMirScalarProgramLlvmExpression =
             DirectMirScalarProgramLlvmExpressionAt(
                 plan.program.expressions, expression_row, runtime,
-                plan.program.logical_record, plan.routines, routine, target);
+                plan.program.logical_record, plan.program.payload_free_enum,
+                plan.routines, routine, target);
         let expected: String = CompilerAbiLayoutStringTypeName();
         if kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
             kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
@@ -86,9 +87,12 @@ func DirectMirScalarCfgProgramLlvmOperation(
     let expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.routines, routine, target);
+            plan.program.logical_record, plan.program.payload_free_enum,
+            plan.routines, routine, target);
     if !expression.valid {
-        Die("direct MIR scalar CFG LLVM expression is invalid");
+        let diagnostic: String = Concat("direct MIR scalar CFG LLVM expression is invalid: routine=", ToString(routine));
+        diagnostic = Concat(diagnostic, Concat(" operation=", ToString(operation)));
+        Die(Concat(diagnostic, Concat(" expression_row=", ToString(expression_row))));
     }
     let output: String = expression.instructions;
     if kind == DirectMirScalarCfgOpProcessExit() {

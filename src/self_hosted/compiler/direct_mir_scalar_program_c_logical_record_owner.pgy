@@ -1,6 +1,7 @@
 // C representation and expression projection for logical record identities.
 
 import "direct_mir_scalar_program_logical_record_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy";
 
 func DirectMirScalarProgramCLogicalRecordTypeName(
     ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
@@ -15,12 +16,11 @@ func DirectMirScalarProgramCLogicalRecordFieldType(
 ) -> String {
     if type_name == CompilerAbiLayoutBoolTypeName() { return "bool"; }
     if type_name == CompilerAbiLayoutIntTypeName() { return "int64_t"; }
-    if type_name == CompilerAbiLayoutStringTypeName() {
-        return CompilerAbiLayoutStringCValueType();
-    }
+    if type_name == CompilerAbiLayoutStringTypeName() { return CompilerAbiLayoutStringCValueType(); }
     if type_name == CompilerAbiLayoutArrayIntTypeName() { return CompilerAbiLayoutArrayIntCValueType(); }
     if type_name == CompilerAbiLayoutArrayBoolTypeName() { return CompilerAbiLayoutArrayBoolCValueType(); }
     if type_name == CompilerAbiLayoutArrayStringTypeName() { return CompilerAbiLayoutArrayStringCValueType(); }
+    if DirectMirScalarProgramLogicalRecordPayloadFreeEnumFieldTypeReady(fact, type_name) { return CompilerAbiLayoutPayloadFreeEnumCValueType(); }
     return DirectMirScalarProgramCLogicalRecordTypeName(fact, type_name);
 }
 

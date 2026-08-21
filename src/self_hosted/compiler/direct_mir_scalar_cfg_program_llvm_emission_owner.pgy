@@ -139,7 +139,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
             let expression: DirectMirScalarProgramLlvmExpression =
                 DirectMirScalarProgramLlvmExpressionAt(
                     plan.program.expressions, return_row, runtime,
-                    plan.program.logical_record, plan.routines, routine,
+                    plan.program.logical_record,
+                    plan.program.payload_free_enum, plan.routines, routine,
                     target);
             if !expression.valid { Die(
                 "direct MIR scalar CFG LLVM return expression is invalid"); }
@@ -175,7 +176,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                     plan.program.expressions,
                     plan.program.block_condition_expression_rows[block],
                     runtime, plan.program.logical_record,
-                    plan.routines, routine, target);
+                    plan.program.payload_free_enum, plan.routines, routine,
+                    target);
             if !condition.valid || condition.type_name !=
                     CompilerAbiLayoutBoolTypeName() {
                 Die("direct MIR scalar CFG LLVM condition is invalid");
@@ -205,6 +207,9 @@ func DirectMirScalarCfgProgramLlvmRoutine(
         } else if DirectMirScalarProgramBlockEndsWithProcessExit(
                 plan.operation_kinds, plan.block_operation_starts[block],
                 plan.block_operation_counts[block]) {
+            output = Concat(output, "  unreachable\n");
+        } else if return_row == -1 {
+            // Readiness proved this is the empty exhaustive-match fallthrough.
             output = Concat(output, "  unreachable\n");
         } else {
             Die("direct MIR scalar program callable return is missing");

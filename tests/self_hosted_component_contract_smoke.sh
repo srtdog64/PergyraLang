@@ -1899,6 +1899,15 @@ require_text \
     "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" \
     "post.history.failure1=post:ForwardB"
 require_text \
+    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" \
+    "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text \
+    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" \
+    '"$FIXTURE_REL" --native-pipeline --backend=c'
+reject_text \
+    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" \
+    "cmp -s"
+require_text \
     "tests/self_hosted/parity/fixture/intent_guard_post_compensation_execution.pgy" \
     "IntentHistoryStepFailure(1)"
 require_file "tests/self_hosted/parity/intent_phase_carrier_negative_owner.sh"
@@ -5102,6 +5111,18 @@ require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
     "LanguageWordId.WordPublic"
 require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
     "LanguageWordId.WordPrivate"
+require_function_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "func ParserImportedSourceHasExplicitExport(" \
+    "SkipWhitespaceAndCommentsWithin(content, n, i);"
+require_function_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "func ParserImportedSourceHasExplicitExport(" \
+    "LanguageWordId.WordExport"
+reject_function_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "func ParserImportedSourceHasExplicitExport(" \
+    "LanguageWordId.WordPublic"
+reject_function_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "func ParseDeclsInto(" \
+    'StringIndexOf(content, "export '
 require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
     'Native AST identity maps both `export` and `public` to `[export]`'
 require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
@@ -17388,6 +17409,26 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy" \
     "DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady("
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy" 80
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy" \
+    "func DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(" \
+    "DirectMirScalarProgramPayloadFreeEnumTypeReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy" \
+    "func DirectMirScalarProgramRouteFactReady(" \
+    "DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_owner.pgy" \
+    "func DirectMirScalarProgramCLogicalRecordFieldType(" \
+    "CompilerAbiLayoutPayloadFreeEnumCValueType()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordFieldType(" \
+    'return "i64";'
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_owner.pgy" \
     "func DirectMirScalarProgramLogicalRecordMemberMarkerReady(" \
@@ -18917,6 +18958,14 @@ require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy" 90
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy" 100
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy" 240
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy" \
     "func DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(" \
@@ -18929,6 +18978,30 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy" \
     "func DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(" \
     "fact.variant_counts[row]"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy" \
+    "func DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(" \
+    "MirMatchInstructionCaptureFromTable(instruction)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_owner.pgy" \
+    "func DirectMirScalarCfgProgramAppendTypedExpressionField(" \
+    "DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy" \
+    "func DirectMirScalarProgramPayloadFreeEnumExhaustiveMatchFallthroughReadinessCode(" \
+    "DirectMirScalarProgramRoutineBlockIncomingEdgeCount("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramExtensionReadinessCode(" \
+    "DirectMirScalarProgramPayloadFreeEnumExhaustiveMatchFallthroughReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramCRoutine(" \
+    'abort();'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramLlvmRoutine(" \
+    'output = Concat(output, "  unreachable\n")'
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy" \
     'type_name == "LanguageWordId"'
@@ -18945,6 +19018,10 @@ require_function_text \
     "func DirectMirScalarProgramCallableParameterSupportedWithFacts(" \
     "DirectMirScalarProgramPayloadFreeEnumParameterReady("
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
+    "func DirectMirScalarProgramComposableCallableSignatureReady(" \
+    "DirectMirScalarProgramPayloadFreeEnumTypeReady("
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
     "func DirectMirScalarProgramCallableParameterRolePlanFromSignature(" \
     "DirectMirScalarProgramPayloadFreeEnumParameterReady("
@@ -18960,6 +19037,14 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_type_owner.pgy" \
     "func DirectMirScalarProgramLlvmTypeForProgram(" \
     "DirectMirScalarProgramPayloadFreeEnumTypeReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "DirectMirScalarProgramPayloadFreeEnumTypeReady("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "DirectMirScalarProgramExprPayloadFreeEnumVariant("
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy" \
     'type_name == "LanguageWordId"'
@@ -18982,6 +19067,12 @@ require_text \
 require_text \
     "tests/self_hosted/fixtures/direct_mir_payload_free_enum_value_parameter.pgy" \
     "func DirectionReady(id: Direction) -> Bool"
+require_text \
+    "tests/self_hosted/fixtures/direct_mir_payload_free_enum_value_parameter.pgy" \
+    "func EchoTone(id: Tone) -> Tone"
+require_text \
+    "tests/self_hosted/fixtures/direct_mir_payload_free_enum_value_parameter.pgy" \
+    "ToneOrdinal(EchoTone(Tone.Warm))"
 require_text \
     "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py" \
     'elif kind == "enum-variant-payload":'

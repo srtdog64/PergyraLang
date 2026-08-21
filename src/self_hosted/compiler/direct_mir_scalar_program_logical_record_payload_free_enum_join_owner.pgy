@@ -1,0 +1,45 @@
+// Cross-seal for payload-free enum fields stored in logical records.
+//
+// The logical-record inventory owns field order. The enum inventory owns the
+// scalar-ordinal classification. This owner joins them without reclassifying a
+// nominal from spelling or treating every unknown field as an Int.
+
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
+    ref record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> Bool {
+    if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        !DirectMirScalarProgramPayloadFreeEnumFactReady(payload_free_enum) {
+        return false;
+    }
+    let field: Int = 0;
+    while field < ArrayLength(record.field_types) {
+        let expected: Bool = DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            payload_free_enum, record.field_types[field]);
+        if (record.field_payload_free_enums[field] == 1) != expected {
+            return false;
+        }
+        field = field + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramLogicalRecordPayloadFreeEnumFieldTypeReady(
+    ref record: DirectMirScalarProgramLogicalRecordFact,
+    type_name: String
+) -> Bool {
+    if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        type_name == "" { return false; }
+    let found: Bool = false;
+    let field: Int = 0;
+    while field < ArrayLength(record.field_types) {
+        if record.field_types[field] == type_name {
+            if record.field_payload_free_enums[field] != 1 { return false; }
+            found = true;
+        }
+        field = field + 1;
+    }
+    return found;
+}

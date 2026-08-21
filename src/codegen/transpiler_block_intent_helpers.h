@@ -6,7 +6,8 @@
 #include "transpiler_intent_context.h"
 
 void emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
-                                      ASTNode *intent, ASTNode *step);
+                                      ASTNode *intent, ASTNode *step,
+                                      bool emit_observability);
 void emit_intent_step_bind_bound_zone_with_metadata(
     CodeBuf *out,
     TranspilerCtx *ctx,
@@ -16,7 +17,8 @@ void emit_intent_step_bind_bound_zone_with_metadata(
     const char *from_alias,
     const char **who_aliases,
     size_t who_alias_count,
-    const IntentBindingMetadataView *bindings);
+    const IntentBindingMetadataView *bindings,
+    bool emit_observability);
 void emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
                                          const char *zone_type,
                                          const char *zone_alias,

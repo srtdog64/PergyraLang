@@ -11,6 +11,15 @@
 # generated program includes the whole runtime as static functions, so
 # unused-function/parameter noise is structural, not a defect):
 #   -Wno-unused-function -Wno-unused-parameter -Wno-missing-field-initializers
+#
+# Subject of this gate:
+#   native C-emitter warning cleanliness across the representative corpus.
+# Delegating would turn a self-host collection-surface gap into an emitted-C
+# regression. This is the declared in-process opt-out, never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 set -euo pipefail
 
 if ! command -v dirname >/dev/null 2>&1 \

@@ -82,9 +82,12 @@ func DirectMirScalarCfgProgramTerminalReturnReadinessFailed(
                     plan.operation_kinds, operation_start, operation_count);
             let ready: Bool = exits ||
                 row == DirectMirScalarCfgVoidReturnExpressionRow();
-            if expected != "Void" && !exits {
-                ready = DirectMirScalarCfgProgramExpressionRowReady(
-                    plan, row, expected, routine);
+            let exhaustive_code: Int = -1;
+            if expected != "Void" && !exits && row == -1 {
+                exhaustive_code = DirectMirScalarProgramPayloadFreeEnumExhaustiveMatchFallthroughReadinessCode(plan, routine, block);
+                ready = exhaustive_code == 0;
+            } else if expected != "Void" && !exits {
+                ready = DirectMirScalarCfgProgramExpressionRowReady(plan, row, expected, routine);
             }
             if !ready {
                 let last_kind: Int = -1;
@@ -97,6 +100,7 @@ func DirectMirScalarCfgProgramTerminalReturnReadinessFailed(
                 detail = Concat(detail, Concat(" expected=", expected));
                 detail = Concat(detail, Concat(" operation_start=", ToString(operation_start)));
                 detail = Concat(detail, Concat(" operation_count=", ToString(operation_count)));
+                detail = Concat(detail, Concat(" exhaustive_code=", ToString(exhaustive_code)));
                 Die(Concat(detail, Concat(" last_kind=", ToString(last_kind))));
             }
         }

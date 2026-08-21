@@ -30,7 +30,10 @@ def main():
     )
     if tone_ordinal is None:
         raise SystemExit("fixture has no ToneOrdinal routine")
-
+    tone_name = next((row for row in document.get("routines", [])
+                      if row.get("name") == "ToneName"), None)
+    if tone_name is None:
+        raise SystemExit("fixture has no ToneName routine")
     def expression_nodes():
         for block in tone_ordinal.get("blocks", []):
             for instruction in block.get("instructions", []):
@@ -76,6 +79,16 @@ def main():
     elif kind == "enum-expression-wrong-type":
         tone_ordinal["params"][0]["type"] = "Direction"
         tone_ordinal["params"][0]["abi_type_name"] = "Direction"
+    elif kind == "enum-match-duplicate-variant":
+        cases = [
+            instruction
+            for block in tone_name.get("blocks", [])
+            for instruction in block.get("instructions", [])
+            if instruction.get("source_type") == "AST_MATCH_CASE"
+        ]
+        if len(cases) != 2:
+            raise SystemExit("fixture has no exact two-case ToneName match")
+        cases[1]["match_patterns"] = list(cases[0]["match_patterns"])
     else:
         raise SystemExit(f"unknown mutation: {kind}")
     with open(output, "w", encoding="utf-8", newline="\n") as stream:

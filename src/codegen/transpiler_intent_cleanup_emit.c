@@ -189,14 +189,15 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                     if (mir_only_intent) {
                         emit_intent_step_bind_bound_zone_with_metadata(
                             ctx->out, ctx, node, zone_type_name, zone_alias, from_alias,
-                            who_aliases, who_alias_count, bindings);
+                            who_aliases, who_alias_count, bindings, false);
                         if (ctx->backend_error != NULL) {
                             free(compensate_exprs);
                             free((void *)who_aliases);
                             return false;
                         }
                     } else {
-                        emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+                        emit_intent_step_bind_bound_zone(
+                            ctx->out, ctx, node, step, false);
                     }
                     if (rollback_policy == INTENT_ROLLBACK_CURRENT) {
                         if (mir_routine->has_invalidation_block) {
@@ -268,7 +269,8 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                     }
                     free(expr);
                 }
-                emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+                emit_intent_step_bind_bound_zone(
+                    ctx->out, ctx, node, step, false);
                 if (rollback_policy == INTENT_ROLLBACK_CURRENT) {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "goto __intent_cleanup_done;\n");

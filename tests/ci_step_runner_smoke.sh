@@ -15,6 +15,7 @@ STEPS
 
 set +e
 PGY_CI_NAME=ci-runner-smoke \
+PGY_CI_FAIL_FAST=0 \
 PGY_CI_FAILURE_TAIL_LINES=8 \
 PGY_CI_LOG_DIR="$tmp/logs" \
     bash "$ROOT_DIR/scripts/ci_step_runner.sh" "$tmp/steps.sh" \

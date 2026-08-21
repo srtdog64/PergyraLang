@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Subject of this gate: native C/LLVM region-plan backend wiring.
+# Delegating would turn a self-host coverage gap into a region regression.
+# This is the declared in-process opt-out, never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy.exe}"
 WORK="$(mktemp -d "$ROOT_DIR/.tmp/region_backend_wiring.XXXXXX")"

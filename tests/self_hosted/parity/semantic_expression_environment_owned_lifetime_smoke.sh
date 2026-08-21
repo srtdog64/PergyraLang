@@ -754,8 +754,9 @@ for consumer_contract in \
     "$STATEMENT_FACTS|SemanticAstStatementTypeFactsFromAdmittedArtifact"; do
     path="${consumer_contract%%|*}"
     function_name="${consumer_contract#*|}"
-    function_body "$path" "$function_name" |
-        grep -Fq 'SemanticAstExpressionEnvironmentClear(names, types, modes);' || {
+    consumer_body="$(function_body "$path" "$function_name")"
+    grep -Fq 'SemanticAstExpressionEnvironmentClear(names, types, modes);' \
+        <<<"$consumer_body" || {
         echo "[self-host-parity:semantic-environment-lifetime] missing last-consumer cleanup in $function_name" >&2
         exit 1
     }
@@ -766,8 +767,9 @@ for reuse_contract in \
     "$INITIALIZER_CURSOR|SemanticAstInitializerEnvironmentCursorAdvance"; do
     path="${reuse_contract%%|*}"
     function_name="${reuse_contract#*|}"
-    function_body "$path" "$function_name" |
-        grep -Fq 'SemanticAstExpressionEnvironmentReset(names, types, modes);' || {
+    reuse_body="$(function_body "$path" "$function_name")"
+    grep -Fq 'SemanticAstExpressionEnvironmentReset(names, types, modes);' \
+        <<<"$reuse_body" || {
         echo "[self-host-parity:semantic-environment-lifetime] growing environment backing is not reused in $function_name" >&2
         exit 1
     }

@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy";
 import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
 struct DirectMirScalarProgramRouteFact {
     let claimed: Bool; let digest: Int;
@@ -69,6 +70,8 @@ func DirectMirScalarProgramRouteFactReady(
         !DirectMirScalarProgramLogicalRecordFactReady(fact.logical_record) ||
         !DirectMirScalarProgramPayloadFreeEnumFactReady(
             fact.payload_free_enum) ||
+        !DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
+            fact.logical_record, fact.payload_free_enum) ||
         !DirectMirScalarProgramArrayIntValueResultFactReady(
             fact.array_int_value_result) ||
         !DirectMirScalarProgramArrayBoolAbiFactReady(fact.array_bool_abi) ||

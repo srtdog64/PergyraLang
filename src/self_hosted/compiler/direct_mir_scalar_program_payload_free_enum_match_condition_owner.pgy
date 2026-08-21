@@ -1,0 +1,72 @@
+// Payload-free enum match patterns normalized into one Bool equality graph.
+
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_expression_owner.pgy";
+import "../mir_lower/match_json_fact_owner.pgy";
+
+func DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
+    facts: DirectMirScalarProgramExpressionSet,
+    ref instruction: JsonObjectFactTable, expression_row: Int,
+    ref enum_fact: DirectMirScalarProgramPayloadFreeEnumFact
+) -> DirectMirScalarProgramExpressionSet {
+    if !JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_MATCH_CASE") {
+        return facts;
+    }
+    let invalid: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetInvalid(facts);
+    let match_fact: MirMatchInstructionCapture =
+        MirMatchInstructionCaptureFromTable(instruction);
+    if !facts.valid || expression_row < 0 ||
+        expression_row + 1 != ArrayLength(facts.graph_starts) ||
+        !match_fact.valid || match_fact.pattern_count != 1 ||
+        match_fact.pattern == "" || match_fact.variant != "" ||
+        match_fact.binding_count != 0 ||
+        match_fact.binding_type_count != 0 {
+        return invalid;
+    }
+    let start: Int = facts.graph_starts[expression_row];
+    let count: Int = facts.graph_counts[expression_row];
+    let value_node: Int = facts.graph_roots[expression_row];
+    if count < 1 || value_node < start || value_node >= start + count ||
+        value_node >= ArrayLength(facts.node_types) {
+        return invalid;
+    }
+    let type_name: String = facts.node_types[value_node];
+    let ordinal: Int = DirectMirScalarProgramPayloadFreeEnumVariantOrdinal(
+        enum_fact, type_name, match_fact.pattern);
+    if ordinal < 0 { return invalid; }
+
+    let graph_counts: Array<Int> = facts.graph_counts;
+    let graph_roots: Array<Int> = facts.graph_roots;
+    let kinds: Array<Int> = facts.node_kinds;
+    let types: Array<String> = facts.node_types;
+    let lefts: Array<Int> = facts.node_lefts;
+    let rights: Array<Int> = facts.node_rights;
+    let locals: Array<Int> = facts.node_local_rows;
+    let params: Array<Int> = facts.node_parameter_ordinals;
+    let members: Array<Int> = facts.node_member_ordinals;
+    let literals: Array<String> = facts.node_literals;
+    let callables: Array<Int> = facts.node_callable_rows;
+    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    let variant_node: Int = ArrayLength(kinds);
+    DirectMirScalarProgramAppendExpressionNode(
+        kinds, types, lefts, rights, locals, params, members,
+        literals, callables, runtime_ids,
+        DirectMirScalarProgramExprPayloadFreeEnumVariant(), type_name,
+        -1, -1, -1, -1, ordinal, "", -1, -1);
+    let condition_node: Int = ArrayLength(kinds);
+    DirectMirScalarProgramAppendExpressionNode(
+        kinds, types, lefts, rights, locals, params, members,
+        literals, callables, runtime_ids,
+        DirectMirScalarProgramExprEqualPayloadFreeEnum(),
+        CompilerAbiLayoutBoolTypeName(), value_node, variant_node,
+        -1, -1, -1, "", -1, -1);
+    ArraySet(graph_counts, expression_row, count + 2);
+    ArraySet(graph_roots, expression_row, condition_node);
+    return DirectMirScalarProgramExpressionSet(
+        true, 0, facts.graph_global_rows, facts.graph_starts,
+        graph_counts, graph_roots, kinds, types, lefts, rights,
+        locals, params, members, literals, callables, runtime_ids,
+        facts.nary_operands);
+}

@@ -23,6 +23,13 @@
 #   PGY_BIN=bin/pgy.exe bash tests/nested_parallel_witness_smoke.sh
 set -euo pipefail
 
+# Subject of this gate: native runtime nested-pool progress on both backends.
+# Delegating would turn a self-host coverage gap into a scheduler regression.
+# This is the declared in-process opt-out, never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths

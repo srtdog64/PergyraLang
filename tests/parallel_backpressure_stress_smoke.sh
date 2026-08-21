@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Subject of this gate: native runtime pool backpressure on both backends.
+# Delegating would turn a self-host coverage gap into a scheduler regression.
+# This is the declared in-process opt-out, never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Windows: pgy.exe needs the mingw/LLVM runtime DLLs on PATH or it dies as a
 # silent exit-127 "command not found" under bare Git-bash (WO-RT-3 residue 3).

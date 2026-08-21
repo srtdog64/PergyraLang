@@ -1,5 +1,6 @@
 // LLVM representation and expression projection for logical record identities.
 import "direct_mir_scalar_program_logical_record_target_owner.pgy";
+import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 func DirectMirScalarProgramLlvmLogicalRecordTypeName(
     ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
@@ -14,15 +15,11 @@ func DirectMirScalarProgramLlvmLogicalRecordFieldType(
     if type_name == CompilerAbiLayoutBoolTypeName() { return "i1"; }
     if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
     if type_name == CompilerAbiLayoutStringTypeName() { return "ptr"; }
-    if type_name == CompilerAbiLayoutArrayIntTypeName() {
-        return "%pgy.array.int";
-    }
-    if type_name == CompilerAbiLayoutArrayBoolTypeName() {
-        return "%pgy.array.bool";
-    }
-    if type_name == CompilerAbiLayoutArrayStringTypeName() {
-        return "%pgy.array.string";
-    }
+    if type_name == CompilerAbiLayoutArrayIntTypeName() { return "%pgy.array.int"; }
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() { return "%pgy.array.bool"; }
+    if type_name == CompilerAbiLayoutArrayStringTypeName() { return "%pgy.array.string"; }
+    if DirectMirScalarProgramLogicalRecordPayloadFreeEnumFieldTypeReady(
+            fact, type_name) { return "i64"; }
     return DirectMirScalarProgramLlvmLogicalRecordTypeName(fact, type_name);
 }
 

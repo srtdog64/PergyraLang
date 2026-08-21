@@ -12,6 +12,13 @@
 # Usage: PGY_BIN=bin/pgy.exe bash tests/parallel_join_emit_shape_smoke.sh
 set -euo pipefail
 
+# Subject of this gate: native C/LLVM parallel-join emission shape.
+# Delegating would turn a self-host coverage gap into an emitter regression.
+# This is the declared in-process opt-out, never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths

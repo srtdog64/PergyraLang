@@ -14,7 +14,8 @@
 
 void
 emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
-                                 ASTNode *intent, ASTNode *step)
+                                 ASTNode *intent, ASTNode *step,
+                                 bool emit_observability)
 {
     const char *zone_alias;
     const char *zone_type;
@@ -48,7 +49,7 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
             if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
                 write_indent(ctx);
                 codebuf_write(out, "%s->%s = *%s;\n", from_alias, from_slot_name, alias);
-                if (ctx->uses_intent_observability) {
+                if (ctx->uses_intent_observability && emit_observability) {
                     write_indent(ctx);
                     codebuf_write(out,
                         "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
@@ -58,7 +59,7 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
             if (to_slot_name != NULL && strcmp(to_slot_name, "<unbound>") != 0) {
                 write_indent(ctx);
                 codebuf_write(out, "%s->%s = *%s;\n", zone_alias, to_slot_name, alias);
-                if (ctx->uses_intent_observability) {
+                if (ctx->uses_intent_observability && emit_observability) {
                     write_indent(ctx);
                     codebuf_write(out,
                         "pgy_intent_trace_transfer_export(__intent_handle, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
@@ -86,7 +87,7 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
             continue;
         write_indent(ctx);
         codebuf_write(out, "%s->%s = *%s;\n", zone_alias, slot_name, alias);
-        if (ctx->uses_intent_observability) {
+        if (ctx->uses_intent_observability && emit_observability) {
             write_indent(ctx);
             codebuf_write(out,
                 "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
@@ -105,7 +106,8 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
                                                const char *from_alias,
                                                const char **who_aliases,
                                                size_t who_alias_count,
-                                               const IntentBindingMetadataView *bindings)
+                                               const IntentBindingMetadataView *bindings,
+                                               bool emit_observability)
 {
     const char *from_zone_type;
 
@@ -131,7 +133,7 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
             if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
                 write_indent(ctx);
                 codebuf_write(out, "%s->%s = *%s;\n", from_alias, from_slot_name, alias);
-                if (ctx->uses_intent_observability) {
+                if (ctx->uses_intent_observability && emit_observability) {
                     write_indent(ctx);
                     codebuf_write(out,
                         "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
@@ -141,7 +143,7 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
             if (to_slot_name != NULL && strcmp(to_slot_name, "<unbound>") != 0) {
                 write_indent(ctx);
                 codebuf_write(out, "%s->%s = *%s;\n", zone_alias, to_slot_name, alias);
-                if (ctx->uses_intent_observability) {
+                if (ctx->uses_intent_observability && emit_observability) {
                     write_indent(ctx);
                     codebuf_write(out,
                         "pgy_intent_trace_transfer_export(__intent_handle, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
@@ -171,7 +173,7 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
             continue;
         write_indent(ctx);
         codebuf_write(out, "%s->%s = *%s;\n", zone_alias, slot_name, alias);
-        if (ctx->uses_intent_observability) {
+        if (ctx->uses_intent_observability && emit_observability) {
             write_indent(ctx);
             codebuf_write(out,
                 "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",

@@ -2618,7 +2618,8 @@ inventory must not become a second fact-family owner registry.
   derives `{i32,i32}` or a C struct merely from the source type spelling.
 - `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy`,
   `direct_mir_scalar_program_logical_record_expression_owner.pgy`, and
-  `direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy`
+  `direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy`, and
+  `direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy`
   -- the program inventory of callable-referenced ordered logical-record
   identities and their constructor/member graph rows. Each candidate consumes
   the declaration index's canonical
@@ -2631,7 +2632,9 @@ inventory must not become a second fact-family owner registry.
   missing dependencies, unreferenced same-shape declarations, and inferred
   physical layouts are rejected. `Array<Int>`, `Array<Bool>`, and
   `Array<String>` are bounded terminal field identities, not nested record
-  dependencies.
+  dependencies. The enum join owner admits a nominal field as scalar-ordinal
+  only when the payload-free enum inventory owns that exact type; neither the
+  record owner nor a target backend reclassifies it from spelling.
 - `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy`,
   `direct_mir_scalar_program_logical_record_option_builtin_signature_owner.pgy`,
   `direct_mir_scalar_program_logical_record_option_expression_readiness_owner.pgy`,
@@ -2652,14 +2655,22 @@ inventory must not become a second fact-family owner registry.
   routine-name branches, general Int relabeling, payload-bearing variants, and
   backend MIR rereads are forbidden. C and LLVM consume its canonical Int ABI
   type only after this fact is admitted.
-- `src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy`
-  and `direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy`
+- `src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy`,
+  `direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy`,
+  `direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy`, and
+  `direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy`
   -- declaration-owned payload-free enum variant constants and the exact
-  value-formal/variant equality join. The existing enum fact owns type,
+  value/variant equality join, including MIR match-pattern normalization and
+  the exact proof for an empty fallthrough after a stable-scrutinee exhaustive
+  match. The existing enum fact owns type,
   variant name, ordinal, and scalar-ordinal representation; expression
   admission stores only that admitted ordinal and both targets consume the
-  sealed `i64` carrier. Enum/routine spelling branches, ordinal inference,
-  generic member fallback, and backend MIR rereads are forbidden.
+  sealed `i64` carrier. LLVM direct-call result and argument ABI projection
+  also consumes the exact enum type fact, including an enum value returned by
+  another callable; it never infers the ABI from a variant-literal node shape.
+  Enum/routine spelling branches, ordinal inference, generic member fallback,
+  treating arbitrary missing returns as unreachable, and backend MIR rereads
+  are forbidden.
 - `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_collection_abi_owner.pgy`
   -- the only join from collection-bearing logical fields to the already
   admitted Array ABI receipts. It does not copy offsets or authorize a record

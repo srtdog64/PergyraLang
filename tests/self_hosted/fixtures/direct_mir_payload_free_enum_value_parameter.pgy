@@ -16,6 +16,17 @@ func DirectionLabel(id: Direction) -> String {
     return "direction";
 }
 
+func EchoTone(id: Tone) -> Tone {
+    return id;
+}
+
+func ToneName(id: Tone) -> String {
+    match id {
+        case Warm: return "warm";
+        case Cool: return "cool";
+    }
+}
+
 func ToneOrdinal(id: Tone) -> Int {
     if id == Tone.Warm {
         return 1;
@@ -28,7 +39,7 @@ func DirectionReady(id: Direction) -> Bool {
 }
 
 func Main() -> Void {
-    Log(ToneOrdinal(Tone.Warm));
+    Log(ToneOrdinal(EchoTone(Tone.Warm)));
     Log(ToneOrdinal(Tone.Cool));
     if DirectionReady(Direction.North) {
         Log(1);
@@ -40,5 +51,7 @@ func Main() -> Void {
     } else {
         Log(0);
     }
+    Log(ToneName(Tone.Warm));
+    Log(ToneName(EchoTone(Tone.Cool)));
     Log("payload-free-enum-parameter-ready");
 }

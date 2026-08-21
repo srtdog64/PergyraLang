@@ -11,7 +11,7 @@ import "../mir_lower/machine_layer_fact_owner.pgy";
 import "../mir_lower/abi_layout_fact_owner.pgy";
 import "../semantic/array_type_shape_owner.pgy";
 import "../semantic/wrapper_type_owner.pgy";
-
+import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 struct DirectMirScalarProgramLogicalRecordFact {
     let valid: Bool;
     let digest: Int;
@@ -24,9 +24,9 @@ struct DirectMirScalarProgramLogicalRecordFact {
     let field_names: Array<String>;
     let field_types: Array<String>;
     let field_source_syntax_ids: Array<Int>;
+    let field_payload_free_enums: Array<Int>;
     let physical_abi_absent: Bool;
 }
-
 func DirectMirScalarProgramLogicalRecordFactInvalid(
 ) -> DirectMirScalarProgramLogicalRecordFact {
     let ints: Array<Int> = [];
@@ -34,9 +34,8 @@ func DirectMirScalarProgramLogicalRecordFactInvalid(
     let types: Array<String> = [];
     return DirectMirScalarProgramLogicalRecordFact(
         false, 0, false, ints, names, ints, ints, ints,
-        names, types, ints, false);
+        names, types, ints, ints, false);
 }
-
 func DirectMirScalarProgramLogicalRecordFactDigest(
     ref fact: DirectMirScalarProgramLogicalRecordFact
 ) -> Int {
@@ -51,13 +50,13 @@ func DirectMirScalarProgramLogicalRecordFactDigest(
     hash = DirectMirScalarCfgHashStrings(hash, fact.field_names);
     hash = DirectMirScalarCfgHashStrings(hash, fact.field_types);
     hash = DirectMirScalarCfgHashInts(hash, fact.field_source_syntax_ids);
+    hash = DirectMirScalarCfgHashInts(hash, fact.field_payload_free_enums);
     if fact.present { hash = DirectMirCfgHashInt(hash, 1); }
     else { hash = DirectMirCfgHashInt(hash, 0); }
     if fact.physical_abi_absent { hash = DirectMirCfgHashInt(hash, 1); }
     else { hash = DirectMirCfgHashInt(hash, 0); }
     return DirectMirCfgBoundedDigest(hash);
 }
-
 func DirectMirScalarProgramLogicalRecordFactCanonicalEmpty(
 ) -> DirectMirScalarProgramLogicalRecordFact {
     let ints: Array<Int> = [];
@@ -66,15 +65,13 @@ func DirectMirScalarProgramLogicalRecordFactCanonicalEmpty(
     let source: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFact(
             true, 0, false, ints, names, ints, ints, ints,
-            names, types, ints, true);
+            names, types, ints, ints, true);
     return DirectMirScalarProgramLogicalRecordFact(
         true, DirectMirScalarProgramLogicalRecordFactDigest(source),
-        false, ints, names, ints, ints, ints, names, types, ints, true);
+        false, ints, names, ints, ints, ints, names, types, ints, ints, true);
 }
 
-func DirectMirScalarProgramLogicalRecordScalarFieldTypeReady(
-    type_name: String
-) -> Bool {
+func DirectMirScalarProgramLogicalRecordScalarFieldTypeReady(type_name: String) -> Bool {
     return type_name == CompilerAbiLayoutBoolTypeName() ||
         type_name == CompilerAbiLayoutIntTypeName() ||
         type_name == CompilerAbiLayoutStringTypeName();
@@ -105,14 +102,17 @@ func DirectMirScalarProgramLogicalRecordCandidateReady(
         fact.field_counts[0] <= 0 || fact.field_counts[0] !=
             ArrayLength(fact.field_names) || fact.field_counts[0] !=
             ArrayLength(fact.field_types) || fact.field_counts[0] !=
-            ArrayLength(fact.field_source_syntax_ids) {
+            ArrayLength(fact.field_source_syntax_ids) || fact.field_counts[0] !=
+            ArrayLength(fact.field_payload_free_enums) {
         return false;
     }
     let field: Int = 0;
     while field < fact.field_counts[0] {
         if fact.field_names[field] == "" || fact.field_types[field] == "" ||
             fact.field_source_syntax_ids[field] <= 0 ||
-            fact.field_source_syntax_ids[field] == fact.source_syntax_ids[0] {
+            fact.field_source_syntax_ids[field] == fact.source_syntax_ids[0] ||
+            (fact.field_payload_free_enums[field] != 0 &&
+             fact.field_payload_free_enums[field] != 1) {
             return false;
         }
         let prior: Int = 0;
@@ -139,7 +139,9 @@ func DirectMirScalarProgramLogicalRecordFactReady(
         count != ArrayLength(fact.names) ||
         count != ArrayLength(fact.source_syntax_ids) ||
         count != ArrayLength(fact.field_starts) ||
-        count != ArrayLength(fact.field_counts) {
+        count != ArrayLength(fact.field_counts) ||
+        ArrayLength(fact.field_names) !=
+            ArrayLength(fact.field_payload_free_enums) {
         return false;
     }
     let expected_field: Int = 0;
@@ -168,10 +170,13 @@ func DirectMirScalarProgramLogicalRecordFactReady(
                 fact.field_types[field] == "" ||
                 fact.field_source_syntax_ids[field] <= 0 ||
                 fact.field_source_syntax_ids[field] ==
-                    fact.source_syntax_ids[row] {
+                    fact.source_syntax_ids[row] ||
+                (fact.field_payload_free_enums[field] != 0 &&
+                 fact.field_payload_free_enums[field] != 1) {
                 return false;
             }
-            if !DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(
+            if fact.field_payload_free_enums[field] == 0 &&
+                !DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(
                     fact.field_types[field]) {
                 let dependency: Int = 0;
                 let dependency_found: Bool = false;
@@ -204,11 +209,14 @@ func DirectMirScalarProgramLogicalRecordFactReady(
 
 func DirectMirScalarProgramLogicalRecordCandidateAt(
     json: String, ref declarations: MirProgramDeclarationIndex,
-    declaration_row: Int
+    declaration_row: Int,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> DirectMirScalarProgramLogicalRecordFact {
     let invalid: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFactInvalid();
-    if !declarations.valid || declaration_row < 0 || declaration_row >=
+    if !declarations.valid ||
+        !DirectMirScalarProgramPayloadFreeEnumFactReady(payload_free_enum) ||
+        declaration_row < 0 || declaration_row >=
             MirProgramDeclarationIndexCount(declarations) ||
         declarations.kinds[declaration_row] != "struct" ||
         declarations.nominal_kinds[declaration_row] != "struct" {
@@ -253,6 +261,7 @@ func DirectMirScalarProgramLogicalRecordCandidateAt(
     let field_names: Array<String> = [];
     let field_types: Array<String> = [];
     let field_ids: Array<Int> = [];
+    let field_enums: Array<Int> = [];
     let field: Int = 0;
     while field < ArrayLength(declarations.field_identities.field_names) {
         if declarations.field_identities.field_owner_indices[field] ==
@@ -270,6 +279,11 @@ func DirectMirScalarProgramLogicalRecordCandidateAt(
             ArrayPush(field_ids,
                 ToInt(declarations.field_identities.field_source_syntax_ids[
                     field]));
+            if DirectMirScalarProgramPayloadFreeEnumTypeReady(
+                    payload_free_enum,
+                    declarations.field_identities.field_type_names[field]) {
+                ArrayPush(field_enums, 1);
+            } else { ArrayPush(field_enums, 0); }
         }
         field = field + 1;
     }
@@ -283,12 +297,12 @@ func DirectMirScalarProgramLogicalRecordCandidateAt(
     let source: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFact(
             true, 0, true, rows, names, syntax_ids, field_starts,
-            field_counts, field_names, field_types, field_ids, true);
+            field_counts, field_names, field_types, field_ids, field_enums, true);
     let sealed: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFact(
             true, DirectMirScalarProgramLogicalRecordFactDigest(source),
             true, rows, names, syntax_ids, field_starts, field_counts,
-            field_names, field_types, field_ids, true);
+            field_names, field_types, field_ids, field_enums, true);
     if !DirectMirScalarProgramLogicalRecordCandidateReady(sealed) {
         return invalid;
     }
@@ -311,6 +325,7 @@ func DirectMirScalarProgramLogicalRecordAppendCandidate(
     let field_names: Array<String> = current.field_names;
     let field_types: Array<String> = current.field_types;
     let field_ids: Array<Int> = current.field_source_syntax_ids;
+    let field_enums: Array<Int> = current.field_payload_free_enums;
     ArrayPush(rows, candidate.declaration_rows[0]);
     ArrayPush(names, candidate.names[0]);
     ArrayPush(syntax_ids, candidate.source_syntax_ids[0]);
@@ -321,17 +336,18 @@ func DirectMirScalarProgramLogicalRecordAppendCandidate(
         ArrayPush(field_names, candidate.field_names[field]);
         ArrayPush(field_types, candidate.field_types[field]);
         ArrayPush(field_ids, candidate.field_source_syntax_ids[field]);
+        ArrayPush(field_enums, candidate.field_payload_free_enums[field]);
         field = field + 1;
     }
     let source: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFact(
             true, 0, true, rows, names, syntax_ids, field_starts,
-            field_counts, field_names, field_types, field_ids, true);
+            field_counts, field_names, field_types, field_ids, field_enums, true);
     let sealed: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFact(
         true, DirectMirScalarProgramLogicalRecordFactDigest(source),
         true, rows, names, syntax_ids, field_starts, field_counts,
-        field_names, field_types, field_ids, true);
+        field_names, field_types, field_ids, field_enums, true);
     if !DirectMirScalarProgramLogicalRecordFactReady(sealed) {
         return DirectMirScalarProgramLogicalRecordFactInvalid();
     }
@@ -349,7 +365,8 @@ func DirectMirScalarProgramLogicalRecordCandidateDependenciesReady(
     let field: Int = 0;
     while field < candidate.field_counts[0] {
         let type_name: String = candidate.field_types[field];
-        if !DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(type_name) {
+        if candidate.field_payload_free_enums[field] == 0 &&
+            !DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(type_name) {
             let found: Bool = false;
             let row: Int = 0;
             while row < ArrayLength(selected.names) {
@@ -402,9 +419,11 @@ func DirectMirScalarProgramLogicalRecordReferenceAdd(
 }
 
 func DirectMirScalarProgramLogicalRecordFactFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> DirectMirScalarProgramLogicalRecordFact {
-    if !admitted.domain_runtime_admission.declarations.valid {
+    if !admitted.domain_runtime_admission.declarations.valid ||
+        !DirectMirScalarProgramPayloadFreeEnumFactReady(payload_free_enum) {
         return DirectMirScalarProgramLogicalRecordFactInvalid();
     }
     let referenced_rows: Array<Int> = [];
@@ -456,7 +475,7 @@ func DirectMirScalarProgramLogicalRecordFactFromAdmitted(
             DirectMirScalarProgramLogicalRecordCandidateAt(
                 admitted.document.root.json,
                 admitted.domain_runtime_admission.declarations,
-                referenced_rows[reference]);
+                referenced_rows[reference], payload_free_enum);
         if candidate.valid {
             let field: Int = 0;
             while field < candidate.field_counts[0] {
@@ -482,7 +501,7 @@ func DirectMirScalarProgramLogicalRecordFactFromAdmitted(
                 DirectMirScalarProgramLogicalRecordCandidateAt(
                     admitted.document.root.json,
                     admitted.domain_runtime_admission.declarations,
-                    referenced_rows[reference]);
+                    referenced_rows[reference], payload_free_enum);
             let already_selected: Bool = false;
             if candidate.valid {
                 let selected_row: Int = 0;

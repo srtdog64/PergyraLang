@@ -31,6 +31,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
     expression_row: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int,
     target: CompilerTargetProjectionFact
 ) -> DirectMirScalarProgramLlvmExpression {
@@ -266,7 +267,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     arguments, argument_types, argument_kinds,
                     argument_carriages,
                     expressions.node_callable_rows[node], runtime,
-                    logical_record);
+                    logical_record, payload_free_enum);
             if string_expression.matched {
                 if !string_expression.valid {
                     return DirectMirScalarProgramLlvmExpression(

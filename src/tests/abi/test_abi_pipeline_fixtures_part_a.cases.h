@@ -264,7 +264,7 @@
         "true\n"
         "true\n"
         "1\n"
-        "materialize\n"
+        "fail\n"
         "false\n"
         "1\n"
         "true\n"

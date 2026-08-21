@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Subject of this gate: native C/LLVM panic lowering and runtime diagnostics.
+# Delegating would turn a self-host coverage gap into a panic regression.
+# This is the declared in-process opt-out, never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
+
 if ! command -v dirname >/dev/null 2>&1 \
     || ! command -v pwd >/dev/null 2>&1; then
     PATH="/usr/bin:/bin:$PATH"

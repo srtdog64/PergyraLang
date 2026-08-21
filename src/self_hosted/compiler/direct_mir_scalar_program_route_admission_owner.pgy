@@ -1,7 +1,6 @@
 // One-pass scalar-program route admission with a stable rejection receipt.
 // The terminal dispatcher consumes the receipt only after every earlier route
 // declines; it never rescans the MIR to reconstruct the failed decision.
-
 import "direct_mir_scalar_program_route_fact_owner.pgy";
 import "direct_mir_scalar_program_array_bool_abi_capture_owner.pgy";
 import "direct_mir_scalar_program_single_string_route_owner.pgy";
@@ -127,18 +126,21 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
         return DirectMirScalarProgramRouteAdmissionRejected(
             "scalar-program-route", "nominal-abi", -1, "", -1, "", "");
     }
-    let logical_record: DirectMirScalarProgramLogicalRecordFact =
-        DirectMirScalarProgramLogicalRecordFactFromAdmitted(admitted);
-    if !DirectMirScalarProgramLogicalRecordFactReady(logical_record) {
-        return DirectMirScalarProgramRouteAdmissionRejected(
-            "scalar-program-route", "logical-record", -1, "", -1, "", "");
-    }
     let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact =
         DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(admitted);
     if !DirectMirScalarProgramPayloadFreeEnumFactReady(payload_free_enum) {
         return DirectMirScalarProgramRouteAdmissionRejected(
             "scalar-program-route", "payload-free-enum",
             -1, "", -1, "", "");
+    }
+    let logical_record: DirectMirScalarProgramLogicalRecordFact =
+        DirectMirScalarProgramLogicalRecordFactFromAdmitted(
+            admitted, payload_free_enum);
+    if !DirectMirScalarProgramLogicalRecordFactReady(logical_record) ||
+        !DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
+            logical_record, payload_free_enum) {
+        return DirectMirScalarProgramRouteAdmissionRejected(
+            "scalar-program-route", "logical-record", -1, "", -1, "", "");
     }
     if routine_count == 1 {
         if !DirectMirScalarSingleStringProgramRouteClaimed(admitted) &&
