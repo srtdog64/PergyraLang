@@ -196,24 +196,30 @@ exhaustive_recipe="$(
         '/^self-host-preparation-exhaustive-parity-test-smoke:/,/^self-host-runtime-boundary-parity-test-smoke:/p' \
         "$MAKEFILE"
 )"
-codegen_parity_line="$(
-    grep -nF 'tests/self_hosted/parity/codegen_parity.sh' \
-        <<<"$exhaustive_recipe" | tail -n 1 | cut -d: -f1 || true
-)"
-scratch_reset_line="$(
-    grep -nF '$(MAKE) clean-scratch' \
-        <<<"$exhaustive_recipe" | cut -d: -f1 || true
-)"
 assignment_probe_line="$(
     grep -nF 'tests/self_hosted/parity/assignment_projection_probe_parity.sh' \
         <<<"$exhaustive_recipe" | cut -d: -f1 || true
 )"
-if [[ "$(grep -Fc '$(MAKE) clean-scratch' <<<"$exhaustive_recipe")" != "1" ]] ||
-    [[ -z "$codegen_parity_line" || -z "$scratch_reset_line" ||
-       -z "$assignment_probe_line" ]] ||
-    (( codegen_parity_line >= scratch_reset_line ||
-       scratch_reset_line >= assignment_probe_line )); then
-    echo "[self-host-ci-profile] exhaustive parity must release consumed scratch before the assignment probe" >&2
+first_pgy_gate_line="$(
+    grep -nF 'PGY_BIN=' <<<"$exhaustive_recipe" | head -n 1 | cut -d: -f1 || true
+)"
+completeness_ledger_line="$(
+    grep -nF 'tests/self_hosted/parity/completeness_ledger.sh' \
+        <<<"$exhaustive_recipe" | cut -d: -f1 || true
+)"
+codegen_parity_line="$(
+    grep -nF 'tests/self_hosted/parity/codegen_parity.sh' \
+        <<<"$exhaustive_recipe" | tail -n 1 | cut -d: -f1 || true
+)"
+if [[ "$(grep -Fc 'tests/self_hosted/parity/assignment_projection_probe_parity.sh' \
+        <<<"$exhaustive_recipe")" != "1" ]] ||
+    grep -Fq '$(MAKE) clean-scratch' <<<"$exhaustive_recipe" ||
+    [[ -z "$assignment_probe_line" || -z "$first_pgy_gate_line" ||
+       -z "$completeness_ledger_line" || -z "$codegen_parity_line" ]] ||
+    (( assignment_probe_line != first_pgy_gate_line ||
+       assignment_probe_line >= completeness_ledger_line ||
+       assignment_probe_line >= codegen_parity_line )); then
+    echo "[self-host-ci-profile] exhaustive parity must run assignment projection as its first falsifier" >&2
     exit 1
 fi
 for forbidden in \
