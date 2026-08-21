@@ -12,14 +12,15 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - collection ABI projection remote verification
+## Active self-host context - assignment LLVM materialization remote verification
 
 - The exact compiler-semantic checkpoint is commit
   `7230cd07a416b5e2a4215f91f7393a809f3cb409` on `main`. Following publication
   successors only restore ratchet-compatible signature formatting, repair CI
-  provisioning/static pins, or bound exhaustive-gate execution cost; they do
-  not change compiler semantics. The CI execution checkpoint is commit
-  `5d2149028a5a8c3b57dbfdb083853121f1e9acad`; this handoff refresh is its
+  provisioning/static pins, bound exhaustive-gate execution cost, or repair
+  LLVM artifact materialization cost without changing emitted semantics. The
+  current executable resource checkpoint is commit
+  `b1a571509248de3e0d8207f3c13c2f568b716b9f`; this handoff refresh is its
   documentation-only successor. After publication, the only remaining
   worktree path is the unrelated untracked `pgy-80135c2c/`; do not stage,
   discard, or rewrite it.
@@ -131,15 +132,38 @@ gate count do not increment either percentage by themselves.
   `MemAvailable`, and swap without changing source, backend coverage, runtime
   negatives, timeout, or artifact authority. The local C gate emitted the
   heartbeat and passed; component/profile/docs/syntax/diff ratchets are green.
-- Next executable rung: publish the resource-observer checkpoint and inspect the
+- Eighth publication run `32533689600` at `67f24eb6` removed that ambiguity.
+  The assignment C artifact completed. During the LLVM artifact, recursive RSS
+  rose from 1,860,012 KiB at 120 seconds to 8,157,532 KiB at 135 seconds;
+  system `MemAvailable` then fell to 352,952 KiB and swap was consumed before
+  the runner terminated the compiler. This is direct compiler-scale
+  materialization pressure, not an assignment semantic assertion, optimizer
+  tail, scratch lifetime, cumulative ordering, or unexplained external
+  shutdown.
+- The reached owner was `DirectMirScalarCfgEmitProgramLlvm`: for each of about
+  1,983 routines it appended a completed local string with
+  `output = Concat(output, routine)`, copying the already-built program again.
+  Commit `b1a57150` preserves the exact preamble and routine order but gives
+  the program-global serialization to one `TextBuilder`, retires each owned
+  routine string after its last append, and rejects restoration of the
+  program-global `Concat` path in the component ratchet. This is a bounded
+  execution-resource repair at the reached LLVM artifact owner, not a cache,
+  shard, timeout, swap allowance, or new semantic authority.
+- A fresh Pergyra-built `pgy-self-driver.exe` was generated from the modified
+  source graph. The focused assignment C/LLVM parity gate then passed the
+  positive output and all missing-fact negatives; C completed after its first
+  heartbeat and LLVM completed shortly after its 150-second heartbeat instead
+  of terminating at the former resource boundary. The component structural inventory,
+  line cap, removed-path ratchets, and `git diff --check` are green. Windows
+  MSYS cannot report useful recursive RSS for the Windows compiler child, so
+  the clean Ubuntu observer remains the exact memory falsifier.
+- Next executable rung: publish `b1a57150` plus this handoff and inspect the
   newest clean GitHub Actions run. The falsifier is the full job set, with
-  exhaustive parity completing the dev-profile assignment projection first
-  and then its unchanged cumulative tail on one runner. If the runner exits,
-  use its last heartbeat to distinguish low available memory from an external
-  shutdown before changing execution shape. If the run is green,
-  return to the next production self-host replacement named by current
-  executable evidence. If it is red, resume from its first deterministic
-  failure and do not open another general SoT cleanup.
+  exhaustive parity completing the dev-profile assignment C/LLVM projection
+  first and then its unchanged cumulative tail. The Linux heartbeat must stay
+  bounded through the former 135-second 8.16 GiB spike and the job must finish;
+  a green full matrix closes this CI resource rung. If it is red, resume from
+  its first deterministic failure and do not open another general SoT cleanup.
 
 ### Previous CI parity closure and budget context (inactive)
 
