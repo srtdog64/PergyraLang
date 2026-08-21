@@ -16,10 +16,13 @@ gate count do not increment either percentage by themselves.
 
 - The exact compiler-semantic checkpoint is commit
   `7230cd07a416b5e2a4215f91f7393a809f3cb409` on `main`. Following publication
-  successors only restore ratchet-compatible signature formatting and refresh
-  this handoff; they do not change compiler semantics. After publication,
-  the only remaining worktree path is the unrelated untracked
-  `pgy-80135c2c/`; do not stage, discard, or rewrite it.
+  successors only restore ratchet-compatible signature formatting, repair CI
+  provisioning/static pins, or change exhaustive-gate execution order; they do
+  not change compiler semantics. The CI execution checkpoint is commit
+  `37fb90701dcee1c95a4fc5b56a8daed76e2f2f77`; this handoff refresh is its
+  documentation-only successor. After publication, the only remaining
+  worktree path is the unrelated untracked `pgy-80135c2c/`; do not stage,
+  discard, or rewrite it.
 - Remote run `32461860319` at predecessor `287868a609fc9c7589163858500942cca929d244`
   had 26 green jobs and one deterministic red job,
   `self-host-parity-linux`. The reached production failure was callable
@@ -89,16 +92,26 @@ gate count do not increment either percentage by themselves.
   85-fixture codegen parity twice; both attempts then received an external
   GitHub runner shutdown while compiling the assignment projection probe. No
   assertion failed and neither attempt reached its 90-minute timeout.
-- The completeness/cache and codegen parity scratch has no legitimate consumer
-  after `codegen_parity.sh`, while the assignment and later probes each create
-  their own scratch. The exhaustive recipe now invokes its existing
-  `clean-scratch` owner exactly once between codegen parity and the assignment
-  probe. The CI profile fixes that order so compiler-scale scratch cannot again
-  accumulate across this peak boundary.
-- Next executable rung: publish the scratch lifetime boundary and inspect the
+- Fifth publication run `32522281489` executed that exact `clean-scratch`
+  boundary, then received the same runner shutdown 3m22s after entering the
+  first assignment C compile. The deletion therefore falsifies the scratch-
+  directory lifetime hypothesis; it must not remain as an alleged fix. At the
+  checkpoint, 27 jobs are green and Windows is still running, so the only
+  observed red remains exhaustive parity. No assignment assertion or
+  missing-fact negative failed.
+- A local native-driver C-only measurement of the identical assignment probe
+  passed in 64.45s with a recorded 1,860,136 KiB maximum resident set. This is
+  bounded compiler-scale work, but it is a materially larger resource peak
+  than the 7.9 KiB root source suggests because its imported owner closure is
+  the compiler projection. Commit `37fb9070` moves the unchanged C/LLVM
+  positive and missing-fact-negative gate to the start of exhaustive parity,
+  before the cumulative 1,566-source ledger and 85-fixture codegen corpus. The
+  CI profile requires it exactly once as the first falsifier and rejects the
+  disproven `clean-scratch` detour.
+- Next executable rung: publish the falsifier-order checkpoint and inspect the
   newest clean GitHub Actions run. The falsifier is the full job set, with
-  exhaustive parity reaching and completing assignment projection on one
-  runner. If the run is green,
+  exhaustive parity completing assignment projection first and then its
+  unchanged cumulative tail on one runner. If the run is green,
   return to the next production self-host replacement named by current
   executable evidence. If it is red, resume from its first deterministic
   failure and do not open another general SoT cleanup.
