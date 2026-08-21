@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-21 (Asia/Seoul)
+Updated: 2026-08-22 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -12,7 +12,57 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - CI parity closure and remote verification
+## Active self-host context - collection ABI projection remote verification
+
+- The exact compiler-source checkpoint is commit
+  `7230cd07a416b5e2a4215f91f7393a809f3cb409` on `main`. The following
+  handoff-only successor does not change compiler semantics. After publication,
+  the only remaining worktree path is the unrelated untracked
+  `pgy-80135c2c/`; do not stage, discard, or rewrite it.
+- Remote run `32461860319` at predecessor `287868a609fc9c7589163858500942cca929d244`
+  had 26 green jobs and one deterministic red job,
+  `self-host-parity-linux`. The reached production failure was callable
+  admission for an exact `Array<String>` `owner-handle`, not another CI timeout
+  and not an independent general SoT-cleanup queue.
+- Objective card: objective = make the production self-host C/LLVM projection
+  consume the admitted routine signature, carriage, expression, collection,
+  and logical-record facts without a backend-local fallback; priority = exact
+  semantic identity, owner-directed facts, fallback removal, negative ratchet,
+  then patch size; fact owners = routine signature/partition, collection ABI,
+  logical-record ABI, and expression arena; last consumers = callable routing,
+  mutation/drop readiness, local binding, and C/LLVM call/expression emission;
+  forbidden = function-name/source inference, generic owner-handle admission,
+  eager boolean evaluation presented as short-circuiting, direct backend reads
+  that bypass the shared mutation policy, or value-result forwarding without a
+  local copy-in/copy-out binding; falsifier = focused assignment projection
+  parity plus LLVM/C validation of the admitted 53.6 MB, 1,988-routine
+  production MIR.
+- Commit `7230cd07` admits the exact owned `Array<String>` parameter shape,
+  carries its stable parameter identity through mutation/drop and local
+  binding, and centralizes the Array<String> parameter mutation decision before
+  the C/LLVM consumers. Value-result `Array<Int>`, `Array<Bool>`,
+  `Array<String>`, and logical-record arrays now use explicit local
+  copy-in/copy-out facts; readonly logical-record arguments have separate
+  member and parameter binding owners. String/numeric comparison operands and
+  logical-record member receivers must be proven non-trapping before LLVM may
+  avoid a short-circuit CFG.
+- The final source generated and linked `fixed-driver18`. With that exact
+  driver, `assignment_projection_probe_parity.sh` passed its C/LLVM positive
+  paths and missing-fact negatives. The production MIR projected to LLVM and
+  `llvm-as` accepted it; the same MIR projected to C and GCC compiled it to an
+  object. `tests/self_hosted_component_contract_smoke.sh`,
+  `tests/documentation_quality_smoke.sh`,
+  `tests/self_host_ci_profile_smoke.sh`, and `git diff --check` are green.
+  Temporary driver/MIR/backend artifacts remain ignored and do not count as
+  progress.
+- Next executable rung: publish the compiler checkpoint and handoff successor,
+  then inspect the newest clean GitHub Actions run. The first falsifier is the
+  exact `self-host-parity-linux` result; all other jobs remain independent
+  witnesses. If the run is green, return to the next production self-host
+  replacement named by current executable evidence. If it is red, resume from
+  its first deterministic failure and do not open another general SoT cleanup.
+
+### Previous CI parity closure and budget context (inactive)
 
 - The exact compiler-source checkpoint is commit
   `167d81ee1b385990ad83224df3d61e33ed46bddc` on `main`. Published handoff
