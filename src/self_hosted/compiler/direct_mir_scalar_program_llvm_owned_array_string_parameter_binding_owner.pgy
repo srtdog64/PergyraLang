@@ -1,0 +1,26 @@
+// LLVM local binding for admitted owned Array<String> parameters.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_parameter_target_owner.pgy";
+
+func DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        if DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
+                plan.routines, routine, parameter) {
+            let spelling: String = ToString(parameter);
+            output = Concat(output, Concat("  %pgy.param.", spelling));
+            output = Concat(output,
+                ".local = alloca %pgy.array.string, align 8\n");
+            output = Concat(output,
+                Concat("  store %pgy.array.string %pgy.param.", spelling));
+            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
+            output = Concat(output, ".local, align 8\n");
+        }
+        parameter = parameter + 1;
+    }
+    return output;
+}

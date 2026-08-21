@@ -1,0 +1,18 @@
+// Routine-partition identity for admitted owned Array<String> parameters.
+
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(routines.parameter_counts) ||
+        ordinal < 0 || ordinal >= routines.parameter_counts[routine] {
+        return false;
+    }
+    let row: Int = routines.parameter_starts[routine] + ordinal;
+    return routines.parameter_types[row] ==
+            CompilerAbiLayoutArrayStringTypeName() &&
+        routines.parameter_carriages[row] == "owner-handle";
+}

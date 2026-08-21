@@ -1,0 +1,94 @@
+// LLVM readonly-ref binding for a logical-record member call argument.
+
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    routine: Int, argument_node: Int, value: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let receiver: Int = expressions.node_lefts[argument_node];
+    let member: Int = expressions.node_member_ordinals[argument_node];
+    if receiver < 0 || receiver >= argument_node || member < 0 ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, expressions.node_types[receiver]) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let receiver_type: String =
+        DirectMirScalarProgramLlvmLogicalRecordTypeName(
+            logical_record, expressions.node_types[receiver]);
+    if expressions.node_kinds[receiver] ==
+            DirectMirScalarProgramExprLogicalRecordMember() {
+        if !DirectMirScalarProgramLogicalRecordTypeReady(
+                logical_record, expressions.node_types[argument_node]) {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        // A readonly-ref may borrow a nested member snapshot for the call;
+        // the emitted value remains the owner of the member projection.
+        let argument_type: String =
+            DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                logical_record, expressions.node_types[argument_node]);
+        let pointer: String = Concat(
+            "%pgy.readonly.member.", ToString(argument_node));
+        let instructions: String = Concat("  ", Concat(pointer,
+            Concat(" = alloca ", Concat(argument_type, "\n"))));
+        instructions = Concat(instructions, "  store ");
+        instructions = Concat(instructions, argument_type);
+        instructions = Concat(instructions, Concat(" ", value));
+        instructions = Concat(instructions, Concat(", ptr ", pointer));
+        instructions = Concat(instructions, "\n");
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, pointer);
+    }
+    let receiver_pointer: String = "";
+    let receiver_instructions: String = "";
+    if expressions.node_kinds[receiver] ==
+            DirectMirScalarProgramExprLocal() {
+        receiver_pointer = Concat("%pgy.local.", ToString(
+            expressions.node_local_rows[receiver]));
+    } else if expressions.node_kinds[receiver] ==
+            DirectMirScalarProgramExprParameter() {
+        let source: Int = expressions.node_parameter_ordinals[receiver];
+        let source_row: Int = routines.parameter_starts[routine] + source;
+        if routines.parameter_carriages[source_row] == "readonly-ref" {
+            receiver_pointer = Concat("%pgy.param.", ToString(source));
+        } else if routines.parameter_carriages[source_row] == "value-result" {
+            receiver_pointer = Concat("%pgy.param.", Concat(
+                ToString(source), ".local"));
+        } else if routines.parameter_carriages[source_row] == "value" {
+            receiver_pointer = Concat(
+                "%pgy.readonly.receiver.", ToString(argument_node));
+            receiver_instructions = Concat("  ", receiver_pointer);
+            receiver_instructions = Concat(receiver_instructions, Concat(
+                " = alloca ", Concat(receiver_type, "\n")));
+            receiver_instructions = Concat(receiver_instructions,
+                Concat("  store ", receiver_type));
+            receiver_instructions = Concat(receiver_instructions,
+                Concat(" %pgy.param.", ToString(source)));
+            receiver_instructions = Concat(receiver_instructions,
+                Concat(", ptr ", Concat(receiver_pointer, "\n")));
+        } else {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+    } else {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let pointer: String = Concat(value, ".address");
+    let instructions: String = Concat(receiver_instructions, Concat("  ",
+        Concat(pointer, " = getelementptr inbounds ")));
+    instructions = Concat(instructions, receiver_type);
+    instructions = Concat(instructions, ", ptr ");
+    instructions = Concat(instructions, receiver_pointer);
+    instructions = Concat(instructions, ", i32 0, i32 ");
+    instructions = Concat(instructions, Concat(ToString(member), "\n"));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, instructions, pointer);
+}

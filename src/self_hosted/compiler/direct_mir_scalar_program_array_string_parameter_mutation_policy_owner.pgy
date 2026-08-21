@@ -1,0 +1,16 @@
+// Backend-independent mutation policy for Array<String> parameters.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_parameter_target_owner.pgy";
+
+func DirectMirScalarProgramArrayStringParameterMutationReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, parameter: Int, kind: Int
+) -> Bool {
+    if DirectMirScalarProgramArrayStringValueResultAt(
+            plan.program.array_string_abi, routine, parameter) { return true; }
+    return kind == DirectMirScalarCfgOpArrayStringPop() &&
+        DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
+            plan.routines, routine, parameter);
+}

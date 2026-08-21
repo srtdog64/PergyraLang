@@ -2,6 +2,7 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
 
 func DirectMirScalarProgramArrayMutationOperationReady(
@@ -37,9 +38,8 @@ func DirectMirScalarProgramArrayMutationOperationReady(
              kind == DirectMirScalarCfgOpArrayStringSet() ||
              kind == DirectMirScalarCfgOpArrayStringPop()) {
         if target_local != -1 ||
-            !DirectMirScalarProgramArrayStringValueResultAt(
-                plan.program.array_string_abi, routine,
-                target_parameter) { return false; }
+            !DirectMirScalarProgramArrayStringParameterMutationReady(
+                plan, routine, target_parameter, kind) { return false; }
     } else if target_parameter >= 0 &&
             DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) {
         if target_local != -1 ||

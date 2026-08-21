@@ -6576,6 +6576,38 @@ require_function_text \
     "func DirectMirScalarProgramLlvmNeedsShortCircuit(" \
     "!DirectMirScalarProgramNonTrappingBoolNode(expressions, right)"
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_operand_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingStringNode(" \
+    "DirectMirScalarProgramExprStringLiteral()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_operand_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingIntegerNode(" \
+    "CompilerAbiLayoutLongTypeName()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_operand_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingLogicalRecordMemberNode(" \
+    "facts.node_lefts[node]"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_operand_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingLogicalRecordMemberNode(" \
+    "receiver_kind == DirectMirScalarProgramExprLogicalRecordMember()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingBoolNode(" \
+    "DirectMirScalarProgramNonTrappingComparisonNode("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingComparisonNode(" \
+    "DirectMirScalarProgramExprNotEqualString() { return true; }"
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_operand_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_operand_owner.pgy" 80
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" 80
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_short_circuit_owner.pgy" \
     "func DirectMirScalarProgramLlvmShortCircuitAt(" \
     " = phi i1 [ "
@@ -17269,24 +17301,24 @@ reject_function_text \
     "func DirectMirScalarProgramExpressionKindFactFromSource(" \
     "source_kind == AstExpressionNodeEquality() && ints"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy" \
-    "func DirectMirScalarProgramNonTrappingBoolNode(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingComparisonKind(" \
     "DirectMirScalarProgramExprGreaterEqualInt()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy" \
-    "func DirectMirScalarProgramNonTrappingBoolNode(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingComparisonKind(" \
     "DirectMirScalarProgramExprGreaterLong()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy" \
-    "func DirectMirScalarProgramNonTrappingBoolNode(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingComparisonKind(" \
     "DirectMirScalarProgramExprEqualLong()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy" \
-    "func DirectMirScalarProgramNonTrappingBoolNode(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingComparisonKind(" \
     "DirectMirScalarProgramExprNotEqualLong()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy" \
-    "func DirectMirScalarProgramNonTrappingBoolNode(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy" \
+    "func DirectMirScalarProgramNonTrappingComparisonKind(" \
     "DirectMirScalarProgramExprLessLong()"
 for retired_arithmetic_proof_owner in \
     direct_mir_scalar_cfg_program_arithmetic_admission_owner.pgy \
@@ -17613,9 +17645,29 @@ require_function_text \
     "func DirectMirScalarProgramLlvmArrayIntValueResultCopyOut(" \
     "ToString(exit_block)"
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(" \
+    '".local = alloca %pgy.array.int, align 8\n"'
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(" \
+    "DirectMirScalarProgramLlvmArrayIntMutationTarget("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_bool_value_result_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(" \
+    '".local = alloca %pgy.array.bool, align 8\n"'
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_bool_value_result_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(" \
+    "DirectMirScalarProgramLlvmArrayBoolMutationTarget("
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_bool_value_result_owner.pgy" \
     "func DirectMirScalarProgramLlvmArrayBoolValueResultCopyOut(" \
-    'copyout, " = load %pgy.array.bool, ptr "'
+    'value, " = load %pgy.array.bool, ptr "'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_bool_value_result_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayBoolValueResultCopyOut(" \
+    '".local, align 8\n"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy" \
     "func DirectMirScalarCfgProgramCSignature(" \
@@ -18448,7 +18500,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_mutation_owner.pgy" \
     "func DirectMirScalarProgramCArrayMutation(" \
-    "DirectMirScalarProgramArrayStringValueResultAt("
+    "DirectMirScalarProgramArrayStringParameterMutationReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_mutation_owner.pgy" \
     "func DirectMirScalarProgramCArrayMutation(" \
@@ -18468,7 +18520,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
     "func DirectMirScalarProgramLlvmArrayMutation(" \
-    "DirectMirScalarProgramArrayStringValueResultAt("
+    "DirectMirScalarProgramArrayStringParameterMutationReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
     "func DirectMirScalarProgramLlvmArrayMutation(" \
@@ -18648,9 +18700,9 @@ require_function_text \
     "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     "array_bool_copyout"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
-    "func DirectMirScalarProgramLlvmExpressionAt(" \
-    'array_type = "%pgy.array.int"'
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmValueResultCollectionTypeName(" \
+    'return "%pgy.array.int";'
 require_function_text \
     "src/self_hosted/mir/routine_statement_owner.pgy" \
     "func SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(" \
@@ -19639,9 +19691,19 @@ require_function_text \
     "func DirectMirScalarProgramCLogicalRecordParameterValue(" \
     'routines.parameter_carriages[parameter_row] == "owner-handle"'
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy" \
+    "func DirectMirScalarProgramOwnedDirectParameterTypeReady(" \
+    'CompilerAbiLayoutStringTypeName() ||'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy" \
+    "func DirectMirScalarProgramOwnedDirectParameterTypeReady(" \
+    "CompilerAbiLayoutArrayStringTypeName()"
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy" \
     "func DirectMirScalarProgramCLogicalRecordCallArgument(" \
-    'CompilerAbiLayoutStringTypeName() ||'
+    "DirectMirScalarProgramOwnedDirectParameterTypeReady("
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy" 25
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordParameterRead(" \
@@ -19655,13 +19717,69 @@ require_function_text \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
     'carriages[ordinal] == "owner-handle"'
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "DirectMirScalarProgramLogicalRecordArrayTypeReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "DirectMirScalarProgramLlvmLogicalRecordArrayTypeName("
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordCallArgument(" \
     "DirectMirScalarProgramExprLogicalRecordMember()"
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
+    '" = getelementptr inbounds "'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
+    'routines.parameter_carriages[source_row] == "value"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_parameter_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordParameterCallArgument(" \
+    'Concat(" = alloca "'
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordCallArgument(" \
-    '" = getelementptr inbounds "'
+    "DirectMirScalarProgramExprParameter()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_parameter_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordParameterCallArgument(" \
+    'routines.parameter_carriages[source_row] != "readonly-ref"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
+    '"%pgy.readonly.receiver."'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
+    'Concat(" %pgy.param."'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
+    'expressions.node_kinds[receiver] =='
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
+    '"%pgy.readonly.member."'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
+    'routines.parameter_carriages[source_row] == "value-result"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
+    'ToString(source), ".local"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_parameter_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordParameterCallArgument(" \
+    '"value-result" {'
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" 110
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_parameter_argument_owner.pgy" 60
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmCallArgumentValue(" \
@@ -19702,6 +19820,94 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramOwnedStringParameterReady(" \
     "!signature.parameters.abi_required[ordinal]"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramOwnedArrayStringParameterReady(" \
+    'signature.parameters.carriages[ordinal] == "owner-handle"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramOwnedArrayStringParameterReady(" \
+    "signature.parameters.abi_required[ordinal]"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_parameter_policy_owner.pgy" 30
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_parameter_target_owner.pgy" \
+    "func DirectMirScalarProgramOwnedArrayStringMutationParameterAt(" \
+    'routines.parameter_carriages[row] == "owner-handle"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_mutation_target_owner.pgy" \
+    "func DirectMirScalarProgramArrayMutationTargetFromOwners(" \
+    "DirectMirScalarProgramOwnedArrayStringParameterReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_mutation_readiness_owner.pgy" \
+    "func DirectMirScalarProgramArrayMutationOperationReady(" \
+    "DirectMirScalarProgramArrayStringParameterMutationReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringParameterMutationReady(" \
+    "DirectMirScalarProgramOwnedArrayStringMutationParameterAt("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringParameterMutationReady(" \
+    "DirectMirScalarProgramArrayStringValueResultAt("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_mutation_owner.pgy" \
+    "func DirectMirScalarProgramCArrayMutation(" \
+    "DirectMirScalarProgramArrayStringValueResultAt("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayMutation(" \
+    "DirectMirScalarProgramArrayStringValueResultAt("
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy" 30
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_readiness_owner.pgy" \
+    "func DirectMirScalarProgramCollectionExpressionNodeReady(" \
+    "DirectMirScalarProgramExprParameter()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "DirectMirScalarProgramOwnedArrayStringMutationParameterAt("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "DirectMirScalarProgramArrayStringValueResultAt("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(" \
+    "DirectMirScalarProgramOwnedArrayStringMutationParameterAt("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(" \
+    '".local = alloca %pgy.array.string, align 8'
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" 40
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmCollectionParameterMutationAddress(" \
+    'let carriage: String = routines.parameter_carriages[parameter_row]'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmCollectionParameterMutationAddress(" \
+    '"owner-handle"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmValueResultCollectionTypeName(" \
+    "CompilerAbiLayoutArrayBoolTypeName()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmValueResultCollectionTypeName(" \
+    "DirectMirScalarProgramLogicalRecordArrayTypeReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmValueResultCollectionTypeName(" \
+    "DirectMirScalarProgramLlvmLogicalRecordArrayTypeName("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmExpressionAt(" \
+    "DirectMirScalarProgramLlvmValueResultCollectionTypeName("
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy" 60
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
     "func DirectMirScalarProgramDirectScalarParameterReady(" \
@@ -19852,7 +20058,7 @@ reject_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_collection_expression_readiness_owner.pgy" \
     "func DirectMirScalarProgramCollectionExpressionNodeReady(" \
-    "facts.node_kinds[left] == DirectMirScalarProgramExprLocal()"
+    "let left_kind: Int = facts.node_kinds[left]"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
     "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
@@ -19864,11 +20070,11 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" \
     "func DirectMirScalarCfgCLocalDeclarationsInRange(" \
-    'let owned_string: Bool = carriage == "owner-handle"'
+    'let owned_parameter: Bool = carriage == "owner-handle"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy" \
     "func DirectMirScalarCfgLlvmLocalDeclarationsInRange(" \
-    'let owned_string: Bool = carriage == "owner-handle"'
+    'let owned_parameter: Bool = carriage == "owner-handle"'
 require_file "tests/self_hosted/fixtures/direct_mir_owned_string_parameter.pgy"
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_owned_string_parameter.pgy" 20
@@ -20408,6 +20614,14 @@ require_function_text \
     "func DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(" \
     "DirectMirScalarProgramExprLocal()"
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy" \
+    "func DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(" \
+    "DirectMirScalarProgramExprLogicalRecordMember()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy" \
+    "func DirectMirScalarProgramCExpressionValues(" \
+    "DirectMirScalarProgramExprLogicalRecordMember()"
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_materialization_owner.pgy" \
     "func DirectMirScalarProgramCArrayIntPopulatedLiteralMaterialization(" \
     'output = Concat(output, "    out.data[")'
@@ -20419,6 +20633,10 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_materialization_owner.pgy" \
     "func DirectMirScalarProgramCArrayIntPopulatedLiteralMaterialization(" \
     "DirectMirScalarProgramExprLocal()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_materialization_owner.pgy" \
+    "func DirectMirScalarProgramCArrayIntPopulatedLiteralMaterialization(" \
+    "DirectMirScalarProgramExprLogicalRecordMember()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_populated_literal_materialization_owner.pgy" \
     "func DirectMirScalarProgramCArrayIntPopulatedLiteralMaterialization(" \

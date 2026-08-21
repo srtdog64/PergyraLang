@@ -1,0 +1,43 @@
+// LLVM address and type binding for mutable collection parameters.
+
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+
+func DirectMirScalarProgramLlvmCollectionParameterMutationAddress(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    parameter_row: Int, ordinal: Int
+) -> String {
+    let type_name: String = routines.parameter_types[parameter_row];
+    let carriage: String = routines.parameter_carriages[parameter_row];
+    let value_result_address: Bool = carriage == "value-result" &&
+        (type_name == CompilerAbiLayoutSetStringTypeName() ||
+         type_name == CompilerAbiLayoutArrayStringTypeName());
+    let owned_array_string_address: Bool = carriage == "owner-handle" &&
+        type_name == CompilerAbiLayoutArrayStringTypeName();
+    if !value_result_address && !owned_array_string_address { return ""; }
+    return Concat("%pgy.param.", Concat(ToString(ordinal), ".local"));
+}
+
+func DirectMirScalarProgramLlvmValueResultCollectionTypeName(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    type_name: String
+) -> String {
+    if type_name == CompilerAbiLayoutArrayStringTypeName() {
+        return "%pgy.array.string";
+    }
+    if type_name == CompilerAbiLayoutArrayIntTypeName() {
+        return "%pgy.array.int";
+    }
+    if type_name == CompilerAbiLayoutArrayBoolTypeName() {
+        return "%pgy.array.bool";
+    }
+    if type_name == CompilerAbiLayoutSetStringTypeName() {
+        return DirectMirScalarProgramLlvmSetStringTypeName();
+    }
+    if DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            logical_record, type_name) {
+        return DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+            logical_record, type_name);
+    }
+    return "";
+}

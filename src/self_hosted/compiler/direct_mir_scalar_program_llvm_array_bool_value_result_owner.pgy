@@ -27,29 +27,22 @@ func DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayBoolValueResultAt(
                 plan.program.array_bool_abi, routine, parameter) {
-            let mutated: Bool =
-                DirectMirScalarProgramLlvmArrayBoolMutationTarget(
-                    plan, routine, parameter);
-            if mutated {
-                output = Concat(output, "  %pgy.param.");
-                output = Concat(output, ToString(parameter));
-                output = Concat(output,
-                    ".local = alloca %pgy.array.bool, align 8\n");
-            }
+            output = Concat(output, "  %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output,
+                ".local = alloca %pgy.array.bool, align 8\n");
             output = Concat(output, "  %pgy.param.");
             output = Concat(output, ToString(parameter));
             output = Concat(output,
                 " = load %pgy.array.bool, ptr %pgy.param.");
             output = Concat(output, ToString(parameter));
             output = Concat(output, ".mutref, align 8\n");
-            if mutated {
-                output = Concat(output,
-                    "  store %pgy.array.bool %pgy.param.");
-                output = Concat(output, ToString(parameter));
-                output = Concat(output, ", ptr %pgy.param.");
-                output = Concat(output, ToString(parameter));
-                output = Concat(output, ".local, align 8\n");
-            }
+            output = Concat(output,
+                "  store %pgy.array.bool %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ", ptr %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ".local, align 8\n");
         }
         parameter = parameter + 1;
     }
@@ -65,17 +58,13 @@ func DirectMirScalarProgramLlvmArrayBoolValueResultCopyOut(
         if DirectMirScalarProgramArrayBoolValueResultAt(
                 plan.program.array_bool_abi, routine, parameter) {
             let spelling: String = ToString(parameter);
-            let value: String = Concat("%pgy.param.", spelling);
-            if DirectMirScalarProgramLlvmArrayBoolMutationTarget(
-                    plan, routine, parameter) {
-                let copyout: String = Concat(
-                    Concat(value, ".copyout."), ToString(exit_block));
-                output = Concat(output, Concat("  ", Concat(
-                    copyout, " = load %pgy.array.bool, ptr ")));
-                output = Concat(output, Concat(
-                    value, ".local, align 8\n"));
-                value = copyout;
-            }
+            let value: String = Concat(Concat(
+                "%pgy.param.", spelling), Concat(
+                ".copyout.", ToString(exit_block)));
+            output = Concat(output, Concat("  ", Concat(
+                value, " = load %pgy.array.bool, ptr ")));
+            output = Concat(output, Concat(
+                Concat("%pgy.param.", spelling), ".local, align 8\n"));
             output = Concat(output,
                 "  store %pgy.array.bool ");
             output = Concat(output, value);

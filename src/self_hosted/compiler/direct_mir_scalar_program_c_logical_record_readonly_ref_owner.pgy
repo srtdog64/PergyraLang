@@ -1,6 +1,7 @@
 // C address/value projection for admitted logical-record parameter carriage.
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 
 func DirectMirScalarProgramCLogicalRecordParameterValue(
     ref routines: DirectMirScalarCfgRoutinePartitionFact,
@@ -13,10 +14,8 @@ func DirectMirScalarProgramCLogicalRecordParameterValue(
         return value;
     }
     if routines.parameter_carriages[parameter_row] == "owner-handle" &&
-        (routines.parameter_types[parameter_row] ==
-            CompilerAbiLayoutStringTypeName() ||
-         DirectMirScalarProgramLogicalRecordTypeReady(
-            logical_record, routines.parameter_types[parameter_row])) {
+        DirectMirScalarProgramOwnedDirectParameterTypeReady(
+            logical_record, routines.parameter_types[parameter_row]) {
         return value;
     }
     if routines.parameter_carriages[parameter_row] != "readonly-ref" ||
@@ -35,10 +34,8 @@ func DirectMirScalarProgramCLogicalRecordCallArgument(
     let parameter_row: Int = routines.parameter_starts[target] + ordinal;
     if routines.parameter_carriages[parameter_row] == "value" { return value; }
     if routines.parameter_carriages[parameter_row] == "owner-handle" &&
-        (routines.parameter_types[parameter_row] ==
-            CompilerAbiLayoutStringTypeName() ||
-         DirectMirScalarProgramLogicalRecordTypeReady(
-            logical_record, routines.parameter_types[parameter_row])) {
+        DirectMirScalarProgramOwnedDirectParameterTypeReady(
+            logical_record, routines.parameter_types[parameter_row]) {
         return value;
     }
     if routines.parameter_carriages[parameter_row] != "readonly-ref" ||

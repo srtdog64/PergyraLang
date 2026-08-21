@@ -4,11 +4,11 @@ import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_parameter_target_owner.pgy";
 func DirectMirScalarCfgProgramExpressionIdentityReady(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref facts: DirectMirScalarProgramExpressionSet,
-    node: Int, routine: Int, graph_start: Int
-) -> Bool {
+    node: Int, routine: Int, graph_start: Int) -> Bool {
     let kind: Int = facts.node_kinds[node];
     if kind == DirectMirScalarProgramExprLocal() {
         let local_start: Int = plan.routines.local_starts[routine];
@@ -24,6 +24,20 @@ func DirectMirScalarCfgProgramExpressionIdentityReady(
             ordinal < plan.routines.parameter_counts[routine] &&
             facts.node_types[node] == plan.routines.parameter_types[
                 plan.routines.parameter_starts[routine] + ordinal];
+    }
+    if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
+        let left: Int = facts.node_lefts[node];
+        if left < graph_start || left >= node { return false; }
+        if facts.node_kinds[left] == DirectMirScalarProgramExprLocal() {
+            return true;
+        }
+        if facts.node_kinds[left] !=
+                DirectMirScalarProgramExprParameter() { return false; }
+        let ordinal: Int = facts.node_parameter_ordinals[left];
+        return DirectMirScalarProgramArrayStringValueResultAt(
+                plan.program.array_string_abi, routine, ordinal) ||
+            DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
+                plan.routines, routine, ordinal);
     }
     if kind == DirectMirScalarProgramExprSetStringAdd() ||
             kind == DirectMirScalarProgramExprArrayStringPushOwned() {

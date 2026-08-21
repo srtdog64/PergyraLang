@@ -11,6 +11,7 @@ import "direct_mir_scalar_program_llvm_numeric_cast_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy";
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
     let instructions: String;
@@ -58,12 +59,10 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     expressions.node_parameter_ordinals[left_node];
                 let left_parameter_row: Int =
                     routines.parameter_starts[routine] + left_ordinal;
-                if (routines.parameter_types[left_parameter_row] == CompilerAbiLayoutSetStringTypeName() ||
-                    routines.parameter_types[left_parameter_row] == CompilerAbiLayoutArrayStringTypeName()) &&
-                    routines.parameter_carriages[left_parameter_row] == "value-result" {
-                    left_address = Concat("%pgy.param.", Concat(
-                        ToString(left_ordinal), ".local"));
-                }
+                let parameter_address: String =
+                    DirectMirScalarProgramLlvmCollectionParameterMutationAddress(
+                        routines, left_parameter_row, left_ordinal);
+                if parameter_address != "" { left_address = parameter_address; }
             }
         }
         if expressions.node_rights[node] >= start {
@@ -145,18 +144,11 @@ func DirectMirScalarProgramLlvmExpressionAt(
             value = Concat("%pgy.param.", ToString(ordinal));
             let parameter_row: Int = routines.parameter_starts[routine] +
                 ordinal;
+            let array_type: String =
+                DirectMirScalarProgramLlvmValueResultCollectionTypeName(
+                    logical_record, routines.parameter_types[parameter_row]);
             if routines.parameter_carriages[parameter_row] == "value-result" &&
-                (routines.parameter_types[parameter_row] == CompilerAbiLayoutArrayStringTypeName() ||
-                 routines.parameter_types[parameter_row] == CompilerAbiLayoutArrayIntTypeName() ||
-                 routines.parameter_types[parameter_row] == CompilerAbiLayoutSetStringTypeName()) {
-                let array_type: String = "%pgy.array.string";
-                if routines.parameter_types[parameter_row] == CompilerAbiLayoutArrayIntTypeName() {
-                    array_type = "%pgy.array.int";
-                } else if routines.parameter_types[parameter_row] ==
-                        CompilerAbiLayoutSetStringTypeName() {
-                    array_type =
-                        DirectMirScalarProgramLlvmSetStringTypeName();
-                }
+                    array_type != "" {
                 value = result;
                 node_instructions = Concat(node_instructions, Concat("  ", result));
                 node_instructions = Concat(node_instructions,

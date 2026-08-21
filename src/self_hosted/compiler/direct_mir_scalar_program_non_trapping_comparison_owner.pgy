@@ -1,0 +1,54 @@
+// Non-trapping proof for normalized scalar comparison nodes.
+
+import "direct_mir_scalar_program_non_trapping_operand_owner.pgy";
+
+func DirectMirScalarProgramNonTrappingComparisonKind(kind: Int) -> Bool {
+    return kind == DirectMirScalarProgramExprEqualInt() ||
+        kind == DirectMirScalarProgramExprNotEqualInt() ||
+        kind == DirectMirScalarProgramExprLessInt() ||
+        kind == DirectMirScalarProgramExprGreaterEqualInt() ||
+        kind == DirectMirScalarProgramExprGreaterInt() ||
+        kind == DirectMirScalarProgramExprLessEqualInt() ||
+        kind == DirectMirScalarProgramExprGreaterLong() ||
+        kind == DirectMirScalarProgramExprEqualLong() ||
+        kind == DirectMirScalarProgramExprNotEqualLong() ||
+        kind == DirectMirScalarProgramExprLessLong() ||
+        kind == DirectMirScalarProgramExprEqualString() ||
+        kind == DirectMirScalarProgramExprNotEqualString();
+}
+
+func DirectMirScalarProgramNonTrappingComparisonNode(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) {
+        return false;
+    }
+    let kind: Int = facts.node_kinds[node];
+    if !DirectMirScalarProgramNonTrappingComparisonKind(kind) {
+        return false;
+    }
+    if kind == DirectMirScalarProgramExprEqualInt() ||
+        kind == DirectMirScalarProgramExprNotEqualInt() ||
+        kind == DirectMirScalarProgramExprLessInt() ||
+        kind == DirectMirScalarProgramExprGreaterEqualInt() ||
+        kind == DirectMirScalarProgramExprGreaterInt() ||
+        kind == DirectMirScalarProgramExprLessEqualInt() {
+        return DirectMirScalarProgramNonTrappingIntegerNode(
+            facts, facts.node_lefts[node], CompilerAbiLayoutIntTypeName()) &&
+            DirectMirScalarProgramNonTrappingIntegerNode(
+                facts, facts.node_rights[node], CompilerAbiLayoutIntTypeName());
+    }
+    if kind == DirectMirScalarProgramExprGreaterLong() ||
+        kind == DirectMirScalarProgramExprEqualLong() ||
+        kind == DirectMirScalarProgramExprNotEqualLong() ||
+        kind == DirectMirScalarProgramExprLessLong() {
+        return DirectMirScalarProgramNonTrappingIntegerNode(
+            facts, facts.node_lefts[node], CompilerAbiLayoutLongTypeName()) &&
+            DirectMirScalarProgramNonTrappingIntegerNode(
+                facts, facts.node_rights[node], CompilerAbiLayoutLongTypeName());
+    }
+    return DirectMirScalarProgramNonTrappingStringNode(
+        facts, facts.node_lefts[node]) &&
+        DirectMirScalarProgramNonTrappingStringNode(
+            facts, facts.node_rights[node]);
+}

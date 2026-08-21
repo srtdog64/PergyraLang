@@ -103,6 +103,7 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(
         let owner_type: String =
             plan.routines.parameter_types[parameter_row];
         if owner_type != CompilerAbiLayoutStringTypeName() &&
+            owner_type != CompilerAbiLayoutArrayStringTypeName() &&
             !DirectMirScalarProgramLogicalRecordTypeReady(
                 plan.program.logical_record, owner_type) {
             return false;

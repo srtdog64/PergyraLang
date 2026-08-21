@@ -164,7 +164,7 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
                 let carriage: String =
                     signature.parameters.carriages[parameter];
                 if (carriage != "value" && carriage != "value-result" &&
-                        carriage != "readonly-ref") ||
+                        carriage != "readonly-ref" && carriage != "owner-handle") ||
                     signature.parameters.resources[parameter] != "none" ||
                     signature.parameters.pass_shapes[parameter] != "direct" ||
                     !DirectMirRoutineParamFactReady(param) ||

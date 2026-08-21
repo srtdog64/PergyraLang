@@ -4,8 +4,7 @@ import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_int_empty_literal_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy";
 import "../semantic/array_type_shape_owner.pgy";
-func DirectMirScalarProgramCollectionExpressionNodeReady(
-    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Option<Bool> {
     let kind: Int = facts.node_kinds[node];
     if kind == DirectMirScalarProgramExprArrayStringLiteral() {
@@ -75,9 +74,10 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(
              left_kind == DirectMirScalarProgramExprParameter()));
     }
     if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
+        let left_kind: Int = facts.node_kinds[left];
         return Some(type_name == "Void" && right == -1 &&
-            facts.node_types[left] == CompilerAbiLayoutArrayStringTypeName() &&
-            facts.node_kinds[left] == DirectMirScalarProgramExprLocal());
+            facts.node_types[left] == CompilerAbiLayoutArrayStringTypeName() && (left_kind ==
+            DirectMirScalarProgramExprLocal() || left_kind == DirectMirScalarProgramExprParameter()));
     }
     if kind == DirectMirScalarProgramExprArrayStringPushOwned() {
         let left_kind: Int = facts.node_kinds[left]; return Some(type_name == CompilerAbiLayoutVoidTypeName() && right >= 0 && facts.node_types[left] ==

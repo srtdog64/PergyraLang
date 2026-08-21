@@ -98,10 +98,10 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             }
             let carriage: String = plan.routines.parameter_carriages[
                 plan.routines.parameter_starts[routine] + parameter_ordinal];
-            let owned_string: Bool = carriage == "owner-handle" &&
-                plan.local_types[row] == CompilerAbiLayoutStringTypeName();
+            let owned_parameter: Bool = carriage == "owner-handle" &&
+                (plan.local_types[row] == CompilerAbiLayoutStringTypeName() || plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName());
             if carriage != "value" && carriage != "value-result" &&
-                !owned_string {
+                !owned_parameter {
                 Die("direct MIR scalar CFG C parameter local is invalid");
             }
             output = Concat(output, "    pgy_local_");

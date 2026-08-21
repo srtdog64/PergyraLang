@@ -106,6 +106,12 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
         result_llvm_type = DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
             logical_record, result_type);
     }
+    if DirectMirScalarProgramLogicalRecordArrayTypeReady(
+            logical_record, result_type) {
+        result_llvm_type =
+            DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
+                logical_record, result_type);
+    }
     if DirectMirScalarProgramPayloadFreeEnumTypeReady(
             payload_free_enum, result_type) { result_llvm_type = "i64"; }
     if result_llvm_type == "" {
@@ -130,6 +136,7 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
                 carriages[ordinal] == "owner-handle" {
             if carriages[ordinal] == "owner-handle" &&
                 types[ordinal] != CompilerAbiLayoutStringTypeName() &&
+                types[ordinal] != CompilerAbiLayoutArrayStringTypeName() &&
                 !DirectMirScalarProgramLogicalRecordTypeReady(
                     logical_record, types[ordinal]) {
                 return DirectMirScalarProgramLlvmStringExpression(
@@ -154,6 +161,13 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
                 logical_record, types[ordinal]) {
             argument_type =
                 DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
+                    logical_record, types[ordinal]);
+        }
+        if carriages[ordinal] == "value" &&
+            DirectMirScalarProgramLogicalRecordArrayTypeReady(
+                logical_record, types[ordinal]) {
+            argument_type =
+                DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
                     logical_record, types[ordinal]);
         }
         if argument_type == "" {

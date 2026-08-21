@@ -1,0 +1,13 @@
+// Type policy for direct owner-handle callable parameters.
+
+import "abi_layout_row_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+
+func DirectMirScalarProgramOwnedDirectParameterTypeReady(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    type_name: String
+) -> Bool {
+    return type_name == CompilerAbiLayoutStringTypeName() ||
+        type_name == CompilerAbiLayoutArrayStringTypeName() ||
+        DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name);
+}

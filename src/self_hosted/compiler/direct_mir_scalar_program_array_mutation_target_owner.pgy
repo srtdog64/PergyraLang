@@ -8,6 +8,7 @@ import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_parameter_target_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 
 struct DirectMirScalarProgramArrayMutationTarget {
@@ -154,11 +155,16 @@ func DirectMirScalarProgramArrayMutationTargetFromOwners(
                 true, DirectMirScalarCfgOpArrayBoolSet(), -1,
                 receiver_ordinal, CompilerAbiLayoutBoolTypeName());
         }
+        let array_string_value_result: Bool =
+            DirectMirScalarProgramArrayStringValueResultAt(
+                array_string_abi, routine_ordinal, receiver_ordinal);
+        let owned_array_string_pop: Bool = operation_name == "ArrayPop" &&
+            DirectMirScalarProgramOwnedArrayStringParameterReady(
+                signature, receiver_ordinal);
         if (operation_name == "ArrayPush" || operation_name == "ArraySet" ||
             operation_name == "ArrayPop") &&
             formal_type == CompilerAbiLayoutArrayStringTypeName() &&
-            DirectMirScalarProgramArrayStringValueResultAt(
-                array_string_abi, routine_ordinal, receiver_ordinal) {
+            (array_string_value_result || owned_array_string_pop) {
             let kind: Int = DirectMirScalarCfgOpArrayStringValueResultPush();
             if operation_name == "ArraySet" {
                 kind = DirectMirScalarCfgOpArrayStringSet();

@@ -18,6 +18,7 @@ import "direct_mir_scalar_program_llvm_array_bool_materialization_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_bool_value_result_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy";
+import "direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_value_result_owner.pgy";
@@ -56,6 +57,9 @@ func DirectMirScalarCfgProgramLlvmRoutine(
         DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
     output = Concat(output,
         DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(plan, routine));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(
+            plan, routine));
     output = Concat(output,
         DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(plan, routine));
     output = Concat(output,

@@ -1,6 +1,6 @@
 // Recursive non-trapping proof for normalized Bool expression nodes.
 
-import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_non_trapping_comparison_owner.pgy";
 
 func DirectMirScalarProgramNonTrappingBoolNode(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
@@ -12,20 +12,14 @@ func DirectMirScalarProgramNonTrappingBoolNode(
     let kind: Int = facts.node_kinds[node];
     if kind == DirectMirScalarProgramExprLocal() ||
         kind == DirectMirScalarProgramExprParameter() ||
-        kind == DirectMirScalarProgramExprBoolLiteral() ||
-        kind == DirectMirScalarProgramExprLogicalRecordMember() ||
-        kind == DirectMirScalarProgramExprEqualInt() ||
-        kind == DirectMirScalarProgramExprNotEqualInt() ||
-        kind == DirectMirScalarProgramExprLessInt() ||
-        kind == DirectMirScalarProgramExprGreaterEqualInt() ||
-        kind == DirectMirScalarProgramExprGreaterInt() ||
-        kind == DirectMirScalarProgramExprGreaterLong() ||
-        kind == DirectMirScalarProgramExprEqualLong() ||
-        kind == DirectMirScalarProgramExprNotEqualLong() ||
-        kind == DirectMirScalarProgramExprLessLong() ||
-        kind == DirectMirScalarProgramExprLessEqualInt() ||
-        kind == DirectMirScalarProgramExprEqualString() ||
-        kind == DirectMirScalarProgramExprNotEqualString() { return true; }
+        kind == DirectMirScalarProgramExprBoolLiteral() { return true; }
+    if kind == DirectMirScalarProgramExprLogicalRecordMember() {
+        return DirectMirScalarProgramNonTrappingLogicalRecordMemberNode(
+            facts, node);
+    }
+    if DirectMirScalarProgramNonTrappingComparisonKind(kind) {
+        return DirectMirScalarProgramNonTrappingComparisonNode(facts, node);
+    }
     if kind == DirectMirScalarProgramExprLogicalNot() {
         return DirectMirScalarProgramNonTrappingBoolNode(
             facts, facts.node_lefts[node]);

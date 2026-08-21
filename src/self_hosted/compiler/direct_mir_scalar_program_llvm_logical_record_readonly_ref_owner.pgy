@@ -4,6 +4,8 @@ import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_parameter_argument_owner.pgy";
 
 func DirectMirScalarProgramLlvmLogicalRecordParameterRead(
     ref expressions: DirectMirScalarProgramExpressionSet,
@@ -62,43 +64,15 @@ func DirectMirScalarProgramLlvmLogicalRecordCallArgument(
     }
     if expressions.node_kinds[argument_node] ==
             DirectMirScalarProgramExprLogicalRecordMember() {
-        let receiver: Int = expressions.node_lefts[argument_node];
-        let member: Int = expressions.node_member_ordinals[argument_node];
-        if receiver < 0 || receiver >= argument_node || member < 0 ||
-            expressions.node_kinds[receiver] !=
-                DirectMirScalarProgramExprLocal() ||
-            !DirectMirScalarProgramLogicalRecordTypeReady(
-                logical_record, expressions.node_types[receiver]) {
-            return DirectMirScalarProgramLlvmStringExpression(
-                true, false, "", "");
-        }
-        let pointer: String = Concat(value, ".address");
-        let type_name: String =
-            DirectMirScalarProgramLlvmLogicalRecordTypeName(
-                logical_record, expressions.node_types[receiver]);
-        let instructions: String = Concat("  ", Concat(
-            pointer, " = getelementptr inbounds "));
-        instructions = Concat(instructions, type_name);
-        instructions = Concat(instructions, ", ptr %pgy.local.");
-        instructions = Concat(instructions, ToString(
-            expressions.node_local_rows[receiver]));
-        instructions = Concat(instructions, ", i32 0, i32 ");
-        instructions = Concat(instructions, Concat(
-            ToString(member), "\n"));
-        return DirectMirScalarProgramLlvmStringExpression(
-            true, true, instructions, pointer);
+        return DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(
+            expressions, routines, logical_record, routine,
+            argument_node, value);
     }
     if expressions.node_kinds[argument_node] !=
             DirectMirScalarProgramExprParameter() {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let source: Int = expressions.node_parameter_ordinals[argument_node];
-    let source_row: Int = routines.parameter_starts[routine] + source;
-    if routines.parameter_carriages[source_row] != "readonly-ref" {
-        return DirectMirScalarProgramLlvmStringExpression(
-            true, false, "", "");
-    }
-    return DirectMirScalarProgramLlvmStringExpression(
-        true, true, "", Concat("%pgy.param.", ToString(source)));
+    return DirectMirScalarProgramLlvmLogicalRecordParameterCallArgument(
+        expressions, routines, logical_record, routine, argument_node, value);
 }

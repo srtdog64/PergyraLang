@@ -56,29 +56,22 @@ func DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayIntValueResultAt(
                 plan.program.array_int_value_result, routine, parameter) {
-            let mutated: Bool =
-                DirectMirScalarProgramLlvmArrayIntMutationTarget(
-                    plan, routine, parameter);
-            if mutated {
-                output = Concat(output, "  %pgy.param.");
-                output = Concat(output, ToString(parameter));
-                output = Concat(output,
-                    ".local = alloca %pgy.array.int, align 8\n");
-            }
+            output = Concat(output, "  %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output,
+                ".local = alloca %pgy.array.int, align 8\n");
             output = Concat(output, "  %pgy.param.");
             output = Concat(output, ToString(parameter));
             output = Concat(output,
                 " = load %pgy.array.int, ptr %pgy.param.");
             output = Concat(output, ToString(parameter));
             output = Concat(output, ".mutref, align 8\n");
-            if mutated {
-                output = Concat(output,
-                    "  store %pgy.array.int %pgy.param.");
-                output = Concat(output, ToString(parameter));
-                output = Concat(output, ", ptr %pgy.param.");
-                output = Concat(output, ToString(parameter));
-                output = Concat(output, ".local, align 8\n");
-            }
+            output = Concat(output,
+                "  store %pgy.array.int %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ", ptr %pgy.param.");
+            output = Concat(output, ToString(parameter));
+            output = Concat(output, ".local, align 8\n");
         }
         parameter = parameter + 1;
     }
@@ -116,15 +109,13 @@ func DirectMirScalarProgramLlvmArrayIntValueResultCopyOut(
         if DirectMirScalarProgramArrayIntValueResultAt(
                 plan.program.array_int_value_result, routine, parameter) {
             let spelling: String = ToString(parameter);
-            let value: String = Concat("%pgy.param.", spelling);
-            if DirectMirScalarProgramLlvmArrayIntMutationTarget(
-                    plan, routine, parameter) {
-                value = Concat(Concat(value, ".copyout."), ToString(exit_block));
-                output = Concat(output, Concat("  ", Concat(
-                    value, " = load %pgy.array.int, ptr ")));
-                output = Concat(output, Concat(
-                    Concat("%pgy.param.", spelling), ".local, align 8\n"));
-            }
+            let value: String = Concat(Concat(
+                "%pgy.param.", spelling), Concat(
+                ".copyout.", ToString(exit_block)));
+            output = Concat(output, Concat("  ", Concat(
+                value, " = load %pgy.array.int, ptr ")));
+            output = Concat(output, Concat(
+                Concat("%pgy.param.", spelling), ".local, align 8\n"));
             output = Concat(output,
                 "  store %pgy.array.int ");
             output = Concat(output, value);

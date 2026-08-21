@@ -1,0 +1,63 @@
+// Non-trapping proof for scalar operands used by Bool comparisons.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramNonTrappingLogicalRecordMemberNode(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) ||
+        facts.node_kinds[node] !=
+            DirectMirScalarProgramExprLogicalRecordMember() {
+        return false;
+    }
+    let receiver: Int = facts.node_lefts[node];
+    if receiver < 0 || receiver >= node { return false; }
+    let receiver_kind: Int = facts.node_kinds[receiver];
+    if receiver_kind == DirectMirScalarProgramExprLocal() ||
+        receiver_kind == DirectMirScalarProgramExprParameter() {
+        return true;
+    }
+    if receiver_kind == DirectMirScalarProgramExprLogicalRecordMember() {
+        return DirectMirScalarProgramNonTrappingLogicalRecordMemberNode(
+            facts, receiver);
+    }
+    return false;
+}
+
+func DirectMirScalarProgramNonTrappingStringNode(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) ||
+        facts.node_types[node] != CompilerAbiLayoutStringTypeName() {
+        return false;
+    }
+    let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprLogicalRecordMember() {
+        return DirectMirScalarProgramNonTrappingLogicalRecordMemberNode(
+            facts, node);
+    }
+    return kind == DirectMirScalarProgramExprLocal() ||
+        kind == DirectMirScalarProgramExprParameter() ||
+        kind == DirectMirScalarProgramExprStringLiteral();
+}
+
+func DirectMirScalarProgramNonTrappingIntegerNode(
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, type_name: String
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) ||
+        facts.node_types[node] != type_name ||
+        (type_name != CompilerAbiLayoutIntTypeName() &&
+         type_name != CompilerAbiLayoutLongTypeName()) {
+        return false;
+    }
+    let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprLogicalRecordMember() {
+        return DirectMirScalarProgramNonTrappingLogicalRecordMemberNode(
+            facts, node);
+    }
+    return kind == DirectMirScalarProgramExprLocal() ||
+        kind == DirectMirScalarProgramExprParameter() ||
+        kind == DirectMirScalarProgramExprIntLiteral() ||
+        kind == DirectMirScalarProgramExprLongLiteral();
+}

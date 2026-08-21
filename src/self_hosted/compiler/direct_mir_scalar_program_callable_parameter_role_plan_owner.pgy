@@ -84,7 +84,9 @@ func DirectMirScalarProgramAbiValueParameterReady(
              CompilerAbiLayoutArrayBoolTypeName() ||
          signature.parameters.type_names[ordinal] == CompilerAbiLayoutOptionIntTypeName() || signature.parameters.type_names[ordinal] == CompilerAbiLayoutOptionStringTypeName() ||
          signature.parameters.type_names[ordinal] == CompilerAbiLayoutSetStringTypeName()) &&
-        signature.parameters.carriages[ordinal] == "value" &&
+        (signature.parameters.carriages[ordinal] == "value" ||
+         DirectMirScalarProgramOwnedArrayStringParameterReady(
+            signature, ordinal)) &&
         DirectMirScalarProgramCallableParameterSupported(
             signature, ordinal);
 }

@@ -2,6 +2,7 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy";
 import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
@@ -64,10 +65,9 @@ func DirectMirScalarProgramLlvmArrayMutation(ref plan: DirectMirScalarCfgGraphPl
                     "direct MIR LLVM array copyout mutation is invalid"); }
         if (kind == DirectMirScalarCfgOpArrayStringSet() ||
             kind == DirectMirScalarCfgOpArrayStringPop()) &&
-            !DirectMirScalarProgramArrayStringValueResultAt(
-                plan.program.array_string_abi, routine,
-                target_parameter) { Die(
-                    "direct MIR LLVM Array<String> copyout set is invalid"); }
+            !DirectMirScalarProgramArrayStringParameterMutationReady(
+                plan, routine, target_parameter, kind) { Die(
+                "direct MIR LLVM Array<String> copyout set is invalid"); }
     } else if target_parameter != -1 || target_local < 0 ||
         target_local >= ArrayLength(plan.local_types) ||
         !DirectMirScalarProgramLocalArrayMutationTargetTypeReady(

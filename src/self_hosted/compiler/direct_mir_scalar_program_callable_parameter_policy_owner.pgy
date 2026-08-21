@@ -13,6 +13,7 @@ import "direct_mir_scalar_program_void_logical_record_array_int_value_result_pol
 import "direct_mir_scalar_program_readonly_logical_record_array_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_bool_two_array_string_two_array_int_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_logical_record_return_array_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_void_logical_record_array_string_value_result_policy_owner.pgy";
@@ -70,8 +71,7 @@ func DirectMirScalarProgramOwnedStringParameterReady(
         signature.parameters.abi_layout_ids[ordinal] == 0;
 }
 func DirectMirScalarProgramZeroParameterReturnTypeSupportedWithFacts(type_name: String,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact
-) -> Bool {
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
         type_name == CompilerAbiLayoutArrayIntTypeName() ||
         DirectMirScalarProgramLogicalRecordTypeReady(
@@ -98,6 +98,7 @@ func DirectMirScalarProgramCallableParameterSupported(
             signature.parameters.abi_layout_ids[ordinal] > 0;
     }
     if type_name == CompilerAbiLayoutArrayStringTypeName() {
+        if DirectMirScalarProgramOwnedArrayStringParameterReady(signature, ordinal) { return true; }
         if signature.parameters.carriages[ordinal] == "value-result" {
             return signature.parameters.abi_required[ordinal] &&
                 signature.parameters.abi_layout_ids[ordinal] > 0;

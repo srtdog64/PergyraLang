@@ -1,0 +1,42 @@
+// LLVM readonly-ref binding for a logical-record parameter call argument.
+
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmLogicalRecordParameterCallArgument(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    routine: Int, argument_node: Int, value: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let source: Int = expressions.node_parameter_ordinals[argument_node];
+    let source_row: Int = routines.parameter_starts[routine] + source;
+    if routines.parameter_carriages[source_row] == "value-result" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, "", Concat("%pgy.param.", Concat(
+                ToString(source), ".local")));
+    }
+    if routines.parameter_carriages[source_row] == "value" {
+        let pointer: String = Concat(
+            "%pgy.readonly.value.", ToString(argument_node));
+        let type_name: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
+            logical_record, expressions.node_types[argument_node]);
+        let instructions: String = Concat("  ", Concat(pointer,
+            Concat(" = alloca ", Concat(type_name, "\n"))));
+        instructions = Concat(instructions, "  store ");
+        instructions = Concat(instructions, type_name);
+        instructions = Concat(instructions, Concat(" ", value));
+        instructions = Concat(instructions, Concat(", ptr ", pointer));
+        instructions = Concat(instructions, "\n");
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, pointer);
+    }
+    if routines.parameter_carriages[source_row] != "readonly-ref" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, "", Concat("%pgy.param.", ToString(source)));
+}

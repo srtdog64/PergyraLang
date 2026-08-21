@@ -63,6 +63,8 @@ func DirectMirScalarProgramCExpressionValues(
                 expressions.node_kinds[argument_rows[argument]] ==
                     DirectMirScalarProgramExprLocal() ||
                 expressions.node_kinds[argument_rows[argument]] ==
+                    DirectMirScalarProgramExprLogicalRecordMember() ||
+                expressions.node_kinds[argument_rows[argument]] ==
                     DirectMirScalarProgramExprSubtractInt() {
                 ArrayPush(arguments, argument_value);
             }
