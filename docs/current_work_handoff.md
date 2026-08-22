@@ -12,7 +12,77 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - exhaustive parity provenance-tail verification
+## Active self-host context - generic-return projection tail publication
+
+- The exact compiler-semantic checkpoint is commit
+  `a3c82ed1b93c4b7dffa64cc58a44988f303f907b` on `main`. The worktree is
+  clean except for the unrelated untracked `pgy-80135c2c/`; do not stage,
+  discard, or rewrite it. Temporary drivers, MIR, C, LLVM, and comparison
+  artifacts remain ignored under `.tmp` and are evidence only.
+- Remote run `32544191323` at predecessor `d1e9a7ea` made 28 of 29 jobs green:
+  Linux, Windows, macOS, sanitizers, TSan, both bootstrap jobs, Rocq, and all
+  20 backend shards passed. The sole red `self-host-parity-linux` completed the
+  1,566-source ledger, incremental/impact checks, 85-fixture C/LLVM codegen,
+  and initializer projection, then failed in `generic_return_probe_parity.sh`
+  with `stage=phi ordinal=1282 block=138 row=21013`.
+- Objective card: objective = make that reached production generic-return
+  C/LLVM path execute without an orphan CFG merge, parser-side expression
+  staging admission, allocator lifecycle ambiguity, or program-global
+  `Array<String>` cleanup guess; priority = exact CFG and element ownership,
+  owner-directed graph facts, old-path removal, negative ratchet, then patch
+  size; fact owners = `SelfMirMergeIfBranches`, parser expression graph rows,
+  allocator lifecycle, and the per-local Array<String> cleanup policy; last
+  consumers = routine admission and C/LLVM local cleanup; forbidden = a merge
+  block for two terminated arms, populated one-element graph-box literals,
+  `Array<ParserExpressionFact>` staging, duplicate/missing allocator destroy,
+  or `array_string_boundary.literal_local_row` as cleanup authority; falsifier
+  = generic-return C/LLVM default+callable parity plus borrowed/owned string
+  array lifecycle gates and the full 29-job clean-checkout matrix.
+- `SelfMirMergeIfBranches` now returns the real terminated else exit when both
+  arms terminate instead of creating an unreachable merge/phi chain. The
+  intent parser accumulates terminal and compensation expressions directly in
+  `AstExpressionGraphRows`; declaration/program graph boxes start through one
+  empty-shape owner rather than populated Array literals. Required result
+  allocators are destroyed exactly once.
+- The next reached failure was Windows heap corruption in the LLVM callable
+  executable. Main cleanup deep-freed static string-literal elements because
+  one program-global `literal_local_row` could represent only one of several
+  Array<String> literals. The new
+  `direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy` derives
+  element ownership per routine local from admitted operation/expression
+  facts. Borrowed literal arrays free backing storage only; owned arrays retain
+  the canonical element-deep-drop path in both C and LLVM. Both target cleanup
+  consumers reject restoration of the single-boundary read.
+- A current-source Pergyra-built DRV-2 was generated and installed. Focused
+  green gates are `generic_return_probe_parity.sh`,
+  `initializer_projection_probe_parity.sh`,
+  `intent_typed_transition_frontend_owner.sh`,
+  `direct_mir_scalar_entrypoint_early_return_owner.sh`,
+  `direct_mir_scalar_owned_array_string_return_owner.sh`,
+  `direct_mir_scalar_owned_string_parameter_owner.sh`, and
+  `one_mir_string_array_index_return_projection.sh`. The latter reproduces
+  current MIR SHA-256
+  `6CE3CB8D614BEF3A40DAA39468128B00BB390B9B0ED260DA61EC1E68A2F72D9A`;
+  a separately built clean `d1e9a7ea` driver produced byte-identical MIR,
+  proving the retired `EE12...` test pin had already drifted before this delta.
+- `tests/self_hosted_component_contract_smoke.sh`,
+  `tests/documentation_quality_smoke.sh`,
+  `tests/self_host_ci_profile_smoke.sh`, shell syntax checks, and
+  `git diff --check` are green. Existing hard caps remain intact, including
+  intent parser 598/600, C string materialization 110/110, LLVM string
+  materialization 115/115, program-extension readiness 100/100, and LLVM
+  foreign declarations 110/110.
+- Next executable rung: publish `a3c82ed1` plus this handoff-only successor and
+  inspect the newest clean GitHub Actions run. A full green 29-job matrix
+  closes this CI tail. If it is red, resume only from its first deterministic
+  failure; do not reopen a general SoT cleanup, cache, shard, timeout, or memory
+  allowance track.
+
+### Historical archive boundary
+
+Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - exhaustive parity provenance-tail verification (inactive)
 
 - The exact compiler-semantic checkpoint is commit
   `7230cd07a416b5e2a4215f91f7393a809f3cb409` on `main`. Following publication
