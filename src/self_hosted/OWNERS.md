@@ -3083,6 +3083,7 @@ inventory must not become a second fact-family owner registry.
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy`,
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_expression_kind_owner.pgy`
   --
@@ -3091,6 +3092,9 @@ inventory must not become a second fact-family owner registry.
   literal spine containing already-normalized String expressions with exact
   instruction-use and LocalRef receipts, plus semantic readiness and the
   stable expression kind identity.
+  The cleanup policy derives borrowed versus owned element storage for each
+  local from the admitted expression and operation facts; the obsolete
+  one-literal program boundary is not an alternate cleanup authority.
   The common seed owner is shared with nested `Array<Int>` admission and owns
   the one-seed/one-spine identity. Mixed literals retain source element order
   and derive `Array<String>` only from normalized String operands; they do not

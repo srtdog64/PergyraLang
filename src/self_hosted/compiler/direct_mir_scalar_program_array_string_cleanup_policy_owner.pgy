@@ -1,0 +1,67 @@
+// Per-local Array<String> element ownership and cleanup policy.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+
+func DirectMirScalarProgramArrayStringLocalBorrowsElements(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
+) -> Bool {
+    if routine < 0 || routine >=
+            ArrayLength(plan.routines.operation_starts) ||
+        ArrayLength(plan.operation_result_values) !=
+            ArrayLength(plan.program.operation_expression_rows) {
+        return false;
+    }
+    let definition_count: Int = 0;
+    let operation: Int = plan.routines.operation_starts[routine];
+    let end: Int = operation + plan.routines.operation_counts[routine];
+    if operation < 0 || end > ArrayLength(plan.operation_result_values) {
+        return false;
+    }
+    while operation < end {
+        let expression_row: Int =
+            plan.program.operation_expression_rows[operation];
+        if expression_row >= 0 && expression_row <
+                ArrayLength(plan.program.expressions.graph_roots) {
+            let root: Int = plan.program.expressions.graph_roots[expression_row];
+            if plan.program.expressions.node_kinds[root] ==
+                    DirectMirScalarProgramExprArrayStringPushOwned() {
+                let receiver: Int = plan.program.expressions.node_lefts[root];
+                if receiver >= 0 &&
+                    plan.program.expressions.node_kinds[receiver] ==
+                        DirectMirScalarProgramExprLocal() &&
+                    plan.program.expressions.node_local_rows[receiver] ==
+                        local_row { return false; }
+            }
+        }
+        let result: Int = plan.operation_result_values[operation];
+        if result >= 0 && result < ArrayLength(plan.value_local_rows) &&
+            plan.value_local_rows[result] == local_row {
+            if expression_row < 0 || expression_row >=
+                    ArrayLength(plan.program.expressions.graph_roots) {
+                return false;
+            }
+            let root: Int = plan.program.expressions.graph_roots[expression_row];
+            if plan.program.expressions.node_kinds[root] !=
+                    DirectMirScalarProgramExprArrayStringLiteral() ||
+                DirectMirScalarProgramArrayStringLiteralOwnsElements(
+                    plan.program.expressions, root, plan.routines, routine) {
+                return false;
+            }
+            definition_count = definition_count + 1;
+        }
+        operation = operation + 1;
+    }
+    return definition_count == 1;
+}
+
+func DirectMirScalarProgramArrayStringCleanupDropSymbol(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
+) -> String {
+    if DirectMirScalarProgramArrayStringLocalBorrowsElements(
+            plan, routine, local_row) {
+        return CollectionRuntimeCDropStorageFn(2);
+    }
+    return CollectionRuntimeCOwnedStringDropFn();
+}

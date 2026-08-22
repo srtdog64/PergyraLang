@@ -49,6 +49,26 @@ func SelfMirMergeIfBranches(
     else_versions: Array<Int>,
     entry_versions: Array<Int>
 ) -> SelfMirRoutineBuild {
+    let then_live: Bool = build.terminated[then_exit] == 0;
+    let else_live: Bool =
+        else_exit < 0 || build.terminated[else_exit] == 0;
+    if ArrayLength(then_versions) < ArrayLength(entry_versions) ||
+        ArrayLength(else_versions) < ArrayLength(entry_versions) {
+        return SelfMirRoutineBuildError(
+            build, "MIR branch local-version cardinality drifted"
+        );
+    }
+    if !then_live && !else_live {
+        if else_block < 0 || else_exit < 0 {
+            return SelfMirRoutineBuildError(
+                build, "MIR terminated branch pair lacks an else exit"
+            );
+        }
+        build = SelfMirRoutineSetSuccessors(
+            build, branch_block, then_block, else_block
+        );
+        return SelfMirRoutineAtBlock(build, else_exit);
+    }
     build = SelfMirRoutineAddBlock(build);
     let merge_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, merge_block);
@@ -67,15 +87,6 @@ func SelfMirMergeIfBranches(
     build = SelfMirRoutineSetSuccessors(
         build, branch_block, then_block, false_block
     );
-    let then_live: Bool = build.terminated[then_exit] == 0;
-    let else_live: Bool =
-        else_exit < 0 || build.terminated[else_exit] == 0;
-    if ArrayLength(then_versions) < ArrayLength(entry_versions) ||
-        ArrayLength(else_versions) < ArrayLength(entry_versions) {
-        return SelfMirRoutineBuildError(
-            build, "MIR branch local-version cardinality drifted"
-        );
-    }
     let merge_local_i: Int = 0;
     while merge_local_i < ArrayLength(entry_versions) {
         // Version zero means the name is not live in the enclosing lexical

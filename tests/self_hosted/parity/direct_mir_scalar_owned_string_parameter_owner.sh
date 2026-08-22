@@ -49,14 +49,21 @@ grep -Fq 'func DirectMirScalarProgramExprArrayStringDropOwned() -> Int { return 
     "$KIND" || fail "owned String drop expression identity is missing"
 grep -Fq 'name == "ArrayDropOwnedStrings"' "$SIGNATURE" ||
     fail "owned String drop bypasses the semantic builtin signature"
-grep -Fq 'facts.node_kinds[left] == DirectMirScalarProgramExprLocal()' \
-    "$READINESS" || fail "owned String drop does not require an addressable local"
+for term in 'let left_kind: Int = facts.node_kinds[left];' \
+    'left_kind == DirectMirScalarProgramExprLocal()' \
+    'left_kind == DirectMirScalarProgramExprParameter()'; do
+    grep -Fq "$term" "$READINESS" ||
+        fail "owned String drop omits an addressable receiver shape: $term"
+done
 for owner in "$C_COLLECTION" "$LLVM_COLLECTION"; do
     grep -Fq 'CollectionRuntimeCOwnedStringDropFn()' "$owner" ||
         fail "target drop projection bypasses the canonical runtime symbol"
 done
-grep -Fq 'CompilerAbiLayoutStringTypeName() ||' "$C_CALL_ARGUMENT" ||
-    fail "C call arguments do not preserve the admitted String owner handle"
+for term in 'routines.parameter_carriages[parameter_row] == "owner-handle"' \
+    'DirectMirScalarProgramOwnedDirectParameterTypeReady('; do
+    grep -Fq "$term" "$C_CALL_ARGUMENT" ||
+        fail "C call arguments bypass the admitted owner-handle policy: $term"
+done
 for owner in "$C_EXPRESSION" "$LLVM_EXPRESSION"; do
     grep -Fq 'DirectMirScalarProgramArrayStringLiteralOwnsElements(' "$owner" ||
         fail "target literal projection re-infers element ownership"

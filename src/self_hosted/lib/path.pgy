@@ -26,6 +26,7 @@ namespace SelfHostPath {
             i = i + 1;
         }
         let normalized: String = TextBuilderFinish(output, result_allocator);
+        AllocatorDestroy(result_allocator);
         return normalized;
     }
 

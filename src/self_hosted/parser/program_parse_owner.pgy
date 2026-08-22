@@ -42,9 +42,10 @@ func ParseProgramBuildWithImportPolicyObserved(
     let involve_types: Array<String> = [];
     let import_paths: Set<String> = SetNew();
     SetAdd(import_paths, source_path);
-    let expression_graphs: Array<AstExpressionGraphRows> = [
-        AstExpressionGraphRowsEmpty()
-    ];
+    let expression_graphs: Array<AstExpressionGraphRows> = [];
+    ParserExpressionGraphRowsBoxStart(
+        expression_graphs, AstExpressionGraphRowsEmpty()
+    );
     let declaration_module_paths: Array<String> = [];
     if observe_phases { Log("Phase: declaration-composition:start"); }
     let decls: String = ParseDecls(

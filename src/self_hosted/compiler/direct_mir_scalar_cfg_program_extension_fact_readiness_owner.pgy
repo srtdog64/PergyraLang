@@ -54,14 +54,12 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
         (DirectMirScalarCfgProgramCallableFactCanonicalEmpty(fact.callable) &&
          DirectMirClosedModuleCallAbiFactCanonicalEmpty(fact.closed_call_abi));
     let array_boundary_ready: Bool =
-        DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
-            fact.array_string_boundary);
+        DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(fact.array_string_boundary);
     if fact.callable.valid &&
         DirectMirScalarProgramArrayStringBoundarySignatureReady(
             fact.callable.signature) {
-        array_boundary_ready =
-            DirectMirScalarProgramArrayStringBoundaryFactReady(
-                fact.array_string_boundary);
+        array_boundary_ready = DirectMirScalarProgramArrayStringBoundaryFactReady(
+            fact.array_string_boundary);
     }
     if fact.digest == 0 || fact.digest !=
             DirectMirScalarCfgProgramExtensionFactDigest(fact) { return 2; }
@@ -87,10 +85,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
             fact.payload_free_enum, fact.expressions) { return 12; }
     if !DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
             fact.logical_record, fact.payload_free_enum) { return 12; }
-    if !DirectMirScalarProgramArrayIntValueResultFactReady(
-            fact.array_int_value_result) { return 13; }
-    if !DirectMirScalarProgramArrayBoolAbiFactReady(
-            fact.array_bool_abi) { return 14; }
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact.array_int_value_result) { return 13; }
+    if !DirectMirScalarProgramArrayBoolAbiFactReady(fact.array_bool_abi) { return 14; }
     if !DirectMirScalarProgramLogicalRecordCollectionAbiReady(
             fact.logical_record, fact.array_int_value_result,
             fact.array_bool_abi, fact.array_string_abi) { return 15; }
@@ -99,7 +95,6 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
     if !array_boundary_ready { return 17; }
     return 0;
 }
-
 func DirectMirScalarCfgProgramExtensionFactReady(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Bool {
     return DirectMirScalarCfgProgramExtensionFactReadinessCode(fact) == 0;
 }

@@ -114,10 +114,10 @@ func ParseIntentDecl(
     let default_where: String = "";
     let terminal_success_steps: Array<String> = [];
     let terminal_success_texts: Array<String> = [];
-    let terminal_success_facts: Array<ParserExpressionFact> = [];
+    let terminal_success_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
     let terminal_failure_steps: Array<String> = [];
     let terminal_failure_texts: Array<String> = [];
-    let terminal_failure_facts: Array<ParserExpressionFact> = [];
+    let terminal_failure_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
@@ -170,7 +170,11 @@ func ParseIntentDecl(
             } else {
                 ArrayPush(terminal_success_steps, terminal.step_name);
                 ArrayPush(terminal_success_texts, terminal.expression.text);
-                ArrayPush(terminal_success_facts, terminal.expression);
+                terminal_success_graphs = ParserExpressionGraphsAppend(
+                    terminal_success_graphs,
+                    TypedAstKindIntentTerminalSuccessTag(),
+                    AstExpressionLaneAtom(), terminal.expression
+                );
             }
             continue;
         }
@@ -189,7 +193,11 @@ func ParseIntentDecl(
             } else {
                 ArrayPush(terminal_failure_steps, terminal.step_name);
                 ArrayPush(terminal_failure_texts, terminal.expression.text);
-                ArrayPush(terminal_failure_facts, terminal.expression);
+                terminal_failure_graphs = ParserExpressionGraphsAppend(
+                    terminal_failure_graphs,
+                    TypedAstKindIntentTerminalFailureTag(),
+                    AstExpressionLaneAtom(), terminal.expression
+                );
             }
             continue;
         }
@@ -240,7 +248,7 @@ func ParseIntentDecl(
             let s_on_fact: ParserExpressionFact = ParserExpressionInvalid();
             let s_guard_fact: ParserExpressionFact = ParserExpressionInvalid();
             let s_expect_fact: ParserExpressionFact = ParserExpressionInvalid();
-            let s_compensate_facts: Array<ParserExpressionFact> = [];
+            let s_compensate_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
             let s_post_fact: ParserExpressionFact = ParserExpressionInvalid();
             let s_intent_fact: ParserExpressionFact = ParserExpressionInvalid();
             while true {
@@ -370,7 +378,11 @@ func ParseIntentDecl(
                     if clause == "guard" { s_guard_fact = val_fact; }
                     if clause == "expect" { s_expect_fact = val_fact; }
                     if clause == "compensate" {
-                        ArrayPush(s_compensate_facts, val_fact);
+                        s_compensate_graphs = ParserExpressionGraphsAppend(
+                            s_compensate_graphs,
+                            TypedAstKindIntentStepCompensateTag(),
+                            AstExpressionLaneAtom(), val_fact
+                        );
                     }
                     if clause == "post" { s_post_fact = val_fact; }
                     if clause == "intent" { s_intent_fact = val_fact; }
@@ -501,15 +513,7 @@ func ParseIntentDecl(
                     expression_graphs, TypedAstKindIntentStepIntentTag(), AstExpressionLaneAtom(), s_intent_fact
                 );
             }
-            compensate_i = 0;
-            while compensate_i < ArrayLength(s_compensate_facts) {
-                ParserExpressionGraphsAppendInto(
-                    expression_graphs,
-                    TypedAstKindIntentStepCompensateTag(),
-                    AstExpressionLaneAtom(), s_compensate_facts[compensate_i]
-                );
-                compensate_i = compensate_i + 1;
-            }
+            ParserExpressionGraphsAppendRowsInto(expression_graphs, s_compensate_graphs);
             if StringLength(s_guard) > 0 {
                 ParserExpressionGraphsAppendInto(
                     expression_graphs, TypedAstKindIntentStepGuardTag(),
@@ -577,12 +581,9 @@ func ParseIntentDecl(
                 terminal_success_steps[terminal_i],
                 Concat(" => ", terminal_success_texts[terminal_i]))
         ));
-        ParserExpressionGraphsAppendInto(
-            expression_graphs, TypedAstKindIntentTerminalSuccessTag(),
-            AstExpressionLaneAtom(), terminal_success_facts[terminal_i]
-        );
         terminal_i = terminal_i + 1;
     }
+    ParserExpressionGraphsAppendRowsInto(expression_graphs, terminal_success_graphs);
     terminal_i = 0;
     while terminal_i < ArrayLength(terminal_failure_steps) {
         out = AppendLine(out, Concat(
@@ -590,11 +591,8 @@ func ParseIntentDecl(
                 terminal_failure_steps[terminal_i],
                 Concat(" => ", terminal_failure_texts[terminal_i]))
         ));
-        ParserExpressionGraphsAppendInto(
-            expression_graphs, TypedAstKindIntentTerminalFailureTag(),
-            AstExpressionLaneAtom(), terminal_failure_facts[terminal_i]
-        );
         terminal_i = terminal_i + 1;
     }
+    ParserExpressionGraphsAppendRowsInto(expression_graphs, terminal_failure_graphs);
     ArraySet(cursor_out, 0, i); return out;
 }

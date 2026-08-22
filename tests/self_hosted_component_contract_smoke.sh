@@ -1382,6 +1382,10 @@ require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "decl_disp
 require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "../lib/path.pgy";'
 require_text "src/self_hosted/lib/path.pgy" "func PathCharAt"
 reject_text "src/self_hosted/lib/path.pgy" "func CharAt"
+require_text "src/self_hosted/lib/path.pgy" \
+    "export func NormalizeSeparators(path: String) -> String {"
+require_text "src/self_hosted/lib/path.pgy" \
+    "AllocatorDestroy(result_allocator);"
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'import "stmt_owner.pgy";'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'import "expr_owner.pgy";'
 require_text "src/self_hosted/parser/decl_ability_owner.pgy" 'import "function_decl_owner.pgy";'
@@ -1400,6 +1404,15 @@ require_text "src/self_hosted/parser/decl_intent_owner.pgy" \
     'ContractProvenance: '
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let parameter_lines: Array<String> = [];'
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentBinding: ", row));'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let terminal_success_graphs: AstExpressionGraphRows ='
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let terminal_failure_graphs: AstExpressionGraphRows ='
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let s_compensate_graphs: AstExpressionGraphRows ='
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'expression_graphs, terminal_success_graphs'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'expression_graphs, terminal_failure_graphs'
+require_text "src/self_hosted/parser/decl_intent_owner.pgy" 'expression_graphs, s_compensate_graphs'
+reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'Array<ParserExpressionFact>'
+reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(terminal_success_facts'
+reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(terminal_failure_facts'
 reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentInvolves: ", row));'
 reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'ArrayPush(parameter_lines, Concat("IntentValue: ", row));'
 reject_text "src/self_hosted/parser/decl_intent_owner.pgy" 'let involves_lines:'
@@ -1593,6 +1606,10 @@ require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
     'kind = TypedAstKindIntentStepIntentTag();'
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" \
     'expression_graphs, TypedAstKindIntentStepIntentTag()'
+require_function_text \
+    "src/self_hosted/parser/intent_parameter_resolution_owner.pgy" \
+    "func ParserIntentParameterRowsResolve(" \
+    "AllocatorDestroy(result_allocator);"
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/dir/intent_step_clause_fact_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" \
@@ -5570,6 +5587,20 @@ require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
 reject_text "src/self_hosted/parser/expression_graph_owner.pgy" "ContractReady()"
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" \
     "func ParserExpressionGraphRowsAppendShapeReady("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" \
+    "func ParserExpressionGraphRowsBoxStart("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" \
+    "ArrayLength(rows_box) != 0"
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "ParserExpressionGraphRowsBoxStart("
+require_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    "ParserExpressionGraphRowsBoxStart("
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "let statement_graphs: Array<AstExpressionGraphRows> = [];"
+require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" \
+    "let script_graphs: Array<AstExpressionGraphRows> = [];"
+require_text "src/self_hosted/parser/program_parse_owner.pgy" \
+    "let expression_graphs: Array<AstExpressionGraphRows> = [];"
 reject_function_text "src/self_hosted/parser/expression_graph_owner.pgy" \
     "func ParserExpressionGraphsAppend(" \
     "AstExpressionArenaReady("
@@ -6629,6 +6660,9 @@ reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" 'build.local_names[lo
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'SelfMirRoutineAtLocalVersions('
 reject_text "src/self_hosted/mir/routine_if_owner.pgy" 'SelfMirRoutineMergeBranchVersions('
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'func SelfMirMergeIfBranches('
+require_text "src/self_hosted/mir/routine_if_owner.pgy" 'if !then_live && !else_live {'
+require_text "src/self_hosted/mir/routine_if_owner.pgy" 'MIR terminated branch pair lacks an else exit'
+require_text "src/self_hosted/mir/routine_if_owner.pgy" 'return SelfMirRoutineAtBlock(build, else_exit);'
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'while merge_local_i < ArrayLength(entry_versions)'
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'build, merge_local_i, 0'
 require_text "src/self_hosted/mir/routine_if_owner.pgy" 'let false_block: Int = merge_block;'
@@ -18068,6 +18102,26 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_runtime_value_lifecycle_owner.pgy" \
     "func DirectMirScalarProgramRuntimeValueLocalReady(" \
     "plan.local_ref_kinds[local_row] !="
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringLocalBorrowsElements(" \
+    "definition_count == 1"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringCleanupDropSymbol(" \
+    "CollectionRuntimeCDropStorageFn(2)"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy" \
+    "DirectMirScalarProgramArrayStringCleanupDropSymbol("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy" \
+    "DirectMirScalarProgramArrayStringCleanupDropSymbol("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy" \
+    "plan.program.array_string_boundary.literal_local_row"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy" \
+    "plan.program.array_string_boundary.literal_local_row"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_member_rebind_owner.pgy" \
     "func DirectMirScalarProgramLogicalRecordMemberRebindAppendOperation(" \

@@ -53,6 +53,7 @@ func DirectMirScalarProgramCStringArrayStorageBlock(
     output = Concat(output, Concat("static void ", Concat(
         CollectionRuntimeCOwnedStringDropFn(),
         "(pgy_as *a) { if (a == NULL) return; for (size_t i = 0; i < a->length; i++) free((void *)a->data[i]); free(a->data); a->data = NULL; a->length = 0; a->capacity = 0; }\n\n")));
+    output = Concat(output, Concat("static void ", Concat(CollectionRuntimeCDropStorageFn(2), "(pgy_as *a) { if (a == NULL) return; free(a->data); a->data = NULL; a->length = 0; a->capacity = 0; }\n\n")));
     return output;
 }
 

@@ -436,9 +436,10 @@ func ParseDeclsInto(
         if collect_script {
             stmt_indent = 8;
         }
-        let statement_graphs: Array<AstExpressionGraphRows> = [
-            AstExpressionGraphRowsEmpty()
-        ];
+        let statement_graphs: Array<AstExpressionGraphRows> = [];
+        ParserExpressionGraphRowsBoxStart(
+            statement_graphs, AstExpressionGraphRowsEmpty()
+        );
         let stmt_block: String = ParseOneStmt(
             content, i, cursor_out, stmt_indent, statement_graphs
         );
@@ -473,9 +474,10 @@ func ParseDecls(
 ) -> String {
     let out_blocks: Array<String> = [];
     let script_blocks: Array<String> = [];
-    let script_graphs: Array<AstExpressionGraphRows> = [
-        AstExpressionGraphRowsEmpty()
-    ];
+    let script_graphs: Array<AstExpressionGraphRows> = [];
+    ParserExpressionGraphRowsBoxStart(
+        script_graphs, AstExpressionGraphRowsEmpty()
+    );
     ParseDeclsInto(
         content, start, cursor_out, name_prefix, until_brace, source_dir,
         source_path, force_export, follow_imports, within_zone, involve_types,

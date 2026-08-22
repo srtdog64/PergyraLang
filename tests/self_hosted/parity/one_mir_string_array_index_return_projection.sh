@@ -34,6 +34,7 @@ src/self_hosted/compiler/direct_mir_bounded_literal_index_owner.pgy|15
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_admission_owner.pgy|120
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy|120
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy|110
+src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy|90
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_expression_kind_owner.pgy|10
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_callable_abi_owner.pgy|25
 src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy|100
@@ -71,7 +72,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/program.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/program.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "EE124A64CBFF373C365992E7EAC63084C8358A152F094AC13A2595C45BCF0DE6" ]] || \
+[[ "$mir_sha" == "6CE3CB8D614BEF3A40DAA39468128B00BB390B9B0ED260DA61EC1E68A2F72D9A" ]] || \
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_array_index_return_mutations.py" \
     "$WORK_DIR/program.json" "$WORK_DIR"

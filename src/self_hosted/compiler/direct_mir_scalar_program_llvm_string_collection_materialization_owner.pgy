@@ -35,9 +35,9 @@ func DirectMirScalarProgramLlvmStringArrayAccessBlocks(
     return output;
 }
 func DirectMirScalarProgramLlvmStringArrayDropBlock() -> String {
-    return Concat("define internal void @", Concat(
-        CollectionRuntimeCOwnedStringDropFn(),
+    let output: String = Concat("define internal void @", Concat(CollectionRuntimeCOwnedStringDropFn(),
         "(ptr %array) {\nentry:\n  %data.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 0\n  %length.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 1\n  %capacity.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 2\n  %data = load ptr, ptr %data.ptr, align 8\n  %length = load i64, ptr %length.ptr, align 8\n  br label %loop\n\nloop:\n  %index = phi i64 [ 0, %entry ], [ %next, %body ]\n  %more = icmp ult i64 %index, %length\n  br i1 %more, label %body, label %done\n\nbody:\n  %slot = getelementptr inbounds ptr, ptr %data, i64 %index\n  %value = load ptr, ptr %slot, align 8\n  call void @free(ptr %value)\n  %next = add i64 %index, 1\n  br label %loop\n\ndone:\n  call void @free(ptr %data)\n  store ptr null, ptr %data.ptr, align 8\n  store i64 0, ptr %length.ptr, align 8\n  store i64 0, ptr %capacity.ptr, align 8\n  ret void\n}\n\n"));
+    return Concat(output, Concat("define internal void @", Concat(CollectionRuntimeCDropStorageFn(2), "(ptr %array) {\nentry:\n  %data.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 0\n  %length.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 1\n  %capacity.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 2\n  %data = load ptr, ptr %data.ptr, align 8\n  call void @free(ptr %data)\n  store ptr null, ptr %data.ptr, align 8\n  store i64 0, ptr %length.ptr, align 8\n  store i64 0, ptr %capacity.ptr, align 8\n  ret void\n}\n\n")));
 }
 
 func DirectMirScalarProgramLlvmStringSplitBlock(

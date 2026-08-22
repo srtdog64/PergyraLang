@@ -92,11 +92,10 @@ func ParserIntentParameterRowsResolve(
     }
     let result_allocator: Allocator = AllocatorResult();
     let result: String = TextBuilderFinish(out, result_allocator);
+    AllocatorDestroy(result_allocator);
     if !valid {
-        AllocatorDestroy(result_allocator);
         return ParserIntentParameterResolution(false, "");
     }
-    AllocatorDestroy(result_allocator);
     return ParserIntentParameterResolution(true, result);
 }
 

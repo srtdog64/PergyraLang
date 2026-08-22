@@ -267,6 +267,19 @@ func ParserExpressionGraphRowsAppendShapeReady(
     return node_count > 0 && rows.roots[root_count - 1] == node_count - 1;
 }
 
+func ParserExpressionGraphRowsBoxStart(
+    inout rows_box: Array<AstExpressionGraphRows>,
+    initial: AstExpressionGraphRows
+) -> Void {
+    if ArrayLength(rows_box) != 0 ||
+        !ParserExpressionGraphRowsAppendShapeReady(initial) ||
+        ArrayLength(initial.roots) != 0 {
+        Exit(1);
+        return;
+    }
+    ArrayPush(rows_box, initial);
+}
+
 func ParserExpressionGraphsAppend(
     rows: AstExpressionGraphRows,
     owner_kind: Int,
