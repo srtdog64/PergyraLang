@@ -159,6 +159,12 @@ grep -Fq 'SemanticCallTargetMember()' "$SEMANTIC_CALL_EMIT" ||
     { echo "[$LABEL] codegen ignores carried member targets" >&2; exit 1; }
 grep -Fq 'analysis, "Box_Get", "box"' "$SOURCE" ||
     { echo "[$LABEL] executable probe does not reach hard codegen" >&2; exit 1; }
+grep -Fq 'CanonicalMirIdentityArtifactBindSourceModules(' "$SOURCE" ||
+    { echo "[$LABEL] executable probe bypasses source-module provenance owner" >&2; exit 1; }
+grep -Fq 'func ProbeInitializerArtifactFromText(' "$SOURCE" ||
+    { echo "[$LABEL] executable probe has no fixture provenance boundary" >&2; exit 1; }
+[[ "$(grep -Fc 'AstTreeArtifactFromText(' "$SOURCE")" -eq 1 ]] ||
+    { echo "[$LABEL] executable probe rebuilt an unbound AST artifact" >&2; exit 1; }
 grep -Fq 'SemanticCanonicalTypeNameFactFrom(' "$CALL_TARGET_OWNER" ||
     { echo "[$LABEL] generic receiver target ignores canonical type owner" >&2; exit 1; }
 grep -Fq 'SemanticAstNominalFieldType(' "$RECEIVER_TYPE_OWNER" ||

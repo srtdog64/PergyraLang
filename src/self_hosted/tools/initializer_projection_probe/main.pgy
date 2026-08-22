@@ -5,6 +5,23 @@ import "../../mir/artifact_lower_owner.pgy";
 import "../../mir/program_verify_owner.pgy";
 import "../../codegen/emission/expr_semantic_graph_emit_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
+import "../../compiler/canonical_mir_source_module_epoch_owner.pgy";
+
+func ProbeInitializerArtifactFromText(tree_text: String) -> AstTreeArtifact {
+    let base: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    let module_paths: Array<String> = [];
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(base.arena, 0, child_index);
+    while IsSome(child) {
+        ArrayPush(
+            module_paths,
+            "src/self_hosted/tools/initializer_projection_probe/main.pgy"
+        );
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(base.arena, 0, child_index);
+    }
+    return CanonicalMirIdentityArtifactBindSourceModules(base, module_paths);
+}
 
 func ProbeInitializerFactsWithoutRows(
     facts: SemanticAstInitializerTypeFacts
@@ -408,7 +425,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
         artifact_text =
             "Program:\n  Class: Box\n    Fields:\n      value: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: 1\n  Function: MakeBox\n    Parameters:\n    Returns: Box\n    Body:\n      Block:\n        Return: Box(1)\n  Function: ToTextValue\n    Parameters:\n    Returns: String\n    Body:\n      Block:\n        Return: \"text\"\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: box : Box = MakeBox()\n        Let: x : Int = box.Get()\n        Return: x\n";
     }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(artifact_text);
+    let artifact: AstTreeArtifact =
+        ProbeInitializerArtifactFromText(artifact_text);
     let analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
     if mode == "--direct-call-callee-mismatch" {
@@ -635,7 +653,8 @@ func ProbeInitializerCursorVisibility(mode: String) -> Bool {
         artifact_text =
             "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        If: true\n          Then:\n            Block:\n              Let: hidden : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: leaked = hidden\n        Return: 0\n";
     }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(artifact_text);
+    let artifact: AstTreeArtifact =
+        ProbeInitializerArtifactFromText(artifact_text);
     let analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
     let body_types: SemanticAstBodyTypeBundle =
@@ -685,7 +704,7 @@ func ProbeInitializerCursorVisibility(mode: String) -> Bool {
 }
 
 func ProbeInitializerCursorDestructureAtomic() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ProbeInitializerArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: seed : Int = 1\n        Return: seed\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
@@ -790,7 +809,7 @@ func Main() -> Void with caps env {
         if !ProbeResolvedCallProjection(mode) { Exit(1); }
         return;
     }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ProbeInitializerArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: seed : Int = 1\n        Let: x = seed + 2\n        Return: x\n"
     );
     let analysis: SemanticAstArtifactAnalysis =
