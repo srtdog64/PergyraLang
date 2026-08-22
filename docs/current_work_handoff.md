@@ -12,7 +12,63 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - wrapper-policy parity tail publication
+## Active self-host context - runtime-value ABI and Int32 parity publication
+
+- The exact compiler-semantic checkpoint is
+  `4d892744e85282e17b73d38132ae45f33787b071` on `main`. This handoff is its
+  documentation-only successor. The worktree is clean except for the unrelated
+  untracked `pgy-80135c2c/`; do not stage, discard, or rewrite it. Ignored
+  `.tmp` compiler, C, LLVM, executable, and comparison artifacts are evidence
+  only.
+- Objective card: objective = make the reached runtime-value and
+  `CompilerArtifactWrite` calls consume one typed ABI identity through the
+  production C/LLVM projection while restoring the language-owned `Int` as a
+  signed 32-bit value; priority = semantic identity, ABI owner facts, fallback
+  deletion, negative ratchet, then patch size; fact owners = runtime-call ABI
+  row/identity/representation owners, the runtime-value parameter readiness and
+  LLVM storage owners, the compiler-artifact signature/readiness/projection
+  owners, and the Int literal/wrap/format owners; last consumers = scalar
+  callable admission and C/LLVM expression emission; forbidden = backend-local
+  runtime-call inference, an admitted call without an ABI row, a guessed
+  runtime-value parameter carriage, C `Int` formatted as 64-bit, or LLVM
+  arithmetic that escapes the signed-32-bit domain; falsifier = full direct-MIR
+  GraphPlan C/LLVM parity plus missing-row, invalid-carriage, out-of-range
+  literal, and lifecycle negatives, followed by the clean GitHub Actions matrix.
+- Runtime-call ABI rows now carry the reached allocator/runtime-value and
+  compiler-artifact identities through the structured manifest. Exact owners
+  admit, diagnose, and project runtime-value parameters and
+  `CompilerArtifactWrite` in C and LLVM. Host-I/O readiness no longer owns a
+  second projection policy, and owned `String` parameter admission consumes its
+  dedicated policy owner.
+- `Int` literals now fail closed outside `[-2147483648, 2147483647]`. LLVM keeps
+  its transitional widened carrier but normalizes add/subtract/multiply/negate
+  through `i32`; C uses the 32-bit line format while LLVM uses its widened
+  carrier format. `Long` remains signed 64-bit. GraphPlan schema identity is
+  `pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79`.
+- The final current-source Pergyra-built DRV-2 has SHA-256
+  `CF454C5607A2EC7AAA54786F54C1A8D3CA2D2D41CC11CF3376346B37B96C5166`.
+  With that exact driver, the complete
+  `self-host-direct-mir-scalar-graph-plan-test-smoke`, runtime-value lifecycle,
+  runtime-call ABI row parity, and gate-dashboard parity pass. The component
+  contract passes after aligning removed-path ratchets with the current invalid
+  mutations and retaining bounded owner-gate caps.
+- Native MIR tests pass 162/162. `runtime-abi-lifetime-test-smoke` and
+  `git diff --check` pass. Observed non-fatal warning debt is Clang 22's
+  deprecated `ATOMIC_VAR_INIT`, LLVM host target-triple override warnings, and
+  two generated-C unused-local warnings in the match-binding gate; none is
+  recorded as warning-clean evidence.
+- Next executable rung: publish this handoff successor, push `main`, and inspect
+  the newly triggered GitHub Actions run. A fully green matrix closes this CI
+  publication tail. If red, resume only from its first deterministic failure;
+  do not reopen general SoT, cache, shard, timeout, or memory-allowance work.
+  After green, evaluate CI duration separately: keep the required merge evidence
+  but avoid rebuilding the same self-host driver independently in every shard.
+
+### Historical archive boundary
+
+Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - wrapper-policy parity tail publication (inactive)
 
 - The exact compiler-semantic checkpoint is
   `b96276b0f122bbe53ab419087b38d9bbfa0377dc` on `main`. This handoff is its
@@ -85,10 +141,6 @@ gate count do not increment either percentage by themselves.
   A 29/29 green matrix closes this CI tail. If red, resume only from its first
   deterministic failure; do not reopen general SoT, cache, shard, timeout, or
   memory-allowance work.
-
-### Historical archive boundary
-
-Everything below this line is inactive lookup evidence, not an active queue.
 
 ## Previous self-host context - exhaustive parity provenance-tail verification (inactive)
 
