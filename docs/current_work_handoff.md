@@ -20,7 +20,7 @@ gate count do not increment either percentage by themselves.
   provisioning/static pins, bound exhaustive-gate execution cost, or repair
   LLVM artifact materialization cost without changing emitted semantics. The
   current executable resource checkpoint is commit
-  `b1a571509248de3e0d8207f3c13c2f568b716b9f`; this handoff refresh is its
+  `eca0a68549b4a0f60174b4606d2a3ae3949ea07c`; this handoff refresh is its
   documentation-only successor. After publication, the only remaining
   worktree path is the unrelated untracked `pgy-80135c2c/`; do not stage,
   discard, or rewrite it.
@@ -157,11 +157,40 @@ gate count do not increment either percentage by themselves.
   line cap, removed-path ratchets, and `git diff --check` are green. Windows
   MSYS cannot report useful recursive RSS for the Windows compiler child, so
   the clean Ubuntu observer remains the exact memory falsifier.
-- Next executable rung: publish `b1a57150` plus this handoff and inspect the
+- Ninth publication run `32536152587` at `7684fa0d` proved that the outer
+  program builder was necessary but not sufficient. At 135 seconds the LLVM
+  subtree was only 2,029,056 KiB, down from the predecessor's 8,157,532 KiB,
+  but at 150 seconds it jumped to 15,390,080 KiB; `MemAvailable` fell to
+  182,972 KiB and swap to 917,196 KiB before shutdown. At observation the run
+  had 26 green jobs, parity as its one failure, Windows still active, and
+  `build-linux` cancelled by the runner loss.
+- Direct process observation proved the late spike still belonged to
+  `pgy-self-driver`, not clang. Bounded stage instrumentation then isolated
+  `DirectMirScalarProgramLlvmStringGlobals`: the process entered that owner at
+  2,005,300 KiB and returned at 30,139,972 KiB, while each following support
+  block changed RSS by only a few MiB. The owner serialized 9,896 admitted
+  string literal rows totaling 848,978 bytes by repeatedly concatenating the
+  entire accumulated prefix, retaining about 28 GiB of intermediate copies.
+- Commit `eca0a685` moves only that admitted string-global serialization to a
+  `TextBuilder`, retires non-empty literal payload fragments and the completed
+  globals fragment after their final append, and fails closed against treating
+  static empty strings as owned allocations. The component ratchet requires
+  the builder/finish/lifetime guards and rejects restoration of the old
+  program-global `Concat` path. No cache, shard, timeout, swap increase, or
+  alternate artifact owner was introduced.
+- A final source-built driver projected the fresh 53,566,745-byte MIR directly
+  to an 11,642,817-byte LLVM artifact with exit 0. Peak working set was
+  5,117.7 MiB, versus 33,033.7 MiB before this owner fix. The complete focused
+  C/LLVM assignment parity then passed its positive output and all missing-fact
+  negatives, including empty string literal coverage. The component structural
+  inventory, 350-line owner cap, removed-path ratchets, and diff checks are
+  green. Temporary MIR/LLVM/diagnostic drivers are ignored measurement
+  artifacts and do not count as substitution progress.
+- Next executable rung: publish `eca0a685` plus this handoff and inspect the
   newest clean GitHub Actions run. The falsifier is the full job set, with
   exhaustive parity completing the dev-profile assignment C/LLVM projection
   first and then its unchanged cumulative tail. The Linux heartbeat must stay
-  bounded through the former 135-second 8.16 GiB spike and the job must finish;
+  bounded through the former 150-second 15.39 GiB spike and the job must finish;
   a green full matrix closes this CI resource rung. If it is red, resume from
   its first deterministic failure and do not open another general SoT cleanup.
 
