@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical Long identity/literal projects to C long long and LLVM i64.
+# Canonical Long identity/literal projects to C int64_t and LLVM i64.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -55,7 +55,7 @@ for backend in c llvm; do
         }
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        grep -Eq 'static long long pgy_scalar_routine_[0-9]+\(void\)' "$artifact" ||
+        grep -Eq 'static int64_t pgy_scalar_routine_[0-9]+\(void\)' "$artifact" ||
             fail "C omitted the canonical Long signature"
         grep -Fq 'return 268435456LL;' "$artifact" ||
             fail "C omitted the 64-bit Long literal return"

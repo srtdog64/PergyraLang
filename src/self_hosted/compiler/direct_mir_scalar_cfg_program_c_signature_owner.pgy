@@ -11,6 +11,7 @@ import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+import "runtime_value_representation_owner.pgy";
 import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 func DirectMirScalarCfgProgramCType(
     type_name: String, int_c_type: String,
@@ -18,6 +19,9 @@ func DirectMirScalarCfgProgramCType(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> String {
+    let runtime_value: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(type_name);
+    if runtime_value.valid { return runtime_value.c_type; }
     if type_name == "Void" { return "void"; }
     if type_name == CompilerAbiLayoutIntTypeName() && int_c_type != CompilerAbiLayoutIntCValueType() { Die("direct MIR scalar C Int ABI spelling is stale"); }
     if type_name == CompilerAbiLayoutIntTypeName() { return int_c_type; }

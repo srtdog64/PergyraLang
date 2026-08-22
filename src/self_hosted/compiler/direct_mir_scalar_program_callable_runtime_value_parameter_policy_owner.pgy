@@ -1,0 +1,19 @@
+// Allocator-lane runtime values admitted as direct callable parameters.
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+
+func DirectMirScalarProgramCallableRuntimeValueParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    if ordinal < 0 || ordinal >= signature.param_count { return false; }
+    let representation: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(
+            signature.parameters.type_names[ordinal]);
+    return representation.valid && representation.ownership_shape ==
+        CompilerAbiLayoutOwnershipAllocatorLaneValue() &&
+        signature.parameters.carriages[ordinal] == "value" &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] > 0;
+}

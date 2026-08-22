@@ -2,7 +2,7 @@
 
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_generated_runtime_projection_readiness_owner.pgy";
-import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
+import "direct_mir_scalar_program_host_io_runtime_projection_readiness_owner.pgy";
 
 func DirectMirScalarProgramCollectionAbiProjectionReady(
     id: Int, fact: CompilerRuntimeCallAbiFact,
@@ -40,40 +40,5 @@ func DirectMirScalarProgramStringCollectionRuntimeProjectionReady(
             fact.array_string_get_id, projection.array_string_get,
             "array-string.get", CollectionRuntimeCGetFn(2),
             "collection_index_to_value") &&
-        (fact.process_args_id == 0 ||
-         (projection.process_args.ok &&
-          projection.process_args.domain == "host-io" &&
-          projection.process_args.operation == "args" &&
-          projection.process_args.symbol == HostIORuntimeCArgsFn() &&
-          projection.process_args.materialization ==
-            CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
-          projection.process_args.call_shape == "returns_array_string" &&
-          fact.process_args_id ==
-            projection.process_args.runtime_call_abi_id)) &&
-        (fact.dir_walk_id == 0 ||
-         (projection.dir_walk.ok && projection.dir_walk.domain == "host-io" &&
-          projection.dir_walk.operation == "dir-walk" &&
-          projection.dir_walk.symbol == HostIORuntimeCDirWalkFn() &&
-          projection.dir_walk.materialization ==
-            CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
-          projection.dir_walk.call_shape == "string_to_array_string" &&
-          fact.dir_walk_id == projection.dir_walk.runtime_call_abi_id)) &&
-        (fact.file_exists_id == 0 ||
-         (projection.file_exists.ok &&
-          projection.file_exists.domain == "host-io" &&
-          projection.file_exists.operation == "file-exists" &&
-          projection.file_exists.symbol == HostIORuntimeCFileExistsFn() &&
-          projection.file_exists.materialization ==
-            CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
-          projection.file_exists.call_shape == "string_to_bool" &&
-          fact.file_exists_id == projection.file_exists.runtime_call_abi_id)) &&
-        (fact.read_file_id == 0 ||
-         (projection.read_file.ok &&
-          projection.read_file.domain == "host-io" &&
-          projection.read_file.operation == "read-file" &&
-          projection.read_file.symbol == HostIORuntimeCReadFileFn() &&
-          projection.read_file.materialization ==
-            CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
-          projection.read_file.call_shape == "string_to_string" &&
-          fact.read_file_id == projection.read_file.runtime_call_abi_id));
+        DirectMirScalarProgramHostIoRuntimeProjectionReady(projection, fact);
 }

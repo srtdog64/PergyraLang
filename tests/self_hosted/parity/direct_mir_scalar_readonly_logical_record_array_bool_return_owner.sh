@@ -49,7 +49,7 @@ for backend in c llvm; do
         }
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        grep -Eq 'static pgy_ab pgy_scalar_routine_[0-9]+\(const pgy_scalar_logical_record_value_[0-9]+ \*pgy_param_0, long long pgy_param_1, bool pgy_param_2\)' "$artifact" ||
+        grep -Eq 'static pgy_ab pgy_scalar_routine_[0-9]+\(const pgy_scalar_logical_record_value_[0-9]+ \*pgy_param_0, int32_t pgy_param_1, bool pgy_param_2\)' "$artifact" ||
             fail "C omitted the exact return signature"
         grep -Eq 'pgy_ab pgy_local_[0-9]+ = \{0\};' "$artifact" ||
             fail "C omitted ArrayBool return storage"

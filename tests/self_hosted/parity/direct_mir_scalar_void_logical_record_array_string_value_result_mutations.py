@@ -11,7 +11,7 @@ def main():
     routine = next(row for row in document["routines"] if row.get("name") == "StoreState")
     params = routine["params"]
     if kind == "copyout-carriage":
-        params[0]["carriage"] = "readonly-ref"
+        params[0]["carriage"] = "borrowed"
     elif kind == "copyout-type":
         params[0]["type"] = "Array<Int>"
         params[0]["abi_type_name"] = "Array<Int>"
@@ -30,14 +30,14 @@ def main():
         params[1]["type"] = "MissingStateEnv"
         params[1]["abi_type_name"] = "MissingStateEnv"
     elif kind == "record-carriage":
-        params[1]["carriage"] = "readonly-ref"
+        params[1]["carriage"] = "borrowed"
         params[1]["pass"] = "indirect"
     elif kind == "record-abi":
         params[1]["abi_layout_required"] = True
         params[1]["abi_layout_id"] = params[0]["abi_layout_id"]
         params[1]["abi_layout"] = params[0]["abi_layout"]
-    elif kind == "return-type":
-        routine["return"] = "Bool"
+    elif kind == "unknown-return-type":
+        routine["return"] = "MissingReturn"
     elif kind == "parameter-count":
         extra = dict(params[1])
         extra["name"] = "extra"

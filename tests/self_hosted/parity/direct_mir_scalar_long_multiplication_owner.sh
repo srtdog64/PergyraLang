@@ -41,7 +41,7 @@ grep -Fq 'kind == DirectMirScalarProgramExprMultiplyLong()' "$C_EXPR" ||
     fail "C Long multiplication consumer is missing"
 grep -Fq 'kind == DirectMirScalarProgramExprMultiplyLong()' "$LLVM_EXPR" ||
     fail "LLVM Long multiplication consumer is missing"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
     fail "GraphPlan schema did not advance with Long multiplication"
 ! grep -Fq 'pgy_checked_mul_i64_export' "$C_EXPR" ||
     fail "C changed default Long multiplication into checked arithmetic"

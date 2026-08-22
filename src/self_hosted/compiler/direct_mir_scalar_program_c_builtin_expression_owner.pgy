@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_c_option_string_owner.pgy";
 import "direct_mir_scalar_program_c_option_bool_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_c_set_string_expression_owner.pgy";
+import "direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy";
 
 func DirectMirScalarProgramCBuiltinExpression(
     kind: Int, result_type: String, left_type: String,
@@ -14,6 +15,10 @@ func DirectMirScalarProgramCBuiltinExpression(
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> Option<String> {
+    let artifact: Option<String> =
+        DirectMirScalarProgramCCompilerArtifactExpression(
+            kind, left, right, runtime);
+    if IsSome(artifact) { return artifact; }
     let record_option: Option<String> = DirectMirScalarProgramCLogicalRecordOptionExpression(
         logical_record, kind, result_type, left_type, left);
     if IsSome(record_option) { return record_option; }

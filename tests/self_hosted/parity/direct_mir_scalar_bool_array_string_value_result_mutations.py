@@ -21,7 +21,7 @@ def main():
              if row.get("name") == "CaptureFields"), None)
         if routine is None:
             raise SystemExit("fixture has no CaptureFields routine")
-        routine["params"][6]["carriage"] = "value"
+        routine["params"][6]["carriage"] = "borrowed"
     elif kind in ("single-copyout-carriage", "single-copyout-abi-layout",
                   "single-prefix-carriage"):
         routine = next(
@@ -30,7 +30,7 @@ def main():
         if routine is None:
             raise SystemExit("fixture has no ReadStringArray routine")
         if kind == "single-copyout-carriage":
-            routine["params"][5]["carriage"] = "value"
+            routine["params"][5]["carriage"] = "borrowed"
         elif kind == "single-copyout-abi-layout":
             routine["params"][5]["abi_layout_id"] = 0
         else:

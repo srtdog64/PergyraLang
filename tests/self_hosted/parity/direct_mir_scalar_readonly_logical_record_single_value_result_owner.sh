@@ -44,7 +44,7 @@ for backend in c llvm; do
     if [[ "$backend" == c ]]; then
         signature="$(grep -E '^static const char\* pgy_scalar_routine_[0-9]+\(' "$artifact" | grep -F 'pgy_param_4_mutref' | head -n 1)"
         [[ "$(grep -Eo 'const pgy_scalar_logical_record_value_[0-9]+ \*pgy_param_[01]' <<<"$signature" | wc -l)" -eq 2 ]] || fail "C omitted readonly records"
-        [[ "$signature" == *'long long pgy_param_2, long long pgy_param_3'* ]] || fail "C omitted direct scalar inputs"
+        [[ "$signature" == *'int32_t pgy_param_2, int32_t pgy_param_3'* ]] || fail "C omitted direct scalar inputs"
         grep -Eq 'pgy_scalar_logical_record_value_[0-9]+ pgy_param_4 = \*pgy_param_4_mutref;' "$artifact" || fail "C omitted record copy-in"
         grep -Fq '*pgy_param_4_mutref = pgy_param_4;' "$artifact" || fail "C omitted record copyout"
         command=("$CC" -x c -std=c11 "$artifact")

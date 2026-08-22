@@ -63,7 +63,7 @@ for backend in c llvm; do
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$backend.run" || fail "$backend runtime output drifted"
 done
 
-for mutation in copyout-carriage copyout-type copyout-pass copyout-abi copyout-layout record-type record-carriage record-abi string-type string-carriage return-type parameter-count; do
+for mutation in copyout-carriage copyout-type copyout-pass copyout-abi copyout-layout record-type record-carriage record-abi unknown-scalar-type string-carriage unknown-return-type parameter-count; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

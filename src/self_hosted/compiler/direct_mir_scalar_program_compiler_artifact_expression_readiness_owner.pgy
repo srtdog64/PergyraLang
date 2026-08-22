@@ -1,0 +1,28 @@
+// Fail-closed shape for one normalized compiler-artifact write expression.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramCompilerArtifactExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    if facts.node_kinds[node] !=
+            DirectMirScalarProgramExprCompilerArtifactWrite() { return None; }
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    let nary: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+        facts.nary_operands, node);
+    let runtime: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiCompilerArtifactWriteFact();
+    if ArrayLength(nary) != 0 ||
+        !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(runtime) ||
+        facts.node_runtime_call_abi_ids[node] != runtime.runtime_call_abi_id ||
+        facts.node_types[node] != CompilerAbiLayoutBoolTypeName() ||
+        facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" || facts.node_callable_rows[node] != -1 {
+        return Some(false);
+    }
+    return Some(left >= 0 && left < node && right >= 0 && right < node &&
+        facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
+        facts.node_types[right] == CompilerAbiLayoutStringTypeName());
+}

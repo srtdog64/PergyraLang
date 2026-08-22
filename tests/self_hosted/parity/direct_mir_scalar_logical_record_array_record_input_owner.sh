@@ -59,7 +59,7 @@ for backend in c llvm; do
         }
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        grep -Eq 'static void pgy_scalar_routine_[0-9]+\(pgy_GraphRows_array \*pgy_param_0_mutref, long long pgy_param_1, long long pgy_param_2, pgy_scalar_logical_record_value_[0-9]+ pgy_param_3\) \{' "$artifact" ||
+        grep -Eq 'static void pgy_scalar_routine_[0-9]+\(pgy_GraphRows_array \*pgy_param_0_mutref, int32_t pgy_param_1, int32_t pgy_param_2, pgy_scalar_logical_record_value_[0-9]+ pgy_param_3\) \{' "$artifact" ||
             fail "C artifact omitted the exact mixed signature"
         grep -Fq 'pgy_GraphRows_array pgy_param_0 = *pgy_param_0_mutref;' "$artifact" ||
             fail "C artifact omitted record-Array copy-in"
@@ -87,8 +87,8 @@ for backend in c llvm; do
 done
 
 for mutation in record-array-carriage record-array-physical-abi \
-    record-input-carriage record-input-same-declaration int-input-type \
-    return-type; do
+    record-input-carriage record-input-unknown-declaration unknown-input-type \
+    unknown-return-type; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

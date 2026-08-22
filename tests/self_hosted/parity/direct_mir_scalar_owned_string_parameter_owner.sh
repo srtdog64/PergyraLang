@@ -17,7 +17,8 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_owned_string_parameter.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy"
+POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy"
+CALLABLE_POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy"
 ROLE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy"
 LITERAL_OPERAND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy"
 KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
@@ -40,6 +41,11 @@ for term in 'CompilerAbiLayoutStringTypeName()' '== "owner-handle"' \
     '== "none"' '== "direct"' '!signature.parameters.abi_required[ordinal]'; do
     grep -Fq "$term" "$POLICY" || fail "owned String policy omits: $term"
 done
+grep -Fq 'import "direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy";' \
+    "$CALLABLE_POLICY" &&
+    grep -Fq 'DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal)' \
+        "$CALLABLE_POLICY" ||
+    fail "callable parameter admission bypasses the owned String policy"
 grep -Fq 'DirectMirScalarProgramOwnedStringParameterReady(' "$ROLE" ||
     fail "parameter-role plan bypasses the owned String policy"
 grep -Fq 'DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal)' \

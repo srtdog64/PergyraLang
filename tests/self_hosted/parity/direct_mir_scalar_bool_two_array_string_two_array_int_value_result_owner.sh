@@ -81,7 +81,7 @@ for backend in c llvm; do
                 fail "LLVM omitted early/final copyout $parameter"
         done
         for parameter in 2 3; do
-            [[ "$(grep -Fc "store %pgy.array.int %pgy.param.${parameter}, ptr %pgy.param.${parameter}.mutref" "$artifact")" -ge 2 ]] ||
+            [[ "$(grep -Fc "%pgy.param.${parameter}.copyout." "$artifact")" -ge 4 ]] ||
                 fail "LLVM omitted early/final ArrayInt copyout $parameter"
         done
         grep -Fq '%pgy.param.4.copyout.' "$artifact" || fail "LLVM omitted interleaved ArrayInt copyout 4"
@@ -95,11 +95,11 @@ for backend in c llvm; do
 done
 
 for mutation in interleaved-array-string-carriage interleaved-array-int-abi \
-    interleaved-scalar-carriage interleaved-family-count \
+    interleaved-scalar-carriage interleaved-unknown-family \
     array-string-type array-string-carriage array-string-abi \
     array-string-layout-mismatch array-int-type array-int-carriage \
     array-int-abi array-int-layout-mismatch cross-family-layout \
-    string-carriage return-type; do
+    string-carriage unknown-return-type; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

@@ -1,0 +1,40 @@
+// LLVM addressable storage for admitted by-value runtime-value parameters.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+
+func DirectMirScalarCfgProgramLlvmRuntimeValueParameterStorage(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) {
+        Die("direct MIR LLVM runtime-value parameter routine is invalid");
+    }
+    let output: String = "";
+    let ordinal: Int = 0;
+    let start: Int = plan.routines.parameter_starts[routine];
+    while ordinal < plan.routines.parameter_counts[routine] {
+        let row: Int = start + ordinal;
+        let value: CompilerRuntimeValueRepresentation =
+            CompilerRuntimeValueRepresentationFor(
+                plan.routines.parameter_types[row]);
+        if value.valid {
+            if plan.routines.parameter_carriages[row] != "value" ||
+                value.ownership_shape !=
+                    CompilerAbiLayoutOwnershipAllocatorLaneValue() {
+                Die("direct MIR LLVM runtime-value parameter carriage is invalid");
+            }
+            let address: String = Concat("%pgy.param.", Concat(
+                ToString(ordinal), ".runtime"));
+            output = Concat(output, Concat("  ", address));
+            output = Concat(output, Concat(" = alloca ", value.llvm_type));
+            output = Concat(output, Concat(", align ", ToString(value.align)));
+            output = Concat(output, "\n  store ");
+            output = Concat(output, Concat(value.llvm_type, " %pgy.param."));
+            output = Concat(output, ToString(ordinal));
+            output = Concat(output, Concat(", ptr ", address));
+            output = Concat(output, Concat(", align ", ToString(value.align)));
+            output = Concat(output, "\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}

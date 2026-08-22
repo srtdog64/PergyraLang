@@ -19,14 +19,14 @@ MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_array_int_value_result_indexed_assignment_mutations.py"
 FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_fact_owner.pgy"
 LOCAL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy"
-ROUTINE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy"
+DEFINITION_ROUTE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy"
 READINESS_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-for owner in "$FACT_OWNER" "$LOCAL_OWNER" "$ROUTINE_OWNER" \
+for owner in "$FACT_OWNER" "$LOCAL_OWNER" "$DEFINITION_ROUTE_OWNER" \
     "$READINESS_OWNER" "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
@@ -38,8 +38,8 @@ grep -Fq '!indexed_assignments.valid' "$LOCAL_OWNER" ||
     fail "LocalRef admission omits indexed-assignment fact readiness"
 ! grep -Fq '!DirectMirScalarProgramIndexedAssignmentOwnsDefinition(' \
     "$LOCAL_OWNER" || fail "formal SSA versions are still excluded from the parameter local"
-grep -Fq 'DirectMirScalarCfgOpArrayIntValueResultSet()' "$ROUTINE_OWNER" ||
-    fail "routine admission does not reuse stable operation 37"
+grep -Fq 'DirectMirScalarCfgOpArrayIntValueResultSet()' "$DEFINITION_ROUTE_OWNER" ||
+    fail "definition route does not reuse stable operation 37"
 grep -Fq 'DirectMirScalarProgramArrayMutationParameterTargetKind(kind)' \
     "$READINESS_OWNER" || fail "GraphPlan reinterprets a parameter as a local"
 

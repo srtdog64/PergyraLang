@@ -57,7 +57,7 @@ grep -Fq 'kind == DirectMirScalarProgramExprLogicalRecordMember()' "$BOOL_OWNER"
     fail "logical Bool member is not admitted by the non-trapping proof"
 grep -Fq 'logical_record: DirectMirScalarProgramLogicalRecordFact' "$ROUTE_OWNER" ||
     fail "route does not carry the logical record fact"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78' "$PLAN_OWNER" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN_OWNER" ||
     fail "GraphPlan schema does not seal logical record identity"
 for owner in "$C_OWNER" "$LLVM_OWNER"; do
     grep -Fq 'DirectMirScalarProgramLogicalRecordTargetFromFact(' "$owner" ||

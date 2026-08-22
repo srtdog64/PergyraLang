@@ -64,9 +64,9 @@ for backend in c llvm; do
         }
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        grep -Eq 'static pgy_ai pgy_scalar_routine_[0-9]+\(long long pgy_param_0\)' "$artifact" ||
+        grep -Eq 'static pgy_ai pgy_scalar_routine_[0-9]+\(int32_t pgy_param_0\)' "$artifact" ||
             fail "C signature omitted the Array<Int> return carrier"
-        grep -Eq 'static long long pgy_scalar_routine_[0-9]+\(pgy_ai pgy_param_0\)' "$artifact" ||
+        grep -Eq 'static int32_t pgy_scalar_routine_[0-9]+\(pgy_ai pgy_param_0\)' "$artifact" ||
             fail "C consumer omitted the by-value returned carrier"
         ! grep -Eq 'static pgy_ai pgy_scalar_routine_[0-9]+\([^)]*mutref' "$artifact" ||
             fail "C Array<Int> return became a mutref"

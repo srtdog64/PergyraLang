@@ -31,6 +31,7 @@ struct DirectMirScalarProgramRuntimeAbiFact {
     let dir_walk_id: Int;
     let file_exists_id: Int;
     let read_file_id: Int;
+    let compiler_artifact_write_id: Int;
     let case_math: DirectMirScalarProgramCaseMathRuntimeIds;
 }
 
@@ -40,7 +41,7 @@ func DirectMirScalarProgramRuntimeAbiFactEmpty(
         false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         DirectMirScalarProgramStringIndexRuntimeFactEmpty(),
         DirectMirScalarProgramStringTrimRuntimeFactEmpty(), 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0,
+        0, 0, 0, 0, 0,
         DirectMirScalarProgramCaseMathRuntimeIdsEmpty()
     );
 }
@@ -68,6 +69,7 @@ func DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
         fact.dir_walk_id == 0 &&
         fact.file_exists_id == 0 &&
         fact.read_file_id == 0 &&
+        fact.compiler_artifact_write_id == 0 &&
         DirectMirScalarProgramCaseMathRuntimeIdsCanonicalEmpty(
             fact.case_math);
 }

@@ -10,6 +10,7 @@ import "direct_mir_scalar_program_option_string_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_option_bool_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy";
 import "runtime_value_call_abi_owner.pgy";
 import "../lib/intent_observability_abi_projection_owner.pgy";
 struct DirectMirScalarProgramBuiltinSignatureFact {
@@ -34,7 +35,7 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
     if observability.valid { return [observability.return_type, observability.parameter_types, ToString(DirectMirScalarProgramExprIntentObservabilityCall())]; }
     if runtime_value.valid {
         return [runtime_value.return_type,
-            CompilerRuntimeValueCallParameterSchema(runtime_value),
+            CompilerRuntimeValueCallSemanticParameterSchema(runtime_value),
             ToString(DirectMirScalarProgramExprRuntimeValueCall())];
     }
     if name == "ToString" {
@@ -69,6 +70,9 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
     let option_int: Array<String> =
         DirectMirScalarProgramOptionIntBuiltinSignatureExpected(name);
     if ArrayLength(option_int) != 0 { return option_int; }
+    let artifact: Array<String> =
+        DirectMirScalarProgramCompilerArtifactBuiltinSignatureExpected(name);
+    if ArrayLength(artifact) != 0 { return artifact; }
     return DirectMirScalarProgramCollectionBuiltinSignatureExpected(name);
 }
 func DirectMirScalarProgramBuiltinSignatureFactFromName(name: String) -> DirectMirScalarProgramBuiltinSignatureFact {
@@ -82,6 +86,7 @@ func DirectMirScalarProgramBuiltinSignatureFactFromName(name: String) -> DirectM
     if ArrayLength(expected) != 3 { return invalid; }
     let runtime_call_abi_id: Int = -1;
     if observability.valid { runtime_call_abi_id = observability.runtime_call_abi_id; if runtime_call_abi_id <= 0 { return invalid; } }
+    if name == "CompilerArtifactWrite" { runtime_call_abi_id = DirectMirScalarProgramCompilerArtifactRuntimeCallAbiId(name); if runtime_call_abi_id <= 0 { return invalid; } }
     let names: Array<String> = []; let returns: Array<String> = [];
     let params: Array<String> = [];
     if !SeedSemanticBuiltinSignatures(names, returns, params) { return invalid; }

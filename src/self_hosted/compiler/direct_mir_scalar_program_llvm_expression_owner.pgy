@@ -12,6 +12,7 @@ import "direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expres
 import "direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy";
+import "direct_mir_scalar_program_llvm_int_wrap_expression_owner.pgy";
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
     let instructions: String;
@@ -281,6 +282,15 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     node_instructions = short_circuit.instructions;
                     value = result;
                 } else {
+                let int_wrap: DirectMirScalarProgramLlvmStringExpression =
+                    DirectMirScalarProgramLlvmIntWrapExpressionAt(
+                        kind, result, left, right);
+                if int_wrap.matched {
+                    if !int_wrap.valid { return DirectMirScalarProgramLlvmExpression(
+                        false, "", "", ""); }
+                    node_instructions = int_wrap.instructions;
+                    value = int_wrap.value;
+                } else {
                 value = result;
                 node_instructions = Concat(node_instructions, Concat("  ", result));
                 if kind == DirectMirScalarProgramExprEqualInt() || kind == DirectMirScalarProgramExprEqualLong() || kind == DirectMirScalarProgramExprEqualPayloadFreeEnum() { node_instructions = Concat(node_instructions, " = icmp eq i64 ");
@@ -298,19 +308,14 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     node_instructions = Concat(node_instructions, " = or i1 ");
                 } else if kind == DirectMirScalarProgramExprLessInt() || kind == DirectMirScalarProgramExprLessLong() {
                     node_instructions = Concat(node_instructions, " = icmp slt i64 ");
-                } else if kind == DirectMirScalarProgramExprAddInt() ||
-                        kind == DirectMirScalarProgramExprAddLong() {
+                } else if kind == DirectMirScalarProgramExprAddLong() {
                     node_instructions = Concat(node_instructions, " = add i64 ");
-                } else if kind == DirectMirScalarProgramExprSubtractInt() ||
-                        kind == DirectMirScalarProgramExprSubtractLong() {
+                } else if kind == DirectMirScalarProgramExprSubtractLong() {
                     node_instructions = Concat(node_instructions, " = sub i64 ");
-                } else if kind == DirectMirScalarProgramExprMultiplyInt() ||
-                        kind == DirectMirScalarProgramExprMultiplyLong() {
+                } else if kind == DirectMirScalarProgramExprMultiplyLong() {
                     node_instructions = Concat(node_instructions, " = mul i64 ");
                 } else if kind == DirectMirScalarProgramExprDivideInt() {
                     node_instructions = Concat(node_instructions, " = sdiv i64 ");
-                } else if kind == DirectMirScalarProgramExprNegateInt() {
-                    node_instructions = Concat(node_instructions, " = sub i64 0, ");
                 } else {
                     return DirectMirScalarProgramLlvmExpression(
                         false, "", "", "");
@@ -318,13 +323,12 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 node_instructions = Concat(node_instructions, left);
                 if kind == DirectMirScalarProgramExprLogicalNot() {
                     node_instructions = Concat(node_instructions, ", true");
-                } else if kind == DirectMirScalarProgramExprNegateInt() {
-                    // The leading zero and comma are already part of the opcode.
                 } else {
                     node_instructions = Concat(
                         node_instructions, Concat(", ", right));
                 }
                 node_instructions = Concat(node_instructions, "\n");
+                }
                 }
             }
             }

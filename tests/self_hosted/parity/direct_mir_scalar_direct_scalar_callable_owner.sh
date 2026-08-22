@@ -78,8 +78,8 @@ for backend in c llvm; do
     if [[ "$backend" == c ]]; then
         grep -Fq 'static void pgy_print(const char *s)' "$artifact" ||
             fail "C Print helper was not materialized"
-        grep -Eq '^static const char\* pgy_scalar_routine_[0-9]+\(const char\* pgy_param_0, long long pgy_param_1\)' "$artifact" || fail "C direct scalar signature drifted"
-        grep -Eq '^static long long pgy_scalar_routine_[0-9]+\(const char\* pgy_param_0, long long pgy_param_1, long long pgy_param_2\)' "$artifact" || fail "C direct scalar Int signature drifted"
+        grep -Eq '^static const char\* pgy_scalar_routine_[0-9]+\(const char\* pgy_param_0, int32_t pgy_param_1\)' "$artifact" || fail "C direct scalar signature drifted"
+        grep -Eq '^static int32_t pgy_scalar_routine_[0-9]+\(const char\* pgy_param_0, int32_t pgy_param_1, int32_t pgy_param_2\)' "$artifact" || fail "C direct scalar Int signature drifted"
         command=("$CC" -x c -std=c11 "$artifact")
         if pgy_selfhost_emitted_c_uses_runtime_headers "$artifact"; then command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread); fi
         command+=(-lm -o "$bin"); "${command[@]}" >/dev/null 2>"$WORK_DIR/c.compile.err" || fail "C artifact did not compile"

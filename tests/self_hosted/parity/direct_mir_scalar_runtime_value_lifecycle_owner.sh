@@ -22,27 +22,32 @@ REPRESENTATION="$ROOT_DIR/src/self_hosted/compiler/runtime_value_representation_
 CALL_ABI="$ROOT_DIR/src/self_hosted/compiler/runtime_value_call_abi_owner.pgy"
 EXPRESSION_READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_runtime_value_expression_readiness_owner.pgy"
 BUILTIN_CALL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_call_owner.pgy"
+BUILTIN_IDENTITY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy"
 EXPRESSION_ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy"
 LIFECYCLE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_runtime_value_lifecycle_owner.pgy"
 EXTENSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy"
 C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_runtime_value_expression_owner.pgy"
 LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_runtime_value_expression_owner.pgy"
+LLVM_PARAMETER_STORAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_runtime_value_parameter_storage_owner.pgy"
 BUILTIN_MATERIALIZATION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_builtin_materialization_owner.pgy"
 PROGRAM_C_EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
 PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 for path in "$REPRESENTATION" "$CALL_ABI" "$EXPRESSION_READY" \
-        "$BUILTIN_CALL" "$EXPRESSION_ADMISSION" "$LIFECYCLE" \
+        "$BUILTIN_CALL" "$BUILTIN_IDENTITY" "$EXPRESSION_ADMISSION" "$LIFECYCLE" \
         "$EXTENSION" "$C_OWNER" "$LLVM_OWNER" "$BUILTIN_MATERIALIZATION" \
-        "$PROGRAM_C_EMISSION" "$PLAN" "$MUTATIONS"; do
+        "$PROGRAM_C_EMISSION" "$LLVM_PARAMETER_STORAGE" "$PLAN" "$MUTATIONS"; do
     [[ -f "$path" ]] || fail "missing owner: ${path#"$ROOT_DIR/"}"
 done
 grep -Fq 'runtime_header_owns_print' "$BUILTIN_MATERIALIZATION" ||
     fail "C Print materialization ignores the runtime-header symbol owner"
-grep -Fq 'CompilerRuntimeValueLocalsPresent(plan.local_types)' \
+grep -Fq 'CompilerRuntimeValueTypesPresent(plan.local_types, plan.routines.parameter_types)' \
         "$PROGRAM_C_EMISSION" ||
     fail "C program emission omits the runtime-value header receipt"
+grep -Fq 'CompilerAbiLayoutOwnershipAllocatorLaneValue()' \
+        "$LLVM_PARAMETER_STORAGE" ||
+    fail "LLVM runtime-value parameter storage ignores the admitted ownership"
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
@@ -67,9 +72,11 @@ grep -Fq 'ArrayLength(fact.parameter_types) == 0 { return ""; }' "$CALL_ABI" ||
 grep -Fq 'The terminal CallArgument node owns admission for that call.' \
         "$BUILTIN_CALL" ||
     fail "nonzero runtime call marker is no longer deferred to its argument chain"
-grep -Fq 'DirectMirScalarProgramExprRuntimeValueCall()' "$BUILTIN_CALL" &&
+grep -Fq 'DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(' "$BUILTIN_CALL" ||
+    fail "builtin call admission bypasses the runtime-call identity owner"
+grep -Fq 'DirectMirScalarProgramExprRuntimeValueCall()' "$BUILTIN_IDENTITY" &&
     grep -Fq 'signature.runtime_call_abi_id > 0 && carried == 0' \
-        "$BUILTIN_CALL" ||
+        "$BUILTIN_IDENTITY" ||
     fail "runtime-value graph identity no longer defers to the instruction row"
 grep -Fq 'builtin.call_node < 0 || builtin.call_node >= total_count' \
         "$EXPRESSION_ADMISSION" ||
@@ -90,7 +97,7 @@ for path in "$C_OWNER" "$LLVM_OWNER"; do
     grep -Fq 'CompilerRuntimeValueCallAbiFactForId(' "$path" ||
         fail "$(basename "$path") re-inferred a runtime call"
 done
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
     fail "GraphPlan schema omitted runtime-call identity carriage"
 
 mkdir -p "$WORK_DIR"
@@ -170,7 +177,8 @@ for backend in c llvm; do
         fail "$backend runtime output drifted"
 done
 
-for mutation in wrong-layout wrong-graph-runtime-id wrong-runtime-row foreign-local \
+for mutation in wrong-layout wrong-graph-runtime-id wrong-runtime-row \
+        wrong-runtime-parameter-carriage foreign-local \
         missing-terminal-destroy use-after-terminal; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"

@@ -53,7 +53,7 @@ mkdir -p "$WORK_DIR"
     "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "MIR production failed"
 mir_sha="$(sha256sum "$MIR" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "36B9ADE9FF06B2E41ABCBDC39BE22A56D831FE60E5A7E7C45DF04B13D45B431E" ]] ||
+[[ "$mir_sha" == "39D4FBF204376A0B73FF5038088C04871AA7EE45E14998C46411063AB4E710E3" ]] ||
     fail "source MIR identity changed: $mir_sha"
 grep -Fq '"expr0":"[text]"' "$MIR" || fail "producer omitted [text]"
 grep -Fq '"binding_kind":"formal_parameter","binding_ordinal":0' "$MIR" ||

@@ -116,7 +116,7 @@ for backend in c llvm; do
         for parameter in 0 2 4 5 6; do
             grep -Fq "%pgy.param.${parameter} = load %pgy.array.int" "$artifact" ||
                 fail "LLVM omitted Array<Int> copy-in $parameter"
-            grep -Fq "store %pgy.array.int %pgy.param.${parameter}, ptr %pgy.param.${parameter}.mutref" "$artifact" ||
+            grep -Eq "store %pgy\\.array\\.int %pgy\\.param\\.${parameter}\\.copyout\\.[0-9]+, ptr %pgy\\.param\\.${parameter}\\.mutref" "$artifact" ||
                 fail "LLVM omitted Array<Int> copy-out $parameter"
         done
         grep -Fq '%pgy.param.1 = load %pgy.array.bool' "$artifact" ||
@@ -157,7 +157,7 @@ done
 
 for mutation in single-array-bool-carriage single-array-bool-abi \
     single-prefix-carriage array-bool-carriage array-bool-abi \
-    array-bool-type bool-carriage return-type \
+    array-bool-type bool-carriage unknown-return-type \
     array-bool-push-receiver-missing array-bool-push-receiver-foreign \
     array-bool-push-value-type array-bool-set-receiver-missing \
     array-bool-set-receiver-foreign array-bool-set-value-type; do

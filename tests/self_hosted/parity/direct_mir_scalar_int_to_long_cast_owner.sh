@@ -54,7 +54,7 @@ grep -Fq 'DirectMirScalarProgramExprCastLongToInt()' "$C_EXPR" ||
     fail "C Long-to-Int cast consumer is missing"
 grep -Fq 'DirectMirScalarProgramExprCastLongToInt()' "$LLVM_EXPR" ||
     fail "LLVM Long-to-Int cast consumer is missing"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
     fail "GraphPlan schema did not advance with exact Int/Long casts"
 
 mkdir -p "$WORK_DIR"
@@ -82,7 +82,8 @@ for backend in c llvm; do
         2>"$WORK_DIR/$backend.project.err" || fail "$backend projection failed"
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        [[ "$(grep -Fc 'return ((long long)(pgy_param_0));' "$artifact")" -eq 2 ]] ||
+        [[ "$(grep -Fc 'return ((int64_t)(pgy_param_0));' "$artifact")" -eq 1 ]] &&
+            [[ "$(grep -Fc 'return ((int32_t)(pgy_param_0));' "$artifact")" -eq 1 ]] ||
             fail "C omitted one of the exact Int/Long casts"
     else
         grep -Fq 'ret i64 %pgy.param.0' "$artifact" ||

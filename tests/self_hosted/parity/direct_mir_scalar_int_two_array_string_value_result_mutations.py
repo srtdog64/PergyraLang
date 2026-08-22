@@ -16,7 +16,7 @@ def main():
     if kind == "first-copyout-type":
         params[0]["type"] = "Unknown"
     elif kind == "second-copyout-carriage":
-        params[1]["carriage"] = "readonly-ref"
+        params[1]["carriage"] = "borrowed"
     elif kind == "copyout-pass":
         params[0]["pass"] = "indirect"
     elif kind == "copyout-abi":
@@ -30,7 +30,7 @@ def main():
     elif kind == "return-type":
         routine["return"] = "Unknown"
     elif kind == "production-copyout-carriage":
-        params[7]["carriage"] = "readonly-ref"
+        params[7]["carriage"] = "borrowed"
     elif kind == "production-copyout-abi":
         params[7]["abi_layout_required"] = False
         params[7]["abi_layout_id"] = 0

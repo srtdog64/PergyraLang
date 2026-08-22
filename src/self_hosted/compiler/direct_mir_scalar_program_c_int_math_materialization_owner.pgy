@@ -18,7 +18,7 @@ func DirectMirScalarProgramCIntMathMaterialization(
         output = Concat(output, Concat(prefix, projection.abs.symbol));
         output = Concat(output, Concat("(", type_name));
         output = Concat(output,
-            " value) { return value < 0 ? -value : value; }\n");
+            " value) { return value == (-2147483647 - 1) ? value : (value < 0 ? -value : value); }\n");
     }
     if ids.min_id != 0 {
         output = Concat(output, Concat(prefix, projection.min.symbol));

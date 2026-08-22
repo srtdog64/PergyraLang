@@ -36,7 +36,7 @@ SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_w
 CONTRACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_index_runtime_owner.pgy"
 C_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"
 LLVM_RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_index_materialization_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79'
 require_text "$SIGNATURE" 'StringIndexOf'
 require_text "$SIGNATURE" 'CharAtN'
 require_text "$SIGNATURE" 'CharCode'
@@ -58,7 +58,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "87DE913918018BCDC993514F96C4D87F85930BA4DDA1F6D63F61946288818C10" ]] ||
+[[ "$mir_sha" == "542FC46B927197A7BDA8BF7A67B2BD4A6F6AC59075DEDE75956FB6EE27AAECAE" ]] ||
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_indexof_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"

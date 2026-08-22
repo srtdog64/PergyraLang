@@ -65,7 +65,7 @@ for backend in c llvm; do
         }
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        grep -Eq 'static pgy_scalar_logical_record_value_[0-9]+ pgy_scalar_routine_[0-9]+\(pgy_ai \*pgy_param_0_mutref, pgy_as \*pgy_param_1_mutref, pgy_ai \*pgy_param_2_mutref, pgy_ai \*pgy_param_3_mutref, pgy_ai \*pgy_param_4_mutref, pgy_as \*pgy_param_5_mutref, long long pgy_param_6, const char\* pgy_param_7, long long pgy_param_8, long long pgy_param_9\)' "$artifact" ||
+        grep -Eq 'static pgy_scalar_logical_record_value_[0-9]+ pgy_scalar_routine_[0-9]+\(pgy_ai \*pgy_param_0_mutref, pgy_as \*pgy_param_1_mutref, pgy_ai \*pgy_param_2_mutref, pgy_ai \*pgy_param_3_mutref, pgy_ai \*pgy_param_4_mutref, pgy_as \*pgy_param_5_mutref, int32_t pgy_param_6, const char\* pgy_param_7, int32_t pgy_param_8, int32_t pgy_param_9\)' "$artifact" ||
             fail "C artifact omitted the exact mixed signature"
         grep -Eq 'static pgy_scalar_logical_record_value_[0-9]+ pgy_scalar_routine_[0-9]+\(pgy_ai \*pgy_param_0_mutref, pgy_as \*pgy_param_1_mutref, pgy_ai \*pgy_param_2_mutref, pgy_ai \*pgy_param_3_mutref, pgy_ai \*pgy_param_4_mutref, pgy_as \*pgy_param_5_mutref, const char\* pgy_param_6\)' "$artifact" ||
             fail "C artifact omitted the compact-bridge signature"
@@ -96,7 +96,8 @@ for backend in c llvm; do
         for parameter in 0 2 3 4; do
             [[ "$(grep -Fc "%pgy.param.${parameter} = load %pgy.array.int" "$artifact")" -ge 2 ]] ||
                 fail "LLVM omitted Array<Int> copy-in $parameter"
-            [[ "$(grep -Fc "store %pgy.array.int %pgy.param.${parameter}, ptr %pgy.param.${parameter}.mutref" "$artifact")" -ge 2 ]] ||
+            [[ "$(grep -Fc "%pgy.param.${parameter}.copyout." "$artifact")" -ge 4 ]] &&
+                [[ "$(grep -Fc "store %pgy.array.int %pgy.param.${parameter}.copyout." "$artifact")" -ge 2 ]] ||
                 fail "LLVM omitted Array<Int> copy-out $parameter"
         done
         for parameter in 1 5; do
@@ -114,9 +115,10 @@ for backend in c llvm; do
         fail "$backend runtime output drifted"
 done
 
-for mutation in array-string-carriage array-string-abi array-int-count \
-    scalar-order scalar-carriage return-type compact-array-string-carriage \
-    compact-scalar-type compact-parameter-count; do
+for mutation in array-string-carriage array-string-abi array-int-unknown-type \
+    scalar-unknown-type scalar-carriage unknown-return-type \
+    compact-array-string-carriage compact-scalar-unknown-type \
+    compact-extra-unknown-type; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

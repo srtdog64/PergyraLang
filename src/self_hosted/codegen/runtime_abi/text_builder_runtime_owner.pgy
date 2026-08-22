@@ -22,6 +22,9 @@ func TextBuilderRuntimeLlvmAllocatorResultFn() -> String {
 func TextBuilderRuntimeLlvmAllocatorDestroyFn() -> String {
     return "pgy_allocator_destroy_export";
 }
+func TextBuilderRuntimeLlvmAllocatorPoolFn() -> String {
+    return "pgy_allocator_pool_init";
+}
 func TextBuilderRuntimeLlvmNewFn() -> String {
     return "pgy_text_builder_new_export";
 }

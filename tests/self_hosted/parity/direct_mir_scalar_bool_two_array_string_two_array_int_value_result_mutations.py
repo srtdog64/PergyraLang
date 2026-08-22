@@ -14,15 +14,15 @@ def main():
                    if row.get("name") == name)
     params = routine["params"]
     if kind == "interleaved-array-string-carriage":
-        params[3]["carriage"] = "value"
+        params[3]["carriage"] = "borrowed"
     elif kind == "interleaved-array-int-abi":
         params[4]["abi_layout_required"] = False
         params[4]["abi_layout_id"] = 0
         params[4]["abi_layout"] = None
     elif kind == "interleaved-scalar-carriage":
         params[0]["carriage"] = "readonly-ref"
-    elif kind == "interleaved-family-count":
-        params[6]["type"] = params[6]["abi_type_name"] = "String"
+    elif kind == "interleaved-unknown-family":
+        params[6]["type"] = params[6]["abi_type_name"] = "MissingScalar"
         params[6]["carriage"] = "value"
         params[6]["abi_layout_required"] = False
         params[6]["abi_layout_id"] = 0
@@ -30,7 +30,7 @@ def main():
     elif kind == "array-string-type":
         params[0]["type"] = "Array<Int>"
     elif kind == "array-string-carriage":
-        params[1]["carriage"] = "value"
+        params[1]["carriage"] = "borrowed"
     elif kind == "array-string-abi":
         params[0]["abi_layout_required"] = False
         params[0]["abi_layout_id"] = 0
@@ -40,7 +40,7 @@ def main():
     elif kind == "array-int-type":
         params[2]["type"] = "Array<String>"
     elif kind == "array-int-carriage":
-        params[3]["carriage"] = "value"
+        params[3]["carriage"] = "borrowed"
     elif kind == "array-int-abi":
         params[2]["abi_layout_required"] = False
         params[2]["abi_layout_id"] = 0
@@ -52,8 +52,8 @@ def main():
         params[3]["abi_layout_id"] = params[0]["abi_layout_id"]
     elif kind == "string-carriage":
         params[7]["carriage"] = "readonly-ref"
-    elif kind == "return-type":
-        routine["return"] = "Int"
+    elif kind == "unknown-return-type":
+        routine["return"] = "MissingReturn"
     else:
         raise SystemExit(f"unknown mutation: {kind}")
     with open(output, "w", encoding="utf-8", newline="\n") as stream:

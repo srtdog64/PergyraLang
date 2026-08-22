@@ -33,7 +33,8 @@ func DirectMirScalarProgramRuntimeValueCallNodeReady(
         return facts.node_types[argument] == call.parameter_types[0] &&
             (!CompilerRuntimeValueTypeReady(
                 call.parameter_types[0]) ||
-             facts.node_kinds[argument] == DirectMirScalarProgramExprLocal());
+             facts.node_kinds[argument] == DirectMirScalarProgramExprLocal() ||
+             facts.node_kinds[argument] == DirectMirScalarProgramExprParameter());
     }
     if argument_count == 2 && facts.node_lefts[node] >= 0 &&
             facts.node_rights[node] >= 0 {
@@ -43,10 +44,12 @@ func DirectMirScalarProgramRuntimeValueCallNodeReady(
             facts.node_types[right] == call.parameter_types[1] &&
             (!CompilerRuntimeValueTypeReady(
                 call.parameter_types[0]) ||
-             facts.node_kinds[left] == DirectMirScalarProgramExprLocal()) &&
+             facts.node_kinds[left] == DirectMirScalarProgramExprLocal() ||
+             facts.node_kinds[left] == DirectMirScalarProgramExprParameter()) &&
             (!CompilerRuntimeValueTypeReady(
                 call.parameter_types[1]) ||
-             facts.node_kinds[right] == DirectMirScalarProgramExprLocal());
+             facts.node_kinds[right] == DirectMirScalarProgramExprLocal() ||
+             facts.node_kinds[right] == DirectMirScalarProgramExprParameter());
     }
     return false;
 }

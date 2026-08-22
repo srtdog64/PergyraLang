@@ -23,16 +23,16 @@ def main():
         record_array["abi_layout_required"] = True
         record_array["abi_layout_id"] = 1
     elif kind == "record-input-carriage":
-        record_value["carriage"] = "readonly-ref"
+        record_value["carriage"] = "borrowed"
         record_value["pass"] = "indirect"
-    elif kind == "record-input-distinct-declaration":
-        record_value["type"] = "OtherRow"
-        record_value["abi_type_name"] = "OtherRow"
+    elif kind == "record-input-unknown-declaration":
+        record_value["type"] = "MissingRecord"
+        record_value["abi_type_name"] = "MissingRecord"
     elif kind == "record-array-missing-element":
         record_array["type"] = "Array<MissingGraphRow>"
         record_array["abi_type_name"] = "Array<MissingGraphRow>"
-    elif kind == "return-type":
-        routine["return"] = "Int"
+    elif kind == "unknown-return-type":
+        routine["return"] = "MissingReturn"
     else:
         raise SystemExit(f"unknown mutation: {kind}")
     with open(output, "w", encoding="utf-8", newline="\n") as stream:

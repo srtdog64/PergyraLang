@@ -1,19 +1,7 @@
 // Canonical builtin-signature join for calls nested in scalar expression DAGs.
 import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
 import "direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
-func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
-    ref signature: DirectMirScalarProgramBuiltinSignatureFact, carried: Int
-) -> Bool {
-    // Runtime-value identity belongs to the instruction row; its graph carries
-    // zero until admission seals the validated row ID into expression facts.
-    if signature.expression_kind == DirectMirScalarProgramExprRuntimeValueCall() {
-        return signature.runtime_call_abi_id > 0 && carried == 0;
-    }
-    if signature.runtime_call_abi_id > 0 {
-        return carried == signature.runtime_call_abi_id;
-    }
-    return signature.valid && carried == 0;
-}
+import "direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy";
 struct DirectMirScalarProgramBuiltinCallFact {
     let recognized: Bool;
     let valid: Bool;

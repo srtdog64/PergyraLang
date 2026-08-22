@@ -1,0 +1,8 @@
+// Target physical printf spelling for the direct-MIR Int value carrier.
+
+import "../codegen/runtime_abi/string_runtime_symbol_owner.pgy";
+
+func DirectMirScalarTargetIntLineFormat(is_llvm: Bool) -> String {
+    if is_llvm { return StringRuntimeCIntLineFormat(); }
+    return StringRuntimeCInt32LineFormat();
+}

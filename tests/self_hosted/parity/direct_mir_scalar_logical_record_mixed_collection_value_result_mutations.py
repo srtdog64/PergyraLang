@@ -24,32 +24,34 @@ def main():
         raise SystemExit("fixture has no exact BuildCompactGraph signature")
     params = routine["params"]
     if kind == "array-string-carriage":
-        params[1]["carriage"] = "value"
+        params[1]["carriage"] = "borrowed"
     elif kind == "array-string-abi":
         params[5]["abi_layout_required"] = False
         params[5]["abi_layout_id"] = 0
         params[5]["abi_layout"] = None
-    elif kind == "array-int-count":
-        params[4]["type"] = "Int"
-        params[4]["abi_type_name"] = "Int"
+    elif kind == "array-int-unknown-type":
+        params[4]["type"] = "MissingCollection"
+        params[4]["abi_type_name"] = "MissingCollection"
         params[4]["abi_layout_required"] = False
         params[4]["abi_layout_id"] = 0
         params[4]["abi_layout"] = None
-    elif kind == "scalar-order":
-        params[7]["type"] = "Int"
-        params[7]["abi_type_name"] = "Int"
+    elif kind == "scalar-unknown-type":
+        params[7]["type"] = "MissingScalar"
+        params[7]["abi_type_name"] = "MissingScalar"
     elif kind == "scalar-carriage":
-        params[8]["carriage"] = "value-result"
-    elif kind == "return-type":
-        routine["return"] = "Int"
+        params[8]["carriage"] = "borrowed"
+    elif kind == "unknown-return-type":
+        routine["return"] = "MissingReturn"
     elif kind == "compact-array-string-carriage":
-        compact["params"][1]["carriage"] = "value"
-    elif kind == "compact-scalar-type":
-        compact["params"][6]["type"] = "Int"
-        compact["params"][6]["abi_type_name"] = "Int"
-    elif kind == "compact-parameter-count":
+        compact["params"][1]["carriage"] = "borrowed"
+    elif kind == "compact-scalar-unknown-type":
+        compact["params"][6]["type"] = "MissingScalar"
+        compact["params"][6]["abi_type_name"] = "MissingScalar"
+    elif kind == "compact-extra-unknown-type":
         extra = dict(compact["params"][6])
         extra["name"] = "extra"
+        extra["type"] = "MissingExtra"
+        extra["abi_type_name"] = "MissingExtra"
         compact["params"].append(extra)
     else:
         raise SystemExit(f"unknown mutation: {kind}")

@@ -19,16 +19,16 @@ def main():
         params[0]["carriage"] = "value"
     elif kind == "record-pass":
         params[0]["pass"] = "direct"
-    elif kind == "string-type":
-        params[1]["type"] = "Int"
-        params[1]["abi_type_name"] = "Int"
+    elif kind == "unknown-scalar-type":
+        params[1]["type"] = "MissingScalar"
+        params[1]["abi_type_name"] = "MissingScalar"
     elif kind == "string-carriage":
         params[1]["carriage"] = "readonly-ref"
     elif kind == "copyout-type":
         params[2]["type"] = "Array<Int>"
         params[2]["abi_type_name"] = "Array<Int>"
     elif kind == "copyout-carriage":
-        params[2]["carriage"] = "readonly-ref"
+        params[2]["carriage"] = "borrowed"
     elif kind == "copyout-abi":
         params[2]["abi_layout_required"] = False
         params[2]["abi_layout_id"] = 0
@@ -38,8 +38,8 @@ def main():
         if len(fields) != 4:
             raise SystemExit("fixture has no four-field Array<String> ABI")
         fields[1]["offset"] = 0
-    elif kind == "return-type":
-        routine["return"] = "Int"
+    elif kind == "unknown-return-type":
+        routine["return"] = "MissingReturn"
     elif kind == "parameter-count":
         params.pop()
     else:

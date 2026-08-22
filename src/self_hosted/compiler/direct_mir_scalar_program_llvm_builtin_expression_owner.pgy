@@ -11,6 +11,7 @@ import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_llvm_set_string_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy";
 
 func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     kind: Int, result: String, result_type: String,
@@ -24,16 +25,15 @@ func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
+    let artifact: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(kind, result, left, right, runtime);
+    if artifact.matched { return artifact; }
     let record_option: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(logical_record, kind, result, result_type, left_type, left);
     if record_option.matched { return record_option; }
-    let option_int: DirectMirScalarProgramLlvmStringExpression =
-        DirectMirScalarProgramLlvmOptionIntExpressionAt(kind, result, left);
+    let option_int: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmOptionIntExpressionAt(kind, result, left);
     if option_int.matched { return option_int; }
-    let option_string: DirectMirScalarProgramLlvmStringExpression =
-        DirectMirScalarProgramLlvmOptionStringExpressionAt(kind, result, left);
+    let option_string: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmOptionStringExpressionAt(kind, result, left);
     if option_string.matched { return option_string; }
-    let option_bool: DirectMirScalarProgramLlvmStringExpression =
-        DirectMirScalarProgramLlvmOptionBoolExpressionAt(kind, result, left);
+    let option_bool: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmOptionBoolExpressionAt(kind, result, left);
     if option_bool.matched { return option_bool; }
     let set_string: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmSetStringExpressionAt(

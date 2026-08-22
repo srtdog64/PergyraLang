@@ -488,7 +488,9 @@ def main():
         param = next(array_string_value_params(document), None)
         if param is None:
             raise SystemExit("fixture has no value Array<String> parameter")
-        param["carriage"] = "readonly-ref"
+        # readonly-ref is a separately admitted Array<String> callable ABI, so
+        # changing only to that carriage describes another valid program.
+        param["carriage"] = "borrowed"
     elif kind == "array-string-value-pass-shape":
         param = next(array_string_value_params(document), None)
         if param is None:
@@ -533,7 +535,7 @@ def main():
         if param is None:
             raise SystemExit("fixture has no read-only Array<String> parameter")
         if kind.endswith("carriage"):
-            param["carriage"] = "owner-handle"
+            param["carriage"] = "borrowed"
         elif kind.endswith("pass-shape"):
             param["pass"] = "indirect"
         elif kind.endswith("resource"):

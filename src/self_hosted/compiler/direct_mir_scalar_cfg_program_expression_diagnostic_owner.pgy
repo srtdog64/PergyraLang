@@ -2,6 +2,7 @@
 import "../codegen/text/text_owner.pgy";
 import "direct_mir_scalar_program_expression_admission_failure_owner.pgy";
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_runtime_value_expression_diagnostic_owner.pgy";
 import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
 import "direct_mir_scalar_program_process_exit_owner.pgy";
@@ -52,10 +53,8 @@ func DirectMirScalarCfgProgramExpressionSetReadinessFailed(
                 }
                 Die(detail);
             }
-            Die(Concat(
-                "direct MIR scalar program expression set is invalid: node=",
-                Concat(ToString(node), Concat(
-                    " kind=", ToString(facts.node_kinds[node])))));
+            Die(DirectMirScalarProgramExpressionNodeReadinessFailureDetail(
+                facts, node));
         }
         node = node + 1;
     }

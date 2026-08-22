@@ -1,0 +1,36 @@
+// Stable failure context for one admitted runtime-value expression node.
+import "../codegen/text/text_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "runtime_value_call_abi_owner.pgy";
+
+func DirectMirScalarProgramExpressionNodeReadinessFailureDetail(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> String {
+    let kind: Int = facts.node_kinds[node];
+    let detail: String = Concat(
+        "direct MIR scalar program expression set is invalid: node=",
+        Concat(ToString(node), Concat(" kind=", ToString(kind))));
+    if kind != DirectMirScalarProgramExprRuntimeValueCall() { return detail; }
+    let runtime_id: Int = facts.node_runtime_call_abi_ids[node];
+    let call: CompilerRuntimeValueCallAbiFact =
+        CompilerRuntimeValueCallAbiFactForId(runtime_id);
+    detail = Concat(detail, Concat(" runtime_id=", ToString(runtime_id)));
+    detail = Concat(detail, Concat(" call_valid=", ToString(call.valid)));
+    detail = Concat(detail, Concat(" source=", call.source_name));
+    detail = Concat(detail, Concat(" expected=", call.return_type));
+    detail = Concat(detail, Concat(" actual=", facts.node_types[node]));
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    detail = Concat(detail, Concat(" left=", ToString(left)));
+    if left >= 0 && left < ArrayLength(facts.node_kinds) {
+        detail = Concat(detail, Concat(" left_kind=", ToString(facts.node_kinds[left])));
+        detail = Concat(detail, Concat(" left_type=", facts.node_types[left]));
+    }
+    detail = Concat(detail, Concat(" right=", ToString(right)));
+    if right >= 0 && right < ArrayLength(facts.node_kinds) {
+        detail = Concat(detail, Concat(" right_kind=", ToString(facts.node_kinds[right])));
+        detail = Concat(detail, Concat(" right_type=", facts.node_types[right]));
+    }
+    return Concat(detail, Concat(
+        " parameters=", ToString(ArrayLength(call.parameter_types))));
+}

@@ -338,17 +338,20 @@
         const char *src =
             "func TextBuilderFacts() -> Void {\n"
             "    let result: Allocator = AllocatorResult();\n"
+            "    let pool: Allocator = AllocatorPool(64);\n"
             "    let builder: TextBuilder = TextBuilderNew(2);\n"
             "    TextBuilderAppend(builder, \"x\");\n"
             "    let text: String = TextBuilderFinish(builder, result);\n"
             "    Print(text);\n"
             "    AllocatorDestroy(result);\n"
+            "    AllocatorDestroy(pool);\n"
             "}\n";
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
         MIRRoutine *routine = NULL;
         MIRInstruction *append_inst = NULL;
+        MIRInstruction *pool_inst = NULL;
         bool saw_new = false;
         bool saw_finish = false;
         bool saw_allocator_result = false;
@@ -374,6 +377,8 @@
                         saw_allocator_result = true;
                     else if (strcmp(row->source_name, "AllocatorDestroy") == 0)
                         saw_allocator_destroy = true;
+                    else if (strcmp(row->source_name, "AllocatorPool") == 0)
+                        pool_inst = inst;
                     else if (strcmp(row->operation, "Append") == 0)
                         append_inst = inst;
                     else if (strcmp(row->operation, "Finish") == 0)
@@ -381,15 +386,15 @@
                 }
             }
         }
-        if (append_inst != NULL) {
+        if (pool_inst != NULL) {
             const MIRTextBuilderRuntimeRow *saved =
-                append_inst->text_builder_runtime_row;
-            append_inst->text_builder_runtime_row = NULL;
+                pool_inst->text_builder_runtime_row;
+            pool_inst->text_builder_runtime_row = NULL;
             rejected_missing_row = !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error, "runtime-value runtime-call ABI fact")
                     != NULL;
-            append_inst->text_builder_runtime_row = saved;
+            pool_inst->text_builder_runtime_row = saved;
         }
         EXPECT(ok
                && mir_validate(mir, NULL)
@@ -397,6 +402,7 @@
                && saw_new
                && saw_allocator_result
                && saw_allocator_destroy
+               && pool_inst != NULL
                && append_inst != NULL
                && saw_finish
                && rejected_missing_row);

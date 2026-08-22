@@ -58,6 +58,8 @@ require_text "$PLAN" 'DirectMirCollectionProgramPlanMutationRejected'
 require_text "$PLAN" 'producer_reallocating_array_value_main_single_cleanup'
 require_text "$ROUTE_FACT" 'let claimed: Bool = routine_count == 3 && entrypoints == 1 &&'
 require_text "$ROUTE_FACT" 'producers == 1 && consumers == 1;'
+[[ "$(grep -Fc 'admitted.routines.routine_block_counts[row] == 4' "$ROUTE_FACT")" -eq 2 ]] ||
+    fail "collection route does not distinguish producer/consumer CFG shapes"
 require_text "$ABI" 'StringRuntimeCLongPrintArgumentType()'
 route_line="$(grep -n 'if collection_route.claimed' "$ROUTE" | cut -d: -f1)"
 scalar_line="$(grep -n 'scalar-route:start' "$ROUTE" | cut -d: -f1)"

@@ -12,7 +12,7 @@ func BoolComparisonCode(left: Bool, right: Bool) -> Int {
 func Main() -> Void {
     Log(ComparisonCode(1, 2));
     Log(BoolComparisonCode(false, true));
-    let maximum: Int = 9223372036854775807;
+    let maximum: Int = 2147483647;
     let minimum: Int = maximum + 1;
     Log(minimum);
     Log(minimum - 1);

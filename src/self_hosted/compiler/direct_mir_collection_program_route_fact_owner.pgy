@@ -1,10 +1,9 @@
-// Exact outer shape claim for the three-routine collection carriage program.
+// Exact outer signature/CFG shape claim for the collection carriage program.
 // Call, return, ABI, CFG, and storage edges remain owned by admission.
 
 import "../air/mir_cfg_identity_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
 import "../codegen/text/text_owner.pgy";
-
 struct DirectMirCollectionProgramRouteFact {
     let valid: Bool;
     let digest: Int;
@@ -69,11 +68,13 @@ func DirectMirCollectionProgramRouteFactFromAdmitted(
             entrypoints = entrypoints + 1;
         }
         if plain_function && header.return_type == "Array<Int>" &&
-            params == 1 && header.param_types[0] == "Int" {
+            params == 1 && header.param_types[0] == "Int" &&
+            admitted.routines.routine_block_counts[row] == 4 {
             producers = producers + 1;
         }
         if plain_function && header.return_type == "Int" && params == 1 &&
-            header.param_types[0] == "Array<Int>" {
+            header.param_types[0] == "Array<Int>" &&
+            admitted.routines.routine_block_counts[row] == 4 {
             consumers = consumers + 1;
         }
         row = row + 1;

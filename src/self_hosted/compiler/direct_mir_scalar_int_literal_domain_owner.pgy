@@ -1,0 +1,30 @@
+// Canonical signed 32-bit literal domain for direct-MIR Int facts.
+
+func DirectMirScalarIntLiteralInRange(value: String) -> Bool {
+    let length: Int = StringLength(value);
+    if length < 1 { return false; }
+    let negative: Bool = CharCode(value, length, 0) == 45;
+    let start: Int = 0;
+    if negative { start = 1; }
+    let digits: Int = length - start;
+    if digits < 1 || digits > 10 { return false; }
+    let first: Int = CharCode(value, length, start);
+    if first < 48 || first > 57 || (digits > 1 && first == 48) ||
+        (negative && digits == 1 && first == 48) {
+        return false;
+    }
+    let limit: String = "2147483647";
+    if negative { limit = "2147483648"; }
+    let row: Int = 0;
+    while row < digits {
+        let digit: Int = CharCode(value, length, start + row);
+        if digit < 48 || digit > 57 { return false; }
+        if digits == 10 {
+            let bound: Int = CharCode(limit, 10, row);
+            if digit < bound { return true; }
+            if digit > bound { return false; }
+        }
+        row = row + 1;
+    }
+    return true;
+}

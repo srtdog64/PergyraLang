@@ -1,0 +1,15 @@
+// C projection of compiler-artifact calls through the sealed ABI fact.
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCCompilerArtifactExpression(
+    kind: Int, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprCompilerArtifactWrite() { return None; }
+    if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
+            runtime.compiler_artifact_write) {
+        Die("direct MIR scalar C compiler-artifact ABI is invalid");
+    }
+    return Some(Concat(runtime.compiler_artifact_write.symbol, Concat("(",
+        Concat(left, Concat(", ", Concat(right, ")"))))));
+}

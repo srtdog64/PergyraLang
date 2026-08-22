@@ -40,7 +40,7 @@ grep -Fq 'DirectMirScalarProgramLogicalRecordArrayTargetFromType(' "$C_VALUE" ||
     fail "C indexed read bypasses the record-array target owner"
 grep -Fq 'DirectMirScalarProgramLogicalRecordArrayTargetFromType(' "$LLVM_VALUE" ||
     fail "LLVM indexed read bypasses the record-array target owner"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
     fail "GraphPlan schema did not advance for the new expression identity"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
@@ -87,15 +87,15 @@ for backend in c llvm; do
         }
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        grep -Eq 'pgy_IndexedRow_array pgy_param_0, long long pgy_param_1' "$artifact" ||
+        grep -Eq 'pgy_IndexedRow_array pgy_param_0, int32_t pgy_param_1' "$artifact" ||
             fail "C signature omitted the by-value record Array"
         grep -Eq '\(pgy_param_0\)\.data\[[^]]+\]' "$artifact" ||
             fail "C artifact omitted the record-array indexed load"
         grep -Fq ').field_0' "$artifact" ||
             fail "C artifact omitted the indexed record member read"
-        grep -Eq 'static pgy_scalar_logical_record_value_[0-9]+ pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0, long long pgy_param_1\)' "$artifact" ||
+        grep -Eq 'static pgy_scalar_logical_record_value_[0-9]+ pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0, int32_t pgy_param_1\)' "$artifact" ||
             fail "C artifact omitted the record-returning record-Array signature"
-        grep -Eq 'static bool pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0, long long pgy_param_1\)' "$artifact" ||
+        grep -Eq 'static bool pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0, int32_t pgy_param_1\)' "$artifact" ||
             fail "C artifact omitted the Bool-returning record-Array signature"
         grep -Fq '((long long)(pgy_param_0).len)' "$artifact" ||
             fail "C artifact omitted the record-Array length projection"

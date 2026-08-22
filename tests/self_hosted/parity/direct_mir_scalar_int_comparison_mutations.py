@@ -10,6 +10,8 @@ for routine in document.get("routines", []):
     target = "ComparisonCode"
     if mode == "bool-mixed-type":
         target = "BoolComparisonCode"
+    elif mode == "out-of-range-literal":
+        target = "Main"
     elif mode != "mixed-type":
         raise SystemExit("unknown mutation mode")
     if routine.get("name") != target:
@@ -21,6 +23,12 @@ for routine in document.get("routines", []):
                 continue
             nodes = graph.get("nodes", [])
             for node in nodes:
+                if mode == "out-of-range-literal" and \
+                        node.get("kind") == "integer_literal" and \
+                        node.get("text") == "2147483647":
+                    node["text"] = "2147483648"
+                    changed = True
+                    break
                 if node.get("kind") != "inequality":
                     continue
                 right = node.get("right")

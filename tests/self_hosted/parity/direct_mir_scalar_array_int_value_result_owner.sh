@@ -127,12 +127,16 @@ for backend in c llvm; do
             fail "LLVM artifact omitted the composed parameter-role signature"
         grep -Fq 'load %pgy.array.int, ptr %pgy.param.2.mutref' "$artifact" ||
             fail "LLVM shorter callable omitted Array<Int> copy-in"
-        grep -Fq 'store %pgy.array.int %pgy.param.2, ptr %pgy.param.2.mutref' \
-            "$artifact" || fail "LLVM shorter callable omitted Array<Int> copy-out"
+        grep -Eq '%pgy\.param\.2\.copyout\.[0-9]+ = load %pgy\.array\.int, ptr %pgy\.param\.2\.local' \
+            "$artifact" || fail "LLVM shorter callable omitted Array<Int> copy-out load"
+        grep -Eq 'store %pgy\.array\.int %pgy\.param\.2\.copyout\.[0-9]+, ptr %pgy\.param\.2\.mutref' \
+            "$artifact" || fail "LLVM shorter callable omitted Array<Int> copy-out store"
         grep -Fq 'load %pgy.array.int, ptr %pgy.param.3.mutref' "$artifact" ||
             fail "LLVM callable omitted Array<Int> copy-in"
-        grep -Fq 'store %pgy.array.int %pgy.param.3, ptr %pgy.param.3.mutref' \
-            "$artifact" || fail "LLVM callable omitted Array<Int> copy-out"
+        grep -Eq '%pgy\.param\.3\.copyout\.[0-9]+ = load %pgy\.array\.int, ptr %pgy\.param\.3\.local' \
+            "$artifact" || fail "LLVM callable omitted Array<Int> copy-out load"
+        grep -Eq 'store %pgy\.array\.int %pgy\.param\.3\.copyout\.[0-9]+, ptr %pgy\.param\.3\.mutref' \
+            "$artifact" || fail "LLVM callable omitted Array<Int> copy-out store"
         ! grep -Fq 'define internal void @pgy_ai_push(' "$artifact" ||
             fail "LLVM materialized an unused Array<Int> push helper"
         ! grep -Fq 'define internal i64 @pgy_ai_get(' "$artifact" ||

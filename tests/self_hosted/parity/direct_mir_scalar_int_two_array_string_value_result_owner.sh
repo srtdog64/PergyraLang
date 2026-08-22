@@ -58,7 +58,7 @@ for backend in c llvm; do
         }
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        grep -Eq 'static long long pgy_scalar_routine_[0-9]+\(pgy_as \*pgy_param_0_mutref, pgy_as \*pgy_param_1_mutref' "$artifact" ||
+        grep -Eq 'static int32_t pgy_scalar_routine_[0-9]+\(pgy_as \*pgy_param_0_mutref, pgy_as \*pgy_param_1_mutref' "$artifact" ||
             fail "C omitted the exact Int/two-copyout signature"
         for parameter in 0 1; do
             grep -Fq "pgy_as pgy_param_${parameter} = *pgy_param_${parameter}_mutref;" "$artifact" ||

@@ -4,6 +4,7 @@ import "direct_mir_scalar_graph_admission_owner.pgy";
 import "../mir_lower/expression_graph_sequence_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 import "../mir_lower/ssa_identity_owner.pgy";
+import "direct_mir_scalar_int_literal_domain_owner.pgy";
 
 func DirectMirScalarCfgExpressionSequence(
     ref instruction: JsonObjectFactTable
@@ -41,7 +42,8 @@ func DirectMirScalarCfgNoCallTargets(
 }
 
 func DirectMirScalarCfgCanonicalInt(value: String) -> Bool {
-    return StringLength(value) > 0 && ToString(ToInt(value)) == value;
+    return DirectMirScalarIntLiteralInRange(value) &&
+        ToString(ToInt(value)) == value;
 }
 
 func DirectMirScalarCfgUseValueRow(

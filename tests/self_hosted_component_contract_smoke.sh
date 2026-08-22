@@ -3909,6 +3909,10 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "Collecti
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "StringRuntimeCSubstringFn()"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "StringRuntimeCSubstringWithLenFn()"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "HostIORuntimeCExitFn()"
+require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" \
+    '"host-io", "compiler-artifact-write", HostIORuntimeCCompilerArtifactWriteFn()'
+require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" \
+    'if index == 256 { return CompilerRuntimeCallAbiHostIoRowAt(16); }'
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiMaterialMirResourceRow"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CompilerRuntimeCallAbiNativeDeviceSubmitRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "struct CompilerRuntimeCallAbiFact"
@@ -3932,7 +3936,12 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 'impor
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "func CompilerRuntimeCallAbiManifestRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "CompilerRuntimeCallAbiConcreteRowCount()"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "schema=pgy.selfhost.runtime-call-abi-row.v2"
-require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=256"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=258"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
+    '256|host-io|compiler-artifact-write|pgy_compiler_artifact_write|function|target_library|int_string_to_bool'
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
+    '257|selfhost-c-text-builder|allocator.pool|pgy_allocator_pool|function|generated_runtime_helper|capacity_to_allocator'
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=258"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "243|checked-arithmetic|float-to-int|pgy_checked_f2i_i32_export|function|target_library|double_to_int"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "244|checked-arithmetic|float-to-long|pgy_checked_f2i_i64_export|function|target_library|double_to_long"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "245|string|substring-with-len|pgy_substr_with_len|function|generated_runtime_helper|string_int_int_int_to_string"
@@ -6964,9 +6973,17 @@ require_text "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signatu
 require_text "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
     "let runtime_call_abi_id: Int;"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_call_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy" \
     "func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(" \
     "signature.runtime_call_abi_id"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy" \
+    "func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(" \
+    "DirectMirScalarProgramExprCompilerArtifactWrite()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy" \
+    "func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(" \
+    "signature.runtime_call_abi_id > 0 && carried == 0"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_builtin_call_owner.pgy" \
     "func DirectMirScalarProgramZeroArgumentBuiltinCallFactFromGraph(" \
@@ -15028,6 +15045,26 @@ require_text "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy" "SelfMirRunti
 require_text "src/self_hosted/mir/runtime_call_abi_fact_owner.pgy" "runtime_values: SelfMirRuntimeValueCallAbiRows"
 require_text "src/self_hosted/compiler/runtime_value_call_abi_identity_owner.pgy" "struct CompilerRuntimeValueCallAbiIdentity"
 require_text "src/self_hosted/compiler/runtime_value_call_abi_identity_owner.pgy" "func CompilerRuntimeValueCallAbiIdentityForId("
+require_function_text \
+    "src/self_hosted/compiler/runtime_value_call_abi_identity_owner.pgy" \
+    "func CompilerRuntimeValueCallAbiIdentityForSource(" \
+    'source_name == "AllocatorPool"'
+require_function_text \
+    "src/self_hosted/compiler/runtime_value_call_abi_identity_owner.pgy" \
+    "func CompilerRuntimeValueCallAbiIdentityForSource(" \
+    '"capacity_to_allocator", "allocator_out_capacity_to_void"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_runtime_value_expression_owner.pgy" \
+    "func DirectMirScalarProgramCRuntimeValueExpressionAt(" \
+    'call.c_shape == "capacity_to_allocator"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_runtime_value_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmRuntimeValueExpressionAt(" \
+    'call.llvm_shape == "allocator_out_capacity_to_void"'
+require_text "src/compiler/mir_text_builder_abi.c" \
+    '"Allocator", "AllocatorPool", "Pool", "pgy_allocator_pool"'
+require_text "src/compiler/mir_text_builder_abi.c" \
+    "MIR_TEXT_BUILDER_CALL_ALLOCATOR_OUT_CAPACITY_TO_VOID"
 require_text "src/self_hosted/compiler/runtime_value_call_abi_owner.pgy" 'import "runtime_value_call_abi_identity_owner.pgy";'
 require_text "src/self_hosted/mir/runtime_value_call_abi_fact_owner.pgy" "CompilerRuntimeValueCallAbiIdentityForId("
 reject_text "src/self_hosted/mir/runtime_value_call_abi_fact_owner.pgy" "CompilerRuntimeValueCallAbiFactForId("
@@ -17803,7 +17840,7 @@ require_text \
     "logical_record: DirectMirScalarProgramLogicalRecordFact"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
-    "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78"
+    "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79"
 require_file \
     "tests/self_hosted/fixtures/direct_mir_zero_parameter_callable.pgy"
 require_file \
@@ -19081,7 +19118,7 @@ reject_text \
     '"%pgy.array.int"'
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
-    "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78"
+    "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79"
 require_file \
     "tests/self_hosted/fixtures/direct_mir_logical_record_array_value_parameter.pgy"
 require_file \
@@ -19399,7 +19436,7 @@ require_text \
     "fact: ParseFact"
 require_text \
     "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_record_input_mutations.py" \
-    'elif kind == "record-input-same-declaration":'
+    'elif kind == "record-input-unknown-declaration":'
 require_text "Makefile" \
     "self-host-direct-mir-scalar-logical-record-array-record-input-test-smoke"
 require_file \
@@ -19422,7 +19459,7 @@ require_text \
     "source: GraphRow"
 require_text \
     "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_element_input_mutations.py" \
-    'elif kind == "record-input-distinct-declaration":'
+    'elif kind == "record-input-unknown-declaration":'
 require_text "Makefile" \
     "self-host-direct-mir-scalar-logical-record-array-element-input-test-smoke"
 require_file \
@@ -19543,7 +19580,7 @@ require_text \
     'elif kind == "record-carriage":'
 require_text \
     "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_int_value_result_mutations.py" \
-    'params[1]["carriage"] = "readonly-ref"'
+    'params[1]["carriage"] = "borrowed"'
 reject_text \
     "tests/self_hosted/parity/direct_mir_scalar_void_logical_record_array_int_value_result_mutations.py" \
     'elif kind == "parameter-count":'
@@ -19923,15 +19960,15 @@ require_text \
 require_text "Makefile" \
     "self-host-direct-mir-scalar-owned-logical-record-return-test-smoke"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramOwnedStringParameterReady(" \
     "CompilerAbiLayoutStringTypeName()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramOwnedStringParameterReady(" \
     'signature.parameters.carriages[ordinal] == "owner-handle"'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramOwnedStringParameterReady(" \
     "!signature.parameters.abi_required[ordinal]"
 require_function_text \
@@ -20195,7 +20232,7 @@ require_max_lines \
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_owned_string_parameter_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_owned_string_parameter_owner.sh" 140
+    "tests/self_hosted/parity/direct_mir_scalar_owned_string_parameter_owner.sh" 150
 for owned_string_mutation in \
     owned-string-parameter-carriage \
     owned-string-parameter-type \
@@ -20501,11 +20538,11 @@ require_max_lines \
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_int_comparison_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_comparison_owner.sh" 120
+    "tests/self_hosted/parity/direct_mir_scalar_int_comparison_owner.sh" 135
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_int_comparison_mutations.py"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_int_comparison_mutations.py" 50
+    "tests/self_hosted/parity/direct_mir_scalar_int_comparison_mutations.py" 60
 require_text "Makefile" \
     "self-host-direct-mir-scalar-direct-scalar-callable-test-smoke"
 require_text "Makefile" \
@@ -20532,7 +20569,73 @@ require_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExpressionKindLast(" \
-    "DirectMirScalarProgramExprArrayStringPushOwned()"
+    "DirectMirScalarProgramExprCompilerArtifactWrite()"
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy" 20
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy" \
+    "func DirectMirScalarProgramCompilerArtifactBuiltinSignatureExpected(" \
+    '"Bool", "Int|String"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy" \
+    "func DirectMirScalarProgramCompilerArtifactRuntimeCallAbiId(" \
+    "CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(row)"
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy" 35
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy" \
+    "func DirectMirScalarProgramCompilerArtifactExpressionNodeReady(" \
+    "CompilerAbiLayoutIntTypeName()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy" \
+    "func DirectMirScalarProgramCompilerArtifactExpressionNodeReady(" \
+    "CompilerAbiLayoutStringTypeName()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_statement_admission_owner.pgy" \
+    "func DirectMirScalarCfgProgramDiscardedCallExpressionReady(" \
+    "DirectMirScalarProgramExprCompilerArtifactWrite()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_runtime_requirement_owner.pgy" \
+    "func DirectMirScalarProgramCompilerArtifactRuntimeRequirementFromExpressions(" \
+    "CompilerRuntimeCallAbiCompilerArtifactWriteFact()"
+require_function_text \
+    "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
+    "func CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(" \
+    'fact.call_shape == "int_string_to_bool"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_projection_readiness_owner.pgy" \
+    "func DirectMirScalarProgramHostIoRuntimeProjectionReady(" \
+    "projection.compiler_artifact_write"
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy" 25
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy" \
+    "func DirectMirScalarProgramCCompilerArtifactExpression(" \
+    "runtime.compiler_artifact_write.symbol"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy" \
+    "pgy_compiler_artifact_write"
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy" 60
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(" \
+    '" = trunc i64 "'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmCompilerArtifactDeclarations(" \
+    '"(i32, ptr)\n"'
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy" \
+    "pgy_compiler_artifact_write"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
     "func DirectMirScalarProgramBuiltinSignatureFactForCall(" \
@@ -20877,6 +20980,60 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(" \
     "DirectMirScalarCfgScalarTypeSupported("
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy" 30
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramCallableRuntimeValueParameterReady(" \
+    "CompilerAbiLayoutOwnershipAllocatorLaneValue()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramCallableRuntimeValueParameterReady(" \
+    'signature.parameters.carriages[ordinal] == "value"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramCallableRuntimeValueParameterReady(" \
+    "signature.parameters.abi_required[ordinal]"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramCallableParameterSupported(" \
+    "DirectMirScalarProgramCallableRuntimeValueParameterReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
+    "func DirectMirScalarProgramAbiValueParameterReady(" \
+    "DirectMirScalarProgramCallableRuntimeValueParameterReady("
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_runtime_value_parameter_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_runtime_value_parameter_readiness_owner.pgy" 60
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_runtime_value_parameter_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramRuntimeValueArgumentIdentityReady(" \
+    "CompilerAbiLayoutOwnershipAllocatorLaneValue()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_runtime_value_parameter_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramRuntimeValueArgumentIdentityReady(" \
+    'plan.routines.parameter_carriages[row] == "value"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "DirectMirScalarCfgProgramRuntimeValueCallIdentityReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_runtime_value_expression_readiness_owner.pgy" \
+    "func DirectMirScalarProgramRuntimeValueCallNodeReady(" \
+    "DirectMirScalarProgramExprParameter()"
+require_text \
+    "tests/self_hosted/parity/direct_mir_scalar_runtime_value_lifecycle_owner.sh" \
+    "wrong-runtime-parameter-carriage"
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy" 25
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramOwnedStringParameterReady("
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(" \
@@ -22921,7 +23078,7 @@ require_file "tests/self_hosted/parity/one_mir_array_int_reverse_artifact_contra
 # v14 -> v33 while this pin went unreached behind earlier gate failures, so it
 # must move with the sole declared GraphPlan schema.
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
-    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78'
+    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy" \
     'func DirectMirScalarCfgOpArrayReverseInt() -> Int { return 20; }'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy" \

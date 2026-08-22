@@ -163,7 +163,8 @@ func DirectMirScalarProgramStringRuntimeRequirement(
             collection.to_int_id, collection.array_length_id,
             collection.array_get_id, host_io.process_args_id,
             host_io.dir_walk_id, host_io.file_exists_id,
-            host_io.read_file_id, case_math);
+            host_io.read_file_id, host_io.compiler_artifact_write_id,
+            case_math);
     return DirectMirScalarProgramRuntimeAbiFactWithDigest(
         source, DirectMirScalarProgramRuntimeAbiFactDigest(source));
 }

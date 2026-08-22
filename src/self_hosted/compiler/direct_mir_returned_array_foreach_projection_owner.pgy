@@ -8,6 +8,7 @@ import "direct_mir_scalar_cfg_llvm_emission_owner.pgy";
 import "target_projection_fact_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
+import "direct_mir_scalar_int_format_projection_owner.pgy";
 
 func CompileAdmittedDirectMirReturnedArrayForEachForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -42,7 +43,8 @@ func CompileAdmittedDirectMirReturnedArrayForEachForTarget(
         !CompilerRuntimeCallAbiProcessExitFactReady(process_exit) {
         Die("direct MIR returned Array<Int> foreach plan is incomplete");
     }
-    let int_line_format: String = StringRuntimeCIntLineFormat();
+    let int_line_format: String =
+        DirectMirScalarTargetIntLineFormat(is_llvm);
     let string_line_format: String = StringRuntimeCStringLineFormat();
     if is_llvm {
         return DirectMirScalarCfgEmitLlvm(

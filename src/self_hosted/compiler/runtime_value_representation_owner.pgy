@@ -153,24 +153,31 @@ func CompilerRuntimeValueRepresentationMatchesCapture(
     return true;
 }
 
-func CompilerRuntimeValueLocalsPresent(local_types: Array<String>) -> Bool {
+func CompilerRuntimeValueTypesPresent(
+    local_types: Array<String>, parameter_types: Array<String>
+) -> Bool {
     let row: Int = 0;
     while row < ArrayLength(local_types) {
         if CompilerRuntimeValueTypeReady(local_types[row]) { return true; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(parameter_types) {
+        if CompilerRuntimeValueTypeReady(parameter_types[row]) { return true; }
         row = row + 1;
     }
     return false;
 }
 
 func CompilerRuntimeValueCLocalPreamble(
-    local_types: Array<String>
+    local_types: Array<String>, parameter_types: Array<String>
 ) -> String {
-    if !CompilerRuntimeValueLocalsPresent(local_types) { return ""; }
+    if !CompilerRuntimeValueTypesPresent(local_types, parameter_types) { return ""; }
     return "#include \"pgy_runtime.h\"\n";
 }
 
 func CompilerRuntimeValueLlvmLocalPreamble(
-    local_types: Array<String>
+    local_types: Array<String>, parameter_types: Array<String>
 ) -> String {
     let output: String = "";
     let allocator: CompilerRuntimeValueRepresentation =
@@ -179,7 +186,7 @@ func CompilerRuntimeValueLlvmLocalPreamble(
     let builder: CompilerRuntimeValueRepresentation =
         CompilerRuntimeValueRepresentationFor(
             CompilerAbiLayoutTextBuilderTypeName());
-    if !CompilerRuntimeValueLocalsPresent(local_types) { return output; }
+    if !CompilerRuntimeValueTypesPresent(local_types, parameter_types) { return output; }
     if !allocator.valid || !builder.valid {
         Die("compiler runtime-value LLVM representation is invalid");
     }

@@ -40,7 +40,7 @@ rm -f "$WORK_DIR"/*
     "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "MIR production failed"
 mir_sha="$(sha256sum "$MIR" | awk '{print toupper($1)}')"
-[[ "$mir_sha" == "804A23C026E058C5CE5F19331903A8FFA20F4C85DD30EFDA489AF149C1EC729F" ]] ||
+[[ "$mir_sha" == "0F277B559FDE05498591D64B38B6D3046512B85D308023EB7AA479F17251AFDA" ]] ||
     fail "source MIR identity changed: $mir_sha"
 grep -Fq '"kind":"equality"' "$MIR" || fail "producer omitted Bool equality"
 grep -Fq '"abi_type_name":"Option<Bool>"' "$MIR" ||

@@ -1,0 +1,26 @@
+// Sealed CompilerArtifactWrite runtime requirement derived from expression facts.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+struct DirectMirScalarProgramCompilerArtifactRuntimeRequirement {
+    let valid: Bool;
+    let runtime_call_abi_id: Int;
+}
+
+func DirectMirScalarProgramCompilerArtifactRuntimeRequirementFromExpressions(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarProgramCompilerArtifactRuntimeRequirement {
+    let required: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprCompilerArtifactWrite());
+    if !required {
+        return DirectMirScalarProgramCompilerArtifactRuntimeRequirement(true, 0);
+    }
+    let fact: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiCompilerArtifactWriteFact();
+    if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(fact) {
+        return DirectMirScalarProgramCompilerArtifactRuntimeRequirement(false, 0);
+    }
+    return DirectMirScalarProgramCompilerArtifactRuntimeRequirement(
+        true, fact.runtime_call_abi_id);
+}

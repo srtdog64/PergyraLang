@@ -37,13 +37,13 @@ def main():
         (instruction for instruction in instructions
          if instruction.get("arg0") == "ArraySet"), None)
     if kind == "single-array-bool-carriage":
-        params[4]["carriage"] = "value"
+        params[4]["carriage"] = "borrowed"
     elif kind == "single-array-bool-abi":
         clear_abi(params[4])
     elif kind == "single-prefix-carriage":
         params[3]["carriage"] = "value-result"
     elif kind == "array-bool-carriage":
-        params[1]["carriage"] = "value"
+        params[1]["carriage"] = "borrowed"
     elif kind == "array-bool-abi":
         clear_abi(params[1])
     elif kind == "array-bool-type":
@@ -51,8 +51,8 @@ def main():
         params[1]["abi_type_name"] = "Array<Int>"
     elif kind == "bool-carriage":
         params[9]["carriage"] = "value-result"
-    elif kind == "return-type":
-        routine["return"] = "Int"
+    elif kind == "unknown-return-type":
+        routine["return"] = "MissingReturn"
     elif kind in {
         "array-bool-push-receiver-missing",
         "array-bool-push-receiver-foreign",

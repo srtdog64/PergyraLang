@@ -77,7 +77,7 @@ for backend in c llvm; do
             fail "LLVM artifact omitted the exact Void signature"
         grep -Fq '%pgy.param.0 = load %pgy.array.int' "$artifact" ||
             fail "LLVM omitted Array<Int> copy-in"
-        grep -Fq 'store %pgy.array.int %pgy.param.0, ptr %pgy.param.0.mutref' "$artifact" ||
+        grep -Eq 'store %pgy\.array\.int %pgy\.param\.0\.copyout\.[0-9]+, ptr %pgy\.param\.0\.mutref' "$artifact" ||
             fail "LLVM omitted Array<Int> copy-out"
         "$CLANG" -x ir "$artifact" -o "$bin" \
             >"$WORK_DIR/llvm.compile.out" 2>"$WORK_DIR/llvm.compile.err" ||

@@ -8,9 +8,20 @@ func Main() -> Void {
         index = index + 1;
     }
     let result: String = TextBuilderFinish(output, result_allocator);
+    let parameter_result: String = RuntimeValueFinishWithAllocator(
+        "", result_allocator);
     AllocatorDestroy(result_allocator);
     Print(result);
-    Log("");
+    Log(parameter_result);
+}
+
+func RuntimeValueFinishWithAllocator(
+    value: String, allocator: Allocator
+) -> String {
+    let output: TextBuilder = TextBuilderNew(StringLength(value));
+    TextBuilderAppend(output, value);
+    let result: String = TextBuilderFinish(output, allocator);
+    return result;
 }
 
 func RuntimeValueLifecycleMarker() -> Int {

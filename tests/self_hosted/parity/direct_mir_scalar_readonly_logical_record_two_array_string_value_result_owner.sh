@@ -93,9 +93,9 @@ for backend in c llvm; do
         fail "$backend runtime output drifted"
 done
 
-for mutation in record-type record-carriage record-pass string-type \
+for mutation in record-type record-carriage record-pass unknown-scalar-type \
     copyout-type copyout-carriage copyout-abi copyout-layout-mismatch \
-    return-type parameter-count; do
+    unknown-return-type parameter-count; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

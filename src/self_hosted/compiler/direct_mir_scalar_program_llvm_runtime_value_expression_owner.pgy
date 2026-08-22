@@ -1,22 +1,23 @@
 // LLVM expression and declaration projection for admitted runtime-value calls.
-
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "runtime_value_call_abi_owner.pgy";
-
-func DirectMirScalarProgramLlvmRuntimeValueLocalArgument(
+func DirectMirScalarProgramLlvmRuntimeValueOwnerAddress(
     ref expressions: DirectMirScalarProgramExpressionSet, argument: Int
 ) -> String {
-    if argument < 0 || argument >= ArrayLength(expressions.node_kinds) ||
-        expressions.node_kinds[argument] !=
-            DirectMirScalarProgramExprLocal() ||
-        expressions.node_local_rows[argument] < 0 {
-        return "";
+    if argument < 0 || argument >= ArrayLength(expressions.node_kinds) { return ""; }
+    if expressions.node_kinds[argument] == DirectMirScalarProgramExprLocal() &&
+            expressions.node_local_rows[argument] >= 0 {
+        return Concat("%pgy.local.", ToString(
+            expressions.node_local_rows[argument]));
     }
-    return Concat("%pgy.local.", ToString(
-        expressions.node_local_rows[argument]));
+    if expressions.node_kinds[argument] == DirectMirScalarProgramExprParameter() &&
+            expressions.node_parameter_ordinals[argument] >= 0 {
+        return Concat("%pgy.param.", Concat(ToString(
+            expressions.node_parameter_ordinals[argument]), ".runtime"));
+    }
+    return "";
 }
-
 func DirectMirScalarProgramLlvmRuntimeValueExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
     result: String, left: String, right: String
@@ -35,6 +36,7 @@ func DirectMirScalarProgramLlvmRuntimeValueExpressionAt(
     let instructions: String = "";
     let value: String = "";
     if call.llvm_shape == "allocator_out_to_void" ||
+            call.llvm_shape == "allocator_out_capacity_to_void" ||
             call.llvm_shape == "builder_out_capacity_to_void" {
         let aggregate_type: String = "%pgy.runtime.allocator";
         if call.llvm_shape == "builder_out_capacity_to_void" {
@@ -45,7 +47,8 @@ func DirectMirScalarProgramLlvmRuntimeValueExpressionAt(
             " = alloca ", Concat(aggregate_type, ", align 8\n"))));
         instructions = Concat(instructions, Concat("  call void @", Concat(
             call.llvm_symbol, Concat("(ptr ", storage))));
-        if call.llvm_shape == "builder_out_capacity_to_void" {
+        if call.llvm_shape == "builder_out_capacity_to_void" ||
+                call.llvm_shape == "allocator_out_capacity_to_void" {
             instructions = Concat(instructions, Concat(", i64 ", left));
         }
         instructions = Concat(instructions, ")\n");
@@ -60,7 +63,7 @@ func DirectMirScalarProgramLlvmRuntimeValueExpressionAt(
             true, true, instructions, result);
     }
     let left_owner: String =
-        DirectMirScalarProgramLlvmRuntimeValueLocalArgument(
+        DirectMirScalarProgramLlvmRuntimeValueOwnerAddress(
             expressions, expressions.node_lefts[node]);
     if left_owner == "" {
         return DirectMirScalarProgramLlvmStringExpression(
@@ -82,7 +85,7 @@ func DirectMirScalarProgramLlvmRuntimeValueExpressionAt(
     }
     if call.llvm_shape == "builder_ptr_allocator_ptr_to_string" {
         let right_owner: String =
-            DirectMirScalarProgramLlvmRuntimeValueLocalArgument(
+            DirectMirScalarProgramLlvmRuntimeValueOwnerAddress(
                 expressions, expressions.node_rights[node]);
         if right_owner == "" {
             return DirectMirScalarProgramLlvmStringExpression(
@@ -108,7 +111,7 @@ func DirectMirScalarProgramLlvmRuntimeValueDeclarations(
 ) -> String {
     let output: String = "";
     let call_row: Int = 0;
-    while call_row < 6 {
+    while call_row < 7 {
         let call: CompilerRuntimeValueCallAbiFact =
             CompilerRuntimeValueCallAbiFactForSource(
                 CompilerRuntimeValueCallSourceAt(call_row));
@@ -126,6 +129,10 @@ func DirectMirScalarProgramLlvmRuntimeValueDeclarations(
                 output = Concat(output, Concat("declare void @", Concat(
                     call.llvm_symbol, "(ptr)\n")));
             } else if call.llvm_shape == "builder_out_capacity_to_void" {
+                output = Concat(output, Concat("declare void @", Concat(
+                    call.llvm_symbol, "(ptr, i64)\n")));
+            } else if call.llvm_shape ==
+                    "allocator_out_capacity_to_void" {
                 output = Concat(output, Concat("declare void @", Concat(
                     call.llvm_symbol, "(ptr, i64)\n")));
             } else if call.llvm_shape == "builder_ptr_string_to_void" {

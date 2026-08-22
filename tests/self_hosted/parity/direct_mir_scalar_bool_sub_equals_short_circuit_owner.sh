@@ -48,7 +48,7 @@ rm -f "$WORK_DIR"/*
         fail "MIR production failed"
     }
 mir_sha="$(sha256sum "$MIR" | awk '{print toupper($1)}')"
-[[ "$mir_sha" == "DBF7598B990F88BCF8BB1D0CFF742F52F9A09AD2FCE51BA1857D1FCB53033390" ]] ||
+[[ "$mir_sha" == "C4B2EBDA98EE77AF04BABECB6A78CF3467EA7EE2332A0A5E6EBB43AEE08F48F7" ]] ||
     fail "source MIR identity changed: $mir_sha"
 grep -Fq '"kind":"logical_and"' "$MIR" ||
     fail "producer omitted persisted logical_and topology"

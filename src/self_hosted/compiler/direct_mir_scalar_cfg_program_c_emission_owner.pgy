@@ -205,11 +205,10 @@ func DirectMirScalarCfgEmitProgramC(
         DirectMirScalarProgramSetStringRuntimeHeaderRequired(
             plan.local_types, plan.routines.parameter_types,
             plan.routines.return_types);
-    let runtime_value_header: Bool =
-        CompilerRuntimeValueLocalsPresent(plan.local_types);
-    TextBuilderAppend(output,
-        CompilerRuntimeValueCLocalPreamble(plan.local_types));
-    if set_string_runtime_header && !runtime_value_header {
+    let runtime_value_header: Bool = CompilerRuntimeValueTypesPresent(plan.local_types, plan.routines.parameter_types);
+    let compiler_artifact_header: Bool = plan.program.runtime_abi.compiler_artifact_write_id != 0;
+    TextBuilderAppend(output, CompilerRuntimeValueCLocalPreamble(plan.local_types, plan.routines.parameter_types));
+    if (set_string_runtime_header || compiler_artifact_header) && !runtime_value_header {
         TextBuilderAppend(output, "#include \"pgy_runtime.h\"\n");
     }
     let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement =
@@ -256,6 +255,7 @@ func DirectMirScalarCfgEmitProgramC(
         plan, runtime.string_concat));
     let runtime_header_owns_print: Bool =
         runtime_value_header || set_string_runtime_header ||
+        compiler_artifact_header ||
         plan.program.runtime_abi.dir_walk_id != 0 ||
         plan.program.runtime_abi.file_exists_id != 0 ||
         plan.program.runtime_abi.read_file_id != 0;

@@ -18,6 +18,7 @@ OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_comparison_e
 KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_owner.pgy"
 READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_comparison_expression_readiness_owner.pgy"
 BOOL_READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_bool_readiness_owner.pgy"
+NON_TRAPPING="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_non_trapping_comparison_owner.pgy"
 C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy"
 LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy"
 PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
@@ -41,14 +42,13 @@ grep -Fq 'DirectMirScalarProgramComparisonExpressionKindFact(' "$KIND" ||
 for term in CompilerAbiLayoutLongTypeName CompilerAbiLayoutBoolTypeName; do
     grep -Fq "$term()" "$READY" || fail "comparison readiness omits $term"
 done
-grep -Fq 'DirectMirScalarProgramExprGreaterLong()' "$BOOL_READY" ||
-    fail "nested Bool readiness omits Long greater"
-grep -Fq 'DirectMirScalarProgramExprEqualLong()' "$BOOL_READY" ||
-    fail "nested Bool readiness omits Long equality"
-grep -Fq 'DirectMirScalarProgramExprNotEqualLong()' "$BOOL_READY" ||
-    fail "nested Bool readiness omits Long inequality"
-grep -Fq 'DirectMirScalarProgramExprLessLong()' "$BOOL_READY" ||
-    fail "nested Bool readiness omits Long less"
+grep -Fq 'DirectMirScalarProgramNonTrappingComparisonKind(kind)' "$BOOL_READY" &&
+    grep -Fq 'DirectMirScalarProgramNonTrappingComparisonNode(facts, node)' "$BOOL_READY" ||
+    fail "nested Bool readiness bypasses the comparison owner"
+for term in Greater Equal NotEqual Less; do
+    grep -Fq "DirectMirScalarProgramExpr${term}Long()" "$NON_TRAPPING" ||
+        fail "non-trapping comparison owner omits Long $term"
+done
 grep -Fq 'DirectMirScalarProgramExprGreaterLong()' "$C_OWNER" ||
     fail "C comparison emitter omits Long greater"
 grep -Fq 'DirectMirScalarProgramExprEqualLong()' "$C_OWNER" ||
@@ -65,7 +65,7 @@ grep -Fq 'DirectMirScalarProgramExprNotEqualLong()' "$LLVM_OWNER" ||
     fail "LLVM comparison emitter omits Long inequality"
 grep -Fq 'DirectMirScalarProgramExprLessLong()' "$LLVM_OWNER" ||
     fail "LLVM comparison emitter omits Long less"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
     fail "GraphPlan schema did not advance with typed Long comparison"
 [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_int_comparison_expression_kind_owner.pgy" ]] ||
     fail "retired Int-only comparison owner remains"

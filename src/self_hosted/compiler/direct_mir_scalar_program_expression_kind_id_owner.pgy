@@ -61,4 +61,5 @@ func DirectMirScalarProgramExprSetStringNew() -> Int { return 101; }
 func DirectMirScalarProgramExprSetStringAdd() -> Int { return 102; }
 func DirectMirScalarProgramExprSetStringHas() -> Int { return 103; }
 func DirectMirScalarProgramExprArrayStringPushOwned() -> Int { return 104; }
-func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprArrayStringPushOwned(); }
+func DirectMirScalarProgramExprCompilerArtifactWrite() -> Int { return 105; }
+func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprCompilerArtifactWrite(); }

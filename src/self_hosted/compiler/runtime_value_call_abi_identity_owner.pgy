@@ -2,7 +2,7 @@
 //
 // MIR production may materialize parameter arrays and registry rows once. MIR
 // validation consumes only this identity receipt and never reconstructs the
-// 256-row serialized runtime-call registry for each instruction.
+// serialized runtime-call registry for each instruction.
 
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "../codegen/runtime_abi/text_builder_runtime_owner.pgy";
@@ -51,6 +51,15 @@ func CompilerRuntimeValueCallAbiIdentityForSource(
             "Allocator", "", true
         );
     }
+    if source_name == "AllocatorPool" {
+        return CompilerRuntimeValueCallAbiIdentity(
+            true, source_name, "Allocator", "Pool", "allocator.pool",
+            TextBuilderRuntimeCAllocatorPoolFn(),
+            TextBuilderRuntimeLlvmAllocatorPoolFn(),
+            "capacity_to_allocator", "allocator_out_capacity_to_void",
+            "Allocator", 1, "Int", "", false
+        );
+    }
     if source_name == "TextBuilderNew" {
         return CompilerRuntimeValueCallAbiIdentity(
             true, source_name, "TextBuilder", "New", "new",
@@ -94,6 +103,7 @@ func CompilerRuntimeValueCallSourceAt(index: Int) -> String {
     if index == 3 { return "TextBuilderAppend"; }
     if index == 4 { return "TextBuilderFinish"; }
     if index == 5 { return "TextBuilderDrop"; }
+    if index == 6 { return "AllocatorPool"; }
     return "";
 }
 
@@ -112,7 +122,7 @@ func CompilerRuntimeValueCallAbiIdentityForId(
     let found: CompilerRuntimeValueCallAbiIdentity =
         CompilerRuntimeValueCallAbiIdentityMissing();
     let row: Int = 0;
-    while row < 6 {
+    while row < 7 {
         let candidate: CompilerRuntimeValueCallAbiIdentity =
             CompilerRuntimeValueCallAbiIdentityForSource(
                 CompilerRuntimeValueCallSourceAt(row));

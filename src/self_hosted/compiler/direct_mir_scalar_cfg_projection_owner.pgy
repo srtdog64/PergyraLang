@@ -5,6 +5,7 @@ import "direct_mir_scalar_cfg_llvm_emission_owner.pgy";
 import "target_projection_fact_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "abi_layout_row_owner.pgy";
+import "direct_mir_scalar_int_format_projection_owner.pgy";
 
 func CompileAdmittedDirectMirScalarCfgForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -38,7 +39,8 @@ func CompileAdmittedDirectMirScalarCfgForTarget(
         !CompilerRuntimeCallAbiProcessExitFactReady(process_exit) {
         Die("direct MIR scalar CFG plan or runtime ABI is incomplete");
     }
-    let int_line_format: String = StringRuntimeCIntLineFormat();
+    let int_line_format: String =
+        DirectMirScalarTargetIntLineFormat(is_llvm);
     let string_line_format: String = StringRuntimeCStringLineFormat();
     if is_llvm {
         return DirectMirScalarCfgEmitLlvm(

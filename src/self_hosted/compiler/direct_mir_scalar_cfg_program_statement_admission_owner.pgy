@@ -20,7 +20,9 @@ func DirectMirScalarCfgProgramDiscardedCallExpressionReady(
         expressions.node_types[root] == "" { return false; }
     return expressions.node_types[root] == "Void" ||
         expressions.node_kinds[root] ==
-            DirectMirScalarProgramExprDirectCall();
+            DirectMirScalarProgramExprDirectCall() ||
+        expressions.node_kinds[root] ==
+            DirectMirScalarProgramExprCompilerArtifactWrite();
 }
 
 func DirectMirScalarCfgProgramAppendStatement(

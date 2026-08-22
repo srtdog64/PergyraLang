@@ -30,7 +30,7 @@ def main():
         params[0]["type"] = "Array<Bool>"
         params[0]["abi_type_name"] = "Array<Bool>"
     elif kind == "record-carriage":
-        params[1]["carriage"] = "readonly-ref"
+        params[1]["carriage"] = "borrowed"
     elif kind == "record-type":
         params[1]["type"] = "MissingRecord"
         params[1]["abi_type_name"] = "MissingRecord"

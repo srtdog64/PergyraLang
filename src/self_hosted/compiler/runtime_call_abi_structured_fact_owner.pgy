@@ -139,6 +139,30 @@ func CompilerRuntimeCallAbiProcessExitFactReady(
             "host-io", "", "exit");
 }
 
+func CompilerRuntimeCallAbiCompilerArtifactWriteFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "host-io", "compiler-artifact-write",
+            HostIORuntimeCCompilerArtifactWriteFn(),
+            CompilerRuntimeCallAbiMaterialTargetLibrary()
+        )
+    );
+}
+
+func CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return fact.ok && fact.domain == "host-io" &&
+        fact.operation == "compiler-artifact-write" &&
+        fact.symbol == HostIORuntimeCCompilerArtifactWriteFn() &&
+        fact.symbol_kind == "function" && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        fact.call_shape == "int_string_to_bool" &&
+        fact.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "host-io", "", "compiler-artifact-write");
+}
+
 func CompilerRuntimeCallAbiStringConcatFact(
 ) -> CompilerRuntimeCallAbiFact {
     return CompilerRuntimeCallAbiFactFromRowInput(

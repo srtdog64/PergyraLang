@@ -1,0 +1,18 @@
+// Exact semantic-registry projection for reached compiler artifact calls.
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramCompilerArtifactBuiltinSignatureExpected(
+    name: String
+) -> Array<String> {
+    if name != "CompilerArtifactWrite" { return []; }
+    return ["Bool", "Int|String", ToString(
+        DirectMirScalarProgramExprCompilerArtifactWrite())];
+}
+func DirectMirScalarProgramCompilerArtifactRuntimeCallAbiId(name: String) -> Int {
+    if name != "CompilerArtifactWrite" { return -1; }
+    let row: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiCompilerArtifactWriteFact();
+    if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(row) { return -1; }
+    return row.runtime_call_abi_id;
+}

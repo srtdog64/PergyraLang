@@ -1,0 +1,47 @@
+// LLVM projection of compiler-artifact calls through the sealed ABI fact.
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(
+    kind: Int, result: String, left: String, right: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprCompilerArtifactWrite() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
+            runtime.compiler_artifact_write) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let handle: String = Concat(result, ".handle");
+    let output: String = Concat("  ", Concat(handle, Concat(
+        " = trunc i64 ", Concat(left, " to i32\n"))));
+    output = Concat(output, "  ");
+    output = Concat(output, result);
+    output = Concat(output, " = call i1 @");
+    output = Concat(output, runtime.compiler_artifact_write.symbol);
+    output = Concat(output, "(i32 ");
+    output = Concat(output, handle);
+    output = Concat(output, ", ptr ");
+    output = Concat(output, right);
+    output = Concat(output, ")\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}
+
+func DirectMirScalarProgramLlvmCompilerArtifactDeclarations(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    if !DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprCompilerArtifactWrite()) {
+        return "";
+    }
+    if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
+            runtime.compiler_artifact_write) {
+        Die("direct MIR scalar LLVM compiler-artifact ABI is invalid");
+    }
+    return Concat("declare i1 @", Concat(
+        runtime.compiler_artifact_write.symbol, "(i32, ptr)\n"));
+}

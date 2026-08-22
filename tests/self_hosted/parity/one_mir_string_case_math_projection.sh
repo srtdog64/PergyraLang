@@ -36,7 +36,7 @@ PARAM_ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_routine_parameter
 DIRECT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy"
 IDENTITY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy"
 RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79'
 require_text "$PARAMS" 'let type_names: Array<String>'
 require_text "$PARAMS" 'let param_digests: Array<Int>'
 reject_text "$PARAMS" 'Array<DirectMirRoutineParamFact>'

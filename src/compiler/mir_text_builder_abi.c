@@ -11,6 +11,11 @@ static const MIRTextBuilderRuntimeRow k_text_builder_rows[] = {
       "pgy_allocator_result_init",
       MIR_TEXT_BUILDER_CALL_RETURNS_ALLOCATOR,
       MIR_TEXT_BUILDER_CALL_ALLOCATOR_OUT_TO_VOID, "mir_builtin_abi_row" },
+    { "Allocator", "AllocatorPool", "Pool", "pgy_allocator_pool",
+      "pgy_allocator_pool_init",
+      MIR_TEXT_BUILDER_CALL_CAPACITY_TO_ALLOCATOR,
+      MIR_TEXT_BUILDER_CALL_ALLOCATOR_OUT_CAPACITY_TO_VOID,
+      "mir_builtin_abi_row" },
     { "TextBuilder", "TextBuilderAppend", "Append", "pgy_text_builder_append",
       "pgy_text_builder_append_export",
       MIR_TEXT_BUILDER_CALL_BUILDER_STRING_TO_VOID,
@@ -79,6 +84,10 @@ mir_text_builder_call_shape_name(MIRTextBuilderCallShape shape)
         return "returns_allocator";
     case MIR_TEXT_BUILDER_CALL_ALLOCATOR_OUT_TO_VOID:
         return "allocator_out_to_void";
+    case MIR_TEXT_BUILDER_CALL_CAPACITY_TO_ALLOCATOR:
+        return "capacity_to_allocator";
+    case MIR_TEXT_BUILDER_CALL_ALLOCATOR_OUT_CAPACITY_TO_VOID:
+        return "allocator_out_capacity_to_void";
     case MIR_TEXT_BUILDER_CALL_ALLOCATOR_PTR_TO_VOID:
         return "allocator_ptr_to_void";
     case MIR_TEXT_BUILDER_CALL_CAPACITY_TO_BUILDER:

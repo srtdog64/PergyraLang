@@ -1,0 +1,32 @@
+// LLVM widened-carrier normalization for signed 32-bit Int arithmetic.
+
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_owner.pgy";
+
+func DirectMirScalarProgramLlvmIntWrapExpressionAt(
+    kind: Int, result: String, left: String, right: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let opcode: String = "";
+    let unary: Bool = false;
+    if kind == DirectMirScalarProgramExprAddInt() { opcode = "add";
+    } else if kind == DirectMirScalarProgramExprSubtractInt() { opcode = "sub";
+    } else if kind == DirectMirScalarProgramExprMultiplyInt() { opcode = "mul";
+    } else if kind == DirectMirScalarProgramExprNegateInt() {
+        opcode = "sub"; unary = true;
+    } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    if left == "" || (!unary && right == "") {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = Concat("  ", Concat(result, ".wide = "));
+    output = Concat(output, Concat(opcode, " i64 "));
+    if unary { output = Concat(output, "0, "); }
+    output = Concat(output, left);
+    if !unary { output = Concat(output, Concat(", ", right)); }
+    output = Concat(output, Concat("\n  ", Concat(result, ".narrow = trunc i64 ")));
+    output = Concat(output, Concat(result, ".wide to i32\n  "));
+    output = Concat(output, Concat(result, " = sext i32 "));
+    output = Concat(output, Concat(result, ".narrow to i64\n"));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

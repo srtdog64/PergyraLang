@@ -12,7 +12,7 @@ func DirectMirScalarCfgProgramExtensionAbiMutationRejected(
                 false, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
                 DirectMirScalarProgramStringIndexRuntimeFactEmpty(),
                 DirectMirScalarProgramStringTrimRuntimeFactEmpty(), 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0,
+                0, 0, 0, 0, 0,
                 DirectMirScalarProgramCaseMathRuntimeIds(
                     false, 0, 1, 0, 0, 0, 0, 0)),
             empty.option_int_abi, empty.option_string_abi,

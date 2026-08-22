@@ -87,8 +87,8 @@ for backend in c llvm; do
 done
 
 for mutation in record-array-carriage record-array-physical-abi \
-    record-input-carriage record-input-distinct-declaration \
-    record-array-missing-element return-type; do
+    record-input-carriage record-input-unknown-declaration \
+    record-array-missing-element unknown-return-type; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

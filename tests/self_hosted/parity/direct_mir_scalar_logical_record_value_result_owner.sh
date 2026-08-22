@@ -75,7 +75,8 @@ grep -Fq 'capture.arg1 == "local"' "$MEMBER" ||
     fail "member rebind omits exact local target admission"
 grep -Fq 'MirRoutineLatestDominatingLocalValueRow(' "$MEMBER" ||
     fail "member rebind omits latest local predecessor identity"
-grep -Fq 'predecessor == UnwrapOption(latest_row)' "$MEMBER" ||
+grep -Fq 'let latest_value: Int = UnwrapOption(latest_row);' "$MEMBER" &&
+    grep -Fq 'predecessor == latest_value' "$MEMBER" ||
     fail "member rebind omits target LocalRef join"
 grep -Fq 'plan.local_ref_kinds[local_row] ==' "$READINESS" ||
     fail "member rebind readiness omits admitted local identity"
@@ -114,7 +115,7 @@ grep -Fq 'DirectMirRoutineLocalParameterTypeAtName(' "$LOCAL_INVENTORY" ||
     fail "value storage does not consume one direct local parameter type owner"
 ! grep -Fq 'DirectMirRoutineValueParameterTypeAtName(' "$VALUE_TYPES" ||
     fail "value storage retained the value-only parameter lookup"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
     fail "GraphPlan schema did not advance with value-result local identity"
 for owner in "$C_LOCALS" "$LLVM_LOCALS"; do
     grep -Fq 'carriage != "value-result"' "$owner" ||

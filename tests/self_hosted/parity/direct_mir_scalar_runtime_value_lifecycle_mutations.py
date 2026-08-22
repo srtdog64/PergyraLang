@@ -47,6 +47,18 @@ def main():
     elif kind == "wrong-runtime-row":
         _, instruction = runtime_instruction(routine, "TextBuilderAppend")
         instruction["runtime_call_abi"]["c_symbol"] = "pgy_text_builder_drop"
+    elif kind == "wrong-runtime-parameter-carriage":
+        parameter_routine = next(
+            (row for row in document.get("routines", [])
+             if row.get("name") == "RuntimeValueFinishWithAllocator"), None)
+        if parameter_routine is None:
+            raise SystemExit("fixture has no runtime-value parameter routine")
+        parameter = next(
+            (row for row in parameter_routine.get("params", [])
+             if row.get("type") == "Allocator"), None)
+        if parameter is None:
+            raise SystemExit("runtime-value parameter routine has no Allocator")
+        parameter["carriage"] = "readonly-ref"
     elif kind == "foreign-local":
         _, instruction = runtime_instruction(routine, "TextBuilderFinish")
         graph = instruction.get("expr0_graph")

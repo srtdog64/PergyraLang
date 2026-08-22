@@ -30,6 +30,7 @@ func DirectMirScalarProgramRuntimeAbiFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.dir_walk_id);
     hash = DirectMirCfgHashInt(hash, fact.file_exists_id);
     hash = DirectMirCfgHashInt(hash, fact.read_file_id);
+    hash = DirectMirCfgHashInt(hash, fact.compiler_artifact_write_id);
     hash = DirectMirCfgHashInt(hash, fact.case_math.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -53,5 +54,6 @@ func DirectMirScalarProgramRuntimeAbiFactWithDigest(
         fact.array_string_get_id, fact.process_args_id, fact.dir_walk_id,
         fact.file_exists_id,
         fact.read_file_id,
+        fact.compiler_artifact_write_id,
         fact.case_math);
 }

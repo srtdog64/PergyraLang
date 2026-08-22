@@ -35,7 +35,7 @@ GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner
 INPUT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy"
 KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
 ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79'
 require_text "$INPUT" 'DirectMirScalarCfgProgramGraphInputFromAdmitted'
 require_text "$KIND" 'DirectMirScalarProgramExpressionKindLast'
 require_text "$ABI" 'DirectMirScalarProgramArrayStringAbiFactFromAdmitted'

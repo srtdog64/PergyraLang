@@ -263,12 +263,14 @@ test_mir_lowering_part_a(void)
             mir_text_builder_runtime_row_by_source_name("AllocatorResult");
         const MIRTextBuilderRuntimeRow *allocator_destroy =
             mir_text_builder_runtime_row_by_source_name("AllocatorDestroy");
+        const MIRTextBuilderRuntimeRow *allocator_pool =
+            mir_text_builder_runtime_row_by_source_name("AllocatorPool");
 
         EXPECT(layout != NULL
                && layout->field_count == 4
                && strcmp(layout->fields[0].field_name, "data") == 0
                && strcmp(layout->fields[3].field_name, "finished") == 0
-               && mir_text_builder_runtime_row_count() == 6
+               && mir_text_builder_runtime_row_count() == 7
                && allocator_result != NULL
                && strcmp(allocator_result->owner_name, "Allocator") == 0
                && allocator_result->c_call_shape
@@ -278,6 +280,11 @@ test_mir_lowering_part_a(void)
                && allocator_destroy != NULL
                && allocator_destroy->llvm_call_shape
                     == MIR_TEXT_BUILDER_CALL_ALLOCATOR_PTR_TO_VOID
+               && allocator_pool != NULL
+               && allocator_pool->c_call_shape
+                    == MIR_TEXT_BUILDER_CALL_CAPACITY_TO_ALLOCATOR
+               && allocator_pool->llvm_call_shape
+                    == MIR_TEXT_BUILDER_CALL_ALLOCATOR_OUT_CAPACITY_TO_VOID
                && append != NULL
                && strcmp(append->owner_name, "TextBuilder") == 0
                && strcmp(append->c_inline_fn,

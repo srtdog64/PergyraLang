@@ -1,6 +1,7 @@
 // Sealed host-I/O runtime IDs required by normalized GraphPlan expressions.
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "direct_mir_scalar_program_compiler_artifact_runtime_requirement_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 
@@ -10,11 +11,11 @@ struct DirectMirScalarProgramHostIoRuntimeIds {
     let dir_walk_id: Int;
     let file_exists_id: Int;
     let read_file_id: Int;
+    let compiler_artifact_write_id: Int;
 }
 
-func DirectMirScalarProgramHostIoRuntimeIdsEmpty(
-) -> DirectMirScalarProgramHostIoRuntimeIds {
-    return DirectMirScalarProgramHostIoRuntimeIds(false, 0, 0, 0, 0);
+func DirectMirScalarProgramHostIoRuntimeIdsEmpty() -> DirectMirScalarProgramHostIoRuntimeIds {
+    return DirectMirScalarProgramHostIoRuntimeIds(false, 0, 0, 0, 0, 0);
 }
 
 func DirectMirScalarProgramHostIoRuntimeRequirement(
@@ -28,6 +29,8 @@ func DirectMirScalarProgramHostIoRuntimeRequirement(
         expressions, DirectMirScalarProgramExprFileExists());
     let read_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprReadFile());
+    let artifact_write: DirectMirScalarProgramCompilerArtifactRuntimeRequirement =
+        DirectMirScalarProgramCompilerArtifactRuntimeRequirementFromExpressions(expressions);
     let args: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFactFromRowInput(
         CompilerRuntimeCallAbiRowInput("host-io", "args",
             HostIORuntimeCArgsFn(),
@@ -62,7 +65,8 @@ func DirectMirScalarProgramHostIoRuntimeRequirement(
             read.operation != "read-file" || read.symbol !=
                 HostIORuntimeCReadFileFn() || read.call_shape !=
                 "string_to_string" || read.materialization !=
-                CompilerRuntimeCallAbiMaterialGeneratedHelper())) {
+                CompilerRuntimeCallAbiMaterialGeneratedHelper())) ||
+        !artifact_write.valid {
         return DirectMirScalarProgramHostIoRuntimeIdsEmpty();
     }
     let args_id: Int = 0; let walk_id: Int = 0;
@@ -71,6 +75,6 @@ func DirectMirScalarProgramHostIoRuntimeRequirement(
     if walk_required { walk_id = walk.runtime_call_abi_id; }
     if exists_required { exists_id = exists.runtime_call_abi_id; }
     if read_required { read_id = read.runtime_call_abi_id; }
-    return DirectMirScalarProgramHostIoRuntimeIds(
-        true, args_id, walk_id, exists_id, read_id);
+    return DirectMirScalarProgramHostIoRuntimeIds(true, args_id, walk_id, exists_id, read_id,
+        artifact_write.runtime_call_abi_id);
 }

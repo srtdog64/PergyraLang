@@ -31,6 +31,8 @@ import "direct_mir_scalar_cfg_program_llvm_signature_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "direct_mir_scalar_program_llvm_runtime_value_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy";
+import "direct_mir_scalar_cfg_program_llvm_runtime_value_parameter_storage_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgProgramLlvmRoutine(
@@ -49,11 +51,9 @@ func DirectMirScalarCfgProgramLlvmRoutine(
         output = Concat(output,
             "  store i32 %argc, ptr @pgy.selfhost.argc, align 4\n  store ptr %argv, ptr @pgy.selfhost.argv, align 8\n");
     }
-    output = Concat(output,
-        DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(
-            plan, routine));
-    output = Concat(output,
-        DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
+    output = Concat(output, DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(
+        plan, routine));
+    output = Concat(output, DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
     output = Concat(output,
         DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(plan, routine));
     output = Concat(output,
@@ -67,6 +67,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
     output = Concat(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyIn(plan, routine));
     output = Concat(output,
         DirectMirScalarProgramLlvmSetStringValueResultCopyIn(plan, routine));
+    output = Concat(output, DirectMirScalarCfgProgramLlvmRuntimeValueParameterStorage(plan, routine));
     output = Concat(output, DirectMirScalarCfgLlvmLocalDeclarationsInRange(
         plan, plan.routines.local_starts[routine],
         plan.routines.local_counts[routine], routine));
@@ -265,8 +266,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
         DirectMirScalarProgramLlvmArrayBoolPreamble(
             plan.program.array_bool_abi, array_bool_get_required, target));
     if DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) {
-        TextBuilderAppend(output,
-            DirectMirScalarProgramLlvmArrayBoolPushMaterialization());
+        TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayBoolPushMaterialization());
     }
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmArrayIntValueResultPreamble(
@@ -278,8 +278,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
             plan.program.logical_record, target));
-    TextBuilderAppend(output,
-        CompilerRuntimeValueLlvmLocalPreamble(plan.local_types));
+    TextBuilderAppend(output, CompilerRuntimeValueLlvmLocalPreamble(plan.local_types, plan.routines.parameter_types));
     TextBuilderAppend(output,
         "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [");
     TextBuilderAppend(output, ToString(int_size));
@@ -305,6 +304,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmIntentObservabilityDeclarations(
             plan.program.expressions));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmCompilerArtifactDeclarations(plan.program.expressions, runtime));
     TextBuilderAppend(output,
         DirectMirScalarCfgStringLlvmConcatBlock(
             plan, runtime.string_concat));

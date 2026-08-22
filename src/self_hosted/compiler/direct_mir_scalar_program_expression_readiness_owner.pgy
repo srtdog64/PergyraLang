@@ -21,6 +21,7 @@ import "direct_mir_scalar_program_numeric_cast_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_runtime_value_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_intent_observability_readiness_owner.pgy";
+import "direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy";
 
 func DirectMirScalarProgramExpressionNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Bool {
@@ -39,6 +40,7 @@ func DirectMirScalarProgramExpressionNodeReady(
     let runtime_call_abi_id: Int = facts.node_runtime_call_abi_ids[node];
     if kind == DirectMirScalarProgramExprRuntimeValueCall() { return DirectMirScalarProgramRuntimeValueCallNodeReady(facts, node); }
     if kind == DirectMirScalarProgramExprIntentObservabilityCall() { return DirectMirScalarProgramIntentObservabilityCallNodeReady(facts, node); }
+    let artifact_ready: Option<Bool> = DirectMirScalarProgramCompilerArtifactExpressionNodeReady(facts, node); if IsSome(artifact_ready) { return UnwrapOption(artifact_ready); }
     if runtime_call_abi_id != -1 { return false; }
     if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
         kind == DirectMirScalarProgramExprLogicalRecordMember() ||

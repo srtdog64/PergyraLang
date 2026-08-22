@@ -20,6 +20,8 @@ import "direct_mir_scalar_program_void_logical_record_array_string_value_result_
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy";
+import "direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy";
 func DirectMirScalarProgramCallableValueTypeSupported(
     type_name: String
 ) -> Bool {
@@ -57,19 +59,6 @@ func DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(
         DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) ||
         DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name);
 }
-func DirectMirScalarProgramOwnedStringParameterReady(
-    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
-) -> Bool {
-    return DirectMirRoutineSignatureFactReady(signature) && ordinal >= 0 &&
-        ordinal < signature.param_count &&
-        signature.parameters.type_names[ordinal] ==
-            CompilerAbiLayoutStringTypeName() &&
-        signature.parameters.carriages[ordinal] == "owner-handle" &&
-        signature.parameters.resources[ordinal] == "none" &&
-        signature.parameters.pass_shapes[ordinal] == "direct" &&
-        !signature.parameters.abi_required[ordinal] &&
-        signature.parameters.abi_layout_ids[ordinal] == 0;
-}
 func DirectMirScalarProgramZeroParameterReturnTypeSupportedWithFacts(type_name: String,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
@@ -86,6 +75,8 @@ func DirectMirScalarProgramCallableParameterSupported(
         return true;
     }
     let type_name: String = signature.parameters.type_names[ordinal];
+    if DirectMirScalarProgramCallableRuntimeValueParameterReady(
+            signature, ordinal) { return true; }
     if !DirectMirScalarProgramCallableValueTypeSupported(type_name) ||
         signature.parameters.resources[ordinal] != "none" ||
         signature.parameters.pass_shapes[ordinal] != "direct" {

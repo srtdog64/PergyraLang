@@ -52,7 +52,7 @@ grep -Fq 'projection.long_division.symbol' "$LLVM_MATERIAL" ||
     fail "LLVM omitted the Long division declaration owner"
 grep -Fq '247|checked-arithmetic|long-division|pgy_checked_div_i64_export|function|target_library|long_long_to_long' "$ABI_ROWS" ||
     fail "append-only Long division runtime ABI row drifted"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v78' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
     fail "GraphPlan schema did not advance with Long division"
 divide_guard="$(sed -n '/func CheckedDivisionRuntimeCDivideGuard()/,/^}/p' "$DIVISION_OWNER")"
 grep -Fq 'PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW' <<<"$divide_guard" ||

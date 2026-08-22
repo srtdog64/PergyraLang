@@ -1,0 +1,50 @@
+// Cross-link runtime-value call operands to an admitted routine parameter lane.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "runtime_value_call_abi_owner.pgy";
+import "runtime_value_representation_owner.pgy";
+
+func DirectMirScalarCfgProgramRuntimeValueArgumentIdentityReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    argument: Int, routine: Int, graph_start: Int, expected: String
+) -> Bool {
+    if argument < graph_start || argument >= ArrayLength(facts.node_kinds) ||
+        facts.node_types[argument] != expected { return false; }
+    let representation: CompilerRuntimeValueRepresentation =
+        CompilerRuntimeValueRepresentationFor(expected);
+    if !representation.valid { return true; }
+    if facts.node_kinds[argument] == DirectMirScalarProgramExprLocal() {
+        return true;
+    }
+    if facts.node_kinds[argument] != DirectMirScalarProgramExprParameter() ||
+        representation.ownership_shape !=
+            CompilerAbiLayoutOwnershipAllocatorLaneValue() {
+        return false;
+    }
+    let ordinal: Int = facts.node_parameter_ordinals[argument];
+    if ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] {
+        return false;
+    }
+    let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+    return plan.routines.parameter_types[row] == expected &&
+        plan.routines.parameter_carriages[row] == "value";
+}
+
+func DirectMirScalarCfgProgramRuntimeValueCallIdentityReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, routine: Int, graph_start: Int
+) -> Bool {
+    let call: CompilerRuntimeValueCallAbiFact =
+        CompilerRuntimeValueCallAbiFactForId(
+            facts.node_runtime_call_abi_ids[node]);
+    let count: Int = ArrayLength(call.parameter_types);
+    if !call.valid || count > 2 { return false; }
+    if count >= 1 && !DirectMirScalarCfgProgramRuntimeValueArgumentIdentityReady(
+            plan, facts, facts.node_lefts[node], routine, graph_start,
+            call.parameter_types[0]) { return false; }
+    if count == 2 && !DirectMirScalarCfgProgramRuntimeValueArgumentIdentityReady(
+            plan, facts, facts.node_rights[node], routine, graph_start,
+            call.parameter_types[1]) { return false; }
+    return true;
+}

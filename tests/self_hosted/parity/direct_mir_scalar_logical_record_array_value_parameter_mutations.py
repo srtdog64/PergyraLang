@@ -31,7 +31,7 @@ def main():
         raise SystemExit("fixture has no exact ProjectionReady signature")
     record_array = routine["params"][0]
     if kind == "record-array-value-carriage":
-        record_array["carriage"] = "value-result"
+        record_array["carriage"] = "borrowed"
     elif kind == "record-array-missing-element":
         record_array["type"] = "Array<MissingIndexedRow>"
         record_array["abi_type_name"] = "Array<MissingIndexedRow>"

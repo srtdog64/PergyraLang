@@ -1,21 +1,26 @@
 // C expression projection for one admitted runtime-value call receipt.
-
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "runtime_value_call_abi_owner.pgy";
 
-func DirectMirScalarProgramCRuntimeValueLocalArgument(
+func DirectMirScalarProgramCRuntimeValueOwnerAddress(
     ref expressions: DirectMirScalarProgramExpressionSet, argument: Int
 ) -> String {
-    if argument < 0 || argument >= ArrayLength(expressions.node_kinds) ||
-        expressions.node_kinds[argument] !=
-            DirectMirScalarProgramExprLocal() ||
-        expressions.node_local_rows[argument] < 0 {
+    if argument < 0 || argument >= ArrayLength(expressions.node_kinds) {
         Die("direct MIR C runtime-value owner argument is invalid");
     }
-    return Concat("&pgy_local_", ToString(
-        expressions.node_local_rows[argument]));
+    if expressions.node_kinds[argument] == DirectMirScalarProgramExprLocal() &&
+            expressions.node_local_rows[argument] >= 0 {
+        return Concat("&pgy_local_", ToString(
+            expressions.node_local_rows[argument]));
+    }
+    if expressions.node_kinds[argument] == DirectMirScalarProgramExprParameter() &&
+            expressions.node_parameter_ordinals[argument] >= 0 {
+        return Concat("&pgy_param_", ToString(
+            expressions.node_parameter_ordinals[argument]));
+    }
+    Die("direct MIR C runtime-value owner argument is invalid");
+    return "";
 }
-
 func DirectMirScalarProgramCRuntimeValueExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
     left: String, right: String
@@ -31,10 +36,13 @@ func DirectMirScalarProgramCRuntimeValueExpressionAt(
     if call.c_shape == "returns_allocator" {
         return Some(Concat(call.c_symbol, "()"));
     }
+    if call.c_shape == "capacity_to_allocator" {
+        return Some(Concat(call.c_symbol, Concat("(", Concat(left, ")"))));
+    }
     if call.c_shape == "capacity_to_builder" {
         return Some(Concat(call.c_symbol, Concat("(", Concat(left, ")"))));
     }
-    let left_owner: String = DirectMirScalarProgramCRuntimeValueLocalArgument(
+    let left_owner: String = DirectMirScalarProgramCRuntimeValueOwnerAddress(
         expressions, expressions.node_lefts[node]);
     if call.c_shape == "allocator_ptr_to_void" ||
         call.c_shape == "builder_ptr_to_void" {
@@ -47,7 +55,7 @@ func DirectMirScalarProgramCRuntimeValueExpressionAt(
     }
     if call.c_shape == "builder_ptr_allocator_ptr_to_string" {
         let right_owner: String =
-            DirectMirScalarProgramCRuntimeValueLocalArgument(
+            DirectMirScalarProgramCRuntimeValueOwnerAddress(
                 expressions, expressions.node_rights[node]);
         return Some(Concat(call.c_symbol, Concat("(", Concat(
             left_owner, Concat(", ", Concat(right_owner, ")"))))));
