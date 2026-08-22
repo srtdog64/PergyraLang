@@ -1,0 +1,44 @@
+// Identity priority for one scalar-program leaf expression.
+
+import "../semantic/ast_expression_identity_fact_owner.pgy";
+
+struct DirectMirScalarProgramLeafIdentityFact {
+    valid: Bool;
+    bound_local: Int;
+    parameter_ordinal: Int;
+}
+
+func DirectMirScalarProgramLeafIdentityFactFromOwners(
+    bound_texts: Array<String>,
+    bound_locals: Array<Int>,
+    text: String,
+    binding_kind: Int,
+    binding_ordinal: Int,
+    parameter_count: Int
+) -> DirectMirScalarProgramLeafIdentityFact {
+    if ArrayLength(bound_texts) != ArrayLength(bound_locals) ||
+        parameter_count < 0 {
+        return DirectMirScalarProgramLeafIdentityFact(false, -1, -1);
+    }
+    let bound_local: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(bound_texts) {
+        if bound_texts[row] == text {
+            if bound_local >= 0 && bound_local != bound_locals[row] {
+                return DirectMirScalarProgramLeafIdentityFact(
+                    false, -1, -1
+                );
+            }
+            bound_local = bound_locals[row];
+        }
+        row = row + 1;
+    }
+    let parameter_ordinal: Int = -1;
+    if binding_kind == SemanticExpressionBindingFormalParameter() &&
+        binding_ordinal >= 0 && binding_ordinal < parameter_count {
+        parameter_ordinal = binding_ordinal;
+    }
+    return DirectMirScalarProgramLeafIdentityFact(
+        true, bound_local, parameter_ordinal
+    );
+}

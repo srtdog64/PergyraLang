@@ -16,6 +16,7 @@ import "direct_mir_scalar_program_logical_record_expression_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_expression_admission_failure_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_expression_owner.pgy";
+import "direct_mir_scalar_program_leaf_identity_fact_owner.pgy";
 func DirectMirScalarProgramAppendExpression(
     facts: DirectMirScalarProgramExpressionSet,
     ref instruction: JsonObjectFactTable,
@@ -263,20 +264,16 @@ func DirectMirScalarProgramAppendExpression(
                 kind = absence.kind;
                 type_name = absence.type_name;
                 literal = absence.literal;
-            } else if sequence.arena.identities.binding_kinds[node] ==
-                    SemanticExpressionBindingFormalParameter() &&
-                    sequence.arena.identities.binding_ordinals[node] >= 0 &&
-                    sequence.arena.identities.binding_ordinals[node] <
-                        ArrayLength(parameter_types) &&
-                    DirectMirScalarCfgUseValueRow(
-                        uses, global_row, expected_uses,
-                        sequence.arena.node_texts[node],
-                        locals.value_names) < 0 {
-                kind = DirectMirScalarProgramExprParameter();
-                param = sequence.arena.identities.binding_ordinals[node];
-                type_name = parameter_types[param];
             } else if !absence.valid {
-                let operand: DirectMirScalarCfgLeafOperand =
+                let identity: DirectMirScalarProgramLeafIdentityFact =
+                    DirectMirScalarProgramLeafIdentityFactFromOwners(
+                        bound_leaf_texts, bound_leaf_locals, sequence.arena.node_texts[node],
+                        sequence.arena.identities.binding_kinds[node], sequence.arena.identities.binding_ordinals[node],
+                        ArrayLength(parameter_types));
+                if !identity.valid {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-alias", node);
+                }
+                let bound_local: Int = identity.bound_local; let operand: DirectMirScalarCfgLeafOperand =
                     DirectMirScalarCfgLeafOperandFromOwners(
                         uses, global_row, expected_uses, local_instruction,
                         node, sequence.arena.node_texts[node],
@@ -287,37 +284,41 @@ func DirectMirScalarProgramAppendExpression(
                         ArrayLength(locals.value_local_rows) {
                     operand_local = locals.value_local_rows[operand.value_row];
                 }
-                let consumed_uses: Int = operand.use_count;
-                if !operand.valid || operand_local < 0 {
-                    operand_local = -1;
-                    let bound: Int = 0;
-                    while bound < ArrayLength(bound_leaf_texts) {
-                        if bound_leaf_texts[bound] ==
-                                sequence.arena.node_texts[node] {
-                            if operand_local >= 0 && operand_local !=
-                                    bound_leaf_locals[bound] {
-                                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-alias", node);
-                            }
-                            operand_local = bound_leaf_locals[bound];
-                        }
-                        bound = bound + 1;
+                let consumed_uses: Int = operand.use_count; let reused_prior_lane: Bool = operand.valid &&
+                    operand.value_row >= 0 && consumed_uses == 0;
+                let selects_local: Bool = false;
+                if bound_local >= 0 {
+                    if operand.valid && operand_local >= 0 &&
+                        operand_local != bound_local {
+                        return DirectMirScalarProgramExpressionAdmissionRejected(
+                            facts, "leaf-alias", node);
                     }
-                    if operand_local < 0 {
-                        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-operand", node);
-                    }
+                    operand_local = bound_local;
                     consumed_uses = 0;
-                } else {
-                    ArrayPush(bound_leaf_texts,
-                        sequence.arena.node_texts[node]);
+                    selects_local = true;
+                } else if identity.parameter_ordinal >= 0 &&
+                        (!operand.valid || reused_prior_lane) {
+                    kind = DirectMirScalarProgramExprParameter();
+                    param = identity.parameter_ordinal;
+                    type_name = parameter_types[param];
+                } else if operand.valid && operand_local >= 0 {
+                    ArrayPush(bound_leaf_texts, sequence.arena.node_texts[node]);
                     ArrayPush(bound_leaf_locals, operand_local);
+                    selects_local = true;
+                } else {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "leaf-operand", node);
                 }
-                if operand_local >= ArrayLength(value_types.local_types) {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-type", node);
+                if selects_local {
+                    if operand_local >= ArrayLength(value_types.local_types) {
+                        return DirectMirScalarProgramExpressionAdmissionRejected(
+                            facts, "leaf-type", node);
+                    }
+                    kind = DirectMirScalarProgramExprLocal();
+                    type_name = value_types.local_types[operand_local];
+                    local_row = operand_local + local_offset;
+                    expected_uses = expected_uses + consumed_uses;
                 }
-                kind = DirectMirScalarProgramExprLocal();
-                type_name = value_types.local_types[operand_local];
-                local_row = operand_local + local_offset;
-                expected_uses = expected_uses + consumed_uses;
             } else {
                 return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-binding", node);
             }

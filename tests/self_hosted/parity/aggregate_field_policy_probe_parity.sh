@@ -72,7 +72,7 @@ oracle_expect() {
     local out="$BUILD_DIR/oracle_${stem}.out"
     local exe="$BUILD_DIR/oracle_${stem}.exe"
     local rc=0
-    (cd "$ROOT_DIR" && "$PGY" "$(oracle_path "$source")" --backend=c \
+    (cd "$ROOT_DIR" && "$PGY" "$(oracle_path "$source")" --native-pipeline --backend=c \
         --error-format=json -o "$(oracle_path "$exe")") >"$out" 2>&1 || rc=$?
     if [[ "$status" == "ok" ]]; then
         [[ "$rc" -eq 0 ]] || {

@@ -7720,6 +7720,8 @@ require_text "tests/self_hosted/parity/wrapper_policy_probe_parity.sh" \
     "PGY_C_TYPE_UNSUPPORTED"
 require_text "tests/self_hosted/parity/wrapper_policy_probe_parity.sh" \
     "PGY_SEM_BUILTIN_ARGS_INVALID"
+require_text "tests/self_hosted/parity/wrapper_policy_probe_parity.sh" \
+    '"$(oracle_path "$source")" --native-pipeline --backend=c'
 require_text "Makefile" "self-host-wrapper-policy-parity-test-smoke:"
 require_text "Makefile" "tests/self_hosted/parity/wrapper_policy_probe_parity.sh"
 require_file "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy"
@@ -7742,6 +7744,8 @@ require_file "tests/self_hosted/parity/collection_policy_probe_parity.sh"
 require_max_lines "tests/self_hosted/parity/collection_policy_probe_parity.sh" 300
 require_text "tests/self_hosted/parity/collection_policy_probe_parity.sh" \
     "PGY_SEM_BUILTIN_ARGS_INVALID"
+require_text "tests/self_hosted/parity/collection_policy_probe_parity.sh" \
+    '"$(oracle_path "$source")" --native-pipeline --backend=c'
 require_text "Makefile" "self-host-collection-policy-parity-test-smoke:"
 require_text "Makefile" "tests/self_hosted/parity/collection_policy_probe_parity.sh"
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
@@ -7810,6 +7814,8 @@ require_file "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh"
 require_max_lines "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh" 300
 require_text "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh" \
     "PGY_SEM_CLASS_CONTRACT_INVALID"
+require_text "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh" \
+    '"$(oracle_path "$source")" --native-pipeline --backend=c'
 require_text "Makefile" "self-host-aggregate-field-policy-parity-test-smoke:"
 require_text "Makefile" "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh"
 require_file "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy"
@@ -22463,6 +22469,14 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy" 70
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_leaf_identity_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_leaf_identity_fact_owner.pgy" 55
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_leaf_identity_fact_owner.pgy" \
+    "func DirectMirScalarProgramLeafIdentityFactFromOwners(" \
+    "SemanticExpressionBindingFormalParameter()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy" \
     "func DirectMirScalarCfgLeafOperandFromOwners(" \
@@ -23097,7 +23111,7 @@ reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" \
     "func DirectMirScalarCfgValueTypePlanFromOwners(" \
     "DirectMirRoutineValueParameterTypeAtName("
-require_function_text \
+reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy" \
     "func DirectMirScalarProgramAppendExpression(" \
     "DirectMirScalarCfgUseValueRow("
