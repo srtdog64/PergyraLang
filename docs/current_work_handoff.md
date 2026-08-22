@@ -12,71 +12,70 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - generic-return projection tail publication
+## Active self-host context - wrapper-policy parity tail publication
 
-- The exact compiler-semantic checkpoint is commit
-  `a3c82ed1b93c4b7dffa64cc58a44988f303f907b` on `main`. The worktree is
+- The exact compiler-semantic checkpoint is
+  `b96276b0f122bbe53ab419087b38d9bbfa0377dc` on `main`. This handoff is its
+  documentation-only successor. After publication, the worktree should be
   clean except for the unrelated untracked `pgy-80135c2c/`; do not stage,
-  discard, or rewrite it. Temporary drivers, MIR, C, LLVM, and comparison
-  artifacts remain ignored under `.tmp` and are evidence only.
-- Remote run `32544191323` at predecessor `d1e9a7ea` made 28 of 29 jobs green:
+  discard, or rewrite it. Ignored `.tmp` compiler, C, LLVM, executable, and
+  comparison artifacts are evidence only.
+- Remote run `32553158962` at `1ac3d4d0` completed with 28 of 29 jobs green.
   Linux, Windows, macOS, sanitizers, TSan, both bootstrap jobs, Rocq, and all
   20 backend shards passed. The sole red `self-host-parity-linux` completed the
-  1,566-source ledger, incremental/impact checks, 85-fixture C/LLVM codegen,
-  and initializer projection, then failed in `generic_return_probe_parity.sh`
-  with `stage=phi ordinal=1282 block=138 row=21013`.
-- Objective card: objective = make that reached production generic-return
-  C/LLVM path execute without an orphan CFG merge, parser-side expression
-  staging admission, allocator lifecycle ambiguity, or program-global
-  `Array<String>` cleanup guess; priority = exact CFG and element ownership,
-  owner-directed graph facts, old-path removal, negative ratchet, then patch
-  size; fact owners = `SelfMirMergeIfBranches`, parser expression graph rows,
-  allocator lifecycle, and the per-local Array<String> cleanup policy; last
-  consumers = routine admission and C/LLVM local cleanup; forbidden = a merge
-  block for two terminated arms, populated one-element graph-box literals,
-  `Array<ParserExpressionFact>` staging, duplicate/missing allocator destroy,
-  or `array_string_boundary.literal_local_row` as cleanup authority; falsifier
-  = generic-return C/LLVM default+callable parity plus borrowed/owned string
-  array lifecycle gates and the full 29-job clean-checkout matrix.
-- `SelfMirMergeIfBranches` now returns the real terminated else exit when both
-  arms terminate instead of creating an unreachable merge/phi chain. The
-  intent parser accumulates terminal and compensation expressions directly in
-  `AstExpressionGraphRows`; declaration/program graph boxes start through one
-  empty-shape owner rather than populated Array literals. Required result
-  allocators are destroyed exactly once.
-- The next reached failure was Windows heap corruption in the LLVM callable
-  executable. Main cleanup deep-freed static string-literal elements because
-  one program-global `literal_local_row` could represent only one of several
-  Array<String> literals. The new
-  `direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy` derives
-  element ownership per routine local from admitted operation/expression
-  facts. Borrowed literal arrays free backing storage only; owned arrays retain
-  the canonical element-deep-drop path in both C and LLVM. Both target cleanup
-  consumers reject restoration of the single-boundary read.
-- A current-source Pergyra-built DRV-2 was generated and installed. Focused
-  green gates are `generic_return_probe_parity.sh`,
-  `initializer_projection_probe_parity.sh`,
-  `intent_typed_transition_frontend_owner.sh`,
-  `direct_mir_scalar_entrypoint_early_return_owner.sh`,
-  `direct_mir_scalar_owned_array_string_return_owner.sh`,
-  `direct_mir_scalar_owned_string_parameter_owner.sh`, and
-  `one_mir_string_array_index_return_projection.sh`. The latter reproduces
-  current MIR SHA-256
-  `6CE3CB8D614BEF3A40DAA39468128B00BB390B9B0ED260DA61EC1E68A2F72D9A`;
-  a separately built clean `d1e9a7ea` driver produced byte-identical MIR,
-  proving the retired `EE12...` test pin had already drifted before this delta.
-- `tests/self_hosted_component_contract_smoke.sh`,
-  `tests/documentation_quality_smoke.sh`,
-  `tests/self_host_ci_profile_smoke.sh`, shell syntax checks, and
-  `git diff --check` are green. Existing hard caps remain intact, including
-  intent parser 598/600, C string materialization 110/110, LLVM string
-  materialization 115/115, program-extension readiness 100/100, and LLVM
-  foreign declarations 110/110.
-- Next executable rung: publish `a3c82ed1` plus this handoff-only successor and
-  inspect the newest clean GitHub Actions run. A full green 29-job matrix
-  closes this CI tail. If it is red, resume only from its first deterministic
-  failure; do not reopen a general SoT cleanup, cache, shard, timeout, or memory
-  allowance track.
+  1,567-source ledger, 85-fixture C/LLVM codegen, initializer projection, and
+  the formerly red generic-return parity. Its first deterministic failure was
+  `wrapper_policy_probe_parity.sh`: the alleged native C oracle used plain
+  `--backend=c`, delegated to the installed self-host driver, and was correctly
+  rejected because `--error-format=json` is outside that installed contract.
+- Objective card: objective = keep native policy oracles native and make every
+  duplicate formal-parameter leaf in one admitted expression consume the same
+  latest MIR value without changing parameter identity across a later target
+  lane; priority = MIR value identity, owner-directed leaf facts, old direct
+  read deletion, negative ratchet, then patch size; fact owner =
+  `DirectMirScalarCfgLeafOperandFromOwners` plus
+  `DirectMirScalarProgramLeafIdentityFactFromOwners`; last consumer = scalar
+  program expression admission before C/LLVM emission; forbidden = plain-C
+  oracle delegation, direct `DirectMirScalarCfgUseValueRow` reads in admission,
+  or an AST formal-parameter fallback that overrides an already bound leaf in
+  the same expression; falsifier = wrapper/collection/aggregate C-oracle/C/LLVM
+  parity, component removed-path ratchets, and the full 29-job clean matrix.
+- The wrapper, collection, and aggregate native oracle legs now pass
+  `--native-pipeline`; their self-host C/LLVM probe legs remain unchanged.
+  `tests/self_hosted_component_contract_smoke.sh` rejects removal of the three
+  explicit native boundaries. This follows the already canonical semantic
+  parity oracle pattern instead of weakening the installed-driver contract.
+- After that harness correction, the reached LLVM execution defect was
+  concrete: `SemanticCanonicalTypeName("Option<Int: Int>")` produced
+  `Option<>`, while C produced `Option<Int>`. Generated LLVM for
+  `Substring(expr, start, end - start)` loaded the latest local for the first
+  `start` but the original `%pgy.param` for the duplicate second leaf. The
+  admission owner had a direct current-use probe beside the canonical leaf
+  operand owner; the second occurrence therefore fell through to AST formal
+  identity. Admission now consumes only the leaf operand owner. A compact leaf
+  identity fact gives same-expression bound locals priority while preserving a
+  formal parameter for a genuinely unresolved or prior-lane target use. The
+  old direct use read is deleted and rejected structurally.
+- A final current-source Pergyra-built DRV-2 was installed with SHA-256
+  `D20E1EFDBDB3917156BB0FF7DB09C823389B099BECA5929703AE6AB25DD20F28`.
+  With that exact driver, `wrapper_policy_probe_parity.sh` passes its native
+  oracle, self-host C, self-host LLVM, target-drift negative, and both wrapper
+  diagnostic negatives. `collection_policy_probe_parity.sh` and
+  `aggregate_field_policy_probe_parity.sh` passed after the semantic fix and
+  before the responsibility-only owner split; the final wrapper run proves the
+  split owner is present in the installed production graph.
+- `tests/self_hosted_component_contract_smoke.sh` passes after enforcing the
+  admission owner at 445/445 lines and the new leaf identity fact owner at
+  44/55 lines. Shell syntax checks for all edited parity/component scripts and
+  `git diff --check` pass. `tests/documentation_quality_smoke.sh` and
+  `tests/self_host_ci_profile_smoke.sh` also pass. Project progress remains 78%
+  overall, strict beta 83%, and hard SoT 49/86; this is a reached executable/CI
+  tail closure, not a new top-level registry row.
+- Next executable rung: publish `b96276b0` plus this handoff-only successor,
+  then inspect the newly triggered clean GitHub Actions run. A 29/29 green
+  matrix closes this CI tail. If red, resume only from its first deterministic
+  failure; do not reopen general SoT, cache, shard, timeout, or memory-allowance
+  work.
 
 ### Historical archive boundary
 
