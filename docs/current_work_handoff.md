@@ -12,7 +12,7 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - assignment LLVM materialization remote verification
+## Active self-host context - exhaustive parity provenance-tail verification
 
 - The exact compiler-semantic checkpoint is commit
   `7230cd07a416b5e2a4215f91f7393a809f3cb409` on `main`. Following publication
@@ -20,7 +20,9 @@ gate count do not increment either percentage by themselves.
   provisioning/static pins, bound exhaustive-gate execution cost, or repair
   LLVM artifact materialization cost without changing emitted semantics. The
   current executable resource checkpoint is commit
-  `eca0a68549b4a0f60174b4606d2a3ae3949ea07c`; this handoff refresh is its
+  `eca0a68549b4a0f60174b4606d2a3ae3949ea07c`. Commit `2eb3bc2d` closes the
+  deterministic initializer-projection provenance failure reached only after
+  that resource checkpoint completed; this handoff refresh is its
   documentation-only successor. After publication, the only remaining
   worktree path is the unrelated untracked `pgy-80135c2c/`; do not stage,
   discard, or rewrite it.
@@ -186,13 +188,31 @@ gate count do not increment either percentage by themselves.
   inventory, 350-line owner cap, removed-path ratchets, and diff checks are
   green. Temporary MIR/LLVM/diagnostic drivers are ignored measurement
   artifacts and do not count as substitution progress.
-- Next executable rung: publish `eca0a685` plus this handoff and inspect the
-  newest clean GitHub Actions run. The falsifier is the full job set, with
-  exhaustive parity completing the dev-profile assignment C/LLVM projection
-  first and then its unchanged cumulative tail. The Linux heartbeat must stay
-  bounded through the former 150-second 15.39 GiB spike and the job must finish;
-  a green full matrix closes this CI resource rung. If it is red, resume from
-  its first deterministic failure and do not open another general SoT cleanup.
+- Tenth publication run `32540324732` at `1dcec434` proved the assignment LLVM
+  resource rung closed: recursive RSS rose through 4,742,280 KiB at 150
+  seconds, fell to 243,276 KiB at 165 seconds, and the semantic assignment
+  projection completed. The unchanged cumulative tail then passed all 1,566
+  lexer/parser/semantic/codegen rows, the incremental and impact checks, and
+  C/LLVM parity for all 85 codegen fixtures. `build-linux` and 26 other jobs
+  are green; Windows was still active at observation. The sole deterministic
+  red stopped in `initializer_projection_probe_parity.sh` before any message:
+  its first synthetic AST reached `artifact_lower_owner.pgy` without the now-
+  required parser-owned source-module fact and correctly failed closed with
+  `mir_source_module_path_missing`.
+- Commit `2eb3bc2d` binds every synthetic initializer-probe AST through
+  `CanonicalMirIdentityArtifactBindSourceModules`, with the probe source path
+  explicitly owned by that fixture boundary. The parity ratchet requires the
+  binder and rejects additional bare `AstTreeArtifactFromText` construction,
+  so the missing provenance cannot be hidden by an empty/default path. The
+  complete local C/LLVM initializer projection gate passes its positive and
+  failure cases; the initializer-environment cursor, MIR expression-graph,
+  and full component-contract gates are also green.
+- Next executable rung: publish `2eb3bc2d` plus this handoff and inspect the
+  newest clean GitHub Actions run. The falsifier is the full 29-job set, with
+  exhaustive parity completing both the bounded assignment projection and the
+  formerly failing initializer-projection tail. A green full matrix closes
+  this CI rung. If it is red, resume from its first deterministic failure and
+  do not open another general SoT cleanup.
 
 ### Previous CI parity closure and budget context (inactive)
 
