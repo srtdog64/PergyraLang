@@ -28,6 +28,15 @@ gate count do not increment either percentage by themselves.
   `wrapper_policy_probe_parity.sh`: the alleged native C oracle used plain
   `--backend=c`, delegated to the installed self-host driver, and was correctly
   rejected because `--error-format=json` is outside that installed contract.
+- First publication run `32559124836` at `32cff507` reached 25 green jobs with
+  Linux, Windows, and self-host parity still active. Its macOS C-only job passed
+  64 of 65 steps and failed only in `sot_authority_edge_smoke.sh`: the newly
+  added leaf identity fact owner had no authority/derived registry row. It is
+  now classified as a `local_view` of
+  `projection.direct_mir_scalar_cfg_program_extension`; the focused local gate
+  passes with 86 authorities, 169 derived carriers, and the unchanged status
+  census `CLOSED=49 BRIDGE=36 ACTIVE=1`. No result is claimed for the three
+  jobs that had not completed at observation.
 - Objective card: objective = keep native policy oracles native and make every
   duplicate formal-parameter leaf in one admitted expression consume the same
   latest MIR value without changing parameter identity across a later target
@@ -71,11 +80,11 @@ gate count do not increment either percentage by themselves.
   `tests/self_host_ci_profile_smoke.sh` also pass. Project progress remains 78%
   overall, strict beta 83%, and hard SoT 49/86; this is a reached executable/CI
   tail closure, not a new top-level registry row.
-- Next executable rung: publish `b96276b0` plus this handoff-only successor,
-  then inspect the newly triggered clean GitHub Actions run. A 29/29 green
-  matrix closes this CI tail. If red, resume only from its first deterministic
-  failure; do not reopen general SoT, cache, shard, timeout, or memory-allowance
-  work.
+- Next executable rung: publish the derived-fact classification and this
+  refreshed handoff, then inspect the newly triggered clean GitHub Actions run.
+  A 29/29 green matrix closes this CI tail. If red, resume only from its first
+  deterministic failure; do not reopen general SoT, cache, shard, timeout, or
+  memory-allowance work.
 
 ### Historical archive boundary
 
