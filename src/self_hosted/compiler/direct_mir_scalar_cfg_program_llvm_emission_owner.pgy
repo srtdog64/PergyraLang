@@ -1,7 +1,6 @@
 // Range-aware LLVM projection for every routine in the scalar program GraphPlan.
 
 import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
-import "direct_mir_scalar_program_process_exit_owner.pgy";
 import "direct_mir_scalar_program_llvm_expression_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_operation_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_global_owner.pgy";
@@ -295,8 +294,9 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output,
         DirectMirScalarLlvmFormatPayload(string_line_format));
     TextBuilderAppend(output, "\\00\", align 1\n");
-    TextBuilderAppend(output, DirectMirScalarProgramLlvmStringGlobals(
-        plan.program.expressions));
+    let owned_string_globals: Array<String> = [DirectMirScalarProgramLlvmStringGlobals(plan.program.expressions)];
+    TextBuilderAppend(output, owned_string_globals[0]);
+    if owned_string_globals[0] != "" { ArrayDropOwnedStrings(owned_string_globals); }
     TextBuilderAppend(output,
         DirectMirScalarCfgLlvmForeignDeclarations(plan));
     TextBuilderAppend(output,

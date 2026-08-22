@@ -6,22 +6,27 @@ import "direct_mir_scalar_program_llvm_string_literal_owner.pgy";
 func DirectMirScalarProgramLlvmStringGlobals(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> String {
-    let output: String = "";
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(4096);
     let node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         if expressions.node_kinds[node] ==
                 DirectMirScalarProgramExprStringLiteral() {
             let literal: String = expressions.node_literals[node];
-            output = Concat(output, "@pgy.scalar.string.");
-            output = Concat(output, ToString(node));
-            output = Concat(output, " = private unnamed_addr constant [");
-            output = Concat(output, ToString(StringLength(literal) + 1));
-            output = Concat(output, " x i8] c\"");
-            output = Concat(output,
-                DirectMirScalarProgramLlvmStringLiteralPayload(literal));
-            output = Concat(output, "\\00\"\n");
+            TextBuilderAppend(output, "@pgy.scalar.string.");
+            TextBuilderAppend(output, ToString(node));
+            TextBuilderAppend(output, " = private unnamed_addr constant [");
+            TextBuilderAppend(output, ToString(StringLength(literal) + 1));
+            TextBuilderAppend(output, " x i8] c\"");
+            let owned_payload: Array<String> = [
+                DirectMirScalarProgramLlvmStringLiteralPayload(literal)];
+            TextBuilderAppend(output, owned_payload[0]);
+            if owned_payload[0] != "" { ArrayDropOwnedStrings(owned_payload); }
+            TextBuilderAppend(output, "\\00\"\n");
         }
         node = node + 1;
     }
-    return output;
+    let globals: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return globals;
 }

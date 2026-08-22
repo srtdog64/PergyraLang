@@ -17359,6 +17359,34 @@ require_function_text \
     "func DirectMirScalarProgramLlvmStringGlobals(" \
     "DirectMirScalarProgramLlvmStringLiteralPayload(literal)"
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringGlobals(" \
+    "let output: TextBuilder = TextBuilderNew(4096)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringGlobals(" \
+    "ArrayDropOwnedStrings(owned_payload)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringGlobals(" \
+    'if owned_payload[0] != ""'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringGlobals(" \
+    "TextBuilderFinish(output, output_allocator)"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_global_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringGlobals(" \
+    "output = Concat(output"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgEmitProgramLlvm(" \
+    "ArrayDropOwnedStrings(owned_string_globals)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgEmitProgramLlvm(" \
+    'if owned_string_globals[0] != ""'
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_owner.pgy" \
     "func DirectMirScalarProgramExpressionKindFactFromSource(" \
     "SubstringWithLen(text, length, 0, length - 1)"
