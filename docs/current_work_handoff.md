@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-22 (Asia/Seoul)
+Updated: 2026-08-23 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -12,61 +12,90 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - runtime-value ABI and Int32 parity publication
+## Active self-host context - production LLVM DRV-0 parity publication
 
 - The exact compiler-semantic checkpoint is
-  `4d892744e85282e17b73d38132ae45f33787b071` on `main`. This handoff is its
-  documentation-only successor. The worktree is clean except for the unrelated
-  untracked `pgy-80135c2c/`; do not stage, discard, or rewrite it. Ignored
-  `.tmp` compiler, C, LLVM, executable, and comparison artifacts are evidence
-  only.
-- Objective card: objective = make the reached runtime-value and
-  `CompilerArtifactWrite` calls consume one typed ABI identity through the
-  production C/LLVM projection while restoring the language-owned `Int` as a
-  signed 32-bit value; priority = semantic identity, ABI owner facts, fallback
-  deletion, negative ratchet, then patch size; fact owners = runtime-call ABI
-  row/identity/representation owners, the runtime-value parameter readiness and
-  LLVM storage owners, the compiler-artifact signature/readiness/projection
-  owners, and the Int literal/wrap/format owners; last consumers = scalar
-  callable admission and C/LLVM expression emission; forbidden = backend-local
-  runtime-call inference, an admitted call without an ABI row, a guessed
-  runtime-value parameter carriage, C `Int` formatted as 64-bit, or LLVM
-  arithmetic that escapes the signed-32-bit domain; falsifier = full direct-MIR
-  GraphPlan C/LLVM parity plus missing-row, invalid-carriage, out-of-range
-  literal, and lifecycle negatives, followed by the clean GitHub Actions matrix.
-- Runtime-call ABI rows now carry the reached allocator/runtime-value and
-  compiler-artifact identities through the structured manifest. Exact owners
-  admit, diagnose, and project runtime-value parameters and
-  `CompilerArtifactWrite` in C and LLVM. Host-I/O readiness no longer owns a
-  second projection policy, and owned `String` parameter admission consumes its
-  dedicated policy owner.
-- `Int` literals now fail closed outside `[-2147483648, 2147483647]`. LLVM keeps
-  its transitional widened carrier but normalizes add/subtract/multiply/negate
-  through `i32`; C uses the 32-bit line format while LLVM uses its widened
-  carrier format. `Long` remains signed 64-bit. GraphPlan schema identity is
-  `pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80`.
+  `108e4d4b5ea0dd837df8302daeaf15feaec498a7` on `main`. This handoff is its
+  documentation-only successor. After the successor commit, the worktree is
+  clean except for the unrelated untracked `pgy-80135c2c/`; do not stage,
+  discard, or rewrite it. Ignored `.tmp` compiler, MIR, C, LLVM, object,
+  executable, and comparison artifacts are evidence only.
+- Remote run `32579625870` at `3cdbb203` had 28 of 29 jobs green. The only red
+  job was `self-host-parity-linux`; its first deterministic failure was the
+  production LLVM DRV-0 compile at `CodegenExpressionUsageKnownGroup`, whose
+  admitted return type was `Result<Int>`. After closing that compile chain, the
+  reached runtime falsifier was `args_probe --emit-c`: projected call-return
+  type `Array<String>` existed, but the actual analysis row was absent because
+  LLVM read an obsolete logical-record parameter snapshot.
+- Objective card: objective = make the production self-host LLVM driver compile
+  and emit the same AST/C artifacts as the C driver for the complete DRV-0
+  manifest; priority = semantic and ABI identity, one mutable record storage,
+  fallback deletion, negative ratchet, then patch size; fact owners =
+  `Result<Int>` ABI capture/projection, builtin signature and runtime ABI facts,
+  logical-record declaration envelopes, expression admission LocalRefs, and
+  addressable logical-record parameter storage; last consumers = direct-MIR C
+  and LLVM signature/expression/materialization emission; forbidden = inferred
+  backend return ABI, passive logical-record shape rejection, eager nested
+  short-circuit predecessors, owner/member borrow guessing, or reading the
+  original SSA formal after an `inout` call updated its addressable storage;
+  falsifier = focused C/LLVM parity and negatives, exact production-MIR LLVM
+  validation, the 85-fixture DRV-0 C/LLVM gate, then the clean GitHub Actions
+  matrix.
+- Commit `108e4d4b` makes `Result<Int>`, `Bool.ToString`, indexed record
+  collection literals, mixed `Array<String>` carriage, owned `String` call
+  results, owner-handle logical-record borrows, nested short-circuit exits, and
+  runtime-value lifecycle requirements explicit in the direct-MIR plan. Missing
+  facts now report their owning stage instead of silently failing a generic
+  projection boundary. GraphPlan schema identity is
+  `pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80`; runtime-call ABI has 259
+  ordered rows.
+- Logical-record mutation now has one storage authority per routine. A
+  value-result formal with a declaration LocalRef is admitted as that LocalRef;
+  a formal without one keeps its sole `%pgy.param.N.local` storage. A by-value
+  logical record passed to an `inout` callee reads its existing addressable
+  `.local` copy after the call, not the obsolete SSA formal. The focused fixture
+  starts with an empty by-value record and proves both nested `inout`
+  publication and the later read; C/LLVM runtime parity and all mutations pass.
 - The final current-source Pergyra-built DRV-2 has SHA-256
-  `CF454C5607A2EC7AAA54786F54C1A8D3CA2D2D41CC11CF3376346B37B96C5166`.
-  With that exact driver, the complete
-  `self-host-direct-mir-scalar-graph-plan-test-smoke`, runtime-value lifecycle,
-  runtime-call ABI row parity, and gate-dashboard parity pass. The component
-  contract passes after aligning removed-path ratchets with the current invalid
-  mutations and retaining bounded owner-gate caps.
-- Native MIR tests pass 162/162. `runtime-abi-lifetime-test-smoke` and
-  `git diff --check` pass. Observed non-fatal warning debt is Clang 22's
-  deprecated `ATOMIC_VAR_INIT`, LLVM host target-triple override warnings, and
-  two generated-C unused-local warnings in the match-binding gate; none is
-  recorded as warning-clean evidence.
-- Next executable rung: publish this handoff successor, push `main`, and inspect
-  the newly triggered GitHub Actions run. A fully green matrix closes this CI
-  publication tail. If red, resume only from its first deterministic failure;
-  do not reopen general SoT, cache, shard, timeout, or memory-allowance work.
-  After green, evaluate CI duration separately: keep the required merge evidence
-  but avoid rebuilding the same self-host driver independently in every shard.
+  `48345ACA34A27EFA35ABA99919F2B083DEF0156B50A64CB025504309197499D1`.
+  `direct_mir_scalar_logical_record_value_result_owner.sh` passes C/LLVM plus
+  negatives. The exact 3,000-routine production MIR emits a 21,665,866-byte
+  LLVM artifact and Clang accepts it; the reached nested call uses
+  `%pgy.local.4965` and copy-out consumes that same storage.
+- `self-host-driver-rung0-parity-test-smoke` passes both C and LLVM for all 85
+  fixtures. The formerly failing `args_probe --emit-c` exits 0 with empty
+  stderr; its only byte diff from the C oracle is the comparator-approved final
+  blank line. `self-host-component-contract-test-smoke`, runtime-call ABI row
+  C-tool/LLVM-tool artifact parity, and `git diff --check` pass. The only
+  observed warning in the final production LLVM builds is the existing host
+  target-triple override warning; no warning-clean claim is made.
+- Bounded performance evidence: one production direct-MIR LLVM projection grew
+  to roughly 8.6-8.9 GB resident memory and the full local DRV-0 C/LLVM gate
+  took roughly 21 minutes before fixture completion. This is evidence for the
+  next CI-policy decision, not permission to add a cache, timeout, shard, or
+  memory allowance before naming the repeated owned operation.
+- Next executable rung: commit this handoff successor, push `main`, and inspect
+  the newly triggered GitHub Actions run. A fully green matrix closes this
+  publication tail. If red, resume only from its first deterministic failure.
+  After green, open a separate CI objective card for a main-only repository:
+  keep a fast required push gate, move the heavyweight full self-host parity to
+  a merge/scheduled/manual boundary unless it can reuse one admitted driver
+  artifact, and retain Linux self-host parity as release evidence rather than
+  rebuilding it independently after every small edit.
 
 ### Historical archive boundary
 
 Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - runtime-value ABI and Int32 parity publication (inactive)
+
+- Checkpoints `4d892744` and `3cdbb203` closed typed runtime-value and
+  `CompilerArtifactWrite` ABI identities, restored signed-32-bit `Int`
+  arithmetic/formatting, advanced GraphPlan to v80, and published the prior
+  handoff. Runtime-call ABI rows, runtime-value lifecycle, native MIR 162/162,
+  and the then-current component and dashboard gates were green. The subsequent
+  remote run reached the production LLVM DRV-0 failure now closed by the active
+  context; do not resume this earlier ABI card as an independent SoT queue.
 
 ## Previous self-host context - wrapper-policy parity tail publication (inactive)
 
