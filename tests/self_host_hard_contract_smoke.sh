@@ -506,15 +506,15 @@ forbid_text "src/self_hosted/mir/json_projection_owner.pgy" \
     'SelfMirJsonOwnedAbiLayoutForType('
 forbid_text "src/self_hosted/mir/instruction_json_artifact_writer_owner.pgy" \
     'SelfMirJsonOwnedAbiLayoutForType('
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-array-return-projection-test-smoke'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-array-argument-projection-test-smoke'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-array-param-projection-test-smoke'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-bool-logic-projection-test-smoke'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-struct-argument-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-struct-value-flow-projection-test-smoke: self-host-compiler'
@@ -532,11 +532,11 @@ require_text "src/self_hosted/compiler/direct_mir_struct_value_flow_plan_owner.p
     'independent_nominal_values_by_value'
 require_text "src/self_hosted/compiler/direct_mir_returned_array_program_route_owner.pgy" \
     'JsonArrayObjectFactCount(admitted.document.declarations) != 0'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-struct-value-flow-projection-test-smoke'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-option-struct-value-flow-projection-test-smoke'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-generic-struct-value-flow-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-generic-struct-value-flow-projection-test-smoke: self-host-compiler'
@@ -544,7 +544,7 @@ require_file \
     "tests/self_hosted/parity/one_mir_generic_struct_value_flow_projection.sh"
 require_file \
     "tests/self_hosted/parity/one_mir_generic_struct_value_flow_mutations.py"
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-inferred-generic-nominal-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-inferred-generic-nominal-projection-test-smoke: self-host-compiler'
@@ -558,7 +558,7 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_inferred_generic_nominal_plan_owner.pgy" \
     'inferred_generic_scalar_calls_into_nominal_value_by_value'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-inferred-generic-scalar-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-inferred-generic-scalar-projection-test-smoke: self-host-compiler'
@@ -575,7 +575,7 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_inferred_generic_scalar_plan_owner.pgy" \
     'mixed_lane_inferred_generic_return_assignment_by_value'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-inferred-generic-member-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-inferred-generic-member-projection-test-smoke: self-host-compiler'
@@ -583,9 +583,9 @@ require_file \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh"
 require_file \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py"
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-passive-nominal-literal-projection-test-smoke'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-mutable-nominal-identity-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-passive-nominal-literal-projection-test-smoke: self-host-compiler'
@@ -766,7 +766,7 @@ require_text \
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     'nominal_vessel.pgy|vessel|13'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-constructed-generic-member-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-constructed-generic-member-projection-test-smoke: self-host-compiler'
@@ -783,7 +783,7 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_generic_member_plan_owner.pgy" \
     'some_to_nested_member_option_to_checked_unwrap'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-constructed-array-member-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-constructed-array-member-projection-test-smoke: self-host-compiler'
@@ -797,7 +797,7 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_aggregate_value_flow_fact_owner.pgy" \
     'caller_owned_single_storage_nested_member_by_value'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-one-mir-constructed-record-array-member-projection-test-smoke'
 require_text "Makefile" \
     'self-host-one-mir-constructed-record-array-member-projection-test-smoke: self-host-compiler'
