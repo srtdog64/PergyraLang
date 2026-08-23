@@ -15,9 +15,10 @@ gate count do not increment either percentage by themselves.
 ## Active self-host context - post-DRV-0 CI restoration
 
 - The exact CI-restoration checkpoint is
-  `052ae5794693e7102e2f48bf05fb66464aa73632` on `main`; executable predecessor
-  `3e03d4887c76252c1b062fca7c73e1e60b8dabf4` closes the reached source-subset
-  dependencies and registry predecessor
+  `7e68b47ff5792598ceb04aca77161d8ec2a6ddd1` on `main`; likeness predecessor
+  `052ae5794693e7102e2f48bf05fb66464aa73632` classifies the reached terminal
+  LLVM projection, executable predecessor `3e03d4887c76252c1b062fca7c73e1e60b8dabf4`
+  closes the reached source-subset dependencies, and registry predecessor
   `0d69e2cdc254ca2b676659f4a34958ea7fb67f64` classifies their derived facts.
   This handoff is their documentation-only successor. After the successor
   commit, the worktree is
@@ -45,11 +46,13 @@ gate count do not increment either percentage by themselves.
 - Objective card: objective = restore the clean 29-job matrix after publishing
   the DRV-0 replacement without reopening general SoT work; priority = exact
   source admission, owner-directed borrow/ABI facts, generated-owner parity,
-  old-path ratchet, then patch size; fact owners = the direct-MIR program and
+  old-path ratchet, bounded observable CI execution, then patch size; fact
+  owners = the direct-MIR program and
   expression carriers, `MirAbiLayoutRowCapture`, the Result<Int> ABI fact,
   the builtin-signature fact owner, canonical ABI type identities, the terminal
   LLVM Option/Result spelling projection, and the language-keyword registry
-  generator; last consumers = native bootstrap source emission, installed
+  generator, plus the workflow job/profile timeout pair; last consumers =
+  native bootstrap source emission, installed
   intent-observability parity, exhaustive source-subset selfcheck, the authority
   edge and likeness gates, and the three platform preparation gates; forbidden
   = using reserved words as local binders, copying borrowed growable expression
@@ -57,10 +60,13 @@ gate count do not increment either percentage by themselves.
   grepping a former owner path, hand-editing generated inventory counts,
   omitting a subset's direct failure dependency, leaving a fact owner
   unclassified, raising the likeness ceiling, hiding a counted signature with
-  line layout, or granting a family-wide projection exemption; falsifier = full
+  line layout, granting a family-wide projection exemption, removing parity,
+  treating timeout cancellation as green, or reverting to GitHub's unbounded
+  default; falsifier = full
   pressure-owned driver fixpoint, installed intent-observability execution,
   C/LLVM exhaustive source selfcheck, authority/component/keyword ratchets,
-  exact likeness metrics, then the clean GitHub Actions matrix.
+  exact likeness metrics, parity continuation beyond driver rung0 within the
+  180-minute bound, then the clean GitHub Actions matrix.
 - Successor run `32622141371` at `b8b61e2c` reached 24 green jobs at the last
   pre-repair observation. `build-macos-c-only` passed the repaired authority
   edge gate, then found the next and only observed breach:
@@ -71,6 +77,15 @@ gate count do not increment either percentage by themselves.
   `direct_mir_scalar_program_llvm_option_result_type_owner.pgy` terminal ABI
   spelling projection introduced by the DRV-0 replacement, not a new AST/IR
   text-recovery path.
+- Run `32623093485` at `9d532ba4` completed with 28 successful jobs and one
+  cancelled job. Linux, Windows, macOS C-only, both bootstrap jobs,
+  sanitizers, TSan, Rocq, and all 20 backend shards passed. The sole
+  `self-host-parity-linux` job was cancelled by its exact 90-minute job timeout;
+  no assertion failed. Before cancellation it completed all 1,623 sources and
+  3,214 unique program-target checks with zero failures, passed incremental
+  cache/impact parity, 85-fixture C/LLVM codegen, initializer, generic return,
+  wrapper, collection, aggregate-field, and dashboard parity, then made eight
+  minutes of further progress inside `driver_rung0_parity.sh`.
 - Commit `7d3e3a4c` renames the reserved `tobject` and `local` binders, keeps
   expression reads attached to `plan.program.expressions` so their borrow does
   not escape, gives the admitted `MirAbiLayoutRowCapture` a named boundary,
@@ -86,6 +101,12 @@ gate count do not increment either percentage by themselves.
   the likeness gate. It does not raise the 76 ceiling or hide the signature by
   changing line layout. The same ratchet now preserves the already landed
   `Result`/`Option` surface by tightening `RESULT_USE_MIN` from 4,158 to 4,214.
+- Commit `7e68b47f` remeasures only the exhaustive parity hang budget from 90 to
+  180 minutes and makes `self_host_ci_profile_smoke.sh` reject drift from that
+  bound. It does not remove, skip, shard, or parallelize any parity gate and it
+  remains below GitHub's 360-minute default. The push-path placement and cold
+  build reuse are intentionally deferred until a green matrix supplies a clean
+  baseline.
 - The exact native production pipeline for `driver_bootstrap_main.pgy` emits C
   with 0 errors and three existing intent-`who` redundancy warnings; no
   warning-clean claim is made. `self-host-driver-bootstrap-full-test-smoke`
@@ -102,7 +123,9 @@ gate count do not increment either percentage by themselves.
   `CLOSED=49 BRIDGE=36 ACTIVE=1`. The
   focused `self_host_pergyra_likeness_smoke.sh` gate passes with
   `core_string_munge=76/76`, `result_use=4214/4214`, zero AST-as-string rows,
-  and no baseline-tightening warning. The
+  and no baseline-tightening warning. `self_host_ci_profile_smoke.sh` passes
+  with the 180-minute parity budget and the unchanged 60/30/90-minute
+  bootstrap/codegen-bootstrap/Windows budgets. The
   component inventory gate took several minutes locally and the intent gate
   rebuilt codegen/bootstrap artifacts before installing DRV-2; these are
   measured CI-cost signals, not authorization to add a cache or weaken parity.
