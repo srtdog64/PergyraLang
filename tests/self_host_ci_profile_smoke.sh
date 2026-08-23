@@ -7,6 +7,7 @@ LINUX_STEPS="$ROOT_DIR/scripts/ci_linux_steps.sh"
 MACOS_STEPS="$ROOT_DIR/scripts/ci_macos_steps.sh"
 WINDOWS_STEPS="$ROOT_DIR/scripts/ci_windows_steps.sh"
 WORKFLOW="$ROOT_DIR/.github/workflows/ci.yml"
+PARITY_WORKFLOW="$ROOT_DIR/.github/workflows/self_host_parity.yml"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
 
 for file in \
@@ -15,6 +16,7 @@ for file in \
     "$MACOS_STEPS" \
     "$WINDOWS_STEPS" \
     "$WORKFLOW" \
+    "$PARITY_WORKFLOW" \
     "$DRIVER_BOOTSTRAP"; do
     if [[ ! -f "$file" ]]; then
         echo "[self-host-ci-profile] missing input: $file" >&2
@@ -95,6 +97,7 @@ fi
 require_job_timeout() {
     local job="$1"
     local expected="$2"
+    local workflow="${3:-$WORKFLOW}"
     local actual
     actual="$(awk -v job="$job" '
         $0 == "  " job ":" { in_job = 1; next }
@@ -105,14 +108,14 @@ require_job_timeout() {
             print
             exit
         }
-    ' "$WORKFLOW")"
+    ' "$workflow")"
     if [[ "$actual" != "$expected" ]]; then
         echo "[self-host-ci-profile] $job timeout drifted: expected $expected, got ${actual:-missing}" >&2
         exit 1
     fi
 }
 
-require_job_timeout "self-host-parity-linux" 180
+require_job_timeout "self-host-parity-linux" 180 "$PARITY_WORKFLOW"
 require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "build-windows" 90
@@ -131,8 +134,8 @@ fi
 
 self_host_parity_job="$(
     sed -n \
-        '/^  self-host-parity-linux:/,/^  self-host-bootstrap-linux:/p' \
-        "$WORKFLOW"
+        '/^  self-host-parity-linux:/,$p' \
+        "$PARITY_WORKFLOW"
 )"
 if [[ "$(grep -Ec '^[[:space:]]+make ' <<<"$self_host_parity_job")" != "1" ]] ||
     ! grep -Fq 'make release' <<<"$self_host_parity_job"; then
@@ -151,13 +154,26 @@ for steps in "$LINUX_STEPS" "$MACOS_STEPS" "$WINDOWS_STEPS"; do
     fi
 done
 
+if grep -Fq 'self-host-parity-linux:' "$WORKFLOW"; then
+    echo "[self-host-ci-profile] exhaustive parity leaked back onto every main push" >&2
+    exit 1
+fi
+
+for forbidden in 'pull_request:' 'branches:'; do
+    if grep -Fq "$forbidden" "$PARITY_WORKFLOW"; then
+        echo "[self-host-ci-profile] exhaustive parity regained a per-branch trigger: $forbidden" >&2
+        exit 1
+    fi
+done
+
 for required in \
     'self-host-parity-linux:' \
-    'self-host-bootstrap-linux:' \
-    'self-host-codegen-bootstrap-linux:' \
-    'timeout-minutes: 90' \
-    'timeout-minutes: 60' \
-    'timeout-minutes: 30' \
+    'workflow_dispatch:' \
+    'schedule:' \
+    "cron: '0 18 * * 0'" \
+    'tags:' \
+    "- 'v*'" \
+    'timeout-minutes: 180' \
     'make release' \
     'self-host-hard-contract-test-smoke' \
     'self-host-intent-observability-runtime-test-smoke' \
@@ -167,6 +183,19 @@ for required in \
     'self-host-routine-build-storage-lifetime-test-smoke' \
     'self-host-direct-mir-scalar-graph-plan-test-smoke' \
     'self-host-public-mir-json-replacement-test-smoke' \
+    'cancel-in-progress: true'; do
+    if ! grep -Fq -- "$required" "$PARITY_WORKFLOW"; then
+        echo "[self-host-ci-profile] scheduled/manual/release parity proof missing: $required" >&2
+        exit 1
+    fi
+done
+
+for required in \
+    'self-host-bootstrap-linux:' \
+    'self-host-codegen-bootstrap-linux:' \
+    'timeout-minutes: 90' \
+    'timeout-minutes: 60' \
+    'timeout-minutes: 30' \
     'run: make self-host-codegen-bootstrap-test-smoke' \
     'make self-host-driver-bootstrap-full-test-smoke' \
     'bash tests/selfhost_bootstrap_policy_corpus_smoke.sh' \
