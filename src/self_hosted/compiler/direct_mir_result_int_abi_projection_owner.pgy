@@ -2,6 +2,7 @@
 
 import "direct_mir_result_int_abi_fact_owner.pgy";
 import "target_projection_fact_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirResultIntAbiProjection {
     let valid: Bool;

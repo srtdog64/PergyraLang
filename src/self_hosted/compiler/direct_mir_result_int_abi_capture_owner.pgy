@@ -1,6 +1,7 @@
 // One-way projection from the admitted MIR layout into Result<Int> ABI facts.
 
 import "direct_mir_result_int_abi_fact_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 func DirectMirResultIntAbiFactFromCapture(
     own row: MirAbiLayoutRowCapture
