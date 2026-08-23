@@ -28,7 +28,7 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
     let end: Int = declarations.ends[declaration_row];
     let declaration_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         json, start, end);
-    let tobject: Bool = declarations.kinds[declaration_row] == "tobject";
+    let is_tobject: Bool = declarations.kinds[declaration_row] == "tobject";
     let keys: Array<String> = [
         "kind", "nominal_kind", "name", "source_syntax_id",
         "source_module_path", "fields", "abi_layout_id",
@@ -36,7 +36,7 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
     ];
     let starts: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
     let ends: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
-    if tobject {
+    if is_tobject {
         keys = ["kind", "nominal_kind", "name", "source_syntax_id",
             "source_module_path", "fields", "methods"];
         starts = [-1, -1, -1, -1, -1, -1, -1];
@@ -67,7 +67,7 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
         ToInt(UnwrapOption(syntax)) <= 0 {
         return invalid;
     }
-    if tobject {
+    if is_tobject {
         if !SubEqualsWithLen(json, ends[6], starts[6], 2, "[]") {
             return invalid;
         }

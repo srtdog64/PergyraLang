@@ -114,13 +114,14 @@ grep -Fq 'DirectMirLiteralLogRouteClaimed(admitted)' \
     fail "generic one-instruction literal fallback returned"
 BUILTIN_CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_call_owner.pgy"
 BUILTIN_SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy"
+BUILTIN_SIGNATURE_FACT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_fact_owner.pgy"
 grep -Fq 'sequence.arena.identities.runtime_call_abi_ids[node]' \
     "$BUILTIN_CALL_OWNER" ||
     fail "direct MIR builtin call stopped consuming the carried ABI ID"
 grep -Fq 'signature.runtime_call_abi_id' \
     "$BUILTIN_CALL_OWNER" ||
     fail "direct MIR builtin call stopped cross-sealing the carried ABI ID"
-grep -Fq 'let runtime_call_abi_id: Int;' "$BUILTIN_SIGNATURE_OWNER" ||
+grep -Fq 'let runtime_call_abi_id: Int;' "$BUILTIN_SIGNATURE_FACT_OWNER" ||
     fail "builtin signature fact stopped owning the canonical ABI ID"
 ! grep -Fq 'IntentObservabilityAbiRowForSource(' "$BUILTIN_CALL_OWNER" ||
     fail "direct MIR builtin call reintroduced observability name lookup"

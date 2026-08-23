@@ -31,30 +31,33 @@ func DirectMirScalarCfgProgramDefinitionReadinessFailed(
                 detail = Concat(detail, Concat(" expression=", ToString(expression)));
                 if expression >= 0 && expression <
                         ArrayLength(plan.program.expressions.graph_roots) {
-                    let facts: DirectMirScalarProgramExpressionSet =
-                        plan.program.expressions;
-                    let root: Int = facts.graph_roots[expression];
-                    let start: Int = facts.graph_starts[expression];
-                    let end: Int = start + facts.graph_counts[expression];
+                    let root: Int =
+                        plan.program.expressions.graph_roots[expression];
+                    let start: Int =
+                        plan.program.expressions.graph_starts[expression];
+                    let end: Int = start +
+                        plan.program.expressions.graph_counts[expression];
                     detail = Concat(detail, Concat(" root=", ToString(root)));
                     detail = Concat(detail, Concat(" root_kind=",
-                        ToString(facts.node_kinds[root])));
+                        ToString(plan.program.expressions.node_kinds[root])));
                     detail = Concat(detail, Concat(" root_type=",
-                        facts.node_types[root]));
+                        plan.program.expressions.node_types[root]));
                     let node: Int = start;
                     while node < end {
                         if !DirectMirScalarCfgProgramExpressionIdentityReady(
-                                plan, facts, node, routine, start) {
+                                plan, plan.program.expressions, node, routine,
+                                start) {
                             detail = Concat(detail, Concat(" node=", ToString(node)));
                             detail = Concat(detail, Concat(" node_kind=",
-                                ToString(facts.node_kinds[node])));
+                                ToString(plan.program.expressions.node_kinds[node])));
                             detail = Concat(detail, Concat(" node_type=",
-                                facts.node_types[node]));
-                            if facts.node_kinds[node] ==
+                                plan.program.expressions.node_types[node]));
+                            if plan.program.expressions.node_kinds[node] ==
                                     DirectMirScalarProgramExprDirectCall() {
                                 detail = Concat(detail,
                                     DirectMirScalarCfgProgramDirectCallFailureDetail(
-                                        plan, facts, node, routine, start));
+                                        plan, plan.program.expressions, node,
+                                        routine, start));
                             }
                             Die(detail);
                         }

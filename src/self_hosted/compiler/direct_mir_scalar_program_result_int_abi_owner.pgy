@@ -25,8 +25,9 @@ func DirectMirScalarProgramResultIntAbiFromInstruction(
     if !IsSome(admitted) {
         Die("direct MIR scalar program Result<Int> ABI receipt is missing");
     }
+    let admitted_row: MirAbiLayoutRowCapture = UnwrapOption(admitted);
     let next: DirectMirResultIntAbiFact =
-        DirectMirResultIntAbiFactFromCapture(UnwrapOption(admitted));
+        DirectMirResultIntAbiFactFromCapture(admitted_row);
     if current.valid && (current.layout_id != next.layout_id ||
         current.digest != next.digest) {
         Die("direct MIR scalar program Result<Int> ABI owners disagree");
