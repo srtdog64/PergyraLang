@@ -161,9 +161,12 @@ if [[ "$(grep -Ec '^[[:space:]]+make ' <<<"$self_host_parity_job")" != "1" ]] ||
 fi
 
 for steps in "$LINUX_STEPS" "$MACOS_STEPS" "$WINDOWS_STEPS"; do
-    if ! grep -Fq 'make -j5' "$steps" ||
-        ! grep -Fq 'self-host-preparation-platform-test-smoke' "$steps"; then
+    if ! grep -Fq 'self-host-preparation-platform-test-smoke' "$steps"; then
         echo "[self-host-ci-profile] platform profile missing from $steps" >&2
+        exit 1
+    fi
+    if grep -Eq 'make[[:space:]]+-j[0-9]+' "$steps"; then
+        echo "[self-host-ci-profile] platform profile must not oversubscribe one fixed-size runner in $steps" >&2
         exit 1
     fi
     if grep -Fq ' self-host-preparation-test-smoke' "$steps"; then
