@@ -14,9 +14,11 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - post-DRV-0 CI restoration
 
-- The exact compiler-semantic checkpoint is
-  `7d3e3a4cebe397a6828a685d1d8bf4bca4af52b0` on `main`. This handoff is its
-  documentation-only successor. After the successor commit, the worktree is
+- The exact executable checkpoint is
+  `3e03d4887c76252c1b062fca7c73e1e60b8dabf4` on `main`; registry successor
+  `0d69e2cdc254ca2b676659f4a34958ea7fb67f64` classifies the reached derived
+  facts. This handoff is their documentation-only successor. After the
+  successor commit, the worktree is
   clean except for the unrelated untracked `pgy-80135c2c/`; do not stage,
   discard, rewrite, or scan it as project evidence. Ignored `.tmp` compiler,
   MIR, C, executable, comparison, and build-pressure artifacts are evidence
@@ -29,25 +31,42 @@ gate count do not increment either percentage by themselves.
   and `build-macos-c-only` each failed the same generated language-word
   implementation inventory drift check. These are three concrete causes, not
   five independent compiler failures.
+- Successor run `32620633001` at `904a69b7` reached 25 green jobs at the last
+  pre-repair observation. Full bootstrap, codegen bootstrap, sanitizers, TSan,
+  Rocq, and all 20 backend shards passed. `self-host-parity-linux` then reached
+  source 375/1,623 and found that the new Result<Int> ABI capture/projection
+  subsets lacked their direct `Die` declaration dependency.
+  `build-macos-c-only` reached `sot_authority_edge_smoke.sh` and found that the
+  Result<Int> ABI fact and builtin-signature fact lacked derived-carrier
+  classifications. `build-linux` and `build-windows` were still active at that
+  observation; no result is claimed for them.
 - Objective card: objective = restore the clean 29-job matrix after publishing
   the DRV-0 replacement without reopening general SoT work; priority = exact
   source admission, owner-directed borrow/ABI facts, generated-owner parity,
   old-path ratchet, then patch size; fact owners = the direct-MIR program and
-  expression carriers, `MirAbiLayoutRowCapture`, the builtin-signature fact
-  owner, and the language-keyword registry generator; last consumers = native
-  bootstrap source emission, installed intent-observability parity, and the
-  three platform preparation gates; forbidden = using reserved words as local
+  expression carriers, `MirAbiLayoutRowCapture`, the Result<Int> ABI fact,
+  the builtin-signature fact owner, and the language-keyword registry generator;
+  last consumers = native bootstrap source emission, installed
+  intent-observability parity, exhaustive source-subset selfcheck, the authority
+  edge gate, and the three platform preparation gates; forbidden = using reserved words as local
   binders, copying borrowed growable expression storage into an escaping local,
   unnamed ownership-boundary unwrapping, grepping a former owner path, or
-  hand-editing generated inventory counts; falsifier = full pressure-owned
-  driver fixpoint, installed intent-observability execution, component and
-  keyword ratchets, then the clean GitHub Actions matrix.
+  hand-editing generated inventory counts, omitting a subset's direct failure
+  dependency, or leaving a fact owner unclassified; falsifier = full
+  pressure-owned driver fixpoint, installed intent-observability execution,
+  C/LLVM exhaustive source selfcheck, authority/component/keyword ratchets,
+  then the clean GitHub Actions matrix.
 - Commit `7d3e3a4c` renames the reserved `tobject` and `local` binders, keeps
   expression reads attached to `plan.program.expressions` so their borrow does
   not escape, gives the admitted `MirAbiLayoutRowCapture` a named boundary,
   points the intent-observability ratchet at the current builtin-signature fact
   owner, and regenerates the language-word implementation inventory from its
   registry owner. No compatibility read or backend fallback was added.
+- Commit `3e03d488` gives both Result<Int> ABI subset owners the same direct
+  failure dependency already used by the neighboring Option ABI owners.
+  Registry successor `0d69e2cd` classifies their Result ABI and builtin
+  signature facts as projections of existing families; it creates no new
+  authority and changes no CLOSED/BRIDGE/ACTIVE status.
 - The exact native production pipeline for `driver_bootstrap_main.pgy` emits C
   with 0 errors and three existing intent-`who` redundancy warnings; no
   warning-clean claim is made. `self-host-driver-bootstrap-full-test-smoke`
@@ -58,6 +77,10 @@ gate count do not increment either percentage by themselves.
 - `self-host-intent-observability-runtime-test-smoke` passes through installed
   C/LLVM runtime execution. `self-host-component-contract-test-smoke`,
   `language_keyword_registry_smoke.sh`, and `git diff --check` pass. The
+  identical C-built and LLVM-built semantic checkers each accept all 1,623
+  owner-selected production source targets. `sot_authority_edge_smoke.sh`
+  passes with 86 authorities, 171 derived fact carriers, and status census
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`. The
   component inventory gate took several minutes locally and the intent gate
   rebuilt codegen/bootstrap artifacts before installing DRV-2; these are
   measured CI-cost signals, not authorization to add a cache or weaken parity.
