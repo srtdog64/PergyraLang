@@ -327,7 +327,11 @@ SENTINEL_MAX=24
 # Option<Int>/Option<String> rows instead of '-1'/empty-string sentinels.
 # 4157 -> 4158 (2026-08-21): direct-MIR payload-free enum match admission now
 # returns typed absence when the semantic match condition cannot be admitted.
-RESULT_USE_MIN=4158
+# 4158 -> 4214 (2026-08-23): the LLVM driver rung0 replacement added explicit
+# Result<Int, String> ABI facts and typed readiness diagnostics. Preserve that
+# landed errors-as-data surface while the final LLVM spelling projection stays
+# outside the text-recovery inventory below.
+RESULT_USE_MIN=4214
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=20
 # The import closure declares 20 resource-zone types, but the runtime world
@@ -355,11 +359,12 @@ COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
 TYPED_AST_CONTRACT_MIN=1
 
 TEXT_DOMAIN_EXCLUDE_RE='^src/self_hosted/lib/(json(_emit)?|diagnostic)\.pgy$'
-# Canonical nominal/MIR field-kind label functions and the exact typed
-# GraphPlan-to-LLVM array mutation sink are bounded final projections, not
-# AST/IR text recovery. Keep them outside the text-munging metric without
-# giving their consumer families a wildcard exemption.
-CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path|nominal_field_kind_owner|mir_decl_field_kind_vocabulary_projection_owner)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/(literal_rewrite|expression_c_text_materialization_owner)\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner|abi_layout_row_owner|runtime_call_abi_row_owner|machine_layer_.*|direct_mir_scalar_program_option_bool_builtin_signature_owner|direct_mir_scalar_program_llvm_array_mutation_owner)\.pgy$|^src/self_hosted/mir/abi_layout_json_projection_owner\.pgy$|^src/self_hosted/mir_lower/json_fact_read\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
+# Canonical nominal/MIR field-kind label functions, the scalar Option/Result
+# LLVM ABI spelling projection, and the exact typed GraphPlan-to-LLVM array
+# mutation sink are bounded final projections, not AST/IR text recovery. Keep
+# them outside the text-munging metric without giving their consumer families a
+# wildcard exemption.
+CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path|nominal_field_kind_owner|mir_decl_field_kind_vocabulary_projection_owner)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/(literal_rewrite|expression_c_text_materialization_owner)\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner|abi_layout_row_owner|runtime_call_abi_row_owner|machine_layer_.*|direct_mir_scalar_program_option_bool_builtin_signature_owner|direct_mir_scalar_program_llvm_array_mutation_owner|direct_mir_scalar_program_llvm_option_result_type_owner)\.pgy$|^src/self_hosted/mir/abi_layout_json_projection_owner\.pgy$|^src/self_hosted/mir_lower/json_fact_read\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
 # Direct-MIR's admitted flat schema uses -1 as an explicit absence value; it
 # does not signal a hidden function failure.  Keep the exemption bounded to
 # that owner family and the exact typed vocabulary/MIR projection owners whose
