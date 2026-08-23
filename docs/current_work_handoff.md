@@ -12,80 +12,77 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - production LLVM DRV-0 parity publication
+## Active self-host context - post-DRV-0 CI restoration
 
 - The exact compiler-semantic checkpoint is
-  `108e4d4b5ea0dd837df8302daeaf15feaec498a7` on `main`. This handoff is its
+  `7d3e3a4cebe397a6828a685d1d8bf4bca4af52b0` on `main`. This handoff is its
   documentation-only successor. After the successor commit, the worktree is
   clean except for the unrelated untracked `pgy-80135c2c/`; do not stage,
-  discard, or rewrite it. Ignored `.tmp` compiler, MIR, C, LLVM, object,
-  executable, and comparison artifacts are evidence only.
-- Remote run `32579625870` at `3cdbb203` had 28 of 29 jobs green. The only red
-  job was `self-host-parity-linux`; its first deterministic failure was the
-  production LLVM DRV-0 compile at `CodegenExpressionUsageKnownGroup`, whose
-  admitted return type was `Result<Int>`. After closing that compile chain, the
-  reached runtime falsifier was `args_probe --emit-c`: projected call-return
-  type `Array<String>` existed, but the actual analysis row was absent because
-  LLVM read an obsolete logical-record parameter snapshot.
-- Objective card: objective = make the production self-host LLVM driver compile
-  and emit the same AST/C artifacts as the C driver for the complete DRV-0
-  manifest; priority = semantic and ABI identity, one mutable record storage,
-  fallback deletion, negative ratchet, then patch size; fact owners =
-  `Result<Int>` ABI capture/projection, builtin signature and runtime ABI facts,
-  logical-record declaration envelopes, expression admission LocalRefs, and
-  addressable logical-record parameter storage; last consumers = direct-MIR C
-  and LLVM signature/expression/materialization emission; forbidden = inferred
-  backend return ABI, passive logical-record shape rejection, eager nested
-  short-circuit predecessors, owner/member borrow guessing, or reading the
-  original SSA formal after an `inout` call updated its addressable storage;
-  falsifier = focused C/LLVM parity and negatives, exact production-MIR LLVM
-  validation, the 85-fixture DRV-0 C/LLVM gate, then the clean GitHub Actions
-  matrix.
-- Commit `108e4d4b` makes `Result<Int>`, `Bool.ToString`, indexed record
-  collection literals, mixed `Array<String>` carriage, owned `String` call
-  results, owner-handle logical-record borrows, nested short-circuit exits, and
-  runtime-value lifecycle requirements explicit in the direct-MIR plan. Missing
-  facts now report their owning stage instead of silently failing a generic
-  projection boundary. GraphPlan schema identity is
-  `pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80`; runtime-call ABI has 259
-  ordered rows.
-- Logical-record mutation now has one storage authority per routine. A
-  value-result formal with a declaration LocalRef is admitted as that LocalRef;
-  a formal without one keeps its sole `%pgy.param.N.local` storage. A by-value
-  logical record passed to an `inout` callee reads its existing addressable
-  `.local` copy after the call, not the obsolete SSA formal. The focused fixture
-  starts with an empty by-value record and proves both nested `inout`
-  publication and the later read; C/LLVM runtime parity and all mutations pass.
-- The final current-source Pergyra-built DRV-2 has SHA-256
-  `48345ACA34A27EFA35ABA99919F2B083DEF0156B50A64CB025504309197499D1`.
-  `direct_mir_scalar_logical_record_value_result_owner.sh` passes C/LLVM plus
-  negatives. The exact 3,000-routine production MIR emits a 21,665,866-byte
-  LLVM artifact and Clang accepts it; the reached nested call uses
-  `%pgy.local.4965` and copy-out consumes that same storage.
-- `self-host-driver-rung0-parity-test-smoke` passes both C and LLVM for all 85
-  fixtures. The formerly failing `args_probe --emit-c` exits 0 with empty
-  stderr; its only byte diff from the C oracle is the comparator-approved final
-  blank line. `self-host-component-contract-test-smoke`, runtime-call ABI row
-  C-tool/LLVM-tool artifact parity, and `git diff --check` pass. The only
-  observed warning in the final production LLVM builds is the existing host
-  target-triple override warning; no warning-clean claim is made.
-- Bounded performance evidence: one production direct-MIR LLVM projection grew
-  to roughly 8.6-8.9 GB resident memory and the full local DRV-0 C/LLVM gate
-  took roughly 21 minutes before fixture completion. This is evidence for the
-  next CI-policy decision, not permission to add a cache, timeout, shard, or
-  memory allowance before naming the repeated owned operation.
+  discard, rewrite, or scan it as project evidence. Ignored `.tmp` compiler,
+  MIR, C, executable, comparison, and build-pressure artifacts are evidence
+  only.
+- Remote run `32617137438` at `0b2a6b1e` completed with 24 of 29 jobs green.
+  `self-host-bootstrap-linux` stopped while the production driver source was
+  parsed and semantically admitted. `self-host-parity-linux` completed the
+  installed runtime execution but its final structural assertion still read
+  the former builtin-signature projection file. `build-linux`, `build-windows`,
+  and `build-macos-c-only` each failed the same generated language-word
+  implementation inventory drift check. These are three concrete causes, not
+  five independent compiler failures.
+- Objective card: objective = restore the clean 29-job matrix after publishing
+  the DRV-0 replacement without reopening general SoT work; priority = exact
+  source admission, owner-directed borrow/ABI facts, generated-owner parity,
+  old-path ratchet, then patch size; fact owners = the direct-MIR program and
+  expression carriers, `MirAbiLayoutRowCapture`, the builtin-signature fact
+  owner, and the language-keyword registry generator; last consumers = native
+  bootstrap source emission, installed intent-observability parity, and the
+  three platform preparation gates; forbidden = using reserved words as local
+  binders, copying borrowed growable expression storage into an escaping local,
+  unnamed ownership-boundary unwrapping, grepping a former owner path, or
+  hand-editing generated inventory counts; falsifier = full pressure-owned
+  driver fixpoint, installed intent-observability execution, component and
+  keyword ratchets, then the clean GitHub Actions matrix.
+- Commit `7d3e3a4c` renames the reserved `tobject` and `local` binders, keeps
+  expression reads attached to `plan.program.expressions` so their borrow does
+  not escape, gives the admitted `MirAbiLayoutRowCapture` a named boundary,
+  points the intent-observability ratchet at the current builtin-signature fact
+  owner, and regenerates the language-word implementation inventory from its
+  registry owner. No compatibility read or backend fallback was added.
+- The exact native production pipeline for `driver_bootstrap_main.pgy` emits C
+  with 0 errors and three existing intent-`who` redundancy warnings; no
+  warning-clean claim is made. `self-host-driver-bootstrap-full-test-smoke`
+  passes under the Windows pressure owner in 1,454,109 ms with 2.164 GiB peak
+  working set and 2.373 GiB peak private memory, below its 3 GiB limit. The
+  current installed Pergyra-built DRV-2 SHA-256 is
+  `ABB4338ED952E8C5AC079D7C116703B4F8D4264D8F1A3525C61BA2CB8C23CAB4`.
+- `self-host-intent-observability-runtime-test-smoke` passes through installed
+  C/LLVM runtime execution. `self-host-component-contract-test-smoke`,
+  `language_keyword_registry_smoke.sh`, and `git diff --check` pass. The
+  component inventory gate took several minutes locally and the intent gate
+  rebuilt codegen/bootstrap artifacts before installing DRV-2; these are
+  measured CI-cost signals, not authorization to add a cache or weaken parity.
 - Next executable rung: commit this handoff successor, push `main`, and inspect
-  the newly triggered GitHub Actions run. A fully green matrix closes this
-  publication tail. If red, resume only from its first deterministic failure.
-  After green, open a separate CI objective card for a main-only repository:
-  keep a fast required push gate, move the heavyweight full self-host parity to
-  a merge/scheduled/manual boundary unless it can reuse one admitted driver
-  artifact, and retain Linux self-host parity as release evidence rather than
-  rebuilding it independently after every small edit.
+  the newly triggered GitHub Actions run. A fully green 29-job matrix closes
+  this restoration tail. If red, resume only from its first deterministic
+  failure. After green, open a separate CI objective card for this main-only
+  repository: eliminate the 20 backend shards' repeated driver build through
+  one admitted portable artifact if proven, keep a fast push gate, and retain
+  Linux self-host parity as scheduled/manual/release evidence rather than
+  paying the full fixed-point cost after every small edit.
 
 ### Historical archive boundary
 
 Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - production LLVM DRV-0 parity publication (inactive)
+
+- Checkpoint `108e4d4b5ea0dd837df8302daeaf15feaec498a7` closed the
+  production DRV-0 `Result<Int>`, logical-record value-result storage, nested
+  short-circuit, runtime-value lifecycle, and C/LLVM parity chain. Its focused
+  value-result negatives, exact 3,000-routine LLVM validation, and all 85 DRV-0
+  C/LLVM fixtures passed. The following publication exposed only the active CI
+  restoration causes above; do not reopen this semantic chain as an independent
+  SoT queue.
 
 ## Previous self-host context - runtime-value ABI and Int32 parity publication (inactive)
 
