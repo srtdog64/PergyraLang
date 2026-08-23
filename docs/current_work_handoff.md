@@ -15,11 +15,12 @@ gate count do not increment either percentage by themselves.
 ## Active self-host context - bounded push feedback and safe full-platform proof
 
 - The exact CI-topology checkpoint is
-  `1ce15a583d15351f93c39a07a44c3062b0880470` on local `main`; this handoff is
+  `65e98896db3f1b76690beacc8be666404ddaa390` on local `main`; this handoff is
   its documentation-only successor. Predecessor `103f2e0b` splits branch
-  feedback from the full native-platform ladder. The current checkpoint keeps
-  that split but removes fixed-runner `make -j5` oversubscription after remote
-  measurement falsified its wall-time benefit. After publication the worktree
+  feedback from the full native-platform ladder, and predecessor `1ce15a58`
+  removes fixed-runner `make -j5` oversubscription after remote measurement
+  falsified it as a sound default. The current checkpoint gives the measured
+  Linux full proof a bounded timeout margin. After publication the worktree
   should be clean except for the unrelated untracked `pgy-80135c2c/`; do not
   stage, discard, rewrite, or scan it as project evidence.
 - Last green remote baseline: CI run `32633975124` completed all 28 jobs at
@@ -53,7 +54,9 @@ gate count do not increment either percentage by themselves.
   full workflow. Fast timeouts are 25/35/20 minutes for Linux/Windows/macOS.
 - `Platform full` owns the unchanged `ci-linux`, `ci-windows`, and `ci-macos`
   commands, the existing declared Coq skips on Windows/macOS, and the existing
-  60/90/45-minute hang budgets. It runs manually, Sunday 15:00 UTC, and for
+  75/90/45-minute hang budgets. Linux uses 75 minutes because the first clean
+  serial full run consumed 59m20; Windows/macOS retain measured 90/45-minute
+  margins. It runs manually, Sunday 15:00 UTC, and for
   `v*` tags, before the separate Sunday 18:00 UTC exhaustive self-host parity
   workflow. No full proof was made advisory or deleted.
 - The preparation aggregate still exposes contract, parser, semantic, codegen,
@@ -74,6 +77,11 @@ gate count do not increment either percentage by themselves.
   checkpoint restores the aggregate's serial invocation on all three platforms
   and the CI profile gate rejects a reintroduced in-runner `make -jN` call. No
   all-green full-workflow PASS is claimed for the superseded run.
+- Current serial full evidence is green: manually dispatched run `32649263604`
+  completed all three jobs at `bf1d190b`. macOS took 29m09, Linux 59m20, and
+  Windows 73m12. The Linux result left only 40 seconds under the original
+  60-minute timeout, so checkpoint `65e98896` raises that hang budget to 75
+  minutes without changing, skipping, retrying, or weakening any proof.
 - Focused local evidence is green: the CI profile, build source inventory,
   beta readiness checklist, documentation quality gate, Windows filesystem
   walk, AIR erasure dashboard, semantic fixture isolation, and the explicit
@@ -87,24 +95,24 @@ gate count do not increment either percentage by themselves.
   absence of `make -jN` in the three full scripts, and `git diff --check` are
   green. A combined broad inventory dry-run was stopped rather than allowing it
   to scan the unrelated user-owned `pgy-80135c2c/` tree.
-- Remote main run `32643197814` at `2c4ea78d` is green 28/28 with a 20m20
-  critical path. The fast platform jobs are Linux 14m40, Windows 8m34, and
-  macOS 1m38, versus 40m24, 77m42, and 21m36 in the prior full-on-push
-  baseline. The new `Platform full` workflow did not branch-trigger; run
-  `32644271941` was the explicit manual dispatch described above.
+- Remote main run `32649259745` at `bf1d190b` is green 28/28 with a 23m40
+  critical path while the serial full workflow was also running. Its fast
+  platform jobs are Linux 14m59, Windows 9m18, and macOS 1m53, versus 40m24,
+  77m42, and 21m36 in the prior full-on-push baseline. The preceding isolated
+  fast run `32648096195` completed in 19m26. `Platform full` did not
+  branch-trigger; run `32649263604` was the explicit manual dispatch described
+  above.
 - The active semantic rung remains DRV-1 payload-bearing artifact-outcome LLVM
   support and its Begin/Commit/Abort calls. This CI topology work changes no
   compiler semantic owner and counts as blocker removal, not self-host
   substitution progress. Project progress therefore remains 78% overall,
   strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-- Next executable rung: commit this handoff and push `main`, require the 28-job
-  fast workflow to remain green, confirm no full workflow branch trigger, then
-  manually dispatch the restored serial `Platform full` once. Resume from a
-  deterministic test failure if one appears; a concurrency replacement is not
-  a test failure and must not be relabelled green. Once both CI boundaries
-  are verified, return to the DRV-1 focused falsifier. Further full-performance
-  work must first measure repeated compiler construction inside the reached
-  driver owner; do not add more workers, shards, or caches from this run alone.
+- Next executable rung: commit this handoff, push `main`, require the final
+  28-job fast workflow to remain green, then return directly to the DRV-1
+  focused falsifier. Both CI boundaries are otherwise verified. Further
+  full-performance work must first measure repeated compiler construction
+  inside the reached driver owner; do not add more workers, shards, or caches
+  from this run alone.
 
 ### Historical archive boundary
 
