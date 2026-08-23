@@ -112,7 +112,7 @@ require_job_timeout() {
     fi
 }
 
-require_job_timeout "self-host-parity-linux" 90
+require_job_timeout "self-host-parity-linux" 180
 require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "build-windows" 90

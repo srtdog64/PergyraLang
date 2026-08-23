@@ -106,12 +106,14 @@ jobs:
 
   self-host-parity-linux:
     runs-on: ubuntu-latest
-    # Hang budget (docs/190 C1): the current 1,556-row completeness ledger is
-    # still making linear progress, but the old 40-minute ceiling cancelled a
-    # clean run at codegen row 899 after the job had spent ~22 minutes reaching
-    # the ledger. Ninety minutes covers the measured cold-checkout shape and
-    # the parity tail while remaining far below GitHub's 360-minute default.
-    timeout-minutes: 90
+    # Hang budget (docs/190 C1): run 32623093485 completed the current 1,623-row
+    # ledger with zero failures, then passed the codegen and policy-probe tail
+    # before the former 90-minute ceiling cancelled it eight minutes into
+    # driver-rung0 parity. The job was making continuous named-gate progress,
+    # not hanging. Allow the remaining driver/GraphPlan tail a measured bounded
+    # window while staying below GitHub's 360-minute default. The push-path
+    # placement and repeated cold build remain a separate CI-cost decision.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v6
 
