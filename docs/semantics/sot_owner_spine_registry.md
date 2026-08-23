@@ -279,6 +279,7 @@ src/self_hosted/compiler/direct_mir_option_match_abi_fact_owner.pgy | DirectMirO
 src/self_hosted/compiler/direct_mir_option_match_cfg_plan_fact_owner.pgy | DirectMirOptionMatchCfgPlan | projection.direct_mir_option_match_cfg_plan | projection
 src/self_hosted/compiler/direct_mir_option_struct_value_flow_abi_fact_owner.pgy | DirectMirOptionStructValueFlowAbiFact | abi.layout_rows | projection
 src/self_hosted/compiler/direct_mir_option_struct_value_flow_graph_fact_owner.pgy | DirectMirOptionStructValueFlowGraphFact | mir.execution_graph | projection
+src/self_hosted/compiler/direct_mir_result_int_abi_fact_owner.pgy | DirectMirResultIntAbiFact | abi.layout_rows | projection
 src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy | DirectMirRoleOperatorMethodDeclarationFact | mir.execution_graph | projection
 src/self_hosted/compiler/direct_mir_routine_param_fact_owner.pgy | DirectMirRoutineParamFact | mir.execution_graph | projection
 src/self_hosted/compiler/direct_mir_routine_parameter_set_fact_owner.pgy | DirectMirRoutineParameterSetFact | mir.execution_graph | projection
@@ -300,6 +301,7 @@ src/self_hosted/compiler/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy 
 src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy | DirectMirScalarCfgStringArrayIndexFact | projection.direct_mir_string_array_push | projection
 src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_source_fact_owner.pgy | DirectMirScalarCfgStringArrayGraphAt | projection.direct_mir_string_array_push | projection
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_fact_owner.pgy | DirectMirScalarProgramArrayStringBoundaryFact | projection.direct_mir_scalar_cfg_program_extension | projection
+src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_fact_owner.pgy | DirectMirScalarProgramBuiltinSignatureFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_callable_fact_owner.pgy | DirectMirScalarCfgProgramCallableFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_fact_owner.pgy | DirectMirScalarProgramExpressionKindFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy | DirectMirScalarProgramTwoIntNominalAbiFact | abi.layout_rows | projection
