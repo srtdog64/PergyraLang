@@ -133,7 +133,7 @@ require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "build-linux" 25
 require_job_timeout "build-macos-c-only" 20
 require_job_timeout "build-windows" 35
-require_job_timeout "platform-full-linux" 60 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-linux" 75 "$PLATFORM_WORKFLOW"
 require_job_timeout "platform-full-macos-c-only" 45 "$PLATFORM_WORKFLOW"
 require_job_timeout "platform-full-windows" 90 "$PLATFORM_WORKFLOW"
 
