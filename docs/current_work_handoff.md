@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-23 (Asia/Seoul)
+Updated: 2026-08-24 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -12,16 +12,16 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - bounded push feedback and full-platform proof
+## Active self-host context - bounded push feedback and safe full-platform proof
 
 - The exact CI-topology checkpoint is
-  `103f2e0b` on local `main`; this handoff is its documentation-only successor.
-  That checkpoint splits branch feedback from the full native-platform ladder,
-  preserves the full commands in a separate workflow, and adds bounded
-  parallelism only at the five independent preparation owners. After
-  publication the worktree should be clean except for the unrelated untracked
-  `pgy-80135c2c/`; do not stage, discard, rewrite, or scan it as project
-  evidence.
+  `1ce15a583d15351f93c39a07a44c3062b0880470` on local `main`; this handoff is
+  its documentation-only successor. Predecessor `103f2e0b` splits branch
+  feedback from the full native-platform ladder. The current checkpoint keeps
+  that split but removes fixed-runner `make -j5` oversubscription after remote
+  measurement falsified its wall-time benefit. After publication the worktree
+  should be clean except for the unrelated untracked `pgy-80135c2c/`; do not
+  stage, discard, rewrite, or scan it as project evidence.
 - Last green remote baseline: CI run `32633975124` completed all 28 jobs at
   `dc98d919`. Its platform jobs were green but expensive: Linux 40.4 minutes,
   macOS 21.6 minutes, and Windows 77.7 minutes. Log timestamps attribute the
@@ -32,18 +32,19 @@ gate count do not increment either percentage by themselves.
 - Objective card: objective = keep ordinary main/PR feedback below one bounded
   integration window while retaining every full platform proof; priority =
   semantic evidence, one named owner per fact, platform-specific negatives,
-  then wall time; fact owners = `scripts/ci_push_*_steps.sh` for branch
+  reproducible runner use, then wall time; fact owners =
+  `scripts/ci_push_*_steps.sh` for branch
   feedback, `scripts/ci_*_steps.sh` plus
   `.github/workflows/platform_full.yml` for full platform evidence, and
   `tests/self_host_ci_profile_smoke.sh` for the negative ratchet; last
   consumers = the three main workflow platform jobs and the weekly/manual/`v*`
   full workflow; forbidden = deleting a test, `continue-on-error`, a silent
   skip, duplicating platform-independent self-host evidence on all three push
-  runners, restoring the full ladder to branch push, or sharing one growable
-  scratch owner across parallel parity processes; verification = fast Windows
-  native `test-all`, the profile/inventory/readiness gates, one real bounded
-  parallel preparation run, then remote main and manually dispatched full
-  workflows.
+  runners, restoring the full ladder to branch push, oversubscribing one
+  fixed-size runner with `make -jN`, or sharing one growable scratch owner
+  across parallel parity processes; verification = fast Windows native
+  `test-all`, the profile/inventory/readiness gates, remote main, and a manually
+  dispatched full workflow.
 - The main workflow keeps the stable `build-linux`, `build-windows`, and
   `build-macos-c-only` job identities. Linux owns the self-host compiler,
   platform-independent contract, core executable suite, and high-value static
@@ -55,17 +56,20 @@ gate count do not increment either percentage by themselves.
   60/90/45-minute hang budgets. It runs manually, Sunday 15:00 UTC, and for
   `v*` tags, before the separate Sunday 18:00 UTC exhaustive self-host parity
   workflow. No full proof was made advisory or deleted.
-- The preparation aggregate now exposes contract, parser, semantic, codegen,
-  and driver as five named prerequisites. Full platform scripts invoke that
-  exact aggregate with `make -j5`; parser, semantic, codegen, and driver retain
-  distinct `.tmp/self_hosted/*` roots. The local Windows run launched all five
-  concurrently: contract, parser (189 sources), semantic (114 fixtures), and
-  codegen (85 fixtures) passed. Driver advanced through 114 of 284 MIR fixture
-  rows without a scratch collision before the run was intentionally stopped
-  after exceeding the repository's 30-minute integration budget. No aggregate
-  PASS is claimed. The driver alone peaked at an observed 7.9 GiB private
-  memory; this is existing driver breadth rather than five duplicated graphs
-  and is another reason it must not return to every push.
+- The preparation aggregate still exposes contract, parser, semantic, codegen,
+  and driver as five named prerequisites with distinct
+  `.tmp/self_hosted/*` roots. A local Windows `make -j5` run proved scratch
+  isolation for contract, parser (189 sources), semantic (114 fixtures), and
+  codegen (85 fixtures), but the driver exceeded the 30-minute integration
+  budget and peaked at an observed 7.9 GiB private memory. Remote full run
+  `32644271941` then falsified `-j5` as a sound fixed-runner default: macOS was
+  green in 24m51 (only about 3% faster than 25m42), Linux was green in 53m04
+  (about 31% slower than 40m24), and Windows had not completed when the run was
+  externally cancelled after 66m14. The log records `Ctrl+C` and no test
+  failure; the cancellation actor/reason is `Unknown`. The current checkpoint
+  restores the aggregate's serial invocation on all three platforms and the CI
+  profile gate rejects a reintroduced in-runner `make -jN` call. No all-green
+  full-workflow PASS is claimed for the cancelled run.
 - Focused local evidence is green: the CI profile, build source inventory,
   beta readiness checklist, documentation quality gate, Windows filesystem
   walk, AIR erasure dashboard, semantic fixture isolation, and the explicit
@@ -74,19 +78,29 @@ gate count do not increment either percentage by themselves.
   `PGY_NATIVE_PIPELINE=1`, the former failure passed and the suite completed,
   including semantic 2,823/2,823, MIR 162/162, and HIR 25/25. A local Coq proof
   PASS is not claimed; the aggregate used the declared Windows missing-prover
-  mode, while remote Rocq/Linux jobs remain authoritative.
+  mode, while remote Rocq/Linux jobs remain authoritative. For the current
+  serial-restoration checkpoint, shell syntax, the CI profile negative gate,
+  absence of `make -jN` in the three full scripts, and `git diff --check` are
+  green. A combined broad inventory dry-run was stopped rather than allowing it
+  to scan the unrelated user-owned `pgy-80135c2c/` tree.
+- Remote main run `32643197814` at `2c4ea78d` is green 28/28 with a 20m20
+  critical path. The fast platform jobs are Linux 14m40, Windows 8m34, and
+  macOS 1m38, versus 40m24, 77m42, and 21m36 in the prior full-on-push
+  baseline. The new `Platform full` workflow did not branch-trigger; run
+  `32644271941` was the explicit manual dispatch described above.
 - The active semantic rung remains DRV-1 payload-bearing artifact-outcome LLVM
   support and its Begin/Commit/Abort calls. This CI topology work changes no
   compiler semantic owner and counts as blocker removal, not self-host
   substitution progress. Project progress therefore remains 78% overall,
   strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
 - Next executable rung: commit this handoff and push `main`, require the 28-job
-  fast workflow to be green, confirm no full workflow is branch-triggered,
-  then manually dispatch `Platform full`. Compare its three
-  platform walls with the baseline before deciding whether `-j5` should be
-  reduced to `-j3`. If the full workflow is red, resume only from its first
-  deterministic failure; do not weaken or move the failed proof. Once both CI
-  boundaries are verified, return to the DRV-1 focused falsifier.
+  fast workflow to remain green, confirm no full workflow branch trigger, then
+  manually dispatch the restored serial `Platform full` once. Resume from a
+  deterministic test failure if one appears; a user/external cancellation is
+  not a test failure and must not be relabelled green. Once both CI boundaries
+  are verified, return to the DRV-1 focused falsifier. Further full-performance
+  work must first measure repeated compiler construction inside the reached
+  driver owner; do not add more workers, shards, or caches from this run alone.
 
 ### Historical archive boundary
 
