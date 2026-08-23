@@ -972,9 +972,9 @@ require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
     '"source_module_path", rows.source_module_paths[routine_index]'
 require_text "src/compiler/mir_json_dump.c" 'source_module_path'
 require_text "src/compiler/mir_json_dump_decl.c" 'source_module_path'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-compiler-internal-caller-provenance-test-smoke'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     'self-host-routine-build-storage-lifetime-test-smoke'
 require_max_lines "src/self_hosted/mir_lower/program_lower.pgy" 220
 require_file \
@@ -1906,9 +1906,9 @@ require_text "Makefile" \
     "self-host-intent-guard-post-compensation-execution-test-smoke"
 require_text "Makefile" \
     'PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))"'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-intent-guard-post-compensation-execution-test-smoke"
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-intent-typed-compensation-test-smoke"
 require_max_lines \
     "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" 180
@@ -6968,7 +6968,7 @@ require_file "tests/self_hosted/parity/intent_observability_mir_identity_mutatio
 require_max_lines "tests/self_hosted/parity/intent_observability_mir_identity_mutations.py" 90
 require_text "Makefile" \
     "self-host-intent-observability-mir-identity-test-smoke: self-host-compiler"
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-intent-observability-mir-identity-test-smoke"
 reject_text "Makefile" "self-host-intent-observability-c-runtime-test-smoke"
 require_file "src/self_hosted/compiler/direct_mir_scalar_program_intent_observability_readiness_owner.pgy"
@@ -16059,7 +16059,7 @@ require_text "Makefile" \
     "tests/self_hosted/parity/direct_mir_mutation_ownership_contract.sh"
 require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-array-argument-projection-test-smoke"
 for collection_program_owner_cap in \
     direct_mir_collection_local_context_fact_owner.pgy:100 \
@@ -16118,7 +16118,7 @@ require_text \
     "producers == 1 && consumers == 1;"
 require_text "Makefile" "SELFHOST_ONE_MIR_ARRAY_PARAM_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-array-param-projection-test-smoke"
 while IFS='|' read -r scalar_program_owner scalar_program_cap; do
     scalar_program_cap="${scalar_program_cap%$'\r'}"
@@ -21168,7 +21168,7 @@ for scalar_program_count_owner in \
 done
 require_text "Makefile" "SELFHOST_ONE_MIR_BOOL_LOGIC_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-bool-logic-projection-test-smoke"
 for scalar_program_emitter in \
     direct_mir_scalar_cfg_program_c_emission_owner.pgy \
@@ -21316,7 +21316,7 @@ require_text "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" \
     "repaired-line-layout-offset"
 require_text "Makefile" "SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-struct-argument-projection-test-smoke"
 for value_flow_owner_cap in \
     direct_mir_nominal_abi_row_equality_owner.pgy:40 \
@@ -21356,7 +21356,7 @@ require_text "tests/self_hosted/parity/one_mir_struct_value_flow_projection.sh" 
     "C/LLVM exact 11"
 require_text "Makefile" "SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-struct-value-flow-projection-test-smoke"
 for option_value_flow_owner_cap in \
     direct_mir_two_routine_nominal_classification_owner.pgy:150 \
@@ -21409,7 +21409,7 @@ require_text \
     "C/LLVM exact 7/11/5"
 require_text "Makefile" "SELFHOST_ONE_MIR_OPTION_STRUCT_VALUE_FLOW_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_OPTION_STRUCT_VALUE_FLOW_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-option-struct-value-flow-projection-test-smoke"
 require_text "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
     "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"
@@ -21453,7 +21453,7 @@ require_text \
     "one specialization definition and four calls"
 require_text "Makefile" "SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-generic-struct-value-flow-projection-test-smoke"
 require_file \
     "tests/self_hosted/parity/one_mir_inferred_generic_nominal_projection.sh"
@@ -21476,7 +21476,7 @@ require_text \
     "one specialization definition and two calls"
 require_text "Makefile" "SELFHOST_ONE_MIR_INFERRED_GENERIC_NOMINAL_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_INFERRED_GENERIC_NOMINAL_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-inferred-generic-nominal-projection-test-smoke"
 for inferred_scalar_owner_cap in \
     direct_mir_three_routine_shape_owner.pgy:40 \
@@ -21539,7 +21539,7 @@ require_text \
 require_text "Makefile" \
     "SELFHOST_ONE_MIR_INFERRED_GENERIC_SCALAR_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_INFERRED_GENERIC_SCALAR_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-inferred-generic-scalar-projection-test-smoke"
 for inferred_member_owner_cap in \
     direct_mir_two_routine_shape_owner.pgy:80 \
@@ -21606,11 +21606,11 @@ require_text \
 require_text "Makefile" \
     "SELFHOST_ONE_MIR_INFERRED_GENERIC_MEMBER_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_INFERRED_GENERIC_MEMBER_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-inferred-generic-member-projection-test-smoke"
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-passive-nominal-literal-projection-test-smoke"
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-mutable-nominal-identity-projection-test-smoke"
 require_text "Makefile" \
     "SELFHOST_ONE_MIR_PASSIVE_NOMINAL_LITERAL_GATE ?="
@@ -21887,7 +21887,7 @@ require_text "Makefile" \
     "SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE ?="
 require_text "Makefile" \
     '$(SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-constructed-generic-member-projection-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
@@ -21945,7 +21945,7 @@ require_text "Makefile" \
     "SELFHOST_ONE_MIR_CONSTRUCTED_ARRAY_MEMBER_GATE ?="
 require_text "Makefile" \
     '$(SELFHOST_ONE_MIR_CONSTRUCTED_ARRAY_MEMBER_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-constructed-array-member-projection-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
@@ -22115,7 +22115,7 @@ require_text "Makefile" \
     "SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE ?="
 require_text "Makefile" \
     '$(SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE)'
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-constructed-record-array-member-projection-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
@@ -22325,7 +22325,7 @@ require_text "Makefile" \
     '$(SELFHOST_ONE_MIR_COMPILE_TIME_DECLARATION_LITERAL_GATE)'
 require_text "Makefile" \
     "self-host-one-mir-compile-time-declaration-literal-projection-test-smoke:"
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-compile-time-declaration-literal-projection-test-smoke"
 require_file \
     "src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy"
@@ -22402,7 +22402,7 @@ require_text "Makefile" "SELFHOST_ONE_MIR_ENUM_VALUE_MATCH_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ENUM_VALUE_MATCH_GATE)'
 require_text "Makefile" \
     "self-host-one-mir-enum-value-match-projection-test-smoke:"
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-enum-value-match-projection-test-smoke"
 require_file \
     "src/self_hosted/semantic/role_operator_vocabulary_owner.pgy"
@@ -22473,7 +22473,7 @@ require_text "Makefile" "SELFHOST_ONE_MIR_ROLE_OPERATOR_GATE ?="
 require_text "Makefile" '$(SELFHOST_ONE_MIR_ROLE_OPERATOR_GATE)'
 require_text "Makefile" \
     "self-host-one-mir-role-operator-projection-test-smoke:"
-require_text ".github/workflows/ci.yml" \
+require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-role-operator-projection-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
