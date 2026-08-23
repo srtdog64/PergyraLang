@@ -14,8 +14,10 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - push CI restoration and DRV-1 frontier
 
-- The exact CI-profile checkpoint is
-  `9197b957fc6bf1ec807ec7cdc23febf42a09f2ab` on local `main`; timeout
+- The exact CI-contract checkpoint is
+  `438fea41a2a35590c0854957ff3855c7d4c1d594` on local `main`; CI-profile
+  predecessor `9197b957fc6bf1ec807ec7cdc23febf42a09f2ab` owns the workflow split,
+  timeout
   predecessor `7e68b47ff5792598ceb04aca77161d8ec2a6ddd1` established the measured
   180-minute exhaustive bound, likeness predecessor
   `052ae5794693e7102e2f48bf05fb66464aa73632` classifies the reached terminal
@@ -74,9 +76,23 @@ gate count do not increment either percentage by themselves.
   hard failure semantics. The main workflow retains the same 28 jobs already
   observed green at `c65796c4`; no test or platform job was removed from that
   profile.
+- Push run `32631419965` at `c8abd8fe` registered both workflows correctly,
+  launched only the 28-job main workflow, and launched no dedicated parity
+  run. It reached 19 green jobs before the first failure in
+  `build-macos-c-only`. The compiler and behavioral gates were not the cause:
+  `self_hosted_component_contract_smoke.sh` still required 23 exhaustive target
+  names specifically in `.github/workflows/ci.yml`, even though every target
+  had moved intact to `.github/workflows/self_host_parity.yml`. Commit
+  `438fea41` moves all 23 explicit structural owner assertions to that exact
+  workflow; it does not add an either-file fallback or change any executable
+  target.
 - Local verification: `self_host_ci_profile_smoke.sh` passes and requires both
   workflow boundaries, their trigger exclusions, the exact exhaustive command,
-  and all timeout budgets. `build_source_inventory_smoke.sh` passes. Earlier
+  and all timeout budgets. The full
+  `self_hosted_component_contract_smoke.sh` structural inventory passes after
+  the 23 owner moves, with zero remaining `ci.yml` assertions and exactly 23
+  dedicated parity-workflow assertions. `build_source_inventory_smoke.sh`
+  passes. Earlier
   reached evidence remains green: exact native production source emission,
   the pressure-owned full Windows bootstrap below its 3 GiB limit, installed
   C/LLVM intent observability, both 1,623-source semantic-checker passes,
