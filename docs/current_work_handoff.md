@@ -65,11 +65,15 @@ gate count do not increment either percentage by themselves.
   `32644271941` then falsified `-j5` as a sound fixed-runner default: macOS was
   green in 24m51 (only about 3% faster than 25m42), Linux was green in 53m04
   (about 31% slower than 40m24), and Windows had not completed when the run was
-  externally cancelled after 66m14. The log records `Ctrl+C` and no test
-  failure; the cancellation actor/reason is `Unknown`. The current checkpoint
-  restores the aggregate's serial invocation on all three platforms and the CI
-  profile gate rejects a reintroduced in-runner `make -jN` call. No all-green
-  full-workflow PASS is claimed for the cancelled run.
+  cancelled after 66m14. The log records `Ctrl+C` and no test failure. Run
+  `32647681649` started from the weekly schedule nine seconds before the
+  cancellation, and `.github/workflows/platform_full.yml` owns one
+  `platform-full-${{ github.ref }}` concurrency group with
+  `cancel-in-progress: true`; the scheduled run therefore superseded the
+  manual run. This was not a user cancellation or test failure. The current
+  checkpoint restores the aggregate's serial invocation on all three platforms
+  and the CI profile gate rejects a reintroduced in-runner `make -jN` call. No
+  all-green full-workflow PASS is claimed for the superseded run.
 - Focused local evidence is green: the CI profile, build source inventory,
   beta readiness checklist, documentation quality gate, Windows filesystem
   walk, AIR erasure dashboard, semantic fixture isolation, and the explicit
@@ -96,8 +100,8 @@ gate count do not increment either percentage by themselves.
 - Next executable rung: commit this handoff and push `main`, require the 28-job
   fast workflow to remain green, confirm no full workflow branch trigger, then
   manually dispatch the restored serial `Platform full` once. Resume from a
-  deterministic test failure if one appears; a user/external cancellation is
-  not a test failure and must not be relabelled green. Once both CI boundaries
+  deterministic test failure if one appears; a concurrency replacement is not
+  a test failure and must not be relabelled green. Once both CI boundaries
   are verified, return to the DRV-1 focused falsifier. Further full-performance
   work must first measure repeated compiler construction inside the reached
   driver owner; do not add more workers, shards, or caches from this run alone.
