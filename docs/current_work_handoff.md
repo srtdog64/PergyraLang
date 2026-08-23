@@ -15,7 +15,9 @@ gate count do not increment either percentage by themselves.
 ## Active self-host context - push CI restoration and DRV-1 frontier
 
 - The exact CI-contract checkpoint is
-  `438fea41a2a35590c0854957ff3855c7d4c1d594` on local `main`; CI-profile
+  `0218d045ef01598b224bb25ad91f321bea0cac78` on local `main`; component-contract
+  predecessor `438fea41a2a35590c0854957ff3855c7d4c1d594` moves the first structural
+  ratchet family, CI-profile
   predecessor `9197b957fc6bf1ec807ec7cdc23febf42a09f2ab` owns the workflow split,
   timeout
   predecessor `7e68b47ff5792598ceb04aca77161d8ec2a6ddd1` established the measured
@@ -86,13 +88,29 @@ gate count do not increment either percentage by themselves.
   `438fea41` moves all 23 explicit structural owner assertions to that exact
   workflow; it does not add an either-file fallback or change any executable
   target.
+- Successor push run `32632566150` at `c26cc2db` reached 19 green jobs and
+  proved the repaired component inventory passes remotely. Its first failure
+  was the next exact structural owner: `self_host_hard_contract_smoke.sh` still
+  required 16 dedicated parity projection targets in `.github/workflows/ci.yml`.
+  Repository-wide workflow-reference inspection found no other displaced
+  parity assertions; the remaining main-workflow references own platform,
+  sanitizer, formal-proof, and 20-shard backend checks that still execute on
+  push. Commit `0218d045` moves only those 16 hard-contract assertions to the
+  exact dedicated workflow.
 - Local verification: `self_host_ci_profile_smoke.sh` passes and requires both
   workflow boundaries, their trigger exclusions, the exact exhaustive command,
   and all timeout budgets. The full
   `self_hosted_component_contract_smoke.sh` structural inventory passes after
   the 23 owner moves, with zero remaining `ci.yml` assertions and exactly 23
-  dedicated parity-workflow assertions. `build_source_inventory_smoke.sh`
-  passes. Earlier
+  dedicated parity-workflow assertions. `self_host_hard_contract_smoke.sh`
+  passes with zero remaining `ci.yml` assertions and exactly 16 dedicated
+  parity-workflow assertions. The aggregate
+  `self-host-preparation-contract-test-smoke` then passed both changed gates,
+  completeness/substrate, the DRV-2 graph-owner sequence, and stopped
+  fail-closed at `sot_authority_adequacy_smoke.sh` only because this Windows
+  environment has neither `rocq` nor `coqc`; no missing-proof skip was set and
+  no full aggregate pass is claimed. `build_source_inventory_smoke.sh` passes.
+  Earlier
   reached evidence remains green: exact native production source emission,
   the pressure-owned full Windows bootstrap below its 3 GiB limit, installed
   C/LLVM intent observability, both 1,623-source semantic-checker passes,
