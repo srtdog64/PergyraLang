@@ -12,7 +12,87 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - push CI restoration and DRV-1 frontier
+## Active self-host context - bounded push feedback and full-platform proof
+
+- The exact CI-topology checkpoint is
+  `103f2e0b` on local `main`; this handoff is its documentation-only successor.
+  That checkpoint splits branch feedback from the full native-platform ladder,
+  preserves the full commands in a separate workflow, and adds bounded
+  parallelism only at the five independent preparation owners. After
+  publication the worktree should be clean except for the unrelated untracked
+  `pgy-80135c2c/`; do not stage, discard, rewrite, or scan it as project
+  evidence.
+- Last green remote baseline: CI run `32633975124` completed all 28 jobs at
+  `dc98d919`. Its platform jobs were green but expensive: Linux 40.4 minutes,
+  macOS 21.6 minutes, and Windows 77.7 minutes. Log timestamps attribute the
+  delay to test/bootstrap breadth, not an ordinary compiler build. Windows
+  spent about 42 minutes in `self-host-preparation-platform-test-smoke`
+  (contract 6m53, parser 1m17, semantic 2m13, codegen 5m16, driver 26m08),
+  14 minutes in `self-host-compiler`, and 7 minutes in `test-all`.
+- Objective card: objective = keep ordinary main/PR feedback below one bounded
+  integration window while retaining every full platform proof; priority =
+  semantic evidence, one named owner per fact, platform-specific negatives,
+  then wall time; fact owners = `scripts/ci_push_*_steps.sh` for branch
+  feedback, `scripts/ci_*_steps.sh` plus
+  `.github/workflows/platform_full.yml` for full platform evidence, and
+  `tests/self_host_ci_profile_smoke.sh` for the negative ratchet; last
+  consumers = the three main workflow platform jobs and the weekly/manual/`v*`
+  full workflow; forbidden = deleting a test, `continue-on-error`, a silent
+  skip, duplicating platform-independent self-host evidence on all three push
+  runners, restoring the full ladder to branch push, or sharing one growable
+  scratch owner across parallel parity processes; verification = fast Windows
+  native `test-all`, the profile/inventory/readiness gates, one real bounded
+  parallel preparation run, then remote main and manually dispatched full
+  workflows.
+- The main workflow keeps the stable `build-linux`, `build-windows`, and
+  `build-macos-c-only` job identities. Linux owns the self-host compiler,
+  platform-independent contract, core executable suite, and high-value static
+  gates. Windows and macOS own native core/platform behavior with the explicit
+  `PGY_NATIVE_PIPELINE=1` boundary; their full self-host runs remain in the
+  full workflow. Fast timeouts are 25/35/20 minutes for Linux/Windows/macOS.
+- `Platform full` owns the unchanged `ci-linux`, `ci-windows`, and `ci-macos`
+  commands, the existing declared Coq skips on Windows/macOS, and the existing
+  60/90/45-minute hang budgets. It runs manually, Sunday 15:00 UTC, and for
+  `v*` tags, before the separate Sunday 18:00 UTC exhaustive self-host parity
+  workflow. No full proof was made advisory or deleted.
+- The preparation aggregate now exposes contract, parser, semantic, codegen,
+  and driver as five named prerequisites. Full platform scripts invoke that
+  exact aggregate with `make -j5`; parser, semantic, codegen, and driver retain
+  distinct `.tmp/self_hosted/*` roots. The local Windows run launched all five
+  concurrently: contract, parser (189 sources), semantic (114 fixtures), and
+  codegen (85 fixtures) passed. Driver advanced through 114 of 284 MIR fixture
+  rows without a scratch collision before the run was intentionally stopped
+  after exceeding the repository's 30-minute integration budget. No aggregate
+  PASS is claimed. The driver alone peaked at an observed 7.9 GiB private
+  memory; this is existing driver breadth rather than five duplicated graphs
+  and is another reason it must not return to every push.
+- Focused local evidence is green: the CI profile, build source inventory,
+  beta readiness checklist, documentation quality gate, Windows filesystem
+  walk, AIR erasure dashboard, semantic fixture isolation, and the explicit
+  native Windows `test-all`. The first native test run correctly failed at the
+  default self-host delegation boundary; with the profile-owned
+  `PGY_NATIVE_PIPELINE=1`, the former failure passed and the suite completed,
+  including semantic 2,823/2,823, MIR 162/162, and HIR 25/25. A local Coq proof
+  PASS is not claimed; the aggregate used the declared Windows missing-prover
+  mode, while remote Rocq/Linux jobs remain authoritative.
+- The active semantic rung remains DRV-1 payload-bearing artifact-outcome LLVM
+  support and its Begin/Commit/Abort calls. This CI topology work changes no
+  compiler semantic owner and counts as blocker removal, not self-host
+  substitution progress. Project progress therefore remains 78% overall,
+  strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Next executable rung: commit this handoff and push `main`, require the 28-job
+  fast workflow to be green, confirm no full workflow is branch-triggered,
+  then manually dispatch `Platform full`. Compare its three
+  platform walls with the baseline before deciding whether `-j5` should be
+  reduced to `-j3`. If the full workflow is red, resume only from its first
+  deterministic failure; do not weaken or move the failed proof. Once both CI
+  boundaries are verified, return to the DRV-1 focused falsifier.
+
+### Historical archive boundary
+
+Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - push CI restoration and DRV-1 frontier (inactive)
 
 - The exact CI-contract checkpoint is
   `0218d045ef01598b224bb25ad91f321bea0cac78` on local `main`; component-contract
@@ -125,10 +205,6 @@ gate count do not increment either percentage by themselves.
   direct-LLVM support for the payload-bearing artifact outcome and its
   Begin/Commit/Abort calls, with `driver_rung1_parity.sh` as the focused
   falsifier.
-
-### Historical archive boundary
-
-Everything below this line is inactive lookup evidence, not an active queue.
 
 ## Previous self-host context - production LLVM DRV-0 parity publication (inactive)
 
