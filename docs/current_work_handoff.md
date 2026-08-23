@@ -44,7 +44,7 @@ gate count do not increment either percentage by themselves.
   its transitional widened carrier but normalizes add/subtract/multiply/negate
   through `i32`; C uses the 32-bit line format while LLVM uses its widened
   carrier format. `Long` remains signed 64-bit. GraphPlan schema identity is
-  `pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79`.
+  `pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80`.
 - The final current-source Pergyra-built DRV-2 has SHA-256
   `CF454C5607A2EC7AAA54786F54C1A8D3CA2D2D41CC11CF3376346B37B96C5166`.
   With that exact driver, the complete

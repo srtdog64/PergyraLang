@@ -1,0 +1,19 @@
+// Ordered C ABI preambles for scalar Option and Result families.
+import "direct_mir_scalar_program_c_option_int_owner.pgy";
+import "direct_mir_scalar_program_c_option_string_owner.pgy";
+import "direct_mir_scalar_program_c_option_bool_owner.pgy";
+import "direct_mir_scalar_program_c_result_int_owner.pgy";
+
+func DirectMirScalarProgramCOptionResultPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    let output: String = DirectMirScalarProgramCOptionIntPreamble(
+        plan.program.option_int_abi, target);
+    output = Concat(output, DirectMirScalarProgramCResultIntPreamble(
+        plan.program.result_int_abi, target));
+    output = Concat(output, DirectMirScalarProgramCOptionStringPreamble(
+        plan.program.option_string_abi, target));
+    return Concat(output, DirectMirScalarProgramCOptionBoolPreamble(
+        plan.program.option_bool_abi, target));
+}

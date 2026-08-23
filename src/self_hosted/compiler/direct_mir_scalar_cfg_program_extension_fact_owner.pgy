@@ -9,6 +9,7 @@ import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_callable_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_fact_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_result_int_abi_owner.pgy";
 import "direct_mir_scalar_program_option_string_abi_owner.pgy";
 import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
@@ -29,6 +30,7 @@ struct DirectMirScalarCfgProgramExtensionFact {
     let closed_call_abi: DirectMirClosedModuleCallAbiFact;
     let runtime_abi: DirectMirScalarProgramRuntimeAbiFact;
     let option_int_abi: DirectMirOptionMatchAbiFact;
+    let result_int_abi: DirectMirResultIntAbiFact;
     let option_string_abi: DirectMirOptionMatchAbiFact;
     let option_bool_abi: DirectMirOptionMatchAbiFact;
     let nominal_abi: DirectMirScalarProgramTwoIntNominalAbiFact;
@@ -49,6 +51,7 @@ func DirectMirScalarCfgProgramExtensionFactEmpty(
         DirectMirClosedModuleCallAbiFactEmpty(),
         DirectMirScalarProgramRuntimeAbiFactEmpty(),
         DirectMirOptionMatchAbiFactEmpty(),
+        DirectMirResultIntAbiFactEmpty(),
         DirectMirOptionMatchAbiFactEmpty(),
         DirectMirOptionMatchAbiFactEmpty(),
         DirectMirScalarProgramTwoIntNominalAbiFactFromCanonicalEmpty(),
@@ -79,6 +82,7 @@ func DirectMirScalarCfgProgramExtensionFactDigest(
     );
     hash = DirectMirCfgHashInt(hash, fact.runtime_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.option_int_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.result_int_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.option_string_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.option_bool_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.nominal_abi.digest);
@@ -101,6 +105,7 @@ func DirectMirScalarCfgProgramExtensionFactWithDigest(
         fact.operation_secondary_expression_rows,
         fact.block_return_expression_rows,
         fact.closed_call_abi, fact.runtime_abi, fact.option_int_abi,
+        fact.result_int_abi,
         fact.option_string_abi, fact.option_bool_abi, fact.nominal_abi,
         fact.logical_record,
         fact.payload_free_enum,

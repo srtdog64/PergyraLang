@@ -2,6 +2,7 @@ import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_c_string_window_expression_owner.pgy";
 import "direct_mir_scalar_program_c_string_special_expression_owner.pgy";
+import "direct_mir_scalar_program_c_to_string_expression_owner.pgy";
 func DirectMirScalarProgramCStringExpression(
     kind: Int, left: String, right: String, arguments: Array<String>,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
@@ -40,19 +41,18 @@ func DirectMirScalarProgramCStringExpression(
         return Some(Concat(runtime.string_concat.symbol, Concat("(",
             Concat(left, Concat(", ", Concat(right, ")"))))));
     }
-    if kind == DirectMirScalarProgramExprToStringString() { return Some(left); }
-    let builtin_symbol: String = runtime.string_to_string.symbol;
+    let to_string: Option<String> =
+        DirectMirScalarProgramCToStringExpression(kind, left, runtime);
+    if IsSome(to_string) { return to_string; }
+    let builtin_symbol: String = "";
     let ready: Bool = false;
-    if kind == DirectMirScalarProgramExprToStringInt() {
-        ready = CompilerRuntimeCallAbiStringToStringFactReady(runtime.string_to_string);
-    }
     if kind == DirectMirScalarProgramExprToUpperString() {
         builtin_symbol = runtime.string_to_upper.symbol;
         ready = CompilerRuntimeCallAbiStringToUpperFactReady(runtime.string_to_upper);
     } else if kind == DirectMirScalarProgramExprToLowerString() {
         builtin_symbol = runtime.string_to_lower.symbol;
         ready = CompilerRuntimeCallAbiStringToLowerFactReady(runtime.string_to_lower);
-    } else if kind != DirectMirScalarProgramExprToStringInt() { return None; }
+    } else { return None; }
     if !ready { Die("direct MIR scalar program String builtin ABI is invalid"); }
     return Some(Concat(builtin_symbol, Concat("(", Concat(left, ")"))));
 }

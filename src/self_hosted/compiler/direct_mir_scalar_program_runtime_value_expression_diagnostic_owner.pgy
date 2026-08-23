@@ -10,6 +10,26 @@ func DirectMirScalarProgramExpressionNodeReadinessFailureDetail(
     let detail: String = Concat(
         "direct MIR scalar program expression set is invalid: node=",
         Concat(ToString(node), Concat(" kind=", ToString(kind))));
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    detail = Concat(detail, Concat(" type=", facts.node_types[node]));
+    detail = Concat(detail, Concat(" left=", Concat(ToString(left), Concat(" right=", ToString(right)))));
+    detail = Concat(detail, Concat(" local=", Concat(ToString(facts.node_local_rows[node]), Concat(" param=", Concat(ToString(facts.node_parameter_ordinals[node]), Concat(" member=", Concat(ToString(facts.node_member_ordinals[node]), Concat(" literal=", facts.node_literals[node]))))))));
+    let graph: Int = 0;
+    while graph < ArrayLength(facts.graph_starts) {
+        if node >= facts.graph_starts[graph] && node < facts.graph_starts[graph] + facts.graph_counts[graph] {
+            detail = Concat(detail, Concat(" graph=", Concat(ToString(graph), Concat(" global_row=", ToString(facts.graph_global_rows[graph])))));
+        }
+        graph = graph + 1;
+    }
+    if left >= 0 && left < ArrayLength(facts.node_kinds) {
+        detail = Concat(detail, Concat(" left_kind=", ToString(facts.node_kinds[left])));
+        detail = Concat(detail, Concat(" left_type=", facts.node_types[left]));
+    }
+    if right >= 0 && right < ArrayLength(facts.node_kinds) {
+        detail = Concat(detail, Concat(" right_kind=", ToString(facts.node_kinds[right])));
+        detail = Concat(detail, Concat(" right_type=", facts.node_types[right]));
+    }
     if kind != DirectMirScalarProgramExprRuntimeValueCall() { return detail; }
     let runtime_id: Int = facts.node_runtime_call_abi_ids[node];
     let call: CompilerRuntimeValueCallAbiFact =
@@ -18,19 +38,6 @@ func DirectMirScalarProgramExpressionNodeReadinessFailureDetail(
     detail = Concat(detail, Concat(" call_valid=", ToString(call.valid)));
     detail = Concat(detail, Concat(" source=", call.source_name));
     detail = Concat(detail, Concat(" expected=", call.return_type));
-    detail = Concat(detail, Concat(" actual=", facts.node_types[node]));
-    let left: Int = facts.node_lefts[node];
-    let right: Int = facts.node_rights[node];
-    detail = Concat(detail, Concat(" left=", ToString(left)));
-    if left >= 0 && left < ArrayLength(facts.node_kinds) {
-        detail = Concat(detail, Concat(" left_kind=", ToString(facts.node_kinds[left])));
-        detail = Concat(detail, Concat(" left_type=", facts.node_types[left]));
-    }
-    detail = Concat(detail, Concat(" right=", ToString(right)));
-    if right >= 0 && right < ArrayLength(facts.node_kinds) {
-        detail = Concat(detail, Concat(" right_kind=", ToString(facts.node_kinds[right])));
-        detail = Concat(detail, Concat(" right_type=", facts.node_types[right]));
-    }
     return Concat(detail, Concat(
         " parameters=", ToString(ArrayLength(call.parameter_types))));
 }

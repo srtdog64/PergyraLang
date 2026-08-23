@@ -6,15 +6,15 @@ import "direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy";
 import "direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy";
 import "direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy";
 import "direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_option_result_return_type_owner.pgy";
 func DirectMirScalarProgramComposableCallableSignatureReady(
     ref signature: DirectMirRoutineSignatureFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> Bool {
-    let option_return: Bool = signature.return_type ==
-            CompilerAbiLayoutOptionIntTypeName() ||
-        signature.return_type == CompilerAbiLayoutOptionStringTypeName() ||
-        signature.return_type == CompilerAbiLayoutOptionBoolTypeName();
+    let option_return: Bool =
+        DirectMirScalarProgramOptionResultReturnTypeReady(
+            signature.return_type);
     let return_ready: Bool = signature.return_type == "Void" ||
         DirectMirScalarCfgScalarTypeSupported(signature.return_type) || signature.return_type == CompilerAbiLayoutArrayStringTypeName() || DirectMirScalarProgramPayloadFreeEnumTypeReady(payload_free_enum, signature.return_type) ||
         DirectMirScalarProgramLogicalRecordTypeReady(

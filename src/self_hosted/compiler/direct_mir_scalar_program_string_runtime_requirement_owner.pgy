@@ -1,12 +1,11 @@
 // String runtime ABI requirements projected from the normalized expression arena.
-
 import "direct_mir_scalar_program_runtime_abi_identity_owner.pgy";
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "direct_mir_scalar_program_string_collection_runtime_requirement_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
 import "direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy";
-
+import "direct_mir_scalar_program_bool_to_string_runtime_requirement_owner.pgy";
 func DirectMirScalarProgramStringGeneratedAbiFact(
     operation: String, symbol: String
 ) -> CompilerRuntimeCallAbiFact {
@@ -31,6 +30,9 @@ func DirectMirScalarProgramStringRuntimeRequirement(
         CompilerRuntimeCallAbiStringConcatFact();
     let to_string: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiStringToStringFact();
+    let bool_to_string: DirectMirScalarProgramBoolToStringRuntimeRequirement =
+        DirectMirScalarProgramBoolToStringRuntimeRequirementFromExpressions(
+            expressions);
     let to_upper: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiStringToUpperFact();
     let to_lower: CompilerRuntimeCallAbiFact =
@@ -100,6 +102,7 @@ func DirectMirScalarProgramStringRuntimeRequirement(
     if (compare_required && !CompilerRuntimeCallAbiStringCompareFactReady(compare)) ||
         (concat_required && !CompilerRuntimeCallAbiStringConcatFactReady(concat)) ||
         (to_string_required && !CompilerRuntimeCallAbiStringToStringFactReady(to_string)) ||
+        !bool_to_string.valid ||
         (to_upper_required && !CompilerRuntimeCallAbiStringToUpperFactReady(to_upper)) ||
         (to_lower_required && !CompilerRuntimeCallAbiStringToLowerFactReady(to_lower)) ||
         (length_required && !DirectMirScalarProgramStringGeneratedAbiReady(
@@ -132,7 +135,8 @@ func DirectMirScalarProgramStringRuntimeRequirement(
         return DirectMirScalarProgramRuntimeAbiFactEmpty();
     }
     let compare_id: Int = 0; let concat_id: Int = 0;
-    let to_string_id: Int = 0; let to_upper_id: Int = 0;
+    let to_string_id: Int = 0;
+    let to_upper_id: Int = 0;
     let to_lower_id: Int = 0; let length_id: Int = 0;
     let char_code_id: Int = 0;
     let char_at_n_id: Int = 0;
@@ -154,7 +158,8 @@ func DirectMirScalarProgramStringRuntimeRequirement(
     }
     let source: DirectMirScalarProgramRuntimeAbiFact =
         DirectMirScalarProgramRuntimeAbiFact(
-            true, 0, compare_id, concat_id, to_string_id, to_upper_id,
+            true, 0, compare_id, concat_id, to_string_id,
+            bool_to_string.runtime_call_abi_id, to_upper_id,
             to_lower_id, length_id, char_code_id, char_at_n_id,
             substring_id, bounded_id, sub_equals_id, sub_index_id,
             string_index, string_trim,

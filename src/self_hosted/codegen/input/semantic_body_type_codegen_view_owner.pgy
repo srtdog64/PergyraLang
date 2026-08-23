@@ -5,6 +5,7 @@
 
 import "../../semantic/ast_body_type_bundle_owner.pgy";
 import "../../semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
+import "../../semantic/ast_expression_call_return_type_diagnostic_owner.pgy";
 import "../text/text_owner.pgy";
 import "semantic_assignment_codegen_view_owner.pgy";
 import "semantic_statement_codegen_view_owner.pgy";
@@ -23,11 +24,19 @@ func CodegenSemanticBodyTypeFactsFromBundleOrDie(
     own generic_specializations: CodegenGenericSpecializationFacts
 ) -> CodegenSemanticBodyTypeFacts {
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
+        let readiness_error: String =
+            SemanticAstBodyTypeBundleReadinessError(
+                artifact, analysis, bundle);
+        if readiness_error == "call_return_type_rows" {
+            readiness_error = Concat(readiness_error, Concat(":",
+                SemanticExpressionGraphCallReturnTypesResolutionDiagnostic(
+                    analysis.expression_surfaces.expression_graph,
+                    analysis.signatures, analysis.function_tables,
+                    bundle.generic_specializations)));
+        }
         Die(Concat(
             "codegen semantic body type bundle is missing or invalid: ",
-            SemanticAstBodyTypeBundleReadinessError(
-                artifact, analysis, bundle
-            )
+            readiness_error
         ));
     }
     if !CodegenSemanticAssignmentTypeFactsReady(

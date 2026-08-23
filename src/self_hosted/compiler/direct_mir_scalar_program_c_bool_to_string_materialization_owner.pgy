@@ -1,0 +1,18 @@
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramCBoolToStringMaterialization(
+    fact: CompilerRuntimeCallAbiFact
+) -> String {
+    if !CompilerRuntimeCallAbiBoolToStringFactReady(fact) {
+        Die("direct MIR scalar C Bool ToString ABI is invalid");
+    }
+    let output: String = "#include <stdlib.h>\n#include <string.h>\n";
+    output = Concat(output, Concat("static char *", fact.symbol));
+    output = Concat(output,
+        "(_Bool value) {\n    const char *source = value ? \"true\" : \"false\";\n");
+    output = Concat(output,
+        "    size_t length = strlen(source);\n    char *result = (char *)malloc(length + 1);\n");
+    output = Concat(output,
+        "    if (result != NULL) { memcpy(result, source, length + 1); }\n    return result;\n}\n");
+    return output;
+}

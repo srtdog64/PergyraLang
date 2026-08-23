@@ -1,0 +1,18 @@
+// Ordered C projection for scalar Option and Result expression families.
+import "direct_mir_scalar_program_c_option_int_owner.pgy";
+import "direct_mir_scalar_program_c_option_string_owner.pgy";
+import "direct_mir_scalar_program_c_option_bool_owner.pgy";
+import "direct_mir_scalar_program_c_result_int_owner.pgy";
+
+func DirectMirScalarProgramCOptionResultExpression(
+    kind: Int, left: String, right: String
+) -> Option<String> {
+    let selected: Option<String> =
+        DirectMirScalarProgramCOptionIntExpression(kind, left);
+    if IsSome(selected) { return selected; }
+    selected = DirectMirScalarProgramCOptionStringExpression(kind, left);
+    if IsSome(selected) { return selected; }
+    selected = DirectMirScalarProgramCOptionBoolExpression(kind, left);
+    if IsSome(selected) { return selected; }
+    return DirectMirScalarProgramCResultIntExpression(kind, left, right);
+}

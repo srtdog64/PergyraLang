@@ -254,6 +254,22 @@ func CompilerRuntimeCallAbiStringToStringFactReady(
     );
 }
 
+func CompilerRuntimeCallAbiBoolToStringFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFact(
+        "bool-to-string", StringRuntimeCBoolToStringFn()
+    );
+}
+
+func CompilerRuntimeCallAbiBoolToStringFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return CompilerRuntimeCallAbiStringGeneratedBuiltinFactReady(
+        fact, "bool-to-string", StringRuntimeCBoolToStringFn(),
+        "bool_to_string"
+    );
+}
+
 func CompilerRuntimeCallAbiStringToUpperFact(
 ) -> CompilerRuntimeCallAbiFact {
     return CompilerRuntimeCallAbiStringGeneratedBuiltinFact(

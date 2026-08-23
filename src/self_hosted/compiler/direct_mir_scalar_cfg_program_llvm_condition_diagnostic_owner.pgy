@@ -1,0 +1,41 @@
+// Stable normalized-node context for one rejected LLVM condition projection.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarCfgProgramLlvmConditionProjectionFailed(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, block: Int,
+    projection_valid: Bool, projection_type: String
+) -> Void {
+    let expression: Int =
+        plan.program.block_condition_expression_rows[block];
+    let facts: DirectMirScalarProgramExpressionSet = plan.program.expressions;
+    let root: Int = facts.graph_roots[expression];
+    let node: Int = facts.graph_starts[expression];
+    let end: Int = node + facts.graph_counts[expression];
+    let detail: String =
+        "direct MIR scalar CFG LLVM condition is invalid: routine=";
+    detail = Concat(detail, ToString(routine));
+    detail = Concat(detail, Concat(" block=", ToString(block)));
+    detail = Concat(detail, Concat(" expression=", ToString(expression)));
+    detail = Concat(detail, Concat(" root=", ToString(root)));
+    detail = Concat(detail, Concat(" projection_valid=",
+        ToString(projection_valid)));
+    detail = Concat(detail, Concat(" projection_type=", projection_type));
+    while node < end {
+        detail = Concat(detail, Concat(" node=", ToString(node)));
+        detail = Concat(detail, Concat(" kind=", ToString(
+            facts.node_kinds[node])));
+        detail = Concat(detail, Concat(" type=", facts.node_types[node]));
+        detail = Concat(detail, Concat(" left=", ToString(
+            facts.node_lefts[node])));
+        detail = Concat(detail, Concat(" right=", ToString(
+            facts.node_rights[node])));
+        detail = Concat(detail, Concat(" parameter=", ToString(
+            facts.node_parameter_ordinals[node])));
+        detail = Concat(detail, Concat(" member=", ToString(
+            facts.node_member_ordinals[node])));
+        detail = Concat(detail, Concat(" callable=", ToString(
+            facts.node_callable_rows[node])));
+        node = node + 1;
+    }
+    Die(detail);
+}

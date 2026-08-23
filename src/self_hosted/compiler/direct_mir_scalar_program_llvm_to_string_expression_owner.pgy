@@ -1,0 +1,34 @@
+// LLVM projection of scalar ToString specializations.
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmToStringExpressionAt(
+    kind: Int, result: String, left: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind == DirectMirScalarProgramExprToStringString() {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, "", left);
+    }
+    let symbol: String = "";
+    let argument_type: String = "";
+    let ready: Bool = false;
+    if kind == DirectMirScalarProgramExprToStringInt() {
+        symbol = runtime.string_to_string.symbol; argument_type = "i64";
+        ready = CompilerRuntimeCallAbiStringToStringFactReady(
+            runtime.string_to_string);
+    } else if kind == DirectMirScalarProgramExprToStringBool() {
+        symbol = runtime.bool_to_string.symbol; argument_type = "i1";
+        ready = CompilerRuntimeCallAbiBoolToStringFactReady(
+            runtime.bool_to_string);
+    } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    if !ready {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let output: String = Concat("  ", Concat(result,
+        Concat(" = call ptr @", Concat(symbol, Concat("(", Concat(
+            argument_type, Concat(" ", Concat(left, ")\n"))))))));
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}

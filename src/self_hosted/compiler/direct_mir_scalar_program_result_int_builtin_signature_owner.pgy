@@ -1,0 +1,55 @@
+// Typed projection of generic semantic Result builtins for Result<Int>.
+
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramResultIntBuiltinSignatureExpected(
+    name: String
+) -> Array<String> {
+    if name == "Ok" { return ["Unknown", "Unknown", ToString(
+        DirectMirScalarProgramExprOkInt())]; }
+    if name == "Err" { return ["Unknown", "Unknown", ToString(
+        DirectMirScalarProgramExprErrInt())]; }
+    if name == "IsOk" { return ["Bool", "Unknown", ToString(
+        DirectMirScalarProgramExprIsOkInt())]; }
+    if name == "IsErr" { return ["Bool", "Unknown", ToString(
+        DirectMirScalarProgramExprIsErrInt())]; }
+    if name == "Unwrap" { return ["Unknown", "Unknown", ToString(
+        DirectMirScalarProgramExprUnwrapResultInt())]; }
+    if name == "UnwrapErr" { return ["Unknown", "Unknown", ToString(
+        DirectMirScalarProgramExprUnwrapErrInt())]; }
+    if name == "UnwrapOr" { return ["Unknown", "Unknown|Unknown", ToString(
+        DirectMirScalarProgramExprUnwrapOrInt())]; }
+    return [];
+}
+
+func DirectMirScalarProgramResultIntBuiltinReturnType(
+    name: String, fallback: String
+) -> String {
+    if name == "Ok" || name == "Err" {
+        return CompilerAbiLayoutResultIntTypeName();
+    }
+    if name == "Unwrap" || name == "UnwrapOr" {
+        return CompilerAbiLayoutIntTypeName();
+    }
+    if name == "UnwrapErr" {
+        return CompilerAbiLayoutStringTypeName();
+    }
+    return fallback;
+}
+
+func DirectMirScalarProgramResultIntBuiltinParameterTypes(
+    name: String, fallback: Array<String>
+) -> Array<String> {
+    if name == "Ok" { return [CompilerAbiLayoutIntTypeName()]; }
+    if name == "Err" { return [CompilerAbiLayoutStringTypeName()]; }
+    if name == "IsOk" || name == "IsErr" || name == "Unwrap" ||
+            name == "UnwrapErr" {
+        return [CompilerAbiLayoutResultIntTypeName()];
+    }
+    if name == "UnwrapOr" {
+        return [CompilerAbiLayoutResultIntTypeName(),
+            CompilerAbiLayoutIntTypeName()];
+    }
+    return fallback;
+}

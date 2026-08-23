@@ -1,0 +1,70 @@
+// Stable context for one rejected expression-definition operation.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_direct_call_diagnostic_owner.pgy";
+
+func DirectMirScalarCfgProgramDefinitionReadinessFailed(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Void {
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[operation] ==
+                DirectMirScalarCfgOpExpressionDefinition() {
+            let result: Int = plan.operation_result_values[operation];
+            let expression: Int =
+                plan.program.operation_expression_rows[operation];
+            let routine: Int =
+                DirectMirScalarCfgRoutinePartitionOperationOwner(
+                    plan.routines, operation);
+            let expected: String = "";
+            if result >= 0 && result < ArrayLength(plan.value_types) {
+                expected = plan.value_types[result];
+            }
+            if expected == "" || !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, expression, expected, routine) {
+                let detail: String =
+                    "direct MIR scalar definition readiness is invalid: operation=";
+                detail = Concat(detail, ToString(operation));
+                detail = Concat(detail, Concat(" routine=", ToString(routine)));
+                detail = Concat(detail, Concat(" result=", ToString(result)));
+                detail = Concat(detail, Concat(" expected=", expected));
+                detail = Concat(detail, Concat(" expression=", ToString(expression)));
+                if expression >= 0 && expression <
+                        ArrayLength(plan.program.expressions.graph_roots) {
+                    let facts: DirectMirScalarProgramExpressionSet =
+                        plan.program.expressions;
+                    let root: Int = facts.graph_roots[expression];
+                    let start: Int = facts.graph_starts[expression];
+                    let end: Int = start + facts.graph_counts[expression];
+                    detail = Concat(detail, Concat(" root=", ToString(root)));
+                    detail = Concat(detail, Concat(" root_kind=",
+                        ToString(facts.node_kinds[root])));
+                    detail = Concat(detail, Concat(" root_type=",
+                        facts.node_types[root]));
+                    let node: Int = start;
+                    while node < end {
+                        if !DirectMirScalarCfgProgramExpressionIdentityReady(
+                                plan, facts, node, routine, start) {
+                            detail = Concat(detail, Concat(" node=", ToString(node)));
+                            detail = Concat(detail, Concat(" node_kind=",
+                                ToString(facts.node_kinds[node])));
+                            detail = Concat(detail, Concat(" node_type=",
+                                facts.node_types[node]));
+                            if facts.node_kinds[node] ==
+                                    DirectMirScalarProgramExprDirectCall() {
+                                detail = Concat(detail,
+                                    DirectMirScalarCfgProgramDirectCallFailureDetail(
+                                        plan, facts, node, routine, start));
+                            }
+                            Die(detail);
+                        }
+                        node = node + 1;
+                    }
+                }
+                Die(detail);
+            }
+        }
+        operation = operation + 1;
+    }
+    Die("direct MIR scalar definition readiness failure was not located");
+}

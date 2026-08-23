@@ -601,6 +601,12 @@ def main():
         if node is None:
             raise SystemExit("fixture has no owned String drop call target")
         node["call_target_name"] = ""
+    elif kind == "owned-string-call-result-return-type":
+        routine = next((row for row in document.get("routines", [])
+                        if row.get("name") == "BuildOwnedString"), None)
+        if routine is None:
+            raise SystemExit("fixture has no owned String call-result routine")
+        routine["return"] = "Int"
     elif kind == "logical-record-field-order":
         declaration = callable_referenced_logical_record(document)
         if declaration is None:

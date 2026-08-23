@@ -10,6 +10,7 @@ struct DirectMirScalarProgramRuntimeAbiProjection {
     let string_compare: CompilerRuntimeCallAbiFact;
     let string_concat: CompilerRuntimeCallAbiFact;
     let string_to_string: CompilerRuntimeCallAbiFact;
+    let bool_to_string: CompilerRuntimeCallAbiFact;
     let string_to_upper: CompilerRuntimeCallAbiFact;
     let string_to_lower: CompilerRuntimeCallAbiFact;
     let string_length: CompilerRuntimeCallAbiFact;
@@ -34,7 +35,6 @@ struct DirectMirScalarProgramRuntimeAbiProjection {
     let compiler_artifact_write: CompilerRuntimeCallAbiFact;
     let case_math: DirectMirScalarProgramCaseMathRuntimeProjection;
 }
-
 func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
     ref fact: DirectMirScalarProgramRuntimeAbiFact
 ) -> DirectMirScalarProgramRuntimeAbiProjection {
@@ -43,6 +43,7 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
         CompilerRuntimeCallAbiStringCompareFact(),
         CompilerRuntimeCallAbiStringConcatFact(),
         CompilerRuntimeCallAbiStringToStringFact(),
+        CompilerRuntimeCallAbiBoolToStringFact(),
         CompilerRuntimeCallAbiStringToUpperFact(),
         CompilerRuntimeCallAbiStringToLowerFact(),
         CompilerRuntimeCallAbiStringGeneratedBuiltinFact(

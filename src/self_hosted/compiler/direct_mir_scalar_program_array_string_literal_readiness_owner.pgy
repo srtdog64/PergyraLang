@@ -30,8 +30,6 @@ func DirectMirScalarProgramArrayStringLiteralNodeReady(
     if nary && (facts.node_lefts[node] != -1 ||
             facts.node_rights[node] != -1) { return false; }
     if !nary && ArrayLength(operands) > 2 { return false; }
-    let dynamic_count: Int = 0;
-    let parameter_count: Int = 0;
     let row: Int = 0;
     while row < ArrayLength(operands) {
         let operand: Int = operands[row];
@@ -51,8 +49,6 @@ func DirectMirScalarProgramArrayStringLiteralNodeReady(
             }
         } else if facts.node_kinds[operand] ==
                 DirectMirScalarProgramExprParameter() {
-            dynamic_count = dynamic_count + 1;
-            parameter_count = parameter_count + 1;
             if facts.node_parameter_ordinals[operand] < 0 ||
                 facts.node_lefts[operand] != -1 ||
                 facts.node_rights[operand] != -1 ||
@@ -64,7 +60,6 @@ func DirectMirScalarProgramArrayStringLiteralNodeReady(
             }
         } else if facts.node_kinds[operand] ==
                 DirectMirScalarProgramExprLocal() {
-            dynamic_count = dynamic_count + 1;
             if facts.node_local_rows[operand] < 0 ||
                 facts.node_parameter_ordinals[operand] != -1 ||
                 facts.node_lefts[operand] != -1 ||
@@ -76,12 +71,10 @@ func DirectMirScalarProgramArrayStringLiteralNodeReady(
             }
         } else if facts.node_types[operand] ==
                 CompilerAbiLayoutStringTypeName() {
-            dynamic_count = dynamic_count + 1;
         } else { return false; }
         row = row + 1;
     }
-    return dynamic_count == 0 || ArrayLength(operands) == 1 ||
-        parameter_count == 0;
+    return true;
 }
 func DirectMirScalarProgramArrayStringLiteralOwnsElements(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int,

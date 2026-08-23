@@ -1,0 +1,21 @@
+// Fresh String returned by one call may move directly into an owner-handle.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+
+func DirectMirScalarProgramOwnedStringCallResultArgumentReady(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    argument: Int, graph_start: Int,
+    target_carriage: String, target_type: String
+) -> Bool {
+    if target_carriage != "owner-handle" ||
+        target_type != CompilerAbiLayoutStringTypeName() ||
+        argument < graph_start || argument >= ArrayLength(facts.node_kinds) ||
+        facts.node_kinds[argument] != DirectMirScalarProgramExprDirectCall() ||
+        facts.node_types[argument] != CompilerAbiLayoutStringTypeName() {
+        return false;
+    }
+    let callable: Int = facts.node_callable_rows[argument];
+    return callable >= 0 && callable < ArrayLength(routines.return_types) &&
+        routines.return_types[callable] == CompilerAbiLayoutStringTypeName();
+}

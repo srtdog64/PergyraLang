@@ -1,0 +1,24 @@
+// Runtime-call ABI requirement selected by admitted Bool ToString expressions.
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+struct DirectMirScalarProgramBoolToStringRuntimeRequirement {
+    let valid: Bool;
+    let runtime_call_abi_id: Int;
+}
+
+func DirectMirScalarProgramBoolToStringRuntimeRequirementFromExpressions(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> DirectMirScalarProgramBoolToStringRuntimeRequirement {
+    if !DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprToStringBool()) {
+        return DirectMirScalarProgramBoolToStringRuntimeRequirement(true, 0);
+    }
+    let fact: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiBoolToStringFact();
+    if !CompilerRuntimeCallAbiBoolToStringFactReady(fact) {
+        return DirectMirScalarProgramBoolToStringRuntimeRequirement(false, 0);
+    }
+    return DirectMirScalarProgramBoolToStringRuntimeRequirement(
+        true, fact.runtime_call_abi_id);
+}

@@ -1,0 +1,59 @@
+// Stable owner context for one rejected Array mutation operation.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_direct_call_diagnostic_owner.pgy";
+
+func DirectMirScalarProgramArrayMutationReadinessFailed(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, routine: Int
+) -> Void {
+    let kind: Int = plan.operation_kinds[operation];
+    let local: Int = plan.operation_left_locals[operation];
+    let parameter: Int = plan.operation_right_locals[operation];
+    let expression: Int = plan.program.operation_expression_rows[operation];
+    let index: Int =
+        plan.program.operation_secondary_expression_rows[operation];
+    let detail: String =
+        "direct MIR scalar Array mutation readiness is invalid: operation=";
+    detail = Concat(detail, ToString(operation));
+    detail = Concat(detail, Concat(" kind=", ToString(kind)));
+    detail = Concat(detail, Concat(" routine=", ToString(routine)));
+    detail = Concat(detail, Concat(" local=", ToString(local)));
+    detail = Concat(detail, Concat(" parameter=", ToString(parameter)));
+    if local >= 0 && local < ArrayLength(plan.local_types) {
+        detail = Concat(detail, Concat(" local_type=", plan.local_types[local]));
+    }
+    detail = Concat(detail, Concat(" expression=", ToString(expression)));
+    detail = Concat(detail, Concat(" index=", ToString(index)));
+    if expression >= 0 && expression <
+            ArrayLength(plan.program.expressions.graph_roots) {
+        let facts: DirectMirScalarProgramExpressionSet = plan.program.expressions;
+        let root: Int = facts.graph_roots[expression];
+        let start: Int = facts.graph_starts[expression];
+        let end: Int = start + facts.graph_counts[expression];
+        detail = Concat(detail, Concat(" root=", ToString(root)));
+        detail = Concat(detail, Concat(" root_kind=",
+            ToString(facts.node_kinds[root])));
+        detail = Concat(detail, Concat(" root_type=", facts.node_types[root]));
+        let node: Int = start;
+        while node < end {
+            if !DirectMirScalarCfgProgramExpressionIdentityReady(
+                    plan, facts, node, routine, start) {
+                detail = Concat(detail, Concat(" node=", ToString(node)));
+                detail = Concat(detail, Concat(" node_kind=",
+                    ToString(facts.node_kinds[node])));
+                detail = Concat(detail, Concat(" node_type=",
+                    facts.node_types[node]));
+                if facts.node_kinds[node] ==
+                        DirectMirScalarProgramExprDirectCall() {
+                    detail = Concat(detail,
+                        DirectMirScalarCfgProgramDirectCallFailureDetail(
+                            plan, facts, node, routine, start));
+                }
+                Die(detail);
+            }
+            node = node + 1;
+        }
+    }
+    Die(detail);
+}

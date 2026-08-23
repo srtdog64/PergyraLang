@@ -11,6 +11,8 @@ import "direct_mir_scalar_program_string_transform_expression_readiness_owner.pg
 import "direct_mir_scalar_program_option_int_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_option_string_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_option_bool_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_result_int_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_to_string_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_bool_empty_literal_readiness_owner.pgy";
@@ -90,6 +92,9 @@ func DirectMirScalarProgramExpressionNodeReady(
     let option_bool_ready: Option<Bool> =
         DirectMirScalarProgramOptionBoolExpressionNodeReady(facts, node);
     if IsSome(option_bool_ready) { return UnwrapOption(option_bool_ready); }
+    let result_int_ready: Option<Bool> =
+        DirectMirScalarProgramResultIntExpressionNodeReady(facts, node);
+    if IsSome(result_int_ready) { return UnwrapOption(result_int_ready); }
     let record_option_ready: Option<Bool> = DirectMirScalarProgramLogicalRecordOptionExpressionNodeReady(facts, node);
     if IsSome(record_option_ready) { return UnwrapOption(record_option_ready); }
     if kind == DirectMirScalarProgramExprLocal() {
@@ -130,18 +135,9 @@ func DirectMirScalarProgramExpressionNodeReady(
     if kind == DirectMirScalarProgramExprDirectCall() {
         return DirectMirScalarProgramDirectCallNodeReady(facts, node);
     }
-    if kind == DirectMirScalarProgramExprToStringInt() {
-        return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&
-            facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
-            right == -1 && local_binding == -1 && param == -1 && literal == "" &&
-            callable == -1;
-    }
-    if kind == DirectMirScalarProgramExprToStringString() {
-        return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&
-            facts.node_types[left] == CompilerAbiLayoutStringTypeName() &&
-            right == -1 && local_binding == -1 && param == -1 &&
-            literal == "" && callable == -1;
-    }
+    let to_string_ready: Option<Bool> =
+        DirectMirScalarProgramToStringExpressionNodeReady(facts, node);
+    if IsSome(to_string_ready) { return UnwrapOption(to_string_ready); }
     if kind == DirectMirScalarProgramExprToUpperString() || kind ==
             DirectMirScalarProgramExprToLowerString() {
         return type_name == CompilerAbiLayoutStringTypeName() && left >= 0 &&

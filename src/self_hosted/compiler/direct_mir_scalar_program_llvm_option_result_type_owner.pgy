@@ -1,0 +1,21 @@
+// LLVM aggregate spellings for scalar Option and Result ABI families.
+import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
+import "direct_mir_scalar_program_llvm_result_int_owner.pgy";
+
+func DirectMirScalarProgramLlvmOptionResultType(type_name: String) -> String {
+    if type_name == CompilerAbiLayoutOptionIntTypeName() {
+        return DirectMirScalarProgramLlvmOptionIntTypeName();
+    }
+    if type_name == CompilerAbiLayoutOptionStringTypeName() {
+        return DirectMirScalarProgramLlvmOptionStringTypeName();
+    }
+    if type_name == CompilerAbiLayoutOptionBoolTypeName() {
+        return DirectMirScalarProgramLlvmOptionBoolTypeName();
+    }
+    if type_name == CompilerAbiLayoutResultIntTypeName() {
+        return DirectMirScalarProgramLlvmResultIntTypeName();
+    }
+    return "";
+}

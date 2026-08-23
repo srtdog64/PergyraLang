@@ -1,0 +1,19 @@
+// Singleton literals sourced from indexed logical-record collection fields.
+
+struct ProjectionRows {
+    let ids: Array<Int>;
+    let names: Array<String>;
+}
+
+func ProjectRows(ref rows: ProjectionRows, selected: Int) -> Int {
+    let found: Int = selected;
+    let ids: Array<Int> = [rows.ids[found]];
+    let names: Array<String> = [rows.names[found]];
+    Log(names[0]);
+    return ids[0];
+}
+
+func Main() -> Void {
+    let rows: ProjectionRows = ProjectionRows([7], ["record-index-ready"]);
+    Log(ToString(ProjectRows(rows, 0)));
+}

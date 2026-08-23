@@ -1,5 +1,4 @@
 import json
-import copy
 import sys
 
 
@@ -24,7 +23,7 @@ mixed_instruction = next(
     for block in routine["blocks"]
     for candidate in block["instructions"]
     if candidate.get("expr0_graph")
-    and candidate.get("expr0", "").startswith('["Program:\\n", FormatMixedStringLiteral(')
+    and candidate.get("expr0", "").startswith('["Program:\\n", prefix, FormatMixedStringLiteral(')
 )
 mixed_graph = mixed_instruction["expr0_graph"]
 mixed_root = mixed_graph["nodes"][mixed_graph["root"]]
@@ -58,17 +57,10 @@ elif mode == "mixed-wrong-element-kind":
     element["text"] = "1"
     element["left"] = None
     element["right"] = None
-elif mode == "mixed-parameter-element":
-    formal = copy.deepcopy(next(
-        node for node in mixed_graph["nodes"]
-        if node.get("binding_kind") == "formal_parameter"
-        and node.get("text") == "prefix"
-    ))
-    root = copy.deepcopy(mixed_root)
-    root["left"], root["right"] = 2, 3
-    mixed_graph["nodes"] = mixed_graph["nodes"][:3] + [formal, root]
-    mixed_graph["root"] = 4
-    mixed_instruction["uses"] = []
+elif mode == "mixed-owned-parameter":
+    routine = next(row for row in document["routines"] if row["name"] == "LogMixedStringLiteral")
+    parameter = next(row for row in routine["params"] if row["name"] == "prefix")
+    parameter["carriage"] = "owner-handle"
 else:
     raise SystemExit(f"unknown mutation: {mode}")
 

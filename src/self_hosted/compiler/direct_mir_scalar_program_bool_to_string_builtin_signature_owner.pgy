@@ -1,0 +1,18 @@
+// Exact specialization of generic ToString for one Bool argument.
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramBoolToStringBuiltinSignature(
+    ref fact: DirectMirScalarProgramBuiltinSignatureFact,
+    name: String, actual_types: Array<String>
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    if name != "ToString" || ArrayLength(actual_types) != 1 ||
+        actual_types[0] != CompilerAbiLayoutBoolTypeName() {
+        return DirectMirScalarProgramBuiltinSignatureFactInvalid();
+    }
+    let parameter_types: Array<String> = [CompilerAbiLayoutBoolTypeName()];
+    return DirectMirScalarProgramBuiltinSignatureFact(
+        true, fact.registry_row, fact.name,
+        CompilerAbiLayoutStringTypeName(), parameter_types,
+        DirectMirScalarProgramExprToStringBool(), fact.runtime_call_abi_id);
+}

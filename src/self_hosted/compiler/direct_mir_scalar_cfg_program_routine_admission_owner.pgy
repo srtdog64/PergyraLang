@@ -11,10 +11,11 @@ import "direct_mir_scalar_cfg_program_expression_diagnostic_owner.pgy";
 import "direct_mir_scalar_cfg_control_transfer_admission_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_result_int_abi_owner.pgy";
 import "direct_mir_scalar_cfg_program_definition_route_owner.pgy";
 import "direct_mir_scalar_program_option_string_abi_owner.pgy";
 import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
-import "direct_mir_scalar_program_option_absence_expression_owner.pgy";
+import "direct_mir_scalar_program_return_expression_abi_owner.pgy";
 import "direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_member_rebind_owner.pgy";
 struct DirectMirScalarCfgProgramRoutineAdmission {
@@ -22,6 +23,7 @@ struct DirectMirScalarCfgProgramRoutineAdmission {
     let storage: DirectMirScalarCfgProgramGraphStorage;
     let expressions: DirectMirScalarProgramExpressionSet;
     let option_int_abi: DirectMirOptionMatchAbiFact;
+    let result_int_abi: DirectMirResultIntAbiFact;
     let option_string_abi: DirectMirOptionMatchAbiFact;
     let option_bool_abi: DirectMirOptionMatchAbiFact;
 }
@@ -103,6 +105,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
     option_int_abi: DirectMirOptionMatchAbiFact,
     option_string_abi: DirectMirOptionMatchAbiFact,
     option_bool_abi: DirectMirOptionMatchAbiFact,
+    result_int_abi: DirectMirResultIntAbiFact,
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
@@ -111,7 +114,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
     ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact
 ) -> DirectMirScalarCfgProgramRoutineAdmission {
     let invalid: DirectMirScalarCfgProgramRoutineAdmission = DirectMirScalarCfgProgramRoutineAdmission(
-            false, storage, expressions, option_int_abi,
+            false, storage, expressions, option_int_abi, result_int_abi,
             option_string_abi, option_bool_abi);
     if !input.index.valid || !DirectMirScalarCfgProgramInputReady(input) {
         Die("direct MIR scalar program routine input has an external collection plan");
@@ -231,6 +234,9 @@ func DirectMirScalarCfgProgramAppendRoutine(
             option_int_abi =
                 DirectMirScalarProgramOptionIntAbiFromInstruction(
                     option_int_abi, admitted.routines.source_json, capture);
+            result_int_abi =
+                DirectMirScalarProgramResultIntAbiFromInstruction(
+                    result_int_abi, admitted.routines.source_json, capture);
             option_string_abi =
                 DirectMirScalarProgramOptionStringAbiFromInstruction(
                     option_string_abi, admitted.routines.source_json, capture);
@@ -335,7 +341,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     instruction_row = instruction_row + 1;
                     continue;
                 }
-                if !DirectMirScalarProgramOptionAbsenceReturnAbiReady(
+                if !DirectMirScalarProgramReturnExpressionAbiReady(
                         capture.expr0, capture.abi_type_name,
                         signature.return_type, logical_record) {
                     DirectMirScalarCfgProgramRoutineAdmissionFailed("return_abi", routine_ordinal, block, global_row, source); return invalid;
@@ -376,5 +382,6 @@ func DirectMirScalarCfgProgramAppendRoutine(
     return DirectMirScalarCfgProgramRoutineAdmission(
         true, DirectMirScalarCfgProgramGraphStorage(
             values, blocks, operations, routines), expressions,
-        option_int_abi, option_string_abi, option_bool_abi);
+        option_int_abi, result_int_abi,
+        option_string_abi, option_bool_abi);
 }

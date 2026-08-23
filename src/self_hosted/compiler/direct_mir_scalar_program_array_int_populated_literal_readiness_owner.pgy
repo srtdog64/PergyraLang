@@ -1,6 +1,7 @@
 // Ordered admitted Int operands carried by one populated Array<Int> literal.
 import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_int_index_readiness_owner.pgy";
 func DirectMirScalarProgramArrayIntPopulatedLiteralOperandRows(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Array<Int> {
@@ -8,14 +9,11 @@ func DirectMirScalarProgramArrayIntPopulatedLiteralOperandRows(
         facts.nary_operands, node);
     if ArrayLength(rows) != 0 { return rows; }
     if facts.node_lefts[node] >= 0 {
-        ArrayPush(rows, facts.node_lefts[node]);
-    }
+        ArrayPush(rows, facts.node_lefts[node]); }
     if facts.node_rights[node] >= 0 {
-        ArrayPush(rows, facts.node_rights[node]);
-    }
+        ArrayPush(rows, facts.node_rights[node]); }
     return rows;
 }
-
 func DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Bool {
@@ -74,7 +72,10 @@ func DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(
                 facts.node_literals[operand] != "" ||
                 facts.node_callable_rows[operand] != -1 { return false; }
         } else if facts.node_kinds[operand] == DirectMirScalarProgramExprLogicalRecordMember() {
-            if !DirectMirScalarProgramLogicalRecordExpressionNodeReady(facts, operand) { return false; }
+            if !DirectMirScalarProgramLogicalRecordExpressionNodeReady(
+                    facts, operand) { return false; }
+        } else if facts.node_kinds[operand] == DirectMirScalarProgramExprArrayIntIndex() {
+            if !DirectMirScalarProgramArrayIntIndexNodeReady(facts, operand) { return false; }
         } else if facts.node_kinds[operand] ==
                 DirectMirScalarProgramExprSubtractInt() {
             let left: Int = facts.node_lefts[operand];
@@ -94,7 +95,6 @@ func DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(
     }
     return true;
 }
-
 func DirectMirScalarProgramHasArrayIntPopulatedLiteral(
     ref facts: DirectMirScalarProgramExpressionSet
 ) -> Bool {

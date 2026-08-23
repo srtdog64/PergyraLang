@@ -1,0 +1,9 @@
+// Stable normalized identities for the canonical Result<Int> value family.
+
+func DirectMirScalarProgramExprOkInt() -> Int { return 106; }
+func DirectMirScalarProgramExprErrInt() -> Int { return 107; }
+func DirectMirScalarProgramExprIsOkInt() -> Int { return 108; }
+func DirectMirScalarProgramExprIsErrInt() -> Int { return 109; }
+func DirectMirScalarProgramExprUnwrapResultInt() -> Int { return 110; }
+func DirectMirScalarProgramExprUnwrapErrInt() -> Int { return 111; }
+func DirectMirScalarProgramExprUnwrapOrInt() -> Int { return 112; }

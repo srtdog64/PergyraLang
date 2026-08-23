@@ -1,0 +1,19 @@
+// Ordered LLVM ABI preambles for scalar Option and Result families.
+import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
+import "direct_mir_scalar_program_llvm_result_int_owner.pgy";
+
+func DirectMirScalarProgramLlvmOptionResultPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    let output: String = DirectMirScalarProgramLlvmOptionBoolPreamble(
+        plan.program.option_bool_abi, target);
+    output = Concat(output, DirectMirScalarProgramLlvmOptionStringPreamble(
+        plan.program.option_string_abi, target));
+    output = Concat(output, DirectMirScalarProgramLlvmOptionIntPreamble(
+        plan.program.option_int_abi, target));
+    return Concat(output, DirectMirScalarProgramLlvmResultIntPreamble(
+        plan.program.result_int_abi, target));
+}

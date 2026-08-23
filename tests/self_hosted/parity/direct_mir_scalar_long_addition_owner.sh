@@ -41,7 +41,7 @@ grep -Fq 'kind == DirectMirScalarProgramExprAddLong()' "$C_EXPR" ||
     fail "C Long addition consumer is missing"
 grep -Fq 'kind == DirectMirScalarProgramExprAddLong()' "$LLVM_EXPR" ||
     fail "LLVM Long addition consumer is missing"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema did not advance with Long addition"
 ! grep -Fq 'pgy_checked_add_i64_export' "$C_EXPR" ||
     fail "C changed default Long addition into checked arithmetic"

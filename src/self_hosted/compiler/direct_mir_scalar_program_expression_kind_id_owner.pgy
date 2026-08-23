@@ -6,11 +6,13 @@ import "direct_mir_scalar_program_array_string_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_string_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_array_int_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_array_bool_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_comparison_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_numeric_cast_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprLocal() -> Int { return 1; }
 func DirectMirScalarProgramExprParameter() -> Int { return 2; }
 func DirectMirScalarProgramExprIntLiteral() -> Int { return 3; }
@@ -51,10 +53,6 @@ func DirectMirScalarProgramExprPayloadFreeEnumVariant() -> Int { return 90; }
 func DirectMirScalarProgramExprEqualPayloadFreeEnum() -> Int { return 91; }
 func DirectMirScalarProgramExprRuntimeValueCall() -> Int { return 92; }
 func DirectMirScalarProgramExprArrayStringDropOwned() -> Int { return 93; }
-func DirectMirScalarProgramExprProcessArgs() -> Int { return 94; }
-func DirectMirScalarProgramExprDirWalk() -> Int { return 95; }
-func DirectMirScalarProgramExprFileExists() -> Int { return 96; }
-func DirectMirScalarProgramExprReadFile() -> Int { return 97; }
 func DirectMirScalarProgramExprPrintString() -> Int { return 99; }
 func DirectMirScalarProgramExprIntentObservabilityCall() -> Int { return 100; }
 func DirectMirScalarProgramExprSetStringNew() -> Int { return 101; }
@@ -62,4 +60,5 @@ func DirectMirScalarProgramExprSetStringAdd() -> Int { return 102; }
 func DirectMirScalarProgramExprSetStringHas() -> Int { return 103; }
 func DirectMirScalarProgramExprArrayStringPushOwned() -> Int { return 104; }
 func DirectMirScalarProgramExprCompilerArtifactWrite() -> Int { return 105; }
-func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprCompilerArtifactWrite(); }
+func DirectMirScalarProgramExprToStringBool() -> Int { return 113; }
+func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprToStringBool(); }

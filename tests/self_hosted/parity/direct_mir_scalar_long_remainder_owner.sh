@@ -63,7 +63,7 @@ grep -Fq 'pgy_runtime_panic_checked_inline.h' "$C_MATERIAL" ||
     fail "C omitted the checked arithmetic runtime owner"
 grep -Fq 'declare i64 @' "$LLVM_MATERIAL" ||
     fail "LLVM omitted the checked arithmetic runtime declaration"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema did not advance with Long remainder"
 modulo_guard="$(sed -n '/func CheckedDivisionRuntimeCModuloGuard()/,/^}/p' "$DIVISION_OWNER")"
 grep -Fq 'return 0;' <<<"$modulo_guard" ||

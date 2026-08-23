@@ -32,14 +32,18 @@ LLVM_PARAMETER_STORAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg
 BUILTIN_MATERIALIZATION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_builtin_materialization_owner.pgy"
 PROGRAM_C_EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
 PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
+EXTERN_PROTOTYPE="$ROOT_DIR/src/self_hosted/codegen/emission/extern_prototype_block_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 for path in "$REPRESENTATION" "$CALL_ABI" "$EXPRESSION_READY" \
         "$BUILTIN_CALL" "$BUILTIN_IDENTITY" "$EXPRESSION_ADMISSION" "$LIFECYCLE" \
         "$EXTENSION" "$C_OWNER" "$LLVM_OWNER" "$BUILTIN_MATERIALIZATION" \
-        "$PROGRAM_C_EMISSION" "$LLVM_PARAMETER_STORAGE" "$PLAN" "$MUTATIONS"; do
+        "$PROGRAM_C_EMISSION" "$LLVM_PARAMETER_STORAGE" "$PLAN" "$MUTATIONS" \
+        "$EXTERN_PROTOTYPE"; do
     [[ -f "$path" ]] || fail "missing owner: ${path#"$ROOT_DIR/"}"
 done
+grep -Fq 'AllocatorDestroy(output_allocator);' "$EXTERN_PROTOTYPE" ||
+    fail "extern prototype TextBuilder allocator has no terminal consumer"
 grep -Fq 'runtime_header_owns_print' "$BUILTIN_MATERIALIZATION" ||
     fail "C Print materialization ignores the runtime-header symbol owner"
 grep -Fq 'CompilerRuntimeValueTypesPresent(plan.local_types, plan.routines.parameter_types)' \
@@ -97,7 +101,7 @@ for path in "$C_OWNER" "$LLVM_OWNER"; do
     grep -Fq 'CompilerRuntimeValueCallAbiFactForId(' "$path" ||
         fail "$(basename "$path") re-inferred a runtime call"
 done
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema omitted runtime-call identity carriage"
 
 mkdir -p "$WORK_DIR"

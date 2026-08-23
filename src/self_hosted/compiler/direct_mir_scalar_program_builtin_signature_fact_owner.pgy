@@ -1,0 +1,17 @@
+// Typed normalized signature selected for one scalar-program builtin call.
+struct DirectMirScalarProgramBuiltinSignatureFact {
+    let valid: Bool;
+    let registry_row: Int;
+    let name: String;
+    let return_type: String;
+    let parameter_types: Array<String>;
+    let expression_kind: Int;
+    let runtime_call_abi_id: Int;
+}
+
+func DirectMirScalarProgramBuiltinSignatureFactInvalid(
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let types: Array<String> = [];
+    return DirectMirScalarProgramBuiltinSignatureFact(
+        false, -1, "", "", types, 0, -1);
+}

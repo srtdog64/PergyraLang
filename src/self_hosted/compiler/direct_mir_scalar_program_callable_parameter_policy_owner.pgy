@@ -40,7 +40,8 @@ func DirectMirScalarProgramCallableReturnTypeSupported(
         type_name == CompilerAbiLayoutArrayIntTypeName() ||
         type_name == CompilerAbiLayoutOptionIntTypeName() ||
         type_name == CompilerAbiLayoutOptionStringTypeName() ||
-        type_name == CompilerAbiLayoutOptionBoolTypeName();
+        type_name == CompilerAbiLayoutOptionBoolTypeName() ||
+        type_name == CompilerAbiLayoutResultIntTypeName();
 }
 func DirectMirScalarProgramCallableReturnTypeSupportedWithNominal(
     type_name: String,
@@ -198,7 +199,8 @@ func DirectMirScalarProgramLogicalRecordParameterReady(
         signature.parameters.abi_required[ordinal] {
         return false;
     }
-    if signature.parameters.carriages[ordinal] == "value" {
+    if signature.parameters.carriages[ordinal] == "value" ||
+        signature.parameters.carriages[ordinal] == "owner-handle" {
         return signature.parameters.pass_shapes[ordinal] == "direct";
     }
     return signature.parameters.carriages[ordinal] == "readonly-ref" &&

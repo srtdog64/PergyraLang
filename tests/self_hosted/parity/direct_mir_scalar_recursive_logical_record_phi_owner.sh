@@ -60,7 +60,7 @@ for owner in "$C_OWNER" "$LLVM_OWNER"; do
     ! grep -Eq 'offset|offsetof' "$owner" ||
         fail "nested record target invented a physical layout"
 done
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN_OWNER" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN_OWNER" ||
     fail "GraphPlan schema does not seal recursive records and value phi"
 
 mkdir -p "$WORK_DIR"

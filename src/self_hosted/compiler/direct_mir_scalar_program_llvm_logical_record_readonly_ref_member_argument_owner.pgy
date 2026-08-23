@@ -61,7 +61,8 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(
         } else if routines.parameter_carriages[source_row] == "value-result" {
             receiver_pointer = Concat("%pgy.param.", Concat(
                 ToString(source), ".local"));
-        } else if routines.parameter_carriages[source_row] == "value" {
+        } else if routines.parameter_carriages[source_row] == "value" ||
+                routines.parameter_carriages[source_row] == "owner-handle" {
             receiver_pointer = Concat(
                 "%pgy.readonly.receiver.", ToString(argument_node));
             receiver_instructions = Concat("  ", receiver_pointer);

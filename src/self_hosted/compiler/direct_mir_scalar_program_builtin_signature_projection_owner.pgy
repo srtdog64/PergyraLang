@@ -1,5 +1,7 @@
 // Bounded scalar-program projection of canonical semantic builtin signatures.
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_bool_to_string_builtin_signature_owner.pgy";
 import "../semantic/builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_collection_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_case_math_builtin_signature_owner.pgy";
@@ -8,26 +10,12 @@ import "direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_option_int_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_option_string_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_option_bool_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_result_int_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy";
 import "runtime_value_call_abi_owner.pgy";
 import "../lib/intent_observability_abi_projection_owner.pgy";
-struct DirectMirScalarProgramBuiltinSignatureFact {
-    let valid: Bool;
-    let registry_row: Int;
-    let name: String;
-    let return_type: String;
-    let parameter_types: Array<String>;
-    let expression_kind: Int;
-    let runtime_call_abi_id: Int;
-}
-func DirectMirScalarProgramBuiltinSignatureFactInvalid(
-) -> DirectMirScalarProgramBuiltinSignatureFact {
-    let types: Array<String> = [];
-    return DirectMirScalarProgramBuiltinSignatureFact(
-        false, -1, "", "", types, 0, -1);
-}
 func DirectMirScalarProgramBuiltinSignatureExpected(
     name: String, ref observability: IntentObservabilityAbiRow,
     ref runtime_value: CompilerRuntimeValueCallAbiFact
@@ -70,6 +58,9 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
     let option_int: Array<String> =
         DirectMirScalarProgramOptionIntBuiltinSignatureExpected(name);
     if ArrayLength(option_int) != 0 { return option_int; }
+    let result_int: Array<String> =
+        DirectMirScalarProgramResultIntBuiltinSignatureExpected(name);
+    if ArrayLength(result_int) != 0 { return result_int; }
     let artifact: Array<String> =
         DirectMirScalarProgramCompilerArtifactBuiltinSignatureExpected(name);
     if ArrayLength(artifact) != 0 { return artifact; }
@@ -111,6 +102,8 @@ func DirectMirScalarProgramBuiltinSignatureFactFromName(name: String) -> DirectM
         name, returns[registry_row]);
     return_type = DirectMirScalarProgramOptionIntBuiltinReturnType(
         name, return_type);
+    return_type = DirectMirScalarProgramResultIntBuiltinReturnType(
+        name, return_type);
     let registry_parameter_types: Array<String> = [];
     if params[registry_row] != "" {
         registry_parameter_types = Split(params[registry_row], "|");
@@ -118,6 +111,8 @@ func DirectMirScalarProgramBuiltinSignatureFactFromName(name: String) -> DirectM
     let parameter_types: Array<String> =
         DirectMirScalarProgramOptionIntBuiltinParameterTypes(
             name, registry_parameter_types);
+    parameter_types = DirectMirScalarProgramResultIntBuiltinParameterTypes(
+        name, parameter_types);
     return DirectMirScalarProgramBuiltinSignatureFact(
         true, registry_row, name, return_type,
         parameter_types, ToInt(expected[2]), runtime_call_abi_id);
@@ -150,6 +145,10 @@ func DirectMirScalarProgramBuiltinSignatureFactForCall(
             CompilerAbiLayoutStringTypeName(), parameter_types,
             DirectMirScalarProgramExprToStringString(), fact.runtime_call_abi_id);
     }
+    let bool_to_string: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBoolToStringBuiltinSignature(
+            fact, name, actual_types);
+    if bool_to_string.valid { return bool_to_string; }
     if name == "Print" && ArrayLength(actual_types) == 1 &&
             actual_types[0] == CompilerAbiLayoutStringTypeName() {
         let parameter_types: Array<String> = [

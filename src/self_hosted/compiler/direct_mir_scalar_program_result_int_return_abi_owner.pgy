@@ -1,0 +1,11 @@
+// Contextual Result<Int> constructor compatibility at routine returns.
+
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramResultIntReturnAbiReady(
+    text: String, persisted_type: String, expected_type: String
+) -> Bool {
+    return expected_type == CompilerAbiLayoutResultIntTypeName() &&
+        persisted_type == "Result<Unknown, String>" &&
+        StartsWith(text, "Err(");
+}

@@ -1,9 +1,7 @@
 import "direct_mir_scalar_program_c_string_expression_owner.pgy";
 import "direct_mir_scalar_program_c_string_collection_expression_owner.pgy";
 import "direct_mir_scalar_program_c_extended_expression_owner.pgy";
-import "direct_mir_scalar_program_c_option_int_owner.pgy";
-import "direct_mir_scalar_program_c_option_string_owner.pgy";
-import "direct_mir_scalar_program_c_option_bool_owner.pgy";
+import "direct_mir_scalar_program_c_option_result_expression_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_c_set_string_expression_owner.pgy";
 import "direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy";
@@ -22,12 +20,9 @@ func DirectMirScalarProgramCBuiltinExpression(
     let record_option: Option<String> = DirectMirScalarProgramCLogicalRecordOptionExpression(
         logical_record, kind, result_type, left_type, left);
     if IsSome(record_option) { return record_option; }
-    let option_int: Option<String> = DirectMirScalarProgramCOptionIntExpression(kind, left);
-    if IsSome(option_int) { return option_int; }
-    let option_string: Option<String> = DirectMirScalarProgramCOptionStringExpression(kind, left);
-    if IsSome(option_string) { return option_string; }
-    let option_bool: Option<String> = DirectMirScalarProgramCOptionBoolExpression(kind, left);
-    if IsSome(option_bool) { return option_bool; }
+    let option_result: Option<String> =
+        DirectMirScalarProgramCOptionResultExpression(kind, left, right);
+    if IsSome(option_result) { return option_result; }
     let set_string: Option<String> =
         DirectMirScalarProgramCSetStringExpression(
             kind, left_type, left, right);

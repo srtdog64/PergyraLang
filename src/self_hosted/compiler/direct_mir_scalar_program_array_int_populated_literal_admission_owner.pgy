@@ -1,8 +1,8 @@
 // Exact populated Array<Int> literal with ordered admitted Int operands.
-
 import "direct_mir_scalar_program_expression_mutation_owner.pgy";
 import "direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy";
 import "direct_mir_scalar_program_nested_array_literal_seed_owner.pgy";
+import "direct_mir_scalar_program_array_int_record_index_literal_admission_owner.pgy";
 
 func DirectMirScalarProgramNestedArrayIntLiteralOperandRows(
     ref sequence: MirExpressionGraphSequence, node: Int,
@@ -69,6 +69,12 @@ func DirectMirScalarProgramAppendArrayIntPopulatedLiteral(
     }
     let invalid: DirectMirScalarProgramExpressionSet =
         DirectMirScalarProgramExpressionSetInvalid(facts);
+    let record_index: DirectMirScalarProgramArrayIntRecordIndexLiteralAdmission =
+        DirectMirScalarProgramArrayIntRecordIndexLiteralFromOwners(facts,
+            sequence, uses, global_row, local_instruction, local_offset,
+            use_offset, locals_plan, value_types, wire, signature, logical_record);
+    if record_index.recognized { use_offset = use_offset + record_index.consumed_uses;
+        return DirectMirScalarProgramArrayIntPopulatedLiteralAdmission(true, record_index.facts); }
     let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
     if !sequence.ok || sequence.ready_node_count != count || count < 3 ||
         root != count - 1 ||

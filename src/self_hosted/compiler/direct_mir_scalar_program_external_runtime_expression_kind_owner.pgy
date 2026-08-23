@@ -1,0 +1,5 @@
+// Stable expression identities for external runtime value boundaries.
+func DirectMirScalarProgramExprProcessArgs() -> Int { return 94; }
+func DirectMirScalarProgramExprDirWalk() -> Int { return 95; }
+func DirectMirScalarProgramExprFileExists() -> Int { return 96; }
+func DirectMirScalarProgramExprReadFile() -> Int { return 97; }

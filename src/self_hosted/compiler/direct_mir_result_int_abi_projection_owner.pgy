@@ -1,0 +1,60 @@
+// Target projection of the sealed Result<Int> aggregate ABI.
+
+import "direct_mir_result_int_abi_fact_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirResultIntAbiProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let tag_index: Int;
+    let ok_index: Int;
+    let error_index: Int;
+    let aggregate_type: String;
+}
+
+func DirectMirResultIntAbiProjectionReadyFor(
+    ref projection: DirectMirResultIntAbiProjection,
+    expected_target: String
+) -> Bool {
+    return projection.valid &&
+        CompilerTargetProjectionKnown(expected_target) &&
+        projection.target_projection == expected_target &&
+        projection.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        projection.tag_index == 0 && projection.ok_index == 1 &&
+        projection.error_index == 2 &&
+        ((expected_target == CompilerTargetCpuCProjection() &&
+          projection.aggregate_type == "pgy_scalar_result_int") ||
+         (expected_target == CompilerTargetCpuLlvmProjection() &&
+          projection.aggregate_type == "{ i32, i32, ptr }") );
+}
+
+func DirectMirResultIntAbiProjectionFromFact(
+    ref fact: DirectMirResultIntAbiFact,
+    ref target: CompilerTargetProjectionFact
+) -> DirectMirResultIntAbiProjection {
+    if !DirectMirResultIntAbiFactReady(fact) ||
+        (!CompilerTargetProjectionFactReadyFor(
+             target, CompilerTargetCpuCProjection()) &&
+         !CompilerTargetProjectionFactReadyFor(
+             target, CompilerTargetCpuLlvmProjection())) ||
+        fact.tag_offset / fact.tag_size != 0 ||
+        fact.ok_offset / fact.ok_size != 1 ||
+        fact.error_offset / fact.error_size != 1 {
+        Die("direct MIR Result<Int> ABI has no target projection");
+    }
+    let aggregate: String = "pgy_scalar_result_int";
+    if target.projection == CompilerTargetCpuLlvmProjection() {
+        aggregate = "{ i32, i32, ptr }";
+    }
+    let projection: DirectMirResultIntAbiProjection =
+        DirectMirResultIntAbiProjection(
+            true, target.projection,
+            target.target_capability_fingerprint, 0, 1, 2, aggregate);
+    if !DirectMirResultIntAbiProjectionReadyFor(
+            projection, target.projection) {
+        Die("direct MIR Result<Int> target mapping is invalid");
+    }
+    return projection;
+}

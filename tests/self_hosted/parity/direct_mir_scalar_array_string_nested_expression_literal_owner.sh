@@ -7,26 +7,20 @@ source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-direct-mir-scalar-array-string-nested-expression-literal"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-CC="${PGY_SELFHOST_CC:-gcc}"
-CLANG="${PGY_SELFHOST_CLANG:-clang}"
-WORK_REL=".tmp/self_hosted/direct_mir_array_string_nested_expression_literal"
-WORK_DIR="$ROOT_DIR/$WORK_REL"
-SOURCE_REL="tests/self_hosted/fixtures/direct_mir_array_string_nested_expression_literal.pgy"
-MIR_REL="$WORK_REL/program.mir.json"
-MIR="$ROOT_DIR/$MIR_REL"
+CC="${PGY_SELFHOST_CC:-gcc}"; CLANG="${PGY_SELFHOST_CLANG:-clang}"
+WORK_REL=".tmp/self_hosted/direct_mir_array_string_nested_expression_literal"; WORK_DIR="$ROOT_DIR/$WORK_REL"
+SOURCE_REL="tests/self_hosted/fixtures/direct_mir_array_string_nested_expression_literal.pgy"; MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_array_string_nested_expression_literal_mutations.py"
-SEED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_nested_array_literal_seed_owner.pgy"
-NESTED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_nested_literal_owner.pgy"
-ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy"
-READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy"
-C_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy"
-LLVM_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy"
+SEED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_nested_array_literal_seed_owner.pgy"; NESTED="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_nested_literal_owner.pgy"
+ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy"; READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy"
+PARAMETER_CARRIAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_parameter_carriage_owner.pgy"; C_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy"; LLVM_LITERAL="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 for pair in "$SEED:35" "$NESTED:70" "$ADMISSION:445" \
-        "$READINESS:110" "$C_LITERAL:45" "$LLVM_LITERAL:90" "$MUTATIONS:80"; do
+        "$READINESS:110" "$PARAMETER_CARRIAGE:40" \
+        "$C_LITERAL:45" "$LLVM_LITERAL:90" "$MUTATIONS:80"; do
     owner="${pair%:*}"; cap="${pair##*:}"
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
     [[ "$(wc -l <"$owner")" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}"
@@ -42,6 +36,10 @@ grep -Fq 'nary_operands, ArrayLength(kinds),' "$ADMISSION" || fail "mixed String
     "$ROOT_DIR/src/self_hosted/compiler" >/dev/null ||
     fail "retired single-element nested String owner returned"
 grep -Fq 'facts.node_types[operand] ==' "$READINESS" || fail "literal readiness omits normalized String expression operands"
+grep -Fq 'routines.parameter_carriages[parameter]' "$PARAMETER_CARRIAGE" ||
+    fail "mixed String literal omits routine-owned parameter carriage"
+grep -Fq '(owned == 1 && ArrayLength(operands) == 1)' "$PARAMETER_CARRIAGE" ||
+    fail "mixed String literal weakened the owner-handle singleton boundary"
 ! rg -F 'DirectMirScalarProgramNestedArrayIntLiteralSeedMarkerReady' \
     "$ROOT_DIR/src/self_hosted/compiler" >/dev/null ||
     fail "retired type-specific array seed owner returned"
@@ -59,9 +57,11 @@ grep -Fq '"uses":["callable_label.1","routine.1"]' "$MIR" ||
     fail "producer omitted nested literal local-use receipt"
 grep -Fq 'FormatMixedStringLiteral(prefix, first, second, third)' "$MIR" ||
     fail "producer omitted mixed String array element"
+grep -Fq '"expr0":"[\"Program:\\n\", prefix, FormatMixedStringLiteral(prefix, first, second, third)]"' "$MIR" ||
+    fail "producer omitted mixed value-parameter element"
 grep -Fq '"uses":["first.1","second.1","third.1"]' "$MIR" ||
     fail "producer omitted mixed literal ordered-use receipt"
-printf '>func Example\n\ntail\n\nProgram:\n\n>row\n\ndone\n\n' >"$WORK_DIR/expected.run"
+printf '>func Example\n\ntail\n\nProgram:\n\n>\n>row\n\ndone\n\n' >"$WORK_DIR/expected.run"
 for backend in c llvm; do
     extension=c; [[ "$backend" == llvm ]] && extension=ll
     artifact_rel="$WORK_REL/program.$extension"
@@ -93,7 +93,7 @@ done
 for mutation in nested-missing-use nested-wrong-use nested-wrong-element-kind \
         nested-wrong-seed-parent nested-wrong-root nested-wrong-parameter-ref \
         mixed-missing-use mixed-wrong-use mixed-wrong-spine \
-        mixed-wrong-element-kind mixed-parameter-element; do
+        mixed-wrong-element-kind mixed-owned-parameter; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

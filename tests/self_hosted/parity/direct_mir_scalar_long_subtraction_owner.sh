@@ -41,7 +41,7 @@ grep -Fq 'kind == DirectMirScalarProgramExprSubtractLong()' "$C_EXPR" ||
     fail "C Long subtraction consumer is missing"
 grep -Fq 'kind == DirectMirScalarProgramExprSubtractLong()' "$LLVM_EXPR" ||
     fail "LLVM Long subtraction consumer is missing"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema did not advance with Long subtraction"
 ! grep -Fq 'pgy_checked_sub_i64_export' "$C_EXPR" ||
     fail "C changed default Long subtraction into checked arithmetic"

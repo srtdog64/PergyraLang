@@ -36,7 +36,7 @@ CONTRACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_tr
 C_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"
 LLVM_RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_trim_materialization_owner.pgy"
 LLVM_DECLS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80'
 require_text "$SIGNATURE" 'StringTrim'
 require_text "$CONTRACT" 'ascii_whitespace_mask == 15'
 require_text "$CONTRACT" 'returns_owned_string'

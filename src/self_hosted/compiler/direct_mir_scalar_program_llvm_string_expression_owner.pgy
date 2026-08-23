@@ -5,6 +5,7 @@ import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_window_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_special_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_to_string_expression_owner.pgy";
 func DirectMirScalarProgramLlvmStringExpressionAt(
     kind: Int, result: String, left_type: String, left: String,
     left_address: String, right: String,
@@ -71,17 +72,14 @@ func DirectMirScalarProgramLlvmStringExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, output, result);
     }
-    if kind == DirectMirScalarProgramExprToStringString() {
-        return DirectMirScalarProgramLlvmStringExpression(
-            true, true, "", left);
-    }
-    let builtin_symbol: String = runtime.string_to_string.symbol;
-    let argument_type: String = "i64";
+    let to_string: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmToStringExpressionAt(
+            kind, result, left, runtime);
+    if to_string.matched { return to_string; }
+    let builtin_symbol: String = "";
+    let argument_type: String = "ptr";
     let ready: Bool = false;
-    if kind == DirectMirScalarProgramExprToStringInt() {
-        ready = CompilerRuntimeCallAbiStringToStringFactReady(
-            runtime.string_to_string);
-    } else if kind == DirectMirScalarProgramExprToUpperString() {
+    if kind == DirectMirScalarProgramExprToUpperString() {
         builtin_symbol = runtime.string_to_upper.symbol; argument_type = "ptr";
         ready = CompilerRuntimeCallAbiStringToUpperFactReady(
             runtime.string_to_upper);

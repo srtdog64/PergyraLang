@@ -31,7 +31,7 @@ command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 for owner in "$PLAN" "$ADMISSION" "$OPERAND_OWNER" "$READINESS" "$C_OWNER" "$LLVM_OWNER" "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema does not carry the populated Array<Int> kind"
 grep -Fq 'AstExpressionNodeIntegerLiteral()' "$OPERAND_OWNER" ||
     fail "Array<Int> literal does not admit canonical Int literals"

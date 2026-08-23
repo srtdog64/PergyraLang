@@ -1,0 +1,43 @@
+// Stable context for one call-return fact mismatch at the codegen boundary.
+import "ast_expression_call_return_type_owner.pgy";
+
+func SemanticExpressionGraphCallReturnTypesResolutionDiagnostic(
+    ref graph: SemanticExpressionGraphFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts,
+    ref generic_specializations: SemanticAstGenericSpecializationFacts
+) -> String {
+    let node_id: Int = 0;
+    while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.topology.node_kinds[node_id] ==
+                AstExpressionNodeCall() {
+            let projection: SemanticExpressionCallReturnProjection =
+                SemanticExpressionCallReturnProjectionAt(
+                    graph, node_id, signatures, function_tables,
+                    generic_specializations);
+            let carried: Option<String> =
+                SemanticExpressionGraphCallReturnTypeName(graph, node_id);
+            if !projection.ok || projection.carried != IsSome(carried) ||
+                (projection.carried && UnwrapOption(carried) !=
+                    projection.type_name) {
+                let detail: String = "node=";
+                detail = Concat(detail, ToString(node_id));
+                detail = Concat(detail, Concat(" target=",
+                    graph.arena.call_target_names[node_id]));
+                detail = Concat(detail, Concat(" projection_ok=",
+                    ToString(projection.ok)));
+                detail = Concat(detail, Concat(" projection_carried=",
+                    ToString(projection.carried)));
+                detail = Concat(detail, Concat(" projection_type=",
+                    projection.type_name));
+                detail = Concat(detail, Concat(" actual_carried=",
+                    ToString(IsSome(carried))));
+                let actual_type: String = "";
+                if IsSome(carried) { actual_type = UnwrapOption(carried); }
+                return Concat(detail, Concat(" actual_type=", actual_type));
+            }
+        }
+        node_id = node_id + 1;
+    }
+    return "unlocated";
+}

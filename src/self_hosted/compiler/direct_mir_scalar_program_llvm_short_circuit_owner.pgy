@@ -109,10 +109,14 @@ func DirectMirScalarProgramLlvmShortCircuitAt(
     let merge_label: String = DirectMirScalarProgramLlvmShortLabel(
         expression_row, node, "merge");
     let right_exit_label: String = right_label;
-    if DirectMirScalarProgramLlvmNeedsShortCircuit(
-            expressions, right_node, graph_start) {
-        right_exit_label = DirectMirScalarProgramLlvmShortLabel(
-            expression_row, right_node, "merge");
+    let exit_node: Int = right_start;
+    while exit_node <= right_node {
+        if DirectMirScalarProgramLlvmNeedsShortCircuit(
+                expressions, exit_node, graph_start) {
+            right_exit_label = DirectMirScalarProgramLlvmShortLabel(
+                expression_row, exit_node, "merge");
+        }
+        exit_node = exit_node + 1;
     }
     let short_value: String = "false";
     let true_label: String = right_label;

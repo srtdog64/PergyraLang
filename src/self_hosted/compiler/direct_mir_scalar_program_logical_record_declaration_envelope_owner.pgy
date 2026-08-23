@@ -1,0 +1,85 @@
+// Exact passive declaration envelope admitted as one logical-record row.
+import "../mir_lower/abi_layout_fact_owner.pgy";
+import "../mir_lower/program_declaration_index_owner.pgy";
+
+struct DirectMirScalarProgramLogicalRecordDeclarationEnvelope {
+    let valid: Bool;
+    let name: String;
+    let source_syntax_id: Int;
+}
+
+func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
+    json: String, ref declarations: MirProgramDeclarationIndex,
+    declaration_row: Int
+) -> DirectMirScalarProgramLogicalRecordDeclarationEnvelope {
+    let invalid: DirectMirScalarProgramLogicalRecordDeclarationEnvelope =
+        DirectMirScalarProgramLogicalRecordDeclarationEnvelope(false, "", 0);
+    if !declarations.valid || declaration_row < 0 || declaration_row >=
+            MirProgramDeclarationIndexCount(declarations) {
+        return invalid;
+    }
+    let passive_kind: Bool =
+        (declarations.kinds[declaration_row] == "struct" &&
+         declarations.nominal_kinds[declaration_row] == "struct") ||
+        (declarations.kinds[declaration_row] == "tobject" &&
+         declarations.nominal_kinds[declaration_row] == "tobject");
+    if !passive_kind { return invalid; }
+    let start: Int = declarations.starts[declaration_row];
+    let end: Int = declarations.ends[declaration_row];
+    let declaration_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, start, end);
+    let tobject: Bool = declarations.kinds[declaration_row] == "tobject";
+    let keys: Array<String> = [
+        "kind", "nominal_kind", "name", "source_syntax_id",
+        "source_module_path", "fields", "abi_layout_id",
+        "abi_layout_required", "abi_layout"
+    ];
+    let starts: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
+    let ends: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
+    if tobject {
+        keys = ["kind", "nominal_kind", "name", "source_syntax_id",
+            "source_module_path", "fields", "methods"];
+        starts = [-1, -1, -1, -1, -1, -1, -1];
+        ends = [-1, -1, -1, -1, -1, -1, -1];
+    }
+    if !JsonObjectFactTableReady(declaration_table) ||
+        JsonObjectFactCount(declaration_table) != ArrayLength(keys) ||
+        !MirAbiSelectedObjectBoundsWithin(json, start, end, keys, starts, ends) ||
+        !MirAbiAllBoundsPresent(starts, ends) {
+        return invalid;
+    }
+    let kind: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[0], ends[0], false);
+    let nominal_kind: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[1], ends[1], false);
+    let name: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[2], ends[2], false);
+    let syntax: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[3], ends[3]);
+    let source_path: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[4], ends[4], false);
+    if !IsSome(kind) || !IsSome(nominal_kind) || !IsSome(name) ||
+        !IsSome(syntax) || !IsSome(source_path) ||
+        UnwrapOption(kind) != declarations.kinds[declaration_row] ||
+        UnwrapOption(nominal_kind) != declarations.nominal_kinds[declaration_row] ||
+        UnwrapOption(name) != declarations.names[declaration_row] ||
+        UnwrapOption(source_path) != declarations.source_module_paths[declaration_row] ||
+        ToInt(UnwrapOption(syntax)) <= 0 {
+        return invalid;
+    }
+    if tobject {
+        if !SubEqualsWithLen(json, ends[6], starts[6], 2, "[]") {
+            return invalid;
+        }
+    } else {
+        let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
+            json, starts[6], ends[6]);
+        if !IsSome(abi_id) || ToInt(UnwrapOption(abi_id)) != 0 ||
+            !SubEqualsWithLen(json, ends[7], starts[7], 5, "false") ||
+            !SubEqualsWithLen(json, ends[8], starts[8], 4, "null") {
+            return invalid;
+        }
+    }
+    return DirectMirScalarProgramLogicalRecordDeclarationEnvelope(
+        true, UnwrapOption(name), ToInt(UnwrapOption(syntax)));
+}

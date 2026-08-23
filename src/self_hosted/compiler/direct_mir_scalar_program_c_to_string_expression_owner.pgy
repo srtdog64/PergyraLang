@@ -1,0 +1,22 @@
+// C projection of scalar ToString specializations.
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCToStringExpression(
+    kind: Int, left: String,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> Option<String> {
+    if kind == DirectMirScalarProgramExprToStringString() { return Some(left); }
+    let symbol: String = "";
+    let ready: Bool = false;
+    if kind == DirectMirScalarProgramExprToStringInt() {
+        symbol = runtime.string_to_string.symbol;
+        ready = CompilerRuntimeCallAbiStringToStringFactReady(
+            runtime.string_to_string);
+    } else if kind == DirectMirScalarProgramExprToStringBool() {
+        symbol = runtime.bool_to_string.symbol;
+        ready = CompilerRuntimeCallAbiBoolToStringFactReady(
+            runtime.bool_to_string);
+    } else { return None; }
+    if !ready { Die("direct MIR scalar program ToString ABI is invalid"); }
+    return Some(Concat(symbol, Concat("(", Concat(left, ")"))));
+}

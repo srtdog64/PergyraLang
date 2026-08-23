@@ -1,0 +1,17 @@
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmBoolToStringMaterialization(
+    fact: CompilerRuntimeCallAbiFact
+) -> String {
+    if !CompilerRuntimeCallAbiBoolToStringFactReady(fact) {
+        Die("direct MIR scalar LLVM Bool ToString ABI is invalid");
+    }
+    let output: String = Concat("define internal ptr @", fact.symbol);
+    output = Concat(output,
+        "(i1 %value) {\nentry:\n  %result = call ptr @malloc(i64 6)\n  br i1 %value, label %true, label %false\n\ntrue:\n");
+    output = Concat(output,
+        "  %t0 = getelementptr i8, ptr %result, i64 0\n  store i8 116, ptr %t0, align 1\n  %t1 = getelementptr i8, ptr %result, i64 1\n  store i8 114, ptr %t1, align 1\n  %t2 = getelementptr i8, ptr %result, i64 2\n  store i8 117, ptr %t2, align 1\n  %t3 = getelementptr i8, ptr %result, i64 3\n  store i8 101, ptr %t3, align 1\n  %t4 = getelementptr i8, ptr %result, i64 4\n  store i8 0, ptr %t4, align 1\n  br label %done\n\nfalse:\n");
+    output = Concat(output,
+        "  %f0 = getelementptr i8, ptr %result, i64 0\n  store i8 102, ptr %f0, align 1\n  %f1 = getelementptr i8, ptr %result, i64 1\n  store i8 97, ptr %f1, align 1\n  %f2 = getelementptr i8, ptr %result, i64 2\n  store i8 108, ptr %f2, align 1\n  %f3 = getelementptr i8, ptr %result, i64 3\n  store i8 115, ptr %f3, align 1\n  %f4 = getelementptr i8, ptr %result, i64 4\n  store i8 101, ptr %f4, align 1\n  %f5 = getelementptr i8, ptr %result, i64 5\n  store i8 0, ptr %f5, align 1\n  br label %done\n\ndone:\n  ret ptr %result\n}\n\n");
+    return output;
+}

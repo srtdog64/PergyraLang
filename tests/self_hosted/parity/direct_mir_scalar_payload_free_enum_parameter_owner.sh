@@ -50,7 +50,7 @@ grep -Fq 'DirectMirScalarProgramExprPayloadFreeEnumVariant() -> Int { return 90;
     fail "enum variant expression identity drifted"
 grep -Fq 'DirectMirScalarProgramExprEqualPayloadFreeEnum() -> Int { return 91; }' "$KIND_IDS" ||
     fail "enum equality expression identity drifted"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema did not advance for enum expressions"
 llvm_direct_body="$(awk '/^func DirectMirScalarProgramLlvmDirectCallExpressionAt\(/,/^}/' "$LLVM_DIRECT")"
 [[ "$llvm_direct_body" == *'DirectMirScalarProgramPayloadFreeEnumTypeReady('* ]] ||

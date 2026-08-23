@@ -3,13 +3,13 @@ import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "direct_mir_scalar_program_case_math_runtime_requirement_owner.pgy";
 import "direct_mir_scalar_program_string_index_runtime_owner.pgy";
 import "direct_mir_scalar_program_string_trim_runtime_owner.pgy";
-
 struct DirectMirScalarProgramRuntimeAbiFact {
     let valid: Bool;
     let digest: Int;
     let string_compare_id: Int;
     let string_concat_id: Int;
     let string_to_string_id: Int;
+    let bool_to_string_id: Int;
     let string_to_upper_id: Int;
     let string_to_lower_id: Int;
     let string_length_id: Int;
@@ -34,11 +34,10 @@ struct DirectMirScalarProgramRuntimeAbiFact {
     let compiler_artifact_write_id: Int;
     let case_math: DirectMirScalarProgramCaseMathRuntimeIds;
 }
-
 func DirectMirScalarProgramRuntimeAbiFactEmpty(
 ) -> DirectMirScalarProgramRuntimeAbiFact {
     return DirectMirScalarProgramRuntimeAbiFact(
-        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         DirectMirScalarProgramStringIndexRuntimeFactEmpty(),
         DirectMirScalarProgramStringTrimRuntimeFactEmpty(), 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0,
@@ -51,6 +50,7 @@ func DirectMirScalarProgramRuntimeAbiFactCanonicalEmpty(
 ) -> Bool {
     return !fact.valid && fact.digest == 0 && fact.string_compare_id == 0 &&
         fact.string_concat_id == 0 && fact.string_to_string_id == 0 &&
+        fact.bool_to_string_id == 0 &&
         fact.string_to_upper_id == 0 && fact.string_to_lower_id == 0 &&
         fact.string_length_id == 0 && fact.string_char_code_id == 0 &&
         fact.string_char_at_n_id == 0 &&

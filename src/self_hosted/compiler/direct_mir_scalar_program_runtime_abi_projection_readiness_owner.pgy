@@ -23,6 +23,10 @@ func DirectMirScalarProgramRuntimeAbiProjectionReady(
             (CompilerRuntimeCallAbiStringToStringFactReady(
                 projection.string_to_string) && fact.string_to_string_id ==
                 projection.string_to_string.runtime_call_abi_id)) &&
+        (fact.bool_to_string_id == 0 ||
+            (CompilerRuntimeCallAbiBoolToStringFactReady(
+                projection.bool_to_string) && fact.bool_to_string_id ==
+                projection.bool_to_string.runtime_call_abi_id)) &&
         (fact.string_to_upper_id == 0 ||
             (CompilerRuntimeCallAbiStringToUpperFactReady(
                 projection.string_to_upper) && fact.string_to_upper_id ==

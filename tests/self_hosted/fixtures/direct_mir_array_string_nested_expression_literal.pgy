@@ -20,12 +20,14 @@ func LogMixedStringLiteral(prefix: String) -> Void {
     let third: String = "w\n";
     let chunks: Array<String> = [
         "Program:\n",
+        prefix,
         FormatMixedStringLiteral(prefix, first, second, third)
     ];
     Log(chunks[0]);
     Log(chunks[1]);
-    ArrayPush(chunks, "done\n");
     Log(chunks[2]);
+    ArrayPush(chunks, "done\n");
+    Log(chunks[3]);
 }
 
 func Main() -> Void {

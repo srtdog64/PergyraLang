@@ -3,6 +3,7 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_c_option_int_owner.pgy";
 import "direct_mir_scalar_program_c_option_string_owner.pgy";
 import "direct_mir_scalar_program_c_option_bool_owner.pgy";
+import "direct_mir_scalar_program_c_result_int_owner.pgy";
 import "direct_mir_scalar_program_c_two_int_nominal_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
@@ -46,6 +47,9 @@ func DirectMirScalarCfgProgramCType(
     }
     if type_name == CompilerAbiLayoutOptionBoolTypeName() {
         return DirectMirScalarProgramCOptionBoolTypeName();
+    }
+    if type_name == CompilerAbiLayoutResultIntTypeName() {
+        return DirectMirScalarProgramCResultIntTypeName();
     }
     if DirectMirScalarProgramTwoIntNominalTypeReady(nominal, type_name) {
         return DirectMirScalarProgramCTwoIntNominalTypeName();

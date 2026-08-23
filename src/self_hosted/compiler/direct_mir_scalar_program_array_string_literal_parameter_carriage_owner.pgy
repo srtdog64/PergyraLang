@@ -1,0 +1,35 @@
+// Routine-owned carriage policy for parameter elements in Array<String> literals.
+import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
+
+func DirectMirScalarProgramArrayStringLiteralParameterCarriageReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int,
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int
+) -> Bool {
+    if !DirectMirScalarProgramArrayStringLiteralNodeReady(facts, node) ||
+        routine < 0 || routine >= ArrayLength(routines.parameter_counts) {
+        return false;
+    }
+    let operands: Array<Int> =
+        DirectMirScalarProgramArrayStringLiteralOperandRows(facts, node);
+    let owned: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(operands) {
+        let operand: Int = operands[row];
+        if facts.node_kinds[operand] == DirectMirScalarProgramExprParameter() {
+            let ordinal: Int = facts.node_parameter_ordinals[operand];
+            if ordinal < 0 || ordinal >= routines.parameter_counts[routine] {
+                return false;
+            }
+            let parameter: Int = routines.parameter_starts[routine] + ordinal;
+            let carriage: String = routines.parameter_carriages[parameter];
+            if routines.parameter_types[parameter] != CompilerAbiLayoutStringTypeName() ||
+                (carriage != "value" && carriage != "owner-handle") {
+                return false;
+            }
+            if carriage == "owner-handle" { owned = owned + 1; }
+        }
+        row = row + 1;
+    }
+    return owned == 0 ||
+        (owned == 1 && ArrayLength(operands) == 1);
+}

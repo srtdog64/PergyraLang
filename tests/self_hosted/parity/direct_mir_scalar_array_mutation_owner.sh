@@ -32,7 +32,7 @@ command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 for owner in "$TARGET_OWNER" "$STORAGE_OWNER" "$READINESS_OWNER" "$TYPED_OWNER" "$C_OWNER" "$LLVM_OWNER" "$PLAN_OWNER" "$LEAF_OWNER" "$MUTATIONS" "$BOOL_MUTATIONS" "$POP_MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN_OWNER" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN_OWNER" ||
     fail "GraphPlan schema does not carry the secondary index expression row"
 grep -Fq 'operation_name != "ArrayPop"' \
     "$TARGET_OWNER" || fail "target owner does not classify one mutation family"

@@ -40,7 +40,7 @@ grep -Fq 'DirectMirScalarProgramLogicalRecordArrayTargetFromType(' "$C_VALUE" ||
     fail "C indexed read bypasses the record-array target owner"
 grep -Fq 'DirectMirScalarProgramLogicalRecordArrayTargetFromType(' "$LLVM_VALUE" ||
     fail "LLVM indexed read bypasses the record-array target owner"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema did not advance for the new expression identity"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

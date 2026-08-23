@@ -1,0 +1,134 @@
+// Target-neutral Result<Int> aggregate ABI receipt carried by the GraphPlan.
+
+import "abi_layout_row_owner.pgy";
+import "../air/mir_cfg_identity_owner.pgy";
+import "../mir_lower/abi_layout_fact_owner.pgy";
+
+struct DirectMirResultIntAbiFact {
+    let valid: Bool;
+    let digest: Int;
+    let layout_id: Int;
+    let type_name: String;
+    let size: Int;
+    let align: Int;
+    let tag_name: String;
+    let tag_offset: Int;
+    let tag_size: Int;
+    let tag_align: Int;
+    let ok_name: String;
+    let ok_offset: Int;
+    let ok_size: Int;
+    let ok_align: Int;
+    let error_name: String;
+    let error_offset: Int;
+    let error_size: Int;
+    let error_align: Int;
+    let runtime_fn: String;
+    let inner_c_type: String;
+    let representation: Int;
+    let discriminant: String;
+    let ok_tag: String;
+    let error_tag: String;
+    let niche_none_pattern: String;
+}
+
+func DirectMirResultIntAbiFactEmpty() -> DirectMirResultIntAbiFact {
+    return DirectMirResultIntAbiFact(
+        false, 0, 0, "", 0, 0,
+        "", 0, 0, 0, "", 0, 0, 0, "", 0, 0, 0,
+        "", "", 0, "", "", "", ""
+    );
+}
+
+func DirectMirResultIntAbiCanonicalLayoutId(
+    ref fact: DirectMirResultIntAbiFact
+) -> Int {
+    let names: Array<String> = [
+        fact.tag_name, fact.ok_name, fact.error_name
+    ];
+    let offsets: Array<String> = [
+        ToString(fact.tag_offset), ToString(fact.ok_offset),
+        ToString(fact.error_offset)
+    ];
+    let sizes: Array<String> = [
+        ToString(fact.tag_size), ToString(fact.ok_size),
+        ToString(fact.error_size)
+    ];
+    let aligns: Array<String> = [
+        ToString(fact.tag_align), ToString(fact.ok_align),
+        ToString(fact.error_align)
+    ];
+    let row: MirAbiLayoutRowCapture = MirAbiLayoutRowCapture(
+        fact.valid, fact.type_name, ToString(fact.size),
+        ToString(fact.align), names, offsets, sizes, aligns,
+        fact.runtime_fn, fact.inner_c_type, ToString(fact.representation),
+        fact.discriminant, fact.ok_tag, fact.error_tag,
+        fact.niche_none_pattern
+    );
+    return MirAbiLayoutIdFromCapture(row);
+}
+
+func DirectMirResultIntAbiFactDigest(
+    ref fact: DirectMirResultIntAbiFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(109L, fact.layout_id);
+    hash = DirectMirCfgHashString(hash, fact.type_name);
+    hash = DirectMirCfgHashInt(hash, fact.size);
+    hash = DirectMirCfgHashInt(hash, fact.align);
+    hash = DirectMirCfgHashString(hash, fact.tag_name);
+    hash = DirectMirCfgHashInt(hash, fact.tag_offset);
+    hash = DirectMirCfgHashInt(hash, fact.tag_size);
+    hash = DirectMirCfgHashInt(hash, fact.tag_align);
+    hash = DirectMirCfgHashString(hash, fact.ok_name);
+    hash = DirectMirCfgHashInt(hash, fact.ok_offset);
+    hash = DirectMirCfgHashInt(hash, fact.ok_size);
+    hash = DirectMirCfgHashInt(hash, fact.ok_align);
+    hash = DirectMirCfgHashString(hash, fact.error_name);
+    hash = DirectMirCfgHashInt(hash, fact.error_offset);
+    hash = DirectMirCfgHashInt(hash, fact.error_size);
+    hash = DirectMirCfgHashInt(hash, fact.error_align);
+    hash = DirectMirCfgHashString(hash, fact.runtime_fn);
+    hash = DirectMirCfgHashString(hash, fact.inner_c_type);
+    hash = DirectMirCfgHashInt(hash, fact.representation);
+    hash = DirectMirCfgHashString(hash, fact.discriminant);
+    hash = DirectMirCfgHashString(hash, fact.ok_tag);
+    hash = DirectMirCfgHashString(hash, fact.error_tag);
+    hash = DirectMirCfgHashString(hash, fact.niche_none_pattern);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirResultIntAbiFactWithDigest(
+    fact: DirectMirResultIntAbiFact, digest: Int
+) -> DirectMirResultIntAbiFact {
+    return DirectMirResultIntAbiFact(
+        fact.valid, digest, fact.layout_id, fact.type_name,
+        fact.size, fact.align, fact.tag_name, fact.tag_offset,
+        fact.tag_size, fact.tag_align, fact.ok_name, fact.ok_offset,
+        fact.ok_size, fact.ok_align, fact.error_name, fact.error_offset,
+        fact.error_size, fact.error_align, fact.runtime_fn,
+        fact.inner_c_type, fact.representation, fact.discriminant,
+        fact.ok_tag, fact.error_tag, fact.niche_none_pattern
+    );
+}
+
+func DirectMirResultIntAbiFactReady(
+    ref fact: DirectMirResultIntAbiFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 &&
+        fact.digest == DirectMirResultIntAbiFactDigest(fact) &&
+        fact.layout_id > 0 &&
+        fact.layout_id == DirectMirResultIntAbiCanonicalLayoutId(fact) &&
+        fact.type_name == CompilerAbiLayoutResultIntTypeName() &&
+        fact.size == 16 && fact.align == 8 &&
+        fact.tag_name == "tag" && fact.tag_offset == 0 &&
+        fact.tag_size == 4 && fact.tag_align == 4 &&
+        fact.ok_name == "ok" && fact.ok_offset == 4 &&
+        fact.ok_size == 4 && fact.ok_align == 4 &&
+        fact.error_name == "err" && fact.error_offset == 8 &&
+        fact.error_size == 8 && fact.error_align == 8 &&
+        fact.runtime_fn == "pgy_result_ok_Int" &&
+        fact.inner_c_type == "int32_t" && fact.representation == 1 &&
+        fact.discriminant == "tag" && fact.ok_tag == "0" &&
+        fact.error_tag == "1" && fact.niche_none_pattern == "";
+}

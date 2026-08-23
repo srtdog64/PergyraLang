@@ -1,0 +1,29 @@
+// Exact local-record String member that may cross an owner-handle call boundary.
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramOwnedStringMemberArgumentReady(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    argument: Int, graph_start: Int,
+    target_carriage: String, target_type: String
+) -> Bool {
+    if target_carriage != "owner-handle" ||
+        target_type != CompilerAbiLayoutStringTypeName() ||
+        argument < graph_start || argument >= ArrayLength(facts.node_kinds) ||
+        facts.node_kinds[argument] != DirectMirScalarProgramExprLogicalRecordMember() ||
+        facts.node_types[argument] != CompilerAbiLayoutStringTypeName() {
+        return false;
+    }
+    let base: Int = facts.node_lefts[argument];
+    let member: Int = facts.node_member_ordinals[argument];
+    if base < graph_start || base >= argument || member < 0 ||
+        facts.node_kinds[base] != DirectMirScalarProgramExprLocal() ||
+        !DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, facts.node_types[base]) {
+        return false;
+    }
+    return DirectMirScalarProgramLogicalRecordFieldType(
+        logical_record, facts.node_types[base], member) ==
+        CompilerAbiLayoutStringTypeName();
+}

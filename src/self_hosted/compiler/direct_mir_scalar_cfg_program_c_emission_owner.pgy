@@ -11,9 +11,7 @@ import "direct_mir_scalar_program_c_string_collection_materialization_owner.pgy"
 import "direct_mir_scalar_program_c_array_string_cleanup_owner.pgy";
 import "direct_mir_scalar_cfg_program_c_signature_owner.pgy";
 import "runtime_value_representation_owner.pgy";
-import "direct_mir_scalar_program_c_option_int_owner.pgy";
-import "direct_mir_scalar_program_c_option_string_owner.pgy";
-import "direct_mir_scalar_program_c_option_bool_owner.pgy";
+import "direct_mir_scalar_program_c_option_result_preamble_owner.pgy";
 import "direct_mir_scalar_program_c_two_int_nominal_owner.pgy";
 import "direct_mir_scalar_program_c_array_int_value_result_owner.pgy";
 import "direct_mir_scalar_program_c_array_bool_materialization_owner.pgy";
@@ -245,12 +243,8 @@ func DirectMirScalarCfgEmitProgramC(
         DirectMirScalarProgramCLogicalRecordOptionPreamble(
             plan.program.logical_record, target));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayPreamble(plan, target));
-    TextBuilderAppend(output, DirectMirScalarProgramCOptionIntPreamble(
-        plan.program.option_int_abi, target));
-    TextBuilderAppend(output, DirectMirScalarProgramCOptionStringPreamble(
-        plan.program.option_string_abi, target));
-    TextBuilderAppend(output, DirectMirScalarProgramCOptionBoolPreamble(
-        plan.program.option_bool_abi, target));
+    TextBuilderAppend(output,
+        DirectMirScalarProgramCOptionResultPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarCfgStringCPreamble(
         plan, runtime.string_concat));
     let runtime_header_owns_print: Bool =

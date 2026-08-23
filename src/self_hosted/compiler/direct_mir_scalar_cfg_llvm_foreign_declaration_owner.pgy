@@ -95,7 +95,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         CollectionSetRuntimeLlvmHasStringRawFn(), "(ptr, ptr)\n"))); }
     if collection { output = Concat(output,
         "declare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\n"); }
-    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.option_int_abi.valid || plan.program.option_string_abi.valid || plan.program.option_bool_abi.valid || plan.program.logical_record.present {
+    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.option_int_abi.valid || plan.program.result_int_abi.valid || plan.program.option_string_abi.valid || plan.program.option_bool_abi.valid || plan.program.logical_record.present {
         output = Concat(output, "declare void @abort()\n");
     }
     if scalar_array_index || bounded_array_set {

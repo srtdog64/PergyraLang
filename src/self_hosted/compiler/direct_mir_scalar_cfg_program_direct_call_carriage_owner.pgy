@@ -5,27 +5,32 @@ import "direct_mir_scalar_program_logical_record_array_value_result_target_owner
 import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+import "direct_mir_scalar_program_owned_string_member_argument_owner.pgy";
+import "direct_mir_scalar_program_owned_string_call_result_argument_owner.pgy";
 func DirectMirScalarCfgProgramDirectCallCarriageReady(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref facts: DirectMirScalarProgramExpressionSet,
     node: Int, routine: Int, graph_start: Int,
     target: Int, argument_node: Int, ordinal: Int
 ) -> Bool {
-    let parameter_row: Int = plan.routines.parameter_starts[target] +
-        ordinal;
-    let carriage: String =
-        plan.routines.parameter_carriages[parameter_row];
+    let parameter_row: Int = plan.routines.parameter_starts[target] + ordinal;
+    let carriage: String = plan.routines.parameter_carriages[parameter_row];
+    let owned_string_member: Bool = DirectMirScalarProgramOwnedStringMemberArgumentReady(
+        plan.program.logical_record, facts, argument_node, graph_start,
+        carriage, plan.routines.parameter_types[parameter_row]);
+    let owned_string_call_result: Bool = DirectMirScalarProgramOwnedStringCallResultArgumentReady(
+        plan.routines, facts, argument_node, graph_start,
+        carriage, plan.routines.parameter_types[parameter_row]);
     if argument_node < graph_start || argument_node >= node ||
-        facts.node_types[argument_node] !=
-            plan.routines.parameter_types[parameter_row] ||
+        facts.node_types[argument_node] != plan.routines.parameter_types[parameter_row] ||
         (carriage != "value" &&
-         (facts.node_kinds[argument_node] !=
-                DirectMirScalarProgramExprLocal() &&
+         (facts.node_kinds[argument_node] != DirectMirScalarProgramExprLocal() &&
           facts.node_kinds[argument_node] !=
                 DirectMirScalarProgramExprParameter() &&
           !(carriage == "readonly-ref" &&
             facts.node_kinds[argument_node] ==
-                DirectMirScalarProgramExprLogicalRecordMember()))) {
+                DirectMirScalarProgramExprLogicalRecordMember()) &&
+          !owned_string_member && !owned_string_call_result)) {
         return false;
     }
     if carriage == "readonly-ref" {
@@ -76,9 +81,9 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(
                 plan.routines.parameter_starts[routine] + source_ordinal;
             let source_carriage: String =
                 plan.routines.parameter_carriages[source_parameter_row];
-            let array_int_value_input: Bool = array_int_copyout &&
-                source_carriage == "value";
-            if !array_int_value_input && ((array_string_copyout &&
+            let value_input: Bool = source_carriage == "value" &&
+                (array_int_copyout || logical_record_copyout);
+            if !value_input && ((array_string_copyout &&
                     !DirectMirScalarProgramArrayStringValueResultAt(
                         plan.program.array_string_abi, routine,
                         source_ordinal)) ||

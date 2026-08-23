@@ -36,6 +36,8 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
     let cfg_digests: Array<Int> = [];
     let option_int_abi: DirectMirOptionMatchAbiFact =
         DirectMirOptionMatchAbiFactEmpty();
+    let result_int_abi: DirectMirResultIntAbiFact =
+        DirectMirResultIntAbiFactEmpty();
     let option_string_abi: DirectMirOptionMatchAbiFact =
         DirectMirOptionMatchAbiFactEmpty();
     let option_bool_abi: DirectMirOptionMatchAbiFact =
@@ -53,7 +55,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
             DirectMirScalarCfgProgramAppendRoutine(
                 admitted, route.routine_rows[ordinal], ordinal, callables, input,
                 storage, expressions, option_int_abi, option_string_abi,
-                option_bool_abi,
+                option_bool_abi, result_int_abi,
                 route.nominal, route.logical_record,
                 route.payload_free_enum,
                 route.array_int_value_result, route.array_bool_abi,
@@ -67,6 +69,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
         storage = admission.storage;
         expressions = admission.expressions;
         option_int_abi = admission.option_int_abi;
+        result_int_abi = admission.result_int_abi;
         option_string_abi = admission.option_string_abi;
         option_bool_abi = admission.option_bool_abi;
         ordinal = ordinal + 1;
@@ -83,6 +86,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
     let program: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFromOwners(
             admitted, route, callables, storage, expressions, option_int_abi,
+            result_int_abi,
             option_string_abi,
             option_bool_abi,
             storage.blocks.condition_expression_rows,

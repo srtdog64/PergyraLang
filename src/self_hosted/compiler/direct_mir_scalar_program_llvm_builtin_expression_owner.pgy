@@ -6,9 +6,7 @@ import "direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy
 import "direct_mir_scalar_program_llvm_array_int_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_int_populated_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_bool_populated_literal_owner.pgy";
-import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
-import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
-import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_result_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_llvm_set_string_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy";
@@ -29,12 +27,10 @@ func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     if artifact.matched { return artifact; }
     let record_option: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(logical_record, kind, result, result_type, left_type, left);
     if record_option.matched { return record_option; }
-    let option_int: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmOptionIntExpressionAt(kind, result, left);
-    if option_int.matched { return option_int; }
-    let option_string: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmOptionStringExpressionAt(kind, result, left);
-    if option_string.matched { return option_string; }
-    let option_bool: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmOptionBoolExpressionAt(kind, result, left);
-    if option_bool.matched { return option_bool; }
+    let option_result: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmOptionResultExpressionAt(
+            kind, result, left, right);
+    if option_result.matched { return option_result; }
     let set_string: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmSetStringExpressionAt(
             kind, result, left_type, left, left_address, right);

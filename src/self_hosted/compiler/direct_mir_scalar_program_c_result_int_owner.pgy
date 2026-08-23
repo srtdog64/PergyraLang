@@ -1,0 +1,83 @@
+// C representation and expression projection for the sealed Result<Int> ABI.
+
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_result_int_abi_owner.pgy";
+import "direct_mir_result_int_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCResultIntTypeName() -> String {
+    return "pgy_scalar_result_int";
+}
+
+func DirectMirScalarProgramCResultIntExpression(
+    kind: Int, left: String, right: String
+) -> Option<String> {
+    if kind == DirectMirScalarProgramExprOkInt() {
+        return Some(Concat("pgy_scalar_result_int_ok(", Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprErrInt() {
+        return Some(Concat("pgy_scalar_result_int_err(", Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprIsOkInt() {
+        return Some(Concat("pgy_scalar_result_int_is_ok(", Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprIsErrInt() {
+        return Some(Concat("pgy_scalar_result_int_is_err(", Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprUnwrapResultInt() {
+        return Some(Concat("pgy_scalar_result_int_unwrap(", Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprUnwrapErrInt() {
+        return Some(Concat("pgy_scalar_result_int_unwrap_err(", Concat(left, ")")));
+    }
+    if kind == DirectMirScalarProgramExprUnwrapOrInt() {
+        return Some(Concat("pgy_scalar_result_int_unwrap_or(",
+            Concat(left, Concat(", ", Concat(right, ")")))));
+    }
+    return None;
+}
+
+func DirectMirScalarProgramCResultIntPreamble(
+    ref fact: DirectMirResultIntAbiFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarProgramResultIntAbiCanonicalEmpty(fact) { return ""; }
+    let projection: DirectMirResultIntAbiProjection =
+        DirectMirResultIntAbiProjectionFromFact(fact, target);
+    if !DirectMirResultIntAbiProjectionReadyFor(
+            projection, CompilerTargetCpuCProjection()) {
+        Die("direct MIR scalar program C Result<Int> ABI is invalid");
+    }
+    let t: String = DirectMirScalarProgramCResultIntTypeName();
+    let output: String = Concat("typedef struct { int32_t ", fact.tag_name);
+    output = Concat(output, Concat("; int32_t ", fact.ok_name));
+    output = Concat(output, Concat("; char *", fact.error_name));
+    output = Concat(output, Concat("; } ", Concat(t, ";\n")));
+    output = Concat(output, Concat("static ", Concat(t,
+        " pgy_scalar_result_int_ok(int32_t value) {\n    ")));
+    output = Concat(output, Concat(t, Concat(" result = {",
+        Concat(fact.ok_tag, ", value, NULL};\n    return result;\n}\n"))));
+    output = Concat(output, Concat("static ", Concat(t,
+        " pgy_scalar_result_int_err(char *error) {\n    ")));
+    output = Concat(output, Concat(t, Concat(" result = {",
+        Concat(fact.error_tag, ", 0, error};\n    return result;\n}\n"))));
+    output = Concat(output, Concat("static bool pgy_scalar_result_int_is_ok(",
+        Concat(t, Concat(" value) { return value.", fact.tag_name))));
+    output = Concat(output, Concat(" == ", Concat(fact.ok_tag, "; }\n")));
+    output = Concat(output, Concat("static bool pgy_scalar_result_int_is_err(",
+        Concat(t, Concat(" value) { return value.", fact.tag_name))));
+    output = Concat(output, Concat(" == ", Concat(fact.error_tag, "; }\n")));
+    output = Concat(output, Concat("static int32_t pgy_scalar_result_int_unwrap(",
+        Concat(t, Concat(" value) { if (value.", fact.tag_name))));
+    output = Concat(output, Concat(" != ", Concat(fact.ok_tag,
+        Concat(") { abort(); } return value.", Concat(fact.ok_name, "; }\n")))));
+    output = Concat(output, Concat("static char *pgy_scalar_result_int_unwrap_err(",
+        Concat(t, Concat(" value) { if (value.", fact.tag_name))));
+    output = Concat(output, Concat(" != ", Concat(fact.error_tag,
+        Concat(") { abort(); } return value.", Concat(fact.error_name, "; }\n")))));
+    output = Concat(output, Concat("static int32_t pgy_scalar_result_int_unwrap_or(",
+        Concat(t, Concat(" value, int32_t fallback) { return value.",
+        fact.tag_name))));
+    output = Concat(output, Concat(" == ", Concat(fact.ok_tag,
+        Concat(" ? value.", Concat(fact.ok_name, " : fallback; }\n")))));
+    return output;
+}

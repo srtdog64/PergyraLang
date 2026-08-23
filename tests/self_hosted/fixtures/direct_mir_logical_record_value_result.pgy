@@ -18,6 +18,7 @@ struct IntentCompensationProbe {
 
 struct ExpressionGraphProbe {
     let rows: Array<Int>;
+    let seed: Int;
 }
 
 struct ExpressionSurfaceProbe {
@@ -61,6 +62,11 @@ func RememberSession(
         SessionReady(session) && SessionReady(local_session);
 }
 
+func RememberSessionCopy(session: ValidationSession) -> Bool {
+    return RememberSession(session, "copy", 9, "copy-layout") &&
+        SessionReady(session);
+}
+
 func CaptureCompensations(
     json: String, array_start: Int, array_end: Int,
     owner_transition_id: Int, inout rows: IntentCompensationProbe
@@ -71,9 +77,17 @@ func CaptureCompensations(
 func ReplaceNestedGraph(inout analysis: AnalysisProbe, seed: Int) -> Int {
     let root_id: Int = seed;
     let rows: Array<Int> = [root_id];
-    let graph: ExpressionGraphProbe = ExpressionGraphProbe(rows);
+    let graph: ExpressionGraphProbe = ExpressionGraphProbe(rows, seed);
     analysis.expression_surfaces.expression_graph = graph;
     return seed;
+}
+
+func ResolveNestedGraph(inout analysis: AnalysisProbe, seed: Int) -> Int {
+    if ReplaceNestedGraph(analysis, seed) != seed { return -1; }
+    let graph: ExpressionGraphProbe =
+        analysis.expression_surfaces.expression_graph;
+    analysis.expression_surfaces = ExpressionSurfaceProbe(graph);
+    return ArrayLength(analysis.expression_surfaces.expression_graph.rows);
 }
 
 func IntentStepLines(
@@ -95,12 +109,18 @@ func Main() -> Void {
     let ids: Array<Int> = [];
     let layouts: Array<String> = [];
     let session: ValidationSession = ValidationSession(keys, ids, layouts);
+    let copied: Bool = RememberSessionCopy(session);
     let remembered: Bool = RememberSession(
         session, "Array<Int>", 7, "layout");
     if remembered && SessionReady(session) {
         Log("record-copyout-ready");
     } else {
         Log("record-copyout-failed");
+    }
+    if copied {
+        Log("record-value-input-ready");
+    } else {
+        Log("record-value-input-failed");
     }
     let topology: Array<Int> = [1]; let names: Array<String> = [];
     ArrayPush(names, Concat("", "intent-step-ready"));
@@ -110,10 +130,12 @@ func Main() -> Void {
         session, names, session, order));
     Log(ArrayLength(order.transition_ids));
     let old_rows: Array<Int> = [];
-    let old_graph: ExpressionGraphProbe = ExpressionGraphProbe(old_rows);
+    let old_graph: ExpressionGraphProbe = ExpressionGraphProbe(old_rows, 0);
     let surfaces: ExpressionSurfaceProbe = ExpressionSurfaceProbe(old_graph);
     let analysis: AnalysisProbe = AnalysisProbe(surfaces);
     Log(ToString(ReplaceNestedGraph(analysis, 7)));
     Log(ToString(ArrayLength(
         analysis.expression_surfaces.expression_graph.rows)));
+    Log(ToString(ResolveNestedGraph(analysis, 9)));
+    Log(ToString(analysis.expression_surfaces.expression_graph.seed));
 }

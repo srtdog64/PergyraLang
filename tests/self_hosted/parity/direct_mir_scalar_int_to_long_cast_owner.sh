@@ -54,7 +54,7 @@ grep -Fq 'DirectMirScalarProgramExprCastLongToInt()' "$C_EXPR" ||
     fail "C Long-to-Int cast consumer is missing"
 grep -Fq 'DirectMirScalarProgramExprCastLongToInt()' "$LLVM_EXPR" ||
     fail "LLVM Long-to-Int cast consumer is missing"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema did not advance with exact Int/Long casts"
 
 mkdir -p "$WORK_DIR"

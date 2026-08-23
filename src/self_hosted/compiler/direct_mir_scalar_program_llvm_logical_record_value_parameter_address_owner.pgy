@@ -1,0 +1,31 @@
+// Addressable LLVM copy of a by-value logical record used as an inout source.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
+
+func DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    let output: String = "";
+    let ordinal: Int = 0;
+    while ordinal < plan.routines.parameter_counts[routine] {
+        let row: Int = plan.routines.parameter_starts[routine] + ordinal;
+        let type_name: String = plan.routines.parameter_types[row];
+        if plan.routines.parameter_carriages[row] == "value" &&
+            DirectMirScalarProgramLogicalRecordTypeReady(
+                plan.program.logical_record, type_name) {
+            let llvm_type: String =
+                DirectMirScalarProgramLlvmLogicalRecordTypeName(
+                    plan.program.logical_record, type_name);
+            let spelling: String = ToString(ordinal);
+            output = Concat(output, Concat("  %pgy.param.", spelling));
+            output = Concat(output, Concat(".local = alloca ", llvm_type));
+            output = Concat(output, ", align 8\n");
+            output = Concat(output, Concat("  store ", llvm_type));
+            output = Concat(output, Concat(" %pgy.param.", spelling));
+            output = Concat(output, Concat(", ptr %pgy.param.", spelling));
+            output = Concat(output, ".local, align 8\n");
+        }
+        ordinal = ordinal + 1;
+    }
+    return output;
+}

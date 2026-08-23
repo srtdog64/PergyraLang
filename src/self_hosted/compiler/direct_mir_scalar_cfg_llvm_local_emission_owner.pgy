@@ -1,19 +1,15 @@
-// LLVM local-slot declarations for the scalar CFG plan.
-//
-// Split out of direct_mir_scalar_cfg_local_emission_owner.pgy, which keeps
-// the C form. One file holding both backends is two responsibilities, and it
-// carried the owner past its line cap.
-
+// LLVM local-slot declarations for the scalar CFG plan; the C form has its own owner.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
+import "direct_mir_scalar_program_llvm_result_int_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
-
 func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
     ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int,
     routine: Int
@@ -102,6 +98,12 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
                 DirectMirScalarProgramLlvmOptionBoolTypeName());
             output = Concat(output,
                 " zeroinitializer, ptr %pgy.local.");
+        } else if plan.local_types[row] ==
+                CompilerAbiLayoutResultIntTypeName() {
+            llvm_type = DirectMirScalarProgramLlvmResultIntTypeName();
+            output = Concat(output, Concat(" = alloca ", llvm_type));
+            output = Concat(output, Concat(", align 8\n  store ", llvm_type));
+            output = Concat(output, " zeroinitializer, ptr %pgy.local.");
         } else if DirectMirScalarProgramLogicalRecordArrayTypeReady(
                 plan.program.logical_record, plan.local_types[row]) {
             llvm_type = DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
@@ -156,7 +158,7 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
             let carriage: String = plan.routines.parameter_carriages[
                 plan.routines.parameter_starts[routine] + parameter_ordinal];
             let owned_parameter: Bool = carriage == "owner-handle" &&
-                (plan.local_types[row] == CompilerAbiLayoutStringTypeName() || plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName());
+                DirectMirScalarProgramOwnedDirectParameterTypeReady(plan.program.logical_record, plan.local_types[row]);
             if carriage != "value" && carriage != "value-result" &&
                 !owned_parameter {
                 Die("direct MIR scalar CFG LLVM parameter local is invalid");
@@ -189,12 +191,9 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
     }
     return output;
 }
-
-
 func DirectMirScalarCfgLlvmLocalDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
     return DirectMirScalarCfgLlvmLocalDeclarationsInRange(
-        plan, 0, ArrayLength(plan.local_names), 0
-    );
+        plan, 0, ArrayLength(plan.local_names), 0);
 }

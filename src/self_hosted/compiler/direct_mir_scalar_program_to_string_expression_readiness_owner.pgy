@@ -1,0 +1,25 @@
+// Exact input/output shapes for scalar ToString specializations.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramToStringExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind != DirectMirScalarProgramExprToStringInt() && kind !=
+            DirectMirScalarProgramExprToStringString() && kind !=
+            DirectMirScalarProgramExprToStringBool() { return None; }
+    let expected: String = CompilerAbiLayoutIntTypeName();
+    if kind == DirectMirScalarProgramExprToStringString() {
+        expected = CompilerAbiLayoutStringTypeName();
+    } else if kind == DirectMirScalarProgramExprToStringBool() {
+        expected = CompilerAbiLayoutBoolTypeName();
+    }
+    let left: Int = facts.node_lefts[node];
+    return Some(facts.node_types[node] == CompilerAbiLayoutStringTypeName() &&
+        left >= 0 && left < node && facts.node_types[left] == expected &&
+        facts.node_rights[node] == -1 && facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_member_ordinals[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        facts.node_callable_rows[node] == -1);
+}

@@ -3,8 +3,8 @@ import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
 import "direct_mir_scalar_program_c_additional_materialization_owner.pgy";
 import "direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+import "direct_mir_scalar_program_c_bool_to_string_materialization_owner.pgy";
 import "../codegen/runtime_abi/string_runtime_owner.pgy";
-
 func DirectMirScalarProgramCBuiltinMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
@@ -26,14 +26,13 @@ func DirectMirScalarProgramCBuiltinMaterialization(
         output = Concat(output, StringRuntimeCPrintBlock());
     }
     if plan.program.runtime_abi.string_to_string_id != 0 {
-        output = Concat(output, StringRuntimeCToStringBlock());
-    }
+        output = Concat(output, StringRuntimeCToStringBlock()); }
+    if plan.program.runtime_abi.bool_to_string_id != 0 { output = Concat(output,
+        DirectMirScalarProgramCBoolToStringMaterialization(runtime.bool_to_string)); }
     if plan.program.runtime_abi.string_to_upper_id != 0 {
-        output = Concat(output, StringRuntimeCToUpperBlock());
-    }
+        output = Concat(output, StringRuntimeCToUpperBlock()); }
     if plan.program.runtime_abi.string_to_lower_id != 0 {
-        output = Concat(output, StringRuntimeCToLowerBlock());
-    }
+        output = Concat(output, StringRuntimeCToLowerBlock()); }
     output = Concat(output,
         DirectMirScalarProgramCAdditionalMaterialization(plan, runtime));
     return output;

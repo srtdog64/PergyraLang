@@ -189,6 +189,7 @@ func CompilerRuntimeCallAbiStringCallShape(operation: String) -> String {
     if operation == "substring-with-len" { return "string_int_int_int_to_string"; }
     if operation == "join" { return "array_string_string_to_string"; }
     if operation == "to-string" { return "value_to_string"; }
+    if operation == "bool-to-string" { return "bool_to_string"; }
     return "string_runtime_call";
 }
 
@@ -255,7 +256,7 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
 }
 
 func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
-    return 258;
+    return 259;
 }
 
 func CompilerRuntimeCallAbiNativeScalarTypeAt(index: Int) -> String {
@@ -473,6 +474,7 @@ func CompilerRuntimeCallAbiStringRowAt(index: Int) -> String {
     if index == 22 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "join", StringRuntimeCStringJoinFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 23 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "to-string", StringRuntimeCToStringFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 24 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "substring-with-len", StringRuntimeCSubstringWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 25 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "bool-to-string", StringRuntimeCBoolToStringFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 
@@ -535,6 +537,7 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index >= 254 && index < 256 { return CompilerRuntimeCallAbiOptionResultRowAt(index - 238); }
     if index == 256 { return CompilerRuntimeCallAbiHostIoRowAt(16); }
     if index == 257 { return CompilerRuntimeCallAbiTextBuilderRowAt(6); }
+    if index == 258 { return CompilerRuntimeCallAbiStringRowAt(25); }
     return "";
 }
 

@@ -1,5 +1,5 @@
 schema=pgy.selfhost.runtime-call-abi-row.v2
-count=258
+count=259
 0|collection|array-int.new|pgy_ai_new|function|generated_runtime_helper|returns_collection
 1|collection|array-int.push|pgy_ai_push|function|generated_runtime_helper|collection_value_to_void
 2|collection|array-int.set|pgy_ai_set|function|generated_runtime_helper|collection_index_value_to_void
@@ -258,3 +258,4 @@ count=258
 255|option-result|option-long.none|pgy_option_none_long|function|generated_runtime_helper|returns_option
 256|host-io|compiler-artifact-write|pgy_compiler_artifact_write|function|target_library|int_string_to_bool
 257|selfhost-c-text-builder|allocator.pool|pgy_allocator_pool|function|generated_runtime_helper|capacity_to_allocator
+258|string|bool-to-string|pgy_bool_to_string|function|generated_runtime_helper|bool_to_string

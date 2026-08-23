@@ -8,9 +8,7 @@ import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_builtin_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_mutation_owner.pgy";
-import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
-import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
-import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_result_preamble_owner.pgy";
 import "direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_bool_materialization_owner.pgy";
@@ -21,6 +19,7 @@ import "direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owne
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_value_result_owner.pgy";
+import "direct_mir_scalar_program_llvm_logical_record_value_parameter_address_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_array_value_result_owner.pgy";
 import "direct_mir_scalar_program_llvm_set_string_value_result_owner.pgy";
 import "direct_mir_scalar_program_process_exit_owner.pgy";
@@ -33,6 +32,7 @@ import "runtime_value_representation_owner.pgy";
 import "direct_mir_scalar_program_llvm_runtime_value_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_runtime_value_parameter_storage_owner.pgy";
+import "direct_mir_scalar_cfg_program_llvm_condition_diagnostic_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
 func DirectMirScalarCfgProgramLlvmRoutine(
@@ -53,6 +53,9 @@ func DirectMirScalarCfgProgramLlvmRoutine(
     }
     output = Concat(output, DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(
         plan, routine));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(
+            plan, routine));
     output = Concat(output, DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
     output = Concat(output,
         DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(plan, routine));
@@ -184,7 +187,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                     target);
             if !condition.valid || condition.type_name !=
                     CompilerAbiLayoutBoolTypeName() {
-                Die("direct MIR scalar CFG LLVM condition is invalid");
+                DirectMirScalarCfgProgramLlvmConditionProjectionFailed(
+                    plan, routine, block, condition.valid, condition.type_name);
             }
             output = Concat(output, condition.instructions);
             output = Concat(output, "  br i1 ");
@@ -244,14 +248,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmOptionBoolPreamble(
-            plan.program.option_bool_abi, target));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmOptionStringPreamble(
-            plan.program.option_string_abi, target));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmOptionIntPreamble(
-            plan.program.option_int_abi, target));
+        DirectMirScalarProgramLlvmOptionResultPreamble(plan, target));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmTwoIntNominalPreamble(
             plan.program.nominal_abi, target));

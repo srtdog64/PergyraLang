@@ -65,7 +65,7 @@ grep -Fq 'DirectMirScalarProgramExprNotEqualLong()' "$LLVM_OWNER" ||
     fail "LLVM comparison emitter omits Long inequality"
 grep -Fq 'DirectMirScalarProgramExprLessLong()' "$LLVM_OWNER" ||
     fail "LLVM comparison emitter omits Long less"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema did not advance with typed Long comparison"
 [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_int_comparison_expression_kind_owner.pgy" ]] ||
     fail "retired Int-only comparison owner remains"

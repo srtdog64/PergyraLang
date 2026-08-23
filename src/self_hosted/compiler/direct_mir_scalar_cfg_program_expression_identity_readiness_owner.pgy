@@ -6,23 +6,24 @@ import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_parameter_target_owner.pgy";
 import "direct_mir_scalar_cfg_program_runtime_value_parameter_readiness_owner.pgy";
-func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarCfgGraphPlan,
-    ref facts: DirectMirScalarProgramExpressionSet, node: Int, routine: Int, graph_start: Int) -> Bool {
+import "direct_mir_scalar_program_array_string_literal_parameter_carriage_owner.pgy";
+func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarCfgGraphPlan, ref facts: DirectMirScalarProgramExpressionSet, node: Int, routine: Int, graph_start: Int) -> Bool {
     let kind: Int = facts.node_kinds[node];
     if kind == DirectMirScalarProgramExprLocal() {
         let local_start: Int = plan.routines.local_starts[routine];
         let local_end: Int = local_start + plan.routines.local_counts[routine];
-        return facts.node_local_rows[node] >= local_start &&
-            facts.node_local_rows[node] < local_end &&
-            facts.node_types[node] ==
-                plan.local_types[facts.node_local_rows[node]];
+        return facts.node_local_rows[node] >= local_start && facts.node_local_rows[node] < local_end &&
+            facts.node_types[node] == plan.local_types[facts.node_local_rows[node]];
     }
     if kind == DirectMirScalarProgramExprParameter() {
         let ordinal: Int = facts.node_parameter_ordinals[node];
-        return ordinal >= 0 &&
-            ordinal < plan.routines.parameter_counts[routine] &&
+        return ordinal >= 0 && ordinal < plan.routines.parameter_counts[routine] &&
             facts.node_types[node] == plan.routines.parameter_types[
                 plan.routines.parameter_starts[routine] + ordinal];
+    }
+    if kind == DirectMirScalarProgramExprArrayStringLiteral() {
+        return DirectMirScalarProgramArrayStringLiteralParameterCarriageReady(
+            facts, node, plan.routines, routine);
     }
     if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
         let left: Int = facts.node_lefts[node];
@@ -59,8 +60,7 @@ func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarC
     if kind == DirectMirScalarProgramExprRuntimeValueCall() { return DirectMirScalarCfgProgramRuntimeValueCallIdentityReady(plan, facts, node, routine, graph_start); }
     if kind != DirectMirScalarProgramExprDirectCall() { return true; }
     let target: Int = facts.node_callable_rows[node];
-    let arguments: Array<Int> =
-        DirectMirScalarProgramDirectCallArgumentRows(facts, node);
+    let arguments: Array<Int> = DirectMirScalarProgramDirectCallArgumentRows(facts, node);
     if target <= plan.routines.entrypoint_ordinal ||
         target >= ArrayLength(plan.routines.roles) ||
         ArrayLength(arguments) != plan.routines.parameter_counts[target] ||

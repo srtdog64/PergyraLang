@@ -1,0 +1,123 @@
+// LLVM representation and expression projection for the sealed Result<Int> ABI.
+
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_result_int_abi_owner.pgy";
+import "direct_mir_result_int_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmResultIntTypeName() -> String {
+    return "%pgy.scalar.result.int";
+}
+
+func DirectMirScalarProgramLlvmResultIntExpressionAt(
+    kind: Int, result: String, left: String, right: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let function_name: String = "";
+    let result_type: String = "";
+    let first_type: String = "";
+    let second_type: String = "";
+    if kind == DirectMirScalarProgramExprOkInt() {
+        function_name = "@pgy.scalar.result.int.ok";
+        result_type = DirectMirScalarProgramLlvmResultIntTypeName();
+        first_type = "i64";
+    } else if kind == DirectMirScalarProgramExprErrInt() {
+        function_name = "@pgy.scalar.result.int.err";
+        result_type = DirectMirScalarProgramLlvmResultIntTypeName();
+        first_type = "ptr";
+    } else if kind == DirectMirScalarProgramExprIsOkInt() {
+        function_name = "@pgy.scalar.result.int.is_ok";
+        result_type = "i1";
+        first_type = DirectMirScalarProgramLlvmResultIntTypeName();
+    } else if kind == DirectMirScalarProgramExprIsErrInt() {
+        function_name = "@pgy.scalar.result.int.is_err";
+        result_type = "i1";
+        first_type = DirectMirScalarProgramLlvmResultIntTypeName();
+    } else if kind == DirectMirScalarProgramExprUnwrapResultInt() {
+        function_name = "@pgy.scalar.result.int.unwrap";
+        result_type = "i64";
+        first_type = DirectMirScalarProgramLlvmResultIntTypeName();
+    } else if kind == DirectMirScalarProgramExprUnwrapErrInt() {
+        function_name = "@pgy.scalar.result.int.unwrap_err";
+        result_type = "ptr";
+        first_type = DirectMirScalarProgramLlvmResultIntTypeName();
+    } else if kind == DirectMirScalarProgramExprUnwrapOrInt() {
+        function_name = "@pgy.scalar.result.int.unwrap_or";
+        result_type = "i64";
+        first_type = DirectMirScalarProgramLlvmResultIntTypeName();
+        second_type = "i64";
+    } else {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let output: String = Concat("  ", Concat(result, Concat(
+        " = call ", Concat(result_type, Concat(" ", function_name)))));
+    output = Concat(output, Concat("(", Concat(first_type,
+        Concat(" ", left))));
+    if second_type != "" {
+        output = Concat(output, Concat(", ", Concat(second_type,
+            Concat(" ", right))));
+    }
+    output = Concat(output, ")\n");
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, output, result);
+}
+
+func DirectMirScalarProgramLlvmResultIntPreamble(
+    ref fact: DirectMirResultIntAbiFact,
+    ref target: CompilerTargetProjectionFact
+) -> String {
+    if DirectMirScalarProgramResultIntAbiCanonicalEmpty(fact) { return ""; }
+    let projection: DirectMirResultIntAbiProjection =
+        DirectMirResultIntAbiProjectionFromFact(fact, target);
+    if !DirectMirResultIntAbiProjectionReadyFor(
+            projection, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR scalar program LLVM Result<Int> ABI is invalid");
+    }
+    let t: String = DirectMirScalarProgramLlvmResultIntTypeName();
+    let output: String = Concat(t, Concat(" = type ",
+        Concat(projection.aggregate_type, "\n\n")));
+    output = Concat(output, Concat("define internal ", Concat(t,
+        " @pgy.scalar.result.int.ok(i64 %value) {\nentry:\n  %narrow = trunc i64 %value to i32\n")));
+    output = Concat(output, Concat("  %tagged = insertvalue ", Concat(t,
+        Concat(" poison, i32 ", Concat(fact.ok_tag, ", 0\n")))));
+    output = Concat(output, Concat("  %valued = insertvalue ", Concat(t,
+        " %tagged, i32 %narrow, 1\n")));
+    output = Concat(output, Concat("  %complete = insertvalue ", Concat(t,
+        " %valued, ptr null, 2\n  ret ")));
+    output = Concat(output, Concat(t, " %complete\n}\n\n"));
+    output = Concat(output, Concat("define internal ", Concat(t,
+        " @pgy.scalar.result.int.err(ptr %error) {\nentry:\n")));
+    output = Concat(output, Concat("  %tagged = insertvalue ", Concat(t,
+        Concat(" poison, i32 ", Concat(fact.error_tag, ", 0\n")))));
+    output = Concat(output, Concat("  %zeroed = insertvalue ", Concat(t,
+        " %tagged, i32 0, 1\n")));
+    output = Concat(output, Concat("  %complete = insertvalue ", Concat(t,
+        " %zeroed, ptr %error, 2\n  ret ")));
+    output = Concat(output, Concat(t, " %complete\n}\n\n"));
+    output = Concat(output, Concat("define internal i1 @pgy.scalar.result.int.is_ok(",
+        Concat(t, Concat(" %value) {\nentry:\n  %tag = extractvalue ", t))));
+    output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+        Concat(fact.ok_tag, "\n  ret i1 %match\n}\n\n")));
+    output = Concat(output, Concat("define internal i1 @pgy.scalar.result.int.is_err(",
+        Concat(t, Concat(" %value) {\nentry:\n  %tag = extractvalue ", t))));
+    output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+        Concat(fact.error_tag, "\n  ret i1 %match\n}\n\n")));
+    output = Concat(output, Concat("define internal i64 @pgy.scalar.result.int.unwrap(",
+        Concat(t, Concat(" %value) {\nentry:\n  %tag = extractvalue ", t))));
+    output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+        Concat(fact.ok_tag, "\n  br i1 %match, label %ok, label %error\nerror:\n  call void @abort()\n  unreachable\nok:\n")));
+    output = Concat(output, Concat("  %payload = extractvalue ", Concat(t,
+        " %value, 1\n  %extended = sext i32 %payload to i64\n  ret i64 %extended\n}\n\n")));
+    output = Concat(output, Concat("define internal ptr @pgy.scalar.result.int.unwrap_err(",
+        Concat(t, Concat(" %value) {\nentry:\n  %tag = extractvalue ", t))));
+    output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+        Concat(fact.error_tag, "\n  br i1 %match, label %error, label %ok\nok:\n  call void @abort()\n  unreachable\nerror:\n")));
+    output = Concat(output, Concat("  %message = extractvalue ", Concat(t,
+        " %value, 2\n  ret ptr %message\n}\n\n")));
+    output = Concat(output, Concat("define internal i64 @pgy.scalar.result.int.unwrap_or(",
+        Concat(t, Concat(" %value, i64 %fallback) {\nentry:\n  %tag = extractvalue ", t))));
+    output = Concat(output, Concat(" %value, 0\n  %match = icmp eq i32 %tag, ",
+        Concat(fact.ok_tag, "\n")));
+    output = Concat(output, Concat("  %payload = extractvalue ", Concat(t,
+        " %value, 1\n  %extended = sext i32 %payload to i64\n  %selected = select i1 %match, i64 %extended, i64 %fallback\n  ret i64 %selected\n}\n")));
+    return output;
+}

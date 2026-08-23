@@ -3,6 +3,7 @@
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_admission_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_result_int_abi_owner.pgy";
 import "direct_mir_scalar_program_option_string_abi_owner.pgy";
 import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
@@ -14,6 +15,7 @@ struct DirectMirScalarProgramExtensionAbiSeal {
     let stage: String;
     let runtime: DirectMirScalarProgramRuntimeAbiFact;
     let option_int: DirectMirOptionMatchAbiFact;
+    let result_int: DirectMirResultIntAbiFact;
     let option_string: DirectMirOptionMatchAbiFact;
     let option_bool: DirectMirOptionMatchAbiFact;
     let nominal: DirectMirScalarProgramTwoIntNominalAbiFact;
@@ -31,6 +33,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
     option_int: DirectMirOptionMatchAbiFact,
+    result_int: DirectMirResultIntAbiFact,
     option_string: DirectMirOptionMatchAbiFact,
     option_bool: DirectMirOptionMatchAbiFact,
     ref callable: DirectMirScalarCfgProgramCallableFact
@@ -48,6 +51,9 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     } else if !DirectMirScalarProgramOptionIntAbiReadyForExpressions(
             option_int, expressions) {
         stage = "option-int";
+    } else if !DirectMirScalarProgramResultIntAbiReadyForExpressions(
+            result_int, expressions) {
+        stage = "result-int";
     } else if !DirectMirScalarProgramOptionStringAbiReadyForExpressions(
             option_string, expressions) {
         stage = "option-string";
@@ -78,7 +84,8 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     }
     if stage != "ready" {
         return DirectMirScalarProgramExtensionAbiSeal(
-            false, stage, runtime, option_int, option_string, option_bool,
+            false, stage, runtime, option_int, result_int,
+            option_string, option_bool,
             route.nominal, route.logical_record,
             route.payload_free_enum,
             route.array_int_value_result, route.array_bool_abi, array_string,
@@ -98,6 +105,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
         if !DirectMirScalarProgramArrayStringBoundaryFactReady(boundary) {
             return DirectMirScalarProgramExtensionAbiSeal(
                 false, "array-string-boundary", runtime, option_int,
+                result_int,
                 option_string, option_bool,
                 route.nominal, route.logical_record,
                 route.payload_free_enum,
@@ -107,7 +115,8 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
         }
     }
     return DirectMirScalarProgramExtensionAbiSeal(
-        true, "ready", runtime, option_int, option_string, option_bool,
+        true, "ready", runtime, option_int, result_int,
+        option_string, option_bool,
         route.nominal, route.logical_record,
         route.payload_free_enum,
         route.array_int_value_result, route.array_bool_abi,

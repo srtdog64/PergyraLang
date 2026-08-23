@@ -36,7 +36,7 @@ command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 grep -Fq 'DirectMirScalarProgramComparisonExpressionKindFact(' "$KIND" || fail "classification consumer bypassed the owner"
 ! grep -Fq 'source_kind == AstExpressionNodeEquality() && bools' "$KIND" || fail "Bool equality remained outside the typed comparison owner"
 grep -Fq 'DirectMirScalarProgramExprNotEqualBool() -> Int { return 89; }' "$KIND_ID" || fail "Bool inequality identity is not append-only 89"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" || fail "Bool inequality did not advance the GraphPlan schema"
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" || fail "Bool inequality did not advance the GraphPlan schema"
 for term in AstExpressionNodeEquality AstExpressionNodeInequality AstExpressionNodeLess AstExpressionNodeGreaterEqual AstExpressionNodeGreater AstExpressionNodeLessEqual; do
     grep -Fq "$term()" "$OWNER" || fail "comparison owner omitted $term"
 done

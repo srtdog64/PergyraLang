@@ -4,18 +4,19 @@ import "direct_mir_scalar_cfg_llvm_local_emission_owner.pgy";
 import "direct_mir_scalar_program_c_option_int_owner.pgy";
 import "direct_mir_scalar_program_c_option_string_owner.pgy";
 import "direct_mir_scalar_program_c_option_bool_owner.pgy";
+import "direct_mir_scalar_program_c_result_int_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 func DirectMirScalarCfgCLocalDeclarationsInRange(
     ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String,
     start: Int, count: Int, routine: Int
 ) -> String {
-    if int_c_type == "" || start < 0 || count < 0 ||
-        start + count > ArrayLength(plan.local_names) || routine < 0 ||
-        routine >= ArrayLength(plan.routines.roles) ||
+    if int_c_type == "" || start < 0 || count < 0 || start + count >
+        ArrayLength(plan.local_names) || routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
         start != plan.routines.local_starts[routine] ||
         count != plan.routines.local_counts[routine] {
         Die("direct MIR scalar CFG C local range is invalid");
@@ -24,8 +25,7 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
     let row: Int = start;
     while row < start + count {
         let runtime_value: CompilerRuntimeValueRepresentation =
-            CompilerRuntimeValueRepresentationFor(
-                plan.local_types[row]);
+            CompilerRuntimeValueRepresentationFor(plan.local_types[row]);
         output = Concat(output, "    ");
         if runtime_value.valid {
             output = Concat(output, runtime_value.c_type);
@@ -48,8 +48,9 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
         } else if plan.local_types[row] == CompilerAbiLayoutOptionStringTypeName() {
             output = Concat(output, DirectMirScalarProgramCOptionStringTypeName());
         } else if plan.local_types[row] == CompilerAbiLayoutOptionBoolTypeName() {
-            output = Concat(output,
-                DirectMirScalarProgramCOptionBoolTypeName());
+            output = Concat(output, DirectMirScalarProgramCOptionBoolTypeName());
+        } else if plan.local_types[row] == CompilerAbiLayoutResultIntTypeName() {
+            output = Concat(output, DirectMirScalarProgramCResultIntTypeName());
         } else if DirectMirScalarProgramLogicalRecordArrayTypeReady(
                 plan.program.logical_record, plan.local_types[row]) {
             output = Concat(output,
@@ -77,6 +78,7 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutOptionStringTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutOptionBoolTypeName() ||
+            plan.local_types[row] == CompilerAbiLayoutResultIntTypeName() ||
             DirectMirScalarProgramLogicalRecordArrayTypeReady(
                 plan.program.logical_record, plan.local_types[row]) ||
             DirectMirScalarProgramLogicalRecordTypeReady(
@@ -99,7 +101,8 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             let carriage: String = plan.routines.parameter_carriages[
                 plan.routines.parameter_starts[routine] + parameter_ordinal];
             let owned_parameter: Bool = carriage == "owner-handle" &&
-                (plan.local_types[row] == CompilerAbiLayoutStringTypeName() || plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName());
+                DirectMirScalarProgramOwnedDirectParameterTypeReady(
+                    plan.program.logical_record, plan.local_types[row]);
             if carriage != "value" && carriage != "value-result" &&
                 !owned_parameter {
                 Die("direct MIR scalar CFG C parameter local is invalid");
@@ -118,6 +121,5 @@ func DirectMirScalarCfgCLocalDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String
 ) -> String {
     return DirectMirScalarCfgCLocalDeclarationsInRange(
-        plan, int_c_type, 0, ArrayLength(plan.local_names), 0
-    );
+        plan, int_c_type, 0, ArrayLength(plan.local_names), 0);
 }

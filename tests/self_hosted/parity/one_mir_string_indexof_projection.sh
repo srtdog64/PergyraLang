@@ -36,7 +36,7 @@ SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_w
 CONTRACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_string_index_runtime_owner.pgy"
 C_RUNTIME="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy"
 LLVM_RUNTIME="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_index_materialization_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80'
 require_text "$SIGNATURE" 'StringIndexOf'
 require_text "$SIGNATURE" 'CharAtN'
 require_text "$SIGNATURE" 'CharCode'

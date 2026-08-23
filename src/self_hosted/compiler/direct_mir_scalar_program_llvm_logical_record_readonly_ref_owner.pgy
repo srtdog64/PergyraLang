@@ -15,9 +15,8 @@ func DirectMirScalarProgramLlvmLogicalRecordParameterRead(
 ) -> DirectMirScalarProgramLlvmStringExpression {
     let ordinal: Int = expressions.node_parameter_ordinals[node];
     let parameter_row: Int = routines.parameter_starts[routine] + ordinal;
-    if routines.parameter_carriages[parameter_row] == "value" ||
-        routines.parameter_carriages[parameter_row] == "owner-handle" ||
-        !DirectMirScalarProgramLogicalRecordTypeReady(
+    let carriage: String = routines.parameter_carriages[parameter_row];
+    if carriage == "owner-handle" || !DirectMirScalarProgramLogicalRecordTypeReady(
             logical_record, expressions.node_types[node]) {
         return DirectMirScalarProgramLlvmStringExpression(
             false, true, "", pointer);
@@ -25,10 +24,10 @@ func DirectMirScalarProgramLlvmLogicalRecordParameterRead(
     let type_name: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
         logical_record, expressions.node_types[node]);
     let source_pointer: String = pointer;
-    if routines.parameter_carriages[parameter_row] == "value-result" {
+    if carriage == "value" || carriage == "value-result" {
         source_pointer = Concat("%pgy.param.", Concat(
             ToString(ordinal), ".local"));
-    } else if routines.parameter_carriages[parameter_row] != "readonly-ref" {
+    } else if carriage != "readonly-ref" {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }

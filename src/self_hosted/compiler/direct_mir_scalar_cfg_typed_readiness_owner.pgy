@@ -9,6 +9,7 @@ import "direct_mir_scalar_cfg_collection_pop_typed_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_typed_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_result_int_abi_owner.pgy";
 import "direct_mir_scalar_cfg_typed_foreach_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir_scalar_cfg_string_expression_owner.pgy";
@@ -158,6 +159,7 @@ func DirectMirScalarCfgTypedPlanReady(
                 program_collection_ready || program_array_int_ready ||
                 program_array_bool_ready || program_set_string_ready ||
                 (type_name == CompilerAbiLayoutOptionIntTypeName() && DirectMirScalarProgramOptionIntAbiReadyForExpressions(plan.program.option_int_abi, plan.program.expressions)) ||
+                (type_name == CompilerAbiLayoutResultIntTypeName() && DirectMirScalarProgramResultIntAbiReadyForExpressions(plan.program.result_int_abi, plan.program.expressions)) ||
                 program_option_string_ready ||
                 program_option_bool_ready ||
                 CompilerRuntimeValueTypeReady(type_name) ||

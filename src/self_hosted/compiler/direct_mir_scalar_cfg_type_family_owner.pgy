@@ -30,7 +30,8 @@ func DirectMirScalarCfgSourceLocalTypeSupported(type_name: String) -> Bool {
         type_name == CompilerAbiLayoutArrayBoolTypeName() ||
         type_name == CompilerAbiLayoutOptionIntTypeName() ||
         type_name == CompilerAbiLayoutOptionStringTypeName() ||
-        type_name == CompilerAbiLayoutOptionBoolTypeName();
+        type_name == CompilerAbiLayoutOptionBoolTypeName() ||
+        type_name == CompilerAbiLayoutResultIntTypeName();
 }
 
 func DirectMirScalarCfgSourceLocalTypeMatchesResolved(
@@ -40,7 +41,9 @@ func DirectMirScalarCfgSourceLocalTypeMatchesResolved(
         (source_type == "Option<Unknown>" &&
          (resolved_type == CompilerAbiLayoutOptionIntTypeName() ||
           resolved_type == CompilerAbiLayoutOptionStringTypeName() ||
-          resolved_type == CompilerAbiLayoutOptionBoolTypeName()));
+          resolved_type == CompilerAbiLayoutOptionBoolTypeName())) ||
+        (source_type == "Result<Unknown, String>" &&
+         resolved_type == CompilerAbiLayoutResultIntTypeName());
 }
 
 func DirectMirScalarCfgRoutineSourceLocalTypesSupported(

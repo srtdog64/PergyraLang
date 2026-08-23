@@ -1,10 +1,11 @@
 // Final readiness and repaired-digest mutation boundary for a constructed plan.
-
 import "direct_mir_scalar_cfg_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_graph_mutation_owner.pgy";
 import "direct_mir_scalar_cfg_graph_identity_owner.pgy";
 import "direct_mir_scalar_cfg_program_expression_diagnostic_owner.pgy";
-
+import "direct_mir_scalar_cfg_program_operation_readiness_diagnostic_owner.pgy";
+import "direct_mir_scalar_cfg_program_definition_readiness_diagnostic_owner.pgy";
+import "direct_mir_scalar_program_runtime_value_lifecycle_diagnostic_owner.pgy";
 func DirectMirScalarCfgGraphPlanVerified(
     own plan: DirectMirScalarCfgGraphPlan
 ) -> DirectMirScalarCfgGraphPlan {
@@ -14,9 +15,10 @@ func DirectMirScalarCfgGraphPlanVerified(
     if !DirectMirScalarCfgGraphPlanReady(verified) {
         let readiness: Int =
             DirectMirScalarCfgProgramExtensionReadinessCode(verified);
-        if readiness == 6 {
-            DirectMirScalarCfgProgramTerminalReturnReadinessFailed(verified);
-        }
+        if readiness == 6 { DirectMirScalarCfgProgramTerminalReturnReadinessFailed(verified); }
+        if readiness == 8 { DirectMirScalarCfgProgramDefinitionReadinessFailed(verified); }
+        if readiness == 9 { DirectMirScalarCfgProgramOperationReadinessFailed(verified); }
+        if readiness == 22 { DirectMirScalarProgramRuntimeValueLifecycleReadinessFailed(verified); }
         Die(Concat(
             "direct MIR scalar CFG verified plan identity is invalid: program_readiness=",
             ToString(readiness)));

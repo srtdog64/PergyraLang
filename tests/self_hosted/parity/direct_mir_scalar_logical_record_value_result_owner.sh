@@ -34,10 +34,10 @@ LLVM_LOCALS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local
 C_EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"; LLVM_EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
 C_COPYOUT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_value_result_owner.pgy"
 LLVM_COPYOUT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_value_result_owner.pgy"
+LLVM_VALUE_INPUT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_value_parameter_address_owner.pgy"
 C_MEMBER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_member_rebind_owner.pgy"
 LLVM_MEMBER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_member_rebind_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_logical_record_value_result_mutations.py"
-
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
@@ -99,6 +99,11 @@ grep -Fq ' = insertvalue ' "$LLVM_MEMBER" || fail "LLVM member insertvalue is mi
 grep -Fq 'logical_record_copyout' \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" ||
     fail "direct-call carriage owner does not consume logical-record copyout facts"
+grep -Fq '(array_int_copyout || logical_record_copyout)' \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" ||
+    fail "by-value logical-record input cannot reach an exact copyout target"
+grep -Fq 'DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(' \
+    "$LLVM_VALUE_INPUT" && grep -Fq 'carriage == "value" || carriage == "value-result"' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy" || fail "LLVM omits addressable by-value record storage/read"
 grep -Fq 'DirectMirScalarCfgProgramDirectCallCarriageReady(' "$IDENTITY" ||
     fail "direct-call identity does not delegate carriage admission to the carriage owner"
 grep -Fq 'DirectMirRoutineLocalParameterOrdinalAtName(' "$PARAMETERS" ||
@@ -115,7 +120,7 @@ grep -Fq 'DirectMirRoutineLocalParameterTypeAtName(' "$LOCAL_INVENTORY" ||
     fail "value storage does not consume one direct local parameter type owner"
 ! grep -Fq 'DirectMirRoutineValueParameterTypeAtName(' "$VALUE_TYPES" ||
     fail "value storage retained the value-only parameter lookup"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema did not advance with value-result local identity"
 for owner in "$C_LOCALS" "$LLVM_LOCALS"; do
     grep -Fq 'carriage != "value-result"' "$owner" ||
@@ -130,7 +135,6 @@ grep -Fq 'pgy_local_' "$C_COPYOUT" ||
     fail "C copyout does not consume the latest value-result local"
 grep -Fq 'source_ptr = Concat("%pgy.local."' "$LLVM_COPYOUT" ||
     fail "LLVM copyout does not consume the latest value-result local"
-
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
@@ -140,6 +144,8 @@ grep -Fq '"name":"ValidationSession"' "$MIR" ||
     fail "producer omitted the record declaration"
 grep -Fq '"type":"ValidationSession","carriage":"value-result"' "$MIR" ||
     fail "producer omitted the record copyout identity"
+grep -Fq '"name":"RememberSessionCopy"' "$MIR" ||
+    fail "producer omitted the by-value record input routine"
 grep -Fq '"type":"IntentCompensationProbe","carriage":"value-result"' "$MIR" ||
     fail "producer omitted the eight-field record copyout identity"
 grep -Fq '"name":"IntentStepLines"' "$MIR" ||
@@ -158,12 +164,11 @@ grep -Fq '"arg0":"scalar","arg1":"local"' "$MIR" ||
     fail "producer omitted the preceding scalar local rebind"
 grep -Fq '"expr1":"local_session.keys"' "$MIR" ||
     fail "producer omitted the local member target"
-grep -Fq '"expr1":"analysis.expression_surfaces.expression_graph"' "$MIR" ||
-    fail "producer omitted the nested value-result member target"
+grep -Fq '"expr1":"analysis.expression_surfaces.expression_graph"' "$MIR" && grep -Fq '"name":"ResolveNestedGraph"' "$MIR" && grep -Fq '"call_target_name":"ReplaceNestedGraph"' "$MIR" ||
+    fail "producer omitted nested value-result publication"
 [[ "$(grep -Fo '"arg0":"ArrayPush"' "$MIR" | wc -l)" -ge 3 ]] ||
     fail "producer omitted ordered collection mutations"
-printf 'record-copyout-ready\nintent-step-ready\n1\n7\n1\n' >"$WORK_DIR/expected.run"
-
+printf 'record-copyout-ready\nrecord-value-input-ready\nintent-step-ready\n1\n7\n1\n1\n9\n' >"$WORK_DIR/expected.run"
 for backend in c llvm; do
     artifact_rel="$WORK_REL/program.$backend"
     artifact="$ROOT_DIR/$artifact_rel"
@@ -187,6 +192,8 @@ for backend in c llvm; do
             fail "C omitted an early/final latest-local record copy-out"
         grep -Fq '*pgy_param_10_mutref = pgy_local_' "$artifact" ||
             fail "C omitted production-shaped record copy-out"
+        grep -Eq 'pgy_scalar_routine_[0-9]+\(&pgy_param_0,' "$artifact" ||
+            fail "C omitted addressable by-value record call input"
         [[ "$(grep -Ec 'pgy_local_[0-9]+\.field_[0-9]+ = pgy_local_[0-9]+;' "$artifact")" -ge 5 ]] ||
             fail "C omitted ordered logical-record member stores"
         grep -Eq 'pgy_local_[0-9]+\.field_[0-9]+\.field_[0-9]+ = pgy_local_[0-9]+;' "$artifact" ||
@@ -211,6 +218,8 @@ for backend in c llvm; do
             fail "LLVM omitted an early/final record copy-out"
         grep -Fq '%pgy.param.10.record.copyout.' "$artifact" ||
             fail "LLVM omitted production-shaped record copy-out"
+        grep -Eq '%pgy\.param\.0\.local = alloca %pgy\.scalar\.logical\.record\.value\.[0-9]+' "$artifact" ||
+            fail "LLVM omitted addressable by-value record call input"
         [[ "$(grep -Fc '%pgy.record.rebind.value.' "$artifact")" -ge 5 ]] ||
             fail "LLVM omitted ordered logical-record member insertvalues"
         grep -Eq ' = insertvalue .*, [0-9]+, [0-9]+' "$artifact" ||
@@ -224,6 +233,7 @@ for backend in c llvm; do
 done
 
 for mutation in record-copyout-carriage record-copyout-pass \
+    value-input-carriage \
     member-field member-rhs-type member-binding member-source-kind \
     member-local-field member-local-ref-missing member-local-ref-foreign \
     member-local-use-missing member-local-use-reordered \

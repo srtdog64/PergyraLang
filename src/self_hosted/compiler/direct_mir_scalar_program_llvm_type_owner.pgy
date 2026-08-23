@@ -1,8 +1,6 @@
 // LLVM scalar type spelling projected from canonical compiler type identities.
 import "abi_layout_row_owner.pgy";
-import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
-import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
-import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_result_type_owner.pgy";
 import "direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
@@ -32,16 +30,7 @@ func DirectMirScalarProgramLlvmType(type_name: String) -> String {
     if type_name == CompilerAbiLayoutSetStringTypeName() {
         return DirectMirScalarProgramLlvmSetStringTypeName();
     }
-    if type_name == CompilerAbiLayoutOptionIntTypeName() {
-        return DirectMirScalarProgramLlvmOptionIntTypeName();
-    }
-    if type_name == CompilerAbiLayoutOptionStringTypeName() {
-        return DirectMirScalarProgramLlvmOptionStringTypeName();
-    }
-    if type_name == CompilerAbiLayoutOptionBoolTypeName() {
-        return DirectMirScalarProgramLlvmOptionBoolTypeName();
-    }
-    return "";
+    return DirectMirScalarProgramLlvmOptionResultType(type_name);
 }
 func DirectMirScalarProgramLlvmTypeForNominal(
     type_name: String,

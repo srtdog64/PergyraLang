@@ -6,7 +6,8 @@ import "direct_mir_scalar_program_case_math_runtime_projection_owner.pgy";
 func DirectMirScalarProgramRuntimeRequiresMaterialization(
     ref abi: DirectMirScalarProgramRuntimeAbiFact
 ) -> Bool {
-    return abi.string_to_string_id != 0 || abi.string_to_upper_id != 0 ||
+    return abi.string_to_string_id != 0 || abi.bool_to_string_id != 0 ||
+        abi.string_to_upper_id != 0 ||
         abi.string_to_lower_id != 0 || abi.string_length_id != 0 ||
         abi.string_char_code_id != 0 ||
         abi.string_char_at_n_id != 0 ||

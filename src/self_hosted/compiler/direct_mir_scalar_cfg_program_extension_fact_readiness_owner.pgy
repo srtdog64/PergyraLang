@@ -20,6 +20,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
                 fact.runtime_abi) &&
             DirectMirScalarProgramOptionIntAbiReadyForExpressions(
                 fact.option_int_abi, fact.expressions) &&
+            DirectMirScalarProgramResultIntAbiReadyForExpressions(
+                fact.result_int_abi, fact.expressions) &&
             DirectMirScalarProgramOptionStringAbiReadyForExpressions(
                 fact.option_string_abi, fact.expressions) &&
             DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
@@ -73,26 +75,28 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
             fact.runtime_abi, fact.expressions) { return 6; }
     if !DirectMirScalarProgramOptionIntAbiReadyForExpressions(
             fact.option_int_abi, fact.expressions) { return 7; }
+    if !DirectMirScalarProgramResultIntAbiReadyForExpressions(
+            fact.result_int_abi, fact.expressions) { return 8; }
     if !DirectMirScalarProgramOptionStringAbiReadyForExpressions(
-            fact.option_string_abi, fact.expressions) { return 8; }
+            fact.option_string_abi, fact.expressions) { return 9; }
     if !DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
-            fact.option_bool_abi, fact.expressions) { return 9; }
+            fact.option_bool_abi, fact.expressions) { return 10; }
     if !DirectMirScalarProgramTwoIntNominalAbiFactReady(
-            fact.nominal_abi) { return 10; }
+            fact.nominal_abi) { return 11; }
     if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
-            fact.logical_record, fact.expressions) { return 11; }
+            fact.logical_record, fact.expressions) { return 12; }
     if !DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
-            fact.payload_free_enum, fact.expressions) { return 12; }
+            fact.payload_free_enum, fact.expressions) { return 13; }
     if !DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
-            fact.logical_record, fact.payload_free_enum) { return 12; }
-    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact.array_int_value_result) { return 13; }
-    if !DirectMirScalarProgramArrayBoolAbiFactReady(fact.array_bool_abi) { return 14; }
+        fact.logical_record, fact.payload_free_enum) { return 13; }
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact.array_int_value_result) { return 14; }
+    if !DirectMirScalarProgramArrayBoolAbiFactReady(fact.array_bool_abi) { return 15; }
     if !DirectMirScalarProgramLogicalRecordCollectionAbiReady(
             fact.logical_record, fact.array_int_value_result,
-            fact.array_bool_abi, fact.array_string_abi) { return 15; }
+            fact.array_bool_abi, fact.array_string_abi) { return 16; }
     if !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
-            fact.array_string_abi, fact.expressions) { return 16; }
-    if !array_boundary_ready { return 17; }
+            fact.array_string_abi, fact.expressions) { return 17; }
+    if !array_boundary_ready { return 18; }
     return 0;
 }
 func DirectMirScalarCfgProgramExtensionFactReady(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Bool {

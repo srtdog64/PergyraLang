@@ -42,13 +42,11 @@ func DirectMirScalarProgramLogicalRecordAssignmentTargetReady(
 ) -> Bool {
     let local_row: Int = plan.value_local_rows[result];
     let base: Int = target_root;
-    while base >= 0 && plan.program.expressions.node_kinds[base] ==
-            DirectMirScalarProgramExprLogicalRecordMember() {
+    while base >= 0 && plan.program.expressions.node_kinds[base] == DirectMirScalarProgramExprLogicalRecordMember() {
         base = plan.program.expressions.node_lefts[base];
     }
     if base < 0 { return false; }
-    let parameter: Int = SelfMirLocalRefParameterOrdinalForOwner(
-        plan.local_ref_value_ids[local_row], plan.routines.source_syntax_ids[routine]);
+    let parameter: Int = SelfMirLocalRefParameterOrdinalForOwner(plan.local_ref_value_ids[local_row], plan.routines.source_syntax_ids[routine]);
     if parameter < 0 {
         return plan.program.expressions.node_kinds[base] ==
                 DirectMirScalarProgramExprLocal() &&
@@ -56,23 +54,23 @@ func DirectMirScalarProgramLogicalRecordAssignmentTargetReady(
             plan.local_ref_kinds[local_row] ==
                 DirectMirScalarCfgLocalRefValue();
     }
-    if plan.program.expressions.node_kinds[base] !=
-            DirectMirScalarProgramExprParameter() {
-        return false;
+    let base_kind: Int = plan.program.expressions.node_kinds[base];
+    if base_kind == DirectMirScalarProgramExprLocal() {
+        let parameter_row: Int = plan.routines.parameter_starts[routine] + parameter;
+        return parameter < plan.routines.parameter_counts[routine] &&
+            plan.program.expressions.node_local_rows[base] == local_row &&
+            plan.routines.parameter_types[parameter_row] ==
+                plan.value_types[result] &&
+            plan.routines.parameter_carriages[parameter_row] == "value-result" &&
+            local_row == DirectMirScalarProgramLogicalRecordValueResultLocalRow(plan, routine, parameter);
     }
+    if base_kind != DirectMirScalarProgramExprParameter() { return false; }
     let ordinal: Int = plan.program.expressions.node_parameter_ordinals[base];
-    if ordinal != parameter || ordinal >=
-            plan.routines.parameter_counts[routine] {
-        return false;
-    }
+    if ordinal != parameter || ordinal >= plan.routines.parameter_counts[routine] { return false; }
     let parameter_row: Int = plan.routines.parameter_starts[routine] + ordinal;
     if plan.routines.parameter_types[parameter_row] !=
             plan.value_types[result] { return false; }
     let carriage: String = plan.routines.parameter_carriages[parameter_row];
-    if carriage == "value-result" {
-        return local_row == DirectMirScalarProgramLogicalRecordValueResultLocalRow(
-            plan, routine, ordinal);
-    }
     return carriage == "value" &&
         plan.local_ref_value_ids[local_row] == SelfMirLocalRef(
             "parameter", plan.routines.source_syntax_ids[routine], ordinal);

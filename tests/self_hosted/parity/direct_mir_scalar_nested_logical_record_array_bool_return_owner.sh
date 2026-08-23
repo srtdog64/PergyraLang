@@ -78,7 +78,7 @@ grep -Fq 'DirectMirArrayStorageAbiProjectionFromTarget(target)' "$C_ABI_OWNER" |
     fail "C Array<Bool> materialization does not consume target storage facts"
 grep -Fq 'DirectMirArrayStorageAbiProjectionFromTarget(target)' "$LLVM_ABI_OWNER" ||
     fail "LLVM Array<Bool> materialization does not consume target storage facts"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v79' "$PLAN_OWNER" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN_OWNER" ||
     fail "GraphPlan schema does not seal nested Array<Bool> records"
 for owner in "$FACT_OWNER" "$ABI_OWNER" "$ABI_ADMISSION_OWNER" "$JOIN_OWNER" "$POLICY_OWNER" "$SIGNATURE_OWNER" \
         "$C_ABI_OWNER" "$LLVM_ABI_OWNER" "$C_RECORD_OWNER" "$LLVM_RECORD_OWNER"; do

@@ -68,5 +68,6 @@ func CodegenExternPrototypeBlock(
         i = i + 1;
     }
     let block: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
     return block;
 }

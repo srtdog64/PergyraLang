@@ -1,0 +1,21 @@
+// Ordered LLVM projection for scalar Option and Result expression families.
+import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_bool_owner.pgy";
+import "direct_mir_scalar_program_llvm_result_int_owner.pgy";
+
+func DirectMirScalarProgramLlvmOptionResultExpressionAt(
+    kind: Int, result: String, left: String, right: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let selected: DirectMirScalarProgramLlvmStringExpression =
+        DirectMirScalarProgramLlvmOptionIntExpressionAt(kind, result, left);
+    if selected.matched { return selected; }
+    selected = DirectMirScalarProgramLlvmOptionStringExpressionAt(
+        kind, result, left);
+    if selected.matched { return selected; }
+    selected = DirectMirScalarProgramLlvmOptionBoolExpressionAt(
+        kind, result, left);
+    if selected.matched { return selected; }
+    return DirectMirScalarProgramLlvmResultIntExpressionAt(
+        kind, result, left, right);
+}

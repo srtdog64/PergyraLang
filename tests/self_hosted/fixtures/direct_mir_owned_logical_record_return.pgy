@@ -1,25 +1,25 @@
 // Exact owner-handle logical-record transfer returned as the same identity.
-
 struct ScheduleGraph {
     let valid: Bool;
     let node_count: Int;
+    let status: OtherScheduleGraph;
 }
-
 struct OtherScheduleGraph {
     let valid: Bool;
     let node_count: Int;
 }
-
+func ScheduleGraphReady(ref graph: ScheduleGraph) -> Bool { return graph.valid && graph.node_count > 0; }
+func ScheduleStatusReady(ref status: OtherScheduleGraph) -> Bool { return status.valid && status.node_count > 0; }
 func Schedule(own graph: ScheduleGraph) -> ScheduleGraph {
+    if !graph.valid { return ScheduleGraph(false, 0, graph.status); }
+    if !ScheduleGraphReady(graph) { return ScheduleGraph(false, 0, graph.status); }
+    if !ScheduleStatusReady(graph.status) { return ScheduleGraph(false, 0, graph.status); }
     return graph;
 }
-
 func Main() -> Void {
-    let graph: ScheduleGraph = ScheduleGraph(true, 7);
+    let status: OtherScheduleGraph = OtherScheduleGraph(true, 3);
+    let graph: ScheduleGraph = ScheduleGraph(true, 7, status);
     let scheduled: ScheduleGraph = Schedule(graph);
-    if scheduled.valid {
-        Log("owned-logical-record-return-ready");
-    } else {
-        Log("owned-logical-record-return-invalid");
-    }
+    if scheduled.valid { Log("owned-logical-record-return-ready"); }
+    else { Log("owned-logical-record-return-invalid"); }
 }

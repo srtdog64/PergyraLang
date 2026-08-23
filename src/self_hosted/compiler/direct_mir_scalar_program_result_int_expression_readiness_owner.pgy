@@ -1,0 +1,48 @@
+// Semantic shape checks for normalized Result<Int> expression nodes.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramResultIntExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind < DirectMirScalarProgramExprOkInt() ||
+        kind > DirectMirScalarProgramExprUnwrapOrInt() { return None; }
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    if facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 || left < 0 {
+        return Some(false);
+    }
+    if kind == DirectMirScalarProgramExprOkInt() {
+        return Some(right == -1 &&
+            facts.node_types[node] == CompilerAbiLayoutResultIntTypeName() &&
+            facts.node_types[left] == CompilerAbiLayoutIntTypeName());
+    }
+    if kind == DirectMirScalarProgramExprErrInt() {
+        return Some(right == -1 &&
+            facts.node_types[node] == CompilerAbiLayoutResultIntTypeName() &&
+            facts.node_types[left] == CompilerAbiLayoutStringTypeName());
+    }
+    if facts.node_types[left] != CompilerAbiLayoutResultIntTypeName() {
+        return Some(false);
+    }
+    if kind == DirectMirScalarProgramExprUnwrapOrInt() {
+        return Some(right >= 0 &&
+            facts.node_types[right] == CompilerAbiLayoutIntTypeName() &&
+            facts.node_types[node] == CompilerAbiLayoutIntTypeName());
+    }
+    if right != -1 { return Some(false); }
+    if kind == DirectMirScalarProgramExprIsOkInt() ||
+            kind == DirectMirScalarProgramExprIsErrInt() {
+        return Some(facts.node_types[node] == CompilerAbiLayoutBoolTypeName());
+    }
+    if kind == DirectMirScalarProgramExprUnwrapErrInt() {
+        return Some(facts.node_types[node] == CompilerAbiLayoutStringTypeName());
+    }
+    return Some(facts.node_types[node] == CompilerAbiLayoutIntTypeName());
+}

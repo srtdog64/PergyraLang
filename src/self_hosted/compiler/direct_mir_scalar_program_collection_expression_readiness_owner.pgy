@@ -3,6 +3,7 @@ import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_int_empty_literal_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_int_index_readiness_owner.pgy";
 import "../semantic/array_type_shape_owner.pgy";
 func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Option<Bool> {
@@ -128,8 +129,7 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirSca
     let expected_type: String = CompilerAbiLayoutStringTypeName();
     let expected_left: String = CompilerAbiLayoutArrayStringTypeName();
     if kind == DirectMirScalarProgramExprArrayIntIndex() {
-        expected_type = CompilerAbiLayoutIntTypeName();
-        expected_left = CompilerAbiLayoutArrayIntTypeName();
+        return Some(DirectMirScalarProgramArrayIntIndexNodeReady(facts, node));
     } else if kind == DirectMirScalarProgramExprArrayBoolIndex() {
         expected_type = CompilerAbiLayoutBoolTypeName();
         expected_left = CompilerAbiLayoutArrayBoolTypeName();

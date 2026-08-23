@@ -1,0 +1,149 @@
+// Exact `[record.array_int[index]]` normalization for populated literals.
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
+import "direct_mir_scalar_cfg_value_type_owner.pgy";
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+
+struct DirectMirScalarProgramArrayIntRecordIndexLiteralAdmission {
+    let recognized: Bool;
+    let facts: DirectMirScalarProgramExpressionSet;
+    let consumed_uses: Int;
+}
+
+func DirectMirScalarProgramArrayIntRecordIndexLiteralFromOwners(
+    facts: DirectMirScalarProgramExpressionSet,
+    ref sequence: MirExpressionGraphSequence,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, local_instruction: Int, local_offset: Int,
+    use_offset: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref value_types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramArrayIntRecordIndexLiteralAdmission {
+    let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    let candidate: Bool = count == 7 && ArrayLength(sequence.roots) == 1 &&
+        sequence.roots[0] == 6 &&
+        sequence.arena.topology.node_kinds[0] == AstExpressionNodeArrayLiteral() &&
+        sequence.arena.topology.node_kinds[1] == AstExpressionNodeLeaf() &&
+        sequence.arena.topology.node_kinds[2] == AstExpressionNodeLeaf() &&
+        sequence.arena.topology.node_kinds[3] == AstExpressionNodeMemberAccess() &&
+        sequence.arena.topology.node_kinds[4] == AstExpressionNodeLeaf() &&
+        sequence.arena.topology.node_kinds[5] == AstExpressionNodeIndex() &&
+        sequence.arena.topology.node_kinds[6] == AstExpressionNodeArrayElement();
+    if !candidate {
+        return DirectMirScalarProgramArrayIntRecordIndexLiteralAdmission(
+            false, facts, 0);
+    }
+    let invalid: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetInvalid(facts);
+    let malformed: DirectMirScalarProgramArrayIntRecordIndexLiteralAdmission =
+        DirectMirScalarProgramArrayIntRecordIndexLiteralAdmission(
+            true, invalid, 0);
+    if !sequence.ok || sequence.ready_node_count != count ||
+        sequence.arena.topology.left_children[3] != 1 ||
+        sequence.arena.topology.right_children[3] != 2 ||
+        sequence.arena.topology.left_children[5] != 3 ||
+        sequence.arena.topology.right_children[5] != 4 ||
+        sequence.arena.topology.left_children[6] != 0 ||
+        sequence.arena.topology.right_children[6] != 5 {
+        return malformed;
+    }
+    let node: Int = 0;
+    while node < count {
+        if sequence.arena.call_target_kinds[node] != SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[node] != "" ||
+            (node != 1 && sequence.arena.identities.binding_kinds[node] !=
+                SemanticExpressionBindingNone()) {
+            return malformed;
+        }
+        node = node + 1;
+    }
+    let parameter: Int = sequence.arena.identities.binding_ordinals[1];
+    if sequence.arena.identities.binding_kinds[1] !=
+            SemanticExpressionBindingFormalParameter() ||
+        !DirectMirRoutineSignatureFactReady(signature) ||
+        parameter < 0 || parameter >= signature.param_count ||
+        signature.parameters.names[parameter] != sequence.arena.node_texts[1] ||
+        !DirectMirScalarProgramLogicalRecordParameterReady(
+            signature, parameter, logical_record) {
+        return malformed;
+    }
+    let record_type: String = signature.parameters.type_names[parameter];
+    let member: Int = DirectMirScalarProgramLogicalRecordFieldOrdinal(
+        logical_record, record_type, sequence.arena.node_texts[2]);
+    if member < 0 || DirectMirScalarProgramLogicalRecordFieldType(
+            logical_record, record_type, member) !=
+            CompilerAbiLayoutArrayIntTypeName() {
+        return malformed;
+    }
+    let index_operand: DirectMirScalarCfgLeafOperand =
+        DirectMirScalarCfgLeafOperandFromOwners(
+            uses, global_row, use_offset, local_instruction, 4,
+            sequence.arena.node_texts[4], locals.value_names,
+            locals, wire, true);
+    let index_local: Int = index_operand.local_row;
+    if index_operand.value_row >= 0 && index_operand.value_row <
+            ArrayLength(locals.value_local_rows) {
+        index_local = locals.value_local_rows[index_operand.value_row];
+    }
+    if !index_operand.valid || index_operand.use_count != 1 ||
+        !value_types.valid || index_local < 0 ||
+        index_local >= ArrayLength(value_types.local_types) ||
+        value_types.local_types[index_local] != CompilerAbiLayoutIntTypeName() ||
+        MirRoutineInstructionUseCountAtGlobal(uses, global_row) !=
+            use_offset + index_operand.use_count {
+        return malformed;
+    }
+    let graph_rows: Array<Int> = facts.graph_global_rows;
+    let starts: Array<Int> = facts.graph_starts;
+    let counts: Array<Int> = facts.graph_counts;
+    let roots: Array<Int> = facts.graph_roots;
+    let kinds: Array<Int> = facts.node_kinds;
+    let types: Array<String> = facts.node_types;
+    let lefts: Array<Int> = facts.node_lefts;
+    let rights: Array<Int> = facts.node_rights;
+    let local_rows: Array<Int> = facts.node_local_rows;
+    let params: Array<Int> = facts.node_parameter_ordinals;
+    let members: Array<Int> = facts.node_member_ordinals;
+    let literals: Array<String> = facts.node_literals;
+    let callables: Array<Int> = facts.node_callable_rows;
+    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    let start: Int = ArrayLength(kinds);
+    DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
+        local_rows, params, members, literals, callables, runtime_ids,
+        DirectMirScalarProgramExprParameter(), record_type,
+        -1, -1, -1, parameter, -1, "", -1, -1);
+    let record_row: Int = ArrayLength(kinds) - 1;
+    DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
+        local_rows, params, members, literals, callables, runtime_ids,
+        DirectMirScalarProgramExprLogicalRecordMember(),
+        CompilerAbiLayoutArrayIntTypeName(), record_row, -1,
+        -1, -1, member, "", -1, -1);
+    let member_row: Int = ArrayLength(kinds) - 1;
+    DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
+        local_rows, params, members, literals, callables, runtime_ids,
+        DirectMirScalarProgramExprLocal(), CompilerAbiLayoutIntTypeName(),
+        -1, -1, index_local + local_offset, -1, -1, "", -1, -1);
+    let index_row: Int = ArrayLength(kinds) - 1;
+    DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
+        local_rows, params, members, literals, callables, runtime_ids,
+        DirectMirScalarProgramExprArrayIntIndex(), CompilerAbiLayoutIntTypeName(),
+        member_row, index_row, -1, -1, -1, "", -1, -1);
+    let value_row: Int = ArrayLength(kinds) - 1;
+    DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
+        local_rows, params, members, literals, callables, runtime_ids,
+        DirectMirScalarProgramExprArrayIntPopulatedLiteral(),
+        CompilerAbiLayoutArrayIntTypeName(), value_row, -1,
+        -1, -1, -1, "", -1, -1);
+    ArrayPush(graph_rows, global_row); ArrayPush(starts, start);
+    ArrayPush(counts, ArrayLength(kinds) - start);
+    ArrayPush(roots, ArrayLength(kinds) - 1);
+    return DirectMirScalarProgramArrayIntRecordIndexLiteralAdmission(
+        true, DirectMirScalarProgramExpressionSet(
+            true, 0, graph_rows, starts, counts, roots, kinds, types,
+            lefts, rights, local_rows, params, members, literals, callables,
+            runtime_ids, facts.nary_operands), index_operand.use_count);
+}

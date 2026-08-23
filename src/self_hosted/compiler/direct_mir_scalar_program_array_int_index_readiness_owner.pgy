@@ -1,0 +1,22 @@
+// Exact normalized shape of one Array<Int> indexed value.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayIntIndexNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) ||
+        facts.node_kinds[node] != DirectMirScalarProgramExprArrayIntIndex() {
+        return false;
+    }
+    let left: Int = facts.node_lefts[node];
+    let right: Int = facts.node_rights[node];
+    return left >= 0 && left < node && right >= 0 && right < node &&
+        facts.node_types[node] == CompilerAbiLayoutIntTypeName() &&
+        facts.node_types[left] == CompilerAbiLayoutArrayIntTypeName() &&
+        facts.node_types[right] == CompilerAbiLayoutIntTypeName() &&
+        facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_member_ordinals[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        facts.node_callable_rows[node] == -1;
+}

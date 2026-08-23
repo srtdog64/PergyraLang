@@ -1,0 +1,52 @@
+// Stable target and argument context for one rejected direct call.
+import "direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy";
+
+func DirectMirScalarCfgProgramDirectCallFailureDetail(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, routine: Int, graph_start: Int
+) -> String {
+    let target: Int = facts.node_callable_rows[node];
+    let detail: String = Concat(" target=", ToString(target));
+    if target < 0 || target >= ArrayLength(plan.routines.names) {
+        return Concat(detail, " target_invalid=true");
+    }
+    detail = Concat(detail, Concat(" target_name=", plan.routines.names[target]));
+    let arguments: Array<Int> =
+        DirectMirScalarProgramDirectCallArgumentRows(facts, node);
+    detail = Concat(detail, Concat(" arguments=", ToString(ArrayLength(arguments))));
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(arguments) &&
+            ordinal < plan.routines.parameter_counts[target] {
+        let argument: Int = arguments[ordinal];
+        if !DirectMirScalarCfgProgramDirectCallCarriageReady(
+                plan, facts, node, routine, graph_start, target,
+                argument, ordinal) {
+            let parameter: Int = plan.routines.parameter_starts[target] + ordinal;
+            detail = Concat(detail, Concat(" failing_ordinal=", ToString(ordinal)));
+            detail = Concat(detail, Concat(" target_carriage=",
+                plan.routines.parameter_carriages[parameter]));
+            detail = Concat(detail, Concat(" target_type=",
+                plan.routines.parameter_types[parameter]));
+            detail = Concat(detail, Concat(" argument=", ToString(argument)));
+            detail = Concat(detail, Concat(" argument_kind=",
+                ToString(facts.node_kinds[argument])));
+            detail = Concat(detail, Concat(" argument_type=",
+                facts.node_types[argument]));
+            if facts.node_kinds[argument] == DirectMirScalarProgramExprParameter() {
+                let source_ordinal: Int = facts.node_parameter_ordinals[argument];
+                detail = Concat(detail, Concat(" source_ordinal=",
+                    ToString(source_ordinal)));
+                if source_ordinal >= 0 && source_ordinal <
+                        plan.routines.parameter_counts[routine] {
+                    detail = Concat(detail, Concat(" source_carriage=",
+                        plan.routines.parameter_carriages[
+                            plan.routines.parameter_starts[routine] + source_ordinal]));
+                }
+            }
+            return detail;
+        }
+        ordinal = ordinal + 1;
+    }
+    return Concat(detail, " no_argument_failure=true");
+}

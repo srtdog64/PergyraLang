@@ -429,6 +429,9 @@ inventory must not become a second fact-family owner registry.
   generic-specialization facts; empty rows are limited to compiler structural
   or builtin protocol targets absent from the source signature owner, and
   recursive codegen may not reopen flat rows.
+- `src/self_hosted/semantic/ast_expression_call_return_type_diagnostic_owner.pgy`
+  -- read-only node/target/projection/carried context for a rejected call-result
+  overlay at the codegen boundary; it diagnoses but never produces graph rows.
 - `src/self_hosted/semantic/ast_expression_place_fact_owner.pgy` --
   body-fixpoint value-category and place-kind rows for ref/inout argument
   lowering; codegen consumes the carried node fact without binding lookup.

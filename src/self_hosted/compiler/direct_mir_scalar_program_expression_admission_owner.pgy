@@ -290,24 +290,24 @@ func DirectMirScalarProgramAppendExpression(
                 if bound_local >= 0 {
                     if operand.valid && operand_local >= 0 &&
                         operand_local != bound_local {
-                        return DirectMirScalarProgramExpressionAdmissionRejected(
-                            facts, "leaf-alias", node);
+                        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-alias", node);
                     }
-                    operand_local = bound_local;
-                    consumed_uses = 0;
+                    operand_local = bound_local; consumed_uses = 0;
                     selects_local = true;
                 } else if identity.parameter_ordinal >= 0 &&
                         (!operand.valid || reused_prior_lane) {
-                    kind = DirectMirScalarProgramExprParameter();
-                    param = identity.parameter_ordinal;
-                    type_name = parameter_types[param];
+                    param = identity.parameter_ordinal; type_name = parameter_types[param];
+                    if signature.parameters.carriages[param] == "value-result" {
+                        let wanted: String = SelfMirLocalRef("parameter", signature.source_syntax_id, param);
+                        let parameter_local: Int = DirectMirScalarCfgLocalIdentityRow(locals.local_ref_value_ids, wanted);
+                        if parameter_local >= 0 { kind = DirectMirScalarProgramExprLocal(); local_row = parameter_local + local_offset; param = -1;
+                        } else { kind = DirectMirScalarProgramExprParameter(); }
+                    } else { kind = DirectMirScalarProgramExprParameter(); }
                 } else if operand.valid && operand_local >= 0 {
                     ArrayPush(bound_leaf_texts, sequence.arena.node_texts[node]);
-                    ArrayPush(bound_leaf_locals, operand_local);
-                    selects_local = true;
+                    ArrayPush(bound_leaf_locals, operand_local); selects_local = true;
                 } else {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(
-                        facts, "leaf-operand", node);
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-operand", node);
                 }
                 if selects_local {
                     if operand_local >= ArrayLength(value_types.local_types) {

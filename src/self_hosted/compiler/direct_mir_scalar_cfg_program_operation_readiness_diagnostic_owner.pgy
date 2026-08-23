@@ -1,0 +1,90 @@
+// Stable failure context for operation-owned expression readiness.
+import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_statement_admission_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_readiness_owner.pgy";
+import "direct_mir_scalar_cfg_program_direct_call_diagnostic_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_diagnostic_owner.pgy";
+func DirectMirScalarCfgProgramOperationReadinessFailed(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Void {
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        let kind: Int = plan.operation_kinds[operation];
+        let expression_row: Int =
+            plan.program.operation_expression_rows[operation];
+        let routine: Int = DirectMirScalarCfgRoutinePartitionOperationOwner(
+            plan.routines, operation);
+        let expected: String = "";
+        let prefix_ready: Bool = true;
+        let relevant: Bool = false;
+        if kind == DirectMirScalarCfgOpExpressionLog() {
+            relevant = true;
+            let root: Int = plan.program.expressions.graph_roots[expression_row];
+            expected = plan.program.expressions.node_types[root];
+            prefix_ready = expected == CompilerAbiLayoutStringTypeName() ||
+                expected == CompilerAbiLayoutIntTypeName();
+        } else if kind == DirectMirScalarCfgOpExpressionStatement() {
+            relevant = true;
+            let root: Int = plan.program.expressions.graph_roots[expression_row];
+            expected = plan.program.expressions.node_types[root];
+            prefix_ready = DirectMirScalarCfgProgramDiscardedCallExpressionReady(
+                plan.program.expressions, expression_row);
+        } else if kind == DirectMirScalarCfgOpProcessExit() {
+            relevant = true;
+            expected = CompilerAbiLayoutIntTypeName();
+        } else if DirectMirScalarProgramArrayMutationKind(kind) {
+            relevant = true;
+            if !DirectMirScalarProgramArrayMutationOperationReady(
+                    plan, operation, routine) {
+                DirectMirScalarProgramArrayMutationReadinessFailed(
+                    plan, operation, routine);
+            }
+        }
+        if relevant && expected != "" && (!prefix_ready ||
+                !DirectMirScalarCfgProgramExpressionRowReady(
+                    plan, expression_row, expected, routine)) {
+            let root: Int = plan.program.expressions.graph_roots[expression_row];
+            let detail: String = "direct MIR scalar operation expression is invalid: operation=";
+            detail = Concat(detail, ToString(operation));
+            detail = Concat(detail, Concat(" kind=", ToString(kind)));
+            detail = Concat(detail, Concat(" routine=", ToString(routine)));
+            detail = Concat(detail, Concat(" expression_row=", ToString(expression_row)));
+            detail = Concat(detail, Concat(" root=", ToString(root)));
+            detail = Concat(detail, Concat(" root_kind=",
+                ToString(plan.program.expressions.node_kinds[root])));
+            detail = Concat(detail, Concat(" root_type=",
+                plan.program.expressions.node_types[root]));
+            let node: Int = plan.program.expressions.graph_starts[expression_row];
+            let end: Int = node + plan.program.expressions.graph_counts[expression_row];
+            while node < end {
+                if !DirectMirScalarCfgProgramExpressionIdentityReady(
+                        plan, plan.program.expressions, node, routine,
+                        plan.program.expressions.graph_starts[expression_row]) {
+                    let ordinal: Int = plan.program.expressions.node_parameter_ordinals[node];
+                    detail = Concat(detail, Concat(" node=", ToString(node)));
+                    detail = Concat(detail, Concat(" node_kind=",
+                        ToString(plan.program.expressions.node_kinds[node])));
+                    detail = Concat(detail, Concat(" node_type=",
+                        plan.program.expressions.node_types[node]));
+                    detail = Concat(detail, Concat(" param=", ToString(ordinal)));
+                    if ordinal >= 0 && ordinal < plan.routines.parameter_counts[routine] {
+                        detail = Concat(detail, Concat(" carriage=", plan.routines.parameter_carriages[
+                            plan.routines.parameter_starts[routine] + ordinal]));
+                    }
+                    if plan.program.expressions.node_kinds[node] ==
+                            DirectMirScalarProgramExprDirectCall() {
+                        detail = Concat(detail,
+                            DirectMirScalarCfgProgramDirectCallFailureDetail(
+                                plan, plan.program.expressions, node, routine,
+                                plan.program.expressions.graph_starts[expression_row]));
+                    }
+                    Die(detail);
+                }
+                node = node + 1;
+            }
+            Die(detail);
+        }
+        operation = operation + 1;
+    }
+    Die("direct MIR scalar operation readiness failure was not located");
+}

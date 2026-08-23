@@ -34,6 +34,8 @@ grep -Fq '"string_int_string_int_to_bool"' "$RUNTIME" ||
     fail "runtime requirement omitted the canonical call shape"
 grep -Fq '!DirectMirScalarProgramNonTrappingBoolNode(expressions, right)' \
     "$SHORT" || fail "LLVM short-circuit owner lost conditional evaluation"
+grep -Fq 'while exit_node <= right_node' "$SHORT" ||
+    fail "LLVM nested short-circuit exit owner is missing"
 ! grep -Fq 'JsonTrueAt' "$SIGNATURE" ||
     fail "builtin signature branched on the fixture routine"
 ! grep -Fq 'JsonValueEnd' "$SIGNATURE" ||
@@ -48,14 +50,16 @@ rm -f "$WORK_DIR"/*
         fail "MIR production failed"
     }
 mir_sha="$(sha256sum "$MIR" | awk '{print toupper($1)}')"
-[[ "$mir_sha" == "C4B2EBDA98EE77AF04BABECB6A78CF3467EA7EE2332A0A5E6EBB43AEE08F48F7" ]] ||
+[[ "$mir_sha" == "F100B677BACBA7EE9D145B485D67857141B7C9E510B409E5237F153B2E00AC2E" ]] ||
     fail "source MIR identity changed: $mir_sha"
 grep -Fq '"kind":"logical_and"' "$MIR" ||
     fail "producer omitted persisted logical_and topology"
 grep -Fq '"call_target_name":"SubEqualsWithLen"' "$MIR" ||
     fail "producer omitted the semantic builtin identity"
+grep -Fq 'NestedShortCircuitExit(false, false, false, \"true\")' "$MIR" ||
+    fail "producer omitted the nested short-circuit exit fixture"
 
-printf '1\n0\n' >"$WORK_DIR/expected.run"
+printf '1\n0\n2\n' >"$WORK_DIR/expected.run"
 for backend in c llvm; do
     artifact_rel="$WORK_REL/program.$backend"
     artifact="$ROOT_DIR/$artifact_rel"

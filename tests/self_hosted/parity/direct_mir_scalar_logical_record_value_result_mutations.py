@@ -17,6 +17,8 @@ def main():
                        if row.get("name") == "IntentStepLines"), None)
     nested = next((row for row in document.get("routines", [])
                    if row.get("name") == "ReplaceNestedGraph"), None)
+    value_input = next((row for row in document.get("routines", [])
+                        if row.get("name") == "RememberSessionCopy"), None)
     if kind.startswith("production-"):
         if production is None: raise SystemExit("fixture has no IntentStepLines")
     elif kind.startswith("nested-"):
@@ -24,6 +26,8 @@ def main():
     elif kind.startswith("record-") or kind.startswith("member-"):
         if routine is None:
             raise SystemExit("fixture has no RememberSession routine")
+    elif kind.startswith("value-input-") and value_input is None:
+        raise SystemExit("fixture has no RememberSessionCopy routine")
     if kind == "production-copyout-pass":
         production["params"][10]["pass"] = "indirect"
     elif kind == "production-copyout-abi":
@@ -39,6 +43,8 @@ def main():
         routine["params"][0]["carriage"] = "readonly-ref"
     elif kind == "record-copyout-pass":
         routine["params"][0]["pass"] = "indirect"
+    elif kind == "value-input-carriage":
+        value_input["params"][0]["carriage"] = "readonly-ref"
     elif kind.startswith("nested-"):
         member = next(
             (instruction for block in nested.get("blocks", [])

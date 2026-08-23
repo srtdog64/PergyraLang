@@ -1,0 +1,14 @@
+// Contextual return-expression type admission before typed DAG projection.
+
+import "direct_mir_scalar_program_option_absence_expression_owner.pgy";
+import "direct_mir_scalar_program_result_int_return_abi_owner.pgy";
+
+func DirectMirScalarProgramReturnExpressionAbiReady(
+    text: String, persisted_type: String, expected_type: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    return DirectMirScalarProgramOptionAbsenceReturnAbiReady(
+            text, persisted_type, expected_type, logical_record) ||
+        DirectMirScalarProgramResultIntReturnAbiReady(
+            text, persisted_type, expected_type);
+}

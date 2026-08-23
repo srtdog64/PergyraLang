@@ -3,8 +3,8 @@ import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
 import "direct_mir_scalar_program_llvm_additional_materialization_owner.pgy";
 import "direct_mir_scalar_program_runtime_materialization_requirement_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
-func DirectMirScalarProgramLlvmAsciiCaseMaterialization(
-    fact: CompilerRuntimeCallAbiFact,
+import "direct_mir_scalar_program_llvm_bool_to_string_materialization_owner.pgy";
+func DirectMirScalarProgramLlvmAsciiCaseMaterialization(fact: CompilerRuntimeCallAbiFact,
     range_low: Int, range_high: Int, delta: Int
 ) -> String {
     let output: String = Concat("define internal ptr @", fact.symbol);
@@ -78,6 +78,11 @@ func DirectMirScalarProgramLlvmBuiltinMaterialization(
         output = Concat(output,
             "  %written = call i32 (ptr, i64, ptr, ...) @snprintf(ptr %result, i64 24, ptr getelementptr inbounds ([5 x i8], ptr @.pgy.scalar.tostr.format, i64 0, i64 0), i64 %value)\n");
         output = Concat(output, "  ret ptr %result\n}\n\n");
+    }
+    if plan.program.runtime_abi.bool_to_string_id != 0 {
+        output = Concat(output,
+            DirectMirScalarProgramLlvmBoolToStringMaterialization(
+                runtime.bool_to_string));
     }
     if plan.program.runtime_abi.string_to_upper_id != 0 {
         output = Concat(output,
