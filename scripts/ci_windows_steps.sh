@@ -93,4 +93,4 @@ if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
     fi
 fi
 
-run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" self-host-preparation-platform-test-smoke'
+run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make -j5 CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" self-host-preparation-platform-test-smoke'

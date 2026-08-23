@@ -6,7 +6,11 @@ MAKEFILE="$ROOT_DIR/Makefile"
 LINUX_STEPS="$ROOT_DIR/scripts/ci_linux_steps.sh"
 MACOS_STEPS="$ROOT_DIR/scripts/ci_macos_steps.sh"
 WINDOWS_STEPS="$ROOT_DIR/scripts/ci_windows_steps.sh"
+PUSH_LINUX_STEPS="$ROOT_DIR/scripts/ci_push_linux_steps.sh"
+PUSH_MACOS_STEPS="$ROOT_DIR/scripts/ci_push_macos_steps.sh"
+PUSH_WINDOWS_STEPS="$ROOT_DIR/scripts/ci_push_windows_steps.sh"
 WORKFLOW="$ROOT_DIR/.github/workflows/ci.yml"
+PLATFORM_WORKFLOW="$ROOT_DIR/.github/workflows/platform_full.yml"
 PARITY_WORKFLOW="$ROOT_DIR/.github/workflows/self_host_parity.yml"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
 
@@ -15,7 +19,11 @@ for file in \
     "$LINUX_STEPS" \
     "$MACOS_STEPS" \
     "$WINDOWS_STEPS" \
+    "$PUSH_LINUX_STEPS" \
+    "$PUSH_MACOS_STEPS" \
+    "$PUSH_WINDOWS_STEPS" \
     "$WORKFLOW" \
+    "$PLATFORM_WORKFLOW" \
     "$PARITY_WORKFLOW" \
     "$DRIVER_BOOTSTRAP"; do
     if [[ ! -f "$file" ]]; then
@@ -28,6 +36,10 @@ for required in \
     'all: $(PGY) $(PGY_LSP) self-host-compiler' \
     'release: $(PGY) self-host-compiler' \
     'self-host-preparation-platform-test-smoke:' \
+    'self-host-preparation-platform-parser-parity-test-smoke:' \
+    'self-host-preparation-platform-semantic-parity-test-smoke:' \
+    'self-host-preparation-platform-codegen-parity-test-smoke:' \
+    'self-host-preparation-platform-driver-parity-test-smoke:' \
     'self-host-preparation-platform-parity-test-smoke:' \
     'self-host-preparation-exhaustive-parity-test-smoke:' \
     'self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke' \
@@ -118,7 +130,12 @@ require_job_timeout() {
 require_job_timeout "self-host-parity-linux" 180 "$PARITY_WORKFLOW"
 require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
-require_job_timeout "build-windows" 90
+require_job_timeout "build-linux" 25
+require_job_timeout "build-macos-c-only" 20
+require_job_timeout "build-windows" 35
+require_job_timeout "platform-full-linux" 60 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-macos-c-only" 45 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-windows" 90 "$PLATFORM_WORKFLOW"
 
 build_linux_job="$(
     sed -n \
@@ -144,12 +161,46 @@ if [[ "$(grep -Ec '^[[:space:]]+make ' <<<"$self_host_parity_job")" != "1" ]] ||
 fi
 
 for steps in "$LINUX_STEPS" "$MACOS_STEPS" "$WINDOWS_STEPS"; do
-    if ! grep -Fq 'self-host-preparation-platform-test-smoke' "$steps"; then
+    if ! grep -Fq 'make -j5' "$steps" ||
+        ! grep -Fq 'self-host-preparation-platform-test-smoke' "$steps"; then
         echo "[self-host-ci-profile] platform profile missing from $steps" >&2
         exit 1
     fi
     if grep -Fq ' self-host-preparation-test-smoke' "$steps"; then
         echo "[self-host-ci-profile] full self-host proof leaked into $steps" >&2
+        exit 1
+    fi
+done
+
+for steps in "$PUSH_LINUX_STEPS" "$PUSH_MACOS_STEPS" "$PUSH_WINDOWS_STEPS"; do
+    if grep -Fq 'self-host-preparation-platform-test-smoke' "$steps" ||
+        grep -Fq 'self-host-preparation-platform-parity-test-smoke' "$steps"; then
+        echo "[self-host-ci-profile] full platform parity leaked onto push: $steps" >&2
+        exit 1
+    fi
+    if ! grep -Fq 'test-all' "$steps"; then
+        echo "[self-host-ci-profile] fast push lost its core executable battery: $steps" >&2
+        exit 1
+    fi
+done
+if ! grep -Fq 'self-host-preparation-contract-test-smoke' "$PUSH_LINUX_STEPS"; then
+    echo "[self-host-ci-profile] Linux push must own the platform-independent contract once" >&2
+    exit 1
+fi
+if ! grep -Fq 'self-host-compiler' "$PUSH_LINUX_STEPS"; then
+    echo "[self-host-ci-profile] Linux push lost the platform-independent self-host build" >&2
+    exit 1
+fi
+if grep -Fq 'self-host-preparation-contract-test-smoke' "$PUSH_MACOS_STEPS" ||
+    grep -Fq 'self-host-preparation-contract-test-smoke' "$PUSH_WINDOWS_STEPS" ||
+    grep -Fq 'self-host-compiler' "$PUSH_MACOS_STEPS" ||
+    grep -Fq 'self-host-compiler' "$PUSH_WINDOWS_STEPS"; then
+    echo "[self-host-ci-profile] platform-independent self-host evidence duplicated across push platforms" >&2
+    exit 1
+fi
+for steps in "$PUSH_MACOS_STEPS" "$PUSH_WINDOWS_STEPS"; do
+    if ! grep -Fq 'PGY_NATIVE_PIPELINE=1' "$steps"; then
+        echo "[self-host-ci-profile] native push profile lost its explicit pipeline boundary: $steps" >&2
         exit 1
     fi
 done
@@ -165,6 +216,41 @@ for forbidden in 'pull_request:' 'branches:'; do
         exit 1
     fi
 done
+
+for forbidden in 'pull_request:' 'branches:'; do
+    if grep -Fq "$forbidden" "$PLATFORM_WORKFLOW"; then
+        echo "[self-host-ci-profile] full platform ladder regained a per-branch trigger: $forbidden" >&2
+        exit 1
+    fi
+done
+
+for required in \
+    'workflow_dispatch:' \
+    'schedule:' \
+    "cron: '0 15 * * 0'" \
+    'tags:' \
+    "- 'v*'" \
+    'platform-full-linux:' \
+    'platform-full-windows:' \
+    'platform-full-macos-c-only:' \
+    'make PGY_BACKEND_COMPARE_JOBS=1 ci-linux' \
+    'CC=gcc make ci-windows' \
+    'CC=cc make ci-macos' \
+    'windows-driver-rung2-evidence' \
+    'cancel-in-progress: true'; do
+    if ! grep -Fq -- "$required" "$PLATFORM_WORKFLOW"; then
+        echo "[self-host-ci-profile] scheduled/manual/release platform proof missing: $required" >&2
+        exit 1
+    fi
+done
+if grep -Fq 'continue-on-error:' "$PLATFORM_WORKFLOW"; then
+    echo "[self-host-ci-profile] full platform proof became advisory" >&2
+    exit 1
+fi
+if grep -Fq 'windows-driver-rung2-evidence' "$WORKFLOW"; then
+    echo "[self-host-ci-profile] full-only driver evidence leaked onto fast Windows feedback" >&2
+    exit 1
+fi
 
 for required in \
     'self-host-parity-linux:' \
@@ -193,7 +279,12 @@ done
 for required in \
     'self-host-bootstrap-linux:' \
     'self-host-codegen-bootstrap-linux:' \
-    'timeout-minutes: 90' \
+    'run: make ci-push-linux' \
+    'run: CC=gcc make ci-push-windows' \
+    'CC=cc make ci-push-macos' \
+    'timeout-minutes: 35' \
+    'timeout-minutes: 25' \
+    'timeout-minutes: 20' \
     'timeout-minutes: 60' \
     'timeout-minutes: 30' \
     'run: make self-host-codegen-bootstrap-test-smoke' \
@@ -279,9 +370,23 @@ fi
 
 platform_recipe="$(
     sed -n \
-        '/^self-host-preparation-platform-parity-test-smoke:/,/^self-host-preparation-parity-test-smoke:/p' \
+        '/^self-host-preparation-platform-parser-parity-test-smoke:/,/^self-host-preparation-parity-test-smoke:/p' \
         "$MAKEFILE"
 )"
+for required in \
+    'self-host-preparation-platform-parser-parity-test-smoke' \
+    'self-host-preparation-platform-semantic-parity-test-smoke' \
+    'self-host-preparation-platform-codegen-parity-test-smoke' \
+    'self-host-preparation-platform-driver-parity-test-smoke' \
+    'tests/self_hosted/parity/parser_parity.sh' \
+    'tests/self_hosted/parity/semantic_parity.sh' \
+    'tests/self_hosted/parity/codegen_parity.sh' \
+    'tests/self_hosted/parity/driver_rung2_body_parity.sh'; do
+    if ! grep -Fq "$required" <<<"$platform_recipe"; then
+        echo "[self-host-ci-profile] parallel platform owner missing: $required" >&2
+        exit 1
+    fi
+done
 for forbidden in \
     'selfcheck_sources.sh' \
     'completeness_ledger.sh' \

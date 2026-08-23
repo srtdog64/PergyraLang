@@ -63,7 +63,7 @@ SEMANTIC_DESIGN_PATH="$ROOT_DIR/docs/14_semantic_analyzer_design.md"
 SLOT_MANAGER_PATH="$ROOT_DIR/src/runtime/slot_manager.h"
 SLOT_MACROS_PATH="$ROOT_DIR/src/runtime/pgy_runtime_slot_macros.h"
 TODO_PATH="$ROOT_DIR/TODO.md"
-CI_PATH="$ROOT_DIR/.github/workflows/ci.yml"
+CI_PATH="$ROOT_DIR/.github/workflows/platform_full.yml"
 README_PATH="$ROOT_DIR/README.md"
 SLOT_COQ="$PROOF_DIR/proofs/SlotCalculus.v"
 AXIS_COQ="$PROOF_DIR/proofs/AxisOwnership.v"
@@ -105,7 +105,7 @@ require_file "$SEMANTIC_DESIGN_PATH" "docs/14_semantic_analyzer_design.md"
 require_file "$SLOT_MANAGER_PATH" "src/runtime/slot_manager.h"
 require_file "$SLOT_MACROS_PATH" "src/runtime/pgy_runtime_slot_macros.h"
 require_file "$TODO_PATH" "TODO.md"
-require_file "$CI_PATH" ".github/workflows/ci.yml"
+require_file "$CI_PATH" ".github/workflows/platform_full.yml"
 require_file "$README_PATH" "README.md"
 require_file "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v"
 require_file "$AXIS_COQ" "docs/semantics/proofs/AxisOwnership.v"
@@ -973,7 +973,7 @@ if [[ -s "$global_forbid_files" ]] &&
     exit 1
 fi
 
-require_terms "$CI_PATH" ".github/workflows/ci.yml" <<'TERMS'
+require_terms "$CI_PATH" ".github/workflows/platform_full.yml" <<'TERMS'
 sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
 make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 TERMS

@@ -13,10 +13,9 @@ concurrency:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    # Hang budget (docs/190 C1): a deadlocked runtime test must fail the job in
-    # minutes, not burn the 360-min GitHub default. Generous vs the ~32-min
-    # green wall-clock, tight vs a hang.
-    timeout-minutes: 60
+    # Push feedback owns build, core runtime, and platform-independent contract
+    # evidence. The 117-step platform ladder remains in Platform full.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
 
@@ -32,10 +31,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
 
-      - name: Run Linux CI target
-        # ci-linux already shards backend comparison; do not multiply each
-        # runner into another compiler worker pool.
-        run: make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
+      - name: Run fast Linux push target
+        run: make ci-push-linux
 
   sanitizers-linux:
     runs-on: ubuntu-latest
@@ -235,21 +232,9 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    # hang budget (docs/190 C1). 45 was sized while early gate walls cut the
-    # job short. With the full ladder green the Windows runner spends ~35
-    # minutes on steps 1-56 and was still progressing inside the step-57
-    # preparation-platform chain when the 60-minute budget cancelled it
-    # (0699c45b run); 90 covers the measured shape with hang margin.
-    timeout-minutes: 90
-    # ci-windows runs the SoT-authority adequacy gate, which machine-checks
-    # SoTAuthority.v -- but this runner ships no Coq/Rocq. Those Coq checks are
-    # fail-closed on a missing prover (they used to skip quietly and still
-    # report green, so a green gate did not mean the model had been checked).
-    # The proofs are platform-independent and build-linux plus formal-proofs-
-    # rocq9 already machine-check them, so the skip is *declared* here rather
-    # than silent: the gate prints that the model went unchecked on this runner.
-    env:
-      PGY_ALLOW_MISSING_COQ: 1
+    # The compiler and core Windows runtime stay on every push. The 57-step
+    # platform ladder and its declared Coq skip remain in Platform full.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
 
@@ -267,46 +252,21 @@ jobs:
             mingw-w64-ucrt-x86_64-python
             mingw-w64-ucrt-x86_64-gcc
 
-      - name: Run Windows CI target
+      - name: Run fast Windows push target
         shell: msys2 {0}
-        run: CC=gcc make ci-windows
-
-      # Runner-only failure evidence: the device_slot_routine ABI-layout
-      # negative reproduces only on this runner, so on failure ship the
-      # compared artifacts instead of debugging through one log line per run.
-      - name: Upload driver-rung2 negative-leg evidence
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-driver-rung2-evidence
-          if-no-files-found: ignore
-          retention-days: 3
-          path: |
-            .tmp/self_hosted/driver_rung2/*abi-layout-baseline*
-            .tmp/self_hosted/driver_rung2/*missing-abi-layout-fact*
-            .tmp/self_hosted/driver_rung2/*wrong-abi-layout-identity*
-            .tmp/self_hosted/driver_rung2/device_slot_routine*
+        run: CC=gcc make ci-push-windows
 
   build-macos-c-only:
     runs-on: macos-latest
-    timeout-minutes: 45  # hang budget (docs/190 C1)
-    # ci-macos runs the formal-semantics gate, but the macOS runner ships no
-    # Coq/Rocq. That gate is fail-closed on a missing prover (it used to skip
-    # quietly and still report green, so a green gate did not mean the proofs
-    # had been checked). Installing a prover here would only re-check
-    # platform-independent proofs that build-linux already machine-checks, so
-    # the skip is *declared* rather than silent: the gate prints how many
-    # proofs went unchecked on this runner.
-    env:
-      PGY_ALLOW_MISSING_COQ: 1
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
 
-      - name: Run macOS C-only CI target
+      - name: Run fast macOS C-only push target
         run: |
           set +e
           set -o pipefail
-          CC=cc make ci-macos 2>&1 | tee macos-ci.log
+          CC=cc make ci-push-macos 2>&1 | tee macos-ci.log
           status=${PIPESTATUS[0]}
           set -e
           if [ "$status" -ne 0 ]; then

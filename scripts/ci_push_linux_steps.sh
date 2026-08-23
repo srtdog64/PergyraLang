@@ -1,0 +1,17 @@
+# Fast Linux push gate. Full platform coverage remains in ci_linux_steps.sh.
+
+run 'make check-build-tools CC="$CI_LINUX_CC"'
+run 'make check-linux-toolchain'
+run 'make CC="$CI_LINUX_CC" self-host-compiler'
+export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
+
+run 'make build-source-inventory-test-smoke'
+run 'make ci-step-runner-test-smoke'
+run 'make grammar-cheatsheet-contract-test-smoke'
+run 'make grammar-examples-compile-test-smoke'
+run 'make source-utf8-test-smoke'
+run 'make backend-fail-closed-test-smoke'
+run 'make worker-boundary-ub-test-smoke'
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" clean'
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" test-all'
+run 'make self-host-preparation-contract-test-smoke'

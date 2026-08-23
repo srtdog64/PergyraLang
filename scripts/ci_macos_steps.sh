@@ -37,7 +37,7 @@ run 'make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_D
 run 'PGY_OBSERVABILITY_BACKENDS=c make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" observability-schema-test-smoke'
 run 'PGY_MEMORY_CONCURRENCY_BACKENDS=c make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" memory-concurrency-model-test-smoke'
 run 'make documentation-quality-test-smoke'
-run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" self-host-preparation-platform-test-smoke'
+run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make -j5 CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" self-host-preparation-platform-test-smoke'
 run 'make debug-hygiene-test-smoke'
 run 'make memory-string-safety-test-smoke'
 run 'make security-portability-contract-test-smoke'

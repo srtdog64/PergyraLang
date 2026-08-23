@@ -541,7 +541,8 @@ if ! grep -Fq 'PGY_BACKEND_COMPARE_PRECHECK ?= 1' "$ROOT_DIR/Makefile" \
 fi
 if ! grep -Fq 'PGY_BACKEND_COMPARE_JOBS ?= auto' "$ROOT_DIR/Makefile" \
     || ! grep -Fq 'PGY_BACKEND_COMPARE_JOBS="$(PGY_BACKEND_COMPARE_JOBS)"' "$ROOT_DIR/Makefile" \
-    || ! grep -Fq 'make PGY_BACKEND_COMPARE_JOBS=1 ci-linux' "$ROOT_DIR/.github/workflows/ci.yml" \
+    || ! grep -Fq 'make PGY_BACKEND_COMPARE_JOBS=1 ci-linux' "$ROOT_DIR/.github/workflows/platform_full.yml" \
+    || ! grep -Fq 'run: make ci-push-linux' "$ROOT_DIR/.github/workflows/ci.yml" \
     || ! grep -Fq 'PGY_BACKEND_COMPARE_JOBS=1' "$ROOT_DIR/.github/workflows/ci.yml"; then
     echo "[build-source-inventory] sharded GitHub compare must not add an inner compiler worker pool" >&2
     missing=1

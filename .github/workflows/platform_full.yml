@@ -1,0 +1,92 @@
+name: Platform full
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 15 * * 0'
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: platform-full-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  platform-full-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        timeout-minutes: 10
+        run: |
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
+
+      - name: Run full Linux platform target
+        run: make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
+
+  platform-full-windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      PGY_ALLOW_MISSING_COQ: 1
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup MSYS2 MinGW
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            diffutils
+            mingw-w64-ucrt-x86_64-python
+            mingw-w64-ucrt-x86_64-gcc
+
+      - name: Run full Windows platform target
+        shell: msys2 {0}
+        run: CC=gcc make ci-windows
+
+      - name: Upload driver-rung2 negative-leg evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-driver-rung2-evidence
+          if-no-files-found: ignore
+          retention-days: 3
+          path: |
+            .tmp/self_hosted/driver_rung2/*abi-layout-baseline*
+            .tmp/self_hosted/driver_rung2/*missing-abi-layout-fact*
+            .tmp/self_hosted/driver_rung2/*wrong-abi-layout-identity*
+            .tmp/self_hosted/driver_rung2/device_slot_routine*
+
+  platform-full-macos-c-only:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      PGY_ALLOW_MISSING_COQ: 1
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run full macOS C-only platform target
+        run: |
+          set +e
+          set -o pipefail
+          CC=cc make ci-macos 2>&1 | tee macos-ci.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            tail -n 10 macos-ci.log > macos-ci-tail.log
+            line_no=1
+            while IFS= read -r line; do
+              printf '::error file=macos-ci-tail.log,line=%s::%s\n' "$line_no" "$line"
+              line_no=$((line_no + 1))
+            done < macos-ci-tail.log
+          fi
+          exit "$status"

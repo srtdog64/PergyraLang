@@ -89,6 +89,7 @@ required_files=(
     "src/runtime/pgy_abi_spec.h"
     "src/runtime/pgy_abi_spec_asserts.h"
     ".github/workflows/ci.yml"
+    ".github/workflows/platform_full.yml"
     "Makefile"
     "examples/wasm_hello/main.pgy"
     "examples/wasm_hello/README.md"
@@ -545,11 +546,11 @@ token_int_can_read_after_can_write
 rc_ctrl_int_alive_at_8
 EOF
 
-require_terms ".github/workflows/ci.yml" <<'EOF'
+require_terms ".github/workflows/platform_full.yml" <<'EOF'
 sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
 make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 mingw-w64-ucrt-x86_64-python
-build-macos-c-only
+platform-full-macos-c-only
 make ci-macos
 EOF
 
