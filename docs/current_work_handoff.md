@@ -14,11 +14,13 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - post-DRV-0 CI restoration
 
-- The exact executable checkpoint is
-  `3e03d4887c76252c1b062fca7c73e1e60b8dabf4` on `main`; registry successor
-  `0d69e2cdc254ca2b676659f4a34958ea7fb67f64` classifies the reached derived
-  facts. This handoff is their documentation-only successor. After the
-  successor commit, the worktree is
+- The exact CI-restoration checkpoint is
+  `052ae5794693e7102e2f48bf05fb66464aa73632` on `main`; executable predecessor
+  `3e03d4887c76252c1b062fca7c73e1e60b8dabf4` closes the reached source-subset
+  dependencies and registry predecessor
+  `0d69e2cdc254ca2b676659f4a34958ea7fb67f64` classifies their derived facts.
+  This handoff is their documentation-only successor. After the successor
+  commit, the worktree is
   clean except for the unrelated untracked `pgy-80135c2c/`; do not stage,
   discard, rewrite, or scan it as project evidence. Ignored `.tmp` compiler,
   MIR, C, executable, comparison, and build-pressure artifacts are evidence
@@ -45,17 +47,30 @@ gate count do not increment either percentage by themselves.
   source admission, owner-directed borrow/ABI facts, generated-owner parity,
   old-path ratchet, then patch size; fact owners = the direct-MIR program and
   expression carriers, `MirAbiLayoutRowCapture`, the Result<Int> ABI fact,
-  the builtin-signature fact owner, and the language-keyword registry generator;
-  last consumers = native bootstrap source emission, installed
+  the builtin-signature fact owner, canonical ABI type identities, the terminal
+  LLVM Option/Result spelling projection, and the language-keyword registry
+  generator; last consumers = native bootstrap source emission, installed
   intent-observability parity, exhaustive source-subset selfcheck, the authority
-  edge gate, and the three platform preparation gates; forbidden = using reserved words as local
-  binders, copying borrowed growable expression storage into an escaping local,
-  unnamed ownership-boundary unwrapping, grepping a former owner path, or
-  hand-editing generated inventory counts, omitting a subset's direct failure
-  dependency, or leaving a fact owner unclassified; falsifier = full
+  edge and likeness gates, and the three platform preparation gates; forbidden
+  = using reserved words as local binders, copying borrowed growable expression
+  storage into an escaping local, unnamed ownership-boundary unwrapping,
+  grepping a former owner path, hand-editing generated inventory counts,
+  omitting a subset's direct failure dependency, leaving a fact owner
+  unclassified, raising the likeness ceiling, hiding a counted signature with
+  line layout, or granting a family-wide projection exemption; falsifier = full
   pressure-owned driver fixpoint, installed intent-observability execution,
   C/LLVM exhaustive source selfcheck, authority/component/keyword ratchets,
-  then the clean GitHub Actions matrix.
+  exact likeness metrics, then the clean GitHub Actions matrix.
+- Successor run `32622141371` at `b8b61e2c` reached 24 green jobs at the last
+  pre-repair observation. `build-macos-c-only` passed the repaired authority
+  edge gate, then found the next and only observed breach:
+  `core_string_munge_sig` measured 77 against its shrink-only ceiling of 76.
+  `self-host-bootstrap-linux`, `build-linux`, `build-windows`, and
+  `self-host-parity-linux` were still active; no result is claimed for them.
+  The added row was the exact
+  `direct_mir_scalar_program_llvm_option_result_type_owner.pgy` terminal ABI
+  spelling projection introduced by the DRV-0 replacement, not a new AST/IR
+  text-recovery path.
 - Commit `7d3e3a4c` renames the reserved `tobject` and `local` binders, keeps
   expression reads attached to `plan.program.expressions` so their borrow does
   not escape, gives the admitted `MirAbiLayoutRowCapture` a named boundary,
@@ -67,6 +82,10 @@ gate count do not increment either percentage by themselves.
   Registry successor `0d69e2cd` classifies their Result ABI and builtin
   signature facts as projections of existing families; it creates no new
   authority and changes no CLOSED/BRIDGE/ACTIVE status.
+- Commit `052ae579` classifies only that terminal LLVM ABI spelling owner in
+  the likeness gate. It does not raise the 76 ceiling or hide the signature by
+  changing line layout. The same ratchet now preserves the already landed
+  `Result`/`Option` surface by tightening `RESULT_USE_MIN` from 4,158 to 4,214.
 - The exact native production pipeline for `driver_bootstrap_main.pgy` emits C
   with 0 errors and three existing intent-`who` redundancy warnings; no
   warning-clean claim is made. `self-host-driver-bootstrap-full-test-smoke`
@@ -81,6 +100,9 @@ gate count do not increment either percentage by themselves.
   owner-selected production source targets. `sot_authority_edge_smoke.sh`
   passes with 86 authorities, 171 derived fact carriers, and status census
   `CLOSED=49 BRIDGE=36 ACTIVE=1`. The
+  focused `self_host_pergyra_likeness_smoke.sh` gate passes with
+  `core_string_munge=76/76`, `result_use=4214/4214`, zero AST-as-string rows,
+  and no baseline-tightening warning. The
   component inventory gate took several minutes locally and the intent gate
   rebuilt codegen/bootstrap artifacts before installing DRV-2; these are
   measured CI-cost signals, not authorization to add a cache or weaken parity.
