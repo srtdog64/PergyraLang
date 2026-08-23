@@ -12,131 +12,85 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - post-DRV-0 CI restoration
+## Active self-host context - push CI restoration and DRV-1 frontier
 
-- The exact CI-restoration checkpoint is
-  `7e68b47ff5792598ceb04aca77161d8ec2a6ddd1` on `main`; likeness predecessor
+- The exact CI-profile checkpoint is
+  `9197b957fc6bf1ec807ec7cdc23febf42a09f2ab` on local `main`; timeout
+  predecessor `7e68b47ff5792598ceb04aca77161d8ec2a6ddd1` established the measured
+  180-minute exhaustive bound, likeness predecessor
   `052ae5794693e7102e2f48bf05fb66464aa73632` classifies the reached terminal
   LLVM projection, executable predecessor `3e03d4887c76252c1b062fca7c73e1e60b8dabf4`
   closes the reached source-subset dependencies, and registry predecessor
   `0d69e2cdc254ca2b676659f4a34958ea7fb67f64` classifies their derived facts.
-  This handoff is their documentation-only successor. After the successor
-  commit, the worktree is
-  clean except for the unrelated untracked `pgy-80135c2c/`; do not stage,
-  discard, rewrite, or scan it as project evidence. Ignored `.tmp` compiler,
-  MIR, C, executable, comparison, and build-pressure artifacts are evidence
-  only.
-- Remote run `32617137438` at `0b2a6b1e` completed with 24 of 29 jobs green.
-  `self-host-bootstrap-linux` stopped while the production driver source was
-  parsed and semantically admitted. `self-host-parity-linux` completed the
-  installed runtime execution but its final structural assertion still read
-  the former builtin-signature projection file. `build-linux`, `build-windows`,
-  and `build-macos-c-only` each failed the same generated language-word
-  implementation inventory drift check. These are three concrete causes, not
-  five independent compiler failures.
-- Successor run `32620633001` at `904a69b7` reached 25 green jobs at the last
-  pre-repair observation. Full bootstrap, codegen bootstrap, sanitizers, TSan,
-  Rocq, and all 20 backend shards passed. `self-host-parity-linux` then reached
-  source 375/1,623 and found that the new Result<Int> ABI capture/projection
-  subsets lacked their direct `Die` declaration dependency.
-  `build-macos-c-only` reached `sot_authority_edge_smoke.sh` and found that the
-  Result<Int> ABI fact and builtin-signature fact lacked derived-carrier
-  classifications. `build-linux` and `build-windows` were still active at that
-  observation; no result is claimed for them.
-- Objective card: objective = restore the clean 29-job matrix after publishing
-  the DRV-0 replacement without reopening general SoT work; priority = exact
-  source admission, owner-directed borrow/ABI facts, generated-owner parity,
-  old-path ratchet, bounded observable CI execution, then patch size; fact
-  owners = the direct-MIR program and
-  expression carriers, `MirAbiLayoutRowCapture`, the Result<Int> ABI fact,
-  the builtin-signature fact owner, canonical ABI type identities, the terminal
-  LLVM Option/Result spelling projection, and the language-keyword registry
-  generator, plus the workflow job/profile timeout pair; last consumers =
-  native bootstrap source emission, installed
-  intent-observability parity, exhaustive source-subset selfcheck, the authority
-  edge and likeness gates, and the three platform preparation gates; forbidden
-  = using reserved words as local binders, copying borrowed growable expression
-  storage into an escaping local, unnamed ownership-boundary unwrapping,
-  grepping a former owner path, hand-editing generated inventory counts,
-  omitting a subset's direct failure dependency, leaving a fact owner
-  unclassified, raising the likeness ceiling, hiding a counted signature with
-  line layout, granting a family-wide projection exemption, removing parity,
-  treating timeout cancellation as green, or reverting to GitHub's unbounded
-  default; falsifier = full
-  pressure-owned driver fixpoint, installed intent-observability execution,
-  C/LLVM exhaustive source selfcheck, authority/component/keyword ratchets,
-  exact likeness metrics, parity continuation beyond driver rung0 within the
-  180-minute bound, then the clean GitHub Actions matrix.
-- Successor run `32622141371` at `b8b61e2c` reached 24 green jobs at the last
-  pre-repair observation. `build-macos-c-only` passed the repaired authority
-  edge gate, then found the next and only observed breach:
-  `core_string_munge_sig` measured 77 against its shrink-only ceiling of 76.
-  `self-host-bootstrap-linux`, `build-linux`, `build-windows`, and
-  `self-host-parity-linux` were still active; no result is claimed for them.
-  The added row was the exact
-  `direct_mir_scalar_program_llvm_option_result_type_owner.pgy` terminal ABI
-  spelling projection introduced by the DRV-0 replacement, not a new AST/IR
-  text-recovery path.
+  This handoff is the documentation-only successor. After its commit the
+  worktree is clean except for the unrelated untracked `pgy-80135c2c/`; do not
+  stage, discard, rewrite, or scan it as project evidence. Ignored `.tmp`
+  compiler, MIR, C, executable, comparison, and build-pressure artifacts are
+  evidence only.
+- Objective card: objective = make ordinary `push`/`pull_request` feedback
+  clean and bounded without hiding, weakening, or deleting exhaustive
+  self-host parity; priority = semantic evidence, fast push feedback,
+  scheduled/manual/release exhaustive proof, fallback prevention, then patch
+  size; fact owners = `.github/workflows/ci.yml`,
+  `.github/workflows/self_host_parity.yml`, and
+  `tests/self_host_ci_profile_smoke.sh`; last consumers = GitHub push/PR runs
+  and the weekly, manual, or `v*` release-tag exhaustive run; forbidden =
+  `continue-on-error`, deleting or shortening the parity command, reintroducing
+  branch-push parity, unbounded/default timeout, treating a skipped or failed
+  exhaustive run as green, collapsing `SelfMirArtifactCommitOutcome` to
+  `Bool`, or skipping its payload-bearing enum; verification gate = the 28-job
+  main workflow is green while the dedicated 180-minute exhaustive job remains
+  structurally required; next semantic falsifier = focused DRV-1 C/LLVM parity.
 - Run `32623093485` at `9d532ba4` completed with 28 successful jobs and one
-  cancelled job. Linux, Windows, macOS C-only, both bootstrap jobs,
-  sanitizers, TSan, Rocq, and all 20 backend shards passed. The sole
-  `self-host-parity-linux` job was cancelled by its exact 90-minute job timeout;
-  no assertion failed. Before cancellation it completed all 1,623 sources and
-  3,214 unique program-target checks with zero failures, passed incremental
-  cache/impact parity, 85-fixture C/LLVM codegen, initializer, generic return,
-  wrapper, collection, aggregate-field, and dashboard parity, then made eight
-  minutes of further progress inside `driver_rung0_parity.sh`.
-- Commit `7d3e3a4c` renames the reserved `tobject` and `local` binders, keeps
-  expression reads attached to `plan.program.expressions` so their borrow does
-  not escape, gives the admitted `MirAbiLayoutRowCapture` a named boundary,
-  points the intent-observability ratchet at the current builtin-signature fact
-  owner, and regenerates the language-word implementation inventory from its
-  registry owner. No compatibility read or backend fallback was added.
-- Commit `3e03d488` gives both Result<Int> ABI subset owners the same direct
-  failure dependency already used by the neighboring Option ABI owners.
-  Registry successor `0d69e2cd` classifies their Result ABI and builtin
-  signature facts as projections of existing families; it creates no new
-  authority and changes no CLOSED/BRIDGE/ACTIVE status.
-- Commit `052ae579` classifies only that terminal LLVM ABI spelling owner in
-  the likeness gate. It does not raise the 76 ceiling or hide the signature by
-  changing line layout. The same ratchet now preserves the already landed
-  `Result`/`Option` surface by tightening `RESULT_USE_MIN` from 4,158 to 4,214.
-- Commit `7e68b47f` remeasures only the exhaustive parity hang budget from 90 to
-  180 minutes and makes `self_host_ci_profile_smoke.sh` reject drift from that
-  bound. It does not remove, skip, shard, or parallelize any parity gate and it
-  remains below GitHub's 360-minute default. The push-path placement and cold
-  build reuse are intentionally deferred until a green matrix supplies a clean
-  baseline.
-- The exact native production pipeline for `driver_bootstrap_main.pgy` emits C
-  with 0 errors and three existing intent-`who` redundancy warnings; no
-  warning-clean claim is made. `self-host-driver-bootstrap-full-test-smoke`
-  passes under the Windows pressure owner in 1,454,109 ms with 2.164 GiB peak
-  working set and 2.373 GiB peak private memory, below its 3 GiB limit. The
-  current installed Pergyra-built DRV-2 SHA-256 is
-  `ABB4338ED952E8C5AC079D7C116703B4F8D4264D8F1A3525C61BA2CB8C23CAB4`.
-- `self-host-intent-observability-runtime-test-smoke` passes through installed
-  C/LLVM runtime execution. `self-host-component-contract-test-smoke`,
-  `language_keyword_registry_smoke.sh`, and `git diff --check` pass. The
-  identical C-built and LLVM-built semantic checkers each accept all 1,623
-  owner-selected production source targets. `sot_authority_edge_smoke.sh`
-  passes with 86 authorities, 171 derived fact carriers, and status census
-  `CLOSED=49 BRIDGE=36 ACTIVE=1`. The
-  focused `self_host_pergyra_likeness_smoke.sh` gate passes with
-  `core_string_munge=76/76`, `result_use=4214/4214`, zero AST-as-string rows,
-  and no baseline-tightening warning. `self_host_ci_profile_smoke.sh` passes
-  with the 180-minute parity budget and the unchanged 60/30/90-minute
-  bootstrap/codegen-bootstrap/Windows budgets. The
-  component inventory gate took several minutes locally and the intent gate
-  rebuilt codegen/bootstrap artifacts before installing DRV-2; these are
-  measured CI-cost signals, not authorization to add a cache or weaken parity.
-- Next executable rung: commit this handoff successor, push `main`, and inspect
-  the newly triggered GitHub Actions run. A fully green 29-job matrix closes
-  this restoration tail. If red, resume only from its first deterministic
-  failure. After green, open a separate CI objective card for this main-only
-  repository: eliminate the 20 backend shards' repeated driver build through
-  one admitted portable artifact if proven, keep a fast push gate, and retain
-  Linux self-host parity as scheduled/manual/release evidence rather than
-  paying the full fixed-point cost after every small edit.
+  cancelled job. Every platform build, both bootstrap jobs, sanitizers, TSan,
+  Rocq, and all 20 backend shards passed. The exhaustive job completed all
+  1,623 sources and 3,214 unique program-target checks with zero failures plus
+  the incremental, 85-fixture C/LLVM, initializer, generic, wrapper,
+  collection, aggregate, and dashboard suites before its old 90-minute timeout
+  cancelled it during DRV-0.
+- Run `32627393371` at `c65796c4` completed with those same 28 ordinary jobs
+  green and only `self-host-parity-linux` red. Under the measured 180-minute
+  bound it completed the exhaustive ledger and DRV-0 C/LLVM artifact parity
+  for all 85 fixtures. Its first actual semantic failure was then DRV-1 LLVM
+  compilation: the direct-MIR scalar program route rejected
+  `owner=scalar-program-route stage=payload-free-enum`. The exact local
+  reproduction is
+  `bin/pgy.exe src/self_hosted/compiler/driver_rung1_main.pgy --backend=llvm -o .tmp/self_hosted/driver_rung1/direct_llvm_repro.exe`.
+  This is not a Linux-only failure and the dedicated exhaustive workflow is not
+  currently green.
+- The DRV-1 cause is bounded: the admitted program includes payload-free
+  `LanguageWordId` and `SelfMirArtifactCommitStage`, but also payload-bearing
+  `SelfMirArtifactCommitOutcome` variants. Direct-MIR scalar LLVM currently has
+  neither general payload-bearing user-enum projection nor the artifact
+  Begin/Commit/Abort runtime calls needed by that outcome's real consumer.
+  Merely filtering the enum from the payload-free fact would expose the next
+  missing feature and is not a fix. The typed outcome was deliberately added
+  to preserve fallible artifact-transaction meaning; it must not be replaced
+  by a boolean or bypassed for CI.
+- Commit `9197b957` moves the unchanged exhaustive parity job out of the branch
+  push workflow into `Self-host parity`, triggered weekly at Sunday 18:00 UTC
+  (Monday 03:00 KST), manually, and by `v*` release tags. It preserves the
+  exact full target list, the 180-minute timeout, cancellation behavior, and
+  hard failure semantics. The main workflow retains the same 28 jobs already
+  observed green at `c65796c4`; no test or platform job was removed from that
+  profile.
+- Local verification: `self_host_ci_profile_smoke.sh` passes and requires both
+  workflow boundaries, their trigger exclusions, the exact exhaustive command,
+  and all timeout budgets. `build_source_inventory_smoke.sh` passes. Earlier
+  reached evidence remains green: exact native production source emission,
+  the pressure-owned full Windows bootstrap below its 3 GiB limit, installed
+  C/LLVM intent observability, both 1,623-source semantic-checker passes,
+  authority census `CLOSED=49 BRIDGE=36 ACTIVE=1`, and likeness metrics
+  `core_string_munge=76/76` and `result_use=4214/4214`. No warning-clean claim
+  is made for the three existing intent-`who` redundancy warnings.
+- Next executable rung: commit this handoff, push `main`, and inspect the newly
+  triggered 28-job run. If red, resume only from its first deterministic
+  failure. Confirm that the dedicated workflow is registered but not launched
+  by the branch push. Do not manually spend another exhaustive run while its
+  DRV-1 failure is already reproduced. After main CI is green, implement real
+  direct-LLVM support for the payload-bearing artifact outcome and its
+  Begin/Commit/Abort calls, with `driver_rung1_parity.sh` as the focused
+  falsifier.
 
 ### Historical archive boundary
 
