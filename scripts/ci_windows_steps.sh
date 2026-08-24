@@ -9,7 +9,22 @@ run 'make check-windows-toolchain'
 # See scripts/ci_linux_steps.sh: pgy delegates ordinary compiles to the
 # installed self-host driver, and bin/ is gitignored, so a fresh checkout has
 # no driver and every compile gate fails "self-host driver is unavailable".
-run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 self-host-compiler'
+case "${PGY_CI_SELF_HOST_MODE:-build}" in
+    build)
+        run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 self-host-compiler'
+        ;;
+    prebuilt)
+        if [[ ! -x "$PWD/bin/pgy.exe" || ! -x "$PWD/bin/pgy-self-driver.exe" ||
+              ! -s "$PWD/bin/pgy-self-driver.machine-layer-manifest.json" ]]; then
+            echo "ci-windows: prebuilt self-host toolchain artifact is incomplete" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "ci-windows: invalid PGY_CI_SELF_HOST_MODE=${PGY_CI_SELF_HOST_MODE}" >&2
+        exit 2
+        ;;
+esac
 export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver.exe"
 
 run 'make build-source-inventory-test-smoke'
@@ -93,4 +108,15 @@ if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
     fi
 fi
 
-run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" self-host-preparation-platform-test-smoke'
+case "${PGY_CI_PLATFORM_PARITY_MODE:-full}" in
+    full)
+        run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" self-host-preparation-platform-test-smoke'
+        ;;
+    contract-only)
+        run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" self-host-preparation-contract-test-smoke'
+        ;;
+    *)
+        echo "ci-windows: invalid PGY_CI_PLATFORM_PARITY_MODE=${PGY_CI_PLATFORM_PARITY_MODE}" >&2
+        exit 2
+        ;;
+esac

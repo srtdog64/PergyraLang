@@ -12,7 +12,76 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - bounded push feedback and safe full-platform proof
+## Active self-host context - artifact-fed full-platform parity shards
+
+- The verified base is `5e62f6c68aa23a00a32af4a16b49021d969e9a6f` on local
+  `main`, synchronized with `origin/main` before this change. The worktree is
+  intentionally dirty for the CI split described below and otherwise contains
+  only the unrelated untracked `pgy-80135c2c/`; do not stage, discard, rewrite,
+  or scan that directory as project evidence.
+- Objective card: objective = reduce the scheduled/manual/release full-platform
+  critical path without weakening one proof; priority = retain exact parser,
+  semantic, codegen, driver, contract, and core evidence, consume one same-run
+  installed toolchain, preserve independent scratch ownership, then wall time;
+  fact owners = the existing four parity scripts and their Make targets for
+  behavioral evidence, `.github/workflows/platform_full.yml` for runner/shard
+  placement, `scripts/ci_linux_steps.sh` and `scripts/ci_windows_steps.sh` for
+  standalone-versus-artifact-fed core mode, and
+  `tests/self_host_ci_profile_smoke.sh` for the negative ratchet; last consumers
+  = Linux/Windows full core plus their four parity matrix legs; forbidden =
+  removing or skipping a gate, advisory failure, a shared growable scratch,
+  fixed-runner `make -jN`, accepting an incomplete artifact, or silently
+  rebuilding inside an artifact-fed parity shard; falsifiers = CI profile,
+  source inventory, beta readiness, one real installed parser shard, remote
+  fast main, and a manually dispatched full workflow.
+- Serial baseline run `32649263604` remains the last green full proof before
+  this split: Windows 73m12, Linux 59m20, and macOS 29m09. Recomputed log
+  boundaries show the actual bottlenecks. Windows spent 38m49 in platform
+  preparation, 13m34 in `self-host-compiler`, and 6m31 in `test-all`; Linux
+  spent 25m36 in preparation, 8m33 in `self-host-compiler`, and 7m45 in formal
+  semantics; macOS spent 11m53, 5m42, and 4m48 respectively. The Windows
+  preparation tail was dominated by the approximately 24m33 driver shard;
+  Linux's driver shard was approximately 19m26. Compiler construction itself
+  was not the whole delay.
+- The current topology builds one installed Linux and one installed Windows
+  toolchain, uploads only `pgy`, `pgy-self-driver`, and the owned machine-layer
+  manifest, then fans out core plus parser/semantic/codegen/driver parity.
+  `fail-fast: false` keeps all independent failure evidence visible. The core
+  jobs run the unchanged `ci-linux`/`ci-windows` lists in explicit `prebuilt +
+  contract-only` mode; standalone/local invocation defaults to `build + full`
+  and therefore retains the prior one-command full proof. macOS stays serial
+  because its measured 29-minute leg is already below the expected split
+  critical path.
+- `scripts/ci_self_host_platform_parity_shard_owner.sh` accepts exactly one of
+  the four named shards, validates executable compiler/driver plus the schema
+  of the installed manifest, and then invokes the existing behavioral owner.
+  It contains no compiler build command or fallback. Linux consumes `c llvm`;
+  Windows retains its existing C-only proof. Each matrix leg gets a fresh
+  checkout and its existing distinct `.tmp/self_hosted/*` root.
+- Focused local evidence is green: `bash -n` for both modified platform lists,
+  the new shard owner, and the CI profile; the CI profile gate; build-source
+  inventory; beta readiness; `git diff --check`; and a synthetic core routing
+  probe that observed Linux 116 and Windows 59 commands with the contract
+  present and both the aggregate parity target and `self-host-compiler` absent.
+  A real installed Windows parser shard reused its fingerprinted C tool and
+  passed byte equality for all 189 sources. The first attempt correctly failed
+  at the existing mixed Windows/POSIX scratch-path guard; the same command with
+  the CI-owned MSYS path passed. The invalid shard negative also failed closed.
+- Remote evidence is not yet claimed for this dirty checkpoint. Next: commit
+  and push, require the ordinary 28-job fast workflow to stay green, manually
+  dispatch `Platform full`, record exact per-job and workflow timing, and fix
+  any artifact/path error rather than restoring serial parity as a fallback.
+- This is CI blocker removal only. It changes no compiler semantic owner and
+  does not increment substitution progress or the published forecasts: overall
+  78%, strict beta 83%, hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. After remote
+  green, return directly to the active DRV-1 payload-bearing artifact-outcome
+  LLVM support and Begin/Commit/Abort runtime-call falsifier.
+
+### Historical archive boundary
+
+Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - bounded push feedback and safe full-platform proof (inactive)
 
 - The exact CI-topology checkpoint is
   `65e98896db3f1b76690beacc8be666404ddaa390` on local `main`; this handoff is
@@ -113,10 +182,6 @@ gate count do not increment either percentage by themselves.
   full-performance work must first measure repeated compiler construction
   inside the reached driver owner; do not add more workers, shards, or caches
   from this run alone.
-
-### Historical archive boundary
-
-Everything below this line is inactive lookup evidence, not an active queue.
 
 ## Previous self-host context - push CI restoration and DRV-1 frontier (inactive)
 

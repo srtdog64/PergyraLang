@@ -18,9 +18,26 @@ run 'make check-linux-toolchain'
 #
 # PGY_SELF_DRIVER_BIN is exported because later steps build pgy into
 # CI_LINUX_BIN_DIR, and the driver is otherwise resolved next to the launcher.
-# Pinning it keeps those steps pointed at the one driver built here, which the
-# BIN_DIR-scoped `clean` below does not touch.
-run 'make CC="$CI_LINUX_CC" self-host-compiler'
+# Pinning it keeps those steps pointed at the installed driver, which the
+# BIN_DIR-scoped `clean` below does not touch. The full workflow may provide the
+# exact same-run installed toolchain through an artifact; absence must fail
+# closed instead of silently rebuilding a different proof input.
+case "${PGY_CI_SELF_HOST_MODE:-build}" in
+    build)
+        run 'make CC="$CI_LINUX_CC" self-host-compiler'
+        ;;
+    prebuilt)
+        if [[ ! -x "$PWD/bin/pgy" || ! -x "$PWD/bin/pgy-self-driver" ||
+              ! -s "$PWD/bin/pgy-self-driver.machine-layer-manifest.json" ]]; then
+            echo "ci-linux: prebuilt self-host toolchain artifact is incomplete" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "ci-linux: invalid PGY_CI_SELF_HOST_MODE=${PGY_CI_SELF_HOST_MODE}" >&2
+        exit 2
+        ;;
+esac
 export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
 
 run 'make build-source-inventory-test-smoke'
@@ -70,7 +87,18 @@ run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_B
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" observability-schema-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" memory-concurrency-model-test-smoke'
 run 'make documentation-quality-test-smoke'
-run 'make self-host-preparation-platform-test-smoke'
+case "${PGY_CI_PLATFORM_PARITY_MODE:-full}" in
+    full)
+        run 'make self-host-preparation-platform-test-smoke'
+        ;;
+    contract-only)
+        run 'make self-host-preparation-contract-test-smoke'
+        ;;
+    *)
+        echo "ci-linux: invalid PGY_CI_PLATFORM_PARITY_MODE=${PGY_CI_PLATFORM_PARITY_MODE}" >&2
+        exit 2
+        ;;
+esac
 run 'make debug-hygiene-test-smoke'
 run 'make memory-string-safety-test-smoke'
 run 'make security-portability-contract-test-smoke'

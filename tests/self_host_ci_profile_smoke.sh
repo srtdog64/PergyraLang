@@ -13,6 +13,7 @@ WORKFLOW="$ROOT_DIR/.github/workflows/ci.yml"
 PLATFORM_WORKFLOW="$ROOT_DIR/.github/workflows/platform_full.yml"
 PARITY_WORKFLOW="$ROOT_DIR/.github/workflows/self_host_parity.yml"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
+PLATFORM_PARITY_SHARD_OWNER="$ROOT_DIR/scripts/ci_self_host_platform_parity_shard_owner.sh"
 
 for file in \
     "$MAKEFILE" \
@@ -25,7 +26,8 @@ for file in \
     "$WORKFLOW" \
     "$PLATFORM_WORKFLOW" \
     "$PARITY_WORKFLOW" \
-    "$DRIVER_BOOTSTRAP"; do
+    "$DRIVER_BOOTSTRAP" \
+    "$PLATFORM_PARITY_SHARD_OWNER"; do
     if [[ ! -f "$file" ]]; then
         echo "[self-host-ci-profile] missing input: $file" >&2
         exit 1
@@ -133,9 +135,13 @@ require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "build-linux" 25
 require_job_timeout "build-macos-c-only" 20
 require_job_timeout "build-windows" 35
-require_job_timeout "platform-full-linux" 75 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-linux-toolchain" 20 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-linux" 50 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-linux-self-host-parity" 30 "$PLATFORM_WORKFLOW"
 require_job_timeout "platform-full-macos-c-only" 45 "$PLATFORM_WORKFLOW"
-require_job_timeout "platform-full-windows" 90 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-windows-toolchain" 25 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-windows" 45 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-windows-self-host-parity" 35 "$PLATFORM_WORKFLOW"
 
 build_linux_job="$(
     sed -n \
@@ -171,6 +177,43 @@ for steps in "$LINUX_STEPS" "$MACOS_STEPS" "$WINDOWS_STEPS"; do
     fi
     if grep -Fq ' self-host-preparation-test-smoke' "$steps"; then
         echo "[self-host-ci-profile] full self-host proof leaked into $steps" >&2
+        exit 1
+    fi
+done
+
+for steps in "$LINUX_STEPS" "$WINDOWS_STEPS"; do
+    for required in \
+        'PGY_CI_SELF_HOST_MODE:-build' \
+        'PGY_CI_PLATFORM_PARITY_MODE:-full' \
+        'prebuilt)' \
+        'contract-only)' \
+        'prebuilt self-host toolchain artifact is incomplete'; do
+        if ! grep -Fq "$required" "$steps"; then
+            echo "[self-host-ci-profile] split platform mode lost fail-closed contract in $steps: $required" >&2
+            exit 1
+        fi
+    done
+done
+
+for required in \
+    'PGY_CI_SELF_HOST_PARITY_SHARD' \
+    'PGY_CI_SELF_HOST_PARITY_BACKENDS' \
+    'pgy.machine-layer.declaration.v1' \
+    'parser_parity.sh' \
+    'semantic_parity.sh' \
+    'codegen_parity.sh' \
+    'driver_rung2_body_parity.sh' \
+    'unknown shard; expected parser, semantic, codegen, or driver'; do
+    if ! grep -Fq "$required" "$PLATFORM_PARITY_SHARD_OWNER"; then
+        echo "[self-host-ci-profile] platform parity shard owner lost contract: $required" >&2
+        exit 1
+    fi
+done
+for forbidden in \
+    'self-host-compiler' \
+    'make '; do
+    if grep -Fq "$forbidden" "$PLATFORM_PARITY_SHARD_OWNER"; then
+        echo "[self-host-ci-profile] parity shard owner regained a build fallback: $forbidden" >&2
         exit 1
     fi
 done
@@ -234,8 +277,22 @@ for required in \
     'tags:' \
     "- 'v*'" \
     'platform-full-linux:' \
+    'platform-full-linux-toolchain:' \
+    'platform-full-linux-self-host-parity:' \
     'platform-full-windows:' \
+    'platform-full-windows-toolchain:' \
+    'platform-full-windows-self-host-parity:' \
     'platform-full-macos-c-only:' \
+    'needs: platform-full-linux-toolchain' \
+    'needs: platform-full-windows-toolchain' \
+    'name: platform-full-linux-toolchain' \
+    'name: platform-full-windows-toolchain' \
+    'if-no-files-found: error' \
+    'retention-days: 1' \
+    'PGY_CI_SELF_HOST_MODE: prebuilt' \
+    'PGY_CI_PLATFORM_PARITY_MODE: contract-only' \
+    'shard: [parser, semantic, codegen, driver]' \
+    'bash scripts/ci_self_host_platform_parity_shard_owner.sh' \
     'make PGY_BACKEND_COMPARE_JOBS=1 ci-linux' \
     'CC=gcc make ci-windows' \
     'CC=cc make ci-macos' \
@@ -246,6 +303,13 @@ for required in \
         exit 1
     fi
 done
+if [[ "$(grep -Fc 'fail-fast: false' "$PLATFORM_WORKFLOW")" != "2" ]] ||
+    [[ "$(grep -Fc 'shard: [parser, semantic, codegen, driver]' "$PLATFORM_WORKFLOW")" != "2" ]] ||
+    [[ "$(grep -Fc 'uses: actions/upload-artifact@v4' "$PLATFORM_WORKFLOW")" -lt 2 ]] ||
+    [[ "$(grep -Fc 'uses: actions/download-artifact@v4' "$PLATFORM_WORKFLOW")" -lt 4 ]]; then
+    echo "[self-host-ci-profile] Linux/Windows full parity is not split into two complete four-way artifact-fed matrices" >&2
+    exit 1
+fi
 if grep -Fq 'continue-on-error:' "$PLATFORM_WORKFLOW"; then
     echo "[self-host-ci-profile] full platform proof became advisory" >&2
     exit 1

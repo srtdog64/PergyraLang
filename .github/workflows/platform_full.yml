@@ -13,9 +13,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  platform-full-linux:
+  platform-full-linux-toolchain:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install toolchain dependencies
+        timeout-minutes: 10
+        run: |
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
+
+      - name: Build installed Linux self-host toolchain once
+        run: make self-host-compiler
+
+      - name: Upload installed Linux self-host toolchain
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-full-linux-toolchain
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            bin/pgy
+            bin/pgy-self-driver
+            bin/pgy-self-driver.machine-layer-manifest.json
+
+  platform-full-linux:
+    needs: platform-full-linux-toolchain
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v6
 
@@ -27,12 +56,92 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
 
-      - name: Run full Linux platform target
+      - name: Download installed Linux self-host toolchain
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-full-linux-toolchain
+          path: bin
+
+      - name: Validate executable Linux artifact permissions
+        run: chmod +x bin/pgy bin/pgy-self-driver
+
+      - name: Run Linux core and platform-independent contract
+        env:
+          PGY_CI_SELF_HOST_MODE: prebuilt
+          PGY_CI_PLATFORM_PARITY_MODE: contract-only
         run: make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 
-  platform-full-windows:
+  platform-full-linux-self-host-parity:
+    needs: platform-full-linux-toolchain
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [parser, semantic, codegen, driver]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install parity dependencies
+        timeout-minutes: 10
+        run: |
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
+
+      - name: Download installed Linux self-host toolchain
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-full-linux-toolchain
+          path: bin
+
+      - name: Run Linux self-host parity shard
+        env:
+          PGY_CI_SELF_HOST_PARITY_SHARD: ${{ matrix.shard }}
+          PGY_CI_SELF_HOST_PARITY_BACKENDS: c llvm
+        run: |
+          chmod +x bin/pgy bin/pgy-self-driver
+          export PGY_BIN="$PWD/bin/pgy"
+          export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
+          bash scripts/ci_self_host_platform_parity_shard_owner.sh
+
+  platform-full-windows-toolchain:
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup MSYS2 MinGW
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            diffutils
+            mingw-w64-ucrt-x86_64-python
+            mingw-w64-ucrt-x86_64-gcc
+
+      - name: Build installed Windows self-host toolchain once
+        shell: msys2 {0}
+        run: CC=gcc make LLVM_ENABLED=0 self-host-compiler
+
+      - name: Upload installed Windows self-host toolchain
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-full-windows-toolchain
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            bin/pgy.exe
+            bin/pgy-self-driver.exe
+            bin/pgy-self-driver.machine-layer-manifest.json
+
+  platform-full-windows:
+    needs: platform-full-windows-toolchain
+    runs-on: windows-latest
+    timeout-minutes: 45
     env:
       PGY_ALLOW_MISSING_COQ: 1
     steps:
@@ -49,8 +158,21 @@ jobs:
             mingw-w64-ucrt-x86_64-python
             mingw-w64-ucrt-x86_64-gcc
 
-      - name: Run full Windows platform target
+      - name: Download installed Windows self-host toolchain
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-full-windows-toolchain
+          path: bin
+
+      - name: Validate executable Windows artifact permissions
         shell: msys2 {0}
+        run: chmod +x bin/pgy.exe bin/pgy-self-driver.exe
+
+      - name: Run Windows core and platform-independent contract
+        shell: msys2 {0}
+        env:
+          PGY_CI_SELF_HOST_MODE: prebuilt
+          PGY_CI_PLATFORM_PARITY_MODE: contract-only
         run: CC=gcc make ci-windows
 
       - name: Upload driver-rung2 negative-leg evidence
@@ -65,6 +187,46 @@ jobs:
             .tmp/self_hosted/driver_rung2/*missing-abi-layout-fact*
             .tmp/self_hosted/driver_rung2/*wrong-abi-layout-identity*
             .tmp/self_hosted/driver_rung2/device_slot_routine*
+
+  platform-full-windows-self-host-parity:
+    needs: platform-full-windows-toolchain
+    runs-on: windows-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [parser, semantic, codegen, driver]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup MSYS2 MinGW
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            diffutils
+            mingw-w64-ucrt-x86_64-python
+            mingw-w64-ucrt-x86_64-gcc
+
+      - name: Download installed Windows self-host toolchain
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-full-windows-toolchain
+          path: bin
+
+      - name: Run Windows self-host parity shard
+        shell: msys2 {0}
+        env:
+          PGY_CI_SELF_HOST_PARITY_SHARD: ${{ matrix.shard }}
+          PGY_CI_SELF_HOST_PARITY_BACKENDS: c
+          PGY_AIR_GRAPH_JSON_SKIP_DRIFT: 1
+        run: |
+          chmod +x bin/pgy.exe bin/pgy-self-driver.exe
+          export PGY_BIN="$PWD/bin/pgy.exe"
+          export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver.exe"
+          bash scripts/ci_self_host_platform_parity_shard_owner.sh
 
   platform-full-macos-c-only:
     runs-on: macos-latest
