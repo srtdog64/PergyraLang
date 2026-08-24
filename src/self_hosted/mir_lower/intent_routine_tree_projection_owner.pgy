@@ -8,6 +8,7 @@ import "structured_expression_emission_order_owner.pgy";
 import "intent_action_contract_owner.pgy";
 import "intent_carrier_projection_owner.pgy";
 import "intent_phase_projection_owner.pgy";
+import "intent_priority_projection_owner.pgy";
 import "intent_phase_tree_owner.pgy";
 import "intent_cleanup_contract_owner.pgy";
 import "intent_execution_structure_owner.pgy";
@@ -108,6 +109,21 @@ func EmitMirIntentTreeAtRowWithExecutionPlan(
         routine_carriers.carrier_expr0s = carrier_expr0s;
         routine_carriers.carrier_rows = carrier_rows;
     }
+    let priority_projection: MirIntentPriorityProjection =
+        MirIntentPriorityProjectionFromCarriers(
+            routines, intent_name, routine_carriers.carrier_names,
+            routine_carriers.carrier_arg0s,
+            routine_carriers.carrier_arg1s,
+            routine_carriers.carrier_slots,
+            routine_carriers.carrier_results,
+            routine_carriers.carrier_abi_type_names,
+            routine_carriers.carrier_source_types,
+            routine_carriers.carrier_expr0s,
+            routine_carriers.carrier_rows
+        );
+    if !priority_projection.valid {
+        MirLowerFailClosed(priority_projection.diagnostic_message);
+    }
     let binding_projection: MirIntentBindingProjection =
         MirIntentBindingProjectionFromCarriers(
             routine_carriers.carrier_names, routine_carriers.carrier_arg0s, routine_carriers.carrier_arg1s, routine_carriers.carrier_slots,
@@ -187,6 +203,20 @@ func EmitMirIntentTreeAtRowWithExecutionPlan(
     }
     if rollback_error != "" { MirLowerFailClosed(rollback_error); }
     tree = MirIntentTreeAppendLine(tree, "    IntentRollback: full");
+    if priority_projection.present {
+        tree = MirIntentTreeAppendLine(
+            tree, Concat(
+                "    IntentPriority: ", priority_projection.text
+            )
+        );
+    }
+    if !MirIntentPriorityAppendExpressionOrder(
+        priority_projection, expression_order
+    ) {
+        MirLowerFailClosed(
+            "MIR intent priority expression order is invalid"
+        );
+    }
     tree = Concat(tree, binding_projection.tree_lines);
 
     let step_tree: String = MirIntentRoutineStepTreeLines(

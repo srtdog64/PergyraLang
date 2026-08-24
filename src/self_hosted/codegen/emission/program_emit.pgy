@@ -393,7 +393,8 @@ func GenerateCUnitFromReadySemanticFacts(
     let admitted_intent_definition_block: String =
         CodegenIntentExecutionPlanDefinitionBlock(
             artifact, intent_execution,
-            semantic_analysis.intent_signatures, base_env,
+            semantic_analysis.intent_signatures,
+            semantic_analysis.expression_surfaces, base_env,
             usage.uses_intent_observability
         );
     if observe_pressure { Log("[codegen-pressure-stage] support-blocks:done"); }

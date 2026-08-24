@@ -1,0 +1,48 @@
+// Projects the admitted intent-priority expression graph into C.
+import "../../hir/ast_text_arena_projection_owner.pgy";
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
+
+func CodegenIntentPriorityExpression(
+    artifact: AstTreeArtifact,
+    intent_node: Int,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    env: CodegenTypeEnv
+) -> String {
+    let priority_node: Int = 0 - 1;
+    let priority_count: Int = 0;
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, intent_node, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindIntentPriorityTag()
+        ) {
+            priority_node = child_id;
+            priority_count = priority_count + 1;
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, intent_node, child_index
+        );
+    }
+    if priority_count == 0 { return "0"; }
+    if priority_count != 1 || priority_node < 0 {
+        Die("self-host intent observability priority is duplicated");
+    }
+    let graph: SemanticExpressionGraphView =
+        CodegenSemanticExpressionGraphOrDie(
+            expression_surfaces, priority_node, AstExpressionLaneAtom()
+        );
+    let type_name: Option<String> = CodegenExpressionTypeFromGraph(
+        graph.graph, graph.root_id, env
+    );
+    if !IsSome(type_name) || UnwrapOption(type_name) != "Int" {
+        Die("self-host intent observability priority is not Int");
+    }
+    return RewriteExprFromSemanticGraph(graph.graph, graph.root_id, env);
+}

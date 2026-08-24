@@ -331,7 +331,9 @@ SENTINEL_MAX=24
 # Result<Int, String> ABI facts and typed readiness diagnostics. Preserve that
 # landed errors-as-data surface while the final LLVM spelling projection stays
 # outside the text-recovery inventory below.
-RESULT_USE_MIN=4214
+# 4214 -> 4242 (2026-08-25): intent priority carriage and C admission keep
+# absent graphs, modes, types, and reconstructed priority nodes explicit.
+RESULT_USE_MIN=4242
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=20
 # The import closure declares 20 resource-zone types, but the runtime world

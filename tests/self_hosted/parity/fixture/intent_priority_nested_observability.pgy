@@ -1,0 +1,57 @@
+subject PriorityProbe {
+    let captures: Int;
+
+    action Capture(self) -> Bool {
+        captures = captures + 1;
+        Log("active.count=" + ToString(IntentActiveCount()));
+        Log("active.0.name=" + IntentActiveName(0));
+        Log("active.0.priority=" + ToString(IntentActivePriority(0)));
+        Log("active.1.name=" + IntentActiveName(1));
+        Log("active.1.priority=" + ToString(IntentActivePriority(1)));
+        return true;
+    }
+}
+
+zone PriorityProbeZone {
+    subject slot probe: PriorityProbe
+}
+
+intent InnerPriority(
+    world: PriorityProbeZone,
+    probe: PriorityProbe,
+    requested: Int
+) {
+    exclusive;
+    priority: requested;
+
+    step observe {
+        where: PriorityProbeZone;
+        using: world;
+        who: probe;
+        on: probe.Capture();
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent OuterPriority(world: PriorityProbeZone, probe: PriorityProbe) {
+    exclusive;
+    priority: 1;
+
+    step inner {
+        intent: InnerPriority(world, probe, 9);
+        expect: probe.captures == 1;
+    }
+
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let probe = PriorityProbe(0);
+    let world = PriorityProbeZone(Clone(probe));
+    Log("outer.ok=" + ToString(OuterPriority(world, probe)));
+    Log("captures=" + ToString(probe.captures));
+}

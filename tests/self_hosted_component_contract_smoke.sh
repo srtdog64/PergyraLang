@@ -1675,6 +1675,24 @@ require_file "src/self_hosted/mir/intent_routine_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_routine_owner.pgy" 500
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_routine_owner.pgy"
+require_file "src/self_hosted/mir/intent_priority_carriage_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_priority_carriage_owner.pgy" 120
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_priority_carriage_owner.pgy"
+require_text "src/self_hosted/mir/intent_priority_carriage_owner.pgy" \
+    "func SelfMirIntentAppendPriorityCarrier("
+require_text "src/self_hosted/mir/intent_priority_carriage_owner.pgy" \
+    'build, "stmt", "IntentEval", "priority", intent_name'
+require_text "src/self_hosted/mir/intent_priority_carriage_owner.pgy" \
+    "graph.root_id != admitted_root"
+require_text "src/self_hosted/mir/intent_routine_owner.pgy" \
+    "SelfMirIntentAppendPriorityCarrier("
+require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
+    "SelfMirIntentPriorityInstructionReady("
+reject_text "src/self_hosted/mir/intent_priority_carriage_owner.pgy" \
+    "FileRead("
+reject_text "src/self_hosted/mir/intent_priority_carriage_owner.pgy" \
+    "ProcessOrder"
 require_file "src/self_hosted/mir/intent_resource_lifetime_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_resource_lifetime_owner.pgy" 140
 require_text "src/self_hosted/OWNERS.md" \
@@ -1956,6 +1974,38 @@ require_text "src/self_hosted/OWNERS.md" \
 require_file "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" 260
+require_file \
+    "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy" 50
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy"
+require_file "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy" 120
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy"
+require_text \
+    "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy" \
+    "func MirIntentPriorityProjectionFromCarriers("
+require_text \
+    "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy" \
+    "MIR intent priority carrier shape is invalid"
+require_text \
+    "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy" \
+    "MIR intent priority carrier is duplicated"
+require_text \
+    "src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy" \
+    '"    IntentPriority: ", priority_projection.text'
+require_text \
+    "src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy" \
+    "MirIntentPriorityAppendExpressionOrder("
+reject_text \
+    "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy" \
+    "FileRead("
+reject_text \
+    "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy" \
+    "ProcessOrder"
 require_file "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" 120
 require_function_text "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" \
@@ -2139,6 +2189,41 @@ require_max_lines \
     "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy" 200
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy"
+require_file "src/self_hosted/codegen/emission/intent_mode_emit_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/intent_mode_emit_owner.pgy" 60
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/intent_mode_emit_owner.pgy"
+require_text \
+    "src/self_hosted/codegen/emission/intent_mode_emit_owner.pgy" \
+    "func CodegenIntentModeConcurrent("
+require_text \
+    "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy" \
+    "CodegenIntentModeConcurrent("
+require_file \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy"
+require_text \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" \
+    "func CodegenIntentPriorityExpression("
+require_text \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" \
+    "CodegenSemanticExpressionGraphOrDie("
+require_text \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" \
+    "RewriteExprFromSemanticGraph("
+require_text \
+    "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy" \
+    "CodegenIntentPriorityExpression("
+reject_text \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" \
+    "FileRead("
+reject_text \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" \
+    "ProcessOrder"
 for intent_observability_symbol in \
     "pgy_intent_enter_export" \
     "pgy_intent_trace_step_export" \
@@ -2158,6 +2243,18 @@ require_text "src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy
     "CodegenIntentObservabilityEmitStepBegin("
 require_text "src/self_hosted/codegen/emission/intent_nested_call_emit_owner.pgy" \
     "CodegenIntentObservabilityEmitStepBegin("
+require_file \
+    "tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy"
+require_file \
+    "tests/self_hosted/parity/intent_priority_nested_observability_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/intent_priority_nested_observability_owner.sh" 180
+require_text \
+    "tests/self_hosted/parity/intent_priority_nested_observability_owner.sh" \
+    'active.1.priority=9'
+require_text \
+    "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" \
+    "intent_priority_nested_observability_owner.sh"
 reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     "pgy_intent_"
 require_text \

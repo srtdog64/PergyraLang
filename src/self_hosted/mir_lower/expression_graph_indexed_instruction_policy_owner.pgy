@@ -51,7 +51,9 @@ func MirInstructionExpressionRequiresExpr0Graph(
           (MirProgramInstructionExpressionRoutingEquals(
                json, expression, 1, "on") ||
            MirProgramInstructionExpressionRoutingEquals(
-               json, expression, 1, "compensate")))) {
+               json, expression, 1, "compensate") ||
+           MirProgramInstructionExpressionRoutingEquals(
+               json, expression, 1, "priority")))) {
         return true;
     }
     if kind == "stmt" && source == "AST_CALL" {

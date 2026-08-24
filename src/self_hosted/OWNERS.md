@@ -828,7 +828,11 @@ inventory must not become a second fact-family owner registry.
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
   for intent identity, participant/zone bindings, ordered steps, action
-  receiver, authorization, effects, phase/rollback, and commit boundaries.
+  receiver, authorization, effects, phase/rollback, priority, and commit
+  boundaries.
+- `src/self_hosted/mir/intent_priority_carriage_owner.pgy` -- exact zero-or-one
+  `IntentEval(priority)` MIR row carrying the DIR-admitted priority expression
+  surface, root identity, graph, source type, and uses without source rescans.
 - `src/self_hosted/mir/intent_resource_lifetime_owner.pgy` -- MIR cleanup
   lifetime projection for DIR-owned intent resources: zone handles are retired
   once per zone participant, caused effects once per step, and placement
@@ -1223,6 +1227,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/intent_carrier_projection_owner.pgy` -- canonical
   participant/value binding and ordered-step projection from admitted intent
   carriers, including exact companion-row cardinality and tree text rows.
+- `src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy` --
+  shared exact graph-presence contract for MIR-lowered intent expression rows.
+- `src/self_hosted/mir_lower/intent_priority_projection_owner.pgy` -- exact
+  zero-or-one priority-carrier projection into the reconstructed intent tree
+  and expression occurrence order; malformed or duplicate carriers fail closed.
 - `src/self_hosted/mir_lower/intent_phase_projection_owner.pgy` -- one admitted
   phase plan with exact step attachment, singleton cardinality, on-only result
   shape, graph presence, and source-ordered compensate ranges. It stages
@@ -1597,11 +1606,17 @@ inventory must not become a second fact-family owner registry.
   legacy action-completion flags, Bool predicate failure edges, and full-policy
   reverse-step/reverse-expression compensation C emission. Typed variant
   success-only completion remains outside this owner.
+- `src/self_hosted/codegen/emission/intent_mode_emit_owner.pgy` -- exact
+  singleton intent-mode lookup and C runtime concurrency projection; missing,
+  duplicated, or unknown modes fail closed.
 - `src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy` --
   opt-in legacy intent enter/step/bind/materialize/fail/ok/exit C projection
-  from the admitted mode, signature, subject, and exact zone-slot facts. The
-  default-priority lane is closed here; typed-plan and non-default-priority
-  observability remain separate executable rungs.
+  from the admitted mode, signature, subject, priority expression, and exact
+  zone-slot facts.
+- `src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy` -- exact
+  zero-or-one reconstructed priority-node lookup and admitted semantic-graph C
+  projection. Absence owns the language default; duplicates and non-Int graphs
+  fail closed without source or name-table fallback.
 - `src/self_hosted/codegen/emission/intent_outcome_emit_owner.pgy` -- exact
   typed immutable C binding for one intent action result and step-local Bool
   `expect` dispatch through the shared intent control-flow owner.

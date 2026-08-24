@@ -1,0 +1,40 @@
+// Projects one admitted intent mode into the C runtime concurrency flag.
+import "../../hir/ast_text_arena_projection_owner.pgy";
+import "../text/text_owner.pgy";
+
+func CodegenIntentModeConcurrent(
+    artifact: AstTreeArtifact,
+    intent_node: Int
+) -> Bool {
+    let mode_count: Int = 0;
+    let concurrent: Bool = false;
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, intent_node, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindIntentModeTag()
+        ) {
+            let mode: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, child_id
+            );
+            if mode_count != 0 || !IsSome(mode) ||
+                (UnwrapOption(mode) != "exclusive" &&
+                 UnwrapOption(mode) != "concurrent") {
+                Die("self-host intent observability mode is invalid");
+            }
+            mode_count = mode_count + 1;
+            concurrent = UnwrapOption(mode) == "concurrent";
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, intent_node, child_index
+        );
+    }
+    if mode_count != 1 {
+        Die("self-host intent observability mode is missing");
+    }
+    return concurrent;
+}

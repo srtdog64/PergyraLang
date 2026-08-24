@@ -116,7 +116,9 @@ func MirExpressionGraphOccurrenceGraphSlot(
           (MirProgramInstructionExpressionRoutingEquals(
                json, expression, 1, "on") ||
            MirProgramInstructionExpressionRoutingEquals(
-               json, expression, 1, "compensate")))) {
+               json, expression, 1, "compensate") ||
+           MirProgramInstructionExpressionRoutingEquals(
+               json, expression, 1, "priority")))) {
         return MirExpressionGraphSlotExpr0();
     }
     if kind == "branch" && lane == AstExpressionLaneAtom() {

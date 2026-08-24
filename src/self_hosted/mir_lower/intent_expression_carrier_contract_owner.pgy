@@ -1,0 +1,24 @@
+// Persisted expression-graph presence for one MIR intent carrier row.
+
+import "routine_fact_index_owner.pgy";
+
+func MirIntentExpressionCarrierGraphPresent(
+    ref routines: MirProgramRoutineIndex,
+    global_row: Int
+) -> Bool {
+    if global_row < 0 || global_row >=
+        ArrayLength(routines.instruction_starts) ||
+        ArrayLength(routines.instruction_ends) !=
+            ArrayLength(routines.instruction_starts) {
+        return false;
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        routines.source_json, routines.instruction_starts[global_row],
+        routines.instruction_ends[global_row]
+    );
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    return JsonObjectFactTableReady(instruction) &&
+        JsonObjectFactTableReady(graph);
+}

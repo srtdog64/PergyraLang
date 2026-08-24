@@ -35,6 +35,7 @@ func CodegenIntentEmitControlPrologue(
     intent_node: Int,
     ref intents: SemanticAstIntentSignatureFacts,
     intent_index: Int,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     env: CodegenTypeEnv
 ) -> Void {
     if step_count <= 0 { Die("self-host intent has no executable step"); }
@@ -46,7 +47,7 @@ func CodegenIntentEmitControlPrologue(
     ));
     CodegenIntentObservabilityEmitPrologue(
         body, uses_intent_observability, artifact, intent_node,
-        intents, intent_index, env,
+        intents, intent_index, expression_surfaces, env,
         "        __intent_failed = true;\n        goto __intent_cleanup;\n"
     );
 }

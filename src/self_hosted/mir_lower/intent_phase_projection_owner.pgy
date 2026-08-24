@@ -5,6 +5,7 @@
 // It never reads source or AST text.
 
 import "routine_fact_index_owner.pgy";
+import "intent_expression_carrier_contract_owner.pgy";
 
 struct MirIntentPhaseProjection {
     ok: Bool;
@@ -33,27 +34,6 @@ func MirIntentPhaseProjectionError(
     projection.ok = false;
     projection.diagnostic_message = message;
     return projection;
-}
-
-func MirIntentPhaseGraphPresent(
-    ref routines: MirProgramRoutineIndex,
-    global_row: Int
-) -> Bool {
-    if global_row < 0 || global_row >=
-        ArrayLength(routines.instruction_starts) ||
-        ArrayLength(routines.instruction_ends) !=
-            ArrayLength(routines.instruction_starts) {
-        return false;
-    }
-    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        routines.source_json, routines.instruction_starts[global_row],
-        routines.instruction_ends[global_row]
-    );
-    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
-        instruction, "expr0_graph"
-    );
-    return JsonObjectFactTableReady(instruction) &&
-        JsonObjectFactTableReady(graph);
 }
 
 func MirIntentPhaseProjectionFromCarriers(
@@ -121,7 +101,9 @@ func MirIntentPhaseProjectionFromCarriers(
     let row: Int = 0;
     while row < count {
         let name: String = carrier_names[row];
-        if name == "IntentCheck" || name == "IntentEval" {
+        if (name == "IntentCheck" || name == "IntentEval") &&
+            !(name == "IntentEval" &&
+              carrier_arg0s[row] == "priority") {
             let phase: String = carrier_arg0s[row];
             let known_check: Bool = name == "IntentCheck" &&
                 (phase == "guard" || phase == "expect" || phase == "post");
@@ -148,7 +130,9 @@ func MirIntentPhaseProjectionFromCarriers(
             }
             if carrier_source_types[row] == "" ||
                 carrier_expr0s[row] == "" ||
-                !MirIntentPhaseGraphPresent(routines, carrier_rows[row]) {
+                !MirIntentExpressionCarrierGraphPresent(
+                    routines, carrier_rows[row]
+                ) {
                 return MirIntentPhaseProjectionError(
                     projection, "MIR intent phase carrier expression graph is missing"
                 );

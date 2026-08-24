@@ -61,7 +61,8 @@ func MirInstructionRequiresExpr0Graph(
         (instruction_name == "IntentCheck" ||
          (instruction_name == "IntentEval" && IsSome(arg0) &&
           (UnwrapOption(arg0) == "on" ||
-           UnwrapOption(arg0) == "compensate"))) {
+           UnwrapOption(arg0) == "compensate" ||
+           UnwrapOption(arg0) == "priority"))) {
         return UnwrapOption(expr0) != "";
     }
     if instruction_kind == "stmt" && source == "AST_CALL" {

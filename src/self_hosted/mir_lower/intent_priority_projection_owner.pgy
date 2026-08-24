@@ -1,0 +1,92 @@
+// Exact MIR intent priority carrier -> reconstructed AST priority row.
+//
+// This consumer never reads source or invents a priority expression. A
+// missing carrier means the language default; a present carrier is unique.
+
+import "intent_expression_carrier_contract_owner.pgy";
+import "structured_expression_emission_order_owner.pgy";
+
+struct MirIntentPriorityProjection {
+    valid: Bool;
+    diagnostic_message: String;
+    present: Bool;
+    text: String;
+    global_row: Int;
+}
+
+func MirIntentPriorityProjectionFromCarriers(
+    ref routines: MirProgramRoutineIndex,
+    intent_name: String,
+    carrier_names: Array<String>,
+    carrier_arg0s: Array<String>,
+    carrier_arg1s: Array<String>,
+    carrier_slots: Array<String>,
+    carrier_results: Array<String>,
+    carrier_abi_type_names: Array<String>,
+    carrier_source_types: Array<String>,
+    carrier_expr0s: Array<String>,
+    carrier_rows: Array<Int>
+) -> MirIntentPriorityProjection {
+    let count: Int = ArrayLength(carrier_names);
+    if intent_name == "" || ArrayLength(carrier_arg0s) != count ||
+        ArrayLength(carrier_arg1s) != count ||
+        ArrayLength(carrier_slots) != count ||
+        ArrayLength(carrier_results) != count ||
+        ArrayLength(carrier_abi_type_names) != count ||
+        ArrayLength(carrier_source_types) != count ||
+        ArrayLength(carrier_expr0s) != count ||
+        ArrayLength(carrier_rows) != count {
+        return MirIntentPriorityProjection(
+            false, "MIR intent priority carrier arrays are misaligned",
+            false, "", -1
+        );
+    }
+    let matches: Int = 0;
+    let text: String = "";
+    let global_row: Int = 0 - 1;
+    let row: Int = 0;
+    while row < count {
+        if carrier_names[row] == "IntentEval" &&
+            carrier_arg0s[row] == "priority" {
+            matches = matches + 1;
+            if carrier_arg1s[row] != intent_name ||
+                carrier_slots[row] != intent_name ||
+                carrier_results[row] != "" ||
+                carrier_abi_type_names[row] != "" ||
+                carrier_source_types[row] == "" ||
+                carrier_expr0s[row] == "" ||
+                !MirIntentExpressionCarrierGraphPresent(
+                    routines, carrier_rows[row]
+                ) {
+                return MirIntentPriorityProjection(
+                    false, "MIR intent priority carrier shape is invalid",
+                    false, "", -1
+                );
+            }
+            text = carrier_expr0s[row];
+            global_row = carrier_rows[row];
+        }
+        row = row + 1;
+    }
+    if matches > 1 {
+        return MirIntentPriorityProjection(
+            false, "MIR intent priority carrier is duplicated",
+            false, "", -1
+        );
+    }
+    if matches == 0 {
+        return MirIntentPriorityProjection(true, "", false, "", -1);
+    }
+    return MirIntentPriorityProjection(true, "", true, text, global_row);
+}
+
+func MirIntentPriorityAppendExpressionOrder(
+    ref priority: MirIntentPriorityProjection,
+    inout expression_order: MirStructuredExpressionEmissionOrder
+) -> Bool {
+    if !priority.valid { return false; }
+    if !priority.present { return true; }
+    return MirStructuredExpressionEmissionOrderAppend(
+        expression_order, priority.global_row, AstExpressionLaneAtom(), 0
+    );
+}

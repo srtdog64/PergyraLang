@@ -60,7 +60,7 @@ func CodegenIntentDefinitionBlock(
         let step_writeback_expressions: Array<String> = [];
         CodegenIntentEmitControlPrologue(
             body, step_count, uses_intent_observability, artifact,
-            intent_node, intents, intent_index, base_env
+            intent_node, intents, intent_index, expression_surfaces, env
         );
         let step_index: Int = 0;
         let child_index: Int = 0;

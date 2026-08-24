@@ -1,46 +1,10 @@
 // Projects admitted intent observability facts at the C execution boundary.
-import "../../hir/ast_text_arena_projection_owner.pgy";
 import "../../semantic/ast_intent_signature_fact_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
-func CodegenIntentObservabilityConcurrent(
-    artifact: AstTreeArtifact,
-    intent_node: Int
-) -> Bool {
-    let mode_count: Int = 0;
-    let concurrent: Bool = false;
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
-        artifact.arena, intent_node, child_index
-    );
-    while IsSome(child) {
-        let child_id: Int = UnwrapOption(child);
-        if TypedAstArenaNodeKindIs(
-            artifact.arena, child_id, TypedAstKindIntentModeTag()
-        ) {
-            let mode: Option<String> = TypedAstArenaAtomText(
-                artifact.arena, child_id
-            );
-            if mode_count != 0 || !IsSome(mode) ||
-                (UnwrapOption(mode) != "exclusive" &&
-                 UnwrapOption(mode) != "concurrent") {
-                Die("self-host intent observability mode is invalid");
-            }
-            mode_count = mode_count + 1;
-            concurrent = UnwrapOption(mode) == "concurrent";
-        }
-        child_index = child_index + 1;
-        child = TypedAstArenaChildAt(
-            artifact.arena, intent_node, child_index
-        );
-    }
-    if mode_count != 1 {
-        Die("self-host intent observability mode is missing");
-    }
-    return concurrent;
-}
-
+import "intent_mode_emit_owner.pgy";
+import "intent_priority_emit_owner.pgy";
 func CodegenIntentObservabilityEmitPrologue(
     inout body: Array<String>,
     enabled: Bool,
@@ -48,6 +12,7 @@ func CodegenIntentObservabilityEmitPrologue(
     intent_node: Int,
     ref intents: SemanticAstIntentSignatureFacts,
     intent_index: Int,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     env: CodegenTypeEnv,
     admission_failure_body: String
 ) -> Void {
@@ -99,11 +64,14 @@ func CodegenIntentObservabilityEmitPrologue(
         }
     }
     let concurrent: String = ToString(
-        CodegenIntentObservabilityConcurrent(artifact, intent_node)
+        CodegenIntentModeConcurrent(artifact, intent_node)
+    );
+    let priority: String = CodegenIntentPriorityExpression(
+        artifact, intent_node, expression_surfaces, env
     );
     let enter_suffix: String = Concat(
         ", ", Concat(ToString(subject_count), Concat(", ", Concat(
-            concurrent, ", 0);\n"
+            concurrent, Concat(", ", Concat(priority, ");\n"))
         )))
     );
     if subject_count > 0 {

@@ -21,6 +21,7 @@ func CodegenIntentExecutionPlanDefinitionBlock(
     artifact: AstTreeArtifact,
     ref view: CodegenIntentExecutionView,
     ref intents: SemanticAstIntentSignatureFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     base_env: CodegenTypeEnv,
     uses_intent_observability: Bool
 ) -> String {
@@ -61,7 +62,7 @@ func CodegenIntentExecutionPlanDefinitionBlock(
         );
         CodegenIntentObservabilityEmitPrologue(
             body, uses_intent_observability, artifact, routine_syntax_id,
-            intents, intent_index, env,
+            intents, intent_index, expression_surfaces, env,
             "        pgy_runtime_panic_internal_invariant_export(\"typed intent runtime admission failed\");\n"
         );
         ArrayPush(body, Concat(
