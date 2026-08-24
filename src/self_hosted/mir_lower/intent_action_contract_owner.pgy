@@ -15,6 +15,7 @@ struct MirIntentActionContractFact {
     ok: Bool;
     return_type_name: String;
     action_syntax_id: String;
+    authority_required: Bool;
 }
 
 func MirIntentActionGraphFromInstruction(
@@ -130,6 +131,7 @@ func MirIntentActionContract(
     let match_count: Int = 0;
     let return_type_name: String = "";
     let action_syntax_id: String = "";
+    let authority_required: Bool = false;
     let declaration_row: Int = 0;
     while declaration_row < MirProgramDeclarationIndexCount(
         routines.declarations
@@ -161,10 +163,12 @@ func MirIntentActionContract(
                         JsonObjectFactStringFieldOpt(method, "return");
                     if !contract.valid || contract.callable_kind != "action" ||
                         !IsSome(return_type) || UnwrapOption(return_type) == "" {
-                        return MirIntentActionContractFact(false, "", "");
+                        return MirIntentActionContractFact(false, "", "", false);
                     }
                     match_count = match_count + 1;
                     return_type_name = UnwrapOption(return_type);
+                    authority_required =
+                        ArrayLength(contract.authorized_by_names) > 0;
                 }
                 method_row = method_row + 1;
             }
@@ -181,6 +185,20 @@ func MirIntentActionContract(
         match_count == 1 && return_type_name != "" &&
             action_syntax_id != "" && ToInt(action_syntax_id) > 0 &&
             ToString(ToInt(action_syntax_id)) == action_syntax_id,
-        return_type_name, action_syntax_id
+        return_type_name, action_syntax_id, authority_required
     );
+}
+
+func MirIntentActionAuthorityCarrierReady(
+    contract: MirIntentActionContractFact,
+    authority_count: Int,
+    authority_name: String,
+    who_name: String
+) -> Bool {
+    if !contract.ok || authority_count < 0 || authority_count > 1 {
+        return false;
+    }
+    if !contract.authority_required { return authority_count == 0; }
+    return authority_count == 1 && authority_name != "" &&
+        authority_name == who_name;
 }

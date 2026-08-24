@@ -829,6 +829,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
   for intent identity, participant/zone bindings, ordered steps, action
   receiver, authorization, effects, phase/rollback, and commit boundaries.
+- `src/self_hosted/mir/intent_resource_lifetime_owner.pgy` -- MIR cleanup
+  lifetime projection for DIR-owned intent resources: zone handles are retired
+  once per zone participant, caused effects once per step, and placement
+  invalidation only for a step with an admitted alias. It owns no source scan
+  or fallback placement inference.
 - `src/self_hosted/mir/intent_execution_fact_owner.pgy` -- target-neutral
   `mir.intent_step_transition` and `mir.intent_terminal_transition` execution
   validation: exact enum/payload identities, explicit predecessor handles,
@@ -1190,6 +1195,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy` --
   per-step participant/action/outcome contract validation and legacy/typed AST
   step rows over already-admitted routine carriers and transition identities.
+- `src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy` -- exact
+  optional placement-carrier contract for legacy nested-intent calls. An
+  admitted direct nested target may own zero zone/alias/invalidation/read rows;
+  every other step must own the complete non-empty placement set.
 - `src/self_hosted/mir_lower/intent_execution_structure_owner.pgy` -- typed
   intent legacy-spine and admitted-plan block ownership; unknown extra block
   IDs fail closed while legacy Bool retains its four-block contract.
@@ -1208,7 +1217,9 @@ inventory must not become a second fact-family owner registry.
   spelling to the canonical declared member name consumed by semantic graphs.
 - `src/self_hosted/mir_lower/intent_action_contract_owner.pgy` -- exact intent
   `on` expression-graph identity, subject-action declaration join, return type,
-  and stable action syntax-ID contract consumed by intent admission.
+  stable action syntax ID, and declared authority-presence contract consumed by
+  intent admission. An omitted action authority remains explicit absence; a
+  required authority cannot disappear from semantic/resource carriers.
 - `src/self_hosted/mir_lower/intent_carrier_projection_owner.pgy` -- canonical
   participant/value binding and ordered-step projection from admitted intent
   carriers, including exact companion-row cardinality and tree text rows.
@@ -1218,9 +1229,10 @@ inventory must not become a second fact-family owner registry.
   member arrays as distinct locals and materializes the projection once on
   success, so a rejected carrier never publishes partial phase state and the
   Pergyra-built subset does not depend on direct member-array inout.
-- `src/self_hosted/mir_lower/intent_phase_tree_owner.pgy` -- compact
-  On/Compensate/Guard/Post/Expect rows and matching graph occurrence order from
-  the admitted phase plan; it owns no MIR or source rediscovery path.
+- `src/self_hosted/mir_lower/intent_phase_tree_owner.pgy` -- compact direct
+  `Intent` or action `On` plus Compensate/Guard/Post/Expect rows and matching
+  graph occurrence order from the admitted phase plan; it owns no MIR or
+  source rediscovery path.
 - `src/self_hosted/mir_lower/intent_cleanup_contract_owner.pgy` -- bounded
   rollback/abort and invalidation/detach block validation for one intent routine.
 - `src/self_hosted/mir_lower/routine_cfg_projection_owner.pgy` -- routine-local
@@ -1561,6 +1573,14 @@ inventory must not become a second fact-family owner registry.
   prototype/environment/definition emission for admitted participant bindings,
   zone rebinding, action execution, projection synchronization, and caller
   value-result writeback; it does not reclassify intent as `func`.
+- `src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy` -- one
+  admitted zone-bound action step's materialization, call/outcome, sync, and
+  caller writeback emission. It returns the cleanup expressions to the intent
+  definition owner and does not own nested-intent execution.
+- `src/self_hosted/codegen/emission/intent_nested_call_emit_owner.pgy` -- one
+  placement-free direct nested-intent expression graph, Bool failure
+  propagation, and step observability emission. The called intent remains the
+  owner of its zone materialization and synchronization.
 - `src/self_hosted/codegen/emission/intent_step_binding_owner.pgy` -- one
   actor/using/authority parameter admission and exact-alias-or-unique-type zone
   slot projection, including by-value versus inout zone C address spelling.

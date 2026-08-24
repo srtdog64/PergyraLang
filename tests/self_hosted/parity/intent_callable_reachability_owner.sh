@@ -17,6 +17,7 @@ DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"
 BUILD_DIR="${PGY_SELFHOST_INTENT_CALLABLE_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/intent_callable_reachability}"
 FIXTURE="tests/self_hosted/parity/fixture/intent_callable_reachability.pgy"
 NESTED_FIXTURE="tests/self_hosted/parity/fixture/intent_nested_call_reachability.pgy"
+CANONICAL_FIXTURE="examples/composite_intent_orchestration/main.pgy"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 fail() {
@@ -51,6 +52,61 @@ if self_id != native_id:
         f"{label}: native/self domain graph drift: native={native_id} self={self_id}"
     )
 print(f"{label}: domain_graph_id={self_id}")
+PY
+}
+
+assert_placement_lifetime_parity() {
+    local self_json="$1"
+    local native_log="$2"
+    local label="$3"
+    "$PYTHON_BIN" - "$self_json" "$native_log" "$label" <<'PY'
+from collections import Counter
+import json
+from pathlib import Path
+import sys
+
+NAMES = {
+    "Read", "IntentZoneWhere", "IntentZoneAlias",
+    "IntentInvalidationTarget", "DetachInvalidation",
+}
+
+def document(path):
+    for line in Path(path).read_text(encoding="utf-8-sig").splitlines():
+        if line.lstrip().startswith('{"schema":"pgy.mir.v1"'):
+            return json.loads(line)
+    raise SystemExit(f"{path}: missing pgy.mir.v1 document")
+
+def projection(path):
+    projected = {}
+    for routine in document(path)["routines"]:
+        if routine["kind"] != "intent":
+            continue
+        rows = []
+        for block in routine["blocks"]:
+            for row in block["instructions"]:
+                if row.get("name") in NAMES:
+                    if row.get("name") == "Read" and \
+                            row.get("source_type") != "AST_INTENT_STEP":
+                        continue
+                    rows.append((
+                        row.get("kind"), row.get("name"), row.get("arg0"),
+                        row.get("arg1"), row.get("slot_anchor"),
+                        row.get("source_type"),
+                    ))
+        projected[routine["name"]] = Counter(rows)
+    return projected
+
+self_rows = projection(sys.argv[1])
+native_rows = projection(sys.argv[2])
+if self_rows != native_rows:
+    raise SystemExit(f"{sys.argv[3]}: native/self placement lifetime drift")
+for routine_name, rows in self_rows.items():
+    for row in rows:
+        if row[2] in (None, ""):
+            raise SystemExit(
+                f"{sys.argv[3]}: {routine_name} emitted empty placement row {row}"
+            )
+print(f"{sys.argv[3]}: exact placement/lifetime multiset parity")
 PY
 }
 
@@ -134,6 +190,47 @@ nested_native="$BUILD_DIR/nested.native.mir.log"
     >"$nested_native" 2>&1) \
     || { cat "$nested_native" >&2; fail "nested native MIR oracle failed"; }
 assert_graph_id_parity "$nested_out" "$nested_native" "nested-intent"
+assert_placement_lifetime_parity "$nested_out" "$nested_native" "nested-intent"
+
+canonical_out="$BUILD_DIR/canonical.self.mir.json"
+canonical_native="$BUILD_DIR/canonical.native.mir.log"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$CANONICAL_FIXTURE" \
+    >"$canonical_out" 2>"$BUILD_DIR/canonical.self.err") \
+    || { cat "$canonical_out" "$BUILD_DIR/canonical.self.err" >&2; fail "canonical composite self MIR failed"; }
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$CANONICAL_FIXTURE" \
+    >"$canonical_native" 2>&1) \
+    || { cat "$canonical_native" >&2; fail "canonical composite native MIR failed"; }
+assert_placement_lifetime_parity \
+    "$canonical_out" "$canonical_native" "canonical-composite"
+"$PYTHON_BIN" - "$canonical_out" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+doc = next(
+    json.loads(line) for line in Path(sys.argv[1]).read_text(
+        encoding="utf-8-sig"
+    ).splitlines() if line.lstrip().startswith('{"schema":"pgy.mir.v1"')
+)
+for name in ("FulfillOrder", "ProcessOrder"):
+    routine = next(row for row in doc["routines"] if row["name"] == name)
+    instructions = [
+        item for block in routine["blocks"] for item in block["instructions"]
+    ]
+    forbidden = {
+        "Read", "IntentZoneWhere", "IntentZoneAlias",
+        "IntentInvalidationTarget",
+    }
+    if any(item.get("name") in forbidden for item in instructions):
+        raise SystemExit(f"{name}: placement-absent nested step emitted placement")
+    zone_cleanup = [
+        item for item in instructions
+        if item.get("name") == "DetachInvalidation" and
+           item.get("arg1") == "ZoneHandle"
+    ]
+    if len(zone_cleanup) != 3:
+        raise SystemExit(f"{name}: expected 3 participant-owned zone cleanups")
+PY
 
 "$PYTHON_BIN" - "$ROOT_DIR/$NESTED_FIXTURE" "$BUILD_DIR" <<'PY'
 from pathlib import Path
@@ -237,6 +334,7 @@ grep -Fq 'intent-step-depends-on' "$two_step_dir" \
 grep -Fq 'step[01] PromoteAgain' "$two_step_dir" \
     || fail "two-step native intent row is missing"
 assert_graph_id_parity "$two_step_self" "$two_step_native" "two-step"
+assert_placement_lifetime_parity "$two_step_self" "$two_step_native" "two-step"
 
 wrong_using_source="${BUILD_DIR#"$ROOT_DIR"/}/wrong-using.pgy"
 wrong_using_out="$BUILD_DIR/wrong-using.out"

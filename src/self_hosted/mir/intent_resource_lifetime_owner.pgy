@@ -1,0 +1,129 @@
+// DIR-owned intent resources -> MIR cleanup lifetime.
+// Zone handles belong to intent participants, effects belong to caused steps,
+// and step invalidation exists only when the step owns a placement alias.
+
+import "intent_instruction_append_owner.pgy";
+import "../dir/intent_fact_owner.pgy";
+
+func SelfMirIntentEffectSlotForType(
+    rows: SelfMirDeclarationRows,
+    zone_declaration_index: Int,
+    effect_type: String
+) -> String {
+    if zone_declaration_index < 0 ||
+        zone_declaration_index >= ArrayLength(rows.names) ||
+        rows.nominal_kinds[zone_declaration_index] != "zone" {
+        return "";
+    }
+    let result: String = "";
+    let i: Int = 0;
+    while i < rows.field_counts[zone_declaration_index] {
+        let row: Int = rows.field_starts[zone_declaration_index] + i;
+        if rows.field_kinds[row] == "effect_slot" &&
+            rows.field_types[row] == effect_type {
+            if result != "" { return ""; }
+            result = rows.field_names[row];
+        }
+        i = i + 1;
+    }
+    return result;
+}
+
+func SelfMirIntentCleanupInvalidationsAppend(
+    build: SelfMirRoutineBuild,
+    rows: SelfMirDeclarationRows,
+    intents: SelfDirIntentFacts,
+    intent_index: Int
+) -> SelfMirRoutineBuild {
+    if intent_index < 0 || intent_index >= ArrayLength(intents.names) {
+        return SelfMirRoutineBuildError(
+            build, "MIR intent cleanup requires one admitted DIR row"
+        );
+    }
+    let participant_start: Int = intents.participant_starts[intent_index];
+    let participant_count: Int = intents.participant_counts[intent_index];
+    let step_start: Int = intents.step_starts[intent_index];
+    let step_count: Int = intents.step_counts[intent_index];
+    if participant_start < 0 || participant_count < 0 || step_start < 0 ||
+        step_count < 0 || participant_start + participant_count >
+            ArrayLength(intents.participants.aliases) ||
+        participant_start + participant_count >
+            ArrayLength(intents.participants.is_values) ||
+        participant_start + participant_count >
+            ArrayLength(intents.participants.declaration_indices) ||
+        step_start + step_count > ArrayLength(intents.steps.names) ||
+        step_start + step_count > ArrayLength(intents.steps.using_aliases) ||
+        step_start + step_count > ArrayLength(intents.steps.causes_names) ||
+        step_start + step_count >
+            ArrayLength(intents.steps.where_declaration_indices) {
+        return SelfMirRoutineBuildError(
+            build, "MIR intent cleanup DIR ranges are invalid"
+        );
+    }
+
+    let participant_i: Int = 0;
+    while participant_i < participant_count {
+        let row: Int = participant_start + participant_i;
+        if !intents.participants.is_values[row] {
+            let declaration_index: Int =
+                intents.participants.declaration_indices[row];
+            if declaration_index < 0 ||
+                declaration_index >= ArrayLength(rows.nominal_kinds) {
+                return SelfMirRoutineBuildError(
+                    build, "MIR intent participant declaration is invalid"
+                );
+            }
+            if rows.nominal_kinds[declaration_index] == "zone" {
+                let alias: String = intents.participants.aliases[row];
+                if alias == "" {
+                    return SelfMirRoutineBuildError(
+                        build, "MIR intent zone participant alias is missing"
+                    );
+                }
+                build = SelfMirIntentAddInstruction(
+                    build, "cleanup", "DetachInvalidation", alias,
+                    "ZoneHandle", alias, "", "AST_INTENT_INVOLVES",
+                    SelfMirNoUses()
+                );
+            }
+        }
+        participant_i = participant_i + 1;
+    }
+
+    let step_i: Int = 0;
+    while step_i < step_count {
+        let row: Int = step_start + step_i;
+        if intents.steps.causes_names[row] != "" {
+            let effect_slot: String = SelfMirIntentEffectSlotForType(
+                rows, intents.steps.where_declaration_indices[row],
+                intents.steps.causes_names[row]
+            );
+            if effect_slot == "" {
+                return SelfMirRoutineBuildError(
+                    build, "MIR intent cleanup effect slot is not unique"
+                );
+            }
+            build = SelfMirIntentAddInstruction(
+                build, "cleanup", "DetachInvalidation", effect_slot,
+                "EffectInstance", effect_slot, "", "AST_INTENT_STEP",
+                SelfMirNoUses()
+            );
+        }
+        step_i = step_i + 1;
+    }
+
+    step_i = 0;
+    while step_i < step_count {
+        let row: Int = step_start + step_i;
+        let using_alias: String = intents.steps.using_aliases[row];
+        if using_alias != "" {
+            build = SelfMirIntentAddInstruction(
+                build, "cleanup", "DetachInvalidation", using_alias,
+                intents.steps.names[row], using_alias, "", "AST_INTENT_STEP",
+                SelfMirNoUses()
+            );
+        }
+        step_i = step_i + 1;
+    }
+    return build;
+}

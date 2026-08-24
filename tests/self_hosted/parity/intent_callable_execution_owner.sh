@@ -173,4 +173,7 @@ for negative in "$BUILD_DIR"/negative-*.mir.json; do
     fi
 done
 
-echo "[self-host-intent-execution] exact successful action path + MIR negatives: PASS"
+PGY_BIN="$PGY" PGY_SELFHOST_PREBUILT_DRIVER="$DRIVER" \
+    bash "$ROOT_DIR/tests/self_hosted/parity/intent_nested_callable_execution_owner.sh"
+
+echo "[self-host-intent-execution] exact action + nested-intent execution and MIR negatives: PASS"

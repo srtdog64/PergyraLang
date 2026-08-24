@@ -1542,6 +1542,18 @@ require_text "Makefile" \
     'tests/self_hosted/parity/intent_callable_reachability_owner.sh'
 require_file "tests/self_hosted/parity/intent_callable_execution_owner.sh"
 require_max_lines "tests/self_hosted/parity/intent_callable_execution_owner.sh" 220
+require_file \
+    "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" 130
+require_text "tests/self_hosted/parity/intent_callable_execution_owner.sh" \
+    'intent_nested_callable_execution_owner.sh'
+require_text \
+    "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" \
+    'regained fake placement materialization'
+require_text \
+    "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" \
+    'nested intent failure did not propagate'
 require_max_lines \
     "tests/self_hosted/parity/intent_execution_graph_target_mutation_owner.py" 100
 require_max_lines \
@@ -1651,6 +1663,22 @@ require_file "src/self_hosted/mir/intent_routine_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_routine_owner.pgy" 500
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_routine_owner.pgy"
+require_file "src/self_hosted/mir/intent_resource_lifetime_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_resource_lifetime_owner.pgy" 140
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_resource_lifetime_owner.pgy"
+require_text "src/self_hosted/mir/intent_routine_owner.pgy" \
+    'using_alias == "" && zone_name == "" && zone_index < 0'
+require_text "src/self_hosted/mir/intent_routine_owner.pgy" \
+    'if intents.steps.using_aliases[step_row] != "" {'
+require_text "src/self_hosted/mir/intent_routine_owner.pgy" \
+    "SelfMirIntentCleanupInvalidationsAppend("
+reject_text "src/self_hosted/mir/intent_routine_owner.pgy" \
+    'using_alias, "ZoneHandle"'
+require_text "src/self_hosted/mir/intent_resource_lifetime_owner.pgy" \
+    'rows.nominal_kinds[declaration_index] == "zone"'
+require_text "src/self_hosted/mir/intent_resource_lifetime_owner.pgy" \
+    'if using_alias != "" {'
 require_file "src/self_hosted/mir/intent_execution_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_execution_fact_owner.pgy" 720
 require_file "src/self_hosted/mir/intent_execution_schema_owner.pgy"
@@ -1796,6 +1824,7 @@ for owner_cap in \
     "intent_routine_tree_projection_owner.pgy:430" \
     "intent_routine_carrier_projection_owner.pgy:180" \
     "intent_routine_step_projection_owner.pgy:360" \
+    "intent_step_placement_contract_owner.pgy:60" \
     "intent_execution_carrier_projection_owner.pgy:180" \
     "intent_execution_structure_owner.pgy:220" \
     "intent_execution_tree_projection_owner.pgy:320" \
@@ -1832,10 +1861,32 @@ require_text \
 require_text \
     "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
     'import "intent_carrier_projection_owner.pgy";'
+require_text \
+    "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    'import "intent_step_placement_contract_owner.pgy";'
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy"
+require_text \
+    "src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy" \
+    'direct_intent_target && zone_count == 0'
+require_text \
+    "src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy" \
+    '!contract.present && read_count == 0'
+reject_text \
+    "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    'if zone_count != 1 || alias_count != 1 ||'
 require_text "src/self_hosted/mir_lower/intent_action_contract_owner.pgy" \
     "func MirIntentDirectTargetSyntaxId"
 require_text "src/self_hosted/mir_lower/intent_action_contract_owner.pgy" \
     "SemanticCallTargetDirect()"
+require_text "src/self_hosted/mir_lower/intent_action_contract_owner.pgy" \
+    "authority_required: Bool"
+require_text "src/self_hosted/mir_lower/intent_action_contract_owner.pgy" \
+    "func MirIntentActionAuthorityCarrierReady("
+require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    "MirIntentActionAuthorityCarrierReady("
+reject_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    'authority_count == 0 && !direct_intent_target'
 require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
     '"MIR intent direct target is not one legacy intent"'
 require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
@@ -1892,6 +1943,8 @@ require_max_lines "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" 120
 require_function_text "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" \
     "func MirIntentPhaseAppendExpressionOrder(" \
     "MirStructuredExpressionEmissionOrderCoverProducer("
+require_text "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" \
+    'if direct_intent_target { phase_name = "Intent: "; }'
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
 require_text "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" \
@@ -1965,6 +2018,23 @@ require_file "src/self_hosted/codegen/emission/intent_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/intent_emit_owner.pgy" 360
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/emission/intent_emit_owner.pgy"
+require_file "src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy" 120
+require_file "src/self_hosted/codegen/emission/intent_nested_call_emit_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/intent_nested_call_emit_owner.pgy" 70
+for intent_codegen_owner in \
+    intent_action_step_emit_owner.pgy intent_nested_call_emit_owner.pgy; do
+    require_text "src/self_hosted/OWNERS.md" \
+        "src/self_hosted/codegen/emission/$intent_codegen_owner"
+done
+require_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
+    'CodegenIntentEmitActionStep('
+require_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
+    'CodegenIntentEmitNestedCall('
+reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
+    'if using_alias == "" {'
 require_text \
     "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
     "func SemanticAstIntentStepActorFromFacts("
@@ -2066,7 +2136,9 @@ do
 done
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "usage.uses_intent_observability"
-require_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
+require_text "src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy" \
+    "CodegenIntentObservabilityEmitStepBegin("
+require_text "src/self_hosted/codegen/emission/intent_nested_call_emit_owner.pgy" \
     "CodegenIntentObservabilityEmitStepBegin("
 reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     "pgy_intent_"

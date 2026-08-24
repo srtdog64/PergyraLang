@@ -7,7 +7,8 @@ import "structured_expression_emission_order_owner.pgy";
 
 func MirIntentPhaseTreeLines(
     ref phases: MirIntentPhaseProjection,
-    step_index: Int
+    step_index: Int,
+    direct_intent_target: Bool
 ) -> String {
     if !phases.ok || step_index < 0 ||
         step_index >= ArrayLength(phases.on_texts) ||
@@ -15,8 +16,12 @@ func MirIntentPhaseTreeLines(
         step_index >= ArrayLength(phases.compensate_counts) {
         return "";
     }
+    let phase_name: String = "On: ";
+    if direct_intent_target { phase_name = "Intent: "; }
     let tree: String = MirIntentTreeAppendLine(
-        "", Concat("      On: ", phases.on_texts[step_index])
+        "", Concat("      ", Concat(
+            phase_name, phases.on_texts[step_index]
+        ))
     );
     let compensate_i: Int = 0;
     while compensate_i < phases.compensate_counts[step_index] {
@@ -51,9 +56,12 @@ func MirIntentPhaseAppendExpressionOrder(
     ref phases: MirIntentPhaseProjection,
     step_index: Int,
     executable_on_row: Int,
+    direct_intent_target: Bool,
     inout order: MirStructuredExpressionEmissionOrder
 ) -> Bool {
-    if MirIntentPhaseTreeLines(phases, step_index) == "" ||
+    if MirIntentPhaseTreeLines(
+            phases, step_index, direct_intent_target
+        ) == "" ||
         executable_on_row < 0 ||
         !MirStructuredExpressionEmissionOrderAppend(
             order, executable_on_row, AstExpressionLaneAtom(), 0

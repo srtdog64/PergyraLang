@@ -1,0 +1,32 @@
+// Exact MIR carrier contract for one intent step's optional zone placement.
+// Only a direct legacy nested-intent call may omit the placement triplet.
+
+struct MirIntentStepPlacementContract {
+    ok: Bool;
+    present: Bool;
+}
+
+func MirIntentStepPlacementContractFromCarriers(
+    direct_intent_target: Bool,
+    zone_count: Int,
+    alias_count: Int,
+    invalidation_count: Int,
+    zone_name: String,
+    zone_alias: String
+) -> MirIntentStepPlacementContract {
+    let absent: Bool = direct_intent_target && zone_count == 0 &&
+        alias_count == 0 && invalidation_count == 0 &&
+        zone_name == "" && zone_alias == "";
+    let present: Bool = zone_count == 1 && alias_count == 1 &&
+        invalidation_count == 1 && zone_name != "" && zone_alias != "";
+    return MirIntentStepPlacementContract(absent || present, present);
+}
+
+func MirIntentStepPlacementReadReady(
+    contract: MirIntentStepPlacementContract,
+    read_count: Int
+) -> Bool {
+    return contract.ok &&
+        ((contract.present && read_count == 1) ||
+         (!contract.present && read_count == 0));
+}

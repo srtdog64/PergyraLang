@@ -1,0 +1,52 @@
+// Direct nested-intent call emission from one admitted semantic graph.
+//
+// Nested intent steps have no zone materialization binding of their own. The
+// called intent owns its participant/zone work and reports Bool success to the
+// enclosing intent cleanup boundary.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
+import "intent_observability_emit_owner.pgy";
+
+func CodegenIntentEmitNestedCall(
+    inout body: Array<String>,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    call_node: Int,
+    step_name: String,
+    participant_name: String,
+    uses_intent_observability: Bool,
+    env: CodegenTypeEnv
+) -> Void {
+    let graph: SemanticExpressionGraphView =
+        CodegenSemanticExpressionGraphOrDie(
+            expression_surfaces, call_node, AstExpressionLaneAtom()
+        );
+    let call_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph.graph, graph.root_id, env
+    );
+    if !IsSome(call_type) || UnwrapOption(call_type) != "Bool" {
+        Die("self-host nested intent call result is not Bool");
+    }
+    let call_expression: String = RewriteExprFromSemanticGraph(
+        graph.graph, graph.root_id, env
+    );
+    CodegenIntentObservabilityEmitStepBegin(
+        body, uses_intent_observability, step_name,
+        "<zone>", participant_name, "<unbound>"
+    );
+    let failure_line: String = CodegenIntentObservabilityFailureLine(
+        uses_intent_observability, "intent", step_name
+    );
+    let failure_body: String = Concat(
+        "        __intent_failed = true;\n", Concat(
+            failure_line, "        goto __intent_cleanup;\n    }\n"
+        )
+    );
+    ArrayPush(body, Concat(
+        "    if (!( ", Concat(
+            call_expression, Concat(" )) {\n", failure_body)
+        )
+    ));
+}

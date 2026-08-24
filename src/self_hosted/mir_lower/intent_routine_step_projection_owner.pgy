@@ -7,11 +7,11 @@ import "intent_routine_carrier_projection_owner.pgy";
 import "intent_execution_tree_projection_owner.pgy";
 import "intent_carrier_projection_owner.pgy";
 import "intent_action_contract_owner.pgy";
+import "intent_step_placement_contract_owner.pgy";
 import "intent_phase_projection_owner.pgy";
 import "intent_phase_tree_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
-
 func MirIntentRoutineStepTreeLines(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int,
@@ -123,20 +123,16 @@ func MirIntentRoutineStepTreeLines(
                 routines, eval_action.action_name
             );
         }
-        // A legacy orchestration step may delegate authority to one exact
-        // declared intent. It must not duplicate the nested terminal action's
-        // authority contract in another direct carrier.
+        // A legacy nested-intent call delegates the terminal action contract.
         let direct_intent_target: Bool = !typed_execution &&
             direct_target_syntax_id != "";
-        let delegates_authority: Bool = direct_intent_target &&
-            authority_count == 0;
-        if zone_count != 1 || alias_count != 1 ||
-            invalidation_count != 1 || who_count != 1 ||
+        let placement: MirIntentStepPlacementContract =
+            MirIntentStepPlacementContractFromCarriers(
+                direct_intent_target, zone_count, alias_count,
+                invalidation_count, zone_name, zone_alias);
+        if !placement.ok || who_count != 1 ||
             authority_count > 1 || who_name == "" ||
-            (authority_count == 0 && !direct_intent_target) ||
-            (authority_count == 1 && authority_name != who_name) ||
             cause_count > 1 ||
-            zone_name == "" || zone_alias == "" ||
             eval_text == "" || eval_row < 0 {
             MirLowerFailClosed("MIR intent step semantic carriers are incomplete");
         }
@@ -188,10 +184,10 @@ func MirIntentRoutineStepTreeLines(
             }
             resource_row = resource_row + 1;
         }
-        if read_count != 1 || authorize_count > 1 ||
-            (delegates_authority && authorize_count != 0) ||
-            (!delegates_authority &&
-                (authorize_count != 1 || authorize_name != authority_name ||
+        if !MirIntentStepPlacementReadReady(placement, read_count) || authorize_count > 1 ||
+            authorize_count != authority_count ||
+            (authorize_count == 1 &&
+                (authorize_name != authority_name ||
                  authorize_slot != authority_name)) {
             MirLowerFailClosed("MIR intent step resource carrier is incomplete");
         }
@@ -247,7 +243,7 @@ func MirIntentRoutineStepTreeLines(
         }
         if eval_action.receiver_alias == "" {
             action_syntax_id = direct_target_syntax_id;
-            if typed_execution || outcome_count != 0 ||
+            if typed_execution || outcome_count != 0 || authority_count != 0 ||
                 action_syntax_id == "" || eval_action.action_name !=
                     eval_action.call_target_name {
                 MirLowerFailClosed(
@@ -273,6 +269,9 @@ func MirIntentRoutineStepTreeLines(
                 eval_action.action_name ||
                 eval_action.call_target_name == canonical_target;
             if !target_ready || !action_contract.ok ||
+                !MirIntentActionAuthorityCarrierReady(
+                    action_contract, authority_count, authority_name, who_name
+                ) ||
                 (outcome_count == 1 && action_contract.return_type_name !=
                     outcome_type_name) ||
                 (outcome_count == 1 && action_contract.action_syntax_id !=
@@ -313,9 +312,9 @@ func MirIntentRoutineStepTreeLines(
                 tree, Concat("      Who: ", who_name)
             );
         }
-        tree = MirIntentTreeAppendLine(
-            tree, Concat("      Using: ", zone_alias)
-        );
+        if placement.present {
+            tree = MirIntentTreeAppendLine(tree, Concat("      Using: ", zone_alias));
+        }
         if !typed_execution && authority_count == 1 {
             tree = MirIntentTreeAppendLine(
                 tree, Concat("      AuthorizedBy: ", authority_name)
@@ -336,13 +335,13 @@ func MirIntentRoutineStepTreeLines(
             expression_on_row = eval_row;
         } else {
             phase_tree = MirIntentPhaseTreeLines(
-                phase_projection, step_index
+                phase_projection, step_index, direct_intent_target
             );
         }
         if phase_tree == "" ||
             !MirIntentPhaseAppendExpressionOrder(
                 phase_projection, step_index, expression_on_row,
-                expression_order
+                direct_intent_target, expression_order
             ) {
             MirLowerFailClosed(
                 "MIR intent phase tree projection is invalid"

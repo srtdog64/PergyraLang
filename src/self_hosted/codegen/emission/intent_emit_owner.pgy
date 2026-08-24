@@ -23,6 +23,8 @@ import "intent_outcome_emit_owner.pgy";
 import "intent_control_flow_emit_owner.pgy";
 import "intent_observability_emit_owner.pgy";
 import "intent_step_binding_owner.pgy";
+import "intent_nested_call_emit_owner.pgy";
+import "intent_action_step_emit_owner.pgy";
 
 func CodegenIntentDefinitionBlock(
     artifact: AstTreeArtifact,
@@ -71,11 +73,13 @@ func CodegenIntentDefinitionBlock(
                 artifact.arena, child_id, TypedAstKindIntentStepTag()
             ) {
                 let on_count: Int = 0;
+                let intent_call_count: Int = 0;
                 let outcome_count: Int = 0;
                 let expect_count: Int = 0;
                 let guard_count: Int = 0;
                 let post_count: Int = 0;
                 let on_node: Int = 0 - 1;
+                let intent_call_node: Int = 0 - 1;
                 let expect_node: Int = 0 - 1;
                 let guard_node: Int = 0 - 1;
                 let post_node: Int = 0 - 1;
@@ -96,6 +100,12 @@ func CodegenIntentDefinitionBlock(
                     ) {
                         on_count = on_count + 1;
                         on_node = row_id;
+                    } else if TypedAstArenaNodeKindIs(
+                        artifact.arena, row_id,
+                        TypedAstKindIntentStepIntentTag()
+                    ) {
+                        intent_call_count = intent_call_count + 1;
+                        intent_call_node = row_id;
                     } else if TypedAstArenaNodeKindIs(
                         artifact.arena, row_id,
                         TypedAstKindIntentStepOutcomeTag()
@@ -170,7 +180,10 @@ func CodegenIntentDefinitionBlock(
                         artifact.arena, child_id, step_child_index
                     );
                 }
-                if on_count != 1 || on_node < 0 || outcome_count > 1 ||
+                if on_count + intent_call_count != 1 ||
+                    (on_count == 1 && on_node < 0) ||
+                    (intent_call_count == 1 && intent_call_node < 0) ||
+                    outcome_count > 1 ||
                     (outcome_count == 1 && outcome_name == "") ||
                     expect_count > 1 || guard_count > 1 || post_count > 1 {
                     Die("self-host intent executable step clause shape is invalid");
@@ -178,8 +191,10 @@ func CodegenIntentDefinitionBlock(
                 let step_header: Option<String> = TypedAstArenaAtomText(
                     artifact.arena, child_id
                 );
+                let call_node: Int = on_node;
+                if intent_call_count == 1 { call_node = intent_call_node; }
                 let on_text: Option<String> = TypedAstArenaAtomText(
-                    artifact.arena, on_node
+                    artifact.arena, call_node
                 );
                 if !IsSome(step_header) || !IsSome(on_text) {
                     Die("self-host intent executable step text is missing");
@@ -206,67 +221,36 @@ func CodegenIntentDefinitionBlock(
                     ));
                 }
                 who_alias = actor.actor_alias;
-                if using_alias == "" {
-                    Die("self-host intent executable step using binding is missing");
-                }
-                let binding: CodegenIntentStepBindingFact =
-                    CodegenIntentStepBindingFactFromFacts(
-                        intents, zone_authorities, intent_index,
-                        who_alias, using_alias, authority_alias,
-                        header.where_zone_name, env
+                let step_env: CodegenTypeEnv = env;
+                if intent_call_count == 1 {
+                    if using_alias != "" || authority_alias != "" ||
+                        outcome_count != 0 || header.where_zone_name != "" {
+                        Die("self-host nested intent step boundary is invalid");
+                    }
+                    CodegenIntentEmitNestedCall(
+                        body, expression_surfaces, call_node, header.name,
+                        who_alias, uses_intent_observability, step_env
                     );
-                if !binding.ok {
-                    Die(Concat(
-                        "self-host intent step binding is invalid: ",
-                        binding.diagnostic
-                    ));
-                }
-                CodegenIntentObservabilityEmitStepBegin(
-                    body, uses_intent_observability, header.name,
-                    binding.zone_type, who_alias, binding.slot_name
-                );
-                ArrayPush(body, Concat(
-                    "    ", Concat(binding.zone_member, Concat(
-                        " = (*", Concat(binding.who_c, ");\n")
-                    ))
-                ));
-                CodegenIntentObservabilityEmitMaterialize(
-                    body, uses_intent_observability, who_alias,
-                    binding.slot_name, binding.zone_type
-                );
-                ArrayPush(body, Concat(
-                    "    ", Concat(binding.sync_symbol, Concat(
-                        "(", Concat(binding.zone_pointer, ");\n")
-                    ))
-                ));
-                let step_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
-                    env, CodegenFunctionValueBindingFactForCExpression(
-                        who_alias, binding.who_type, env,
-                        binding.zone_member
-                    ).env_rows
-                );
-                let on_graph: SemanticExpressionGraphView =
-                    CodegenSemanticExpressionGraphOrDie(
-                        expression_surfaces, on_node,
-                        AstExpressionLaneAtom()
+                    ArrayPush(step_sync_expressions, "");
+                    ArrayPush(step_writeback_expressions, "");
+                } else {
+                    let emitted: CodegenIntentActionStepEmission =
+                        CodegenIntentEmitActionStep(
+                            body, intents, zone_authorities, intent_index,
+                            who_alias, using_alias, authority_alias,
+                            header.where_zone_name, header.name,
+                            expression_surfaces, on_node, outcome_count,
+                            outcome_name, uses_intent_observability, env
+                        );
+                    step_env = emitted.env;
+                    ArrayPush(
+                        step_sync_expressions, emitted.sync_expression
                     );
-                let on_expression: String = RewriteExprFromSemanticGraph(
-                    on_graph.graph, on_graph.root_id, step_env
-                );
-                step_env = CodegenIntentEmitOnOutcome(
-                    body, on_graph, on_expression, outcome_count,
-                    outcome_name, step_env
-                );
-                ArrayPush(body, Concat(
-                    "    ", Concat(binding.sync_symbol, Concat(
-                        "(", Concat(binding.zone_pointer, ");\n")
-                    ))
-                ));
-                ArrayPush(body, Concat(
-                    "    (*", Concat(binding.who_c, Concat(") = ", Concat(
-                        binding.zone_member, ";\n"
-                    )))
-                ));
+                    ArrayPush(
+                        step_writeback_expressions,
+                        emitted.writeback_expression
+                    );
+                }
                 CodegenIntentEmitStepCompleted(body, step_index);
                 ArrayPush(compensation_starts,
                     ArrayLength(compensation_expressions));
@@ -282,16 +266,6 @@ func CodegenIntentDefinitionBlock(
                     );
                     compensate_index = compensate_index + 1;
                 }
-                ArrayPush(step_sync_expressions, Concat(
-                    binding.sync_symbol, Concat(
-                        "(", Concat(binding.zone_pointer, ")")
-                    )
-                ));
-                ArrayPush(step_writeback_expressions, Concat(
-                    "(*", Concat(binding.who_c, Concat(
-                        ") = ", binding.zone_member
-                    ))
-                ));
                 if guard_count == 1 {
                     CodegenIntentEmitPredicate(
                         body, expression_surfaces, guard_node,

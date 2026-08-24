@@ -7,31 +7,8 @@ import "routine_cfg_append_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "intent_instruction_append_owner.pgy";
 import "intent_phase_emission_owner.pgy";
+import "intent_resource_lifetime_owner.pgy";
 import "../dir/intent_fact_owner.pgy";
-
-func SelfMirIntentEffectSlotForType(
-    rows: SelfMirDeclarationRows,
-    zone_declaration_index: Int,
-    effect_type: String
-) -> String {
-    if zone_declaration_index < 0 ||
-        zone_declaration_index >= ArrayLength(rows.names) ||
-        rows.nominal_kinds[zone_declaration_index] != "zone" {
-        return "";
-    }
-    let result: String = "";
-    let i: Int = 0;
-    while i < rows.field_counts[zone_declaration_index] {
-        let row: Int = rows.field_starts[zone_declaration_index] + i;
-        if rows.field_kinds[row] == "effect_slot" &&
-            rows.field_types[row] == effect_type {
-            if result != "" { return ""; }
-            result = rows.field_names[row];
-        }
-        i = i + 1;
-    }
-    return result;
-}
 
 func SelfMirIntentRoutineBuild(
     ref input: SelfMirRoutineInput,
@@ -87,10 +64,25 @@ func SelfMirIntentRoutineBuild(
         let step_name: String = intents.steps.names[step_row];
         let using_alias: String = intents.steps.using_aliases[step_row];
         let zone_name: String = intents.steps.where_zone_names[step_row];
-        build = SelfMirIntentAddInstruction(
-            build, "resource-op", "Read", using_alias, step_name,
-            using_alias, "", "AST_INTENT_STEP", SelfMirNoUses()
-        );
+        let zone_index: Int =
+            intents.steps.where_declaration_indices[step_row];
+        let placement_absent: Bool =
+            intents.steps.target_kinds[step_row] == "intent" &&
+            using_alias == "" && zone_name == "" && zone_index < 0;
+        if !placement_absent && (using_alias == "" || zone_name == "" ||
+            zone_index < 0 || zone_index >= ArrayLength(rows.names) ||
+            rows.nominal_kinds[zone_index] != "zone" ||
+            rows.names[zone_index] != zone_name) {
+            return SelfMirRoutineBuildError(
+                build, "MIR intent step placement is invalid"
+            );
+        }
+        if !placement_absent {
+            build = SelfMirIntentAddInstruction(
+                build, "resource-op", "Read", using_alias, step_name,
+                using_alias, "", "AST_INTENT_STEP", SelfMirNoUses()
+            );
+        }
         let effect_slot: String = "";
         if intents.steps.causes_names[step_row] != "" {
             effect_slot = SelfMirIntentEffectSlotForType(
@@ -186,21 +178,23 @@ func SelfMirIntentRoutineBuild(
             build, "stmt", "IntentStep", step_name, step_name, step_name,
             "", "AST_INTENT_STEP", SelfMirNoUses()
         );
-        build = SelfMirIntentAddInstruction(
-            build, "stmt", "IntentZoneWhere",
-            intents.steps.where_zone_names[step_row], step_name, step_name,
-            "", "AST_INTENT_STEP", SelfMirNoUses()
-        );
-        build = SelfMirIntentAddInstruction(
-            build, "stmt", "IntentZoneAlias",
-            intents.steps.using_aliases[step_row], step_name, step_name,
-            "", "AST_INTENT_STEP", SelfMirNoUses()
-        );
-        build = SelfMirIntentAddInstruction(
-            build, "stmt", "IntentInvalidationTarget",
-            intents.steps.using_aliases[step_row], step_name, step_name,
-            "", "AST_INTENT_STEP", SelfMirNoUses()
-        );
+        if intents.steps.using_aliases[step_row] != "" {
+            build = SelfMirIntentAddInstruction(
+                build, "stmt", "IntentZoneWhere",
+                intents.steps.where_zone_names[step_row], step_name, step_name,
+                "", "AST_INTENT_STEP", SelfMirNoUses()
+            );
+            build = SelfMirIntentAddInstruction(
+                build, "stmt", "IntentZoneAlias",
+                intents.steps.using_aliases[step_row], step_name, step_name,
+                "", "AST_INTENT_STEP", SelfMirNoUses()
+            );
+            build = SelfMirIntentAddInstruction(
+                build, "stmt", "IntentInvalidationTarget",
+                intents.steps.using_aliases[step_row], step_name, step_name,
+                "", "AST_INTENT_STEP", SelfMirNoUses()
+            );
+        }
         let who_i: Int = 0;
         while who_i < intents.steps.who_counts[step_row] {
             build = SelfMirIntentAddInstruction(
@@ -321,32 +315,10 @@ func SelfMirIntentRoutineBuild(
 
     build = SelfMirRoutineAddBlock(build);
     build = SelfMirRoutineAtBlock(build, 3);
-    step_i = 0;
-    while step_i < step_count {
-        let step_row: Int = step_start + step_i;
-        let using_alias: String = intents.steps.using_aliases[step_row];
-        build = SelfMirIntentAddInstruction(
-            build, "cleanup", "DetachInvalidation", using_alias, "ZoneHandle",
-            using_alias, "", "AST_INTENT_INVOLVES", SelfMirNoUses()
-        );
-        if intents.steps.causes_names[step_row] != "" {
-            let effect_slot: String = SelfMirIntentEffectSlotForType(
-                rows, intents.steps.where_declaration_indices[step_row],
-                intents.steps.causes_names[step_row]
-            );
-            build = SelfMirIntentAddInstruction(
-                build, "cleanup", "DetachInvalidation", effect_slot,
-                "EffectInstance", effect_slot, "", "AST_INTENT_STEP",
-                SelfMirNoUses()
-            );
-        }
-        build = SelfMirIntentAddInstruction(
-            build, "cleanup", "DetachInvalidation", using_alias,
-            intents.steps.names[step_row], using_alias, "", "AST_INTENT_STEP",
-            SelfMirNoUses()
-        );
-        step_i = step_i + 1;
-    }
+    build = SelfMirIntentCleanupInvalidationsAppend(
+        build, rows, intents, intent_index
+    );
+    if !build.ok { return build; }
     return SelfMirIntentAddInstruction(
         build, "cleanup", "cleanup-edge-from-invalidation", "cleanup", "",
         "cleanup", "", "", SelfMirNoUses()
