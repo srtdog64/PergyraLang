@@ -2,9 +2,10 @@
 
 ## Active self-host context - 2026-08-24 DRV-1 artifact transaction LLVM
 
-- Semantic checkpoint `d6b82a29` and CI checkpoint `64eeeda0` are committed
-  locally; this progress file is their documentation successor. Preserve the
-  unrelated untracked `pgy-80135c2c/` directory.
+- Semantic checkpoint `d6b82a29`, CI checkpoint `64eeeda0`, and first-remote
+  repair `1df380a1` are committed locally; this progress file is their
+  documentation successor. Preserve the unrelated untracked `pgy-80135c2c/`
+  directory.
 - The DRV-1 direct-MIR route now owns referenced payload-free/payload-bearing
   enum identity once, projects payload-free facts from that owner, carries
   payload constructors and exhaustive match-binding locals through C/LLVM, and
@@ -18,7 +19,8 @@
   launcher plus the current self-driver passes one real backend-compare case.
 - Exact current-source verified MIR is 95,523,078 bytes, SHA-256
   `D2B4E47E051590ED758E227F9CF2B1CFEA2334CA2652633D9CA0F2A7E56781EE`,
-  produced in 34.7 seconds. The prior fixed 95MB MIR already projects, links,
+  produced after the remote borrow fix in 27.97 seconds and byte-identical to
+  the pre-fix current-source MIR. The prior fixed 95MB MIR already projects, links,
   executes, and commits an output artifact, but predates the final four source
   edits and therefore is not the closing current-source proof.
 - The next and only executable falsifier is projection/link/run of that exact
@@ -30,7 +32,11 @@
   backend-compare launcher/self-driver pair once, uploads it, and feeds all 20
   existing matrix shards through an explicit fail-closed prebuilt mode instead
   of rebuilding it 20 times. CI-profile, invalid-mode, and one-case prebuilt
-  execution gates pass; remote CI is still pending push.
+  execution gates pass. First remote run `32701478910` proved the producer and
+  all 20 artifact-fed shards green. Its two unrelated reds exposed a stale
+  generated language-word inventory and an illegal borrowed enum-index local;
+  `1df380a1` owns both repairs, and native source emission plus the complete
+  component contract now pass. A green remote successor is pending push.
 - This is one open executable substitution rung. Progress remains overall 78%,
   strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` until the exact
   current executable, publication, and remote evidence close it.

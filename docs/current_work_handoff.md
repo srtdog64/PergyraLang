@@ -15,7 +15,8 @@ gate count do not increment either percentage by themselves.
 ## Active self-host context - DRV-1 typed artifact transaction LLVM closure
 
 - The semantic checkpoint is `d6b82a29`; CI toolchain reuse is checkpoint
-  `64eeeda0` on local `main`. This handoff is their documentation successor.
+  `64eeeda0`, and first-remote-run repair is `1df380a1` on local `main`. This
+  handoff is their documentation successor.
   Before its commit the only project dirt is this file and
   `src/self_hosted/PROGRESS.md`; after publication the worktree should contain
   only the unrelated user-owned `pgy-80135c2c/`. Do not stage, discard,
@@ -52,11 +53,14 @@ gate count do not increment either percentage by themselves.
   `bin/pgy.exe` was built without LLVM support. `git diff --check` is green.
 - Current source-to-MIR evidence is now exact rather than inferred. The public
   installed producer emitted
-  `.tmp/self_hosted/driver_rung1/driver_rung1_current_source.mir.json` in 34.7
-  seconds: 95,523,078 bytes, SHA-256
+  `.tmp/self_hosted/driver_rung1/driver_rung1_current_source_borrow_fix.mir.json`
+  in 27.97 seconds: 95,523,078 bytes, SHA-256
   `D2B4E47E051590ED758E227F9CF2B1CFEA2334CA2652633D9CA0F2A7E56781EE`.
-  This artifact includes the final referenced-enum/direct-call compiler edits
-  and replaces the prior stale source snapshot for the next falsifier.
+  This is byte-identical to the pre-repair current-source MIR: removing the
+  illegal borrowed-index local changes source ownership admission, not
+  canonical program meaning. It includes the final referenced-enum/direct-call
+  compiler edits and replaces the older stale source snapshot for the next
+  falsifier.
 - The current self-driver already consumed the preceding 95,473,996-byte fixed
   MIR into 22,492,152-byte LLVM in 13m23s. Clang linked that IR with the exact
   runtime object, and the resulting DRV-1 executable compiled a Pergyra fixture
@@ -79,7 +83,20 @@ gate count do not increment either percentage by themselves.
   explicit fail-closed `prebuilt` compiler mode. The CI profile gate passes,
   an invalid mode fails with rc=2, and an LLVM-enabled launcher plus the current
   self-driver passes one real artifact-fed C/LLVM backend case without a
-  rebuild. Remote CI for committed checkpoint `64eeeda0` is not yet claimed.
+  rebuild.
+- First remote run `32701478910` at `fe7e9dc6` completed 27/29. The new
+  producer uploaded its artifact and all 20 artifact-fed backend shards passed;
+  the CI topology change is therefore remotely green. The two reds were exact
+  semantic/inventory omissions from the compiler change: `build-linux` reached
+  the final contract after all core tests passed, then rejected a stale
+  generated language-word implementation inventory; full bootstrap rejected a
+  borrowed `MirProgramEnumVariantIndex` local copied from `admitted`. Checkpoint
+  `1df380a1` regenerates the inventory through its owner, reads enum-index facts
+  directly from the borrowed admission owner, and negative-gates the forbidden
+  local copy. The exact native `--emit-c` reproduction now passes in 12.4
+  seconds with 0 errors/0 warnings and emits 13,195,128-byte C; the language
+  registry and complete component contract are green. A green successor remote
+  run is not yet claimed.
 - Last remote baselines remain green: fast/full-platform split run
   `32680354623` completed 13/13 in 40m36 at `88fbe332`; the successor fast/docs
   run `32682690750` completed 28/28 at `e179537d`. This integration does not
@@ -89,7 +106,7 @@ gate count do not increment either percentage by themselves.
   available, run the current MIR through `bin/pgy-self-driver.exe
   --mir-json-backend=llvm`, link it with the existing observation-disabled
   runtime object, and execute one artifact publication. First commit this
-  documentation successor, push the three authorized commits, and require the
+  documentation successor, push the repair plus docs, and require the
   remote fast workflow to become green. Then refresh this card with the exact
   remote result. Do not count the CI
   topology edit, MIR bytes, owner files, or tests as substitution progress.
