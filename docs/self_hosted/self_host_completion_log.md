@@ -6,6 +6,40 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-25 - Canonical placement-free nested intents execute in public C
+
+- Landed code checkpoint `6964ce20`. The prior checkpoint `5f6b6236` is backed
+  by remote run `32757107898`, all 29/29 jobs green in about 24 minutes.
+- Followed the public canonical failure through each legitimate consumer. Empty
+  placement MIR rows caused unknown instruction 97; removing them exposed
+  unconditional MIR-lower placement and action-authority assumptions; the next
+  codegen consumer then rejected the nested call as a missing `Using` binding.
+  No native retry, empty carrier, or fixture branch was added.
+- One resource-lifetime owner now retires zone handles per participant, caused
+  effects per step, and placement invalidation only when the step owns an alias.
+  One placement contract admits exact absence only for a resolved direct legacy
+  intent. Action authority presence is derived from the declaration contract.
+- MIR-lower reconstructs nested calls as `Intent:` rather than `On:`. Self C
+  separates zone-bound action emission from placement-free nested-call emission.
+  The called intent owns its sync/materialization and returns Bool success to the
+  enclosing cleanup boundary.
+- A fresh current-source production driver passes canonical public C/native C
+  output parity. The success case reports `ProcessOrder=true`; a mutation that
+  prevents reserve success is also output-identical and reports
+  `ProcessOrder=false`. The executable gate rejects fake sync/materialization in
+  `FulfillOrder` and `ProcessOrder`.
+- Exact native/self placement and lifetime multisets match for nested,
+  canonical, and two-step programs. Production-root static admission, complete
+  component inventory, likeness sentinel 24, SoT single-owner/census gates, and
+  diff checks pass. The broader action gate's native LLVM leg could not run
+  because local `bin/pgy.exe` lacks LLVM; Coq/Rocq is also unavailable.
+- This moves an executable rung but does not promote the BRIDGE registry row:
+  hard SoT remains 49/86, integrated forecast 78%, and strict beta 83%. The
+  next falsifier is priority carriage. Native C enters `ProcessOrder` with 9;
+  self C enters it with 0 and its reconstructed MIR AST has lost
+  `IntentPriority: 9`. Carry the existing DIR fact through MIR to the
+  observability prologue and verify it with nested `IntentActivePriority`.
+
 ## 2026-08-25 - Canonical composite priority reaches installed AST and DIR
 
 - Corrected stale rung selection: installed LLVM already executes

@@ -2,17 +2,20 @@
 
 마지막 업데이트: 2026-08-25
 
-2026-08-25 실행 갱신: remote push run `32721755812` at `c75b3309`은
-29/29 green이며 workflow wall time은 약 24.1분이다. 현재 bounded self-host
-슬라이스는 canonical composite intent의 `priority: 9`를 append-only typed AST
-identity 90과 parser-owned expression graph로 운반하고, installed/public/native
-AST parity 및 12-node/39-edge/5-intent DIR parity를 통과한다. String priority는
-owned `Int` diagnostic으로 fail closed한다. 기존 문서의 다음 후보였던
-`array_literal_assignment.pgy`는 이미 installed LLVM에서 `3`, `10`을 실행한다.
-다음 실제 falsifier는 public installed C의 MIR instruction 97 unknown kind다.
-SoT는 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%를 유지한다;
-이번 폐쇄는 ACTIVE 행의 composite-DIR 의무 하나를 제거했지만 남은 intent
-observability와 generated thread-safe zone lifecycle까지 닫지는 않았다.
+2026-08-25 실행 갱신: remote push run `32757107898` at `5f6b6236`은
+29/29 green이며 workflow wall time은 약 24분이다. 코드 checkpoint
+`6964ce20`은 canonical composite intent의 placement-free nested step을
+DIR→MIR cleanup→MIR-lower→public self C까지 운반한다. 중첩 호출에는 빈
+zone/alias/read/invalidation이나 가짜 sync/materialization을 만들지 않고, 일반
+action만 완전한 placement와 선언된 authority 계약을 요구한다. Fresh production
+driver의 public C는 native C와 성공 출력이 같고, reserve 실패 변형도 정확히
+같은 출력과 `ProcessOrder=false`를 낸다. Component/old-path, placement/lifetime
+multiset, likeness sentinel 24, SoT census gate가 green이다. 다음 실제 falsifier는
+priority observability다. Native C의 `ProcessOrder` admission은 priority 9를
+전달하지만 self C는 0을 전달하고 MIR-lower AST에서도 `IntentPriority: 9`가
+사라진다. 따라서 SoT는 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict
+beta 83%를 유지한다. 이번 변화는 기존 BRIDGE 안의 실행 대체이지, priority와
+formal transition까지 닫은 registry 승격은 아니다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 

@@ -1,36 +1,33 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-25 composite-intent priority admission
+## Active self-host context - 2026-08-25 composite-intent priority observability
 
-- Executable checkpoint `e50c9ad6` contains the priority-admission slice and
-  its explicit-absence CI repair; `55132c07` is the remote predecessor. The
-  clean baseline run `32721755812` at `c75b3309` is 29/29 green in about 24.1
-  minutes. Preserve the unrelated `pgy-80135c2c/` directory.
-- The stale next-rung claim for `array_literal_assignment.pgy` was falsified:
-  installed LLVM already executes exact `3` and `10`. The first uncovered
-  canonical-composite gap was `priority: 9`, which native C executed while the
-  installed self-host AST/DIR path rejected it before semantic admission.
-- Typed AST kind 90 now owns `IntentPriority`; the parser carries its atom-lane
-  graph in AST order. `SelfDirIntentPriorityFacts` admits exactly one direct
-  row per intent, preserves absence with an explicit presence bit and inert
-  `0/0` payload, requires resolved `Int`, and is consumed by DIR without
-  source-text reparse, a `-1` control sentinel, or guessed default.
-- The regenerated Pergyra-built installed driver passes public AST byte parity
-  and native-normalized parity. Public DIR now admits the canonical program as
-  `12` nodes / `39` edges / `5` intents and remains normalized-byte equal to
-  native. A String priority fails nonzero with the owned typed diagnostic.
-- Complete component contract, SoT registry (`86/173`, `49 CLOSED / 36 BRIDGE
-  / 1 ACTIVE`), language-word generator, Pergyra-likeness sentinel ratchet at
-  `24`, installed full-driver DIR admission, and diff check are green. The
-  bounded AST/DIR path is `SUBSTITUTING`; overall 78%, strict beta 83%, and
-  hard SoT 49/86 stay fixed.
-- Remote runs exposed two serial push-only failures: `32753036497` found the
-  stale generated language-word inventory, and `32754469415` then found the
-  priority absence sentinel regression. Both local causes are repaired; the
-  next push run must prove all 29 jobs green before MIR work is published.
-- Next executable falsifier is public installed C at MIR instruction 97:
-  `instruction kind is unknown`. Continue at that existing MIR owner; do not
-  add native fallback, hardcode priority zero, or start unrelated SoT work.
+- Checkpoint `6964ce20` replaces the real canonical public C path; predecessor
+  `5f6b6236` has remote run `32757107898` green at 29/29. Preserve the unrelated
+  user-owned `pgy-80135c2c/` directory.
+- Placement absence is now one owned fact from DIR through MIR cleanup and
+  MIR-lower. Direct nested intents emit no empty zone/alias/read/invalidation,
+  while zone handles and caused effects retain exact participant/step lifetime.
+  Non-nested actions still require the complete placement set.
+- Action authority presence comes from the MIR declaration contract. Nested
+  calls reconstruct as `Intent:` rows and self C emits them through a distinct
+  direct-call owner; action materialization remains in its own owner. The old
+  blanket authority, placement, and `Using` assumptions are negative-gated.
+- Fresh production v5 executes canonical public C exactly like native C. The
+  success path reports `ProcessOrder=true`; a reserve-failure mutation reports
+  `ProcessOrder=false` with exact native output. `FulfillOrder`/`ProcessOrder`
+  contain no fake sync or materialization.
+- Production-root static admission, focused placement/lifetime parity, nested
+  success/failure execution, full component contract, likeness sentinel 24,
+  SoT census (`86/173`, `49/36/1`), and diff checks are green. Local LLVM and
+  Coq/Rocq are unavailable and are explicit omissions, not passes.
+- This is executable replacement inside the existing BRIDGE row, so overall
+  78%, strict beta 83%, and hard SoT 49/86 stay fixed.
+- Next exact falsifier is non-default priority at the runtime admission call:
+  native C passes `ProcessOrder` priority 9 while self C passes 0 and MIR-lower
+  loses `IntentPriority: 9`. Carry the existing DIR-owned priority through MIR
+  to the observability prologue and verify it with nested
+  `IntentActivePriority`; do not reparse source or hardcode the fixture value.
 
 ## Historical self-host context - 2026-08-24 scalar routine emission memory
 
