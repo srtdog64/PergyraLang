@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-24 (Asia/Seoul)
+Updated: 2026-08-25 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -12,7 +12,73 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - DRV-1 scalar routine emission memory closure
+## Active self-host context - canonical composite-intent priority admission
+
+- Executable checkpoint `718220ba` on `main` contains the priority-admission
+  slice. Its clean predecessor remote baseline is `c75b3309`: push run
+  `32721755812` completed all 29/29 jobs green in about 24.1 minutes. Before
+  this handoff commit only this file and `src/self_hosted/PROGRESS.md` are
+  dirty. Preserve the unrelated untracked `pgy-80135c2c/` directory; it is not
+  project evidence and was not inspected.
+- Objective card: objective = make the production installed self-host AST and
+  DIR entrypoints admit the canonical composite-intent program's `priority`
+  expression; priority order = parser-owned expression identity, append-only
+  typed kind, `Int` semantic admission, DIR carriage, non-Int rejection, then
+  broader C execution; fact owner = parser expression graph plus
+  `SelfDirIntentPriorityFacts`; last legitimate consumer =
+  `SelfDirIntentFactsFromArtifact`; forbidden = source-text reparse, silently
+  treating a present priority as the default, accepting a non-Int expression,
+  or retrying the native pipeline; falsifiers = exact installed/public/native
+  AST and normalized DIR parity for
+  `examples/composite_intent_orchestration/main.pgy`, plus a String-priority
+  negative fixture.
+- The previous dogfood note naming `array_literal_assignment.pgy` as the next
+  LLVM rung was stale. The installed production path already compiles and runs
+  that program with exact `3` and `10`; its existing dual-target parity gate
+  owns the seven negative mutations. The first real canonical-composite gap
+  was earlier: installed `--ast`, `--dir`, and capability-manifest all exited
+  at the unrecognized `priority: 9`, while the native C oracle compiled and
+  executed the complete example.
+- `TypedAstKindIntentPriorityTag()` is append-only identity 90. The parser now
+  emits `IntentPriority: 9` and its atom-lane expression graph in typed-AST
+  order. Intent-local graphs are buffered so the priority row precedes step and
+  terminal roots; the first attempt appended priority after step graphs and
+  correctly failed closed with an empty graph-shape diagnostic.
+- `SelfDirIntentPriorityFactsFromArtifact` materializes one immutable priority
+  bundle from the parser graph, admitted intent signature, nominal facts, and
+  callable table. Missing priority remains the explicit `-1/-1` absence pair;
+  a present row must have one direct intent owner, one atom root, and resolved
+  type `Int`. DIR carries this identity and does not reconstruct source text.
+- The Pergyra-built installed driver was regenerated after the source change.
+  `public_ast_installed_self_host_owner.sh` passes exact installed/public bytes
+  and normalized native parity with `IntentPriority: 9`.
+  `public_dir_installed_self_host_owner.sh` passes all prior cases plus the
+  canonical composite program: `12` nodes, `39` edges, and `5` intents match
+  the native oracle after producer-ID normalization. The non-Int fixture exits
+  nonzero with the owned `self-host DIR intent priority expression must be Int`
+  diagnostic and no native fallback.
+- Static evidence is green: the complete component contract, SoT registry
+  (`86 authorities`, `173 derived carriers`, `CLOSED=49 BRIDGE=36 ACTIVE=1`),
+  and `git diff --check`. This bounded production AST/DIR slice is
+  `SUBSTITUTING`; it does not claim composite-intent C/LLVM execution or
+  compiler-root intent dogfood.
+- Next falsifier is exact and executable. Public installed C now passes the
+  parser/semantic/DIR boundary and fails later with `MIR instruction rows are
+  invalid: instruction=97 instruction kind is unknown`. Continue from that
+  instruction's existing Pergyra MIR fact owner and last orchestration
+  consumer. Do not reopen general SoT cleanup, add a fixture-specific route,
+  hardcode priority `0`, or fall back to native C.
+- Percentages stay at the published overall 78% and strict beta 83%. The hard
+  SoT census stays `49/86 CLOSED`; this slice removes `composite-intent full
+  DIR admission` from the sole ACTIVE row's remaining obligations but does not
+  satisfy the row's still-open intent-observability and generated thread-safe
+  zone construction/destruction obligations.
+
+### Historical archive boundary
+
+Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - DRV-1 scalar routine emission memory closure (inactive)
 
 - Code checkpoint `2f3ad014` on local `main` contains the C/LLVM per-routine
   emitter pair plus its structural negative ratchet; `9a7ef022` is its clean
@@ -99,10 +165,6 @@ gate count do not increment either percentage by themselves.
   performance closure does not increment substitution percentages: overall
   remains 78%, strict beta 83%, and hard SoT
   `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-
-### Historical archive boundary
-
-Everything below this line is inactive lookup evidence, not an active queue.
 
 ## Previous self-host context - DRV-1 typed artifact transaction LLVM closure (inactive)
 

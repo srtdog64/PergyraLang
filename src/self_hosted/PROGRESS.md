@@ -1,6 +1,30 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-24 scalar routine emission memory
+## Active self-host context - 2026-08-25 composite-intent priority admission
+
+- Executable checkpoint `718220ba` contains the priority-admission slice.
+  Its clean predecessor remote run `32721755812` at `c75b3309` is 29/29 green
+  in about 24.1 minutes. Preserve the unrelated `pgy-80135c2c/` directory.
+- The stale next-rung claim for `array_literal_assignment.pgy` was falsified:
+  installed LLVM already executes exact `3` and `10`. The first uncovered
+  canonical-composite gap was `priority: 9`, which native C executed while the
+  installed self-host AST/DIR path rejected it before semantic admission.
+- Typed AST kind 90 now owns `IntentPriority`; the parser carries its atom-lane
+  graph in AST order. `SelfDirIntentPriorityFacts` admits exactly one direct
+  row per intent, preserves explicit absence, requires resolved `Int`, and is
+  consumed by DIR without source-text reparse or guessed default.
+- The regenerated Pergyra-built installed driver passes public AST byte parity
+  and native-normalized parity. Public DIR now admits the canonical program as
+  `12` nodes / `39` edges / `5` intents and remains normalized-byte equal to
+  native. A String priority fails nonzero with the owned typed diagnostic.
+- Complete component contract, SoT registry (`86/173`, `49 CLOSED / 36 BRIDGE
+  / 1 ACTIVE`), and diff check are green. The bounded AST/DIR path is
+  `SUBSTITUTING`; overall 78%, strict beta 83%, and hard SoT 49/86 stay fixed.
+- Next executable falsifier is public installed C at MIR instruction 97:
+  `instruction kind is unknown`. Continue at that existing MIR owner; do not
+  add native fallback, hardcode priority zero, or start unrelated SoT work.
+
+## Historical self-host context - 2026-08-24 scalar routine emission memory
 
 - Code checkpoint `2f3ad014` contains the C/LLVM scalar CFG per-routine
   emitter change and structural ratchet; `9a7ef022` is its clean remote
