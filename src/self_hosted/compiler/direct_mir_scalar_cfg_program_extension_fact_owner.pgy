@@ -35,6 +35,7 @@ struct DirectMirScalarCfgProgramExtensionFact {
     let option_bool_abi: DirectMirOptionMatchAbiFact;
     let nominal_abi: DirectMirScalarProgramTwoIntNominalAbiFact;
     let logical_record: DirectMirScalarProgramLogicalRecordFact;
+    let referenced_enum: DirectMirScalarProgramReferencedEnumFact;
     let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact;
     let array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact;
     let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact;
@@ -56,6 +57,7 @@ func DirectMirScalarCfgProgramExtensionFactEmpty(
         DirectMirOptionMatchAbiFactEmpty(),
         DirectMirScalarProgramTwoIntNominalAbiFactFromCanonicalEmpty(),
         DirectMirScalarProgramLogicalRecordFactCanonicalEmpty(),
+        DirectMirScalarProgramReferencedEnumFactCanonicalEmpty(),
         DirectMirScalarProgramPayloadFreeEnumFactCanonicalEmpty(),
         DirectMirScalarProgramArrayIntValueResultFactCanonicalEmpty(),
         DirectMirScalarProgramArrayBoolAbiFactCanonicalEmpty(),
@@ -87,6 +89,7 @@ func DirectMirScalarCfgProgramExtensionFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.option_bool_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.nominal_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.logical_record.digest);
+    hash = DirectMirCfgHashInt(hash, fact.referenced_enum.digest);
     hash = DirectMirCfgHashInt(hash, fact.payload_free_enum.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_int_value_result.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_bool_abi.digest);
@@ -108,6 +111,7 @@ func DirectMirScalarCfgProgramExtensionFactWithDigest(
         fact.result_int_abi,
         fact.option_string_abi, fact.option_bool_abi, fact.nominal_abi,
         fact.logical_record,
+        fact.referenced_enum,
         fact.payload_free_enum,
         fact.array_int_value_result,
         fact.array_bool_abi,

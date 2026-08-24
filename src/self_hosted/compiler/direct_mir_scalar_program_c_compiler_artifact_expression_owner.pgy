@@ -5,11 +5,31 @@ func DirectMirScalarProgramCCompilerArtifactExpression(
     kind: Int, left: String, right: String,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> Option<String> {
-    if kind != DirectMirScalarProgramExprCompilerArtifactWrite() { return None; }
-    if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
-            runtime.compiler_artifact_write) {
-        Die("direct MIR scalar C compiler-artifact ABI is invalid");
+    if kind == DirectMirScalarProgramExprCompilerArtifactWrite() {
+        if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
+                runtime.compiler_artifact_write) {
+            Die("direct MIR scalar C compiler-artifact write ABI is invalid");
+        }
+        return Some(Concat(runtime.compiler_artifact_write.symbol, Concat("(",
+            Concat(left, Concat(", ", Concat(right, ")"))))));
     }
-    return Some(Concat(runtime.compiler_artifact_write.symbol, Concat("(",
-        Concat(left, Concat(", ", Concat(right, ")"))))));
+    let symbol: String = "";
+    let ready: Bool = false;
+    if kind == DirectMirScalarProgramExprCompilerArtifactBegin() {
+        symbol = runtime.compiler_artifact_begin.symbol;
+        ready = CompilerRuntimeCallAbiCompilerArtifactBeginFactReady(
+            runtime.compiler_artifact_begin);
+    } else if kind == DirectMirScalarProgramExprCompilerArtifactCommit() {
+        symbol = runtime.compiler_artifact_commit.symbol;
+        ready = CompilerRuntimeCallAbiCompilerArtifactCommitFactReady(
+            runtime.compiler_artifact_commit);
+    } else if kind == DirectMirScalarProgramExprCompilerArtifactAbort() {
+        symbol = runtime.compiler_artifact_abort.symbol;
+        ready = CompilerRuntimeCallAbiCompilerArtifactAbortFactReady(
+            runtime.compiler_artifact_abort);
+    } else { return None; }
+    if !ready {
+        Die("direct MIR scalar C compiler-artifact transaction ABI is invalid");
+    }
+    return Some(Concat(symbol, Concat("(", Concat(left, ")"))));
 }

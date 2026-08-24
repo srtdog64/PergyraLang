@@ -30,8 +30,12 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
                 fact.nominal_abi) &&
             DirectMirScalarProgramLogicalRecordReadyForExpressions(
                 fact.logical_record, fact.expressions) &&
+            DirectMirScalarProgramReferencedEnumReadyForExpressions(
+                fact.referenced_enum, fact.expressions) &&
             DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
                 fact.payload_free_enum, fact.expressions) &&
+            DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(
+                fact.referenced_enum, fact.payload_free_enum) &&
             DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(
                 fact.logical_record, fact.payload_free_enum) &&
             DirectMirScalarProgramArrayIntValueResultFactReady(
@@ -85,6 +89,10 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
             fact.nominal_abi) { return 11; }
     if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
             fact.logical_record, fact.expressions) { return 12; }
+    if !DirectMirScalarProgramReferencedEnumReadyForExpressions(
+            fact.referenced_enum, fact.expressions) ||
+        !DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(
+            fact.referenced_enum, fact.payload_free_enum) { return 13; }
     if !DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
             fact.payload_free_enum, fact.expressions) { return 13; }
     if !DirectMirScalarProgramLogicalRecordPayloadFreeEnumJoinReady(

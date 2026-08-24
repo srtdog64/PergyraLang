@@ -33,21 +33,24 @@ func DirectMirScalarCfgProgramCOperation(
         }
         let value: String = DirectMirScalarProgramCExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.routines, routine, target);
+            plan.program.logical_record, plan.program.referenced_enum,
+            plan.routines, routine, target);
         return Concat("    ", Concat(process_exit.symbol, Concat(
             "((int)(", Concat(value, "));\n"))));
     }
     if kind == DirectMirScalarCfgOpExpressionStatement() {
         return Concat("    ", Concat(DirectMirScalarProgramCExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.routines, routine, target), ";\n"));
+            plan.program.logical_record, plan.program.referenced_enum,
+            plan.routines, routine, target), ";\n"));
     }
     if kind == DirectMirScalarCfgOpArrayStringValueResultPush() {
         return DirectMirScalarProgramCArrayStringValueResultPush(
             plan, routine, plan.operation_right_locals[operation],
             DirectMirScalarProgramCExpressionAt(
                 plan.program.expressions, expression_row, runtime,
-                plan.program.logical_record, plan.routines, routine, target));
+                plan.program.logical_record, plan.program.referenced_enum,
+                plan.routines, routine, target));
     }
     if DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) {
         let root: Int = plan.program.expressions.graph_roots[expression_row];
@@ -57,11 +60,12 @@ func DirectMirScalarCfgProgramCOperation(
                 plan.program.expressions,
                 plan.program.operation_secondary_expression_rows[operation],
                 runtime, plan.program.logical_record,
-                plan.routines, routine, target);
+                plan.program.referenced_enum, plan.routines, routine, target);
         }
         let value: String = DirectMirScalarProgramCExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.routines, routine, target);
+            plan.program.logical_record, plan.program.referenced_enum,
+            plan.routines, routine, target);
         return DirectMirScalarProgramCLogicalRecordArrayValueResultMutation(
             plan, routine, plan.operation_right_locals[operation], index,
             plan.program.expressions.node_types[root], value, target);
@@ -77,13 +81,13 @@ func DirectMirScalarCfgProgramCOperation(
                 plan.program.expressions,
                 plan.program.operation_secondary_expression_rows[operation],
                 runtime, plan.program.logical_record,
-                plan.routines, routine, target);
+                plan.program.referenced_enum, plan.routines, routine, target);
         }
         return DirectMirScalarProgramCArrayMutation(
             plan, routine, operation, index,
             DirectMirScalarProgramCExpressionAt(plan.program.expressions,
                 expression_row, runtime, plan.program.logical_record,
-                plan.routines, routine, target));
+                plan.program.referenced_enum, plan.routines, routine, target));
     }
     if kind == DirectMirScalarCfgOpExpressionDefinition() {
         let output: String = "    ";
@@ -92,7 +96,8 @@ func DirectMirScalarCfgProgramCOperation(
         output = Concat(output, " = ");
         output = Concat(output, DirectMirScalarProgramCExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.routines, routine, target));
+            plan.program.logical_record, plan.program.referenced_enum,
+            plan.routines, routine, target));
         return Concat(output, ";\n");
     }
     if kind != DirectMirScalarCfgOpExpressionLog() { return ""; }
@@ -105,6 +110,7 @@ func DirectMirScalarCfgProgramCOperation(
     output = Concat(output, "\", ");
     output = Concat(output, DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, expression_row, runtime,
-        plan.program.logical_record, plan.routines, routine, target));
+        plan.program.logical_record, plan.program.referenced_enum,
+        plan.routines, routine, target));
     return Concat(output, ");\n");
 }

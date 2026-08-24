@@ -27,6 +27,7 @@ func DirectMirScalarCfgProgramAppendDefinition(
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref signature: DirectMirRoutineSignatureFact
 ) -> DirectMirScalarCfgProgramDefinitionAdmission {
     let root_kind: Int =
@@ -43,12 +44,12 @@ func DirectMirScalarCfgProgramAppendDefinition(
             expressions, failure, instruction, uses, global_row, local_instruction,
             locals, types, wire, local_offset, parameter_types, callables,
             logical_record, payload_free_enum,
-            signature, types.value_types[result]);
+            referenced_enum, signature, types.value_types[result]);
     } else {
         expression_row_opt = DirectMirScalarCfgProgramAppendTypedExpression(
             expressions, failure, instruction, uses, global_row, local_instruction,
             locals, types, wire, local_offset, parameter_types, signature,
-            callables, logical_record, payload_free_enum,
+            callables, logical_record, payload_free_enum, referenced_enum,
             0, types.value_types[result]);
     }
     if !IsSome(expression_row_opt) {

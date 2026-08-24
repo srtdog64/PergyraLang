@@ -12,6 +12,7 @@ import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 func DirectMirScalarCfgProgramCType(
@@ -73,6 +74,20 @@ func DirectMirScalarCfgProgramCType(
 func DirectMirScalarCfgProgramCRoutineName(routine: Int) -> String {
     return Concat("pgy_scalar_routine_", ToString(routine));
 }
+
+func DirectMirScalarCfgProgramCTypeWithReferencedEnum(
+    type_name: String, int_c_type: String,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> String {
+    let projected: String = DirectMirScalarCfgProgramCType(
+        type_name, int_c_type, nominal, logical_record, payload_free_enum);
+    if projected != "" { return projected; }
+    return DirectMirScalarProgramCPayloadEnumTypeName(
+        referenced_enum, type_name);
+}
 func DirectMirScalarCfgProgramCSignature(
     ref plan: DirectMirScalarCfgGraphPlan,
     routine: Int, int_c_type: String, prototype: Bool
@@ -85,10 +100,11 @@ func DirectMirScalarCfgProgramCSignature(
         return "int main(void)";
     }
     let output: String = Concat("static ", Concat(
-        DirectMirScalarCfgProgramCType(
+        DirectMirScalarCfgProgramCTypeWithReferencedEnum(
             plan.routines.return_types[routine], int_c_type,
             plan.program.nominal_abi, plan.program.logical_record,
-            plan.program.payload_free_enum), " "));
+            plan.program.payload_free_enum,
+            plan.program.referenced_enum), " "));
     output = Concat(output,
         DirectMirScalarCfgProgramCRoutineName(routine));
     output = Concat(output, "(");
@@ -114,10 +130,11 @@ func DirectMirScalarCfgProgramCSignature(
         if readonly_record || readonly_array_string {
             output = Concat(output, "const ");
         }
-        output = Concat(output, DirectMirScalarCfgProgramCType(
+        output = Concat(output,
+            DirectMirScalarCfgProgramCTypeWithReferencedEnum(
             plan.routines.parameter_types[parameter_row], int_c_type,
             plan.program.nominal_abi, plan.program.logical_record,
-            plan.program.payload_free_enum));
+            plan.program.payload_free_enum, plan.program.referenced_enum));
         if value_result || readonly_record || readonly_array_string {
             output = Concat(output, " *");
         }

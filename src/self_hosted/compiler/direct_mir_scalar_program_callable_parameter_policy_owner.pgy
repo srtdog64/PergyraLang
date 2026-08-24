@@ -18,6 +18,7 @@ import "direct_mir_scalar_program_readonly_logical_record_string_array_string_va
 import "direct_mir_scalar_program_logical_record_return_array_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_void_logical_record_array_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy";
@@ -60,6 +61,17 @@ func DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(
         DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) ||
         DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name);
 }
+func DirectMirScalarProgramCallableReturnTypeSupportedWithReferencedEnum(
+    type_name: String,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    return DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(
+            type_name, nominal, logical_record) ||
+        DirectMirScalarProgramPayloadEnumTypeReady(
+            referenced_enum, type_name);
+}
 func DirectMirScalarProgramZeroParameterReturnTypeSupportedWithFacts(type_name: String,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
@@ -67,6 +79,16 @@ func DirectMirScalarProgramZeroParameterReturnTypeSupportedWithFacts(type_name: 
         DirectMirScalarProgramLogicalRecordTypeReady(
             logical_record, type_name) ||
         DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name);
+}
+func DirectMirScalarProgramZeroParameterReturnTypeSupportedWithReferencedEnum(
+    type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    return DirectMirScalarProgramZeroParameterReturnTypeSupportedWithFacts(
+            type_name, logical_record) ||
+        DirectMirScalarProgramPayloadEnumTypeReady(
+            referenced_enum, type_name);
 }
 func DirectMirScalarProgramCallableParameterSupported(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int
@@ -230,4 +252,17 @@ func DirectMirScalarProgramCallableParameterSupportedWithFacts(
         DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultParameterReady(signature, ordinal, logical_record) ||
         DirectMirScalarProgramPayloadFreeEnumParameterReady(
             signature, ordinal, payload_free_enum);
+}
+func DirectMirScalarProgramCallableParameterSupportedWithReferencedEnum(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    return DirectMirScalarProgramCallableParameterSupportedWithFacts(
+            signature, ordinal, nominal, logical_record,
+            payload_free_enum) ||
+        DirectMirScalarProgramPayloadEnumParameterReady(
+            signature, ordinal, referenced_enum);
 }

@@ -45,6 +45,7 @@ func DirectMirScalarProgramCLogicalRecordMemberRebind(
     output = Concat(output, " = ");
     output = Concat(output, DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, expression_row, runtime,
-        plan.program.logical_record, plan.routines, routine, target));
+        plan.program.logical_record, plan.program.referenced_enum,
+        plan.routines, routine, target));
     return Concat(output, ";\n");
 }

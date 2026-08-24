@@ -17,17 +17,13 @@ func DirectMirScalarProgramPayloadFreeEnumExpressionNodeReady(
             expressions.node_literals[node] == "" &&
             expressions.node_callable_rows[node] == -1);
     }
-    if kind != DirectMirScalarProgramExprEqualPayloadFreeEnum() {
+    if kind != DirectMirScalarProgramExprEqualPayloadFreeEnum() &&
+        kind != DirectMirScalarProgramExprNotEqualPayloadFreeEnum() {
         return None();
     }
     let left: Int = expressions.node_lefts[node];
     let right: Int = expressions.node_rights[node];
-    let left_variant: Bool = left >= 0 && expressions.node_kinds[left] ==
-        DirectMirScalarProgramExprPayloadFreeEnumVariant();
-    let right_variant: Bool = right >= 0 && expressions.node_kinds[right] ==
-        DirectMirScalarProgramExprPayloadFreeEnumVariant();
     return Some(left >= 0 && left < node && right >= 0 && right < node &&
-        (left_variant != right_variant) &&
         expressions.node_types[left] == expressions.node_types[right] &&
         expressions.node_types[node] == CompilerAbiLayoutBoolTypeName() &&
         expressions.node_local_rows[node] == -1 &&
@@ -53,7 +49,8 @@ func DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
                     fact.variant_counts[row] {
                 return false;
             }
-        } else if kind == DirectMirScalarProgramExprEqualPayloadFreeEnum() {
+        } else if kind == DirectMirScalarProgramExprEqualPayloadFreeEnum() ||
+                kind == DirectMirScalarProgramExprNotEqualPayloadFreeEnum() {
             let left: Int = expressions.node_lefts[node];
             let right: Int = expressions.node_rights[node];
             if left < 0 || right < 0 || expressions.node_types[left] !=

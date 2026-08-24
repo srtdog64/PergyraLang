@@ -23,7 +23,8 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
     let callables: DirectMirScalarCfgProgramCallableInventory =
         DirectMirScalarCfgProgramCallableInventoryFromAdmitted(
             admitted, route.routine_rows, route.nominal,
-            route.logical_record, route.payload_free_enum
+            route.logical_record, route.payload_free_enum,
+            route.referenced_enum
         );
     if !DirectMirScalarCfgProgramCallableInventoryReady(
             callables, ArrayLength(route.routine_rows)) {
@@ -57,7 +58,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
                 storage, expressions, option_int_abi, option_string_abi,
                 option_bool_abi, result_int_abi,
                 route.nominal, route.logical_record,
-                route.payload_free_enum,
+                route.payload_free_enum, route.referenced_enum,
                 route.array_int_value_result, route.array_bool_abi,
                 route.array_string_abi
             );
@@ -81,7 +82,8 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
             storage.routines.block_counts,
             storage.routines.operation_counts,
             storage.routines.phi_counts, route.nominal,
-            route.logical_record, route.payload_free_enum
+            route.logical_record, route.payload_free_enum,
+            route.referenced_enum
         );
     let program: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFromOwners(

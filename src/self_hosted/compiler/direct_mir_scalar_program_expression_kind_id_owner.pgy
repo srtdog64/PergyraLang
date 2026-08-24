@@ -61,4 +61,12 @@ func DirectMirScalarProgramExprSetStringHas() -> Int { return 103; }
 func DirectMirScalarProgramExprArrayStringPushOwned() -> Int { return 104; }
 func DirectMirScalarProgramExprCompilerArtifactWrite() -> Int { return 105; }
 func DirectMirScalarProgramExprToStringBool() -> Int { return 113; }
-func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprToStringBool(); }
+func DirectMirScalarProgramExprPayloadEnumConstructor() -> Int { return 114; }
+func DirectMirScalarProgramExprPayloadEnumMatch() -> Int { return 115; }
+func DirectMirScalarProgramExprCompilerArtifactBegin() -> Int { return 116; }
+func DirectMirScalarProgramExprCompilerArtifactCommit() -> Int { return 117; }
+func DirectMirScalarProgramExprCompilerArtifactAbort() -> Int { return 118; }
+func DirectMirScalarProgramExprNotEqualPayloadFreeEnum() -> Int { return 119; }
+func DirectMirScalarProgramExpressionKindLast() -> Int {
+    return DirectMirScalarProgramExprNotEqualPayloadFreeEnum();
+}

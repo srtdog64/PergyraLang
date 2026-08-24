@@ -20,6 +20,14 @@ func EchoTone(id: Tone) -> Tone {
     return id;
 }
 
+func DefaultTone() -> Tone {
+    return Warm;
+}
+
+func TonesDiffer(left: Tone, right: Tone) -> Bool {
+    return left != right;
+}
+
 func ToneName(id: Tone) -> String {
     match id {
         case Warm: return "warm";
@@ -53,5 +61,16 @@ func Main() -> Void {
     }
     Log(ToneName(Tone.Warm));
     Log(ToneName(EchoTone(Tone.Cool)));
+    Log(ToneOrdinal(DefaultTone()));
+    if TonesDiffer(DefaultTone(), Tone.Cool) {
+        Log(1);
+    } else {
+        Log(0);
+    }
+    if TonesDiffer(DefaultTone(), Tone.Warm) {
+        Log(1);
+    } else {
+        Log(0);
+    }
     Log("payload-free-enum-parameter-ready");
 }

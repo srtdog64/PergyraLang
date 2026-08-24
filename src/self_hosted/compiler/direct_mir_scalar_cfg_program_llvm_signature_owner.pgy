@@ -14,9 +14,10 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
         return "define i32 @main()";
     }
     let output: String = Concat("define internal ",
-        DirectMirScalarProgramLlvmTypeForProgram(
+        DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
             plan.routines.return_types[routine], plan.program.nominal_abi,
-            plan.program.logical_record, plan.program.payload_free_enum));
+            plan.program.logical_record, plan.program.payload_free_enum,
+            plan.program.referenced_enum));
     output = Concat(output, Concat(
         " @pgy.scalar.routine.", ToString(routine)));
     output = Concat(output, "(");
@@ -40,10 +41,12 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
             output = Concat(output, "ptr");
         }
         else {
-            output = Concat(output, DirectMirScalarProgramLlvmTypeForProgram(
+            output = Concat(output,
+                DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
                 plan.routines.parameter_types[parameter_row],
                 plan.program.nominal_abi, plan.program.logical_record,
-                plan.program.payload_free_enum));
+                plan.program.payload_free_enum,
+                plan.program.referenced_enum));
         }
         output = Concat(output, Concat(
             " %pgy.param.", ToString(ordinal)));

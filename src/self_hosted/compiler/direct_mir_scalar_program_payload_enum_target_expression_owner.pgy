@@ -1,0 +1,244 @@
+// Target expressions for tagged payload-enum construction and one-payload
+// match binding.  Declaration ordinals and payload types are consumed only
+// from the referenced-enum fact.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "direct_mir_scalar_cfg_program_c_signature_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+
+struct DirectMirScalarProgramLlvmPayloadEnumExpression {
+    let matched: Bool;
+    let valid: Bool;
+    let instructions: String;
+    let value: String;
+}
+
+func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, result: String, left: String,
+    arguments: Array<String>, argument_types: Array<String>,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarProgramLlvmPayloadEnumExpression {
+    let kind: Int = expressions.node_kinds[node];
+    if kind != DirectMirScalarProgramExprPayloadEnumConstructor() &&
+        kind != DirectMirScalarProgramExprPayloadEnumMatch() {
+        return DirectMirScalarProgramLlvmPayloadEnumExpression(
+            false, false, "", "");
+    }
+    let type_name: String = expressions.node_types[node];
+    if kind == DirectMirScalarProgramExprPayloadEnumMatch() {
+        let left_node: Int = expressions.node_lefts[node];
+        if left_node < 0 || left == "" {
+            return DirectMirScalarProgramLlvmPayloadEnumExpression(
+                true, false, "", "");
+        }
+        type_name = expressions.node_types[left_node];
+    }
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+        referenced_enum, type_name);
+    let ordinal: Int = expressions.node_member_ordinals[node];
+    if enum_row < 0 || referenced_enum.payload_flags[enum_row] != 1 ||
+        ordinal < 0 || ordinal >= referenced_enum.variant_counts[enum_row] {
+        return DirectMirScalarProgramLlvmPayloadEnumExpression(
+            true, false, "", "");
+    }
+    let variant: Int = referenced_enum.variant_starts[enum_row] + ordinal;
+    let enum_type: String =
+        DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(enum_row);
+    let payload_type: String =
+        DirectMirScalarProgramLlvmPayloadEnumVariantTypeName(
+            enum_row, ordinal);
+    let instructions: String = "";
+    if kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
+        if ArrayLength(arguments) !=
+                referenced_enum.variant_param_counts[variant] ||
+            ArrayLength(arguments) != ArrayLength(argument_types) {
+            return DirectMirScalarProgramLlvmPayloadEnumExpression(
+                true, false, "", "");
+        }
+        let tagged: String = Concat(result, ".tagged");
+        instructions = Concat(instructions, Concat("  ", tagged));
+        instructions = Concat(instructions, " = insertvalue ");
+        instructions = Concat(instructions, enum_type);
+        instructions = Concat(instructions, " undef, i32 ");
+        instructions = Concat(instructions, ToString(ordinal));
+        instructions = Concat(instructions, ", 0\n");
+        let payload_value: String = "undef";
+        let parameter: Int = 0;
+        while parameter < ArrayLength(arguments) {
+            let llvm_type: String =
+                DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+                    argument_types[parameter], nominal, logical_record,
+                    payload_free_enum, referenced_enum);
+            if llvm_type == "" {
+                return DirectMirScalarProgramLlvmPayloadEnumExpression(
+                    true, false, "", "");
+            }
+            let inserted: String = Concat(result, Concat(".payload.",
+                ToString(parameter)));
+            instructions = Concat(instructions, Concat("  ", inserted));
+            instructions = Concat(instructions, " = insertvalue ");
+            instructions = Concat(instructions, payload_type);
+            instructions = Concat(instructions, " ");
+            instructions = Concat(instructions, payload_value);
+            instructions = Concat(instructions, ", ");
+            instructions = Concat(instructions, llvm_type);
+            instructions = Concat(instructions, " ");
+            instructions = Concat(instructions, arguments[parameter]);
+            instructions = Concat(instructions, ", ");
+            instructions = Concat(instructions, ToString(parameter));
+            instructions = Concat(instructions, "\n");
+            payload_value = inserted;
+            parameter = parameter + 1;
+        }
+        instructions = Concat(instructions, Concat("  ", result));
+        instructions = Concat(instructions, " = insertvalue ");
+        instructions = Concat(instructions, enum_type);
+        instructions = Concat(instructions, " ");
+        instructions = Concat(instructions, tagged);
+        instructions = Concat(instructions, ", ");
+        instructions = Concat(instructions, payload_type);
+        instructions = Concat(instructions, " ");
+        instructions = Concat(instructions, payload_value);
+        instructions = Concat(instructions, ", ");
+        instructions = Concat(instructions, ToString(ordinal + 1));
+        instructions = Concat(instructions, "\n");
+        return DirectMirScalarProgramLlvmPayloadEnumExpression(
+            true, true, instructions, result);
+    }
+    if referenced_enum.variant_param_counts[variant] != 1 ||
+        expressions.node_local_rows[node] < 0 {
+        return DirectMirScalarProgramLlvmPayloadEnumExpression(
+            true, false, "", "");
+    }
+    let field_type_name: String = referenced_enum.variant_param_types[
+        referenced_enum.variant_param_type_starts[variant]];
+    let field_type: String =
+        DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+            field_type_name, nominal, logical_record, payload_free_enum,
+            referenced_enum);
+    if field_type == "" {
+        return DirectMirScalarProgramLlvmPayloadEnumExpression(
+            true, false, "", "");
+    }
+    let tag: String = Concat(result, ".tag");
+    let payload: String = Concat(result, ".payload");
+    let binding: String = Concat(result, ".binding");
+    instructions = Concat(instructions, Concat("  ", tag));
+    instructions = Concat(instructions, " = extractvalue ");
+    instructions = Concat(instructions, enum_type);
+    instructions = Concat(instructions, " ");
+    instructions = Concat(instructions, left);
+    instructions = Concat(instructions, ", 0\n");
+    instructions = Concat(instructions, Concat("  ", payload));
+    instructions = Concat(instructions, " = extractvalue ");
+    instructions = Concat(instructions, enum_type);
+    instructions = Concat(instructions, " ");
+    instructions = Concat(instructions, left);
+    instructions = Concat(instructions, ", ");
+    instructions = Concat(instructions, ToString(ordinal + 1));
+    instructions = Concat(instructions, "\n");
+    instructions = Concat(instructions, Concat("  ", binding));
+    instructions = Concat(instructions, " = extractvalue ");
+    instructions = Concat(instructions, payload_type);
+    instructions = Concat(instructions, " ");
+    instructions = Concat(instructions, payload);
+    instructions = Concat(instructions, ", 0\n");
+    instructions = Concat(instructions, "  store ");
+    instructions = Concat(instructions, field_type);
+    instructions = Concat(instructions, " ");
+    instructions = Concat(instructions, binding);
+    instructions = Concat(instructions, ", ptr %pgy.local.");
+    instructions = Concat(instructions, ToString(
+        expressions.node_local_rows[node]));
+    instructions = Concat(instructions, ", align 1\n");
+    instructions = Concat(instructions, Concat("  ", result));
+    instructions = Concat(instructions, " = icmp eq i32 ");
+    instructions = Concat(instructions, tag);
+    instructions = Concat(instructions, ", ");
+    instructions = Concat(instructions, ToString(ordinal));
+    instructions = Concat(instructions, "\n");
+    return DirectMirScalarProgramLlvmPayloadEnumExpression(
+        true, true, instructions, result);
+}
+
+func DirectMirScalarProgramCPayloadEnumExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, left: String, arguments: Array<String>,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Option<String> {
+    let kind: Int = expressions.node_kinds[node];
+    if kind != DirectMirScalarProgramExprPayloadEnumConstructor() &&
+        kind != DirectMirScalarProgramExprPayloadEnumMatch() {
+        return None;
+    }
+    let type_name: String = expressions.node_types[node];
+    if kind == DirectMirScalarProgramExprPayloadEnumMatch() {
+        let left_node: Int = expressions.node_lefts[node];
+        if left_node < 0 || left == "" { return Some(""); }
+        type_name = expressions.node_types[left_node];
+    }
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+        referenced_enum, type_name);
+    let ordinal: Int = expressions.node_member_ordinals[node];
+    if enum_row < 0 || referenced_enum.payload_flags[enum_row] != 1 ||
+        ordinal < 0 || ordinal >= referenced_enum.variant_counts[enum_row] {
+        return Some("");
+    }
+    let variant: Int = referenced_enum.variant_starts[enum_row] + ordinal;
+    let enum_type: String =
+        DirectMirScalarProgramCPayloadEnumTypeNameAt(enum_row);
+    let field: String =
+        DirectMirScalarProgramCPayloadEnumVariantFieldName(ordinal);
+    if kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
+        if ArrayLength(arguments) !=
+                referenced_enum.variant_param_counts[variant] {
+            return Some("");
+        }
+        let value: String = "((";
+        value = Concat(value, enum_type);
+        value = Concat(value, ") { .tag = (");
+        value = Concat(value,
+            DirectMirScalarProgramCPayloadEnumTagTypeNameAt(enum_row));
+        value = Concat(value, ") ");
+        value = Concat(value, ToString(ordinal));
+        value = Concat(value, ", .");
+        value = Concat(value, field);
+        value = Concat(value, " = { ");
+        let parameter: Int = 0;
+        while parameter < ArrayLength(arguments) {
+            if parameter > 0 { value = Concat(value, ", "); }
+            value = Concat(value, "._");
+            value = Concat(value, ToString(parameter));
+            value = Concat(value, " = ");
+            value = Concat(value, arguments[parameter]);
+            parameter = parameter + 1;
+        }
+        return Some(Concat(value, " } })"));
+    }
+    if referenced_enum.variant_param_counts[variant] != 1 ||
+        expressions.node_local_rows[node] < 0 { return Some(""); }
+    let tag_test: String = "(";
+    tag_test = Concat(tag_test, left);
+    tag_test = Concat(tag_test, ".tag == (");
+    tag_test = Concat(tag_test,
+        DirectMirScalarProgramCPayloadEnumTagTypeNameAt(enum_row));
+    tag_test = Concat(tag_test, ") ");
+    tag_test = Concat(tag_test, ToString(ordinal));
+    tag_test = Concat(tag_test, ")");
+    let binding: String = Concat("pgy_local_", ToString(
+        expressions.node_local_rows[node]));
+    let value: String = Concat("(", tag_test);
+    value = Concat(value, " ? (");
+    value = Concat(value, binding);
+    value = Concat(value, " = ");
+    value = Concat(value, left);
+    value = Concat(value, ".");
+    value = Concat(value, field);
+    value = Concat(value, "._0, true) : false)");
+    return Some(value);
+}

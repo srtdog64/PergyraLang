@@ -21,6 +21,7 @@ import "direct_mir_scalar_program_logical_record_array_index_expression_owner.pg
 import "direct_mir_scalar_program_comparison_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_numeric_cast_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_runtime_value_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_intent_observability_readiness_owner.pgy";
 import "direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy";
@@ -65,6 +66,11 @@ func DirectMirScalarProgramExpressionNodeReady(
     let enum_ready: Option<Bool> =
         DirectMirScalarProgramPayloadFreeEnumExpressionNodeReady(facts, node);
     if IsSome(enum_ready) { return UnwrapOption(enum_ready); }
+    let payload_enum_ready: Option<Bool> =
+        DirectMirScalarProgramPayloadEnumExpressionNodeReady(facts, node);
+    if IsSome(payload_enum_ready) {
+        return UnwrapOption(payload_enum_ready);
+    }
     if member != -1 { return false; }
     let cast_ready: Option<Bool> = DirectMirScalarProgramNumericCastExpressionNodeReady(facts, node); if IsSome(cast_ready) { return UnwrapOption(cast_ready); }
     let comparison_ready: Option<Bool> = DirectMirScalarProgramComparisonExpressionNodeReady(facts, node);

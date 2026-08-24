@@ -18,6 +18,7 @@ import "direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy";
 import "direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_llvm_payload_enum_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_value_result_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_value_parameter_address_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_array_value_result_owner.pgy";
@@ -146,8 +147,9 @@ func DirectMirScalarCfgProgramLlvmRoutine(
             let expression: DirectMirScalarProgramLlvmExpression =
                 DirectMirScalarProgramLlvmExpressionAt(
                     plan.program.expressions, return_row, runtime,
-                    plan.program.logical_record,
-                    plan.program.payload_free_enum, plan.routines, routine,
+                    plan.program.nominal_abi, plan.program.logical_record,
+                    plan.program.payload_free_enum,
+                    plan.program.referenced_enum, plan.routines, routine,
                     target);
             if !expression.valid { Die(
                 "direct MIR scalar CFG LLVM return expression is invalid"); }
@@ -169,10 +171,12 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                 DirectMirScalarProgramLlvmSetStringValueResultCopyOut(
                     plan, routine, block));
             output = Concat(output, "  ret ");
-            output = Concat(output, DirectMirScalarProgramLlvmTypeForProgram(
+            output = Concat(output,
+                DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
                 expression.type_name, plan.program.nominal_abi,
                 plan.program.logical_record,
-                plan.program.payload_free_enum));
+                plan.program.payload_free_enum,
+                plan.program.referenced_enum));
             output = Concat(output, " ");
             output = Concat(output, expression.value);
             output = Concat(output, "\n");
@@ -182,8 +186,10 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                 DirectMirScalarProgramLlvmExpressionAt(
                     plan.program.expressions,
                     plan.program.block_condition_expression_rows[block],
-                    runtime, plan.program.logical_record,
-                    plan.program.payload_free_enum, plan.routines, routine,
+                    runtime, plan.program.nominal_abi,
+                    plan.program.logical_record,
+                    plan.program.payload_free_enum,
+                    plan.program.referenced_enum, plan.routines, routine,
                     target);
             if !condition.valid || condition.type_name !=
                     CompilerAbiLayoutBoolTypeName() {
@@ -275,6 +281,9 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
             plan.program.logical_record, target));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmPayloadEnumPreamble(
+        plan.program.referenced_enum, plan.program.nominal_abi,
+        plan.program.logical_record, plan.program.payload_free_enum));
     TextBuilderAppend(output, CompilerRuntimeValueLlvmLocalPreamble(plan.local_types, plan.routines.parameter_types));
     TextBuilderAppend(output,
         "@.pgy.scalar.cfg.int.format = private unnamed_addr constant [");

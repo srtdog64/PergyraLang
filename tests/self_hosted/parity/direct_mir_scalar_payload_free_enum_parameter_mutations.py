@@ -34,6 +34,12 @@ def main():
                       if row.get("name") == "ToneName"), None)
     if tone_name is None:
         raise SystemExit("fixture has no ToneName routine")
+    default_tone = next((row for row in document.get("routines", [])
+                         if row.get("name") == "DefaultTone"), None)
+    tones_differ = next((row for row in document.get("routines", [])
+                         if row.get("name") == "TonesDiffer"), None)
+    if default_tone is None or tones_differ is None:
+        raise SystemExit("fixture has no unqualified enum return/inequality")
     def expression_nodes():
         for block in tone_ordinal.get("blocks", []):
             for instruction in block.get("instructions", []):
@@ -89,6 +95,18 @@ def main():
         if len(cases) != 2:
             raise SystemExit("fixture has no exact two-case ToneName match")
         cases[1]["match_patterns"] = list(cases[0]["match_patterns"])
+    elif kind == "enum-unqualified-variant-missing":
+        graph = next(
+            instruction["expr0_graph"]
+            for block in default_tone.get("blocks", [])
+            for instruction in block.get("instructions", [])
+            if instruction.get("expr0_graph") is not None
+        )
+        next(node for node in graph["nodes"]
+             if node.get("text") == "Warm")["text"] = "Missing"
+    elif kind == "enum-inequality-wrong-type":
+        tones_differ["params"][1]["type"] = "Direction"
+        tones_differ["params"][1]["abi_type_name"] = "Direction"
     else:
         raise SystemExit(f"unknown mutation: {kind}")
     with open(output, "w", encoding="utf-8", newline="\n") as stream:

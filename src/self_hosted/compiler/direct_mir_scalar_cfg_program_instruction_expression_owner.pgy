@@ -3,6 +3,7 @@ import "direct_mir_scalar_program_expression_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
 import "direct_mir_scalar_program_int_literal_expression_row_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_match_condition_owner.pgy";
 
 func DirectMirScalarCfgProgramAppendTypedExpression(
     inout expressions: DirectMirScalarProgramExpressionSet,
@@ -18,13 +19,14 @@ func DirectMirScalarCfgProgramAppendTypedExpression(
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     use_offset: Int, expected_type: String
 ) -> Option<Int> {
     let cursor: Int = use_offset;
     return DirectMirScalarCfgProgramAppendTypedExpressionField(
         expressions, failure, instruction, uses, global_row, local_instruction,
         locals, types, wire, local_offset, parameter_types, signature, callables,
-        logical_record, payload_free_enum,
+        logical_record, payload_free_enum, referenced_enum,
         "expr0_graph", cursor, true, expected_type, -1
     );
 }
@@ -42,6 +44,7 @@ func DirectMirScalarCfgProgramAppendTypedExpressionField(
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     graph_field: String, inout use_offset: Int,
     require_all_uses: Bool, expected_type: String, source_root: Int
 ) -> Option<Int> {
@@ -50,7 +53,7 @@ func DirectMirScalarCfgProgramAppendTypedExpressionField(
         DirectMirScalarProgramAppendExpression(
             expressions, instruction, uses, global_row, local_instruction,
             locals, types, wire, local_offset, parameter_types, signature,
-            callables, logical_record, payload_free_enum,
+            callables, logical_record, payload_free_enum, referenced_enum,
             graph_field, use_offset,
             require_all_uses, expected_type, false, source_root
         );
@@ -58,11 +61,24 @@ func DirectMirScalarCfgProgramAppendTypedExpressionField(
         if !failure.present { failure = admission.failure; }
         return None;
     }
-    let appended: DirectMirScalarProgramExpressionSet =
-        DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
-            admission.facts, instruction, expression_row, payload_free_enum);
+    let appended: DirectMirScalarProgramExpressionSet = admission.facts;
+    let match_capture: MirMatchInstructionCapture =
+        MirMatchInstructionCaptureFromTable(instruction);
+    if JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_MATCH_CASE") &&
+        match_capture.valid && match_capture.variant != "" {
+        appended =
+            DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
+                admission.facts, instruction, expression_row, global_row,
+                local_offset, signature, locals, referenced_enum);
+    } else {
+        appended =
+            DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
+                admission.facts, instruction, expression_row,
+                payload_free_enum);
+    }
     if !appended.valid {
-        if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("payload-free-enum-match", -1); }
+        if !failure.present { failure = DirectMirScalarProgramExpressionAdmissionFailureAt("enum-match", -1); }
         return None;
     }
     if ArrayLength(appended.graph_starts) != expression_row + 1 {

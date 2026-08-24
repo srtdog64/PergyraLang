@@ -21,7 +21,8 @@ func DirectMirScalarProgramLlvmOptionIntTryDefinition(
     let operand: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.program.payload_free_enum,
+            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.payload_free_enum, plan.program.referenced_enum,
             plan.routines, routine, target);
     if !operand.valid || operand.type_name !=
             CompilerAbiLayoutOptionIntTypeName() {

@@ -41,6 +41,7 @@ func DirectMirScalarCfgProgramAppendStatement(
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref signature: DirectMirRoutineSignatureFact,
     ref array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact,
     ref array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
@@ -96,7 +97,7 @@ func DirectMirScalarCfgProgramAppendStatement(
                     expressions, failure, instruction, uses, global_row,
                     local_instruction, locals, types, wire, local_offset,
                     parameter_types, signature, callables, logical_record,
-                    payload_free_enum,
+                    payload_free_enum, referenced_enum,
                     "expr1_graph",
                     use_offset, false, CompilerAbiLayoutIntTypeName(), -1);
             if !IsSome(index_opt) {
@@ -111,7 +112,7 @@ func DirectMirScalarCfgProgramAppendStatement(
         DirectMirScalarCfgProgramAppendTypedExpression(
             expressions, failure, instruction, uses, global_row, local_instruction,
             locals, types, wire, local_offset, parameter_types, signature,
-            callables, logical_record, payload_free_enum,
+            callables, logical_record, payload_free_enum, referenced_enum,
             use_offset, expected_type);
     if !IsSome(expression_row_opt) {
         return invalid;

@@ -63,6 +63,21 @@ func DirectMirScalarCfgProgramCallableFactReadyWithFacts(
             fact.signature, nominal, logical_record, payload_free_enum);
 }
 
+func DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
+    ref fact: DirectMirScalarCfgProgramCallableFact,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+        DirectMirScalarCfgProgramCallableFactDigest(fact) &&
+        fact.routine_ordinal > 0 &&
+        DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(
+            fact.signature, nominal, logical_record, payload_free_enum,
+            referenced_enum);
+}
+
 func DirectMirScalarCfgProgramCallableFactCanonicalEmpty(
     ref fact: DirectMirScalarCfgProgramCallableFact
 ) -> Bool {

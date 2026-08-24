@@ -1,0 +1,61 @@
+// LLVM named-struct projection for declaration-owned tagged payload enums.
+// The layout mirrors the native backend: i32 tag followed by one payload
+// struct field for every declared variant.
+
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+
+func DirectMirScalarProgramLlvmPayloadEnumPreamble(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> String {
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) {
+        Die("direct MIR scalar LLVM payload-enum fact is invalid");
+    }
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        if fact.payload_flags[row] == 1 {
+            let ordinal: Int = 0;
+            while ordinal < fact.variant_counts[row] {
+                let variant: Int = fact.variant_starts[row] + ordinal;
+                output = Concat(output,
+                    DirectMirScalarProgramLlvmPayloadEnumVariantTypeName(
+                        row, ordinal));
+                output = Concat(output, " = type { ");
+                let parameter: Int = 0;
+                while parameter < fact.variant_param_counts[variant] {
+                    if parameter > 0 { output = Concat(output, ", "); }
+                    let type_name: String =
+                        DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+                            fact.variant_param_types[
+                                fact.variant_param_type_starts[variant] +
+                                    parameter],
+                            nominal, logical_record, payload_free_enum, fact);
+                    if type_name == "" {
+                        Die("direct MIR scalar LLVM enum payload type is unsupported");
+                    }
+                    output = Concat(output, type_name);
+                    parameter = parameter + 1;
+                }
+                output = Concat(output, " }\n");
+                ordinal = ordinal + 1;
+            }
+            output = Concat(output,
+                DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(row));
+            output = Concat(output, " = type { i32");
+            ordinal = 0;
+            while ordinal < fact.variant_counts[row] {
+                output = Concat(output, Concat(", ",
+                    DirectMirScalarProgramLlvmPayloadEnumVariantTypeName(
+                        row, ordinal)));
+                ordinal = ordinal + 1;
+            }
+            output = Concat(output, " }\n");
+        }
+        row = row + 1;
+    }
+    return output;
+}

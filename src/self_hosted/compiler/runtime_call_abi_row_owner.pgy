@@ -212,6 +212,11 @@ func CompilerRuntimeCallAbiHostIoCallShape(operation: String) -> String {
     if operation == "args" { return "returns_array_string"; }
     if operation == "exit" { return "int_to_noreturn"; }
     if operation == "compiler-artifact-write" { return "int_string_to_bool"; }
+    if operation == "compiler-artifact-begin" { return "string_to_int"; }
+    if operation == "compiler-artifact-commit" ||
+            operation == "compiler-artifact-abort" {
+        return "int_to_int";
+    }
     return "host_io_runtime_call";
 }
 
@@ -256,7 +261,7 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
 }
 
 func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
-    return 259;
+    return 262;
 }
 
 func CompilerRuntimeCallAbiNativeScalarTypeAt(index: Int) -> String {
@@ -496,6 +501,9 @@ func CompilerRuntimeCallAbiHostIoRowAt(index: Int) -> String {
     if index == 14 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "args", HostIORuntimeCArgsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 15 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
     if index == 16 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-write", HostIORuntimeCCompilerArtifactWriteFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 17 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-begin", HostIORuntimeCCompilerArtifactBeginFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 18 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-commit", HostIORuntimeCCompilerArtifactCommitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 19 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-abort", HostIORuntimeCCompilerArtifactAbortFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
     return "";
 }
 
@@ -538,6 +546,9 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index == 256 { return CompilerRuntimeCallAbiHostIoRowAt(16); }
     if index == 257 { return CompilerRuntimeCallAbiTextBuilderRowAt(6); }
     if index == 258 { return CompilerRuntimeCallAbiStringRowAt(25); }
+    if index == 259 { return CompilerRuntimeCallAbiHostIoRowAt(17); }
+    if index == 260 { return CompilerRuntimeCallAbiHostIoRowAt(18); }
+    if index == 261 { return CompilerRuntimeCallAbiHostIoRowAt(19); }
     return "";
 }
 
@@ -584,6 +595,9 @@ func CompilerRuntimeCallAbiRowsReady() -> Bool {
         CompilerRuntimeCallAbiRowFor("host-io", "file-exists") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowFor("host-io", "exit") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
         CompilerRuntimeCallAbiRowFor("host-io", "compiler-artifact-write") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-write", HostIORuntimeCCompilerArtifactWriteFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "compiler-artifact-begin") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-begin", HostIORuntimeCCompilerArtifactBeginFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "compiler-artifact-commit") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-commit", HostIORuntimeCCompilerArtifactCommitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "compiler-artifact-abort") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "compiler-artifact-abort", HostIORuntimeCCompilerArtifactAbortFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
         CompilerRuntimeCallAbiRowFor("native-resource", "Slot<Int>.Claim") == "native-resource|Slot<Int>.Claim|pgy_claim_Int|function|mir_abi_resource_row|returns_container" &&
         CompilerRuntimeCallAbiRowFor("native-resource", "SecureSlot<String>.Write") == "native-resource|SecureSlot<String>.Write|pgy_secure_write_String|function|mir_abi_resource_row|container_ptr_value_token_ptr_to_void" &&
         CompilerRuntimeCallAbiRowFor("native-resource", "Slot<Int>.PinRead") == "native-resource|Slot<Int>.PinRead|pgy_pin_read_Int|function|mir_abi_resource_row|container_ptr_to_pinned_view" &&

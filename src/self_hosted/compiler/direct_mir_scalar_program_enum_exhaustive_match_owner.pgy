@@ -1,0 +1,202 @@
+// Exact proof that an empty terminal block follows one exhaustive enum match.
+
+import "direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy";
+
+struct DirectMirScalarProgramPayloadEnumMatchConditionFact {
+    let valid: Bool;
+    let enum_row: Int;
+    let variant_ordinal: Int;
+    let source_start: Int;
+    let source_count: Int;
+    let scrutinee_offset: Int;
+}
+
+func DirectMirScalarProgramPayloadEnumMatchConditionInvalid(
+) -> DirectMirScalarProgramPayloadEnumMatchConditionFact {
+    return DirectMirScalarProgramPayloadEnumMatchConditionFact(
+        false, -1, -1, -1, 0, -1);
+}
+
+func DirectMirScalarProgramPayloadEnumMatchConditionAt(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> DirectMirScalarProgramPayloadEnumMatchConditionFact {
+    let invalid: DirectMirScalarProgramPayloadEnumMatchConditionFact =
+        DirectMirScalarProgramPayloadEnumMatchConditionInvalid();
+    if block < 0 || block >= ArrayLength(plan.block_condition_kinds) ||
+        plan.block_condition_kinds[block] !=
+            DirectMirScalarCfgConditionExpression() {
+        return invalid;
+    }
+    let expression_row: Int =
+        plan.program.block_condition_expression_rows[block];
+    if expression_row < 0 || expression_row >=
+            ArrayLength(plan.program.expressions.graph_starts) {
+        return invalid;
+    }
+    let start: Int = plan.program.expressions.graph_starts[expression_row];
+    let count: Int = plan.program.expressions.graph_counts[expression_row];
+    let root: Int = plan.program.expressions.graph_roots[expression_row];
+    if count < 2 || root != start + count - 1 ||
+        root >= ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_kinds[root] !=
+            DirectMirScalarProgramExprPayloadEnumMatch() ||
+        plan.program.expressions.node_types[root] !=
+            CompilerAbiLayoutBoolTypeName() {
+        return invalid;
+    }
+    let source_count: Int = count - 1;
+    let scrutinee: Int = plan.program.expressions.node_lefts[root];
+    if scrutinee < start || scrutinee >= start + source_count ||
+        plan.program.expressions.node_rights[root] != -1 ||
+        plan.program.expressions.node_local_rows[root] < 0 {
+        return invalid;
+    }
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+        plan.program.referenced_enum,
+        plan.program.expressions.node_types[scrutinee]);
+    let ordinal: Int = plan.program.expressions.node_member_ordinals[root];
+    if enum_row < 0 ||
+        plan.program.referenced_enum.payload_flags[enum_row] != 1 ||
+        ordinal < 0 || ordinal >=
+            plan.program.referenced_enum.variant_counts[enum_row] {
+        return invalid;
+    }
+    let node: Int = start;
+    while node < start + source_count {
+        if !DirectMirScalarProgramPayloadFreeEnumStableScrutineeKind(
+                plan.program.expressions.node_kinds[node]) ||
+            plan.program.expressions.node_callable_rows[node] != -1 ||
+            plan.program.expressions.node_runtime_call_abi_ids[node] != -1 {
+            return invalid;
+        }
+        node = node + 1;
+    }
+    return DirectMirScalarProgramPayloadEnumMatchConditionFact(
+        true, enum_row, ordinal, start, source_count, scrutinee - start);
+}
+
+func DirectMirScalarProgramPayloadEnumMatchScrutineeSame(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    left: DirectMirScalarProgramPayloadEnumMatchConditionFact,
+    right: DirectMirScalarProgramPayloadEnumMatchConditionFact
+) -> Bool {
+    if !left.valid || !right.valid || left.enum_row != right.enum_row ||
+        left.source_count != right.source_count ||
+        left.scrutinee_offset != right.scrutinee_offset { return false; }
+    let offset: Int = 0;
+    while offset < left.source_count {
+        let a: Int = left.source_start + offset;
+        let b: Int = right.source_start + offset;
+        let a_left: Int = DirectMirScalarProgramPayloadFreeEnumRelativeEdge(
+            expressions.node_lefts[a], left.source_start, left.source_count);
+        let b_left: Int = DirectMirScalarProgramPayloadFreeEnumRelativeEdge(
+            expressions.node_lefts[b], right.source_start, right.source_count);
+        let a_right: Int = DirectMirScalarProgramPayloadFreeEnumRelativeEdge(
+            expressions.node_rights[a], left.source_start, left.source_count);
+        let b_right: Int = DirectMirScalarProgramPayloadFreeEnumRelativeEdge(
+            expressions.node_rights[b], right.source_start, right.source_count);
+        if expressions.node_kinds[a] != expressions.node_kinds[b] ||
+            expressions.node_types[a] != expressions.node_types[b] ||
+            expressions.node_local_rows[a] != expressions.node_local_rows[b] ||
+            expressions.node_parameter_ordinals[a] !=
+                expressions.node_parameter_ordinals[b] ||
+            expressions.node_member_ordinals[a] !=
+                expressions.node_member_ordinals[b] ||
+            expressions.node_literals[a] != expressions.node_literals[b] ||
+            a_left == -2 || b_left == -2 || a_right == -2 || b_right == -2 ||
+            a_left != b_left || a_right != b_right {
+            return false;
+        }
+        offset = offset + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramPayloadEnumExhaustiveMatchFallthroughReadinessCode(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, fallthrough: Int
+) -> Int {
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+        routine == plan.routines.entrypoint_ordinal ||
+        plan.routines.return_types[routine] == "Void" { return 1; }
+    let first: Int = plan.routines.block_starts[routine];
+    let end: Int = first + plan.routines.block_counts[routine];
+    if fallthrough <= first || fallthrough >= end ||
+        plan.block_succ_true[fallthrough] != -1 ||
+        plan.block_succ_false[fallthrough] != -1 ||
+        plan.block_operation_counts[fallthrough] != 0 ||
+        plan.program.block_condition_expression_rows[fallthrough] != -1 ||
+        plan.program.block_return_expression_rows[fallthrough] != -1 ||
+        DirectMirScalarProgramRoutineBlockIncomingEdgeCount(
+            plan, routine, first) != 0 ||
+        DirectMirScalarProgramRoutineBlockIncomingEdgeCount(
+            plan, routine, fallthrough) != 1 {
+        return 2;
+    }
+    let first_fact: DirectMirScalarProgramPayloadEnumMatchConditionFact =
+        DirectMirScalarProgramPayloadEnumMatchConditionAt(plan, first);
+    if !first_fact.valid { return 3; }
+    let variant_count: Int =
+        plan.program.referenced_enum.variant_counts[first_fact.enum_row];
+    let current: Int = first;
+    let index: Int = 0;
+    while index < variant_count {
+        let fact: DirectMirScalarProgramPayloadEnumMatchConditionFact =
+            DirectMirScalarProgramPayloadEnumMatchConditionAt(plan, current);
+        let expected_incoming: Int = 1;
+        if index == 0 { expected_incoming = 0; }
+        if !DirectMirScalarProgramPayloadEnumMatchScrutineeSame(
+                plan.program.expressions, first_fact, fact) ||
+            plan.program.block_return_expression_rows[current] != -1 ||
+            (index > 0 && plan.block_operation_counts[current] != 0) ||
+            DirectMirScalarProgramRoutineBlockIncomingEdgeCount(
+                plan, routine, current) != expected_incoming {
+            return 4;
+        }
+        let prior_block: Int = first;
+        let prior_index: Int = 0;
+        while prior_index < index {
+            let prior: DirectMirScalarProgramPayloadEnumMatchConditionFact =
+                DirectMirScalarProgramPayloadEnumMatchConditionAt(
+                    plan, prior_block);
+            if !prior.valid || prior.variant_ordinal == fact.variant_ordinal {
+                return 5;
+            }
+            prior_block = plan.block_succ_false[prior_block];
+            prior_index = prior_index + 1;
+        }
+        let returned: Int = plan.block_succ_true[current];
+        let next: Int = plan.block_succ_false[current];
+        if returned < first || returned >= end || returned == fallthrough ||
+            returned == next { return 6; }
+        if index + 1 == variant_count {
+            if next != fallthrough { return 7; }
+        } else {
+            if next <= first || next >= end || next == fallthrough { return 8; }
+            current = next;
+        }
+        index = index + 1;
+    }
+    if current < first || current >= end { return 9; }
+    return 0;
+}
+
+func DirectMirScalarProgramEnumExhaustiveMatchFallthroughReadinessCode(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, fallthrough: Int
+) -> Int {
+    let payload_free: Int =
+        DirectMirScalarProgramPayloadFreeEnumExhaustiveMatchFallthroughReadinessCode(
+            plan, routine, fallthrough);
+    if payload_free == 0 { return 0; }
+    let payload: Int =
+        DirectMirScalarProgramPayloadEnumExhaustiveMatchFallthroughReadinessCode(
+            plan, routine, fallthrough);
+    if payload == 0 { return 0; }
+    return 100 + payload;
+}
+
+func DirectMirScalarProgramEnumExhaustiveMatchFallthroughReady(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, fallthrough: Int
+) -> Bool {
+    return DirectMirScalarProgramEnumExhaustiveMatchFallthroughReadinessCode(
+        plan, routine, fallthrough) == 0;
+}

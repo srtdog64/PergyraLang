@@ -33,12 +33,16 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
     let value_row: Int = plan.program.operation_expression_rows[operation];
     let target_expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
-            plan.program.expressions, target_row, runtime, plan.program.logical_record,
-            plan.program.payload_free_enum, plan.routines, routine, target);
+            plan.program.expressions, target_row, runtime,
+            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.payload_free_enum, plan.program.referenced_enum,
+            plan.routines, routine, target);
     let value_expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
-            plan.program.expressions, value_row, runtime, plan.program.logical_record,
-            plan.program.payload_free_enum, plan.routines, routine, target);
+            plan.program.expressions, value_row, runtime,
+            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.payload_free_enum, plan.program.referenced_enum,
+            plan.routines, routine, target);
     let element_type: String =
         DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
             plan, operation);

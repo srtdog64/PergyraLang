@@ -77,7 +77,13 @@ func DirectMirScalarProgramBuiltinSignatureFactFromName(name: String) -> DirectM
     if ArrayLength(expected) != 3 { return invalid; }
     let runtime_call_abi_id: Int = -1;
     if observability.valid { runtime_call_abi_id = observability.runtime_call_abi_id; if runtime_call_abi_id <= 0 { return invalid; } }
-    if name == "CompilerArtifactWrite" { runtime_call_abi_id = DirectMirScalarProgramCompilerArtifactRuntimeCallAbiId(name); if runtime_call_abi_id <= 0 { return invalid; } }
+    if name == "CompilerArtifactWrite" || name == "CompilerArtifactBegin" ||
+            name == "CompilerArtifactCommit" ||
+            name == "CompilerArtifactAbort" {
+        runtime_call_abi_id =
+            DirectMirScalarProgramCompilerArtifactRuntimeCallAbiId(name);
+        if runtime_call_abi_id <= 0 { return invalid; }
+    }
     let names: Array<String> = []; let returns: Array<String> = [];
     let params: Array<String> = [];
     if !SeedSemanticBuiltinSignatures(names, returns, params) { return invalid; }

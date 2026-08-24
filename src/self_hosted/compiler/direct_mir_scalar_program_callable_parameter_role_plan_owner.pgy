@@ -2,6 +2,7 @@
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 struct DirectMirScalarProgramCallableParameterRolePlan {
     let valid: Bool;
     let direct_scalar_count: Int;
@@ -10,6 +11,7 @@ struct DirectMirScalarProgramCallableParameterRolePlan {
     let logical_record_array_value_result_count: Int;
     let abi_value_count: Int;
     let payload_free_enum_value_count: Int;
+    let payload_enum_value_count: Int;
     let array_int_value_result_count: Int;
     let array_string_value_result_count: Int;
     let set_string_value_result_count: Int;
@@ -17,7 +19,7 @@ struct DirectMirScalarProgramCallableParameterRolePlan {
 }
 func DirectMirScalarProgramCallableParameterRolePlanInvalid() -> DirectMirScalarProgramCallableParameterRolePlan {
     return DirectMirScalarProgramCallableParameterRolePlan(
-        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 func DirectMirScalarProgramCallableParameterRolePlanReady(
     ref plan: DirectMirScalarProgramCallableParameterRolePlan,
@@ -30,6 +32,7 @@ func DirectMirScalarProgramCallableParameterRolePlanReady(
         plan.logical_record_array_value_result_count >= 0 &&
         plan.abi_value_count >= 0 &&
         plan.payload_free_enum_value_count >= 0 &&
+        plan.payload_enum_value_count >= 0 &&
         plan.array_int_value_result_count >= 0 &&
         plan.array_string_value_result_count >= 0 &&
         plan.set_string_value_result_count >= 0 &&
@@ -39,6 +42,7 @@ func DirectMirScalarProgramCallableParameterRolePlanReady(
             plan.logical_record_array_value_result_count +
             plan.abi_value_count +
             plan.payload_free_enum_value_count +
+            plan.payload_enum_value_count +
             plan.array_int_value_result_count +
             plan.array_string_value_result_count +
             plan.set_string_value_result_count +
@@ -92,10 +96,11 @@ func DirectMirScalarProgramAbiValueParameterReady(
         DirectMirScalarProgramCallableParameterSupported(
             signature, ordinal);
 }
-func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
+func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(
     ref signature: DirectMirRoutineSignatureFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramCallableParameterRolePlan {
     if !DirectMirRoutineSignatureFactReady(signature) {
         return DirectMirScalarProgramCallableParameterRolePlanInvalid();
@@ -106,6 +111,7 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
     let logical_record_array_value_result_count: Int = 0;
     let abi_value_count: Int = 0;
     let payload_free_enum_value_count: Int = 0;
+    let payload_enum_value_count: Int = 0;
     let array_int_value_result_count: Int = 0;
     let array_string_value_result_count: Int = 0;
     let set_string_value_result_count: Int = 0;
@@ -130,6 +136,9 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
         let payload_free_enum_value: Bool =
             DirectMirScalarProgramPayloadFreeEnumParameterReady(
                 signature, ordinal, payload_free_enum);
+        let payload_enum_value: Bool =
+            DirectMirScalarProgramPayloadEnumParameterReady(
+                signature, ordinal, referenced_enum);
         let array_int_value_result: Bool =
             DirectMirScalarProgramArrayIntValueResultParameterReady(
                 signature, ordinal);
@@ -149,6 +158,7 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
         }
         if abi_value { claim_count = claim_count + 1; }
         if payload_free_enum_value { claim_count = claim_count + 1; }
+        if payload_enum_value { claim_count = claim_count + 1; }
         if array_int_value_result { claim_count = claim_count + 1; }
         if array_string_value_result { claim_count = claim_count + 1; }
         if set_string_value_result { claim_count = claim_count + 1; }
@@ -175,6 +185,9 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
             payload_free_enum_value_count =
                 payload_free_enum_value_count + 1;
         }
+        if payload_enum_value {
+            payload_enum_value_count = payload_enum_value_count + 1;
+        }
         if array_int_value_result {
             array_int_value_result_count = array_int_value_result_count + 1;
         }
@@ -194,6 +207,7 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
             logical_record_value_result_count,
             logical_record_array_value_result_count,
             abi_value_count, payload_free_enum_value_count,
+            payload_enum_value_count,
             array_int_value_result_count, array_string_value_result_count,
             set_string_value_result_count, array_string_readonly_ref_count);
     if !DirectMirScalarProgramCallableParameterRolePlanReady(
@@ -201,4 +215,15 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
         return DirectMirScalarProgramCallableParameterRolePlanInvalid();
     }
     return plan;
+}
+
+func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
+    ref signature: DirectMirRoutineSignatureFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+) -> DirectMirScalarProgramCallableParameterRolePlan {
+    let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
+        DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
+    return DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(
+        signature, logical_record, payload_free_enum, referenced_enum);
 }

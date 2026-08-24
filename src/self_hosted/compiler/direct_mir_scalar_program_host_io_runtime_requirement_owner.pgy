@@ -12,10 +12,14 @@ struct DirectMirScalarProgramHostIoRuntimeIds {
     let file_exists_id: Int;
     let read_file_id: Int;
     let compiler_artifact_write_id: Int;
+    let compiler_artifact_begin_id: Int;
+    let compiler_artifact_commit_id: Int;
+    let compiler_artifact_abort_id: Int;
 }
 
 func DirectMirScalarProgramHostIoRuntimeIdsEmpty() -> DirectMirScalarProgramHostIoRuntimeIds {
-    return DirectMirScalarProgramHostIoRuntimeIds(false, 0, 0, 0, 0, 0);
+    return DirectMirScalarProgramHostIoRuntimeIds(
+        false, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 func DirectMirScalarProgramHostIoRuntimeRequirement(
@@ -75,6 +79,10 @@ func DirectMirScalarProgramHostIoRuntimeRequirement(
     if walk_required { walk_id = walk.runtime_call_abi_id; }
     if exists_required { exists_id = exists.runtime_call_abi_id; }
     if read_required { read_id = read.runtime_call_abi_id; }
-    return DirectMirScalarProgramHostIoRuntimeIds(true, args_id, walk_id, exists_id, read_id,
-        artifact_write.runtime_call_abi_id);
+    return DirectMirScalarProgramHostIoRuntimeIds(
+        true, args_id, walk_id, exists_id, read_id,
+        artifact_write.runtime_call_abi_id,
+        artifact_write.begin_runtime_call_abi_id,
+        artifact_write.commit_runtime_call_abi_id,
+        artifact_write.abort_runtime_call_abi_id);
 }

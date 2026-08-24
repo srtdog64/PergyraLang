@@ -20,6 +20,7 @@ struct DirectMirScalarProgramExtensionAbiSeal {
     let option_bool: DirectMirOptionMatchAbiFact;
     let nominal: DirectMirScalarProgramTwoIntNominalAbiFact;
     let logical_record: DirectMirScalarProgramLogicalRecordFact;
+    let referenced_enum: DirectMirScalarProgramReferencedEnumFact;
     let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact;
     let array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact;
     let array_bool: DirectMirScalarProgramArrayBoolAbiFact;
@@ -65,6 +66,11 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     } else if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
             route.logical_record, expressions) {
         stage = "logical-record";
+    } else if !DirectMirScalarProgramReferencedEnumReadyForExpressions(
+            route.referenced_enum, expressions) ||
+        !DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(
+            route.referenced_enum, route.payload_free_enum) {
+        stage = "referenced-enum";
     } else if !DirectMirScalarProgramPayloadFreeEnumFactReady(
             route.payload_free_enum) {
         stage = "payload-free-enum";
@@ -87,6 +93,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
             false, stage, runtime, option_int, result_int,
             option_string, option_bool,
             route.nominal, route.logical_record,
+            route.referenced_enum,
             route.payload_free_enum,
             route.array_int_value_result, route.array_bool_abi, array_string,
             boundary);
@@ -108,6 +115,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
                 result_int,
                 option_string, option_bool,
                 route.nominal, route.logical_record,
+                route.referenced_enum,
                 route.payload_free_enum,
                 route.array_int_value_result, route.array_bool_abi,
                 array_string,
@@ -118,6 +126,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
         true, "ready", runtime, option_int, result_int,
         option_string, option_bool,
         route.nominal, route.logical_record,
+        route.referenced_enum,
         route.payload_free_enum,
         route.array_int_value_result, route.array_bool_abi,
         array_string, boundary);

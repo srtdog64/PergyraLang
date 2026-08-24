@@ -16,6 +16,7 @@ import "direct_mir_scalar_program_logical_record_expression_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_expression_admission_failure_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_expression_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_expression_owner.pgy";
 import "direct_mir_scalar_program_leaf_identity_fact_owner.pgy";
 func DirectMirScalarProgramAppendExpression(
     facts: DirectMirScalarProgramExpressionSet,
@@ -30,6 +31,7 @@ func DirectMirScalarProgramAppendExpression(
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     graph_field: String, inout use_offset: Int,
     require_all_uses: Bool, expected_type: String,
     try_operand_only: Bool, source_root_override: Int
@@ -197,6 +199,28 @@ func DirectMirScalarProgramAppendExpression(
                 call_arguments = constructor.argument_rows;
                 type_name = constructor.type_name;
             } else {
+            let payload_constructor:
+                DirectMirScalarProgramPayloadEnumConstructorFact =
+                    DirectMirScalarProgramPayloadEnumConstructorFromGraph(
+                        sequence, node, source_rows, types, referenced_enum);
+            if payload_constructor.recognized {
+                if !payload_constructor.valid {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "payload-enum-constructor", node);
+                }
+                if !payload_constructor.complete {
+                    ArrayPush(source_rows, -1); node = node + 1; continue;
+                }
+                if consumed_calls[payload_constructor.call_node] {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "payload-enum-constructor-consumption", node);
+                }
+                consumed_calls[payload_constructor.call_node] = true;
+                kind = DirectMirScalarProgramExprPayloadEnumConstructor();
+                call_arguments = payload_constructor.argument_rows;
+                type_name = payload_constructor.type_name;
+                member_ordinal = payload_constructor.variant_ordinal;
+            } else {
             let call: DirectMirScalarProgramBuiltinCallFact =
                 DirectMirScalarProgramBuiltinCallFactFromGraph(
                     sequence, node, source_rows, types, expected_type,
@@ -246,6 +270,7 @@ func DirectMirScalarProgramAppendExpression(
                 type_name = direct.return_type;
             }
             }
+            }
             if ArrayLength(call_arguments) == 1 {
                 left = call_arguments[0];
             } else if ArrayLength(call_arguments) == 2 {
@@ -255,11 +280,20 @@ func DirectMirScalarProgramAppendExpression(
             let absence_expected_type: String = DirectMirScalarProgramDirectCallArgumentExpectedType(
                     sequence, node, callables);
             if absence_expected_type == "" { absence_expected_type = expected_type; }
+            let enum_leaf:
+                DirectMirScalarProgramPayloadFreeEnumExpressionFact =
+                DirectMirScalarProgramPayloadFreeEnumLeafVariant(
+                    sequence, node, absence_expected_type,
+                    payload_free_enum);
             let absence: DirectMirScalarProgramExpressionKindFact =
                 DirectMirScalarProgramOptionAbsenceExpressionKind(
                     sequence.arena.node_texts[node], absence_expected_type,
                     logical_record);
-            if absence.valid && sequence.arena.identities.binding_kinds[node] ==
+            if enum_leaf.valid {
+                kind = enum_leaf.kind;
+                type_name = enum_leaf.type_name;
+                member_ordinal = enum_leaf.variant_ordinal;
+            } else if absence.valid && sequence.arena.identities.binding_kinds[node] ==
                     SemanticExpressionBindingNone() {
                 kind = absence.kind;
                 type_name = absence.type_name;

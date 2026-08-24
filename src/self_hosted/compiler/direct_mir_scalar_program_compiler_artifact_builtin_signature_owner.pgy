@@ -5,14 +5,40 @@ import "runtime_call_abi_structured_fact_owner.pgy";
 func DirectMirScalarProgramCompilerArtifactBuiltinSignatureExpected(
     name: String
 ) -> Array<String> {
-    if name != "CompilerArtifactWrite" { return []; }
-    return ["Bool", "Int|String", ToString(
-        DirectMirScalarProgramExprCompilerArtifactWrite())];
+    if name == "CompilerArtifactWrite" {
+        return ["Bool", "Int|String", ToString(
+            DirectMirScalarProgramExprCompilerArtifactWrite())];
+    }
+    if name == "CompilerArtifactBegin" {
+        return ["Int", "String", ToString(
+            DirectMirScalarProgramExprCompilerArtifactBegin())];
+    }
+    if name == "CompilerArtifactCommit" {
+        return ["Int", "Int", ToString(
+            DirectMirScalarProgramExprCompilerArtifactCommit())];
+    }
+    if name == "CompilerArtifactAbort" {
+        return ["Int", "Int", ToString(
+            DirectMirScalarProgramExprCompilerArtifactAbort())];
+    }
+    return [];
 }
 func DirectMirScalarProgramCompilerArtifactRuntimeCallAbiId(name: String) -> Int {
-    if name != "CompilerArtifactWrite" { return -1; }
-    let row: CompilerRuntimeCallAbiFact =
-        CompilerRuntimeCallAbiCompilerArtifactWriteFact();
-    if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(row) { return -1; }
+    let row: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFactMissing();
+    let ready: Bool = false;
+    if name == "CompilerArtifactWrite" {
+        row = CompilerRuntimeCallAbiCompilerArtifactWriteFact();
+        ready = CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(row);
+    } else if name == "CompilerArtifactBegin" {
+        row = CompilerRuntimeCallAbiCompilerArtifactBeginFact();
+        ready = CompilerRuntimeCallAbiCompilerArtifactBeginFactReady(row);
+    } else if name == "CompilerArtifactCommit" {
+        row = CompilerRuntimeCallAbiCompilerArtifactCommitFact();
+        ready = CompilerRuntimeCallAbiCompilerArtifactCommitFactReady(row);
+    } else if name == "CompilerArtifactAbort" {
+        row = CompilerRuntimeCallAbiCompilerArtifactAbortFact();
+        ready = CompilerRuntimeCallAbiCompilerArtifactAbortFactReady(row);
+    }
+    if !ready { return -1; }
     return row.runtime_call_abi_id;
 }

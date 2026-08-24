@@ -17,6 +17,7 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_payload_free_enum_value_parame
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy"
+REFERENCED_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy"
 EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy"
 EXPRESSION_READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy"
 KIND_IDS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
@@ -30,8 +31,10 @@ fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'MirProgramEnumVariantPayloadFreeAt(' "$OWNER" ||
-    fail "enum owner does not consume payload-free variant identity"
+grep -Fq 'enum_index.param_counts[variant_row]' "$REFERENCED_OWNER" ||
+    fail "referenced enum owner does not consume declaration payload arity"
+grep -Fq 'referenced.variant_param_counts[source_variant]' "$OWNER" ||
+    fail "payload-free projection does not consume referenced enum arity"
 grep -Fq 'fact.representation != "scalar-ordinal"' "$OWNER" ||
     fail "enum owner does not pin scalar-ordinal representation"
 grep -Fq 'payload_free_enum_value_count' "$ROLE_PLAN" ||
@@ -42,6 +45,8 @@ grep -Fq 'DirectMirScalarProgramPayloadFreeEnumTypeReady(' "$CALLABLE_SIGNATURE"
     fail "callable signature omits the declaration-keyed enum return role"
 grep -Fq 'DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(' "$EXPRESSION_OWNER" ||
     fail "enum expression owner omits declaration-owned variant projection"
+grep -Fq 'DirectMirScalarProgramPayloadFreeEnumLeafVariant(' "$EXPRESSION_OWNER" ||
+    fail "enum expression owner omits typed unqualified variant projection"
 grep -Fq 'DirectMirScalarProgramPayloadFreeEnumComparisonKindFact(' "$EXPRESSION_OWNER" ||
     fail "enum expression owner omits exact equality classification"
 grep -Fq 'DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(' "$EXPRESSION_READY" ||
@@ -50,6 +55,8 @@ grep -Fq 'DirectMirScalarProgramExprPayloadFreeEnumVariant() -> Int { return 90;
     fail "enum variant expression identity drifted"
 grep -Fq 'DirectMirScalarProgramExprEqualPayloadFreeEnum() -> Int { return 91; }' "$KIND_IDS" ||
     fail "enum equality expression identity drifted"
+grep -Fq 'DirectMirScalarProgramExprNotEqualPayloadFreeEnum() -> Int { return 119; }' "$KIND_IDS" ||
+    fail "enum inequality expression identity drifted"
 grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
     fail "GraphPlan schema did not advance for enum expressions"
 llvm_direct_body="$(awk '/^func DirectMirScalarProgramLlvmDirectCallExpressionAt\(/,/^}/' "$LLVM_DIRECT")"
@@ -61,6 +68,10 @@ grep -Fq 'ToneOrdinal(EchoTone(Tone.Warm))' "$ROOT_DIR/$SOURCE_REL" ||
     fail "fixture omits a returned enum value consumed by another call"
 grep -Fq 'ToneName(EchoTone(Tone.Cool))' "$ROOT_DIR/$SOURCE_REL" ||
     fail "fixture omits a returned enum value passed to a String-return call"
+grep -Fq 'return Warm;' "$ROOT_DIR/$SOURCE_REL" ||
+    fail "fixture omits a typed unqualified enum return"
+grep -Fq 'return left != right;' "$ROOT_DIR/$SOURCE_REL" ||
+    fail "fixture omits enum inequality"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
@@ -78,7 +89,7 @@ grep -Fq '"type":"Tone","carriage":"value"' "$MIR" ||
     fail "producer omitted the Tone value parameter"
 grep -Fq '"type":"Direction","carriage":"value"' "$MIR" ||
     fail "producer omitted the Direction value parameter"
-printf '1\n0\n1\n0\nwarm\ncool\npayload-free-enum-parameter-ready\n' \
+printf '1\n0\n1\n0\nwarm\ncool\n1\n1\n0\npayload-free-enum-parameter-ready\n' \
     >"$WORK_DIR/expected.run"
 
 for backend in c llvm; do
@@ -127,7 +138,8 @@ for mutation in enum-parameter-carriage enum-parameter-physical-abi \
     enum-variant-payload enum-missing-declaration enum-declaration-kind \
     enum-return-collection enum-expression-wrong-owner \
     enum-expression-wrong-variant enum-expression-missing-binding \
-    enum-expression-wrong-type enum-match-duplicate-variant; do
+    enum-expression-wrong-type enum-match-duplicate-variant \
+    enum-unqualified-variant-missing enum-inequality-wrong-type; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

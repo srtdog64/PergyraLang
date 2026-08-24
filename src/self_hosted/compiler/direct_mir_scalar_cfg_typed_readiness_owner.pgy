@@ -166,7 +166,9 @@ func DirectMirScalarCfgTypedPlanReady(
                 DirectMirScalarProgramLogicalRecordTypeReady(
                     plan.program.logical_record, type_name) ||
                 DirectMirScalarProgramLogicalRecordArrayTypeReady(plan.program.logical_record, type_name) ||
-                DirectMirScalarProgramLogicalRecordOptionTypeReady(plan.program.logical_record, type_name);
+                DirectMirScalarProgramLogicalRecordOptionTypeReady(plan.program.logical_record, type_name) ||
+                DirectMirScalarProgramPayloadEnumTypeReady(
+                    plan.program.referenced_enum, type_name);
         }
         if !type_ready { return false; }
         row = row + 1;

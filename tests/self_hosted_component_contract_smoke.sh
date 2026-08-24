@@ -3879,8 +3879,8 @@ require_file "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy"
 require_file "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy"
 require_file "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy"
 require_file "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt"
-require_max_lines "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" 600
-require_max_lines "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" 620
+require_max_lines "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" 680
 require_max_lines "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy"
@@ -3936,14 +3936,19 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 'impor
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "func CompilerRuntimeCallAbiManifestRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "CompilerRuntimeCallAbiConcreteRowCount()"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "schema=pgy.selfhost.runtime-call-abi-row.v2"
-require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=259"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=262"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
     '256|host-io|compiler-artifact-write|pgy_compiler_artifact_write|function|target_library|int_string_to_bool'
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
     '257|selfhost-c-text-builder|allocator.pool|pgy_allocator_pool|function|generated_runtime_helper|capacity_to_allocator'
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
     '258|string|bool-to-string|pgy_bool_to_string|function|generated_runtime_helper|bool_to_string'
-require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=259"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
+    '259|host-io|compiler-artifact-begin|pgy_compiler_artifact_begin|function|target_library|string_to_int'
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
+    '260|host-io|compiler-artifact-commit|pgy_compiler_artifact_commit|function|target_library|int_to_int'
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
+    '261|host-io|compiler-artifact-abort|pgy_compiler_artifact_abort|function|target_library|int_to_int'
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "243|checked-arithmetic|float-to-int|pgy_checked_f2i_i32_export|function|target_library|double_to_int"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "244|checked-arithmetic|float-to-long|pgy_checked_f2i_i64_export|function|target_library|double_to_long"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "245|string|substring-with-len|pgy_substr_with_len|function|generated_runtime_helper|string_int_int_int_to_string"
@@ -16860,19 +16865,19 @@ require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
-    "func DirectMirScalarProgramCallableParameterRolePlanFromSignature(" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
-    "func DirectMirScalarProgramCallableParameterRolePlanFromSignature(" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordValueResultParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
-    "func DirectMirScalarProgramCallableParameterRolePlanFromSignature(" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
     "DirectMirScalarProgramDirectScalarParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
-    "func DirectMirScalarProgramCallableParameterRolePlanFromSignature(" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
     "DirectMirScalarProgramAbiValueParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
@@ -16884,7 +16889,7 @@ require_function_text \
     "CompilerAbiLayoutArrayStringTypeName()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
-    "func DirectMirScalarProgramCallableParameterRolePlanFromSignature(" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
     "claim_count != 1"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
@@ -17058,7 +17063,7 @@ require_function_text \
     "plan.array_string_value_result_count"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
-    "func DirectMirScalarProgramCallableParameterRolePlanFromSignature(" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
     "if array_string_value_result"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
@@ -17110,11 +17115,11 @@ reject_function_text \
     "DirectMirScalarProgramArrayStringValueResultSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
-    "DirectMirScalarProgramComposableCallableSignatureReady("
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
+    "DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramComposableCallableSignatureReady(" \
+    "func DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordTypeReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy" \
@@ -17122,7 +17127,7 @@ require_function_text \
     "DirectMirScalarProgramComposableCallableSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "logical_record_return && !composable_callable"
 reject_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_callable_owner.pgy"
@@ -17270,7 +17275,7 @@ require_function_text \
     "type_name == CompilerAbiLayoutArrayIntTypeName()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "let array_int_return: Bool ="
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_fact_owner.pgy" \
@@ -17749,7 +17754,7 @@ require_function_text \
     'signature.parameters.carriages[ordinal] == "value"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "int_or_option && !composable_callable"
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_type_family_owner.pgy" \
@@ -17864,7 +17869,7 @@ require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_zero_parameter_callable_owner.sh" 180
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "signature.param_count == 0"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy" \
@@ -17896,11 +17901,11 @@ require_text \
     'parameter_row] == "readonly-ref"'
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy" \
-    "DirectMirScalarProgramCallableRouteEnvelopeAssess("
+    "DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy" \
     "func DirectMirScalarProgramRouteAdmissionFromAdmitted(" \
-    "DirectMirScalarProgramCallableSignatureSupportedWithFacts("
+    "DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum("
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy" \
     '"callable-signature", "signature-family"'
@@ -18153,7 +18158,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy" \
     "func DirectMirScalarCfgProgramRouteDefinition(" \
-    'payload_free_enum, "expr1_graph", use_offset, false'
+    'payload_free_enum, referenced_enum, "expr1_graph", use_offset, false'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_runtime_value_lifecycle_owner.pgy" \
     "func DirectMirScalarProgramRuntimeValueLocalReady(" \
@@ -18208,7 +18213,7 @@ require_function_text \
     'signature.parameters.pass_shapes[ordinal] == "indirect"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordValueResultSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
@@ -18304,11 +18309,11 @@ require_function_text \
     "record_array_element_type != record_value_type"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy" \
-    "func DirectMirScalarProgramCallableRouteEnvelopeAssess(" \
+    "func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordArrayValueResultSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordArrayValueResultSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_target_owner.pgy" \
@@ -18323,11 +18328,11 @@ require_function_text \
     "DirectMirArrayLiteralEmptyReady(sequence)"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy" \
-    "func DirectMirScalarCfgLocalInventoryReady(" \
+    "func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordArrayTypeReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" \
-    "func DirectMirScalarCfgValueTypePlanFromOwners(" \
+    "func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordArrayTypeReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy" \
@@ -18388,7 +18393,7 @@ reject_function_text \
     "DirectMirScalarProgramLogicalRecordArrayValueResultSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
-    "func DirectMirScalarProgramCallableParameterRolePlanFromSignature(" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
     "logical_record_array_value_result_count"
 require_text \
     "tests/self_hosted/fixtures/direct_mir_logical_record_array_value_result.pgy" \
@@ -18436,7 +18441,7 @@ require_function_text \
     "DirectMirScalarProgramLogicalRecordArrayValueParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady("
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
@@ -19169,7 +19174,7 @@ require_max_lines \
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy" 150
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy"
 require_max_lines \
@@ -19182,6 +19187,10 @@ require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy" 240
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" 220
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy" \
     "func DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(" \
@@ -19209,7 +19218,11 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy" \
     "func DirectMirScalarCfgProgramExtensionReadinessCode(" \
-    "DirectMirScalarProgramPayloadFreeEnumExhaustiveMatchFallthroughReady("
+    "DirectMirScalarProgramEnumExhaustiveMatchFallthroughReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" \
+    "func DirectMirScalarProgramPayloadEnumExhaustiveMatchFallthroughReadinessCode(" \
+    "plan.program.referenced_enum.variant_counts[first_fact.enum_row]"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
     "func DirectMirScalarCfgProgramCRoutine(" \
@@ -19224,6 +19237,14 @@ reject_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy" \
     "func DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(" \
+    "DirectMirScalarProgramReferencedEnumFactFromAdmitted("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy" \
+    "func DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(" \
+    "DirectMirScalarProgramPayloadFreeEnumFactFromReferenced("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy" \
+    "func DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(" \
     "MirProgramEnumVariantPayloadFreeAt("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy" \
@@ -19235,11 +19256,11 @@ require_function_text \
     "DirectMirScalarProgramPayloadFreeEnumParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramComposableCallableSignatureReady(" \
+    "func DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(" \
     "DirectMirScalarProgramPayloadFreeEnumTypeReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
-    "func DirectMirScalarProgramCallableParameterRolePlanFromSignature(" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
     "DirectMirScalarProgramPayloadFreeEnumParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
@@ -19256,7 +19277,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
-    "DirectMirScalarProgramPayloadFreeEnumTypeReady("
+    "DirectMirScalarProgramPayloadEnumTypeReady("
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
@@ -19269,11 +19290,21 @@ require_file \
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_owner.sh" 150
+    "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_owner.sh" 175
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py"
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py" 100
+    "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py" 130
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_payload_enum_match_binding.pgy"
+require_file \
+    "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_owner.sh" 110
+require_file \
+    "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_mutations.py" 50
 require_text \
     "tests/self_hosted/fixtures/direct_mir_payload_free_enum_value_parameter.pgy" \
     "func DirectionLabel(id: Direction) -> String"
@@ -19503,7 +19534,7 @@ require_function_text \
     "DirectMirScalarProgramLogicalRecordMixedCollectionValueResultParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "logical_record_mixed_collection_value_result"
 require_file \
     "tests/self_hosted/fixtures/direct_mir_logical_record_mixed_collection_value_result.pgy"
@@ -19543,7 +19574,7 @@ require_function_text \
     "DirectMirScalarProgramBoolMixedCollectionValueResultParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramBoolMixedCollectionValueResultSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
@@ -19573,11 +19604,11 @@ require_function_text \
     "CompilerAbiLayoutArrayIntTypeName()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy" \
-    "func DirectMirScalarProgramCallableRouteEnvelopeAssess(" \
+    "func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(" \
     "DirectMirScalarProgramVoidLogicalRecordArrayIntValueResultSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramVoidLogicalRecordArrayIntValueResultSignatureReady("
 require_file \
     "tests/self_hosted/fixtures/direct_mir_void_logical_record_array_int_value_result.pgy"
@@ -19635,7 +19666,7 @@ reject_function_text \
     "DirectMirScalarProgramLogicalRecordValueResultSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordInputsValueResultSignatureReady("
 require_file \
     "tests/self_hosted/fixtures/direct_mir_logical_record_inputs_value_result.pgy"
@@ -19682,7 +19713,7 @@ require_function_text \
     "DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramReadonlyLogicalRecordArrayStringValueResultSignatureReady("
 require_file \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_two_array_string_value_result.pgy"
@@ -19757,7 +19788,7 @@ require_function_text \
     "DirectMirScalarProgramBoolTwoArrayStringTwoArrayIntValueResultParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramBoolTwoArrayStringTwoArrayIntValueResultSignatureReady("
 require_file \
     "tests/self_hosted/fixtures/direct_mir_bool_two_array_string_two_array_int_value_result.pgy"
@@ -19790,11 +19821,11 @@ require_function_text \
     'carriage = "readonly-ref"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy" \
-    "func DirectMirScalarProgramCallableRouteEnvelopeAssess(" \
+    "func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(" \
     "DirectMirScalarProgramReadonlyLogicalRecordArrayBoolReturnSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramReadonlyLogicalRecordArrayBoolReturnSignatureReady("
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_bool_abi_owner.pgy" \
@@ -19846,15 +19877,15 @@ require_function_text \
     "DirectMirScalarProgramOwnedLogicalRecordReturnSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramOwnedLogicalRecordReturnSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     'signature.parameters.type_names[0] == signature.return_type'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     'signature.parameters.carriages[0] == "value-result"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy" \
@@ -20291,7 +20322,7 @@ require_function_text \
     "DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramReadonlyLogicalRecordStringArrayStringValueResultSignatureReady("
 require_file \
     "tests/self_hosted/fixtures/direct_mir_readonly_logical_record_string_array_string_value_result.pgy"
@@ -20372,7 +20403,7 @@ require_function_text \
     "DirectMirScalarProgramLogicalRecordReturnArrayStringValueResultParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramLogicalRecordReturnArrayStringValueResultSignatureReady("
 require_file \
     "tests/self_hosted/fixtures/direct_mir_logical_record_return_array_string_value_result.pgy"
@@ -20427,11 +20458,11 @@ require_function_text \
     "DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultParameterReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy" \
-    "func DirectMirScalarProgramCallableRouteEnvelopeAssess(" \
+    "func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(" \
     "DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady("
 require_file \
     "tests/self_hosted/fixtures/direct_mir_void_logical_record_array_string_value_result.pgy"
@@ -20498,19 +20529,19 @@ require_function_text \
     "DirectMirScalarProgramCallableParameterSupported("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramComposableCallableSignatureReady(" \
+    "func DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(" \
     "DirectMirScalarCfgScalarTypeSupported(signature.return_type)"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramComposableCallableSignatureReady(" \
-    "DirectMirScalarProgramCallableParameterRolePlanFromSignature("
+    "func DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(" \
+    "DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramComposableCallableSignatureReady(" \
+    "func DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum(" \
     "let option_return: Bool"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "(option_string || option_bool) && !composable_callable"
 reject_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_direct_scalar_callable_owner.pgy"
@@ -20518,16 +20549,16 @@ require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_process_exit_owner.pgy"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
-    "DirectMirScalarProgramComposableCallableSignatureReady("
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
+    "DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "int_or_option && !composable_callable"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy" \
-    "func DirectMirScalarProgramCallableRouteEnvelopeAssess(" \
-    "DirectMirScalarProgramComposableCallableSignatureReady("
+    "func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(" \
+    "DirectMirScalarProgramComposableCallableSignatureReadyWithReferencedEnum("
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
     "DirectMirScalarProgramVoidScalarCallableSignatureReady("
@@ -20585,14 +20616,32 @@ require_function_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExprPrintString() -> Int { return 99; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    "func DirectMirScalarProgramExprPayloadEnumConstructor() -> Int { return 114; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    "func DirectMirScalarProgramExprPayloadEnumMatch() -> Int { return 115; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    "func DirectMirScalarProgramExprCompilerArtifactBegin() -> Int { return 116; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    "func DirectMirScalarProgramExprCompilerArtifactCommit() -> Int { return 117; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    "func DirectMirScalarProgramExprCompilerArtifactAbort() -> Int { return 118; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    "func DirectMirScalarProgramExprNotEqualPayloadFreeEnum() -> Int { return 119; }"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExpressionKindLast(" \
-    "DirectMirScalarProgramExprToStringBool()"
+    "DirectMirScalarProgramExprNotEqualPayloadFreeEnum()"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy" 45
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy" \
     "func DirectMirScalarProgramCompilerArtifactBuiltinSignatureExpected(" \
@@ -20604,7 +20653,7 @@ require_function_text \
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy" 35
+    "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy" 65
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_expression_readiness_owner.pgy" \
     "func DirectMirScalarProgramCompilerArtifactExpressionNodeReady(" \
@@ -20632,7 +20681,7 @@ require_function_text \
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy" 25
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy" 40
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_compiler_artifact_expression_owner.pgy" \
     "func DirectMirScalarProgramCCompilerArtifactExpression(" \
@@ -20643,7 +20692,7 @@ reject_text \
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy" 60
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy" 125
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(" \
@@ -21059,11 +21108,11 @@ reject_function_text \
     "signature.param_count < 1"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy" \
-    "func DirectMirScalarProgramCallableSignatureSupportedWithFacts(" \
+    "func DirectMirScalarProgramCallableSignatureSupportedWithReferencedEnum(" \
     "DirectMirScalarProgramOwnedArrayStringReturnSignatureReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy" \
-    "func DirectMirScalarProgramCallableRouteEnvelopeAssess(" \
+    "func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(" \
     "DirectMirScalarProgramOwnedArrayStringReturnSignatureReady("
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
@@ -21269,7 +21318,7 @@ src/self_hosted/compiler/direct_mir_constructed_generic_member_declaration_fact_
 src/self_hosted/compiler/direct_mir_enum_value_match_plan_owner.pgy|func DirectMirEnumValueMatchPlanFactFromOwners(|8|7
 src/self_hosted/compiler/direct_mir_inferred_generic_member_declaration_fact_owner.pgy|func DirectMirInferredGenericMemberDeclarationFactFromDocument(|7|6
 src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy|func DirectMirNominalLiteralDeclarationFactFromIndex(|7|6
-src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy|func DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(|8|7
+src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy|func DirectMirScalarProgramReferencedEnumFactFromAdmitted(|8|7
 DIRECT_MIR_DECLARATION_PROVENANCE_CONSUMERS
 require_file \
     "src/self_hosted/compiler/direct_mir_struct_argument_graph_fact_owner.pgy"
@@ -22572,7 +22621,7 @@ require_function_text \
     'source_type == "Option<Unknown>"'
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" 130
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" 155
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy" 200
@@ -22667,7 +22716,7 @@ require_function_text \
     'graph_field == "expr0_graph"'
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy" 45
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" 300
@@ -23218,7 +23267,7 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_hash_owner.pgy" 30
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy" 105
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy" 130
 require_function_text \
     "src/self_hosted/compiler/direct_mir_routine_parameter_set_fact_owner.pgy" \
     "func DirectMirRoutineValueParameterTypeAtName(" \
@@ -23237,11 +23286,11 @@ require_function_text \
     "DirectMirRoutineLocalParameterOrdinalAtName("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy" \
-    "func DirectMirScalarCfgLocalInventoryReady(" \
+    "func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(" \
     "DirectMirRoutineLocalParameterTypeAtName("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy" \
-    "func DirectMirScalarCfgLocalInventoryReady(" \
+    "func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(" \
     "DirectMirScalarCfgSourceLocalTypeMatchesResolved("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy" \
@@ -23277,15 +23326,15 @@ require_function_text \
     "DirectMirRoutineLocalParameterOrdinalAtName("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" \
-    "func DirectMirScalarCfgValueTypePlanFromOwners(" \
+    "func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(" \
     "parameter_type != type_name"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" \
-    "func DirectMirScalarCfgValueTypePlanFromOwners(" \
+    "func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(" \
     "DirectMirRoutineLocalParameterTypeAtName("
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" \
-    "func DirectMirScalarCfgValueTypePlanFromOwners(" \
+    "func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(" \
     "DirectMirRoutineValueParameterTypeAtName("
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy" \
@@ -23564,11 +23613,11 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy" 220
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" 125
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" 135
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy" 200
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy" 210
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy" 120
@@ -23669,7 +23718,7 @@ require_max_lines \
 require_file "src/self_hosted/mir/local_ref_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir/local_ref_fact_owner.pgy" 180
 require_file "src/self_hosted/mir/local_ref_identity_owner.pgy"
-require_max_lines "src/self_hosted/mir/local_ref_identity_owner.pgy" 40
+require_max_lines "src/self_hosted/mir/local_ref_identity_owner.pgy" 55
 require_file "src/self_hosted/mir/local_ref_json_projection_owner.pgy"
 require_max_lines "src/self_hosted/mir/local_ref_json_projection_owner.pgy" 115
 require_file "src/self_hosted/mir/routine_local_ref_attachment_owner.pgy"

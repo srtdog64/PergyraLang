@@ -6,6 +6,7 @@ import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "../mir_lower/routine_result_definition_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 
 struct DirectMirScalarCfgValueTypePlan {
@@ -20,11 +21,12 @@ func DirectMirScalarCfgValueTypePlanInvalid(
     return DirectMirScalarCfgValueTypePlan(false, strings, strings);
 }
 
-func DirectMirScalarCfgValueTypePlanFromOwners(
+func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
     ref index: MirRoutineFactIndex,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref foreach_elements: DirectMirScalarCfgForEachElementFacts,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref parameters: DirectMirRoutineParameterSetFact
 ) -> DirectMirScalarCfgValueTypePlan {
     let invalid: DirectMirScalarCfgValueTypePlan =
@@ -84,6 +86,10 @@ func DirectMirScalarCfgValueTypePlanFromOwners(
             type_name = DirectMirScalarCfgForEachElementTypeAtLoopSyntaxId(
                 foreach_elements, locals.local_ref_syntax_ids[local_binding]
             );
+        } else if locals.local_ref_kinds[local_binding] ==
+                DirectMirScalarCfgLocalRefMatchBinding() {
+            type_name = MirRoutineFactIndexSourceLocalType(
+                index, locals.local_names[local_binding]);
         }
         if !DirectMirScalarCfgSourceLocalTypeSupported(type_name) &&
             !CompilerRuntimeValueTypeReady(type_name) &&
@@ -92,7 +98,9 @@ func DirectMirScalarCfgValueTypePlanFromOwners(
             !DirectMirScalarProgramLogicalRecordArrayTypeReady(
                 logical_record, type_name) &&
             !DirectMirScalarProgramLogicalRecordOptionTypeReady(
-                logical_record, type_name) {
+                logical_record, type_name) &&
+            !DirectMirScalarProgramPayloadEnumTypeReady(
+                referenced_enum, type_name) {
             return invalid;
         }
         let parameter_type: String = DirectMirRoutineLocalParameterTypeAtName(
@@ -114,6 +122,20 @@ func DirectMirScalarCfgValueTypePlanFromOwners(
     return DirectMirScalarCfgValueTypePlan(
         true, local_types, value_types
     );
+}
+
+func DirectMirScalarCfgValueTypePlanFromOwners(
+    ref index: MirRoutineFactIndex,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref foreach_elements: DirectMirScalarCfgForEachElementFacts,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref parameters: DirectMirRoutineParameterSetFact
+) -> DirectMirScalarCfgValueTypePlan {
+    let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
+        DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
+    return DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
+        index, locals, foreach_elements, logical_record, referenced_enum,
+        parameters);
 }
 
 func DirectMirScalarCfgOperandType(

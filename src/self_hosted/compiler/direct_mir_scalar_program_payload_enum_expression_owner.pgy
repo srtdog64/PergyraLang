@@ -1,0 +1,74 @@
+// Tagged payload-enum constructors admitted from declaration-owned variants.
+
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
+
+struct DirectMirScalarProgramPayloadEnumConstructorFact {
+    let recognized: Bool;
+    let valid: Bool;
+    let complete: Bool;
+    let type_name: String;
+    let variant_ordinal: Int;
+    let variant_row: Int;
+    let argument_rows: Array<Int>;
+    let call_node: Int;
+}
+
+func DirectMirScalarProgramPayloadEnumConstructorMissing(
+) -> DirectMirScalarProgramPayloadEnumConstructorFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramPayloadEnumConstructorFact(
+        false, false, false, "", -1, -1, rows, -1);
+}
+
+func DirectMirScalarProgramPayloadEnumConstructorFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    source_rows: Array<Int>, normalized_types: Array<String>,
+    ref fact: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarProgramPayloadEnumConstructorFact {
+    let missing: DirectMirScalarProgramPayloadEnumConstructorFact =
+        DirectMirScalarProgramPayloadEnumConstructorMissing();
+    if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeCallArgument() {
+        return missing;
+    }
+    let chain: DirectMirScalarProgramBuiltinArgumentChain =
+        DirectMirScalarProgramBuiltinArgumentChainFromGraph(
+            sequence, node, source_rows, normalized_types);
+    if !chain.valid { return missing; }
+    let variant_name: String =
+        sequence.arena.call_target_names[chain.call_node];
+    let variant_row: Int =
+        DirectMirScalarProgramPayloadEnumVariantRowForName(
+            fact, variant_name);
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRowForVariant(
+        fact, variant_row);
+    if sequence.arena.identities.call_target_syntax_ids[chain.call_node] != 0 ||
+        sequence.arena.call_target_kinds[chain.call_node] !=
+            SemanticCallTargetDirect() || enum_row < 0 ||
+        fact.payload_flags[enum_row] != 1 {
+        return missing;
+    }
+    let count: Int = ArrayLength(chain.argument_rows);
+    if count > fact.variant_param_counts[variant_row] {
+        return DirectMirScalarProgramPayloadEnumConstructorFact(
+            true, false, false, "", -1, variant_row,
+            chain.argument_rows, chain.call_node);
+    }
+    let ordinal: Int = 0;
+    while ordinal < count {
+        if normalized_types[chain.argument_rows[ordinal]] !=
+            fact.variant_param_types[
+                fact.variant_param_type_starts[variant_row] + ordinal] {
+            return DirectMirScalarProgramPayloadEnumConstructorFact(
+                true, false, false, "", -1, variant_row,
+                chain.argument_rows, chain.call_node);
+        }
+        ordinal = ordinal + 1;
+    }
+    return DirectMirScalarProgramPayloadEnumConstructorFact(
+        true, true, count == fact.variant_param_counts[variant_row],
+        fact.names[enum_row], variant_row - fact.variant_starts[enum_row],
+        variant_row, chain.argument_rows, chain.call_node);
+}

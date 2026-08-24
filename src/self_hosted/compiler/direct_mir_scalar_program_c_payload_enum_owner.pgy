@@ -1,0 +1,86 @@
+// C tagged-union projection for declaration-owned payload enums.
+// Variant field spellings are internal ordinals; declaration names and
+// payload order remain owned by the referenced-enum fact.
+
+import "direct_mir_scalar_cfg_program_c_signature_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+
+func DirectMirScalarProgramCPayloadEnumPreamble(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    int_c_type: String
+) -> String {
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) ||
+        int_c_type == "" {
+        Die("direct MIR scalar C payload-enum fact is invalid");
+    }
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        if fact.payload_flags[row] == 1 {
+            let enum_type: String =
+                DirectMirScalarProgramCPayloadEnumTypeNameAt(row);
+            let tag_type: String =
+                DirectMirScalarProgramCPayloadEnumTagTypeNameAt(row);
+            output = Concat(output, "typedef enum {\n");
+            let ordinal: Int = 0;
+            while ordinal < fact.variant_counts[row] {
+                output = Concat(output, "    PGY_SCALAR_PAYLOAD_ENUM_");
+                output = Concat(output, ToString(row));
+                output = Concat(output, "_TAG_");
+                output = Concat(output, ToString(ordinal));
+                output = Concat(output, " = ");
+                output = Concat(output, ToString(ordinal));
+                if ordinal + 1 < fact.variant_counts[row] {
+                    output = Concat(output, ",");
+                }
+                output = Concat(output, "\n");
+                ordinal = ordinal + 1;
+            }
+            output = Concat(output, "} ");
+            output = Concat(output, tag_type);
+            output = Concat(output, ";\n");
+            output = Concat(output, "typedef struct {\n    ");
+            output = Concat(output, tag_type);
+            output = Concat(output, " tag;\n    union {\n");
+            ordinal = 0;
+            while ordinal < fact.variant_counts[row] {
+                let variant: Int = fact.variant_starts[row] + ordinal;
+                if fact.variant_param_counts[variant] > 0 {
+                    output = Concat(output, "        struct { ");
+                    let parameter: Int = 0;
+                    while parameter < fact.variant_param_counts[variant] {
+                        let payload_type: String =
+                            DirectMirScalarCfgProgramCTypeWithReferencedEnum(
+                                fact.variant_param_types[
+                                    fact.variant_param_type_starts[variant] +
+                                        parameter],
+                                int_c_type, nominal, logical_record,
+                                payload_free_enum, fact);
+                        if payload_type == "" {
+                            Die("direct MIR scalar C enum payload type is unsupported");
+                        }
+                        output = Concat(output, payload_type);
+                        output = Concat(output, " _");
+                        output = Concat(output, ToString(parameter));
+                        output = Concat(output, "; ");
+                        parameter = parameter + 1;
+                    }
+                    output = Concat(output, "} ");
+                    output = Concat(output,
+                        DirectMirScalarProgramCPayloadEnumVariantFieldName(
+                            ordinal));
+                    output = Concat(output, ";\n");
+                }
+                ordinal = ordinal + 1;
+            }
+            output = Concat(output, "    };\n} ");
+            output = Concat(output, enum_type);
+            output = Concat(output, ";\n");
+        }
+        row = row + 1;
+    }
+    return output;
+}

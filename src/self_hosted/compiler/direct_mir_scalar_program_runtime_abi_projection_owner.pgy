@@ -33,6 +33,9 @@ struct DirectMirScalarProgramRuntimeAbiProjection {
     let file_exists: CompilerRuntimeCallAbiFact;
     let read_file: CompilerRuntimeCallAbiFact;
     let compiler_artifact_write: CompilerRuntimeCallAbiFact;
+    let compiler_artifact_begin: CompilerRuntimeCallAbiFact;
+    let compiler_artifact_commit: CompilerRuntimeCallAbiFact;
+    let compiler_artifact_abort: CompilerRuntimeCallAbiFact;
     let case_math: DirectMirScalarProgramCaseMathRuntimeProjection;
 }
 func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
@@ -96,5 +99,8 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
                 "host-io", "read-file", HostIORuntimeCReadFileFn(),
                 CompilerRuntimeCallAbiMaterialGeneratedHelper())),
         CompilerRuntimeCallAbiCompilerArtifactWriteFact(),
+        CompilerRuntimeCallAbiCompilerArtifactBeginFact(),
+        CompilerRuntimeCallAbiCompilerArtifactCommitFact(),
+        CompilerRuntimeCallAbiCompilerArtifactAbortFact(),
         DirectMirScalarProgramCaseMathRuntimeProjectionFromIds(fact.case_math));
 }

@@ -19,6 +19,7 @@ import "direct_mir_scalar_program_c_array_bool_value_result_owner.pgy";
 import "direct_mir_scalar_program_c_array_string_value_result_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
+import "direct_mir_scalar_program_c_payload_enum_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_value_result_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_array_value_result_owner.pgy";
 import "direct_mir_scalar_program_c_set_string_value_result_owner.pgy";
@@ -142,7 +143,8 @@ func DirectMirScalarCfgProgramCRoutine(
             output = Concat(output, "    return ");
             output = Concat(output, DirectMirScalarProgramCExpressionAt(
                 plan.program.expressions, return_row, runtime,
-                plan.program.logical_record, plan.routines, routine, target));
+                plan.program.logical_record, plan.program.referenced_enum,
+                plan.routines, routine, target));
             output = Concat(output, ";\n");
         } else if plan.block_condition_kinds[block] ==
                 DirectMirScalarCfgConditionExpression() {
@@ -151,7 +153,7 @@ func DirectMirScalarCfgProgramCRoutine(
                 plan.program.expressions,
                 plan.program.block_condition_expression_rows[block],
                 runtime, plan.program.logical_record,
-                plan.routines, routine, target));
+                plan.program.referenced_enum, plan.routines, routine, target));
             output = Concat(output, ") goto pgy_r");
             output = Concat(output, ToString(routine));
             output = Concat(output, "_block_");
@@ -204,7 +206,11 @@ func DirectMirScalarCfgEmitProgramC(
             plan.local_types, plan.routines.parameter_types,
             plan.routines.return_types);
     let runtime_value_header: Bool = CompilerRuntimeValueTypesPresent(plan.local_types, plan.routines.parameter_types);
-    let compiler_artifact_header: Bool = plan.program.runtime_abi.compiler_artifact_write_id != 0;
+    let compiler_artifact_header: Bool =
+        plan.program.runtime_abi.compiler_artifact_write_id != 0 ||
+        plan.program.runtime_abi.compiler_artifact_begin_id != 0 ||
+        plan.program.runtime_abi.compiler_artifact_commit_id != 0 ||
+        plan.program.runtime_abi.compiler_artifact_abort_id != 0;
     TextBuilderAppend(output, CompilerRuntimeValueCLocalPreamble(plan.local_types, plan.routines.parameter_types));
     if (set_string_runtime_header || compiler_artifact_header) && !runtime_value_header {
         TextBuilderAppend(output, "#include \"pgy_runtime.h\"\n");
@@ -243,6 +249,10 @@ func DirectMirScalarCfgEmitProgramC(
         DirectMirScalarProgramCLogicalRecordOptionPreamble(
             plan.program.logical_record, target));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayPreamble(plan, target));
+    TextBuilderAppend(output, DirectMirScalarProgramCPayloadEnumPreamble(
+        plan.program.referenced_enum, plan.program.nominal_abi,
+        plan.program.logical_record, plan.program.payload_free_enum,
+        int_c_type));
     TextBuilderAppend(output,
         DirectMirScalarProgramCOptionResultPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarCfgStringCPreamble(

@@ -1,0 +1,428 @@
+// Referenced enum declarations and their declaration-owned variant payloads.
+//
+// Routine signatures select the relevant declaration identities once.  The
+// admitted enum-variant index remains the only owner of variant ordinals and
+// payload types; later payload-free and tagged-payload projections are strict
+// views of this fact rather than independent declaration rescans.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir_lower/program_declaration_index_owner.pgy";
+
+struct DirectMirScalarProgramReferencedEnumFact {
+    let valid: Bool;
+    let digest: Int;
+    let present: Bool;
+    let payload_present: Bool;
+    let declaration_rows: Array<Int>;
+    let names: Array<String>;
+    let source_syntax_ids: Array<Int>;
+    let payload_flags: Array<Int>;
+    let variant_starts: Array<Int>;
+    let variant_counts: Array<Int>;
+    let variant_names: Array<String>;
+    let variant_param_counts: Array<Int>;
+    let variant_param_type_starts: Array<Int>;
+    let variant_param_types: Array<String>;
+    let schema: String;
+}
+
+func DirectMirScalarProgramReferencedEnumFactInvalid(
+) -> DirectMirScalarProgramReferencedEnumFact {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return DirectMirScalarProgramReferencedEnumFact(
+        false, 0, false, false, ints, strings, ints, ints, ints, ints,
+        strings, ints, ints, strings, "");
+}
+
+func DirectMirScalarProgramReferencedEnumFactDigest(
+    ref fact: DirectMirScalarProgramReferencedEnumFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(
+        277L, ArrayLength(fact.declaration_rows));
+    hash = DirectMirScalarCfgHashInts(hash, fact.declaration_rows);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.names);
+    hash = DirectMirScalarCfgHashInts(hash, fact.source_syntax_ids);
+    hash = DirectMirScalarCfgHashInts(hash, fact.payload_flags);
+    hash = DirectMirScalarCfgHashInts(hash, fact.variant_starts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.variant_counts);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.variant_names);
+    hash = DirectMirScalarCfgHashInts(hash, fact.variant_param_counts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.variant_param_type_starts);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.variant_param_types);
+    hash = DirectMirCfgHashString(hash, fact.schema);
+    if fact.present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    if fact.payload_present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramReferencedEnumFactReady(
+    ref fact: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    let count: Int = ArrayLength(fact.declaration_rows);
+    let variant_count: Int = ArrayLength(fact.variant_names);
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramReferencedEnumFactDigest(fact) ||
+        fact.present != (count > 0) || count != ArrayLength(fact.names) ||
+        count != ArrayLength(fact.source_syntax_ids) ||
+        count != ArrayLength(fact.payload_flags) ||
+        count != ArrayLength(fact.variant_starts) ||
+        count != ArrayLength(fact.variant_counts) ||
+        variant_count != ArrayLength(fact.variant_param_counts) ||
+        variant_count != ArrayLength(fact.variant_param_type_starts) ||
+        fact.schema != "pgy.direct-mir.referenced-enum.v1" {
+        return false;
+    }
+    let expected_variant: Int = 0;
+    let expected_param_type: Int = 0;
+    let saw_payload: Bool = false;
+    let row: Int = 0;
+    while row < count {
+        if fact.declaration_rows[row] < 0 || fact.names[row] == "" ||
+            fact.source_syntax_ids[row] <= 0 ||
+            (fact.payload_flags[row] != 0 && fact.payload_flags[row] != 1) ||
+            fact.variant_starts[row] != expected_variant ||
+            fact.variant_counts[row] <= 0 || expected_variant +
+                fact.variant_counts[row] > variant_count {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.declaration_rows[prior] == fact.declaration_rows[row] ||
+                fact.names[prior] == fact.names[row] ||
+                fact.source_syntax_ids[prior] == fact.source_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        let row_has_payload: Bool = false;
+        let variant: Int = expected_variant;
+        while variant < expected_variant + fact.variant_counts[row] {
+            if fact.variant_names[variant] == "" ||
+                fact.variant_param_counts[variant] < 0 ||
+                fact.variant_param_type_starts[variant] !=
+                    expected_param_type ||
+                expected_param_type + fact.variant_param_counts[variant] >
+                    ArrayLength(fact.variant_param_types) {
+                return false;
+            }
+            let variant_prior: Int = expected_variant;
+            while variant_prior < variant {
+                if fact.variant_names[variant_prior] ==
+                        fact.variant_names[variant] {
+                    return false;
+                }
+                variant_prior = variant_prior + 1;
+            }
+            let parameter: Int = 0;
+            while parameter < fact.variant_param_counts[variant] {
+                if fact.variant_param_types[expected_param_type + parameter] ==
+                        "" {
+                    return false;
+                }
+                parameter = parameter + 1;
+            }
+            if fact.variant_param_counts[variant] > 0 {
+                row_has_payload = true;
+                saw_payload = true;
+            }
+            expected_param_type = expected_param_type +
+                fact.variant_param_counts[variant];
+            variant = variant + 1;
+        }
+        if (fact.payload_flags[row] != 0) != row_has_payload {
+            return false;
+        }
+        expected_variant = expected_variant + fact.variant_counts[row];
+        row = row + 1;
+    }
+    return expected_variant == variant_count &&
+        expected_param_type == ArrayLength(fact.variant_param_types) &&
+        fact.payload_present == saw_payload;
+}
+
+func DirectMirScalarProgramReferencedEnumFactCanonicalEmpty(
+) -> DirectMirScalarProgramReferencedEnumFact {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    let source: DirectMirScalarProgramReferencedEnumFact =
+        DirectMirScalarProgramReferencedEnumFact(
+            true, 0, false, false, ints, strings, ints, ints, ints, ints,
+            strings, ints, ints, strings,
+            "pgy.direct-mir.referenced-enum.v1");
+    return DirectMirScalarProgramReferencedEnumFact(
+        true, DirectMirScalarProgramReferencedEnumFactDigest(source),
+        false, false, ints, strings, ints, ints, ints, ints, strings, ints,
+        ints, strings, source.schema);
+}
+
+func DirectMirScalarProgramReferencedEnumReferenceAdd(
+    ref declarations: MirProgramDeclarationIndex,
+    type_name: String, inout rows: Array<Int>
+) -> Bool {
+    let declaration: Int =
+        MirProgramDeclarationFieldIdentityDeclarationIndex(
+            declarations.field_identities, type_name);
+    if declaration < 0 || declarations.kinds[declaration] != "enum" ||
+        declarations.nominal_kinds[declaration] != "enum" {
+        return true;
+    }
+    let prior: Int = 0;
+    while prior < ArrayLength(rows) {
+        if rows[prior] == declaration { return true; }
+        prior = prior + 1;
+    }
+    ArrayPush(rows, declaration);
+    return rows[ArrayLength(rows) - 1] == declaration;
+}
+
+func DirectMirScalarProgramReferencedEnumFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirScalarProgramReferencedEnumFact {
+    let invalid: DirectMirScalarProgramReferencedEnumFact =
+        DirectMirScalarProgramReferencedEnumFactInvalid();
+    if !admitted.domain_runtime_admission.declarations.valid ||
+        !MirProgramEnumVariantIndexReady(
+            admitted.domain_runtime_admission.declarations.enum_variants) {
+        return invalid;
+    }
+    let referenced: Array<Int> = [];
+    let routine: Int = 0;
+    while routine < MirProgramRoutineIndexCount(admitted.routines) {
+        let signature: DirectMirRoutineSignatureFact =
+            DirectMirRoutineSignatureFactAt(
+                admitted.routines, routine,
+                MirProgramRoutineIndexBlockInstructionCountAt(
+                    admitted.routines, routine, 0));
+        if !DirectMirRoutineSignatureFactReady(signature) ||
+            !DirectMirScalarProgramReferencedEnumReferenceAdd(
+                admitted.domain_runtime_admission.declarations,
+                signature.return_type, referenced) {
+            return invalid;
+        }
+        let parameter: Int = 0;
+        while parameter < signature.param_count {
+            if !DirectMirScalarProgramReferencedEnumReferenceAdd(
+                    admitted.domain_runtime_admission.declarations,
+                    signature.parameters.type_names[parameter], referenced) {
+                return invalid;
+            }
+            parameter = parameter + 1;
+        }
+        routine = routine + 1;
+    }
+    let rows: Array<Int> = [];
+    let names: Array<String> = [];
+    let syntax_ids: Array<Int> = [];
+    let payload_flags: Array<Int> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let variants: Array<String> = [];
+    let param_counts: Array<Int> = [];
+    let param_starts: Array<Int> = [];
+    let param_types: Array<String> = [];
+    let payload_present: Bool = false;
+    let reference: Int = 0;
+    while reference < ArrayLength(referenced) {
+        let declaration_row: Int = referenced[reference];
+        let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            admitted.document.root.json,
+            admitted.domain_runtime_admission.declarations.starts[
+                declaration_row],
+            admitted.domain_runtime_admission.declarations.ends[
+                declaration_row]);
+        let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
+            declaration.json, declaration.start, declaration.end,
+            "source_syntax_id");
+        let source_path: Option<String> = MirObjectUniqueStringFactAtBounds(
+            declaration.json, declaration.start, declaration.end,
+            "source_module_path");
+        let fields: JsonArrayObjectFactTable =
+            JsonObjectFactArrayObjectTable(declaration, "fields");
+        let methods: JsonArrayObjectFactTable =
+            JsonObjectFactArrayObjectTable(declaration, "methods");
+        let variant_table: JsonArrayObjectFactTable =
+            JsonObjectFactArrayObjectTable(declaration, "variants");
+        if !JsonObjectFactTableReady(declaration) ||
+            JsonObjectFactCount(declaration) != 8 || !IsSome(syntax) ||
+            !IsSome(source_path) || UnwrapOption(source_path) != admitted.
+                domain_runtime_admission.declarations.source_module_paths[
+                    declaration_row] ||
+            ToInt(UnwrapOption(syntax)) <= 0 ||
+            ToString(ToInt(UnwrapOption(syntax))) != UnwrapOption(syntax) ||
+            !JsonArrayObjectFactTableReady(fields) ||
+            JsonArrayObjectFactCount(fields) != 0 ||
+            !JsonArrayObjectFactTableReady(methods) ||
+            JsonArrayObjectFactCount(methods) != 0 ||
+            !JsonArrayObjectFactTableReady(variant_table) {
+            return invalid;
+        }
+        let variant_start: Int = ArrayLength(variants);
+        let expected_ordinal: Int = 0;
+        let has_payload: Bool = false;
+        let variant_row: Int = 0;
+        while variant_row < ArrayLength(admitted.domain_runtime_admission.
+                declarations.enum_variants.names) {
+            let enum_index: MirProgramEnumVariantIndex = admitted.
+                domain_runtime_admission.declarations.enum_variants;
+            if enum_index.owners[variant_row] == admitted.
+                    domain_runtime_admission.declarations.names[
+                        declaration_row] {
+                if enum_index.ordinals[variant_row] != expected_ordinal ||
+                    enum_index.param_type_starts[variant_row] < 0 ||
+                    enum_index.param_type_starts[variant_row] +
+                        enum_index.param_counts[variant_row] >
+                        ArrayLength(enum_index.param_types) {
+                    return invalid;
+                }
+                ArrayPush(variants, enum_index.names[variant_row]);
+                ArrayPush(param_counts, enum_index.param_counts[variant_row]);
+                ArrayPush(param_starts, ArrayLength(param_types));
+                let parameter: Int = 0;
+                while parameter < enum_index.param_counts[variant_row] {
+                    ArrayPush(param_types, enum_index.param_types[
+                        enum_index.param_type_starts[variant_row] + parameter]);
+                    parameter = parameter + 1;
+                }
+                if enum_index.param_counts[variant_row] > 0 {
+                    has_payload = true;
+                }
+                expected_ordinal = expected_ordinal + 1;
+            }
+            variant_row = variant_row + 1;
+        }
+        if expected_ordinal <= 0 || JsonArrayObjectFactCount(variant_table) !=
+                expected_ordinal {
+            return invalid;
+        }
+        ArrayPush(rows, declaration_row);
+        ArrayPush(names, admitted.domain_runtime_admission.declarations.names[
+            declaration_row]);
+        ArrayPush(syntax_ids, ToInt(UnwrapOption(syntax)));
+        if has_payload { ArrayPush(payload_flags, 1); }
+        else { ArrayPush(payload_flags, 0); }
+        if has_payload { payload_present = true; }
+        ArrayPush(starts, variant_start);
+        ArrayPush(counts, expected_ordinal);
+        reference = reference + 1;
+    }
+    let source: DirectMirScalarProgramReferencedEnumFact =
+        DirectMirScalarProgramReferencedEnumFact(
+            true, 0, ArrayLength(rows) > 0,
+            payload_present, rows, names, syntax_ids,
+            payload_flags, starts, counts, variants, param_counts,
+            param_starts, param_types,
+            "pgy.direct-mir.referenced-enum.v1");
+    let sealed: DirectMirScalarProgramReferencedEnumFact =
+        DirectMirScalarProgramReferencedEnumFact(
+            true, DirectMirScalarProgramReferencedEnumFactDigest(source),
+            source.present, source.payload_present, rows, names, syntax_ids,
+            payload_flags, starts, counts, variants, param_counts,
+            param_starts, param_types, source.schema);
+    if !DirectMirScalarProgramReferencedEnumFactReady(sealed) {
+        return invalid;
+    }
+    return sealed;
+}
+
+func DirectMirScalarProgramReferencedEnumRow(
+    ref fact: DirectMirScalarProgramReferencedEnumFact, type_name: String
+) -> Int {
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) ||
+        type_name == "" { return -1; }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(fact.names) {
+        if fact.names[row] == type_name {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramPayloadEnumTypeReady(
+    ref fact: DirectMirScalarProgramReferencedEnumFact, type_name: String
+) -> Bool {
+    let row: Int = DirectMirScalarProgramReferencedEnumRow(fact, type_name);
+    return row >= 0 && fact.payload_flags[row] == 1;
+}
+
+func DirectMirScalarProgramReferencedEnumVariantRow(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    type_name: String, variant_name: String
+) -> Int {
+    let row: Int = DirectMirScalarProgramReferencedEnumRow(fact, type_name);
+    if row < 0 || variant_name == "" { return -1; }
+    let start: Int = fact.variant_starts[row];
+    let ordinal: Int = 0;
+    while ordinal < fact.variant_counts[row] {
+        if fact.variant_names[start + ordinal] == variant_name {
+            return start + ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramPayloadEnumVariantRowForName(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    variant_name: String
+) -> Int {
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) ||
+        variant_name == "" { return -1; }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(fact.declaration_rows) {
+        if fact.payload_flags[row] == 1 {
+            let ordinal: Int = 0;
+            while ordinal < fact.variant_counts[row] {
+                let variant: Int = fact.variant_starts[row] + ordinal;
+                if fact.variant_names[variant] == variant_name {
+                    if found >= 0 { return -1; }
+                    found = variant;
+                }
+                ordinal = ordinal + 1;
+            }
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramReferencedEnumRowForVariant(
+    ref fact: DirectMirScalarProgramReferencedEnumFact, variant: Int
+) -> Int {
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) ||
+        variant < 0 || variant >= ArrayLength(fact.variant_names) {
+        return -1;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(fact.declaration_rows) {
+        if variant >= fact.variant_starts[row] &&
+            variant < fact.variant_starts[row] + fact.variant_counts[row] {
+            return row;
+        }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramPayloadEnumParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref fact: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    return ordinal >= 0 && ordinal < signature.param_count &&
+        DirectMirScalarProgramPayloadEnumTypeReady(
+            fact, signature.parameters.type_names[ordinal]) &&
+        signature.parameters.carriages[ordinal] == "value" &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0;
+}

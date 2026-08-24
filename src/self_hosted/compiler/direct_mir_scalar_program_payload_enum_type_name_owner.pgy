@@ -1,0 +1,46 @@
+// Stable target type identities for declaration-owned tagged payload enums.
+
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+
+func DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(row: Int) -> String {
+    return Concat("%pgy.scalar.payload.enum.", ToString(row));
+}
+
+func DirectMirScalarProgramLlvmPayloadEnumVariantTypeName(
+    enum_row: Int, ordinal: Int
+) -> String {
+    return Concat(DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(enum_row),
+        Concat(".variant.", ToString(ordinal)));
+}
+
+func DirectMirScalarProgramLlvmPayloadEnumTypeName(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    type_name: String
+) -> String {
+    let row: Int = DirectMirScalarProgramReferencedEnumRow(fact, type_name);
+    if row < 0 || fact.payload_flags[row] != 1 { return ""; }
+    return DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(row);
+}
+
+func DirectMirScalarProgramCPayloadEnumTypeNameAt(row: Int) -> String {
+    return Concat("PgyScalarPayloadEnum", ToString(row));
+}
+
+func DirectMirScalarProgramCPayloadEnumTagTypeNameAt(row: Int) -> String {
+    return Concat(DirectMirScalarProgramCPayloadEnumTypeNameAt(row), "Tag");
+}
+
+func DirectMirScalarProgramCPayloadEnumVariantFieldName(
+    ordinal: Int
+) -> String {
+    return Concat("v", ToString(ordinal));
+}
+
+func DirectMirScalarProgramCPayloadEnumTypeName(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    type_name: String
+) -> String {
+    let row: Int = DirectMirScalarProgramReferencedEnumRow(fact, type_name);
+    if row < 0 || fact.payload_flags[row] != 1 { return ""; }
+    return DirectMirScalarProgramCPayloadEnumTypeNameAt(row);
+}

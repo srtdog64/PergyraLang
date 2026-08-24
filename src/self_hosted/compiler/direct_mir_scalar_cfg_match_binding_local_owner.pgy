@@ -1,0 +1,65 @@
+// Match-payload locals admitted from MIR-carried binding/type facts.
+
+import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+import "../mir_lower/match_json_fact_owner.pgy";
+
+func DirectMirScalarCfgAppendMatchBindingLocals(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    inout local_names: Array<String>,
+    inout local_ref_kinds: Array<Int>,
+    inout local_ref_value_ids: Array<String>,
+    inout local_ref_syntax_ids: Array<Int>
+) -> Bool {
+    if !index.valid || ToInt(index.source_syntax_id) <= 0 ||
+        ArrayLength(index.instruction_facts.starts) !=
+            ArrayLength(index.instruction_facts.ends) {
+        return false;
+    }
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let global: Int = index.instruction_facts.global_start + instruction;
+        if global < 0 || global >= ArrayLength(
+                admitted.routines.instruction_source_types) {
+            return false;
+        }
+        if admitted.routines.instruction_source_types[global] ==
+                "AST_MATCH_CASE" {
+            let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                admitted.routines.source_json,
+                index.instruction_facts.starts[instruction],
+                index.instruction_facts.ends[instruction]);
+            let capture: MirMatchInstructionCapture =
+                MirMatchInstructionCaptureFromTable(table);
+            if !JsonObjectFactTableReady(table) || !capture.valid ||
+                capture.binding_count != capture.binding_type_count {
+                return false;
+            }
+            if capture.binding_count == 1 {
+                if capture.binding == "" || capture.binding_type == "" ||
+                    !DirectMirScalarProgramLogicalRecordTypeReady(
+                        logical_record, capture.binding_type) {
+                    return false;
+                }
+                let identity: String = SelfMirLocalRef(
+                    "destructure", ToInt(index.source_syntax_id),
+                    global);
+                if identity == "" || DirectMirScalarCfgLocalIdentityRow(
+                        local_ref_value_ids, identity) >= 0 {
+                    return false;
+                }
+                ArrayPush(local_names, capture.binding);
+                ArrayPush(local_ref_kinds,
+                    DirectMirScalarCfgLocalRefMatchBinding());
+                ArrayPush(local_ref_value_ids, identity);
+                ArrayPush(local_ref_syntax_ids,
+                    global);
+            }
+        }
+        instruction = instruction + 1;
+    }
+    return true;
+}

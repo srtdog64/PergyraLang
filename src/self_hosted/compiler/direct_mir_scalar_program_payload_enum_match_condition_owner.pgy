@@ -1,0 +1,93 @@
+// One-payload enum match normalized into a typed tag comparison and binding.
+
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+import "../mir_lower/match_json_fact_owner.pgy";
+
+func DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
+    facts: DirectMirScalarProgramExpressionSet,
+    ref instruction: JsonObjectFactTable, expression_row: Int,
+    global_row: Int, local_offset: Int,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref enum_fact: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarProgramExpressionSet {
+    if !JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_MATCH_CASE") {
+        return facts;
+    }
+    let invalid: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetInvalid(facts);
+    let match_fact: MirMatchInstructionCapture =
+        MirMatchInstructionCaptureFromTable(instruction);
+    if !facts.valid || expression_row < 0 ||
+        expression_row + 1 != ArrayLength(facts.graph_starts) ||
+        !match_fact.valid || match_fact.pattern_count != 1 ||
+        match_fact.variant == "" || match_fact.binding_count != 1 ||
+        match_fact.binding_type_count != 1 ||
+        match_fact.pattern != Concat(match_fact.variant, Concat(
+            "(", Concat(match_fact.binding, ")"))) {
+        return invalid;
+    }
+    let value_node: Int = facts.graph_roots[expression_row];
+    if value_node < facts.graph_starts[expression_row] ||
+        value_node >= facts.graph_starts[expression_row] +
+            facts.graph_counts[expression_row] ||
+        value_node >= ArrayLength(facts.node_types) {
+        return invalid;
+    }
+    let type_name: String = facts.node_types[value_node];
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+        enum_fact, type_name);
+    let variant_row: Int =
+        DirectMirScalarProgramReferencedEnumVariantRow(
+            enum_fact, type_name, match_fact.variant);
+    if enum_row < 0 || enum_fact.payload_flags[enum_row] != 1 ||
+        variant_row < 0 ||
+        enum_fact.variant_param_counts[variant_row] != 1 ||
+        enum_fact.variant_param_types[
+            enum_fact.variant_param_type_starts[variant_row]] !=
+                match_fact.binding_type {
+        return invalid;
+    }
+    let identity: String = SelfMirLocalRef(
+        "destructure", signature.source_syntax_id, global_row);
+    let binding_local: Int = DirectMirScalarCfgLocalIdentityRow(
+        locals.local_ref_value_ids, identity);
+    if binding_local < 0 || binding_local >= ArrayLength(locals.local_names) ||
+        locals.local_names[binding_local] != match_fact.binding ||
+        locals.local_ref_kinds[binding_local] !=
+            DirectMirScalarCfgLocalRefMatchBinding() {
+        return invalid;
+    }
+    let graph_counts: Array<Int> = facts.graph_counts;
+    let graph_roots: Array<Int> = facts.graph_roots;
+    let kinds: Array<Int> = facts.node_kinds;
+    let types: Array<String> = facts.node_types;
+    let lefts: Array<Int> = facts.node_lefts;
+    let rights: Array<Int> = facts.node_rights;
+    let local_rows: Array<Int> = facts.node_local_rows;
+    let params: Array<Int> = facts.node_parameter_ordinals;
+    let members: Array<Int> = facts.node_member_ordinals;
+    let literals: Array<String> = facts.node_literals;
+    let callables: Array<Int> = facts.node_callable_rows;
+    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    let condition_node: Int = ArrayLength(kinds);
+    DirectMirScalarProgramAppendExpressionNode(
+        kinds, types, lefts, rights, local_rows, params, members,
+        literals, callables, runtime_ids,
+        DirectMirScalarProgramExprPayloadEnumMatch(),
+        CompilerAbiLayoutBoolTypeName(), value_node, -1,
+        binding_local + local_offset, -1,
+        variant_row - enum_fact.variant_starts[enum_row], "", -1, -1);
+    ArraySet(graph_counts, expression_row,
+        facts.graph_counts[expression_row] + 1);
+    ArraySet(graph_roots, expression_row, condition_node);
+    return DirectMirScalarProgramExpressionSet(
+        true, 0, facts.graph_global_rows, facts.graph_starts,
+        graph_counts, graph_roots, kinds, types, lefts, rights,
+        local_rows, params, members, literals, callables, runtime_ids,
+        facts.nary_operands);
+}

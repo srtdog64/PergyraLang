@@ -3,6 +3,7 @@
 func DirectMirScalarCfgLocalRefValue() -> Int { return 1; }
 func DirectMirScalarCfgLocalRefIteration() -> Int { return 2; }
 func DirectMirScalarCfgLocalRefForEach() -> Int { return 3; }
+func DirectMirScalarCfgLocalRefMatchBinding() -> Int { return 4; }
 
 func DirectMirScalarCfgLocalIdentityRow(
     identities: Array<String>, wanted: String

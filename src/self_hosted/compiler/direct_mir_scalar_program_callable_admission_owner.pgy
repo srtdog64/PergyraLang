@@ -7,7 +7,8 @@ func DirectMirScalarProgramCallableFactFromAdmitted(
     callable_row: Int, routine_ordinal: Int,
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarCfgProgramCallableFact {
     if !MirProgramRoutineIndexRowReady(admitted.routines, callable_row) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
@@ -30,8 +31,9 @@ func DirectMirScalarProgramCallableFactFromAdmitted(
             DirectMirScalarCfgProgramCallableFactDigest(source),
             source.signature, source.routine_ordinal
         );
-    if !DirectMirScalarCfgProgramCallableFactReadyWithFacts(
-            fact, nominal, logical_record, payload_free_enum) {
+    if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
+            fact, nominal, logical_record, payload_free_enum,
+            referenced_enum) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
     }
     return fact;

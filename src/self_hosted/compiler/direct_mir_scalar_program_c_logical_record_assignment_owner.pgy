@@ -24,7 +24,8 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
             plan, operation);
     let values: Array<String> = DirectMirScalarProgramCExpressionValues(
         plan.program.expressions, target_row, runtime,
-        plan.program.logical_record, plan.routines, routine, target);
+        plan.program.logical_record, plan.program.referenced_enum,
+        plan.routines, routine, target);
     if root < start || array_node < start || index_node < start ||
         root - start >= ArrayLength(values) ||
         array_node - start >= ArrayLength(values) ||
@@ -65,7 +66,8 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
     let index_value: String = values[index_node - start];
     let value: String = DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, value_row, runtime,
-        plan.program.logical_record, plan.routines, routine, target);
+        plan.program.logical_record, plan.program.referenced_enum,
+        plan.routines, routine, target);
     let stem: String = Concat("pgy_nested_set_", ToString(operation));
     let output: String = Concat("    long long ", stem);
     output = Concat(output, Concat("_index = (long long)(", index_value));

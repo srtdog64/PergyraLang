@@ -31,7 +31,8 @@ func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
     phi_counts: Array<Int>,
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarCfgRoutinePartitionFact {
     let routine_count: Int = ArrayLength(local_counts);
     if routine_count < 1 ||
@@ -47,7 +48,7 @@ func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
     let identity: DirectMirScalarCfgProgramRoutineIdentity =
         DirectMirScalarCfgProgramRoutineIdentityFromOwners(
             routines, routine_rows, cfg_digests, nominal, logical_record,
-            payload_free_enum
+            payload_free_enum, referenced_enum
         );
     if !identity.valid {
         Die("direct MIR scalar CFG program routine identity is invalid");

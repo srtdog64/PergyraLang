@@ -1,0 +1,45 @@
+struct PayloadReceipt {
+    let value: String;
+}
+
+struct PayloadFailure {
+    let code: String;
+}
+
+enum PayloadOutcome {
+    PayloadCommitted(PayloadReceipt),
+    PayloadRejected(PayloadFailure),
+}
+
+func MakePayloadReceipt(value: String) -> PayloadReceipt {
+    return PayloadReceipt(value);
+}
+
+func MakePayloadFailure(code: String) -> PayloadFailure {
+    return PayloadFailure(code);
+}
+
+func PayloadOutcomeReady(outcome: PayloadOutcome) -> Bool {
+    match outcome {
+        case PayloadCommitted(receipt): return receipt.value == "ready";
+        case PayloadRejected(failure): return false;
+    }
+}
+
+func Main() -> Void {
+    let receipt: PayloadReceipt = MakePayloadReceipt("ready");
+    let committed: PayloadOutcome = PayloadCommitted(receipt);
+    let failure: PayloadFailure = MakePayloadFailure("failed");
+    let rejected: PayloadOutcome = PayloadRejected(failure);
+    if PayloadOutcomeReady(committed) {
+        Log(1);
+    } else {
+        Log(0);
+    }
+    if PayloadOutcomeReady(rejected) {
+        Log(1);
+    } else {
+        Log(0);
+    }
+    Log("payload-enum-match-binding-ready");
+}

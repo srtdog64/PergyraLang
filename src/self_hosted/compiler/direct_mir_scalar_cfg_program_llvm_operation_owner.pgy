@@ -44,12 +44,14 @@ func DirectMirScalarCfgProgramLlvmOperation(
             DirectMirScalarProgramLlvmExpressionAt(
                 plan.program.expressions,
                 plan.program.operation_secondary_expression_rows[operation],
-                runtime, plan.program.logical_record,
-                plan.program.payload_free_enum, plan.routines, routine, target);
+                runtime, plan.program.nominal_abi,
+                plan.program.logical_record, plan.program.payload_free_enum,
+                plan.program.referenced_enum, plan.routines, routine, target);
         let value: DirectMirScalarProgramLlvmExpression =
             DirectMirScalarProgramLlvmExpressionAt(
                 plan.program.expressions, expression_row, runtime,
-                plan.program.logical_record, plan.program.payload_free_enum,
+                plan.program.nominal_abi, plan.program.logical_record,
+                plan.program.payload_free_enum, plan.program.referenced_enum,
                 plan.routines, routine, target);
         let expected: String = CompilerAbiLayoutStringTypeName();
         if kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
@@ -87,7 +89,8 @@ func DirectMirScalarCfgProgramLlvmOperation(
     let expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record, plan.program.payload_free_enum,
+            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.payload_free_enum, plan.program.referenced_enum,
             plan.routines, routine, target);
     if !expression.valid {
         let diagnostic: String = Concat("direct MIR scalar CFG LLVM expression is invalid: routine=", ToString(routine));
@@ -126,9 +129,11 @@ func DirectMirScalarCfgProgramLlvmOperation(
     if kind == DirectMirScalarCfgOpExpressionDefinition() {
         let result: Int = plan.operation_result_values[operation];
         let local_binding: Int = plan.value_local_rows[result];
-        let llvm_type: String = DirectMirScalarProgramLlvmTypeForProgram(
+        let llvm_type: String =
+            DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
             plan.value_types[result], plan.program.nominal_abi,
-            plan.program.logical_record, plan.program.payload_free_enum);
+            plan.program.logical_record, plan.program.payload_free_enum,
+            plan.program.referenced_enum);
         output = Concat(output, Concat("  store ", Concat(llvm_type, " ")));
         output = Concat(output, Concat(expression.value, ", ptr %pgy.local."));
         output = Concat(output, ToString(local_binding));

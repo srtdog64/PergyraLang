@@ -10,6 +10,7 @@ import "direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy";
 import "direct_mir_scalar_program_c_numeric_cast_expression_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_c_external_runtime_expression_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_target_expression_owner.pgy";
 import "../lib/json_emit.pgy";
 func DirectMirScalarProgramCLocalName(row: Int) -> String { return Concat("pgy_local_", ToString(row)); }
 func DirectMirScalarProgramCExpressionValues(
@@ -17,6 +18,7 @@ func DirectMirScalarProgramCExpressionValues(
     expression_row: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int,
     target: CompilerTargetProjectionFact
 ) -> Array<String> {
@@ -38,7 +40,8 @@ func DirectMirScalarProgramCExpressionValues(
         if kind == DirectMirScalarProgramExprDirectCall() {
             argument_rows = DirectMirScalarProgramDirectCallArgumentRows(
                 expressions, node);
-        } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
+        } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
+                kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
             argument_rows = DirectMirScalarProgramLogicalRecordArgumentRows(
                 expressions, node); } else if kind ==
                 DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
@@ -130,11 +133,20 @@ func DirectMirScalarProgramCExpressionValues(
             }
             value = UnwrapOption(empty_record_array);
         } else if kind == DirectMirScalarProgramExprEqualInt() || kind == DirectMirScalarProgramExprEqualLong() || kind == DirectMirScalarProgramExprEqualBool() || kind == DirectMirScalarProgramExprEqualPayloadFreeEnum() { value = Concat("(", Concat(left, Concat(" == ", Concat(right, ")"))));
-        } else if kind == DirectMirScalarProgramExprNotEqualInt() || kind == DirectMirScalarProgramExprNotEqualLong() || kind == DirectMirScalarProgramExprNotEqualBool() { value = Concat("(", Concat(left, Concat(" != ", Concat(right, ")"))));
+        } else if kind == DirectMirScalarProgramExprNotEqualInt() || kind == DirectMirScalarProgramExprNotEqualLong() || kind == DirectMirScalarProgramExprNotEqualBool() || kind == DirectMirScalarProgramExprNotEqualPayloadFreeEnum() { value = Concat("(", Concat(left, Concat(" != ", Concat(right, ")"))));
         } else if kind == DirectMirScalarProgramExprGreaterEqualInt() { value = Concat("(", Concat(left, Concat(" >= ", Concat(right, ")"))));
         } else if kind == DirectMirScalarProgramExprGreaterInt() || kind == DirectMirScalarProgramExprGreaterLong() { value = Concat("(", Concat(left, Concat(" > ", Concat(right, ")"))));
         } else if kind == DirectMirScalarProgramExprLessEqualInt() { value = Concat("(", Concat(left, Concat(" <= ", Concat(right, ")"))));
         } else {
+            let payload_enum: Option<String> =
+                DirectMirScalarProgramCPayloadEnumExpressionAt(
+                    expressions, node, left, arguments, referenced_enum);
+            if IsSome(payload_enum) {
+                value = UnwrapOption(payload_enum);
+                if value == "" {
+                    Die("direct MIR scalar C payload-enum expression is invalid");
+                }
+            } else {
             let runtime_value: Option<String> =
                 DirectMirScalarProgramCExternalRuntimeExpressionAt(
                     expressions, node, left, right);
@@ -190,6 +202,7 @@ func DirectMirScalarProgramCExpressionValues(
             }
             }
             }
+            }
         }
         ArrayPush(values, value);
         node = node + 1;
@@ -201,11 +214,13 @@ func DirectMirScalarProgramCExpressionAt(
     expression_row: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int,
     target: CompilerTargetProjectionFact
 ) -> String {
     let values: Array<String> = DirectMirScalarProgramCExpressionValues(
         expressions, expression_row, runtime, logical_record,
+        referenced_enum,
         routines, routine, target);
     let root: Int = expressions.graph_roots[expression_row] -
         expressions.graph_starts[expression_row];

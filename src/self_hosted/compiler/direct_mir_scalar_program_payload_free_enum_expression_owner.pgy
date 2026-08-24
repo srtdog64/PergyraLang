@@ -38,6 +38,29 @@ func DirectMirScalarProgramPayloadFreeEnumVariantOrdinal(
     return -1;
 }
 
+func DirectMirScalarProgramPayloadFreeEnumLeafVariant(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    expected_type: String,
+    ref fact: DirectMirScalarProgramPayloadFreeEnumFact
+) -> DirectMirScalarProgramPayloadFreeEnumExpressionFact {
+    let missing: DirectMirScalarProgramPayloadFreeEnumExpressionFact =
+        DirectMirScalarProgramPayloadFreeEnumExpressionMissing();
+    if !DirectMirScalarProgramPayloadFreeEnumFactReady(fact) ||
+        node < 0 ||
+        node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeLeaf() ||
+        sequence.arena.identities.binding_kinds[node] !=
+            SemanticExpressionBindingNone() {
+        return missing;
+    }
+    let ordinal: Int = DirectMirScalarProgramPayloadFreeEnumVariantOrdinal(
+        fact, expected_type, sequence.arena.node_texts[node]);
+    if ordinal < 0 { return missing; }
+    return DirectMirScalarProgramPayloadFreeEnumExpressionFact(
+        true, true, DirectMirScalarProgramExprPayloadFreeEnumVariant(),
+        expected_type, ordinal);
+}
+
 func DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int,
     ref fact: DirectMirScalarProgramPayloadFreeEnumFact
@@ -104,12 +127,18 @@ func DirectMirScalarProgramPayloadFreeEnumComparisonKindFact(
     source_kind: Int, left_type: String, right_type: String, arity: Int,
     ref fact: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> DirectMirScalarProgramExpressionKindFact {
-    if arity != 2 || source_kind != AstExpressionNodeEquality() ||
+    if arity != 2 ||
+        (source_kind != AstExpressionNodeEquality() &&
+         source_kind != AstExpressionNodeInequality()) ||
         left_type == "" || left_type != right_type ||
         !DirectMirScalarProgramPayloadFreeEnumTypeReady(fact, left_type) {
         return DirectMirScalarProgramExpressionKindFactInvalid();
     }
+    let kind: Int = DirectMirScalarProgramExprEqualPayloadFreeEnum();
+    if source_kind == AstExpressionNodeInequality() {
+        kind = DirectMirScalarProgramExprNotEqualPayloadFreeEnum();
+    }
     return DirectMirScalarProgramExpressionKindFact(
-        true, DirectMirScalarProgramExprEqualPayloadFreeEnum(),
+        true, kind,
         CompilerAbiLayoutBoolTypeName(), "");
 }

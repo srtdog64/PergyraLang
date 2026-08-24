@@ -10,8 +10,9 @@ import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
 import "direct_mir_routine_parameter_set_fact_owner.pgy";
 import "runtime_value_representation_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
-func DirectMirScalarCfgLocalInventoryReady(
+func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
     ref index: MirRoutineFactIndex,
     local_names: Array<String>, local_types: Array<String>,
     ref foreaches: DirectMirScalarCfgForEachFactSet,
@@ -19,6 +20,7 @@ func DirectMirScalarCfgLocalInventoryReady(
     ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
     ref collections: DirectMirScalarCfgCollectionPlan,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref parameters: DirectMirRoutineParameterSetFact
 ) -> Bool {
     if ArrayLength(index.source_local_names) !=
@@ -47,7 +49,9 @@ func DirectMirScalarCfgLocalInventoryReady(
                  DirectMirScalarProgramLogicalRecordArrayTypeReady(
                     logical_record, local_types[row]) ||
                  DirectMirScalarProgramLogicalRecordOptionTypeReady(
-                    logical_record, local_types[row])) {
+                    logical_record, local_types[row]) ||
+                 DirectMirScalarProgramPayloadEnumTypeReady(
+                    referenced_enum, local_types[row])) {
                 found = source; break;
             }
             source = source + 1;
@@ -101,4 +105,22 @@ func DirectMirScalarCfgLocalInventoryReady(
         row = row + 1;
     }
     return true;
+}
+
+func DirectMirScalarCfgLocalInventoryReady(
+    ref index: MirRoutineFactIndex,
+    local_names: Array<String>, local_types: Array<String>,
+    ref foreaches: DirectMirScalarCfgForEachFactSet,
+    ref string_arrays: DirectMirScalarCfgStringArrayPlan,
+    ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,
+    ref collections: DirectMirScalarCfgCollectionPlan,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref parameters: DirectMirRoutineParameterSetFact
+) -> Bool {
+    let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
+        DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
+    return DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
+        index, local_names, local_types, foreaches, string_arrays,
+        array_int_program, collections, logical_record, referenced_enum,
+        parameters);
 }

@@ -6,26 +6,71 @@ func DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(
     kind: Int, result: String, left: String, right: String,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    if kind != DirectMirScalarProgramExprCompilerArtifactWrite() {
-        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    if kind == DirectMirScalarProgramExprCompilerArtifactWrite() {
+        if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
+                runtime.compiler_artifact_write) {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", "");
+        }
+        let handle: String = Concat(result, ".handle");
+        let output: String = Concat("  ", handle);
+        output = Concat(output, " = trunc i64 ");
+        output = Concat(output, left);
+        output = Concat(output, " to i32\n  ");
+        output = Concat(output, result);
+        output = Concat(output, " = call i1 @");
+        output = Concat(output, runtime.compiler_artifact_write.symbol);
+        output = Concat(output, "(i32 ");
+        output = Concat(output, handle);
+        output = Concat(output, ", ptr ");
+        output = Concat(output, right);
+        output = Concat(output, ")\n");
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, result);
     }
-    if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
-            runtime.compiler_artifact_write) {
+    let symbol: String = "";
+    let parameter_type: String = "i32";
+    let ready: Bool = false;
+    if kind == DirectMirScalarProgramExprCompilerArtifactBegin() {
+        symbol = runtime.compiler_artifact_begin.symbol;
+        parameter_type = "ptr";
+        ready = CompilerRuntimeCallAbiCompilerArtifactBeginFactReady(
+            runtime.compiler_artifact_begin);
+    } else if kind == DirectMirScalarProgramExprCompilerArtifactCommit() {
+        symbol = runtime.compiler_artifact_commit.symbol;
+        ready = CompilerRuntimeCallAbiCompilerArtifactCommitFactReady(
+            runtime.compiler_artifact_commit);
+    } else if kind == DirectMirScalarProgramExprCompilerArtifactAbort() {
+        symbol = runtime.compiler_artifact_abort.symbol;
+        ready = CompilerRuntimeCallAbiCompilerArtifactAbortFactReady(
+            runtime.compiler_artifact_abort);
+    } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    if !ready {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let handle: String = Concat(result, ".handle");
-    let output: String = Concat("  ", Concat(handle, Concat(
-        " = trunc i64 ", Concat(left, " to i32\n"))));
-    output = Concat(output, "  ");
+    let output: String = "";
+    let argument: String = left;
+    if parameter_type == "i32" {
+        argument = Concat(result, ".handle");
+        output = Concat(output, Concat("  ", argument));
+        output = Concat(output, " = trunc i64 ");
+        output = Concat(output, left);
+        output = Concat(output, " to i32\n");
+    }
+    let status: String = Concat(result, ".status");
+    output = Concat(output, Concat("  ", status));
+    output = Concat(output, " = call i32 @");
+    output = Concat(output, symbol);
+    output = Concat(output, "(");
+    output = Concat(output, parameter_type);
+    output = Concat(output, " ");
+    output = Concat(output, argument);
+    output = Concat(output, ")\n  ");
     output = Concat(output, result);
-    output = Concat(output, " = call i1 @");
-    output = Concat(output, runtime.compiler_artifact_write.symbol);
-    output = Concat(output, "(i32 ");
-    output = Concat(output, handle);
-    output = Concat(output, ", ptr ");
-    output = Concat(output, right);
-    output = Concat(output, ")\n");
+    output = Concat(output, " = sext i32 ");
+    output = Concat(output, status);
+    output = Concat(output, " to i64\n");
     return DirectMirScalarProgramLlvmStringExpression(
         true, true, output, result);
 }
@@ -34,14 +79,42 @@ func DirectMirScalarProgramLlvmCompilerArtifactDeclarations(
     ref expressions: DirectMirScalarProgramExpressionSet,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> String {
-    if !DirectMirScalarProgramExpressionContainsKind(
+    let output: String = "";
+    if DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprCompilerArtifactWrite()) {
-        return "";
+        if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
+                runtime.compiler_artifact_write) {
+            Die("direct MIR scalar LLVM compiler-artifact write ABI is invalid");
+        }
+        output = Concat(output, Concat("declare i1 @", Concat(
+            runtime.compiler_artifact_write.symbol, "(i32, ptr)\n")));
     }
-    if !CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
-            runtime.compiler_artifact_write) {
-        Die("direct MIR scalar LLVM compiler-artifact ABI is invalid");
+    if DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprCompilerArtifactBegin()) {
+        if !CompilerRuntimeCallAbiCompilerArtifactBeginFactReady(
+                runtime.compiler_artifact_begin) {
+            Die("direct MIR scalar LLVM compiler-artifact begin ABI is invalid");
+        }
+        output = Concat(output, Concat("declare i32 @", Concat(
+            runtime.compiler_artifact_begin.symbol, "(ptr)\n")));
     }
-    return Concat("declare i1 @", Concat(
-        runtime.compiler_artifact_write.symbol, "(i32, ptr)\n"));
+    if DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprCompilerArtifactCommit()) {
+        if !CompilerRuntimeCallAbiCompilerArtifactCommitFactReady(
+                runtime.compiler_artifact_commit) {
+            Die("direct MIR scalar LLVM compiler-artifact commit ABI is invalid");
+        }
+        output = Concat(output, Concat("declare i32 @", Concat(
+            runtime.compiler_artifact_commit.symbol, "(i32)\n")));
+    }
+    if DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprCompilerArtifactAbort()) {
+        if !CompilerRuntimeCallAbiCompilerArtifactAbortFactReady(
+                runtime.compiler_artifact_abort) {
+            Die("direct MIR scalar LLVM compiler-artifact abort ABI is invalid");
+        }
+        output = Concat(output, Concat("declare i32 @", Concat(
+            runtime.compiler_artifact_abort.symbol, "(i32)\n")));
+    }
+    return output;
 }

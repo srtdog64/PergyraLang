@@ -98,7 +98,8 @@ func DirectMirScalarCfgProgramCallableInventoryFromAdmitted(
     ref routine_rows: Array<Int>,
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarCfgProgramCallableInventory {
     let ordinals: Array<Int> = [];
     let syntax_ids: Array<Int> = [];
@@ -114,10 +115,11 @@ func DirectMirScalarCfgProgramCallableInventoryFromAdmitted(
         let fact: DirectMirScalarCfgProgramCallableFact =
             DirectMirScalarProgramCallableFactFromAdmitted(
                 admitted, routine_rows[ordinal], ordinal, nominal,
-                logical_record, payload_free_enum
+                logical_record, payload_free_enum, referenced_enum
             );
-        if !DirectMirScalarCfgProgramCallableFactReadyWithFacts(
-                fact, nominal, logical_record, payload_free_enum) {
+        if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
+                fact, nominal, logical_record, payload_free_enum,
+                referenced_enum) {
             return DirectMirScalarCfgProgramCallableInventory(
                 false, 0, ordinals, syntax_ids, names, return_types,
                 parameter_starts, parameter_counts, parameter_types,

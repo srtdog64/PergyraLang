@@ -3459,6 +3459,12 @@ self-host-direct-mir-scalar-payload-free-enum-parameter-test-smoke: self-host-co
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_owner.sh
 
+.PHONY: self-host-direct-mir-scalar-payload-enum-match-binding-test-smoke
+
+self-host-direct-mir-scalar-payload-enum-match-binding-test-smoke: self-host-compiler
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_owner.sh
+
 self-host-direct-mir-scalar-process-args-direct-call-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_process_args_direct_call_owner.sh

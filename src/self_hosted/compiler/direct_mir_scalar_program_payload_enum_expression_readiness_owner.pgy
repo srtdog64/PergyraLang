@@ -1,0 +1,103 @@
+// Expression-shape and declaration joins for tagged one-payload enums.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
+
+func DirectMirScalarProgramPayloadEnumExpressionNodeReady(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = expressions.node_kinds[node];
+    if kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
+        let arguments: Array<Int> =
+            DirectMirScalarProgramLogicalRecordArgumentRows(
+                expressions, node);
+        let nary: Bool = DirectMirScalarProgramNaryOperandEntry(
+            expressions.nary_operands, node) >= 0;
+        if ArrayLength(arguments) == 0 { return Some(false); }
+        if expressions.node_types[node] == "" ||
+            (nary && (expressions.node_lefts[node] != -1 ||
+                expressions.node_rights[node] != -1)) ||
+            expressions.node_local_rows[node] != -1 ||
+            expressions.node_parameter_ordinals[node] != -1 ||
+            expressions.node_member_ordinals[node] < 0 ||
+            expressions.node_literals[node] != "" ||
+            expressions.node_callable_rows[node] != -1 {
+            return Some(false);
+        }
+        let ordinal: Int = 0;
+        while ordinal < ArrayLength(arguments) {
+            if arguments[ordinal] < 0 || arguments[ordinal] >= node ||
+                expressions.node_types[arguments[ordinal]] == "" {
+                return Some(false);
+            }
+            ordinal = ordinal + 1;
+        }
+        return Some(true);
+    }
+    if kind != DirectMirScalarProgramExprPayloadEnumMatch() {
+        return None;
+    }
+    let left: Int = expressions.node_lefts[node];
+    return Some(expressions.node_types[node] ==
+            CompilerAbiLayoutBoolTypeName() && left >= 0 && left < node &&
+        expressions.node_types[left] != "" &&
+        expressions.node_rights[node] == -1 &&
+        expressions.node_local_rows[node] >= 0 &&
+        expressions.node_parameter_ordinals[node] == -1 &&
+        expressions.node_member_ordinals[node] >= 0 &&
+        expressions.node_literals[node] == "" &&
+        expressions.node_callable_rows[node] == -1);
+}
+
+func DirectMirScalarProgramReferencedEnumReadyForExpressions(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) { return false; }
+    let node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        let kind: Int = expressions.node_kinds[node];
+        if kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
+            let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+                fact, expressions.node_types[node]);
+            let ordinal: Int = expressions.node_member_ordinals[node];
+            if enum_row < 0 || fact.payload_flags[enum_row] != 1 ||
+                ordinal < 0 || ordinal >= fact.variant_counts[enum_row] {
+                return false;
+            }
+            let variant: Int = fact.variant_starts[enum_row] + ordinal;
+            let arguments: Array<Int> =
+                DirectMirScalarProgramLogicalRecordArgumentRows(
+                    expressions, node);
+            if ArrayLength(arguments) != fact.variant_param_counts[variant] {
+                return false;
+            }
+            let argument: Int = 0;
+            while argument < ArrayLength(arguments) {
+                if expressions.node_types[arguments[argument]] !=
+                    fact.variant_param_types[
+                        fact.variant_param_type_starts[variant] + argument] {
+                    return false;
+                }
+                argument = argument + 1;
+            }
+        } else if kind == DirectMirScalarProgramExprPayloadEnumMatch() {
+            let left: Int = expressions.node_lefts[node];
+            if left < 0 { return false; }
+            let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+                fact, expressions.node_types[left]);
+            let ordinal: Int = expressions.node_member_ordinals[node];
+            if enum_row < 0 || fact.payload_flags[enum_row] != 1 ||
+                ordinal < 0 || ordinal >= fact.variant_counts[enum_row] {
+                return false;
+            }
+            let variant: Int = fact.variant_starts[enum_row] + ordinal;
+            if fact.variant_param_counts[variant] != 1 {
+                return false;
+            }
+        }
+        node = node + 1;
+    }
+    return true;
+}

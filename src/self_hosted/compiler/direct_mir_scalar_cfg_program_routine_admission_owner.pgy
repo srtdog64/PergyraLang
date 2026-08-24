@@ -109,6 +109,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact,
     ref array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact,
     ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact
@@ -148,13 +149,15 @@ func DirectMirScalarCfgProgramAppendRoutine(
             input.array_int_program, input.collections, logical_record,
             indexed_assignments, signature.parameters);
     let types: DirectMirScalarCfgValueTypePlan =
-        DirectMirScalarCfgValueTypePlanFromOwners(
+        DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
             input.index, locals, input.foreach_elements, logical_record,
-            signature.parameters);
-    if !locals.valid || !types.valid || !DirectMirScalarCfgLocalInventoryReady(
+            referenced_enum, signature.parameters);
+    if !locals.valid || !types.valid ||
+        !DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
         input.index, locals.local_names, types.local_types,
         input.foreach_facts, input.string_arrays, input.array_int_program,
-        input.collections, logical_record, signature.parameters
+        input.collections, logical_record, referenced_enum,
+        signature.parameters
     ) {
         DirectMirScalarCfgProgramRoutineAdmissionFailed(
             "local_inventory", routine_ordinal, -1, -1, ""); return invalid;
@@ -259,7 +262,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         capture, instruction, input.use_facts, global_row,
                         local_instruction, locals, types, input.wire,
                         local_offset, value_offset, parameter_types, callables,
-                        logical_record, payload_free_enum, signature,
+                        logical_record, payload_free_enum, referenced_enum,
+                        signature,
                         member_rebind, nested_indexed,
                         indexed_assignment);
                 if !definition.valid {
@@ -281,7 +285,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         operations, expressions, expression_failure, source, capture, instruction,
                         input.use_facts, global_row, local_instruction, locals,
                         types, input.wire, local_offset, parameter_types,
-                        callables, logical_record, payload_free_enum, signature,
+                        callables, logical_record, payload_free_enum,
+                        referenced_enum, signature,
                         array_int_value_result, array_bool_abi,
                         array_string_abi,
                         routine_ordinal);
@@ -317,7 +322,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         expressions, expression_failure, instruction, input.use_facts, global_row, local_instruction,
                         locals, types, input.wire, local_offset,
                         parameter_types, signature, callables,
-                        logical_record, payload_free_enum, 0,
+                        logical_record, payload_free_enum, referenced_enum, 0,
                         CompilerAbiLayoutBoolTypeName());
                     if !IsSome(condition_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source, expression_failure); return invalid; }
                     condition_row = UnwrapOption(condition_row_opt);
@@ -351,7 +356,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     expressions, expression_failure, instruction, input.use_facts, global_row,
                     local_instruction, locals, types, input.wire,
                         local_offset, parameter_types, signature, callables,
-                        logical_record, payload_free_enum, 0,
+                        logical_record, payload_free_enum, referenced_enum, 0,
                     signature.return_type);
                 if !IsSome(return_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source, expression_failure); return invalid; }
                 return_row = UnwrapOption(return_row_opt);

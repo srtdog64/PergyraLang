@@ -8,6 +8,7 @@ import "direct_mir_scalar_program_c_result_int_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
@@ -66,6 +67,11 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             output = Concat(output,
                 DirectMirScalarProgramCLogicalRecordOptionTypeName(
                     plan.program.logical_record, plan.local_types[row]));
+        } else if DirectMirScalarProgramPayloadEnumTypeReady(
+                plan.program.referenced_enum, plan.local_types[row]) {
+            output = Concat(output,
+                DirectMirScalarProgramCPayloadEnumTypeName(
+                    plan.program.referenced_enum, plan.local_types[row]));
         } else { output = Concat(output, int_c_type); }
         output = Concat(output, " pgy_local_");
         output = Concat(output, ToString(row));
@@ -84,7 +90,9 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             DirectMirScalarProgramLogicalRecordTypeReady(
                 plan.program.logical_record, plan.local_types[row]) ||
             DirectMirScalarProgramLogicalRecordOptionTypeReady(
-                plan.program.logical_record, plan.local_types[row]);
+                plan.program.logical_record, plan.local_types[row]) ||
+            DirectMirScalarProgramPayloadEnumTypeReady(
+                plan.program.referenced_enum, plan.local_types[row]);
         if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
             output = Concat(output, " = \"\";\n");
         } else if zero_aggregate {

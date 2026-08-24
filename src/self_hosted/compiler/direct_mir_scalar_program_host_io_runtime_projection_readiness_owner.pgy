@@ -42,5 +42,20 @@ func DirectMirScalarProgramHostIoRuntimeProjectionReady(
          (CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
               projection.compiler_artifact_write) &&
           fact.compiler_artifact_write_id ==
-              projection.compiler_artifact_write.runtime_call_abi_id));
+              projection.compiler_artifact_write.runtime_call_abi_id)) &&
+        (fact.compiler_artifact_begin_id == 0 ||
+         (CompilerRuntimeCallAbiCompilerArtifactBeginFactReady(
+              projection.compiler_artifact_begin) &&
+          fact.compiler_artifact_begin_id ==
+              projection.compiler_artifact_begin.runtime_call_abi_id)) &&
+        (fact.compiler_artifact_commit_id == 0 ||
+         (CompilerRuntimeCallAbiCompilerArtifactCommitFactReady(
+              projection.compiler_artifact_commit) &&
+          fact.compiler_artifact_commit_id ==
+              projection.compiler_artifact_commit.runtime_call_abi_id)) &&
+        (fact.compiler_artifact_abort_id == 0 ||
+         (CompilerRuntimeCallAbiCompilerArtifactAbortFactReady(
+              projection.compiler_artifact_abort) &&
+          fact.compiler_artifact_abort_id ==
+              projection.compiler_artifact_abort.runtime_call_abi_id));
 }

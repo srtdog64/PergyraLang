@@ -83,7 +83,7 @@ func DirectMirScalarCfgProgramTerminalReturnReadinessFailed(
                 row == DirectMirScalarCfgVoidReturnExpressionRow();
             let exhaustive_code: Int = -1;
             if expected != "Void" && !exits && row == -1 {
-                exhaustive_code = DirectMirScalarProgramPayloadFreeEnumExhaustiveMatchFallthroughReadinessCode(plan, routine, block);
+                exhaustive_code = DirectMirScalarProgramEnumExhaustiveMatchFallthroughReadinessCode(plan, routine, block);
                 ready = exhaustive_code == 0;
             } else if expected != "Void" && !exits {
                 ready = DirectMirScalarCfgProgramExpressionRowReady(plan, row, expected, routine);

@@ -41,7 +41,9 @@ func DirectMirScalarProgramDirectCallNodeReady(ref facts: DirectMirScalarProgram
              facts.node_kinds[argument] !=
                 DirectMirScalarProgramExprLogicalRecordMember() &&
              facts.node_kinds[argument] !=
-                DirectMirScalarProgramExprPayloadFreeEnumVariant()) {
+                DirectMirScalarProgramExprPayloadFreeEnumVariant() &&
+             facts.node_kinds[argument] !=
+                DirectMirScalarProgramExprPayloadEnumConstructor()) {
             return false;
         }
         ordinal = ordinal + 1;

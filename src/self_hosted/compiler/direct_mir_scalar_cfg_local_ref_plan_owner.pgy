@@ -14,6 +14,7 @@ import "../mir_lower/routine_result_definition_fact_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
+import "direct_mir_scalar_cfg_match_binding_local_owner.pgy";
 
 struct DirectMirScalarCfgLocalRefPlan {
     let valid: Bool;
@@ -183,6 +184,13 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
         Die("direct MIR scalar CFG foreach LocalRef binding is invalid");
         return empty;
     }
+    if !DirectMirScalarCfgAppendMatchBindingLocals(
+        admitted, index, logical_record, local_names, local_ref_kinds,
+        local_ref_value_ids, local_ref_syntax_ids
+    ) {
+        Die("direct MIR scalar CFG match binding LocalRef is invalid");
+        return empty;
+    }
     return DirectMirScalarCfgLocalRefPlan(
         true, local_names, local_ref_kinds, local_ref_value_ids,
         local_ref_syntax_ids, value_names, value_local_rows,
@@ -241,9 +249,16 @@ func DirectMirScalarCfgLocalRefsReady(
                               ToString(local_ref_syntax_ids[row]), ":0"
                           )
                       )))) ||
+                (kind == DirectMirScalarCfgLocalRefMatchBinding() &&
+                    (local_ref_syntax_ids[row] < 0 ||
+                     SelfMirLocalRefDestructureOrdinalForOwner(
+                        local_ref_value_ids[row],
+                        routines.source_syntax_ids[routine]) !=
+                            local_ref_syntax_ids[row])) ||
                 (kind != DirectMirScalarCfgLocalRefValue() &&
                  kind != DirectMirScalarCfgLocalRefIteration() &&
-                 kind != DirectMirScalarCfgLocalRefForEach()) {
+                 kind != DirectMirScalarCfgLocalRefForEach() &&
+                 kind != DirectMirScalarCfgLocalRefMatchBinding()) {
                 return false;
             }
             let prior: Int = local_start;

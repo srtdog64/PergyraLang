@@ -21,7 +21,8 @@ func DirectMirScalarProgramCOptionIntTryDefinition(
     }
     let operand: String = DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, expression_row, runtime,
-        plan.program.logical_record, plan.routines, routine, target);
+        plan.program.logical_record, plan.program.referenced_enum,
+        plan.routines, routine, target);
     let suffix: String = Concat(ToString(routine), Concat("_", ToString(operation)));
     let temporary: String = Concat("pgy_try_option_int_", suffix);
     let present: Option<String> = DirectMirScalarProgramCOptionIntExpression(

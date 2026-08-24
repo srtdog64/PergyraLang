@@ -7,6 +7,7 @@ import "direct_mir_scalar_program_llvm_result_int_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
@@ -135,6 +136,15 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
             output = Concat(output, Concat(" = alloca ", option_type));
             output = Concat(output, Concat(", align 8\n  store ",
                 option_type));
+            output = Concat(output,
+                " zeroinitializer, ptr %pgy.local.");
+        } else if DirectMirScalarProgramPayloadEnumTypeReady(
+                plan.program.referenced_enum, plan.local_types[row]) {
+            llvm_type = DirectMirScalarProgramLlvmPayloadEnumTypeName(
+                plan.program.referenced_enum, plan.local_types[row]);
+            output = Concat(output, Concat(" = alloca ", llvm_type));
+            output = Concat(output, Concat(", align 8\n  store ",
+                llvm_type));
             output = Concat(output,
                 " zeroinitializer, ptr %pgy.local.");
         } else { output = Concat(output,

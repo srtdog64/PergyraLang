@@ -163,6 +163,72 @@ func CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
             "host-io", "", "compiler-artifact-write");
 }
 
+func CompilerRuntimeCallAbiCompilerArtifactBeginFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "host-io", "compiler-artifact-begin",
+            HostIORuntimeCCompilerArtifactBeginFn(),
+            CompilerRuntimeCallAbiMaterialTargetLibrary()));
+}
+
+func CompilerRuntimeCallAbiCompilerArtifactBeginFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return fact.ok && fact.domain == "host-io" &&
+        fact.operation == "compiler-artifact-begin" &&
+        fact.symbol == HostIORuntimeCCompilerArtifactBeginFn() &&
+        fact.symbol_kind == "function" && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        fact.call_shape == "string_to_int" &&
+        fact.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "host-io", "", "compiler-artifact-begin");
+}
+
+func CompilerRuntimeCallAbiCompilerArtifactCommitFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "host-io", "compiler-artifact-commit",
+            HostIORuntimeCCompilerArtifactCommitFn(),
+            CompilerRuntimeCallAbiMaterialTargetLibrary()));
+}
+
+func CompilerRuntimeCallAbiCompilerArtifactCommitFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return fact.ok && fact.domain == "host-io" &&
+        fact.operation == "compiler-artifact-commit" &&
+        fact.symbol == HostIORuntimeCCompilerArtifactCommitFn() &&
+        fact.symbol_kind == "function" && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        fact.call_shape == "int_to_int" &&
+        fact.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "host-io", "", "compiler-artifact-commit");
+}
+
+func CompilerRuntimeCallAbiCompilerArtifactAbortFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "host-io", "compiler-artifact-abort",
+            HostIORuntimeCCompilerArtifactAbortFn(),
+            CompilerRuntimeCallAbiMaterialTargetLibrary()));
+}
+
+func CompilerRuntimeCallAbiCompilerArtifactAbortFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return fact.ok && fact.domain == "host-io" &&
+        fact.operation == "compiler-artifact-abort" &&
+        fact.symbol == HostIORuntimeCCompilerArtifactAbortFn() &&
+        fact.symbol_kind == "function" && fact.materialization ==
+            CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        fact.call_shape == "int_to_int" &&
+        fact.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "host-io", "", "compiler-artifact-abort");
+}
+
 func CompilerRuntimeCallAbiStringConcatFact(
 ) -> CompilerRuntimeCallAbiFact {
     return CompilerRuntimeCallAbiFactFromRowInput(

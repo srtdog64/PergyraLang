@@ -13,7 +13,13 @@ func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
     // The compiler-artifact builtin has one registry-owned ABI row and no
     // per-instruction resource row. Its semantic graph therefore carries zero.
     if signature.expression_kind ==
-            DirectMirScalarProgramExprCompilerArtifactWrite() {
+            DirectMirScalarProgramExprCompilerArtifactWrite() ||
+        signature.expression_kind ==
+            DirectMirScalarProgramExprCompilerArtifactBegin() ||
+        signature.expression_kind ==
+            DirectMirScalarProgramExprCompilerArtifactCommit() ||
+        signature.expression_kind ==
+            DirectMirScalarProgramExprCompilerArtifactAbort() {
         return signature.runtime_call_abi_id > 0 && carried == 0;
     }
     if signature.runtime_call_abi_id > 0 {

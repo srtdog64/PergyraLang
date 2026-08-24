@@ -7,7 +7,7 @@
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "abi_layout_row_owner.pgy";
-import "../mir_lower/program_declaration_index_owner.pgy";
+import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 struct DirectMirScalarProgramPayloadFreeEnumFact {
     let valid: Bool;
     let digest: Int;
@@ -115,60 +115,13 @@ func DirectMirScalarProgramPayloadFreeEnumFactCanonicalEmpty(
         source.representation, source.abi_type_name);
 }
 
-func DirectMirScalarProgramPayloadFreeEnumReferenceAdd(
-    ref declarations: MirProgramDeclarationIndex,
-    type_name: String, inout rows: Array<Int>
-) -> Bool {
-    let declaration: Int =
-        MirProgramDeclarationFieldIdentityDeclarationIndex(
-            declarations.field_identities, type_name);
-    if declaration < 0 || declarations.kinds[declaration] != "enum" ||
-        declarations.nominal_kinds[declaration] != "enum" {
-        return true;
-    }
-    let prior: Int = 0;
-    while prior < ArrayLength(rows) {
-        if rows[prior] == declaration { return true; }
-        prior = prior + 1;
-    }
-    ArrayPush(rows, declaration);
-    return rows[ArrayLength(rows) - 1] == declaration;
-}
-
-func DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
+func DirectMirScalarProgramPayloadFreeEnumFactFromReferenced(
+    ref referenced: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramPayloadFreeEnumFact {
     let invalid: DirectMirScalarProgramPayloadFreeEnumFact =
         DirectMirScalarProgramPayloadFreeEnumFactInvalid();
-    if !admitted.domain_runtime_admission.declarations.valid ||
-        !MirProgramEnumVariantIndexReady(
-            admitted.domain_runtime_admission.declarations.enum_variants) {
+    if !DirectMirScalarProgramReferencedEnumFactReady(referenced) {
         return invalid;
-    }
-    let referenced: Array<Int> = [];
-    let routine: Int = 0;
-    while routine < MirProgramRoutineIndexCount(admitted.routines) {
-        let signature: DirectMirRoutineSignatureFact =
-            DirectMirRoutineSignatureFactAt(
-                admitted.routines, routine,
-                MirProgramRoutineIndexBlockInstructionCountAt(
-                    admitted.routines, routine, 0));
-        if !DirectMirRoutineSignatureFactReady(signature) ||
-            !DirectMirScalarProgramPayloadFreeEnumReferenceAdd(
-                admitted.domain_runtime_admission.declarations,
-                signature.return_type, referenced) {
-            return invalid;
-        }
-        let parameter: Int = 0;
-        while parameter < signature.param_count {
-            if !DirectMirScalarProgramPayloadFreeEnumReferenceAdd(
-                    admitted.domain_runtime_admission.declarations,
-                    signature.parameters.type_names[parameter], referenced) {
-                return invalid;
-            }
-            parameter = parameter + 1;
-        }
-        routine = routine + 1;
     }
     let rows: Array<Int> = [];
     let names: Array<String> = [];
@@ -177,73 +130,25 @@ func DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(
     let counts: Array<Int> = [];
     let variants: Array<String> = [];
     let reference: Int = 0;
-    while reference < ArrayLength(referenced) {
-        let declaration_row: Int = referenced[reference];
-        let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-            admitted.document.root.json,
-            admitted.domain_runtime_admission.declarations.starts[
-                declaration_row],
-            admitted.domain_runtime_admission.declarations.ends[
-                declaration_row]);
-        let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
-            declaration.json, declaration.start, declaration.end,
-            "source_syntax_id");
-        let source_path: Option<String> = MirObjectUniqueStringFactAtBounds(
-            declaration.json, declaration.start, declaration.end, "source_module_path");
-        let fields: JsonArrayObjectFactTable =
-            JsonObjectFactArrayObjectTable(declaration, "fields");
-        let methods: JsonArrayObjectFactTable =
-            JsonObjectFactArrayObjectTable(declaration, "methods");
-        let variant_table: JsonArrayObjectFactTable =
-            JsonObjectFactArrayObjectTable(declaration, "variants");
-        if !JsonObjectFactTableReady(declaration) ||
-            JsonObjectFactCount(declaration) != 8 || !IsSome(syntax) ||
-            !IsSome(source_path) || UnwrapOption(source_path) != admitted.
-                domain_runtime_admission.declarations.source_module_paths[
-                    declaration_row] ||
-            ToInt(UnwrapOption(syntax)) <= 0 ||
-            ToString(ToInt(UnwrapOption(syntax))) != UnwrapOption(syntax) ||
-            !JsonArrayObjectFactTableReady(fields) ||
-            JsonArrayObjectFactCount(fields) != 0 ||
-            !JsonArrayObjectFactTableReady(methods) ||
-            JsonArrayObjectFactCount(methods) != 0 ||
-            !JsonArrayObjectFactTableReady(variant_table) {
-            return invalid;
-        }
-        let variant_start: Int = ArrayLength(variants);
-        let expected_ordinal: Int = 0;
-        let variant_row: Int = 0;
-        while variant_row < ArrayLength(admitted.domain_runtime_admission.
-                declarations.enum_variants.names) {
-            if admitted.domain_runtime_admission.declarations.enum_variants.
-                    owners[variant_row] == admitted.domain_runtime_admission.
-                    declarations.names[declaration_row] {
-                if admitted.domain_runtime_admission.declarations.
-                        enum_variants.ordinals[variant_row] !=
-                        expected_ordinal ||
-                    !MirProgramEnumVariantPayloadFreeAt(
-                        admitted.domain_runtime_admission.declarations.
-                            enum_variants, variant_row) {
+    while reference < ArrayLength(referenced.declaration_rows) {
+        if referenced.payload_flags[reference] == 0 {
+            let variant_start: Int = ArrayLength(variants);
+            let source_start: Int = referenced.variant_starts[reference];
+            let ordinal: Int = 0;
+            while ordinal < referenced.variant_counts[reference] {
+                let source_variant: Int = source_start + ordinal;
+                if referenced.variant_param_counts[source_variant] != 0 {
                     return invalid;
                 }
-                ArrayPush(variants,
-                    admitted.domain_runtime_admission.declarations.
-                        enum_variants.names[variant_row]);
-                expected_ordinal = expected_ordinal + 1;
+                ArrayPush(variants, referenced.variant_names[source_variant]);
+                ordinal = ordinal + 1;
             }
-            variant_row = variant_row + 1;
+            ArrayPush(rows, referenced.declaration_rows[reference]);
+            ArrayPush(names, referenced.names[reference]);
+            ArrayPush(syntax_ids, referenced.source_syntax_ids[reference]);
+            ArrayPush(starts, variant_start);
+            ArrayPush(counts, referenced.variant_counts[reference]);
         }
-        if expected_ordinal <= 0 || JsonArrayObjectFactCount(variant_table) !=
-                expected_ordinal {
-            return invalid;
-        }
-        ArrayPush(rows, declaration_row);
-        ArrayPush(names,
-            admitted.domain_runtime_admission.declarations.names[
-                declaration_row]);
-        ArrayPush(syntax_ids, ToInt(UnwrapOption(syntax)));
-        ArrayPush(starts, variant_start);
-        ArrayPush(counts, expected_ordinal);
         reference = reference + 1;
     }
     let source: DirectMirScalarProgramPayloadFreeEnumFact =
@@ -260,6 +165,54 @@ func DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(
         return invalid;
     }
     return sealed;
+}
+
+func DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirScalarProgramPayloadFreeEnumFact {
+    let referenced: DirectMirScalarProgramReferencedEnumFact =
+        DirectMirScalarProgramReferencedEnumFactFromAdmitted(admitted);
+    return DirectMirScalarProgramPayloadFreeEnumFactFromReferenced(referenced);
+}
+
+func DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(
+    ref referenced: DirectMirScalarProgramReferencedEnumFact,
+    ref payload_free: DirectMirScalarProgramPayloadFreeEnumFact
+) -> Bool {
+    if !DirectMirScalarProgramReferencedEnumFactReady(referenced) ||
+        !DirectMirScalarProgramPayloadFreeEnumFactReady(payload_free) {
+        return false;
+    }
+    let projected_row: Int = 0;
+    let referenced_row: Int = 0;
+    while referenced_row < ArrayLength(referenced.declaration_rows) {
+        if referenced.payload_flags[referenced_row] == 0 {
+            if projected_row >= ArrayLength(payload_free.declaration_rows) ||
+                payload_free.declaration_rows[projected_row] !=
+                    referenced.declaration_rows[referenced_row] ||
+                payload_free.names[projected_row] !=
+                    referenced.names[referenced_row] ||
+                payload_free.source_syntax_ids[projected_row] !=
+                    referenced.source_syntax_ids[referenced_row] ||
+                payload_free.variant_counts[projected_row] !=
+                    referenced.variant_counts[referenced_row] {
+                return false;
+            }
+            let ordinal: Int = 0;
+            while ordinal < referenced.variant_counts[referenced_row] {
+                if payload_free.variant_names[
+                        payload_free.variant_starts[projected_row] + ordinal] !=
+                    referenced.variant_names[
+                        referenced.variant_starts[referenced_row] + ordinal] {
+                    return false;
+                }
+                ordinal = ordinal + 1;
+            }
+            projected_row = projected_row + 1;
+        }
+        referenced_row = referenced_row + 1;
+    }
+    return projected_row == ArrayLength(payload_free.declaration_rows);
 }
 
 func DirectMirScalarProgramPayloadFreeEnumRow(

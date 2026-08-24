@@ -73,7 +73,8 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
     argument_carriages: Array<String>,
     callable_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind != DirectMirScalarProgramExprDirectCall() {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
@@ -114,6 +115,11 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
     }
     if DirectMirScalarProgramPayloadFreeEnumTypeReady(
             payload_free_enum, result_type) { result_llvm_type = "i64"; }
+    if DirectMirScalarProgramPayloadEnumTypeReady(
+            referenced_enum, result_type) {
+        result_llvm_type = DirectMirScalarProgramLlvmPayloadEnumTypeName(
+            referenced_enum, result_type);
+    }
     if result_llvm_type == "" {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
@@ -147,6 +153,12 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
                 DirectMirScalarProgramPayloadFreeEnumTypeReady(
                     payload_free_enum, types[ordinal]) {
                 argument_type = "i64";
+            }
+            if carriages[ordinal] == "value" &&
+                DirectMirScalarProgramPayloadEnumTypeReady(
+                    referenced_enum, types[ordinal]) {
+                argument_type = DirectMirScalarProgramLlvmPayloadEnumTypeName(
+                    referenced_enum, types[ordinal]);
             }
         }
         if (carriages[ordinal] == "value" ||
