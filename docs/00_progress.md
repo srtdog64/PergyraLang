@@ -2,23 +2,21 @@
 
 마지막 업데이트: 2026-08-25
 
-2026-08-25 실행 갱신: 코드 checkpoint `51c1ea38`에서 DIR이 승인한 intent
-priority expression/root/graph가 exact `IntentEval(priority)` MIR row로 운반되고,
-MIR-lower의 `IntentPriority`와 expression order를 거쳐 self C runtime admission에
-도달한다. Absence만 default 0을 소유하며, present graph는 `Int`여야 한다. 이름별
-priority table, source rescan, hardcoded fixture 값, dual read는 없다. Fresh production
-v13과 중첩 실행에서 outer 1/inner 9가 `IntentActivePriority`로 관찰됐고 public self
-C와 native C 출력이 같다. Missing graph와 duplicate carrier는 각각 소유 진단으로
-fail closed다. Component/old-path, nested execution bundle, generated language registry,
-likeness sentinel 24/result-use 4242, protocol registry, Gate single-owner, SoT edge census
-`86/173` 및 diff gate가 green이다. Coq/Rocq는 로컬에 없어 adequacy formal model은
-declared skip이고 live/negative owner 검증만 통과했다. 다음 reached RED는
-MIR-lower가 `IntentMode: exclusive`를 hardcode하는 mode loss다. Concurrent variant는
-self C `false`, native C `true`로 갈린다. 따라서 다음 executable rung은 admitted
-mode fact carriage와 hardcoded reconstruction 삭제다. 이번 변화도 기존 BRIDGE 내부
-실행 대체이므로 SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta
-83%를 유지한다. 마지막 published baseline은 `67efe05e`의 run `32776192431`
-29/29 green이며, 현재 checkpoint의 push CI는 아직 pending이다.
+2026-08-25 실행 갱신: 코드 checkpoint `2107c4f0`에서 native RIR의
+`intent-policy(concurrency)`와 self DIR의 `SelfDirIntentModeFacts`가 승인한
+`exclusive`/`concurrent` 정책이 exact `IntentMode` MIR row로 운반되고,
+MIR-lower를 거쳐 self C runtime admission에 도달한다. 기존 hardcoded
+`IntentMode: exclusive`, source rescan, intent-name mode table, missing-row fallback은
+없다. Fresh production v16과 중첩 실행에서 outer mode `false`, inner mode `true`,
+priority 1/9가 관찰됐고 public self C와 native C 출력이 같다. Missing/duplicate mode
+carrier는 각각 소유 진단으로 fail closed다. Component/old-path, 전체 nested bundle,
+generated language registry, likeness sentinel 24/result-use 4246, 10-row protocol
+registry, Gate single-owner, SoT edge census `86/174` 및 diff gate가 green이다.
+Coq/Rocq는 로컬에 없어 adequacy formal model은 declared skip이고 live/negative
+owner 검증만 통과했다. 이번 변화도 기존 BRIDGE 내부 실행 대체이므로 SoT
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%를 유지한다.
+마지막 published baseline은 `ccbed622`의 run `32781856770` 29/29 green이며,
+현재 mode checkpoint의 push CI는 아직 pending이다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 
@@ -40,9 +38,9 @@ mode fact carriage와 hardcoded reconstruction 삭제다. 이번 변화도 기�
 | SoT migration index | 78.2% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | BRIDGE를 늘리는 문서/owner 추가가 아니라 실제 hard substitution |
 | self-host substrate | 9/10 READY | hard self-host scorecard 10개 capability 중 9 READY, arena/ownership 1 SUBSET | compiler-scale String/scratch lifetime과 일반 route closure |
 | 일반 GraphPlan 연속 전선 | current-source 232,242,252-byte MIR -> canonical O3 byte-stable gen2/gen3 C | direct `else if` source-depth 재귀를 explicit frame descent/reverse merge로 교체한 current source를 Pergyra seed와 native oracle이 동일 MIR로 게시했다. release-profile O3 gen2가 같은 MIR을 다시 소비해 10,265,701-byte gen3 C를 만들었고 gen2/gen3 SHA-256이 일치한다. 같은 리비전의 격리 public launcher/sibling도 source→MIR, `--emit-c`, plain C compile/run을 통과한다. routine·row·V·owner 수는 진행률 분자가 아니다. | 격리 증거를 repository-installed sibling과 current remote CI에서 재현하고 release promotion을 닫는다. |
-| hard self-host replacement 예측 | 75% | 아래 8개 milestone 중 5개 완료와 현재 hard-substitution 범위 및 남은 native/release surface를 함께 본 작업 예측 | 남은 native mode와 released whole-product fallback 삭제 |
+| hard self-host replacement 예측 | 75% | 아래 8개 milestone 중 5개 완료와 현재 hard-substitution 범위 및 남은 native/release surface를 함께 본 작업 예측 | canonical compiler-purpose intent와 released whole-product fallback 삭제 |
 | bootstrap fixed point | 3/4 = 75% | current-source MIR producer, DRV-2/gen2 consumers, gen2==gen3 byte equality를 canonical O3 full-bootstrap script로 완료 | installed release promotion과 committed/remote reproduction |
-| 마지막 완료 baseline CI/release 증거 | 3/4 = 75% | fixed MIR consumer/C/host verify, MIR 161/161, 816초 full GraphPlan aggregate와 기존 CI profile/step 증거가 있다. Published checkpoint `175859ef`의 remote run `32774064285`는 Linux/Windows/macOS, sanitizer, formal proof, backend compare 20 shards, full self-host bootstrap를 29/29 green으로 닫았다. | installed release promotion과 남은 released whole-product replacement를 동일 revision의 release evidence로 닫기 |
+| 마지막 완료 baseline CI/release 증거 | 3/4 = 75% | fixed MIR consumer/C/host verify와 기존 CI profile/step 증거가 있다. Published checkpoint `ccbed622`의 remote run `32781856770`은 Linux/Windows/macOS, sanitizer, formal proof, backend compare 20 shards, full self-host bootstrap를 29/29 green으로 24m51에 닫았다. | installed release promotion과 남은 released whole-product replacement를 동일 revision의 release evidence로 닫기 |
 
 통합 78%의 계산 가중치는 다음과 같이 고정한다. 이 가중치는 완료를
 예쁘게 보이게 하려고 바꾸지 않는다.
