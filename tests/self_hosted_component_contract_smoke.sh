@@ -21320,6 +21320,10 @@ src/self_hosted/compiler/direct_mir_inferred_generic_member_declaration_fact_own
 src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy|func DirectMirNominalLiteralDeclarationFactFromIndex(|7|6
 src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy|func DirectMirScalarProgramReferencedEnumFactFromAdmitted(|8|7
 DIRECT_MIR_DECLARATION_PROVENANCE_CONSUMERS
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy" \
+    "func DirectMirScalarProgramReferencedEnumFactFromAdmitted(" \
+    "let enum_index: MirProgramEnumVariantIndex = admitted."
 require_file \
     "src/self_hosted/compiler/direct_mir_struct_argument_graph_fact_owner.pgy"
 require_max_lines \

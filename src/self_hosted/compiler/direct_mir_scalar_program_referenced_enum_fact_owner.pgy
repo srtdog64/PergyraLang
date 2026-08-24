@@ -267,28 +267,38 @@ func DirectMirScalarProgramReferencedEnumFactFromAdmitted(
         let variant_row: Int = 0;
         while variant_row < ArrayLength(admitted.domain_runtime_admission.
                 declarations.enum_variants.names) {
-            let enum_index: MirProgramEnumVariantIndex = admitted.
-                domain_runtime_admission.declarations.enum_variants;
-            if enum_index.owners[variant_row] == admitted.
+            if admitted.domain_runtime_admission.declarations.enum_variants.
+                    owners[variant_row] == admitted.
                     domain_runtime_admission.declarations.names[
                         declaration_row] {
-                if enum_index.ordinals[variant_row] != expected_ordinal ||
-                    enum_index.param_type_starts[variant_row] < 0 ||
-                    enum_index.param_type_starts[variant_row] +
-                        enum_index.param_counts[variant_row] >
-                        ArrayLength(enum_index.param_types) {
+                if admitted.domain_runtime_admission.declarations.enum_variants.
+                        ordinals[variant_row] != expected_ordinal || admitted.
+                        domain_runtime_admission.declarations.enum_variants.
+                        param_type_starts[variant_row] < 0 || admitted.
+                        domain_runtime_admission.declarations.enum_variants.
+                        param_type_starts[variant_row] + admitted.
+                        domain_runtime_admission.declarations.enum_variants.
+                        param_counts[variant_row] > ArrayLength(admitted.
+                        domain_runtime_admission.declarations.enum_variants.
+                        param_types) {
                     return invalid;
                 }
-                ArrayPush(variants, enum_index.names[variant_row]);
-                ArrayPush(param_counts, enum_index.param_counts[variant_row]);
+                ArrayPush(variants, admitted.domain_runtime_admission.
+                    declarations.enum_variants.names[variant_row]);
+                ArrayPush(param_counts, admitted.domain_runtime_admission.
+                    declarations.enum_variants.param_counts[variant_row]);
                 ArrayPush(param_starts, ArrayLength(param_types));
                 let parameter: Int = 0;
-                while parameter < enum_index.param_counts[variant_row] {
-                    ArrayPush(param_types, enum_index.param_types[
-                        enum_index.param_type_starts[variant_row] + parameter]);
+                while parameter < admitted.domain_runtime_admission.
+                        declarations.enum_variants.param_counts[variant_row] {
+                    ArrayPush(param_types, admitted.domain_runtime_admission.
+                        declarations.enum_variants.param_types[admitted.
+                        domain_runtime_admission.declarations.enum_variants.
+                        param_type_starts[variant_row] + parameter]);
                     parameter = parameter + 1;
                 }
-                if enum_index.param_counts[variant_row] > 0 {
+                if admitted.domain_runtime_admission.declarations.enum_variants.
+                        param_counts[variant_row] > 0 {
                     has_payload = true;
                 }
                 expected_ordinal = expected_ordinal + 1;
