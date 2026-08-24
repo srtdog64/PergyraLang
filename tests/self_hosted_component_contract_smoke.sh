@@ -1608,6 +1608,12 @@ require_text "src/self_hosted/semantic/ast_intent_expression_environment_owner.p
     'TypedAstKindIntentPriorityTag()'
 require_file "src/self_hosted/dir/intent_priority_fact_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_priority_fact_owner.pgy" 220
+require_text "src/self_hosted/dir/intent_priority_fact_owner.pgy" \
+    'present: Array<Bool>;'
+require_text "src/self_hosted/dir/intent_priority_fact_owner.pgy" \
+    'if !present { return node_id == 0 && expression_root_id == 0; }'
+reject_text "src/self_hosted/dir/intent_priority_fact_owner.pgy" \
+    'node_id == -1'
 require_file "src/self_hosted/dir/intent_child_policy_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_child_policy_owner.pgy" 40
 require_text "src/self_hosted/dir/intent_priority_fact_owner.pgy" \

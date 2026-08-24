@@ -14,6 +14,7 @@ import "../semantic/ast_nominal_constructor_fact_owner.pgy";
 struct SelfDirIntentPriorityFact {
     ok: Bool;
     diagnostic_message: String;
+    present: Bool;
     node_id: Int;
     expression_root_id: Int;
 }
@@ -22,6 +23,7 @@ struct SelfDirIntentPriorityFacts {
     ok: Bool;
     diagnostic_message: String;
     artifact_node_count: Int;
+    present: Array<Bool>;
     node_ids: Array<Int>;
     expression_root_ids: Array<Int>;
 }
@@ -29,10 +31,11 @@ struct SelfDirIntentPriorityFacts {
 func SelfDirIntentPriorityFactsEmpty(
     artifact_node_count: Int
 ) -> SelfDirIntentPriorityFacts {
+    let present: Array<Bool> = [];
     let node_ids: Array<Int> = [];
     let expression_root_ids: Array<Int> = [];
     return SelfDirIntentPriorityFacts(
-        true, "", artifact_node_count, node_ids, expression_root_ids
+        true, "", artifact_node_count, present, node_ids, expression_root_ids
     );
 }
 
@@ -47,13 +50,13 @@ func SelfDirIntentPriorityFactsError(
 }
 
 func SelfDirIntentPriorityFactAbsent() -> SelfDirIntentPriorityFact {
-    return SelfDirIntentPriorityFact(true, "", -1, -1);
+    return SelfDirIntentPriorityFact(true, "", false, 0, 0);
 }
 
 func SelfDirIntentPriorityFactError(
     message: String
 ) -> SelfDirIntentPriorityFact {
-    return SelfDirIntentPriorityFact(false, message, -1, -1);
+    return SelfDirIntentPriorityFact(false, message, false, 0, 0);
 }
 
 func SelfDirIntentPriorityFactFromAdmittedFacts(
@@ -64,7 +67,7 @@ func SelfDirIntentPriorityFactFromAdmittedFacts(
     function_tables: SemanticAstExpressionFunctionTableFacts,
     intent_node_id: Int
 ) -> SelfDirIntentPriorityFact {
-    let priority_node_id: Int = -1;
+    let priority_node_id: Int = 0;
     let priority_count: Int = 0;
     let child_index: Int = 0;
     let child: Option<Int> = TypedAstArenaChildAt(
@@ -118,7 +121,7 @@ func SelfDirIntentPriorityFactFromAdmittedFacts(
         );
     }
     return SelfDirIntentPriorityFact(
-        true, "", priority_node_id, UnwrapOption(root)
+        true, "", true, priority_node_id, UnwrapOption(root)
     );
 }
 
@@ -126,12 +129,12 @@ func SelfDirIntentPriorityRowReady(
     artifact: AstTreeArtifact,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     intent_node_id: Int,
+    present: Bool,
     node_id: Int,
     expression_root_id: Int
 ) -> Bool {
-    if node_id < 0 {
-        return node_id == -1 && expression_root_id == -1;
-    }
+    if !present { return node_id == 0 && expression_root_id == 0; }
+    if node_id < 0 || expression_root_id < 0 { return false; }
     let parent: Option<Int> = TypedAstArenaParentId(
         artifact.arena, node_id
     );
@@ -163,6 +166,7 @@ func SelfDirIntentPriorityFactsFromArtifact(
             artifact.count
         );
     }
+    let present: Array<Bool> = [];
     let node_ids: Array<Int> = [];
     let expression_root_ids: Array<Int> = [];
     let i: Int = 0;
@@ -178,12 +182,13 @@ func SelfDirIntentPriorityFactsFromArtifact(
                 row.diagnostic_message, artifact.count
             );
         }
+        ArrayPush(present, row.present);
         ArrayPush(node_ids, row.node_id);
         ArrayPush(expression_root_ids, row.expression_root_id);
         i = i + 1;
     }
     return SelfDirIntentPriorityFacts(
-        true, "", artifact.count, node_ids, expression_root_ids
+        true, "", artifact.count, present, node_ids, expression_root_ids
     );
 }
 
@@ -195,6 +200,7 @@ func SelfDirIntentPriorityFactsReady(
 ) -> Bool {
     if !facts.ok || facts.diagnostic_message != "" ||
         facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.present) != ArrayLength(intent_node_ids) ||
         ArrayLength(facts.node_ids) != ArrayLength(intent_node_ids) ||
         ArrayLength(facts.expression_root_ids) !=
             ArrayLength(intent_node_ids) {
@@ -204,6 +210,7 @@ func SelfDirIntentPriorityFactsReady(
     while i < ArrayLength(intent_node_ids) {
         if !SelfDirIntentPriorityRowReady(
             artifact, expression_surfaces, intent_node_ids[i],
+            facts.present[i],
             facts.node_ids[i], facts.expression_root_ids[i]
         ) { return false; }
         i = i + 1;

@@ -62,6 +62,7 @@ func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
     return ArrayLength(facts.names) == intents &&
         ArrayLength(facts.result_modes) == intents &&
         ArrayLength(facts.return_type_names) == intents &&
+        ArrayLength(facts.priorities.present) == intents &&
         ArrayLength(facts.priorities.node_ids) == intents &&
         ArrayLength(facts.priorities.expression_root_ids) == intents &&
         ArrayLength(facts.participant_starts) == intents &&
