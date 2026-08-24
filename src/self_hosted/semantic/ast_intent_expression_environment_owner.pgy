@@ -10,6 +10,18 @@ func SemanticAstIntentExpressionOwnerNodeId(
     expression_node_id: Int
 ) -> Option<Int> {
     if TypedAstArenaNodeKindIs(
+        artifact.arena, expression_node_id, TypedAstKindIntentPriorityTag()
+    ) {
+        let priority_owner: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, expression_node_id
+        );
+        if IsSome(priority_owner) && TypedAstArenaNodeKindIs(
+            artifact.arena, UnwrapOption(priority_owner),
+            TypedAstKindIntentDeclTag()
+        ) { return priority_owner; }
+        return None;
+    }
+    if TypedAstArenaNodeKindIs(
         artifact.arena, expression_node_id,
         TypedAstKindIntentTerminalSuccessTag()
     ) || TypedAstArenaNodeKindIs(

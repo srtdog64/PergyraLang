@@ -1602,6 +1602,20 @@ require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pg
     'TypedAstKindIntentStepIntentTag()'
 require_text "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy" \
     'TypedAstKindIntentStepIntentTag()'
+require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" \
+    'TypedAstKindIntentPriorityTag()'
+require_text "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy" \
+    'TypedAstKindIntentPriorityTag()'
+require_file "src/self_hosted/dir/intent_priority_fact_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_priority_fact_owner.pgy" 220
+require_file "src/self_hosted/dir/intent_child_policy_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_child_policy_owner.pgy" 40
+require_text "src/self_hosted/dir/intent_priority_fact_owner.pgy" \
+    'SemanticExpressionGraphScalarTypeName('
+require_text "src/self_hosted/dir/intent_priority_fact_owner.pgy" \
+    'self-host DIR intent priority expression must be Int'
+reject_text "src/self_hosted/dir/intent_priority_fact_owner.pgy" \
+    'FileRead('
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
     'kind = TypedAstKindIntentStepIntentTag();'
 require_text "src/self_hosted/parser/decl_intent_owner.pgy" \
@@ -2163,6 +2177,8 @@ require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
     'func TypedAstKindIntentStepContractProvenanceTag() -> Int { return 88; }'
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
     'func TypedAstKindIntentStepIntentTag() -> Int { return 89; }'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindIntentPriorityTag() -> Int { return 90; }'
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
     'return TypedAstKindIntentStepContractProvenanceTag();'
 reject_text "src/self_hosted/compiler/dir_intent_text_artifact_owner.pgy" \

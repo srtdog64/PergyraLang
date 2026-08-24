@@ -6,9 +6,11 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
 import "../semantic/ast_expression_surface_fact_owner.pgy";
+import "../semantic/ast_expression_function_table_fact_owner.pgy";
 import "../semantic/ast_intent_signature_fact_owner.pgy";
 import "../semantic/ast_intent_transition_fact_owner.pgy";
 import "../semantic/ast_role_fact_owner.pgy";
+import "../semantic/ast_nominal_constructor_fact_owner.pgy";
 import "../semantic/ast_zone_authority_validation_owner.pgy";
 import "domain_topology_row_owner.pgy";
 import "intent_fact_owner.pgy";
@@ -214,15 +216,26 @@ func SelfDirDomainGraphFactsFromArtifact(
     ref intent_signatures: SemanticAstIntentSignatureFacts,
     intent_transitions: SemanticAstIntentTransitionFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts,
     ref authorities: SemanticAstZoneAuthorityFacts,
     ref roles: SemanticAstRoleFacts
 ) -> SelfDirDomainGraphFacts {
+    let priorities: SelfDirIntentPriorityFacts =
+        SelfDirIntentPriorityFactsFromArtifact(
+            artifact, intent_signatures, expression_surfaces,
+            constructors, function_tables
+        );
+    if !priorities.ok {
+        return SelfDirDomainGraphFactsError(priorities.diagnostic_message);
+    }
     let intents: SelfDirIntentFacts = SelfDirIntentFactsFromArtifact(
         artifact, rows, signatures, intent_signatures, intent_transitions,
-        expression_surfaces
+        expression_surfaces, priorities
     );
     if !SelfDirIntentFactsReady(
-        artifact, rows, signatures, intent_signatures, intents
+        artifact, rows, signatures, intent_signatures,
+        expression_surfaces, intents
     ) {
         return SelfDirDomainGraphFactsError(intents.diagnostic_message);
     }

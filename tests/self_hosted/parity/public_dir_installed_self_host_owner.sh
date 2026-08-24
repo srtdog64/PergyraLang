@@ -2,7 +2,7 @@
 # Public DIR text is owned by the installed Pergyra semantic/DIR pipeline.
 # Native DIR remains only the explicit independent oracle.
 # Closed fallbacks: public_dir_native_fallback,
-# public_dir_oracle_self_compare, missing_dir_driver_native_retry.
+# public_dir_oracle_self_compare, missing_dir_driver_native_retry; canonical composite priority DIR admission and non-Int rejection.
 
 set -euo pipefail
 
@@ -83,6 +83,7 @@ authority|examples/function_clause_order_minimal.pgy
 intent-defaults|tests/self_hosted/parity/fixture/dir_intent_defaults.pgy
 transfer-move|examples/transfer_move_minimal.pgy
 inline-subintent|examples/composite_intent_orchestration_explicit.pgy
+priority-composite|examples/composite_intent_orchestration/main.pgy
 nested-on-subintent|tests/self_hosted/parity/fixture/intent_nested_call_reachability.pgy
 CASES
 
@@ -99,6 +100,10 @@ options_rc=$?
 (cd "$ROOT_DIR" && "$SELF_DRIVER" "$DIRECT_MODE") \
     >"$WORK_DIR/arity.out" 2>"$WORK_DIR/arity.err"
 arity_rc=$?
+(cd "$ROOT_DIR" && "$SELF_DRIVER" "$DIRECT_MODE" \
+    tests/self_hosted/parity/fixture/intent_priority_non_int.pgy) \
+    >"$WORK_DIR/priority-invalid.out" 2>"$WORK_DIR/priority-invalid.err"
+priority_invalid_rc=$?
 set -e
 
 [[ "$missing_rc" -ne 0 && ! -s "$WORK_DIR/missing.out" ]] ||
@@ -115,6 +120,10 @@ grep -Fq -- "--dir options are outside" "$WORK_DIR/options.err" ||
 grep -Fq "installed DIR mode requires one source path" \
     "$WORK_DIR/arity.out" "$WORK_DIR/arity.err" ||
     fail "installed DIR arity lost its typed diagnostic"
+[[ "$priority_invalid_rc" -ne 0 && ! -s "$WORK_DIR/priority-invalid.err" ]] ||
+    fail "non-Int intent priority entered DIR production"
+grep -Fq "self-host DIR intent priority expression must be Int" "$WORK_DIR/priority-invalid.out" ||
+    fail "non-Int intent priority lost its owned diagnostic"
 
 grep -Fq 'flags.dump_dir' "$ROOT_DIR/src/pgy_driver.c" ||
     fail "public launcher does not select DIR stdout mode"

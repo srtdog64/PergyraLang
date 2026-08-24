@@ -1118,12 +1118,19 @@ SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 
   `SUBSTITUTING`이다. Intent observability와 composite-intent runtime을
   완료했다고 주장하지 않는다.
 
-다음 LLVM rung은 `array_literal_assignment.pgy`다. 현재 installed production
-path는 source-to-MIR을 통과한 뒤 self-host LLVM projector code 1로 거부되며 native
-LLVM으로 돌아가지 않는다. 기존 installed C 실행을 oracle로 삼아 `Array<Int>`
-literal, length, index에 필요한 typed MIR fact와 마지막 direct-LLVM consumer를
-한 owner seam에서 닫는다. C emitter의 배열 reconstruction 복사, LLVM text 기반
-runtime 추론, consumer-local runtime build, general cache/query engine은 금지한다.
+2026-08-25 재검증에서 위 다음-rung 후보는 이미 닫힌 것으로 판명됐다.
+`array_literal_assignment.pgy`는 installed production LLVM에서 정확히 `3`, `10`을
+실행하며 기존 `one_mir_array_int_projection.sh`가 C/LLVM parity와 일곱 음성 변조를
+소유한다. 문서의 실패 관측이 현재 실행 증거보다 오래됐던 것이다.
+
+현재 다음 경계는 canonical `examples/composite_intent_orchestration/main.pgy`다.
+Installed AST/DIR은 parser-owned `IntentPriority` 식 그래프와 `Int` admission을
+소비해 native와 동등한 12-node/39-edge/5-intent DIR을 만들고, String priority를
+fail closed하므로 이 bounded stdout slice는 `SUBSTITUTING`이다. 그러나 public C는
+그 다음 MIR instruction 97에서 unknown kind로 멈춘다. 따라서 다음 C/LLVM rung은
+그 instruction의 기존 fact owner와 마지막 orchestration consumer를 찾아 실제
+composite execution을 대체하는 것이다. Priority `0` hardcode, source-text 재파싱,
+fixture 분기, native retry는 금지한다.
 
 ## 세션 메모리와 handoff 규칙
 

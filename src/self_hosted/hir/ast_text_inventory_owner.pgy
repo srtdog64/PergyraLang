@@ -117,6 +117,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "IntentRollback:") {
         return TypedAstKindIntentRollbackTag();
     }
+    if StartsWith(text, "IntentPriority:") {
+        return TypedAstKindIntentPriorityTag();
+    }
     if StartsWith(text, "IntentRetry:") {
         return TypedAstKindIntentRetryTag();
     }

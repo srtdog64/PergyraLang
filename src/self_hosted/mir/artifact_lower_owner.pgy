@@ -279,8 +279,8 @@ func SelfMirProgramDomainFactsFromReadyArtifact(
         SelfDirDomainGraphFactsFromArtifact(
             artifact, declarations, analysis.signatures,
             analysis.intent_signatures, analysis.intent_transitions,
-            analysis.expression_surfaces, analysis.zone_authorities,
-            analysis.roles
+            analysis.expression_surfaces, analysis.constructors,
+            analysis.function_tables, analysis.zone_authorities, analysis.roles
         );
     if !SelfDirDomainGraphFactsReady(domain_graph) {
         return SelfMirProgramDomainProjection(

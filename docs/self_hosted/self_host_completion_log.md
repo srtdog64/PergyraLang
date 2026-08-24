@@ -6,6 +6,28 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-25 - Canonical composite priority reaches installed AST and DIR
+
+- Corrected stale rung selection: installed LLVM already executes
+  `array_literal_assignment.pgy` as `3` and `10`; the real first gap was
+  canonical composite intent `priority: 9` at the installed parser boundary.
+- Added append-only typed AST identity 90, parser-owned atom graph carriage,
+  and one immutable DIR priority fact bundle. A present priority must be a
+  direct intent child with one graph root resolving to `Int`; absence remains
+  explicit and no consumer reparses source or invents a default expression.
+- Regenerated the Pergyra-built installed driver. Public AST matches installed
+  bytes and the normalized native oracle with `IntentPriority: 9`. Public DIR
+  matches native at 12 nodes, 39 edges, and 5 intents. A String priority exits
+  nonzero with the owned fail-closed diagnostic.
+- Complete component contract and SoT registry are green at 86 authorities / 173
+  derived carriers / 49 CLOSED / 36 BRIDGE / 1 ACTIVE. Remote baseline run
+  `32721755812` at `c75b3309` was already 29/29 green in about 24.1 minutes.
+- This is bounded production AST/DIR `SUBSTITUTING`, not composite runtime
+  completion. Public installed C now reaches the next exact falsifier at MIR
+  instruction 97, whose kind is unknown. That existing MIR owner is the next
+  active executable rung; native fallback and priority-zero hardcoding remain
+  forbidden.
+
 ## 2026-08-18 - Exact collection route reaches a current-source fixed point
 
 - Refreshed the stale self-host codegen carrier through the canonical

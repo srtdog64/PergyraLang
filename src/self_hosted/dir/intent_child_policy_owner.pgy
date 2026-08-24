@@ -1,0 +1,18 @@
+// Exact direct-child admission policy for one typed intent declaration.
+
+import "../hir/ast_node_kind_owner.pgy";
+
+func SelfDirIntentDirectChildAllowed(kind: Int) -> Bool {
+    return kind == TypedAstKindIntentModeTag() ||
+        kind == TypedAstKindIntentRollbackTag() ||
+        kind == TypedAstKindIntentPriorityTag() ||
+        kind == TypedAstKindIntentRetryTag() ||
+        kind == TypedAstKindIntentInvolvesTag() ||
+        kind == TypedAstKindIntentValueTag() ||
+        kind == TypedAstKindIntentStepTag() ||
+        kind == TypedAstKindIntentSuccessTag() ||
+        kind == TypedAstKindIntentFailureTag() ||
+        kind == TypedAstKindIntentReturnsTag() ||
+        kind == TypedAstKindIntentTerminalSuccessTag() ||
+        kind == TypedAstKindIntentTerminalFailureTag();
+}

@@ -1,0 +1,96 @@
+// Intent declaration mode/priority clause parser and AST-row owner.
+
+import "cursor_owner.pgy";
+import "expr_owner.pgy";
+import "tree_text_owner.pgy";
+
+struct ParserIntentPolicyClause {
+    matched: Bool;
+    ok: Bool;
+    next: Int;
+    mode: String;
+    priority_text: String;
+    priority_expression: ParserExpressionFact;
+}
+
+func ParserIntentPolicyClauseDefault() -> ParserIntentPolicyClause {
+    return ParserIntentPolicyClause(
+        false, true, 0, "exclusive", "", ParserExpressionInvalid()
+    );
+}
+
+func ParserIntentPolicyClauseFromSource(
+    content: String, start: Int, current: ParserIntentPolicyClause
+) -> ParserIntentPolicyClause {
+    if MatchLanguageWord(content, start, LanguageWordId.WordExclusive) ||
+        MatchLanguageWord(content, start, LanguageWordId.WordConcurrent) {
+        let mode: String = "exclusive";
+        let word: LanguageWordId = LanguageWordId.WordExclusive;
+        if MatchLanguageWord(
+            content, start, LanguageWordId.WordConcurrent
+        ) {
+            mode = "concurrent";
+            word = LanguageWordId.WordConcurrent;
+        }
+        let next: Int = Expect(content, LanguageWordEnd(start, word), ";");
+        return ParserIntentPolicyClause(
+            true, next >= 0, next, mode, current.priority_text,
+            current.priority_expression
+        );
+    }
+    if !MatchLanguageWord(content, start, LanguageWordId.WordPriority) {
+        return ParserIntentPolicyClause(
+            false, true, start, current.mode, current.priority_text,
+            current.priority_expression
+        );
+    }
+    if current.priority_text != "" {
+        return ParserIntentPolicyClause(
+            true, false, start, current.mode, current.priority_text,
+            current.priority_expression
+        );
+    }
+    let expression_start: Int = Expect(
+        content,
+        LanguageWordEnd(start, LanguageWordId.WordPriority), ":"
+    );
+    if expression_start < 0 {
+        return ParserIntentPolicyClause(
+            true, false, start, current.mode, "", ParserExpressionInvalid()
+        );
+    }
+    let cursor: Array<Int> = [expression_start];
+    let expression: ParserExpressionFact = ParseExprFact(
+        content, expression_start, cursor
+    );
+    if !expression.ok {
+        return ParserIntentPolicyClause(
+            true, false, start, current.mode, "", expression
+        );
+    }
+    let next: Int = Expect(content, cursor[0], ";");
+    return ParserIntentPolicyClause(
+        true, next >= 0, next, current.mode, expression.text, expression
+    );
+}
+
+func ParserIntentPolicyTreeAppend(
+    out: String,
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    policy: ParserIntentPolicyClause
+) -> String {
+    let result: String = AppendLine(
+        out, Concat("    IntentMode: ", policy.mode)
+    );
+    result = AppendLine(result, "    IntentRollback: full");
+    if policy.priority_text != "" {
+        result = AppendLine(
+            result, Concat("    IntentPriority: ", policy.priority_text)
+        );
+        ParserExpressionGraphsAppendInto(
+            expression_graphs, TypedAstKindIntentPriorityTag(),
+            AstExpressionLaneAtom(), policy.priority_expression
+        );
+    }
+    return result;
+}

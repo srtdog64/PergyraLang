@@ -9,26 +9,14 @@ import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
 import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
+import "intent_child_policy_owner.pgy";
 import "intent_row_owner.pgy";
 import "intent_step_fact_owner.pgy";
 import "intent_step_carriage_contract_owner.pgy";
 import "intent_step_target_contract_owner.pgy";
 import "intent_outcome_contract_owner.pgy";
+import "intent_priority_fact_owner.pgy";
 import "intent_result_contract_owner.pgy";
-
-func SelfDirIntentDirectChildAllowed(kind: Int) -> Bool {
-    return kind == TypedAstKindIntentModeTag() ||
-        kind == TypedAstKindIntentRollbackTag() ||
-        kind == TypedAstKindIntentRetryTag() ||
-        kind == TypedAstKindIntentInvolvesTag() ||
-        kind == TypedAstKindIntentValueTag() ||
-        kind == TypedAstKindIntentStepTag() ||
-        kind == TypedAstKindIntentSuccessTag() ||
-        kind == TypedAstKindIntentFailureTag() ||
-        kind == TypedAstKindIntentReturnsTag() ||
-        kind == TypedAstKindIntentTerminalSuccessTag() ||
-        kind == TypedAstKindIntentTerminalFailureTag();
-}
 
 func SelfDirIntentFactsFromArtifact(
     artifact: AstTreeArtifact,
@@ -36,7 +24,8 @@ func SelfDirIntentFactsFromArtifact(
     signatures: SemanticAstFunctionSignatureFacts,
     ref signature_facts: SemanticAstIntentSignatureFacts,
     transition_facts: SemanticAstIntentTransitionFacts,
-    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    priority_facts: SelfDirIntentPriorityFacts
 ) -> SelfDirIntentFacts {
     let required: Bool = SemanticAstIntentSignatureCount(signature_facts) > 0;
     if !required {
@@ -48,6 +37,9 @@ func SelfDirIntentFactsFromArtifact(
         ) || !SemanticAstIntentSignatureFactsReady(artifact, signature_facts) ||
         !SemanticAstExpressionSurfaceBorrowReady(
             artifact, expression_surfaces
+        ) || !SelfDirIntentPriorityFactsReady(
+            artifact, expression_surfaces,
+            signature_facts.intent_node_ids, priority_facts
         ) {
         return SelfDirIntentFactsError(
             "self-host DIR intent inputs are incomplete", artifact.count
@@ -302,7 +294,8 @@ func SelfDirIntentFactsFromArtifact(
     return SelfDirIntentFacts(
         true, true, "", artifact.count,
         intent_node_ids, intent_names, intent_result_modes,
-        intent_return_type_names, participant_starts, participant_counts,
+        intent_return_type_names, priority_facts,
+        participant_starts, participant_counts,
         SelfDirIntentParticipantFacts(
             participant_node_ids, participant_is_values, participant_aliases,
             participant_type_names, participant_declaration_indices
@@ -338,6 +331,7 @@ func SelfDirIntentFactsReady(
     rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     facts: SelfDirIntentFacts
 ) -> Bool {
     if !facts.ok || !signatures.ok || facts.diagnostic_message != "" ||
@@ -345,6 +339,10 @@ func SelfDirIntentFactsReady(
         !SelfDirIntentFactsShapeReady(facts) ||
         !SelfDirIntentStepCarriageReady(artifact, facts.steps) ||
         !SemanticAstIntentTransitionFactsReady(artifact, facts.transitions) ||
+        !SelfDirIntentPriorityFactsReady(
+            artifact, expression_surfaces,
+            facts.intent_node_ids, facts.priorities
+        ) ||
         !SemanticAstIntentSignatureFactsReady(
             artifact, intent_signatures
         ) {

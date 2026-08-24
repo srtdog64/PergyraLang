@@ -85,6 +85,9 @@ inventory must not become a second fact-family owner registry.
   one-payload variant-pattern syntax for typed intent step transitions.
 - `src/self_hosted/parser/intent_terminal_clause_owner.pgy` -- exact legacy or
   step-labelled terminal intent expression clause parsing.
+- `src/self_hosted/parser/intent_policy_clause_owner.pgy` -- intent mode and
+  optional priority clause state, native-compatible AST rows, and the
+  parser-owned priority expression graph.
 - `src/self_hosted/parser/decl_nominal_owner.pgy` -- class/subject/object/tobject/vessel declarations.
 - `src/self_hosted/parser/decl_role_owner.pgy` -- role declarations.
 - `src/self_hosted/parser/decl_type_owner.pgy` -- type declarations.
@@ -1043,6 +1046,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/dir/intent_fact_owner.pgy` -- exact intent declaration,
   participant/value range, ordered-step range, and intent-edge census owner;
   it validates typed identities and never rescans source text.
+- `src/self_hosted/dir/intent_child_policy_owner.pgy` -- exact typed child-kind
+  admission policy for rows directly owned by an intent declaration.
+- `src/self_hosted/dir/intent_priority_fact_owner.pgy` -- optional intent
+  priority node and parser-owned expression-root admission; it requires the
+  admitted expression to resolve to `Int` and never invents a default row.
 - `src/self_hosted/dir/intent_row_owner.pgy` -- compact read-only row projection
   for one admitted intent declaration, its exact participant slice, and exact
   guard/post/expect/ordered-compensation typed-AST identities.

@@ -2,7 +2,7 @@
 # Public AST dumping is owned by the installed Pergyra parser. The native
 # parser remains reachable only through the declared --native-pipeline oracle.
 # Registry forbidden-fallback inventory exercised below:
-# public_ast_native_fallback, public_ast_oracle_self_compare.
+# public_ast_native_fallback, public_ast_oracle_self_compare; canonical composite priority AST identity.
 
 set -euo pipefail
 
@@ -17,6 +17,7 @@ WORK_REL=".tmp/self_hosted/public_ast_installed"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE="src/self_hosted/parser/fixture/arith_let.pgy"
 IMPORT_SOURCE="tests/parser_imported_intent_composition/positive_main.pgy"
+PRIORITY_SOURCE="examples/composite_intent_orchestration/main.pgy"
 EXPECTED="$ROOT_DIR/src/self_hosted/parser/fixture/arith_let_ast.txt"
 LAUNCHER_OWNER="$ROOT_DIR/src/pgy_driver.c"
 SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
@@ -75,20 +76,22 @@ cmp -s "$WORK_DIR/direct.norm" "$WORK_DIR/native.norm" ||
 cmp -s "$WORK_DIR/direct.norm" "$WORK_DIR/expected.norm" ||
     fail "installed AST differs from the committed owner fixture"
 
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --ast "$IMPORT_SOURCE") \
-    >"$WORK_DIR/import.direct" 2>"$WORK_DIR/import.direct.err"
-(cd "$ROOT_DIR" && "$PGY" --ast "$IMPORT_SOURCE") \
-    >"$WORK_DIR/import.public" 2>"$WORK_DIR/import.public.err"
-(cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast "$IMPORT_SOURCE") \
-    >"$WORK_DIR/import.native" 2>"$WORK_DIR/import.native.err"
-normalize "$WORK_DIR/import.direct" "$WORK_DIR/import.direct.norm"
-normalize "$WORK_DIR/import.native" "$WORK_DIR/import.native.norm"
-cmp -s "$WORK_DIR/import.direct" "$WORK_DIR/import.public" ||
-    fail "public imported AST differs from the installed Pergyra parser"
-cmp -s "$WORK_DIR/import.direct.norm" "$WORK_DIR/import.native.norm" ||
-    fail "installed imported AST differs from the native oracle"
-grep -Fq 'Intent: ImportedFrontendPipeline' "$WORK_DIR/import.direct" ||
-    fail "installed AST did not preserve import composition"
+while IFS='|' read -r case_name source_path required_row; do
+    (cd "$ROOT_DIR" && "$SELF_DRIVER" --ast "$source_path") \
+        >"$WORK_DIR/$case_name.direct" 2>"$WORK_DIR/$case_name.direct.err"
+    (cd "$ROOT_DIR" && "$PGY" --ast "$source_path") \
+        >"$WORK_DIR/$case_name.public" 2>"$WORK_DIR/$case_name.public.err"
+    (cd "$ROOT_DIR" && "$PGY" --native-pipeline --ast "$source_path") \
+        >"$WORK_DIR/$case_name.native" 2>"$WORK_DIR/$case_name.native.err"
+    normalize "$WORK_DIR/$case_name.direct" "$WORK_DIR/$case_name.direct.norm"
+    normalize "$WORK_DIR/$case_name.native" "$WORK_DIR/$case_name.native.norm"
+    cmp -s "$WORK_DIR/$case_name.direct" "$WORK_DIR/$case_name.public" || fail "$case_name public AST differs from installed"
+    cmp -s "$WORK_DIR/$case_name.direct.norm" "$WORK_DIR/$case_name.native.norm" || fail "$case_name installed AST differs from native"
+    grep -Fq "$required_row" "$WORK_DIR/$case_name.direct" || fail "$case_name AST lost required row"
+done <<CASES
+import|$IMPORT_SOURCE|Intent: ImportedFrontendPipeline
+priority|$PRIORITY_SOURCE|IntentPriority: 9
+CASES
 
 set +e
 (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$WORK_REL/missing-driver" \

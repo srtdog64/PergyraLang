@@ -113,6 +113,8 @@ grep -Fq 'TypedAstKindIntentStepContractProvenanceTag() -> Int { return 88; }' \
     "$AST_KINDS" || fail "intent contract provenance lost its appended AST identity"
 grep -Fq 'TypedAstKindIntentStepIntentTag() -> Int { return 89; }' \
     "$AST_KINDS" || fail "inline intent target lost its appended AST identity"
+grep -Fq 'TypedAstKindIntentPriorityTag() -> Int { return 90; }' \
+    "$AST_KINDS" || fail "intent priority lost its appended AST identity"
 for term in 'struct SemanticAstIntentStepHeaderRow' \
     'SemanticAstIntentStepHeaderFromText' \
     'intent_text: String' \

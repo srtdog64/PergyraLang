@@ -93,12 +93,15 @@ func TypedAstKindExternBlockTag() -> Int { return 87; }
 // Appended intent-step parser provenance; existing compact IDs never move.
 func TypedAstKindIntentStepContractProvenanceTag() -> Int { return 88; }
 func TypedAstKindIntentStepIntentTag() -> Int { return 89; }
+// Appended intent declaration priority; existing compact IDs never move.
+func TypedAstKindIntentPriorityTag() -> Int { return 90; }
 
 func TypedAstKindIsIntentRow(kind: Int) -> Bool {
     return (kind >= TypedAstKindIntentModeTag() &&
         kind <= TypedAstKindIntentTerminalFailureTag()) ||
         kind == TypedAstKindIntentStepContractProvenanceTag() ||
-        kind == TypedAstKindIntentStepIntentTag();
+        kind == TypedAstKindIntentStepIntentTag() ||
+        kind == TypedAstKindIntentPriorityTag();
 }
 
 func TypedAstKindIsDomainTopologyDirective(kind: Int) -> Bool {
@@ -113,7 +116,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindIntentStepIntentTag();
+        kind <= TypedAstKindIntentPriorityTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -205,14 +208,15 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindIntentTerminalFailureTag(),
         TypedAstKindExternBlockTag(),
         TypedAstKindIntentStepContractProvenanceTag(),
-        TypedAstKindIntentStepIntentTag()
+        TypedAstKindIntentStepIntentTag(),
+        TypedAstKindIntentPriorityTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 89 {
+    if ArrayLength(tags) != 90 {
         return false;
     }
     let i: Int = 0;
@@ -255,12 +259,14 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindIntentTerminalFailureTag()) &&
         TypedAstKindKnown(TypedAstKindIntentStepContractProvenanceTag()) &&
         TypedAstKindKnown(TypedAstKindIntentStepIntentTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentPriorityTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentModeTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentTerminalFailureTag()) &&
         TypedAstKindIsIntentRow(
             TypedAstKindIntentStepContractProvenanceTag()
         ) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentStepIntentTag()) &&
+        TypedAstKindIsIntentRow(TypedAstKindIntentPriorityTag()) &&
         !TypedAstKindIsIntentRow(TypedAstKindIntentDeclTag()) &&
         TypedAstKindIsDomainTopologyDirective(
             TypedAstKindDomainRefreshTag()
@@ -273,7 +279,7 @@ func TypedAstKindOwnerReady() -> Bool {
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
         !TypedAstKindKnown(
-            TypedAstKindIntentStepIntentTag() + 1
+            TypedAstKindIntentPriorityTag() + 1
         ) &&
         TypedAstKindKnown(TypedAstKindExternBlockTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindExternBlockTag()) &&

@@ -1,6 +1,18 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-18
+마지막 업데이트: 2026-08-25
+
+2026-08-25 실행 갱신: remote push run `32721755812` at `c75b3309`은
+29/29 green이며 workflow wall time은 약 24.1분이다. 현재 bounded self-host
+슬라이스는 canonical composite intent의 `priority: 9`를 append-only typed AST
+identity 90과 parser-owned expression graph로 운반하고, installed/public/native
+AST parity 및 12-node/39-edge/5-intent DIR parity를 통과한다. String priority는
+owned `Int` diagnostic으로 fail closed한다. 기존 문서의 다음 후보였던
+`array_literal_assignment.pgy`는 이미 installed LLVM에서 `3`, `10`을 실행한다.
+다음 실제 falsifier는 public installed C의 MIR instruction 97 unknown kind다.
+SoT는 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%를 유지한다;
+이번 폐쇄는 ACTIVE 행의 composite-DIR 의무 하나를 제거했지만 남은 intent
+observability와 generated thread-safe zone lifecycle까지 닫지는 않았다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 
