@@ -1,6 +1,47 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-24 DRV-1 artifact transaction LLVM
+## Active self-host context - 2026-08-24 scalar routine emission memory
+
+- Code checkpoint `2f3ad014` contains the C/LLVM scalar CFG per-routine
+  emitter change and structural ratchet; `9a7ef022` is its clean remote
+  predecessor. Preserve the unrelated `pgy-80135c2c/` directory.
+- The repeated operation is measured: the outer program emitters already used
+  builders, while each routine retained 59 C or 68 LLVM cumulative `Concat`
+  intermediates. Each routine now owns one `TextBuilder`, finishes once,
+  destroys its allocator, and cannot reintroduce `Concat(output` under the
+  component gate.
+- The exact full compiler root reaches both changes. Its 6,988-routine MIR is
+  239,447,870 bytes, SHA-256 `9A3B1348...B4DB40A`; each emitter exists once,
+  contains the builder/finish/destroy path, and contains no cumulative output
+  concat. The focused explicit-entrypoint-return C/LLVM execution plus its
+  malformed-return negative passes with the isolated current driver.
+- On the unchanged 95,523,078-byte DRV-1 MIR (`D2B4E47E...81EE`), current LLVM
+  projection completed in 837.830 seconds at 5.399 GiB peak private and emitted
+  the byte-identical 22,492,152-byte artifact (`B55BDC95...10E74`). The observed
+  old run was about 905 seconds / 11.12 GiB, so total time fell about 7.4% and
+  peak private memory about 51.4%. Graph planning still owns 534.356 seconds;
+  emission owns 203.149 seconds and is no longer the multi-GiB explosion.
+- The supporting native compile remains RED at the unchanged 3,072 MiB limit:
+  it retains about 2.397 GiB in `pgy.exe` while starting the host compiler and
+  reaches 3.060 GiB process-tree private. Split source-to-C and host compile
+  stages pass separately. This is recorded launcher lifetime debt, not a reason
+  to raise the limit and not substitution progress.
+- Existing broad-gate drift is not hidden: Bool projection's pinned MIR hash is
+  stale (`B4DE...` expected, current installed/isolated `E25B...`), and the
+  dual-backend positive hello passes before a diagnostic-specific negative sees
+  a more generic current error. The complete structural component contract is
+  the required local gate for this slice; remote full bootstrap remains the
+  executable integration falsifier.
+- CI already declares 20 artifact-fed shards. A green run completed in 23m48
+  when runners were available; the next all-green run took 58m53 when those
+  short jobs were allocated mostly serially. Measure the new remote bootstrap
+  before changing the 926-case shard width. Forecasts remain overall 78%,
+  strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Final local component contract, full UTF-8 documentation quality, progress
+  metric, and `git diff --check` are green. Remote full bootstrap and all 29
+  push jobs remain the publication falsifier.
+
+## Historical self-host context - 2026-08-24 DRV-1 artifact transaction LLVM
 
 - Semantic checkpoint `d6b82a29`, CI checkpoint `64eeeda0`, first-remote
   repair `1df380a1`, and derived-fact classification checkpoint `cff2a2fa` are

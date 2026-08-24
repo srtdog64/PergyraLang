@@ -12,7 +12,99 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - DRV-1 typed artifact transaction LLVM closure
+## Active self-host context - DRV-1 scalar routine emission memory closure
+
+- Code checkpoint `2f3ad014` on local `main` contains the C/LLVM per-routine
+  emitter pair plus its structural negative ratchet; `9a7ef022` is its clean
+  predecessor on `origin/main`. Before this handoff commit, only this file and
+  `src/self_hosted/PROGRESS.md` are dirty. Preserve the unrelated untracked
+  `pgy-80135c2c/` directory. The preceding typed artifact transaction LLVM
+  rung remains closed and is archived below.
+- Objective card: objective = bound the compiler-scale direct-MIR C/LLVM
+  emission lifetime without changing output identity; priority = byte-stable
+  semantics, one per-routine builder owner, allocator cleanup, old cumulative
+  copy rejection, compiler-scale memory/time evidence, then CI wall time; fact
+  owner = `DirectMirScalarCfgProgramCRoutine` and
+  `DirectMirScalarCfgProgramLlvmRoutine`; last legitimate consumer = the outer
+  program emitter's sequential routine loop; forbidden = repeated
+  `output = Concat(output, fragment)`, hiding the growth with a cache/shard/
+  timeout/memory allowance, or sharing growable output storage across workers;
+  falsifier = the exact 95,523,078-byte current DRV-1 MIR projected to the
+  byte-identical LLVM artifact under a bounded memory observation, plus the
+  focused C/LLVM execution/negative gate and remote full bootstrap.
+- Measurement identified one concrete repeated owned operation. The outer
+  emitters already used `TextBuilder`, but each inner routine accumulated 59 C
+  or 68 LLVM fragments with `Concat`, retaining intermediate strings. On the
+  exact DRV-1 MIR (`D2B4E47E...81EE`), the old LLVM projection spent about 95
+  seconds in scalar admission, about 590 seconds in graph planning, and about
+  219 seconds in emission; final private memory was about 11.12 GiB for a
+  22,492,152-byte artifact.
+- Both inner routine owners now allocate one 4,096-byte-initialized
+  `TextBuilder`, append in the unchanged order, finish once, destroy their
+  allocator, and return the finished string. The component contract requires
+  builder creation, finish, and allocator destruction and rejects
+  `Concat(output` inside either function. The LLVM owner remains at its
+  360-line cap; the C owner is 309 lines.
+- Full source reachability is observed rather than inferred. The exact
+  `driver_bootstrap_main.pgy --pressure-owned-full-fixpoint` root produced a
+  239,447,870-byte `pgy.mir.v1` artifact, SHA-256
+  `9A3B13489B66941A21E1CE4B9F7C1FFC1B3FD9D7A356E40492E1224CFB4DB40A`,
+  with 6,988 routines. It contains exactly one C and one LLVM routine emitter,
+  both with the builder/finish/destroy path and neither with the cumulative
+  `Concat` path.
+- A canonical Pergyra-codegen-built isolated driver passes the focused
+  explicit-entrypoint-return C/LLVM compile/run and malformed-return negative.
+  Its same-input LLVM projection completed in 837.830 seconds at 5.399 GiB
+  peak private / 5.187 GiB peak working set under an 8 GiB stop boundary.
+  Scalar admission ended at 99.826 seconds, graph planning at 634.182 seconds,
+  and emission at 837.331 seconds. Output is byte-identical at 22,492,152
+  bytes, SHA-256
+  `B55BDC95D128D17B97A53747631FA62F4C75693719866293E3C7C02E2EA10E74`.
+  Against the observed old run this is about 7.4% lower total time and 51.4%
+  lower peak private memory; graph planning remains the dominant CPU seam.
+- Two diagnostic cautions are now explicit. Direct-MIR large-input paths must
+  use repository-relative POSIX spelling on Windows; the same file is rejected
+  as unreadable through an absolute Windows spelling. Also do not wrap the
+  installer script itself in `measure_build_pressure.ps1`: its exported
+  `PGY_BUILD_PRESSURE_ACTIVE=1` changes the nested bounded-smoke lane. The
+  generated canonical C compiled successfully, and the same executable passed
+  that smoke outside the pressure wrapper.
+- Supporting native-oracle work exposed a separate launcher lifetime defect:
+  plain native compile reached 3.060 GiB because `pgy.exe` retained about
+  2.397 GiB while starting the host compiler. Split owner stages passed at
+  80.483 seconds / 2.378 GiB for source-to-C and 136.884 seconds / 2.125 GiB
+  for host compile. This RED is recorded, not hidden by raising the 3,072 MiB
+  ceiling, but it is not the active self-host substitution owner.
+- Local omissions remain explicit. The broad Bool projection gate has a stale
+  pinned MIR hash: both the installed driver and the new isolated driver emit
+  29,788-byte SHA `E25B95D7...A0F6F4E`, while the script still expects the
+  older `B4DE3B8...D03B4B`. The broad dual-backend gate passed hello C/LLVM
+  positive parity, then its diagnostic-specific negative expected a narrower
+  message than the current generic admission failure. Neither RED is reported
+  as a pass or silently repaired in this performance slice.
+- Push CI is already runner-parallel, but hosted-runner availability is
+  variable. Run `32706421231` completed 29/29 in 23m48 with all 20 backend
+  shards starting together; the succeeding all-green run `32709251632` took
+  58m53 because the same short shards were allocated mostly serially. Its job
+  execution sum was 93.6 runner-minutes; the full bootstrap itself was 24.2
+  minutes and each artifact-fed shard only 0.6-1.1 minutes. Do not claim a
+  shard-count reduction before measuring the 926-case distribution under the
+  same toolchain; the active compiler memory fix must reach remote bootstrap
+  first.
+- Local final gates are green: the complete component contract after the
+  allocator ratchet, full UTF-8 documentation quality, progress metric, and
+  `git diff --check`. Next falsifier: publish the code and handoff commits,
+  require `self-host-bootstrap-linux` and all 29 push jobs to stay green, then
+  compare the new remote critical path before changing matrix width. This
+  performance closure does not increment substitution percentages: overall
+  remains 78%, strict beta 83%, and hard SoT
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+
+### Historical archive boundary
+
+Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - DRV-1 typed artifact transaction LLVM closure (inactive)
 
 - The semantic checkpoint is `d6b82a29`; CI toolchain reuse is checkpoint
   `64eeeda0`, first-remote-run repair is `1df380a1`, and its derived-fact
@@ -123,10 +215,6 @@ gate count do not increment either percentage by themselves.
   evidence. Measure the reached repeated aggregation before proposing
   projector parallelism. Do not count the CI topology edit, MIR bytes, owner
   files, or tests as substitution progress by themselves.
-
-### Historical archive boundary
-
-Everything below this line is inactive lookup evidence, not an active queue.
 
 ## Previous self-host context - artifact-fed full-platform parity shards (inactive)
 
