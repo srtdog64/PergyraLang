@@ -191,7 +191,35 @@ jobs:
         # "negative gate" half of the check. Same prover, same OPAMROOT pinning.
         run: OPAMROOT=/home/rocq/.opam opam exec -- bash tests/coq_kernel_check_selftest.sh
 
+  backend-compare-toolchain-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        timeout-minutes: 10
+        run: |
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm
+
+      - name: Build the installed backend-compare toolchain once
+        run: make LLVM_ENABLED=1 self-host-compiler
+
+      - name: Publish the installed compiler pair
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-compare-linux-toolchain
+          path: |
+            bin/pgy
+            bin/pgy-self-driver
+          if-no-files-found: error
+          retention-days: 1
+
   backend-compare-linux:
+    needs: backend-compare-toolchain-linux
     runs-on: ubuntu-latest
     timeout-minutes: 30  # hang budget (docs/190 C1): a leg-deadlock shard dies fast
     strategy:
@@ -213,17 +241,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm
 
-      # Each shard needs the installed self-host driver: pgy delegates both the
-      # C and the LLVM leg to it, and bin/ is gitignored so a fresh checkout has
-      # none. Building it per shard duplicates the work 20 times; the cheaper
-      # shape is one job that builds it and uploads it as an artifact the shards
-      # download. That is left as a follow-up so this change stays reviewable.
-      - name: Build the installed self-host driver
-        run: make LLVM_ENABLED=1 self-host-compiler
+      - name: Download the installed backend-compare toolchain
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-compare-linux-toolchain
+          path: bin
+
+      - name: Admit the exact installed compiler pair
+        # upload-artifact does not preserve executable bits. The explicit
+        # prebuilt Make mode below validates this pair and skips its build
+        # recipe; file timestamps do not decide that policy.
+        run: |
+          chmod +x bin/pgy bin/pgy-self-driver
+          test -x bin/pgy
+          test -x bin/pgy-self-driver
 
       - name: Run Linux C/LLVM backend compare shard
         run: |
           make LLVM_ENABLED=1 \
+            PGY_BACKEND_COMPARE_COMPILER_MODE=prebuilt \
             PGY_BACKEND_COMPARE_PRECHECK=0 \
             PGY_BACKEND_COMPARE_JOBS=1 \
             PGY_BACKEND_COMPARE_SHARD_TOTAL=20 \

@@ -132,6 +132,7 @@ require_job_timeout() {
 require_job_timeout "self-host-parity-linux" 180 "$PARITY_WORKFLOW"
 require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
+require_job_timeout "backend-compare-toolchain-linux" 30
 require_job_timeout "build-linux" 25
 require_job_timeout "build-macos-c-only" 20
 require_job_timeout "build-windows" 35
@@ -377,6 +378,65 @@ if grep -Fq 'self-host-fixpoint-linux:' "$WORKFLOW"; then
     echo "[self-host-ci-profile] duplicate full fixed-point job reintroduced" >&2
     exit 1
 fi
+
+backend_compare_toolchain_job="$(
+    sed -n \
+        '/^  backend-compare-toolchain-linux:/,/^  backend-compare-linux:/p' \
+        "$WORKFLOW"
+)"
+backend_compare_shard_job="$(
+    sed -n \
+        '/^  backend-compare-linux:/,/^  build-windows:/p' \
+        "$WORKFLOW"
+)"
+for required in \
+    'make LLVM_ENABLED=1 self-host-compiler' \
+    'uses: actions/upload-artifact@v4' \
+    'name: backend-compare-linux-toolchain' \
+    'bin/pgy' \
+    'bin/pgy-self-driver' \
+    'if-no-files-found: error' \
+    'retention-days: 1'; do
+    if ! grep -Fq "$required" <<<"$backend_compare_toolchain_job"; then
+        echo "[self-host-ci-profile] backend compare toolchain owner lost contract: $required" >&2
+        exit 1
+    fi
+done
+for required in \
+    'needs: backend-compare-toolchain-linux' \
+    'uses: actions/download-artifact@v4' \
+    'name: backend-compare-linux-toolchain' \
+    'chmod +x bin/pgy bin/pgy-self-driver' \
+    'shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]' \
+    'PGY_BACKEND_COMPARE_COMPILER_MODE=prebuilt' \
+    'PGY_BACKEND_COMPARE_JOBS=1'; do
+    if ! grep -Fq "$required" <<<"$backend_compare_shard_job"; then
+        echo "[self-host-ci-profile] backend compare shard lost artifact-fed contract: $required" >&2
+        exit 1
+    fi
+done
+if grep -Fq 'self-host-compiler' <<<"$backend_compare_shard_job"; then
+    echo "[self-host-ci-profile] backend compare shard rebuilt the shared self-host toolchain" >&2
+    exit 1
+fi
+
+backend_compare_recipe="$(
+    sed -n \
+        '/^PGY_BACKEND_COMPARE_COMPILER_MODE ?=/,/^air-strict-backend-compare-test-smoke:/p' \
+        "$MAKEFILE"
+)"
+for required in \
+    'PGY_BACKEND_COMPARE_COMPILER_MODE ?= build' \
+    'build) $(MAKE) LLVM_ENABLED=1 $(PGY)' \
+    'prebuilt)' \
+    'test -x "$(PGY)"' \
+    'test -x "$(SELF_HOST_DRIVER)"' \
+    'unknown compiler mode'; do
+    if ! grep -Fq "$required" <<<"$backend_compare_recipe"; then
+        echo "[self-host-ci-profile] backend compare compiler admission lost contract: $required" >&2
+        exit 1
+    fi
+done
 
 exhaustive_recipe="$(
     sed -n \

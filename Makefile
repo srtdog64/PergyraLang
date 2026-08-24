@@ -4491,10 +4491,18 @@ backend-compare-llvm-coverage-test-smoke:
 backend-compare-inventory-test-smoke:
 	PGY_BACKEND_COMPARE_INVENTORY_ONLY=1 "$(BASH)" tests/compare_backends.sh
 
+PGY_BACKEND_COMPARE_COMPILER_MODE ?= build
+
 llvm-test-backend-compare: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRECHECK)),,$(ABI_PIPELINE_TEST))
 	$(MAKE) backend-compare-inventory-test-smoke
 	$(MAKE) backend-compare-llvm-coverage-test-smoke
-	$(MAKE) LLVM_ENABLED=1 $(PGY)
+	@case "$(PGY_BACKEND_COMPARE_COMPILER_MODE)" in \
+		build) $(MAKE) LLVM_ENABLED=1 $(PGY) ;; \
+		prebuilt) \
+			test -x "$(PGY)" || { echo "backend-compare: prebuilt compiler is missing: $(PGY)" >&2; exit 2; }; \
+			test -x "$(SELF_HOST_DRIVER)" || { echo "backend-compare: prebuilt self-host driver is missing: $(SELF_HOST_DRIVER)" >&2; exit 2; } ;; \
+		*) echo "backend-compare: unknown compiler mode: $(PGY_BACKEND_COMPARE_COMPILER_MODE)" >&2; exit 2 ;; \
+	esac
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_CC="$(CC)" \
 	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
