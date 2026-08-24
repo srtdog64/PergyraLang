@@ -6,6 +6,28 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-25 - Placed direct intents preserve the bootstrap consumer boundary
+
+- Remote run `32766625099` at `00bfe3f5` completed 28/29 in 18m16. The sole
+  failure was `self-host-bootstrap-linux`: gen2 rejected the complete compiler
+  MIR with `MIR intent direct target is not one legacy intent`.
+- The failure exposed an over-strong classification, not a missing declaration.
+  A direct intent with no placement is a true nested call. A direct intent with
+  placement remains an outer action-shaped boundary, even when authority is
+  delegated to the called intent. Partial placement and mismatched explicit
+  authority still fail closed.
+- Checkpoint `55b2091c` carries that distinction through MIR-lower phase rows.
+  Placement-free calls keep direct Bool failure propagation; placed calls keep
+  zone materialization, sync, and writeback. No source rescan, compatibility
+  fallback, or hardcoded compiler intent name was added.
+- Fresh production v8 consumes the 236MB complete-source MIR at the previously
+  failing boundary. Canonical success/failure and a reduced placed compiler-
+  world fixture are both public/native execution-equal. Full component/old-path,
+  placement/lifetime, production-root, likeness, and diff gates are green.
+- Hard SoT stays 49/86, integrated forecast 78%, and strict beta 83%. The next
+  semantic falsifier remains DIR-owned priority carriage to the runtime
+  observability prologue; a new remote 29-job run is the publication gate.
+
 ## 2026-08-25 - Canonical placement-free nested intents execute in public C
 
 - Landed code checkpoint `6964ce20`. The prior checkpoint `5f6b6236` is backed

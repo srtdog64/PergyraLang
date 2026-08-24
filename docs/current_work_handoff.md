@@ -14,12 +14,13 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - canonical composite-intent priority observability
 
-- Code checkpoint `6964ce20` on `main` makes placement-free nested intents
-  execute through the production public self-host C route. Its remote
-  predecessor `5f6b6236` is proven by push run `32757107898`, which completed
-  all 29/29 jobs green in about 24 minutes. This handoff is the only intended
-  post-code-commit dirt before publication. Preserve the unrelated untracked
-  `pgy-80135c2c/` directory; it was not inspected or staged.
+- Code checkpoint `55b2091c` on `main` preserves both placement-free and placed
+  direct-intent execution. Push run `32766625099` at predecessor `00bfe3f5`
+  completed 28/29 jobs in 18m16. Its only RED was
+  `self-host-bootstrap-linux`, where gen2 rejected the complete compiler MIR
+  with `MIR intent direct target is not one legacy intent`. This handoff is the
+  only intended post-code-commit dirt before publication. Preserve the
+  unrelated untracked `pgy-80135c2c/` directory; it was not inspected or staged.
 - Closed rung objective card: objective = carry canonical nested-intent steps
   from DIR-owned absence through MIR, MIR-to-AST, and self C without inventing
   zone placement; priority = exact call identity, explicit placement absence,
@@ -35,28 +36,40 @@ gate count do not increment either percentage by themselves.
   unconditional action-authority requirement; the final consumer then rejected
   the placement-free nested step as a missing `Using` binding. Each failure
   moved to the next legitimate consumer and no compatibility read was added.
+- The remote RED showed that a declared direct intent target is not synonymous
+  with a placement-free nested call. `MiddleEndPipeline.Check/Lower` and
+  `BackendPipeline.Emit` own outer placement while delegating authority to the
+  called intent. `MirIntentStepPlacementContract` now owns the three exact
+  states: absent placement requires absent outer authority and selects the
+  nested lane; present placement admits either no outer authority or one exact
+  `who` authority and remains on the action-shaped lane; partial placement is
+  rejected.
 - `intent_resource_lifetime_owner.pgy` now retires zone handles once per zone
   participant, caused effects once per step, and placement invalidation only
   when an admitted alias exists. `intent_step_placement_contract_owner.pgy`
   admits exact absence only for a resolved direct legacy intent. Action
   authority presence comes from the declaration contract, not from a blanket
   one-authority rule.
-- MIR-lower emits direct nested calls as `Intent:` graph rows rather than
-  `On:` action rows. Self C has separate action-step and nested-call owners;
+- MIR-lower emits only placement-free direct nested calls as `Intent:` graph
+  rows. Placed direct intent calls remain `On:` rows. Self C has separate
+  action-step and nested-call owners;
   `FulfillOrder` and `ProcessOrder` call their child intents directly, contain
   no fake sync/materialization, and propagate `Bool` failure to the enclosing
   cleanup boundary. The central intent emitter shrank to 323 lines.
-- A fresh current-source production driver was built as local v5. The canonical
+- A fresh current-source production driver was built as local v8. The canonical
   public `--backend=c` executable is byte-observably equal to native C for the
   success case. A reserve-failure mutation is also output-equal and reports
   `[Intent] ProcessOrder=false`. The focused gate rejects reintroduced nested
   sync/materialization and proves direct-call anchors.
-- Local gates observed green: production-root `--dir`; exact native/self
+- Local gates observed green: production-root `--dir`; the 236MB complete-source
+  `driver_source.mir.json` consumer that exercises the failed CI boundary;
+  exact native/self
   placement/lifetime multiset parity for nested, canonical, and two-step
   programs; canonical public C success/failure execution parity; full component
   structural/old-path contract; Pergyra-likeness with sentinel 24; single-owner
   and SoT census gates (`86/173`, `49 CLOSED / 36 BRIDGE / 1 ACTIVE`); and
-  `git diff --check`. The broader action gate reached only its native LLVM leg
+  placed direct-intent outer-boundary execution parity; `git diff --check`.
+  The broader action gate reached only its native LLVM leg
   and stopped because local `bin/pgy.exe` was built without LLVM support. Coq/
   Rocq is also unavailable locally; neither omission is recorded as a pass.
 - Next falsifier is exact priority carriage, not another general SoT cleanup.
@@ -69,8 +82,8 @@ gate count do not increment either percentage by themselves.
   does not observe priority as closure.
 - This is real executable substitution progress inside the existing BRIDGE row,
   but not a registry-row promotion. Overall remains 78%, strict beta 83%, and
-  hard SoT remains `49/86 CLOSED`. Commit/push and a new 29-job remote run are
-  still required for this handoff state.
+  hard SoT remains `49/86 CLOSED`. The code is committed; this documentation
+  receipt, push, and a new 29-job remote run are still required.
 
 ### Historical archive boundary
 

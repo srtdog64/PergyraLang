@@ -2,25 +2,31 @@
 
 ## Active self-host context - 2026-08-25 composite-intent priority observability
 
-- Checkpoint `6964ce20` replaces the real canonical public C path; predecessor
-  `5f6b6236` has remote run `32757107898` green at 29/29. Preserve the unrelated
-  user-owned `pgy-80135c2c/` directory.
+- Checkpoint `55b2091c` preserves both placement-free and placed direct-intent
+  execution. Remote run `32766625099` at predecessor `00bfe3f5` completed
+  28/29 in 18m16; only `self-host-bootstrap-linux` failed at the now-reproduced
+  direct-target boundary. Preserve the unrelated user-owned `pgy-80135c2c/`
+  directory.
 - Placement absence is now one owned fact from DIR through MIR cleanup and
   MIR-lower. Direct nested intents emit no empty zone/alias/read/invalidation,
   while zone handles and caused effects retain exact participant/step lifetime.
   Non-nested actions still require the complete placement set.
-- Action authority presence comes from the MIR declaration contract. Nested
-  calls reconstruct as `Intent:` rows and self C emits them through a distinct
-  direct-call owner; action materialization remains in its own owner. The old
-  blanket authority, placement, and `Using` assumptions are negative-gated.
-- Fresh production v5 executes canonical public C exactly like native C. The
+- Action authority presence comes from the MIR declaration contract. Exact
+  placement absence reconstructs as `Intent:` and uses the distinct direct-call
+  owner. A placed direct intent remains `On:` and keeps the outer materialize,
+  sync, and writeback boundary; its authority may be exact or delegated to the
+  called intent. The old blanket assumptions are negative-gated.
+- Fresh production v8 executes canonical public C exactly like native C. The
   success path reports `ProcessOrder=true`; a reserve-failure mutation reports
   `ProcessOrder=false` with exact native output. `FulfillOrder`/`ProcessOrder`
-  contain no fake sync or materialization.
-- Production-root static admission, focused placement/lifetime parity, nested
-  success/failure execution, full component contract, likeness sentinel 24,
-  SoT census (`86/173`, `49/36/1`), and diff checks are green. Local LLVM and
-  Coq/Rocq are unavailable and are explicit omissions, not passes.
+  contain no fake sync or materialization. A reduced compiler-world fixture
+  proves the opposite side: a placed direct intent keeps its outer boundary and
+  is execution-equal to native C.
+- Production-root static admission, the 236MB complete-source MIR consumer,
+  focused placement/lifetime parity, both nested execution lanes, full
+  component contract, likeness sentinel 24, SoT census (`86/173`, `49/36/1`),
+  and diff checks are green. Local LLVM and Coq/Rocq are unavailable and are
+  explicit omissions, not passes. A new 29-job remote run is still required.
 - This is executable replacement inside the existing BRIDGE row, so overall
   78%, strict beta 83%, and hard SoT 49/86 stay fixed.
 - Next exact falsifier is non-default priority at the runtime admission call:

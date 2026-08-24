@@ -2,20 +2,23 @@
 
 마지막 업데이트: 2026-08-25
 
-2026-08-25 실행 갱신: remote push run `32757107898` at `5f6b6236`은
-29/29 green이며 workflow wall time은 약 24분이다. 코드 checkpoint
-`6964ce20`은 canonical composite intent의 placement-free nested step을
-DIR→MIR cleanup→MIR-lower→public self C까지 운반한다. 중첩 호출에는 빈
-zone/alias/read/invalidation이나 가짜 sync/materialization을 만들지 않고, 일반
-action만 완전한 placement와 선언된 authority 계약을 요구한다. Fresh production
-driver의 public C는 native C와 성공 출력이 같고, reserve 실패 변형도 정확히
-같은 출력과 `ProcessOrder=false`를 낸다. Component/old-path, placement/lifetime
-multiset, likeness sentinel 24, SoT census gate가 green이다. 다음 실제 falsifier는
-priority observability다. Native C의 `ProcessOrder` admission은 priority 9를
-전달하지만 self C는 0을 전달하고 MIR-lower AST에서도 `IntentPriority: 9`가
-사라진다. 따라서 SoT는 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict
-beta 83%를 유지한다. 이번 변화는 기존 BRIDGE 안의 실행 대체이지, priority와
-formal transition까지 닫은 registry 승격은 아니다.
+2026-08-25 실행 갱신: remote push run `32766625099` at `00bfe3f5`는
+18분 16초에 28/29를 마쳤고, 유일한 RED는 full self-host bootstrap의
+`MIR intent direct target is not one legacy intent`였다. 코드 checkpoint
+`55b2091c`은 직접 intent 대상과 placement-free nested 호출을 분리한다.
+Placement가 없을 때만 `Intent:` direct-call/Bool failure lane을 쓰고, placement가
+있으면 바깥 step의 zone materialize/sync/writeback을 보존한다. 이 바깥 경계는
+authority를 정확히 명시하거나 호출된 intent에 위임할 수 있다. Fresh production
+v8은 236MB complete-source MIR consumer를 통과한다. Canonical placement-free
+success/failure와 축소 compiler-world placed-nested 실행은 모두 public self C와
+native C 출력이 같다. Component/old-path, placement/lifetime multiset, likeness
+sentinel 24, diff gate도 green이다. 다음 실제 falsifier는 priority observability다.
+Native C의 `ProcessOrder` admission은 priority 9를 전달하지만 self C는 0을
+전달하고 MIR-lower AST에서도 `IntentPriority: 9`가 사라진다. 따라서 SoT는
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%를 유지한다.
+이번 변화는 기존 BRIDGE 안의 실행 대체이지, priority와 formal transition까지
+닫은 registry 승격은 아니다. 새 checkpoint의 29-job remote rerun은 아직
+publication falsifier로 남아 있다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 
