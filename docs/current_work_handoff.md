@@ -14,12 +14,12 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - canonical composite-intent priority admission
 
-- Executable checkpoint `718220ba` on `main` contains the priority-admission
-  slice. Its clean predecessor remote baseline is `c75b3309`: push run
-  `32721755812` completed all 29/29 jobs green in about 24.1 minutes. Before
-  this handoff commit only this file and `src/self_hosted/PROGRESS.md` are
-  dirty. Preserve the unrelated untracked `pgy-80135c2c/` directory; it is not
-  project evidence and was not inspected.
+- Executable checkpoint `e50c9ad6` on `main` contains the priority-admission
+  slice and its explicit-absence CI repair; `55132c07` is the remote
+  predecessor. The clean remote baseline remains `c75b3309`: push run
+  `32721755812` completed all 29/29 jobs green in about 24.1 minutes. Preserve
+  the unrelated untracked `pgy-80135c2c/` directory; it is not project evidence
+  and was not inspected.
 - Objective card: objective = make the production installed self-host AST and
   DIR entrypoints admit the canonical composite-intent program's `priority`
   expression; priority order = parser-owned expression identity, append-only
@@ -46,9 +46,10 @@ gate count do not increment either percentage by themselves.
   correctly failed closed with an empty graph-shape diagnostic.
 - `SelfDirIntentPriorityFactsFromArtifact` materializes one immutable priority
   bundle from the parser graph, admitted intent signature, nominal facts, and
-  callable table. Missing priority remains the explicit `-1/-1` absence pair;
-  a present row must have one direct intent owner, one atom root, and resolved
-  type `Int`. DIR carries this identity and does not reconstruct source text.
+  callable table. `present: Bool` owns absence explicitly and absent payloads
+  are the checked inert `0/0` pair; no `-1` control sentinel is used. A present
+  row must have one direct intent owner, one atom root, and resolved type `Int`.
+  DIR carries this identity and does not reconstruct source text.
 - The Pergyra-built installed driver was regenerated after the source change.
   `public_ast_installed_self_host_owner.sh` passes exact installed/public bytes
   and normalized native parity with `IntentPriority: 9`.
@@ -59,9 +60,18 @@ gate count do not increment either percentage by themselves.
   diagnostic and no native fallback.
 - Static evidence is green: the complete component contract, SoT registry
   (`86 authorities`, `173 derived carriers`, `CLOSED=49 BRIDGE=36 ACTIVE=1`),
-  and `git diff --check`. This bounded production AST/DIR slice is
+  language-word generator check, Pergyra-likeness sentinel ratchet at `24`,
+  installed full-driver DIR admission, and `git diff --check`. This bounded
+  production AST/DIR slice is
   `SUBSTITUTING`; it does not claim composite-intent C/LLVM execution or
   compiler-root intent dogfood.
+- Remote CI exposed two previously unrun push-only ratchets in sequence. Run
+  `32753036497` rejected the stale generated language-word implementation
+  inventory; `55132c07` regenerated it from its owner and passed that gate.
+  Run `32754469415` then reached the next gate and rejected two new `-1`
+  comparisons in priority absence. Checkpoint `e50c9ad6` replaces them with
+  the explicit presence bit and restores the local sentinel census to `24`.
+  A new 29-job push run must be fully green before the MIR rung is published.
 - Next falsifier is exact and executable. Public installed C now passes the
   parser/semantic/DIR boundary and fails later with `MIR instruction rows are
   invalid: instruction=97 instruction kind is unknown`. Continue from that

@@ -22,6 +22,13 @@ rewrite history.
 - Complete component contract and SoT registry are green at 86 authorities / 173
   derived carriers / 49 CLOSED / 36 BRIDGE / 1 ACTIVE. Remote baseline run
   `32721755812` at `c75b3309` was already 29/29 green in about 24.1 minutes.
+- Push CI then exposed two masked ratchets. Run `32753036497` rejected the stale
+  generated language-word implementation inventory; checkpoint `55132c07`
+  regenerated it from the registry owner. Run `32754469415` passed that gate
+  and rejected the priority fact's two new `-1` absence comparisons instead.
+  Checkpoint `e50c9ad6` gives absence an explicit `present` bit, uses checked
+  inert `0/0` payloads, and restores the local sentinel census to `24` without
+  loosening the baseline.
 - This is bounded production AST/DIR `SUBSTITUTING`, not composite runtime
   completion. Public installed C now reaches the next exact falsifier at MIR
   instruction 97, whose kind is unknown. That existing MIR owner is the next

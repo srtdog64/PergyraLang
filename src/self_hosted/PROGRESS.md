@@ -2,24 +2,32 @@
 
 ## Active self-host context - 2026-08-25 composite-intent priority admission
 
-- Executable checkpoint `718220ba` contains the priority-admission slice.
-  Its clean predecessor remote run `32721755812` at `c75b3309` is 29/29 green
-  in about 24.1 minutes. Preserve the unrelated `pgy-80135c2c/` directory.
+- Executable checkpoint `e50c9ad6` contains the priority-admission slice and
+  its explicit-absence CI repair; `55132c07` is the remote predecessor. The
+  clean baseline run `32721755812` at `c75b3309` is 29/29 green in about 24.1
+  minutes. Preserve the unrelated `pgy-80135c2c/` directory.
 - The stale next-rung claim for `array_literal_assignment.pgy` was falsified:
   installed LLVM already executes exact `3` and `10`. The first uncovered
   canonical-composite gap was `priority: 9`, which native C executed while the
   installed self-host AST/DIR path rejected it before semantic admission.
 - Typed AST kind 90 now owns `IntentPriority`; the parser carries its atom-lane
   graph in AST order. `SelfDirIntentPriorityFacts` admits exactly one direct
-  row per intent, preserves explicit absence, requires resolved `Int`, and is
-  consumed by DIR without source-text reparse or guessed default.
+  row per intent, preserves absence with an explicit presence bit and inert
+  `0/0` payload, requires resolved `Int`, and is consumed by DIR without
+  source-text reparse, a `-1` control sentinel, or guessed default.
 - The regenerated Pergyra-built installed driver passes public AST byte parity
   and native-normalized parity. Public DIR now admits the canonical program as
   `12` nodes / `39` edges / `5` intents and remains normalized-byte equal to
   native. A String priority fails nonzero with the owned typed diagnostic.
 - Complete component contract, SoT registry (`86/173`, `49 CLOSED / 36 BRIDGE
-  / 1 ACTIVE`), and diff check are green. The bounded AST/DIR path is
-  `SUBSTITUTING`; overall 78%, strict beta 83%, and hard SoT 49/86 stay fixed.
+  / 1 ACTIVE`), language-word generator, Pergyra-likeness sentinel ratchet at
+  `24`, installed full-driver DIR admission, and diff check are green. The
+  bounded AST/DIR path is `SUBSTITUTING`; overall 78%, strict beta 83%, and
+  hard SoT 49/86 stay fixed.
+- Remote runs exposed two serial push-only failures: `32753036497` found the
+  stale generated language-word inventory, and `32754469415` then found the
+  priority absence sentinel regression. Both local causes are repaired; the
+  next push run must prove all 29 jobs green before MIR work is published.
 - Next executable falsifier is public installed C at MIR instruction 97:
   `instruction kind is unknown`. Continue at that existing MIR owner; do not
   add native fallback, hardcode priority zero, or start unrelated SoT work.
