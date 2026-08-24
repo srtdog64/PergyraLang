@@ -36,40 +36,42 @@ func DirectMirScalarCfgProgramCRoutine(
     int_line_format: String, string_line_format: String,
     int_c_type: String, target: CompilerTargetProjectionFact
 ) -> String {
-    let output: String = DirectMirScalarCfgProgramCSignature(plan, routine, int_c_type, false);
-    output = Concat(output, " {\n");
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(4096);
+    TextBuilderAppend(output, DirectMirScalarCfgProgramCSignature(plan, routine, int_c_type, false));
+    TextBuilderAppend(output, " {\n");
     if routine == plan.routines.entrypoint_ordinal &&
         plan.program.runtime_abi.process_args_id != 0 {
-        output = Concat(output, HostIORuntimeCArgsCapturePrefix());
+        TextBuilderAppend(output, HostIORuntimeCArgsCapturePrefix());
     }
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramCArrayIntValueResultCopyIn(plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramCArrayBoolValueResultCopyIn(plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramCArrayStringValueResultCopyIn(plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramCLogicalRecordValueResultCopyIn(plan, routine));
-    output = Concat(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyIn(plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output,
         DirectMirScalarProgramCSetStringValueResultCopyIn(plan, routine));
-    output = Concat(output, DirectMirScalarCfgCLocalDeclarationsInRange(
+    TextBuilderAppend(output, DirectMirScalarCfgCLocalDeclarationsInRange(
         plan, int_c_type, plan.routines.local_starts[routine],
         plan.routines.local_counts[routine], routine));
     let block_start: Int = plan.routines.block_starts[routine];
     let block_end: Int = block_start + plan.routines.block_counts[routine];
-    output = Concat(output, "    goto pgy_r");
-    output = Concat(output, ToString(routine));
-    output = Concat(output, "_block_");
-    output = Concat(output, ToString(block_start));
-    output = Concat(output, ";\n");
+    TextBuilderAppend(output, "    goto pgy_r");
+    TextBuilderAppend(output, ToString(routine));
+    TextBuilderAppend(output, "_block_");
+    TextBuilderAppend(output, ToString(block_start));
+    TextBuilderAppend(output, ";\n");
     let block: Int = block_start;
     while block < block_end {
-        output = Concat(output, "pgy_r");
-        output = Concat(output, ToString(routine));
-        output = Concat(output, "_block_");
-        output = Concat(output, ToString(block));
-        output = Concat(output, ":\n");
+        TextBuilderAppend(output, "pgy_r");
+        TextBuilderAppend(output, ToString(routine));
+        TextBuilderAppend(output, "_block_");
+        TextBuilderAppend(output, ToString(block));
+        TextBuilderAppend(output, ":\n");
         let operation: Int = plan.block_operation_starts[block];
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
@@ -94,95 +96,98 @@ func DirectMirScalarCfgProgramCRoutine(
                     DirectMirScalarCfgOpPhiValue() {
                 Die("direct MIR scalar program C operation is unsupported");
             }
-            output = Concat(output, emitted);
+            TextBuilderAppend(output, emitted);
             operation = operation + 1;
         }
         let return_row: Int =
             plan.program.block_return_expression_rows[block];
         if return_row == DirectMirScalarCfgVoidReturnExpressionRow() {
             if routine == plan.routines.entrypoint_ordinal {
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramCStringArrayCleanup(plan, routine));
-                output = Concat(output, "    return 0;\n");
+                TextBuilderAppend(output, "    return 0;\n");
             } else {
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramCArrayStringValueResultCopyOut(
                         plan, routine));
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramCArrayIntValueResultCopyOut(
                         plan, routine));
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramCArrayBoolValueResultCopyOut(
                         plan, routine));
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramCLogicalRecordValueResultCopyOut(
                         plan, routine));
-                output = Concat(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyOut(plan, routine));
-                output = Concat(output,
+                TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyOut(plan, routine));
+                TextBuilderAppend(output,
                     DirectMirScalarProgramCSetStringValueResultCopyOut(
                         plan, routine));
-                output = Concat(output, "    return;\n");
+                TextBuilderAppend(output, "    return;\n");
             }
         } else if return_row >= 0 {
-            output = Concat(output,
+            TextBuilderAppend(output,
                 DirectMirScalarProgramCArrayIntValueResultCopyOut(
                     plan, routine));
-            output = Concat(output,
+            TextBuilderAppend(output,
                 DirectMirScalarProgramCArrayBoolValueResultCopyOut(
                     plan, routine));
-            output = Concat(output,
+            TextBuilderAppend(output,
                 DirectMirScalarProgramCArrayStringValueResultCopyOut(
                     plan, routine));
-            output = Concat(output,
+            TextBuilderAppend(output,
                 DirectMirScalarProgramCLogicalRecordValueResultCopyOut(
                     plan, routine));
-            output = Concat(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyOut(plan, routine));
-            output = Concat(output,
+            TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyOut(plan, routine));
+            TextBuilderAppend(output,
                 DirectMirScalarProgramCSetStringValueResultCopyOut(
                     plan, routine));
-            output = Concat(output, "    return ");
-            output = Concat(output, DirectMirScalarProgramCExpressionAt(
+            TextBuilderAppend(output, "    return ");
+            TextBuilderAppend(output, DirectMirScalarProgramCExpressionAt(
                 plan.program.expressions, return_row, runtime,
                 plan.program.logical_record, plan.program.referenced_enum,
                 plan.routines, routine, target));
-            output = Concat(output, ";\n");
+            TextBuilderAppend(output, ";\n");
         } else if plan.block_condition_kinds[block] ==
                 DirectMirScalarCfgConditionExpression() {
-            output = Concat(output, "    if (");
-            output = Concat(output, DirectMirScalarProgramCExpressionAt(
+            TextBuilderAppend(output, "    if (");
+            TextBuilderAppend(output, DirectMirScalarProgramCExpressionAt(
                 plan.program.expressions,
                 plan.program.block_condition_expression_rows[block],
                 runtime, plan.program.logical_record,
                 plan.program.referenced_enum, plan.routines, routine, target));
-            output = Concat(output, ") goto pgy_r");
-            output = Concat(output, ToString(routine));
-            output = Concat(output, "_block_");
-            output = Concat(output, ToString(plan.block_succ_true[block]));
-            output = Concat(output, ";\n    goto pgy_r");
-            output = Concat(output, ToString(routine));
-            output = Concat(output, "_block_");
-            output = Concat(output, ToString(plan.block_succ_false[block]));
-            output = Concat(output, ";\n");
+            TextBuilderAppend(output, ") goto pgy_r");
+            TextBuilderAppend(output, ToString(routine));
+            TextBuilderAppend(output, "_block_");
+            TextBuilderAppend(output, ToString(plan.block_succ_true[block]));
+            TextBuilderAppend(output, ";\n    goto pgy_r");
+            TextBuilderAppend(output, ToString(routine));
+            TextBuilderAppend(output, "_block_");
+            TextBuilderAppend(output, ToString(plan.block_succ_false[block]));
+            TextBuilderAppend(output, ";\n");
         } else if plan.block_succ_true[block] >= 0 {
-            output = Concat(output, "    goto pgy_r");
-            output = Concat(output, ToString(routine));
-            output = Concat(output, "_block_");
-            output = Concat(output, ToString(plan.block_succ_true[block]));
-            output = Concat(output, ";\n");
+            TextBuilderAppend(output, "    goto pgy_r");
+            TextBuilderAppend(output, ToString(routine));
+            TextBuilderAppend(output, "_block_");
+            TextBuilderAppend(output, ToString(plan.block_succ_true[block]));
+            TextBuilderAppend(output, ";\n");
         } else if routine == plan.routines.entrypoint_ordinal {
-            output = Concat(output,
+            TextBuilderAppend(output,
                 DirectMirScalarProgramCStringArrayCleanup(plan, routine));
-            output = Concat(output, "    return 0;\n");
+            TextBuilderAppend(output, "    return 0;\n");
         } else if DirectMirScalarProgramBlockEndsWithProcessExit(
                 plan.operation_kinds, plan.block_operation_starts[block], plan.block_operation_counts[block]) {
             // The canonical C exit ABI does not return.
-        } else if return_row == -1 { output = Concat(output, "    abort();\n");
+        } else if return_row == -1 { TextBuilderAppend(output, "    abort();\n");
         } else {
             Die("direct MIR scalar program callable return is missing");
         }
         block = block + 1;
     }
-    return Concat(output, "}\n");
+    TextBuilderAppend(output, "}\n");
+    let routine_c: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return routine_c;
 }
 func DirectMirScalarCfgEmitProgramC(
     ref plan: DirectMirScalarCfgGraphPlan,

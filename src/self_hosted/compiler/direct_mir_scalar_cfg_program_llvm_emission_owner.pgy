@@ -44,51 +44,52 @@ func DirectMirScalarCfgProgramLlvmRoutine(
     int_line_format: String, string_line_format: String,
     target: CompilerTargetProjectionFact
 ) -> String {
-    let output: String = DirectMirScalarCfgProgramLlvmRoutineSignature(
-        plan, routine);
-    output = Concat(output, " {\nentry:\n");
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(4096);
+    TextBuilderAppend(output, DirectMirScalarCfgProgramLlvmRoutineSignature(plan, routine));
+    TextBuilderAppend(output, " {\nentry:\n");
     if routine == plan.routines.entrypoint_ordinal &&
         plan.program.runtime_abi.process_args_id != 0 {
-        output = Concat(output,
+        TextBuilderAppend(output,
             "  store i32 %argc, ptr @pgy.selfhost.argc, align 4\n  store ptr %argv, ptr @pgy.selfhost.argv, align 8\n");
     }
-    output = Concat(output, DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(
         plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(
             plan, routine));
-    output = Concat(output, DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(
             plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordValueResultCopyIn(
             plan, routine));
-    output = Concat(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyIn(plan, routine));
-    output = Concat(output,
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output,
         DirectMirScalarProgramLlvmSetStringValueResultCopyIn(plan, routine));
-    output = Concat(output, DirectMirScalarCfgProgramLlvmRuntimeValueParameterStorage(plan, routine));
-    output = Concat(output, DirectMirScalarCfgLlvmLocalDeclarationsInRange(
+    TextBuilderAppend(output, DirectMirScalarCfgProgramLlvmRuntimeValueParameterStorage(plan, routine));
+    TextBuilderAppend(output, DirectMirScalarCfgLlvmLocalDeclarationsInRange(
         plan, plan.routines.local_starts[routine],
         plan.routines.local_counts[routine], routine));
     let block_start: Int = plan.routines.block_starts[routine];
     let block_end: Int = block_start + plan.routines.block_counts[routine];
-    output = Concat(output, "  br label %pgy.r");
-    output = Concat(output, ToString(routine));
-    output = Concat(output, ".block.");
-    output = Concat(output, ToString(block_start));
-    output = Concat(output, "\n");
+    TextBuilderAppend(output, "  br label %pgy.r");
+    TextBuilderAppend(output, ToString(routine));
+    TextBuilderAppend(output, ".block.");
+    TextBuilderAppend(output, ToString(block_start));
+    TextBuilderAppend(output, "\n");
     let block: Int = block_start;
     while block < block_end {
-        output = Concat(output, "\npgy.r");
-        output = Concat(output, ToString(routine));
-        output = Concat(output, ".block.");
-        output = Concat(output, ToString(block));
-        output = Concat(output, ":\n");
+        TextBuilderAppend(output, "\npgy.r");
+        TextBuilderAppend(output, ToString(routine));
+        TextBuilderAppend(output, ".block.");
+        TextBuilderAppend(output, ToString(block));
+        TextBuilderAppend(output, ":\n");
         let operation: Int = plan.block_operation_starts[block];
         let operation_end: Int = operation +
             plan.block_operation_counts[block];
@@ -113,35 +114,35 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                     DirectMirScalarCfgOpPhiValue() {
                 Die("direct MIR scalar program LLVM operation is unsupported");
             }
-            output = Concat(output, emitted);
+            TextBuilderAppend(output, emitted);
             operation = operation + 1;
         }
         let return_row: Int =
             plan.program.block_return_expression_rows[block];
         if return_row == DirectMirScalarCfgVoidReturnExpressionRow() {
             if routine == plan.routines.entrypoint_ordinal {
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramLlvmStringArrayCleanup(
                         plan, routine));
-                output = Concat(output, "  ret i32 0\n");
+                TextBuilderAppend(output, "  ret i32 0\n");
             } else {
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
                         plan, routine, block));
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramLlvmArrayIntValueResultCopyOut(
                         plan, routine, block));
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramLlvmArrayBoolValueResultCopyOut(
                         plan, routine, block));
-                output = Concat(output,
+                TextBuilderAppend(output,
                     DirectMirScalarProgramLlvmLogicalRecordValueResultCopyOut(
                         plan, routine, block));
-                output = Concat(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(plan, routine, block));
-                output = Concat(output,
+                TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(plan, routine, block));
+                TextBuilderAppend(output,
                     DirectMirScalarProgramLlvmSetStringValueResultCopyOut(
                         plan, routine, block));
-                output = Concat(output, "  ret void\n");
+                TextBuilderAppend(output, "  ret void\n");
             }
         } else if return_row >= 0 {
             let expression: DirectMirScalarProgramLlvmExpression =
@@ -153,33 +154,33 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                     target);
             if !expression.valid { Die(
                 "direct MIR scalar CFG LLVM return expression is invalid"); }
-            output = Concat(output, expression.instructions);
-            output = Concat(output,
+            TextBuilderAppend(output, expression.instructions);
+            TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmArrayIntValueResultCopyOut(
                     plan, routine, block));
-            output = Concat(output,
+            TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmArrayBoolValueResultCopyOut(
                     plan, routine, block));
-            output = Concat(output,
+            TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
                     plan, routine, block));
-            output = Concat(output,
+            TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmLogicalRecordValueResultCopyOut(
                     plan, routine, block));
-            output = Concat(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(plan, routine, block));
-            output = Concat(output,
+            TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyOut(plan, routine, block));
+            TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmSetStringValueResultCopyOut(
                     plan, routine, block));
-            output = Concat(output, "  ret ");
-            output = Concat(output,
+            TextBuilderAppend(output, "  ret ");
+            TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
                 expression.type_name, plan.program.nominal_abi,
                 plan.program.logical_record,
                 plan.program.payload_free_enum,
                 plan.program.referenced_enum));
-            output = Concat(output, " ");
-            output = Concat(output, expression.value);
-            output = Concat(output, "\n");
+            TextBuilderAppend(output, " ");
+            TextBuilderAppend(output, expression.value);
+            TextBuilderAppend(output, "\n");
         } else if plan.block_condition_kinds[block] ==
                 DirectMirScalarCfgConditionExpression() {
             let condition: DirectMirScalarProgramLlvmExpression =
@@ -196,41 +197,44 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                 DirectMirScalarCfgProgramLlvmConditionProjectionFailed(
                     plan, routine, block, condition.valid, condition.type_name);
             }
-            output = Concat(output, condition.instructions);
-            output = Concat(output, "  br i1 ");
-            output = Concat(output, condition.value);
-            output = Concat(output, ", label %pgy.r");
-            output = Concat(output, ToString(routine));
-            output = Concat(output, ".block.");
-            output = Concat(output, ToString(plan.block_succ_true[block]));
-            output = Concat(output, ", label %pgy.r");
-            output = Concat(output, ToString(routine));
-            output = Concat(output, ".block.");
-            output = Concat(output, ToString(plan.block_succ_false[block]));
-            output = Concat(output, "\n");
+            TextBuilderAppend(output, condition.instructions);
+            TextBuilderAppend(output, "  br i1 ");
+            TextBuilderAppend(output, condition.value);
+            TextBuilderAppend(output, ", label %pgy.r");
+            TextBuilderAppend(output, ToString(routine));
+            TextBuilderAppend(output, ".block.");
+            TextBuilderAppend(output, ToString(plan.block_succ_true[block]));
+            TextBuilderAppend(output, ", label %pgy.r");
+            TextBuilderAppend(output, ToString(routine));
+            TextBuilderAppend(output, ".block.");
+            TextBuilderAppend(output, ToString(plan.block_succ_false[block]));
+            TextBuilderAppend(output, "\n");
         } else if plan.block_succ_true[block] >= 0 {
-            output = Concat(output, "  br label %pgy.r");
-            output = Concat(output, ToString(routine));
-            output = Concat(output, ".block.");
-            output = Concat(output, ToString(plan.block_succ_true[block]));
-            output = Concat(output, "\n");
+            TextBuilderAppend(output, "  br label %pgy.r");
+            TextBuilderAppend(output, ToString(routine));
+            TextBuilderAppend(output, ".block.");
+            TextBuilderAppend(output, ToString(plan.block_succ_true[block]));
+            TextBuilderAppend(output, "\n");
         } else if routine == plan.routines.entrypoint_ordinal {
-            output = Concat(output,
+            TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmStringArrayCleanup(plan, routine));
-            output = Concat(output, "  ret i32 0\n");
+            TextBuilderAppend(output, "  ret i32 0\n");
         } else if DirectMirScalarProgramBlockEndsWithProcessExit(
                 plan.operation_kinds, plan.block_operation_starts[block],
                 plan.block_operation_counts[block]) {
-            output = Concat(output, "  unreachable\n");
+            TextBuilderAppend(output, "  unreachable\n");
         } else if return_row == -1 {
             // Readiness proved this is the empty exhaustive-match fallthrough.
-            output = Concat(output, "  unreachable\n");
+            TextBuilderAppend(output, "  unreachable\n");
         } else {
             Die("direct MIR scalar program callable return is missing");
         }
         block = block + 1;
     }
-    return Concat(output, "}\n");
+    TextBuilderAppend(output, "}\n");
+    let routine_llvm: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return routine_llvm;
 }
 
 func DirectMirScalarCfgEmitProgramLlvm(

@@ -17475,6 +17475,38 @@ reject_function_text \
     "output = Concat(output"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramLlvmRoutine(" \
+    "let output: TextBuilder = TextBuilderNew(4096)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramLlvmRoutine(" \
+    "TextBuilderFinish(output, output_allocator)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramLlvmRoutine(" \
+    "AllocatorDestroy(output_allocator)"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramLlvmRoutine(" \
+    "Concat(output"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramCRoutine(" \
+    "let output: TextBuilder = TextBuilderNew(4096)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramCRoutine(" \
+    "TextBuilderFinish(output, output_allocator)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramCRoutine(" \
+    "AllocatorDestroy(output_allocator)"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramCRoutine(" \
+    "Concat(output"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
     "func DirectMirScalarCfgEmitProgramLlvm(" \
     "ArrayDropOwnedStrings(owned_string_globals)"
 require_function_text \
@@ -19230,7 +19262,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
     "func DirectMirScalarCfgProgramLlvmRoutine(" \
-    'output = Concat(output, "  unreachable\n")'
+    'TextBuilderAppend(output, "  unreachable\n")'
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy" \
     'type_name == "LanguageWordId"'
