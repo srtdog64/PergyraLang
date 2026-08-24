@@ -1,0 +1,55 @@
+object StagePathManifest {
+    root: String;
+}
+
+subject SourceUnit {
+    action Read(self, paths: StagePathManifest) -> Bool {
+        return paths.root != "";
+    }
+}
+
+zone SourceIntakeZone {
+    subject slot source: SourceUnit
+}
+
+intent IntakeSource(
+    intake: SourceIntakeZone,
+    source: SourceUnit,
+    paths: StagePathManifest
+) {
+    step ReadRoot {
+        where: SourceIntakeZone;
+        using: intake;
+        who: source;
+        on: source.Read(paths);
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent FrontendPipeline(
+    intake: SourceIntakeZone,
+    source: SourceUnit,
+    paths: StagePathManifest
+) {
+    step Intake {
+        where: SourceIntakeZone;
+        using: intake;
+        who: source;
+        on: IntakeSource(intake, source, paths);
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let source = SourceUnit();
+    let intake = SourceIntakeZone(Clone(source));
+    let paths = StagePathManifest("src");
+    let ok = FrontendPipeline(intake, source, paths);
+    Log("[Intent] FrontendPipeline=" + ToString(ok));
+}

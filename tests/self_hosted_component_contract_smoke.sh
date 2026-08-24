@@ -1546,14 +1546,26 @@ require_file \
     "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" 130
+require_file \
+    "tests/self_hosted/parity/intent_placed_nested_callable_execution_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/intent_placed_nested_callable_execution_owner.sh" 100
+require_file \
+    "tests/self_hosted/parity/fixture/intent_placed_nested_execution.pgy"
 require_text "tests/self_hosted/parity/intent_callable_execution_owner.sh" \
     'intent_nested_callable_execution_owner.sh'
+require_text \
+    "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" \
+    'intent_placed_nested_callable_execution_owner.sh'
 require_text \
     "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" \
     'regained fake placement materialization'
 require_text \
     "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" \
     'nested intent failure did not propagate'
+require_text \
+    "tests/self_hosted/parity/intent_placed_nested_callable_execution_owner.sh" \
+    'placed nested call lost outer boundary'
 require_max_lines \
     "tests/self_hosted/parity/intent_execution_graph_target_mutation_owner.py" 100
 require_max_lines \
@@ -1872,6 +1884,12 @@ require_text \
 require_text \
     "src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy" \
     '!contract.present && read_count == 0'
+require_text \
+    "src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy" \
+    'if contract.nested { return authority_count == 0; }'
+require_text \
+    "src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy" \
+    '(authority_count == 1 && authority_name == who_name)'
 reject_text \
     "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
     'if zone_count != 1 || alias_count != 1 ||'
@@ -1944,7 +1962,7 @@ require_function_text "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" \
     "func MirIntentPhaseAppendExpressionOrder(" \
     "MirStructuredExpressionEmissionOrderCoverProducer("
 require_text "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy" \
-    'if direct_intent_target { phase_name = "Intent: "; }'
+    'if nested_intent_call { phase_name = "Intent: "; }'
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
 require_text "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" \

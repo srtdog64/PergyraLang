@@ -123,7 +123,6 @@ func MirIntentRoutineStepTreeLines(
                 routines, eval_action.action_name
             );
         }
-        // A legacy nested-intent call delegates the terminal action contract.
         let direct_intent_target: Bool = !typed_execution &&
             direct_target_syntax_id != "";
         let placement: MirIntentStepPlacementContract =
@@ -243,7 +242,9 @@ func MirIntentRoutineStepTreeLines(
         }
         if eval_action.receiver_alias == "" {
             action_syntax_id = direct_target_syntax_id;
-            if typed_execution || outcome_count != 0 || authority_count != 0 ||
+            if typed_execution || outcome_count != 0 ||
+                !MirIntentDirectTargetBoundaryReady(
+                    placement, authority_count, authority_name, who_name) ||
                 action_syntax_id == "" || eval_action.action_name !=
                     eval_action.call_target_name {
                 MirLowerFailClosed(
@@ -335,13 +336,13 @@ func MirIntentRoutineStepTreeLines(
             expression_on_row = eval_row;
         } else {
             phase_tree = MirIntentPhaseTreeLines(
-                phase_projection, step_index, direct_intent_target
+                phase_projection, step_index, placement.nested
             );
         }
         if phase_tree == "" ||
             !MirIntentPhaseAppendExpressionOrder(
                 phase_projection, step_index, expression_on_row,
-                direct_intent_target, expression_order
+                placement.nested, expression_order
             ) {
             MirLowerFailClosed(
                 "MIR intent phase tree projection is invalid"

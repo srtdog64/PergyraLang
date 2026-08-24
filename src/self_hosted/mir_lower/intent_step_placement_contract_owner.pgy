@@ -4,6 +4,7 @@
 struct MirIntentStepPlacementContract {
     ok: Bool;
     present: Bool;
+    nested: Bool;
 }
 
 func MirIntentStepPlacementContractFromCarriers(
@@ -19,7 +20,20 @@ func MirIntentStepPlacementContractFromCarriers(
         zone_name == "" && zone_alias == "";
     let present: Bool = zone_count == 1 && alias_count == 1 &&
         invalidation_count == 1 && zone_name != "" && zone_alias != "";
-    return MirIntentStepPlacementContract(absent || present, present);
+    return MirIntentStepPlacementContract(absent || present, present, absent);
+}
+
+func MirIntentDirectTargetBoundaryReady(
+    contract: MirIntentStepPlacementContract,
+    authority_count: Int,
+    authority_name: String,
+    who_name: String
+) -> Bool {
+    if !contract.ok { return false; }
+    if contract.nested { return authority_count == 0; }
+    return contract.present &&
+        (authority_count == 0 ||
+         (authority_count == 1 && authority_name == who_name));
 }
 
 func MirIntentStepPlacementReadReady(
