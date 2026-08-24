@@ -307,6 +307,7 @@ src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_fact_owner.pg
 src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy | DirectMirScalarProgramTwoIntNominalAbiFact | abi.layout_rows | projection
 src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_fact_owner.pgy | DirectMirScalarProgramArrayIntValueResultFact | abi.layout_rows | projection
 src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy | DirectMirScalarProgramLogicalRecordFact | semantic.nominal_field_kind | projection
+src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy | DirectMirScalarProgramReferencedEnumFactFromAdmitted | selfhost.enum_declaration_rows | projection
 src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy | DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted | selfhost.enum_declaration_rows | projection
 src/self_hosted/compiler/direct_mir_struct_argument_graph_fact_owner.pgy | DirectMirStructArgumentGraphFact | mir.execution_graph | projection
 src/self_hosted/compiler/direct_mir_struct_value_flow_abi_fact_owner.pgy | DirectMirStructValueFlowAbiFact | abi.layout_rows | projection

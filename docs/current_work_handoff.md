@@ -15,9 +15,11 @@ gate count do not increment either percentage by themselves.
 ## Active self-host context - DRV-1 typed artifact transaction LLVM closure
 
 - The semantic checkpoint is `d6b82a29`; CI toolchain reuse is checkpoint
-  `64eeeda0`, and first-remote-run repair is `1df380a1` on local `main`. This
-  handoff is their documentation successor.
-  Before its commit the only project dirt is this file and
+  `64eeeda0`, first-remote-run repair is `1df380a1`, and its documentation
+  successor is `f44181d4` on local `main`. This handoff records the second
+  remote result and its focused SoT classification repair.
+  Before its commit the only project dirt is this file,
+  `docs/semantics/sot_owner_spine_registry.md`, and
   `src/self_hosted/PROGRESS.md`; after publication the worktree should contain
   only the unrelated user-owned `pgy-80135c2c/`. Do not stage, discard,
   rewrite, or scan that directory as project evidence.
@@ -95,8 +97,14 @@ gate count do not increment either percentage by themselves.
   directly from the borrowed admission owner, and negative-gates the forbidden
   local copy. The exact native `--emit-c` reproduction now passes in 12.4
   seconds with 0 errors/0 warnings and emits 13,195,128-byte C; the language
-  registry and complete component contract are green. A green successor remote
-  run is not yet claimed.
+  registry and complete component contract are green. Second remote run
+  `32703532890` at `f44181d4` completed 28/29: full self-host bootstrap, the
+  shared toolchain producer, and all 20 backend shards passed. Its only red was
+  the final `sot-authority-edge` check: the new referenced-enum fact carrier
+  had not been classified in the derived-fact registry. It is now registered
+  as a `projection` of `selfhost.enum_declaration_rows`, not as a second
+  authority; focused edge and adequacy gates pass locally. A fully green
+  successor remote run is not yet claimed.
 - Last remote baselines remain green: fast/full-platform split run
   `32680354623` completed 13/13 in 40m36 at `88fbe332`; the successor fast/docs
   run `32682690750` completed 28/28 at `e179537d`. This integration does not
@@ -105,8 +113,8 @@ gate count do not increment either percentage by themselves.
 - Next: when at least modest headroom above the measured 11.7GB peak is
   available, run the current MIR through `bin/pgy-self-driver.exe
   --mir-json-backend=llvm`, link it with the existing observation-disabled
-  runtime object, and execute one artifact publication. First commit this
-  documentation successor, push the repair plus docs, and require the
+  runtime object, and execute one artifact publication. First commit the
+  derived-fact classification plus this handoff, push it, and require the
   remote fast workflow to become green. Then refresh this card with the exact
   remote result. Do not count the CI
   topology edit, MIR bytes, owner files, or tests as substitution progress.

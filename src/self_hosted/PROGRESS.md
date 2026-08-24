@@ -2,10 +2,11 @@
 
 ## Active self-host context - 2026-08-24 DRV-1 artifact transaction LLVM
 
-- Semantic checkpoint `d6b82a29`, CI checkpoint `64eeeda0`, and first-remote
-  repair `1df380a1` are committed locally; this progress file is their
-  documentation successor. Preserve the unrelated untracked `pgy-80135c2c/`
-  directory.
+- Semantic checkpoint `d6b82a29`, CI checkpoint `64eeeda0`, first-remote
+  repair `1df380a1`, and documentation checkpoint `f44181d4` are committed
+  locally. This progress file records the second remote result and its focused
+  SoT classification repair. Preserve the unrelated untracked
+  `pgy-80135c2c/` directory.
 - The DRV-1 direct-MIR route now owns referenced payload-free/payload-bearing
   enum identity once, projects payload-free facts from that owner, carries
   payload constructors and exhaustive match-binding locals through C/LLVM, and
@@ -36,7 +37,11 @@
   all 20 artifact-fed shards green. Its two unrelated reds exposed a stale
   generated language-word inventory and an illegal borrowed enum-index local;
   `1df380a1` owns both repairs, and native source emission plus the complete
-  component contract now pass. A green remote successor is pending push.
+  component contract now pass. Second run `32703532890` completed 28/29: full
+  bootstrap, the producer, and all 20 shards passed. Only the final SoT edge
+  gate rejected the unclassified referenced-enum fact carrier. It is now a
+  registered `projection` of `selfhost.enum_declaration_rows`; local edge and
+  adequacy gates pass. A fully green remote successor is pending push.
 - This is one open executable substitution rung. Progress remains overall 78%,
   strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` until the exact
   current executable, publication, and remote evidence close it.
