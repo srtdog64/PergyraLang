@@ -1,6 +1,41 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-18 DIR-to-MIR lifetime and CI verification
+## Active self-host context - 2026-08-24 DRV-1 artifact transaction LLVM
+
+- Semantic checkpoint `d6b82a29` and CI checkpoint `64eeeda0` are committed
+  locally; this progress file is their documentation successor. Preserve the
+  unrelated untracked `pgy-80135c2c/` directory.
+- The DRV-1 direct-MIR route now owns referenced payload-free/payload-bearing
+  enum identity once, projects payload-free facts from that owner, carries
+  payload constructors and exhaustive match-binding locals through C/LLVM, and
+  keeps `SelfMirArtifactCommitOutcome` typed. CompilerArtifact Begin/Commit/
+  Abort are runtime-call ABI rows 259-261 in the 262-row manifest; no boolean
+  collapse or native/C fallback was added.
+- Focused payload-enum C/LLVM parity plus negatives, adjacent payload-free enum
+  parity, the full component contract, and runtime-call ABI manifest parity are
+  green. The default local launcher's ABI LLVM leg is explicitly skipped
+  because that launcher was built without LLVM; a separate LLVM-enabled
+  launcher plus the current self-driver passes one real backend-compare case.
+- Exact current-source verified MIR is 95,523,078 bytes, SHA-256
+  `D2B4E47E051590ED758E227F9CF2B1CFEA2334CA2652633D9CA0F2A7E56781EE`,
+  produced in 34.7 seconds. The prior fixed 95MB MIR already projects, links,
+  executes, and commits an output artifact, but predates the final four source
+  edits and therefore is not the closing current-source proof.
+- The next and only executable falsifier is projection/link/run of that exact
+  current MIR. The prior projection took 13m23s and peaked near 11.7GB while
+  this checkpoint observed only 10.5-11.2GiB free, so do not start it by
+  terminating user processes or hiding the cost with parallelism/cache/timeout.
+  Identify repeated whole-program aggregation after the current semantic proof.
+- Push CI remains runner-parallel. The local CI change builds the LLVM-enabled
+  backend-compare launcher/self-driver pair once, uploads it, and feeds all 20
+  existing matrix shards through an explicit fail-closed prebuilt mode instead
+  of rebuilding it 20 times. CI-profile, invalid-mode, and one-case prebuilt
+  execution gates pass; remote CI is still pending push.
+- This is one open executable substitution rung. Progress remains overall 78%,
+  strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` until the exact
+  current executable, publication, and remote evidence close it.
+
+## Historical self-host context - 2026-08-18 DIR-to-MIR lifetime and CI verification
 
 - HEAD `c363a94a1409` matches `origin/main`. The accumulated frontier was
   committed externally during this session; the remaining installer, runtime,

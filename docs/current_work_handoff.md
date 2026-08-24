@@ -12,7 +12,93 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - artifact-fed full-platform parity shards
+## Active self-host context - DRV-1 typed artifact transaction LLVM closure
+
+- The semantic checkpoint is `d6b82a29`; CI toolchain reuse is checkpoint
+  `64eeeda0` on local `main`. This handoff is their documentation successor.
+  Before its commit the only project dirt is this file and
+  `src/self_hosted/PROGRESS.md`; after publication the worktree should contain
+  only the unrelated user-owned `pgy-80135c2c/`. Do not stage, discard,
+  rewrite, or scan that directory as project evidence.
+- Objective card: objective = make the production DRV-1 LLVM executable
+  consume the typed artifact transaction without a native/C-only bypass;
+  priority = typed outcome identity, referenced-enum ownership, payload
+  construction/match binding, Begin/Commit/Abort ABI, old-path rejection,
+  executable publication, then performance; fact owner =
+  `DirectMirScalarProgramReferencedEnumFact` plus
+  `SelfMirArtifactCommitOutcome` and the runtime-call ABI registry; last
+  legitimate consumer = `driver_cli_owner.pgy` `-o` publication; forbidden =
+  filtering the payload enum, collapsing the outcome to `Bool`, reconstructing
+  declarations in the payload-free view, retrying native/C after installed
+  failure, or masking compiler-scale copying with a cache/shard/timeout; final
+  falsifier = current `driver_rung1_main.pgy` source -> verified MIR -> LLVM ->
+  linked executable -> committed output artifact, with malformed enum/ABI and
+  missing-transaction facts still failing closed.
+- The reached semantic slice is implemented locally. One referenced-enum fact
+  owns declaration identity for both payload-free and payload-bearing enums;
+  payload-free facts project from it instead of rescanning declarations.
+  Direct C/LLVM support now carries payload enum construction, exhaustive match
+  selection, match-binding locals, callable/route/signature facts, and exact
+  local types. Artifact Begin/Commit/Abort own runtime-call ABI rows 259-261;
+  the manifest count is 262. Expression kinds 114-119 own payload construction,
+  payload match, the three artifact calls, and payload-free enum inequality.
+- The current installed `bin/pgy-self-driver.exe` was rebuilt after the last
+  compiler-source change. Focused payload-bearing enum construction/match
+  binding C/LLVM parity plus three negatives passes in 7.0 seconds; adjacent
+  payload-free enum parity passes in 11.3 seconds. The complete component
+  contract now passes, including the source-MIR world/action/pressure/commit
+  executable ratchet and the negative structural inventory. Runtime-call ABI
+  row parity passes; its local LLVM leg explicitly skipped because the default
+  `bin/pgy.exe` was built without LLVM support. `git diff --check` is green.
+- Current source-to-MIR evidence is now exact rather than inferred. The public
+  installed producer emitted
+  `.tmp/self_hosted/driver_rung1/driver_rung1_current_source.mir.json` in 34.7
+  seconds: 95,523,078 bytes, SHA-256
+  `D2B4E47E051590ED758E227F9CF2B1CFEA2334CA2652633D9CA0F2A7E56781EE`.
+  This artifact includes the final referenced-enum/direct-call compiler edits
+  and replaces the prior stale source snapshot for the next falsifier.
+- The current self-driver already consumed the preceding 95,473,996-byte fixed
+  MIR into 22,492,152-byte LLVM in 13m23s. Clang linked that IR with the exact
+  runtime object, and the resulting DRV-1 executable compiled a Pergyra fixture
+  and published an 11,294-byte C artifact. This proves the formerly rejected
+  whole-program row is now crossed, but it is not final current-source proof
+  because that fixed MIR predates the last four compiler edits.
+- The remaining local executable step is only projection of the new exact MIR,
+  followed by the already-proven runtime link/run. Do not start it while
+  available physical memory is below the prior observed projector peak: this
+  session measured 10.5-11.2 GiB free versus approximately 11.7 GB peak, and
+  the large consumers are user processes rather than leaked test processes.
+  Do not terminate them. The projector's 13m23s/11.7GB profile is also the next
+  bounded performance seam: identify repeated whole-program aggregation before
+  adding intra-process parallelism, a cache, or a larger allowance.
+- Push CI retains its existing runner-level parallelism. The local CI delta
+  removes a different repeated operation: the 20-way backend-compare matrix
+  previously rebuilt the same LLVM-enabled installed compiler in every shard.
+  `backend-compare-toolchain-linux` now builds and uploads the exact launcher/
+  self-driver pair once; all 20 independent shards download it and enter an
+  explicit fail-closed `prebuilt` compiler mode. The CI profile gate passes,
+  an invalid mode fails with rc=2, and an LLVM-enabled launcher plus the current
+  self-driver passes one real artifact-fed C/LLVM backend case without a
+  rebuild. Remote CI for committed checkpoint `64eeeda0` is not yet claimed.
+- Last remote baselines remain green: fast/full-platform split run
+  `32680354623` completed 13/13 in 40m36 at `88fbe332`; the successor fast/docs
+  run `32682690750` completed 28/28 at `e179537d`. This integration does not
+  increment the published forecasts by itself: overall remains 78%, strict
+  beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Next: when at least modest headroom above the measured 11.7GB peak is
+  available, run the current MIR through `bin/pgy-self-driver.exe
+  --mir-json-backend=llvm`, link it with the existing observation-disabled
+  runtime object, and execute one artifact publication. First commit this
+  documentation successor, push the three authorized commits, and require the
+  remote fast workflow to become green. Then refresh this card with the exact
+  remote result. Do not count the CI
+  topology edit, MIR bytes, owner files, or tests as substitution progress.
+
+### Historical archive boundary
+
+Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - artifact-fed full-platform parity shards (inactive)
 
 - The executable CI checkpoint is
   `88fbe332ee216d163cb1f1949ecd9dbb53277bce` on local `main`, synchronized
@@ -89,10 +175,6 @@ gate count do not increment either percentage by themselves.
   then return directly to the active DRV-1 payload-bearing artifact-outcome
   LLVM support and Begin/Commit/Abort runtime-call falsifier. Do not open
   another CI topology track from this now-closed blocker.
-
-### Historical archive boundary
-
-Everything below this line is inactive lookup evidence, not an active queue.
 
 ## Previous self-host context - bounded push feedback and safe full-platform proof (inactive)
 
