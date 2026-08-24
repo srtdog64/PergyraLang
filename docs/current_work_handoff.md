@@ -14,11 +14,12 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - artifact-fed full-platform parity shards
 
-- The verified base is `5e62f6c68aa23a00a32af4a16b49021d969e9a6f` on local
-  `main`, synchronized with `origin/main` before this change. The worktree is
-  intentionally dirty for the CI split described below and otherwise contains
-  only the unrelated untracked `pgy-80135c2c/`; do not stage, discard, rewrite,
-  or scan that directory as project evidence.
+- The executable CI checkpoint is
+  `88fbe332ee216d163cb1f1949ecd9dbb53277bce` on local `main`, synchronized
+  with `origin/main`; this handoff is its measured documentation successor.
+  After publication the worktree should contain only the unrelated untracked
+  `pgy-80135c2c/`; do not stage, discard, rewrite, or scan that directory as
+  project evidence.
 - Objective card: objective = reduce the scheduled/manual/release full-platform
   critical path without weakening one proof; priority = retain exact parser,
   semantic, codegen, driver, contract, and core evidence, consume one same-run
@@ -50,8 +51,7 @@ gate count do not increment either percentage by themselves.
   jobs run the unchanged `ci-linux`/`ci-windows` lists in explicit `prebuilt +
   contract-only` mode; standalone/local invocation defaults to `build + full`
   and therefore retains the prior one-command full proof. macOS stays serial
-  because its measured 29-minute leg is already below the expected split
-  critical path.
+  because its measured leg remains below the split critical path.
 - `scripts/ci_self_host_platform_parity_shard_owner.sh` accepts exactly one of
   the four named shards, validates executable compiler/driver plus the schema
   of the installed manifest, and then invokes the existing behavioral owner.
@@ -67,15 +67,28 @@ gate count do not increment either percentage by themselves.
   passed byte equality for all 189 sources. The first attempt correctly failed
   at the existing mixed Windows/POSIX scratch-path guard; the same command with
   the CI-owned MSYS path passed. The invalid shard negative also failed closed.
-- Remote evidence is not yet claimed for this dirty checkpoint. Next: commit
-  and push, require the ordinary 28-job fast workflow to stay green, manually
-  dispatch `Platform full`, record exact per-job and workflow timing, and fix
-  any artifact/path error rather than restoring serial parity as a fallback.
+- Remote fast evidence is green: CI run `32679346787` completed 28/28 jobs at
+  `88fbe332` in 17m42. Remote full evidence is also green: manual run
+  `32680354623` completed all 13 jobs at the same revision in 40m36. The prior
+  serial full workflow consumed 75m08, so the measured workflow wall time fell
+  by 34m32, approximately 46%, without deleting, skipping, retrying, or making
+  a test advisory.
+- The split full timings are load-bearing evidence rather than projections.
+  Linux toolchain was 8m37; parser 0m54, semantic 1m02, codegen 3m46, driver
+  21m53, and core 26m47. Its critical dependency path is therefore about
+  35m24 versus the prior 59m20. Windows toolchain was 13m34; parser 3m03,
+  semantic 3m43, codegen 6m56, driver 26m54, and core 25m01. Its critical
+  dependency path is about 40m28 versus the prior 73m12. macOS stayed serial
+  and completed in 26m57 versus 29m09. All artifact downloads, executable-bit
+  restoration, manifest validation, C-only Windows selection, and C/LLVM Linux
+  selection executed on their real hosted runners.
 - This is CI blocker removal only. It changes no compiler semantic owner and
   does not increment substitution progress or the published forecasts: overall
-  78%, strict beta 83%, hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. After remote
-  green, return directly to the active DRV-1 payload-bearing artifact-outcome
-  LLVM support and Begin/Commit/Abort runtime-call falsifier.
+  78%, strict beta 83%, hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. Next: publish
+  this measured handoff, require its docs-only fast CI successor to stay green,
+  then return directly to the active DRV-1 payload-bearing artifact-outcome
+  LLVM support and Begin/Commit/Abort runtime-call falsifier. Do not open
+  another CI topology track from this now-closed blocker.
 
 ### Historical archive boundary
 
