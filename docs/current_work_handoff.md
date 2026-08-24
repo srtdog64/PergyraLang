@@ -14,13 +14,14 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - canonical composite-intent priority observability
 
-- Code checkpoint `55b2091c` on `main` preserves both placement-free and placed
-  direct-intent execution. Push run `32766625099` at predecessor `00bfe3f5`
-  completed 28/29 jobs in 18m16. Its only RED was
+- Published checkpoint `175859ef` on `main` contains code checkpoint
+  `55b2091c`, its documentation receipt, and the regenerated language-word
+  fixture inventory. Push run `32774064285` completed all 29/29 jobs in
+  19m26. The preceding run `32766625099` at `00bfe3f5` had one RED,
   `self-host-bootstrap-linux`, where gen2 rejected the complete compiler MIR
-  with `MIR intent direct target is not one legacy intent`. This handoff is the
-  only intended post-code-commit dirt before publication. Preserve the
-  unrelated untracked `pgy-80135c2c/` directory; it was not inspected or staged.
+  with `MIR intent direct target is not one legacy intent`; the current run
+  proves that boundary and `build-linux` green. Preserve the unrelated
+  untracked `pgy-80135c2c/` directory; it was not inspected or staged.
 - Closed rung objective card: objective = carry canonical nested-intent steps
   from DIR-owned absence through MIR, MIR-to-AST, and self C without inventing
   zone placement; priority = exact call identity, explicit placement absence,
@@ -82,8 +83,8 @@ gate count do not increment either percentage by themselves.
   does not observe priority as closure.
 - This is real executable substitution progress inside the existing BRIDGE row,
   but not a registry-row promotion. Overall remains 78%, strict beta 83%, and
-  hard SoT remains `49/86 CLOSED`. The code is committed; this documentation
-  receipt, push, and a new 29-job remote run are still required.
+  hard SoT remains `49/86 CLOSED`. Current remote publication evidence is run
+  `32774064285`, 29/29 green at checkpoint `175859ef`.
 
 ### Historical archive boundary
 

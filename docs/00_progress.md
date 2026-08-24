@@ -2,10 +2,13 @@
 
 마지막 업데이트: 2026-08-25
 
-2026-08-25 실행 갱신: remote push run `32766625099` at `00bfe3f5`는
-18분 16초에 28/29를 마쳤고, 유일한 RED는 full self-host bootstrap의
-`MIR intent direct target is not one legacy intent`였다. 코드 checkpoint
-`55b2091c`은 직접 intent 대상과 placement-free nested 호출을 분리한다.
+2026-08-25 실행 갱신: published checkpoint `175859ef`의 remote push run
+`32774064285`는 19분 26초에 29/29 green으로 완료됐다. 직전
+`32766625099` at `00bfe3f5`의 유일한 RED였던 full self-host
+bootstrap의 `MIR intent direct target is not one legacy intent`를 코드
+checkpoint `55b2091c`이 닫았고, 새 fixture로 인한 language-word generated
+inventory drift도 동일 published checkpoint에서 닫혔다. 해당 코드는 직접
+intent 대상과 placement-free nested 호출을 분리한다.
 Placement가 없을 때만 `Intent:` direct-call/Bool failure lane을 쓰고, placement가
 있으면 바깥 step의 zone materialize/sync/writeback을 보존한다. 이 바깥 경계는
 authority를 정확히 명시하거나 호출된 intent에 위임할 수 있다. Fresh production
@@ -17,8 +20,8 @@ Native C의 `ProcessOrder` admission은 priority 9를 전달하지만 self C는 
 전달하고 MIR-lower AST에서도 `IntentPriority: 9`가 사라진다. 따라서 SoT는
 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%를 유지한다.
 이번 변화는 기존 BRIDGE 안의 실행 대체이지, priority와 formal transition까지
-닫은 registry 승격은 아니다. 새 checkpoint의 29-job remote rerun은 아직
-publication falsifier로 남아 있다.
+닫은 registry 승격은 아니다. 현재 publication falsifier는
+`32774064285` 29/29 green으로 충족됐다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 
@@ -42,7 +45,7 @@ publication falsifier로 남아 있다.
 | 일반 GraphPlan 연속 전선 | current-source 232,242,252-byte MIR -> canonical O3 byte-stable gen2/gen3 C | direct `else if` source-depth 재귀를 explicit frame descent/reverse merge로 교체한 current source를 Pergyra seed와 native oracle이 동일 MIR로 게시했다. release-profile O3 gen2가 같은 MIR을 다시 소비해 10,265,701-byte gen3 C를 만들었고 gen2/gen3 SHA-256이 일치한다. 같은 리비전의 격리 public launcher/sibling도 source→MIR, `--emit-c`, plain C compile/run을 통과한다. routine·row·V·owner 수는 진행률 분자가 아니다. | 격리 증거를 repository-installed sibling과 current remote CI에서 재현하고 release promotion을 닫는다. |
 | hard self-host replacement 예측 | 75% | 아래 8개 milestone 중 5개 완료와 현재 hard-substitution 범위 및 남은 native/release surface를 함께 본 작업 예측 | 남은 native mode와 released whole-product fallback 삭제 |
 | bootstrap fixed point | 3/4 = 75% | current-source MIR producer, DRV-2/gen2 consumers, gen2==gen3 byte equality를 canonical O3 full-bootstrap script로 완료 | installed release promotion과 committed/remote reproduction |
-| 마지막 완료 baseline CI/release 증거 | 3/4 = 75% | fixed MIR consumer/C/host verify, MIR 161/161, 816초 full GraphPlan aggregate와 기존 CI profile/step 증거가 있다. 2026-08-17 affected slice의 current component, build inventory, likeness, size, String/Long C/LLVM gate도 local green이다. 최신 remote run은 committed HEAD 기준 RED이고 current worktree rerun은 없다. | current worktree를 의도적으로 통합한 뒤 current full suite와 remote CI/release evidence를 새 revision에서 검증 |
+| 마지막 완료 baseline CI/release 증거 | 3/4 = 75% | fixed MIR consumer/C/host verify, MIR 161/161, 816초 full GraphPlan aggregate와 기존 CI profile/step 증거가 있다. Published checkpoint `175859ef`의 remote run `32774064285`는 Linux/Windows/macOS, sanitizer, formal proof, backend compare 20 shards, full self-host bootstrap를 29/29 green으로 닫았다. | installed release promotion과 남은 released whole-product replacement를 동일 revision의 release evidence로 닫기 |
 
 통합 78%의 계산 가중치는 다음과 같이 고정한다. 이 가중치는 완료를
 예쁘게 보이게 하려고 바꾸지 않는다.

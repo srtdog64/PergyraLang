@@ -8,6 +8,10 @@ rewrite history.
 
 ## 2026-08-25 - Placed direct intents preserve the bootstrap consumer boundary
 
+- Published checkpoint `175859ef` includes code checkpoint `55b2091c`, its
+  documentation receipt, and the regenerated language-word fixture inventory.
+  Remote run `32774064285` completed all 29/29 jobs in 19m26; both
+  `build-linux` and `self-host-bootstrap-linux` are green.
 - Remote run `32766625099` at `00bfe3f5` completed 28/29 in 18m16. The sole
   failure was `self-host-bootstrap-linux`: gen2 rejected the complete compiler
   MIR with `MIR intent direct target is not one legacy intent`.
@@ -26,7 +30,8 @@ rewrite history.
   placement/lifetime, production-root, likeness, and diff gates are green.
 - Hard SoT stays 49/86, integrated forecast 78%, and strict beta 83%. The next
   semantic falsifier remains DIR-owned priority carriage to the runtime
-  observability prologue; a new remote 29-job run is the publication gate.
+  observability prologue; the current publication gate is closed by run
+  `32774064285`.
 
 ## 2026-08-25 - Canonical placement-free nested intents execute in public C
 

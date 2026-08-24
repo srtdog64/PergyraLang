@@ -2,11 +2,11 @@
 
 ## Active self-host context - 2026-08-25 composite-intent priority observability
 
-- Checkpoint `55b2091c` preserves both placement-free and placed direct-intent
-  execution. Remote run `32766625099` at predecessor `00bfe3f5` completed
-  28/29 in 18m16; only `self-host-bootstrap-linux` failed at the now-reproduced
-  direct-target boundary. Preserve the unrelated user-owned `pgy-80135c2c/`
-  directory.
+- Published checkpoint `175859ef` contains code checkpoint `55b2091c` and
+  preserves both placement-free and placed direct-intent execution. Remote run
+  `32774064285` completed 29/29 in 19m26, including `build-linux` and the full
+  `self-host-bootstrap-linux` direct-target boundary. Preserve the unrelated
+  user-owned `pgy-80135c2c/` directory.
 - Placement absence is now one owned fact from DIR through MIR cleanup and
   MIR-lower. Direct nested intents emit no empty zone/alias/read/invalidation,
   while zone handles and caused effects retain exact participant/step lifetime.
@@ -26,7 +26,7 @@
   focused placement/lifetime parity, both nested execution lanes, full
   component contract, likeness sentinel 24, SoT census (`86/173`, `49/36/1`),
   and diff checks are green. Local LLVM and Coq/Rocq are unavailable and are
-  explicit omissions, not passes. A new 29-job remote run is still required.
+  explicit local omissions, while remote LLVM/backend and Rocq jobs are green.
 - This is executable replacement inside the existing BRIDGE row, so overall
   78%, strict beta 83%, and hard SoT 49/86 stay fixed.
 - Next exact falsifier is non-default priority at the runtime admission call:
