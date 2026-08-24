@@ -12,79 +12,63 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - canonical composite-intent priority observability
+## Active self-host context - intent priority carriage closed; mode is next RED
 
-- Published checkpoint `175859ef` on `main` contains code checkpoint
-  `55b2091c`, its documentation receipt, and the regenerated language-word
-  fixture inventory. Push run `32774064285` completed all 29/29 jobs in
-  19m26. The preceding run `32766625099` at `00bfe3f5` had one RED,
-  `self-host-bootstrap-linux`, where gen2 rejected the complete compiler MIR
-  with `MIR intent direct target is not one legacy intent`; the current run
-  proves that boundary and `build-linux` green. Preserve the unrelated
-  untracked `pgy-80135c2c/` directory; it was not inspected or staged.
-- Closed rung objective card: objective = carry canonical nested-intent steps
-  from DIR-owned absence through MIR, MIR-to-AST, and self C without inventing
-  zone placement; priority = exact call identity, explicit placement absence,
-  resource lifetime, declared authority presence, Bool failure propagation;
-  fact owners = `SelfDirIntentResolvedStep`, MIR declaration action contract,
-  and the direct-call expression graph; last consumer = self C intent emission;
-  forbidden = empty placement rows, unconditional authority requirements,
-  nested calls reinterpreted as subject actions, or native fallback; falsifier
-  = canonical public C success/failure output parity with native C.
-- The reached error sequence is resolved rather than bypassed. Empty placement
-  rows caused MIR instruction 97's unknown kind; deleting them exposed an
-  unconditional MIR-lower placement requirement; fixing that exposed an
-  unconditional action-authority requirement; the final consumer then rejected
-  the placement-free nested step as a missing `Using` binding. Each failure
-  moved to the next legitimate consumer and no compatibility read was added.
-- The remote RED showed that a declared direct intent target is not synonymous
-  with a placement-free nested call. `MiddleEndPipeline.Check/Lower` and
-  `BackendPipeline.Emit` own outer placement while delegating authority to the
-  called intent. `MirIntentStepPlacementContract` now owns the three exact
-  states: absent placement requires absent outer authority and selects the
-  nested lane; present placement admits either no outer authority or one exact
-  `who` authority and remains on the action-shaped lane; partial placement is
-  rejected.
-- `intent_resource_lifetime_owner.pgy` now retires zone handles once per zone
-  participant, caused effects once per step, and placement invalidation only
-  when an admitted alias exists. `intent_step_placement_contract_owner.pgy`
-  admits exact absence only for a resolved direct legacy intent. Action
-  authority presence comes from the declaration contract, not from a blanket
-  one-authority rule.
-- MIR-lower emits only placement-free direct nested calls as `Intent:` graph
-  rows. Placed direct intent calls remain `On:` rows. Self C has separate
-  action-step and nested-call owners;
-  `FulfillOrder` and `ProcessOrder` call their child intents directly, contain
-  no fake sync/materialization, and propagate `Bool` failure to the enclosing
-  cleanup boundary. The central intent emitter shrank to 323 lines.
-- A fresh current-source production driver was built as local v8. The canonical
-  public `--backend=c` executable is byte-observably equal to native C for the
-  success case. A reserve-failure mutation is also output-equal and reports
-  `[Intent] ProcessOrder=false`. The focused gate rejects reintroduced nested
-  sync/materialization and proves direct-call anchors.
-- Local gates observed green: production-root `--dir`; the 236MB complete-source
-  `driver_source.mir.json` consumer that exercises the failed CI boundary;
-  exact native/self
-  placement/lifetime multiset parity for nested, canonical, and two-step
-  programs; canonical public C success/failure execution parity; full component
-  structural/old-path contract; Pergyra-likeness with sentinel 24; single-owner
-  and SoT census gates (`86/173`, `49 CLOSED / 36 BRIDGE / 1 ACTIVE`); and
-  placed direct-intent outer-boundary execution parity; `git diff --check`.
-  The broader action gate reached only its native LLVM leg
-  and stopped because local `bin/pgy.exe` was built without LLVM support. Coq/
-  Rocq is also unavailable locally; neither omission is recorded as a pass.
-- Next falsifier is exact priority carriage, not another general SoT cleanup.
-  Native C emits `pgy_intent_enter_export("ProcessOrder", ..., false, 9)`;
-  current self C emits the same call with priority `0`, and reconstructed MIR
-  AST no longer contains `IntentPriority: 9`. Carry the existing DIR priority
-  fact through one MIR owner to `CodegenIntentObservabilityEmitPrologue`, then
-  falsify it with `IntentActivePriority` inside a nested call. Do not rescan
-  source, hardcode 9, add a second priority table, or treat stdout equality that
-  does not observe priority as closure.
-- This is real executable substitution progress inside the existing BRIDGE row,
-  but not a registry-row promotion. Overall remains 78%, strict beta 83%, and
-  hard SoT remains `49/86 CLOSED`. Current remote publication evidence is run
-  `32774064285`, 29/29 green at checkpoint `175859ef`.
+- Code checkpoint `51c1ea38` carries non-default intent priority through the
+  production self-host path. Before this handoff commit, `main` is one commit
+  ahead of `origin/main`; only these handoff/progress documents and the
+  unrelated user-owned `pgy-80135c2c/` directory should be dirty. The last
+  published baseline is `67efe05e`, whose push run `32776192431` completed
+  29/29 green in 19m53. The current checkpoint has not yet been pushed.
+- Closed rung objective card: objective = preserve the DIR-admitted priority
+  expression and graph root through MIR and reconstructed semantic facts into
+  the runtime admission call; priority = expression identity, native MIR wire
+  parity, graph reconstruction, nested runtime observation, then patch size;
+  fact owner = `SelfDirIntentPriorityFacts`; last consumer =
+  `CodegenIntentObservabilityEmitPrologue`; forbidden = source rescan, an
+  intent-name priority table, fixture-specific values, or a
+  `carrier missing ? AST/source : MIR` dual read; falsifier = outer priority 1
+  directly nesting value-parameter priority 9, with both visible through
+  `IntentActivePriority` and malformed carriers rejected.
+- `SelfMirIntentAppendPriorityCarrier` emits exactly zero or one native-shaped
+  `IntentEval(priority)` row from the admitted surface/root/graph. Instruction
+  validation admits only that exact shape. MIR-lower projects one matching row
+  into `IntentPriority`, appends its graph occurrence once, and fails closed on
+  malformed or duplicate carriers. Priority absence alone owns the language
+  default `0`; a present graph must type as `Int` and is emitted through the
+  existing semantic expression C owner.
+- Mode, priority, and observability C responsibilities are now separate named
+  owners. The central observability owner remains under its 200-line cap. Its
+  callers pass the admitted expression-surface view and the intent-local type
+  environment, so a value parameter such as `requested` reaches C without
+  spelling inference or source reopening.
+- Fresh current-source production driver v13 compiled with 0 errors and the
+  existing three redundant-`who` warnings. The nested runtime gate observes
+  `OuterPriority=1` and `InnerPriority=9` at active depths 0 and 1, and public
+  self C output equals native C. Removing `expr0_graph` fails with
+  `MIR intent priority carrier shape is invalid`; duplicating the row fails
+  with `MIR intent priority carrier is duplicated`.
+- Local green evidence: the focused priority gate; the full nested-call bundle
+  including placed and placement-free lanes; complete component/old-path
+  contract; generated language-word registry; Pergyra likeness with sentinel
+  24 and errors-as-data floor 4242; protocol registry; Gate single-owner; SoT
+  edge census (`86` authorities, `173` derived carriers,
+  `49 CLOSED / 36 BRIDGE / 1 ACTIVE`); and `git diff --check`. SoT adequacy's
+  live owner/consumer and negative mutations passed with an explicit declared
+  skip because local Coq/Rocq is unavailable; the formal model was not checked
+  locally.
+- The next reached RED is intent execution mode, not another general SoT
+  cleanup. MIR-lower currently hardcodes `IntentMode: exclusive` in
+  `intent_routine_tree_projection_owner.pgy`. A concurrent version of the new
+  fixture therefore reached self C as `false` while native C emitted `true`.
+  The next rung must establish one admitted mode fact, carry it through MIR,
+  delete that hardcoded reconstruction, and falsify it with nested concurrent
+  runtime observation. Do not repair it by rescanning source or by keeping the
+  hardcoded exclusive path as a fallback.
+- This is real executable substitution inside the existing BRIDGE row, not a
+  registry-row promotion. Overall remains 78%, strict beta 83%, and hard SoT
+  remains `49/86 CLOSED`. Remote CI for `51c1ea38` plus this documentation
+  receipt remains the publication falsifier.
 
 ### Historical archive boundary
 

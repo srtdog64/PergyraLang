@@ -2,26 +2,23 @@
 
 마지막 업데이트: 2026-08-25
 
-2026-08-25 실행 갱신: published checkpoint `175859ef`의 remote push run
-`32774064285`는 19분 26초에 29/29 green으로 완료됐다. 직전
-`32766625099` at `00bfe3f5`의 유일한 RED였던 full self-host
-bootstrap의 `MIR intent direct target is not one legacy intent`를 코드
-checkpoint `55b2091c`이 닫았고, 새 fixture로 인한 language-word generated
-inventory drift도 동일 published checkpoint에서 닫혔다. 해당 코드는 직접
-intent 대상과 placement-free nested 호출을 분리한다.
-Placement가 없을 때만 `Intent:` direct-call/Bool failure lane을 쓰고, placement가
-있으면 바깥 step의 zone materialize/sync/writeback을 보존한다. 이 바깥 경계는
-authority를 정확히 명시하거나 호출된 intent에 위임할 수 있다. Fresh production
-v8은 236MB complete-source MIR consumer를 통과한다. Canonical placement-free
-success/failure와 축소 compiler-world placed-nested 실행은 모두 public self C와
-native C 출력이 같다. Component/old-path, placement/lifetime multiset, likeness
-sentinel 24, diff gate도 green이다. 다음 실제 falsifier는 priority observability다.
-Native C의 `ProcessOrder` admission은 priority 9를 전달하지만 self C는 0을
-전달하고 MIR-lower AST에서도 `IntentPriority: 9`가 사라진다. 따라서 SoT는
-`49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%를 유지한다.
-이번 변화는 기존 BRIDGE 안의 실행 대체이지, priority와 formal transition까지
-닫은 registry 승격은 아니다. 현재 publication falsifier는
-`32774064285` 29/29 green으로 충족됐다.
+2026-08-25 실행 갱신: 코드 checkpoint `51c1ea38`에서 DIR이 승인한 intent
+priority expression/root/graph가 exact `IntentEval(priority)` MIR row로 운반되고,
+MIR-lower의 `IntentPriority`와 expression order를 거쳐 self C runtime admission에
+도달한다. Absence만 default 0을 소유하며, present graph는 `Int`여야 한다. 이름별
+priority table, source rescan, hardcoded fixture 값, dual read는 없다. Fresh production
+v13과 중첩 실행에서 outer 1/inner 9가 `IntentActivePriority`로 관찰됐고 public self
+C와 native C 출력이 같다. Missing graph와 duplicate carrier는 각각 소유 진단으로
+fail closed다. Component/old-path, nested execution bundle, generated language registry,
+likeness sentinel 24/result-use 4242, protocol registry, Gate single-owner, SoT edge census
+`86/173` 및 diff gate가 green이다. Coq/Rocq는 로컬에 없어 adequacy formal model은
+declared skip이고 live/negative owner 검증만 통과했다. 다음 reached RED는
+MIR-lower가 `IntentMode: exclusive`를 hardcode하는 mode loss다. Concurrent variant는
+self C `false`, native C `true`로 갈린다. 따라서 다음 executable rung은 admitted
+mode fact carriage와 hardcoded reconstruction 삭제다. 이번 변화도 기존 BRIDGE 내부
+실행 대체이므로 SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta
+83%를 유지한다. 마지막 published baseline은 `67efe05e`의 run `32776192431`
+29/29 green이며, 현재 checkpoint의 push CI는 아직 pending이다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 

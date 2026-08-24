@@ -1,39 +1,35 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-25 composite-intent priority observability
+## Active self-host context - 2026-08-25 priority closed, mode carriage next
 
-- Published checkpoint `175859ef` contains code checkpoint `55b2091c` and
-  preserves both placement-free and placed direct-intent execution. Remote run
-  `32774064285` completed 29/29 in 19m26, including `build-linux` and the full
-  `self-host-bootstrap-linux` direct-target boundary. Preserve the unrelated
-  user-owned `pgy-80135c2c/` directory.
-- Placement absence is now one owned fact from DIR through MIR cleanup and
-  MIR-lower. Direct nested intents emit no empty zone/alias/read/invalidation,
-  while zone handles and caused effects retain exact participant/step lifetime.
-  Non-nested actions still require the complete placement set.
-- Action authority presence comes from the MIR declaration contract. Exact
-  placement absence reconstructs as `Intent:` and uses the distinct direct-call
-  owner. A placed direct intent remains `On:` and keeps the outer materialize,
-  sync, and writeback boundary; its authority may be exact or delegated to the
-  called intent. The old blanket assumptions are negative-gated.
-- Fresh production v8 executes canonical public C exactly like native C. The
-  success path reports `ProcessOrder=true`; a reserve-failure mutation reports
-  `ProcessOrder=false` with exact native output. `FulfillOrder`/`ProcessOrder`
-  contain no fake sync or materialization. A reduced compiler-world fixture
-  proves the opposite side: a placed direct intent keeps its outer boundary and
-  is execution-equal to native C.
-- Production-root static admission, the 236MB complete-source MIR consumer,
-  focused placement/lifetime parity, both nested execution lanes, full
-  component contract, likeness sentinel 24, SoT census (`86/173`, `49/36/1`),
-  and diff checks are green. Local LLVM and Coq/Rocq are unavailable and are
-  explicit local omissions, while remote LLVM/backend and Rocq jobs are green.
-- This is executable replacement inside the existing BRIDGE row, so overall
-  78%, strict beta 83%, and hard SoT 49/86 stay fixed.
-- Next exact falsifier is non-default priority at the runtime admission call:
-  native C passes `ProcessOrder` priority 9 while self C passes 0 and MIR-lower
-  loses `IntentPriority: 9`. Carry the existing DIR-owned priority through MIR
-  to the observability prologue and verify it with nested
-  `IntentActivePriority`; do not reparse source or hardcode the fixture value.
+- Code checkpoint `51c1ea38` closes the reached non-default priority loss.
+  `SelfDirIntentPriorityFacts` remains the semantic owner; one exact
+  `IntentEval(priority)` MIR carrier preserves its surface, root, graph, source
+  type, and uses. MIR validation and MIR-lower reject malformed or duplicate
+  rows and do not read source or an intent-name table.
+- Reconstructed `IntentPriority` is inserted into the semantic tree and graph
+  occurrence order once. C admission evaluates that admitted graph in the
+  intent-local environment. Absence alone maps to the language default `0`;
+  present non-`Int` or duplicate priority facts fail closed.
+- Fresh production v13 compiles the current compiler root with 0 errors and the
+  existing three redundant-`who` warnings. The focused nested fixture observes
+  active priority 1 for the outer intent and value-parameter priority 9 for the
+  inner intent. Public self C and native C output are equal. Missing-graph and
+  duplicate-carrier mutations produce their owned MIR-lower diagnostics.
+- The complete component contract, placed/placement-free/nested execution
+  bundle, language registry, likeness (`sentinel=24`, `result_use=4242`),
+  protocol registry, Gate single-owner, and SoT edge census
+  (`86/173`, `49/36/1`) are green. SoT adequacy's live/negative checks pass with
+  a declared Coq/Rocq skip; the formal model is not locally verified.
+- This is executable replacement within an existing BRIDGE row, so overall
+  78%, strict beta 83%, and hard SoT 49/86 remain unchanged. `origin/main` is
+  still `67efe05e`; current push CI is pending. Preserve the unrelated
+  `pgy-80135c2c/` directory.
+- The next reached falsifier is execution-mode carriage. MIR-lower still
+  hardcodes `IntentMode: exclusive`; a concurrent variant reaches self C as
+  `false` while native C emits `true`. Establish one admitted mode owner, carry
+  it through MIR, delete the hardcoded reconstruction, and observe nested
+  concurrent mode at runtime without source rescan or compatibility fallback.
 
 ## Historical self-host context - 2026-08-24 scalar routine emission memory
 
