@@ -221,6 +221,11 @@ func SelfDirDomainGraphFactsFromArtifact(
     ref authorities: SemanticAstZoneAuthorityFacts,
     ref roles: SemanticAstRoleFacts
 ) -> SelfDirDomainGraphFacts {
+    let modes: SelfDirIntentModeFacts =
+        SelfDirIntentModeFactsFromArtifact(artifact, intent_signatures);
+    if !modes.ok {
+        return SelfDirDomainGraphFactsError(modes.diagnostic_message);
+    }
     let priorities: SelfDirIntentPriorityFacts =
         SelfDirIntentPriorityFactsFromArtifact(
             artifact, intent_signatures, expression_surfaces,
@@ -231,7 +236,7 @@ func SelfDirDomainGraphFactsFromArtifact(
     }
     let intents: SelfDirIntentFacts = SelfDirIntentFactsFromArtifact(
         artifact, rows, signatures, intent_signatures, intent_transitions,
-        expression_surfaces, priorities
+        expression_surfaces, modes, priorities
     );
     if !SelfDirIntentFactsReady(
         artifact, rows, signatures, intent_signatures,

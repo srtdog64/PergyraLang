@@ -1630,6 +1630,18 @@ require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pg
     'TypedAstKindIntentPriorityTag()'
 require_text "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy" \
     'TypedAstKindIntentPriorityTag()'
+require_file "src/self_hosted/dir/intent_mode_fact_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_mode_fact_owner.pgy" 160
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/dir/intent_mode_fact_owner.pgy"
+require_text "src/self_hosted/dir/intent_mode_fact_owner.pgy" \
+    "func SelfDirIntentModeFactsFromArtifact("
+require_text "src/self_hosted/dir/intent_mode_fact_owner.pgy" \
+    "mode_count != 1"
+require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    "SelfDirIntentModeFactsReady("
+reject_text "src/self_hosted/dir/intent_mode_fact_owner.pgy" \
+    "FileRead("
 require_file "src/self_hosted/dir/intent_priority_fact_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_priority_fact_owner.pgy" 220
 require_text "src/self_hosted/dir/intent_priority_fact_owner.pgy" \
@@ -1675,6 +1687,26 @@ require_file "src/self_hosted/mir/intent_routine_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_routine_owner.pgy" 500
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_routine_owner.pgy"
+require_file "src/self_hosted/mir/intent_mode_carriage_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_mode_carriage_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_mode_carriage_owner.pgy"
+require_text "src/self_hosted/mir/intent_mode_carriage_owner.pgy" \
+    "func SelfMirIntentAppendModeCarrier("
+require_text "src/self_hosted/mir/intent_mode_carriage_owner.pgy" \
+    'build, "stmt", "IntentMode", mode, intent_name'
+require_text "src/self_hosted/mir/intent_routine_owner.pgy" \
+    "SelfMirIntentAppendModeCarrier("
+require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
+    "SelfMirIntentModeInstructionReady("
+require_text "src/compiler/mir_intent.c" \
+    "mir_intent_mode_from_rir_policy("
+require_text "src/compiler/mir_intent.c" \
+    '"IntentMode"'
+require_text "src/compiler/mir_intent_fact.c" \
+    "MIR routine '%s' entry block requires one IntentMode carrier"
+reject_text "src/self_hosted/mir/intent_mode_carriage_owner.pgy" \
+    "FileRead("
 require_file "src/self_hosted/mir/intent_priority_carriage_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_priority_carriage_owner.pgy" 120
 require_text "src/self_hosted/OWNERS.md" \
@@ -1980,6 +2012,26 @@ require_max_lines \
     "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy" 50
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy"
+require_file "src/self_hosted/mir_lower/intent_mode_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/intent_mode_projection_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir_lower/intent_mode_projection_owner.pgy"
+require_text \
+    "src/self_hosted/mir_lower/intent_mode_projection_owner.pgy" \
+    "func MirIntentModeProjectionFromCarriers("
+require_text \
+    "src/self_hosted/mir_lower/intent_mode_projection_owner.pgy" \
+    "MIR intent mode carrier is missing"
+require_text \
+    "src/self_hosted/mir_lower/intent_mode_projection_owner.pgy" \
+    "MIR intent mode carrier is duplicated"
+require_text \
+    "src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy" \
+    "MirIntentModeProjectionFromCarriers("
+reject_text \
+    "src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy" \
+    '"    IntentMode: exclusive"'
 require_file "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/intent_priority_projection_owner.pgy" 120
@@ -2252,9 +2304,19 @@ require_max_lines \
 require_text \
     "tests/self_hosted/parity/intent_priority_nested_observability_owner.sh" \
     'active.1.priority=9'
+require_file \
+    "tests/self_hosted/parity/intent_mode_nested_observability_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/intent_mode_nested_observability_owner.sh" 170
+require_text \
+    "tests/self_hosted/parity/intent_mode_nested_observability_owner.sh" \
+    'active.1.concurrent=true'
+require_text \
+    "tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy" \
+    "concurrent;"
 require_text \
     "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" \
-    "intent_priority_nested_observability_owner.sh"
+    "intent_mode_nested_observability_owner.sh"
 reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     "pgy_intent_"
 require_text \

@@ -3,6 +3,7 @@
 // syntax must keep its enum identity and cannot collapse to Bool downstream.
 
 import "../semantic/ast_intent_transition_fact_owner.pgy";
+import "intent_mode_fact_owner.pgy";
 import "intent_row_owner.pgy";
 import "intent_priority_fact_owner.pgy";
 import "intent_step_fact_owner.pgy";
@@ -17,6 +18,7 @@ struct SelfDirIntentFacts {
     names: Array<String>;
     result_modes: Array<String>;
     return_type_names: Array<String>;
+    modes: SelfDirIntentModeFacts;
     priorities: SelfDirIntentPriorityFacts;
     participant_starts: Array<Int>;
     participant_counts: Array<Int>;
@@ -42,6 +44,7 @@ func SelfDirIntentFactsEmpty(
     return SelfDirIntentFacts(
         required, ok, message, artifact_node_count,
         intent_node_ids, names, result_modes, return_type_names,
+        SelfDirIntentModeFactsEmpty(artifact_node_count),
         SelfDirIntentPriorityFactsEmpty(artifact_node_count),
         participant_starts, participant_counts,
         SelfDirIntentParticipantFactsEmpty(), step_starts, step_counts,
@@ -62,6 +65,8 @@ func SelfDirIntentFactsShapeReady(facts: SelfDirIntentFacts) -> Bool {
     return ArrayLength(facts.names) == intents &&
         ArrayLength(facts.result_modes) == intents &&
         ArrayLength(facts.return_type_names) == intents &&
+        ArrayLength(facts.modes.node_ids) == intents &&
+        ArrayLength(facts.modes.names) == intents &&
         ArrayLength(facts.priorities.present) == intents &&
         ArrayLength(facts.priorities.node_ids) == intents &&
         ArrayLength(facts.priorities.expression_root_ids) == intents &&

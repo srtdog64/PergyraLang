@@ -333,7 +333,9 @@ SENTINEL_MAX=24
 # outside the text-recovery inventory below.
 # 4214 -> 4242 (2026-08-25): intent priority carriage and C admission keep
 # absent graphs, modes, types, and reconstructed priority nodes explicit.
-RESULT_USE_MIN=4242
+# 4242 -> 4246 (2026-08-25): intent mode admission preserves typed AST child
+# absence and atom-text reads through the DIR owner instead of sentinels.
+RESULT_USE_MIN=4246
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=20
 # The import closure declares 20 resource-zone types, but the runtime world

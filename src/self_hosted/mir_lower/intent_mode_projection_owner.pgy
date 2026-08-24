@@ -1,0 +1,65 @@
+// Exact MIR IntentMode carrier -> reconstructed AST mode row.
+
+struct MirIntentModeProjection {
+    valid: Bool;
+    diagnostic_message: String;
+    mode: String;
+}
+
+func MirIntentModeProjectionFromCarriers(
+    intent_name: String,
+    carrier_names: Array<String>,
+    carrier_arg0s: Array<String>,
+    carrier_arg1s: Array<String>,
+    carrier_slots: Array<String>,
+    carrier_results: Array<String>,
+    carrier_abi_type_names: Array<String>,
+    carrier_source_types: Array<String>,
+    carrier_expr0s: Array<String>
+) -> MirIntentModeProjection {
+    let count: Int = ArrayLength(carrier_names);
+    if intent_name == "" || ArrayLength(carrier_arg0s) != count ||
+        ArrayLength(carrier_arg1s) != count ||
+        ArrayLength(carrier_slots) != count ||
+        ArrayLength(carrier_results) != count ||
+        ArrayLength(carrier_abi_type_names) != count ||
+        ArrayLength(carrier_source_types) != count ||
+        ArrayLength(carrier_expr0s) != count {
+        return MirIntentModeProjection(
+            false, "MIR intent mode carrier arrays are misaligned", ""
+        );
+    }
+    let matches: Int = 0;
+    let mode: String = "";
+    let row: Int = 0;
+    while row < count {
+        if carrier_names[row] == "IntentMode" {
+            matches = matches + 1;
+            if (carrier_arg0s[row] != "exclusive" &&
+                carrier_arg0s[row] != "concurrent") ||
+                carrier_arg1s[row] != intent_name ||
+                carrier_slots[row] != intent_name ||
+                carrier_results[row] != "" ||
+                carrier_abi_type_names[row] != "" ||
+                carrier_source_types[row] != "AST_INTENT_DECL" ||
+                carrier_expr0s[row] != "" {
+                return MirIntentModeProjection(
+                    false, "MIR intent mode carrier shape is invalid", ""
+                );
+            }
+            mode = carrier_arg0s[row];
+        }
+        row = row + 1;
+    }
+    if matches == 0 {
+        return MirIntentModeProjection(
+            false, "MIR intent mode carrier is missing", ""
+        );
+    }
+    if matches != 1 {
+        return MirIntentModeProjection(
+            false, "MIR intent mode carrier is duplicated", ""
+        );
+    }
+    return MirIntentModeProjection(true, "", mode);
+}

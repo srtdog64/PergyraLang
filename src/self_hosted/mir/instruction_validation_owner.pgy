@@ -2,6 +2,7 @@
 
 import "program_fact_owner.pgy";
 import "intent_phase_contract_owner.pgy";
+import "intent_mode_carriage_owner.pgy";
 import "intent_priority_carriage_owner.pgy";
 
 func SelfMirIntentSemanticInstructionName(name: String) -> Bool {
@@ -11,7 +12,7 @@ func SelfMirIntentSemanticInstructionName(name: String) -> Bool {
         name == "IntentInvalidationTarget" || name == "IntentWho" ||
         name == "IntentAuthorizedBy" || name == "IntentCauses" ||
         name == "IntentOutcomeBinding" || name == "IntentCheck" ||
-        name == "IntentEval";
+        name == "IntentEval" || name == "IntentMode";
 }
 
 func SelfMirIntentCarrierInstruction(
@@ -48,6 +49,9 @@ func SelfMirIntentCarrierInstruction(
     if !SelfMirIntentSemanticInstructionName(rows.names[index]) ||
         rows.arg0s[index] == "" {
         return false;
+    }
+    if rows.names[index] == "IntentMode" {
+        return SelfMirIntentModeInstructionReady(rows, index);
     }
     if rows.names[index] == "IntentEval" &&
         rows.arg0s[index] == "priority" {

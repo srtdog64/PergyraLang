@@ -1,0 +1,128 @@
+// Admitted intent execution mode for self-host DIR.
+// The parser materializes the default, so every intent owns one direct mode
+// child and absence is invalid after typed-AST admission.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../semantic/ast_intent_signature_fact_owner.pgy";
+
+struct SelfDirIntentModeFacts {
+    ok: Bool;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    names: Array<String>;
+}
+
+func SelfDirIntentModeFactsEmpty(
+    artifact_node_count: Int
+) -> SelfDirIntentModeFacts {
+    let node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    return SelfDirIntentModeFacts(
+        true, "", artifact_node_count, node_ids, names
+    );
+}
+
+func SelfDirIntentModeFactsError(
+    message: String, artifact_node_count: Int
+) -> SelfDirIntentModeFacts {
+    let facts: SelfDirIntentModeFacts =
+        SelfDirIntentModeFactsEmpty(artifact_node_count);
+    facts.ok = false;
+    facts.diagnostic_message = message;
+    return facts;
+}
+
+func SelfDirIntentModeFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    ref intent_signatures: SemanticAstIntentSignatureFacts
+) -> SelfDirIntentModeFacts {
+    if !SemanticAstIntentSignatureFactsReady(
+            artifact, intent_signatures
+        ) {
+        return SelfDirIntentModeFactsError(
+            "self-host DIR intent mode inputs are incomplete", artifact.count
+        );
+    }
+    let node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intent_signatures) {
+        let intent_node_id: Int =
+            intent_signatures.intent_node_ids[intent_index];
+        let mode_node_id: Int = 0 - 1;
+        let mode_count: Int = 0;
+        let child_index: Int = 0;
+        let child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, intent_node_id, child_index
+        );
+        while IsSome(child) {
+            let child_id: Int = UnwrapOption(child);
+            if TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindIntentModeTag()
+            ) {
+                mode_node_id = child_id;
+                mode_count = mode_count + 1;
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, intent_node_id, child_index
+            );
+        }
+        if mode_count != 1 || mode_node_id < 0 {
+            return SelfDirIntentModeFactsError(
+                "self-host DIR intent mode must have one owner row",
+                artifact.count
+            );
+        }
+        let mode: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, mode_node_id
+        );
+        if !IsSome(mode) ||
+            (UnwrapOption(mode) != "exclusive" &&
+             UnwrapOption(mode) != "concurrent") {
+            return SelfDirIntentModeFactsError(
+                "self-host DIR intent mode is invalid", artifact.count
+            );
+        }
+        ArrayPush(node_ids, mode_node_id);
+        ArrayPush(names, UnwrapOption(mode));
+        intent_index = intent_index + 1;
+    }
+    return SelfDirIntentModeFacts(
+        true, "", artifact.count, node_ids, names
+    );
+}
+
+func SelfDirIntentModeFactsReady(
+    artifact: AstTreeArtifact,
+    intent_node_ids: Array<Int>,
+    ref facts: SelfDirIntentModeFacts
+) -> Bool {
+    if !facts.ok || facts.diagnostic_message != "" ||
+        facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.node_ids) != ArrayLength(intent_node_ids) ||
+        ArrayLength(facts.names) != ArrayLength(intent_node_ids) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(intent_node_ids) {
+        let parent: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, facts.node_ids[i]
+        );
+        let atom: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, facts.node_ids[i]
+        );
+        if !IsSome(parent) || UnwrapOption(parent) != intent_node_ids[i] ||
+            !TypedAstArenaNodeKindIs(
+                artifact.arena, facts.node_ids[i],
+                TypedAstKindIntentModeTag()
+            ) || !IsSome(atom) || UnwrapOption(atom) != facts.names[i] ||
+            (facts.names[i] != "exclusive" &&
+             facts.names[i] != "concurrent") {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}

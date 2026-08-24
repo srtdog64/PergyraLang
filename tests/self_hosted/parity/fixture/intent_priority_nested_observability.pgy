@@ -6,8 +6,10 @@ subject PriorityProbe {
         Log("active.count=" + ToString(IntentActiveCount()));
         Log("active.0.name=" + IntentActiveName(0));
         Log("active.0.priority=" + ToString(IntentActivePriority(0)));
+        Log("active.0.concurrent=" + ToString(IntentActiveConcurrent(0)));
         Log("active.1.name=" + IntentActiveName(1));
         Log("active.1.priority=" + ToString(IntentActivePriority(1)));
+        Log("active.1.concurrent=" + ToString(IntentActiveConcurrent(1)));
         return true;
     }
 }
@@ -21,7 +23,7 @@ intent InnerPriority(
     probe: PriorityProbe,
     requested: Int
 ) {
-    exclusive;
+    concurrent;
     priority: requested;
 
     step observe {

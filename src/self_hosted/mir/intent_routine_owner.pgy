@@ -7,6 +7,7 @@ import "routine_cfg_append_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "intent_instruction_append_owner.pgy";
 import "intent_phase_emission_owner.pgy";
+import "intent_mode_carriage_owner.pgy";
 import "intent_priority_carriage_owner.pgy";
 import "intent_resource_lifetime_owner.pgy";
 import "../dir/intent_fact_owner.pgy";
@@ -59,6 +60,8 @@ func SelfMirIntentRoutineBuild(
         build, "resource-op", "CommitIntent", intent_name, "",
         intent_name, "", "AST_INTENT_DECL", SelfMirNoUses()
     );
+    build = SelfMirIntentAppendModeCarrier(build, intents, intent_index);
+    if !build.ok { return build; }
     build = SelfMirIntentAppendPriorityCarrier(
         build, input, intents, intent_index
     );

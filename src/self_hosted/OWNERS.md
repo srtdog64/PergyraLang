@@ -828,8 +828,11 @@ inventory must not become a second fact-family owner registry.
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
   for intent identity, participant/zone bindings, ordered steps, action
-  receiver, authorization, effects, phase/rollback, priority, and commit
+  receiver, authorization, effects, phase/rollback, mode, priority, and commit
   boundaries.
+- `src/self_hosted/mir/intent_mode_carriage_owner.pgy` -- exact singleton
+  `IntentMode` MIR row carrying the DIR-admitted `exclusive` or `concurrent`
+  policy without source or name-table recovery.
 - `src/self_hosted/mir/intent_priority_carriage_owner.pgy` -- exact zero-or-one
   `IntentEval(priority)` MIR row carrying the DIR-admitted priority expression
   surface, root identity, graph, source type, and uses without source rescans.
@@ -1057,6 +1060,9 @@ inventory must not become a second fact-family owner registry.
   it validates typed identities and never rescans source text.
 - `src/self_hosted/dir/intent_child_policy_owner.pgy` -- exact typed child-kind
   admission policy for rows directly owned by an intent declaration.
+- `src/self_hosted/dir/intent_mode_fact_owner.pgy` -- exact singleton direct
+  mode-child identity and `exclusive`/`concurrent` spelling. The parser-owned
+  default is materialized before DIR, so missing mode is never inferred here.
 - `src/self_hosted/dir/intent_priority_fact_owner.pgy` -- optional intent
   priority node and parser-owned expression-root admission; it requires the
   admitted expression to resolve to `Int` and never invents a default row.
@@ -1229,6 +1235,9 @@ inventory must not become a second fact-family owner registry.
   carriers, including exact companion-row cardinality and tree text rows.
 - `src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy` --
   shared exact graph-presence contract for MIR-lowered intent expression rows.
+- `src/self_hosted/mir_lower/intent_mode_projection_owner.pgy` -- exact
+  singleton `IntentMode` carrier projection into the reconstructed intent tree;
+  missing, malformed, and duplicate carriers fail closed.
 - `src/self_hosted/mir_lower/intent_priority_projection_owner.pgy` -- exact
   zero-or-one priority-carrier projection into the reconstructed intent tree
   and expression occurrence order; malformed or duplicate carriers fail closed.
@@ -1607,8 +1616,8 @@ inventory must not become a second fact-family owner registry.
   reverse-step/reverse-expression compensation C emission. Typed variant
   success-only completion remains outside this owner.
 - `src/self_hosted/codegen/emission/intent_mode_emit_owner.pgy` -- exact
-  singleton intent-mode lookup and C runtime concurrency projection; missing,
-  duplicated, or unknown modes fail closed.
+  singleton reconstructed intent-mode lookup and C runtime concurrency
+  projection; missing, duplicated, or unknown modes fail closed.
 - `src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy` --
   opt-in legacy intent enter/step/bind/materialize/fail/ok/exit C projection
   from the admitted mode, signature, subject, priority expression, and exact

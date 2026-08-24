@@ -55,6 +55,7 @@ static const char *const k_mir_intent_semantic_carrier_names[] = {
     "IntentDispatch",
     "IntentEval",
     "IntentInvalidationTarget",
+    "IntentMode",
     "IntentOutcomeBinding",
     "IntentParticipant",
     "IntentStep",
@@ -281,11 +282,39 @@ mir_validate_intent_instruction_fact(const MIRRoutine *routine,
                                      size_t block_index,
                                      char **error_message)
 {
+    size_t mode_count = 0;
+
     if (routine == NULL || block == NULL)
         return false;
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
+        if (mir_instruction_is_intent_stmt(inst, "IntentMode")) {
+            mode_count++;
+            if (routine->kind != MIR_SCOPE_INTENT
+                || block_index != routine->entry_block
+                || inst->arg0 == NULL
+                || (strcmp(inst->arg0, "exclusive") != 0
+                    && strcmp(inst->arg0, "concurrent") != 0)
+                || inst->arg1 == NULL || routine->name == NULL
+                || strcmp(inst->arg1, routine->name) != 0
+                || inst->slot_anchor == NULL
+                || strcmp(inst->slot_anchor, routine->name) != 0
+                || inst->result_name != NULL
+                || inst->abi_type_name != NULL
+                || inst->expr0 != NULL || inst->expr1 != NULL
+                || inst->use_count != 0
+                || !mir_instruction_source_matches_ast_type(
+                    inst, AST_INTENT_DECL)) {
+                if (error_message != NULL) {
+                    *error_message = mir_intent_fact_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] IntentMode carrier is invalid",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index, i);
+                }
+                return false;
+            }
+        }
         if (mir_intent_fact_requires_ast_step(inst)) {
             if (!mir_instruction_source_is_intent_step(inst)) {
                 if (error_message != NULL) {
@@ -414,6 +443,17 @@ mir_validate_intent_instruction_fact(const MIRRoutine *routine,
                 }
             }
         }
+    }
+
+    if (routine->kind == MIR_SCOPE_INTENT
+        && block_index == routine->entry_block
+        && mode_count != 1) {
+        if (error_message != NULL) {
+            *error_message = mir_intent_fact_strdup_fmt(
+                "MIR routine '%s' entry block requires one IntentMode carrier",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        }
+        return false;
     }
 
     if (routine->hir_routine != NULL

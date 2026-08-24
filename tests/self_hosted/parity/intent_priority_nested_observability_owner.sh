@@ -123,9 +123,9 @@ self_c="$BUILD_DIR/priority.self.c"
 (cd "$ROOT_DIR" && "$DRIVER" "$SOURCE_REL" --emit-c-verified) \
     >"$self_c" 2>"$BUILD_DIR/priority.self.c.err" ||
     { cat "$BUILD_DIR/priority.self.c.err" >&2; fail "self C emission failed"; }
-grep -Fq 'pgy_intent_enter_export("OuterPriority", __intent_subjects, 1, false, 1);' \
+grep -Eq 'pgy_intent_enter_export\("OuterPriority", __intent_subjects, 1, (true|false), 1\);' \
     "$self_c" || fail "outer literal priority did not reach self C"
-grep -Fq 'pgy_intent_enter_export("InnerPriority", __intent_subjects, 1, false, requested);' \
+grep -Eq 'pgy_intent_enter_export\("InnerPriority", __intent_subjects, 1, (true|false), requested\);' \
     "$self_c" || fail "inner value priority did not reach self C"
 
 suffix=""

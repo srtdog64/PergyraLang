@@ -5,6 +5,7 @@
 #include "mir_type_helpers.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "../common/arena.h"
 #include "../common/string_compat.h"
@@ -28,6 +29,31 @@ mir_intent_dir_info(const DIRProgram *dir, const ASTNode *intent)
         }
     }
     return NULL;
+}
+
+static const char *
+mir_intent_mode_from_rir_policy(const MIRRoutine *routine)
+{
+    const char *mode = NULL;
+    size_t count = 0;
+
+    if (routine == NULL || routine->rir_scope == NULL)
+        return NULL;
+    for (size_t i = 0; i < rir_scope_fact_count(routine->rir_scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(routine->rir_scope, i);
+        if (fact == NULL || fact->kind != RIR_FACT_INTENT_POLICY
+            || fact->name == NULL || strcmp(fact->name, "concurrency") != 0) {
+            continue;
+        }
+        count++;
+        mode = fact->arg0;
+    }
+    if (count != 1 || mode == NULL
+        || (strcmp(mode, "exclusive") != 0
+            && strcmp(mode, "concurrent") != 0)) {
+        return NULL;
+    }
+    return mode;
 }
 
 static const DIRIntentInfo *
@@ -257,11 +283,24 @@ mir_append_intent_values(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *int
 static bool
 mir_append_intent_decl_contracts(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *intent)
 {
+    const char *mode;
     ASTNode *priority_expr;
     ASTNode *success_expr;
 
     if (routine == NULL || block == NULL || intent == NULL)
         return false;
+
+    mode = mir_intent_mode_from_rir_policy(routine);
+    if (mode == NULL
+        || !mir_append_intent_stmt(routine,
+                                   block,
+                                   "IntentMode",
+                                   routine->name,
+                                   mode,
+                                   routine->name,
+                                   intent)) {
+        return false;
+    }
 
     priority_expr = ast_intent_decl_priority_expr(intent);
     if (priority_expr != NULL

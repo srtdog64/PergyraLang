@@ -1,0 +1,53 @@
+// DIR-owned intent execution mode -> MIR declaration-policy carrier.
+
+import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
+import "intent_instruction_append_owner.pgy";
+import "../dir/intent_result_contract_owner.pgy";
+
+func SelfMirIntentAppendModeCarrier(
+    build: SelfMirRoutineBuild,
+    ref intents: SelfDirIntentFacts,
+    intent_index: Int
+) -> SelfMirRoutineBuild {
+    if !build.ok { return build; }
+    if intent_index < 0 ||
+        intent_index >= ArrayLength(intents.names) ||
+        intent_index >= ArrayLength(intents.modes.names) {
+        return SelfMirRoutineBuildError(
+            build, "MIR intent mode owner row is missing"
+        );
+    }
+    let intent_name: String = intents.names[intent_index];
+    let mode: String = intents.modes.names[intent_index];
+    if intent_name == "" ||
+        (mode != "exclusive" && mode != "concurrent") {
+        return SelfMirRoutineBuildError(
+            build, "MIR intent mode owner row is invalid"
+        );
+    }
+    return SelfMirIntentAddInstruction(
+        build, "stmt", "IntentMode", mode, intent_name,
+        intent_name, "", "AST_INTENT_DECL", SelfMirNoUses()
+    );
+}
+
+func SelfMirIntentModeInstructionReady(
+    rows: SelfMirInstructionRows,
+    index: Int
+) -> Bool {
+    return rows.kinds[index] == "stmt" &&
+        rows.names[index] == "IntentMode" &&
+        rows.results[index] == "" &&
+        (rows.arg0s[index] == "exclusive" ||
+         rows.arg0s[index] == "concurrent") &&
+        rows.arg1s[index] != "" &&
+        rows.slot_anchors[index] == rows.arg1s[index] &&
+        rows.abi_type_names[index] == "" &&
+        rows.source_types[index] == "AST_INTENT_DECL" &&
+        rows.expr0s[index] == "" && rows.expr1s[index] == "" &&
+        rows.expr0_graphs.has_roots[index] == 0 &&
+        rows.expr1_graphs.has_roots[index] == 0 &&
+        rows.use_counts[index] == 0 &&
+        rows.runtime_call_abi.present[index] == 0;
+}

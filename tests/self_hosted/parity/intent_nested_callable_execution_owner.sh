@@ -118,6 +118,6 @@ grep -Fxq '[Intent] ProcessOrder=false' "$BUILD_DIR/failure.public.run" ||
 PGY_BIN="$PGY" PGY_SELFHOST_PREBUILT_DRIVER="$DRIVER" \
     bash "$ROOT_DIR/tests/self_hosted/parity/intent_placed_nested_callable_execution_owner.sh"
 PGY_BIN="$PGY" PGY_SELFHOST_PREBUILT_DRIVER="$DRIVER" \
-    bash "$ROOT_DIR/tests/self_hosted/parity/intent_priority_nested_observability_owner.sh"
+    bash "$ROOT_DIR/tests/self_hosted/parity/intent_mode_nested_observability_owner.sh"
 
 echo "[self-host-nested-intent-execution] public C direct-call success/failure parity: PASS"

@@ -48,7 +48,7 @@ func MirIntentKnownSemanticCarrier(name: String) -> Bool {
         name == "IntentInvalidationTarget" || name == "IntentWho" ||
         name == "IntentAuthorizedBy" || name == "IntentCauses" ||
         name == "IntentOutcomeBinding" || name == "IntentCheck" ||
-        name == "IntentEval";
+        name == "IntentEval" || name == "IntentMode";
 }
 
 func MirIntentBindingProjectionFromCarriers(

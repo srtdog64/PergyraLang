@@ -67,7 +67,7 @@ evidence.
 | `class` | reserved | native+self_host | 7 | 2 | 0 | 27 | hover, TextMate:storage.type.pergyra | native+selfhost-typed |
 | `collapse` | reserved | native+self_host | 1 | 0 | 0 | 1 | TextMate:keyword.control.pergyra | native-only |
 | `compensate` | reserved | native+self_host | 3 | 1 | 2 | 5 | TextMate:keyword.control.pergyra | native+selfhost-typed |
-| `concurrent` | contextual | native+self_host | 1 | 2 | 0 | 0 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
+| `concurrent` | contextual | native+self_host | 1 | 2 | 0 | 1 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
 | `continue` | reserved | native+self_host | 2 | 0 | 1 | 6 | TextMate:keyword.control.pergyra | native+selfhost-direct-only |
 | `continuous` | contextual | native+self_host | 1 | 1 | 0 | 0 | none | native+selfhost-typed |
 | `current` | soft | native | 1 | 0 | 0 | 7 | none | native-only |
