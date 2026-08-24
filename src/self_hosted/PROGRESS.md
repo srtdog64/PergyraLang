@@ -3,9 +3,9 @@
 ## Active self-host context - 2026-08-24 DRV-1 artifact transaction LLVM
 
 - Semantic checkpoint `d6b82a29`, CI checkpoint `64eeeda0`, first-remote
-  repair `1df380a1`, and documentation checkpoint `f44181d4` are committed
-  locally. This progress file records the second remote result and its focused
-  SoT classification repair. Preserve the unrelated untracked
+  repair `1df380a1`, and derived-fact classification checkpoint `cff2a2fa` are
+  committed locally. This progress file records the final current-source
+  executable proof and third remote result. Preserve the unrelated untracked
   `pgy-80135c2c/` directory.
 - The DRV-1 direct-MIR route now owns referenced payload-free/payload-bearing
   enum identity once, projects payload-free facts from that owner, carries
@@ -21,14 +21,15 @@
 - Exact current-source verified MIR is 95,523,078 bytes, SHA-256
   `D2B4E47E051590ED758E227F9CF2B1CFEA2334CA2652633D9CA0F2A7E56781EE`,
   produced after the remote borrow fix in 27.97 seconds and byte-identical to
-  the pre-fix current-source MIR. The prior fixed 95MB MIR already projects, links,
-  executes, and commits an output artifact, but predates the final four source
-  edits and therefore is not the closing current-source proof.
-- The next and only executable falsifier is projection/link/run of that exact
-  current MIR. The prior projection took 13m23s and peaked near 11.7GB while
-  this checkpoint observed only 10.5-11.2GiB free, so do not start it by
-  terminating user processes or hiding the cost with parallelism/cache/timeout.
-  Identify repeated whole-program aggregation after the current semantic proof.
+  the pre-fix current-source MIR. It now projects to 22,492,152-byte LLVM
+  (`B55BDC95...E74`), links with the observation-disabled runtime into a
+  25,148,709-byte executable (`490D9225...DD6D`), and commits a byte-stable
+  11,294-byte C artifact (`56BEECAF...E001`) through the typed `-o` transaction.
+  That artifact compiles and executes the exact ten-line enum result. Observed
+  projector private memory peaked at 10.75GiB with 3.23GiB still free and no
+  user process termination. Repeated whole-program aggregation is now the
+  bounded performance seam; parallelism/cache/timeout remains unsupported
+  until that repeated owner operation is measured.
 - Push CI remains runner-parallel. The local CI change builds the LLVM-enabled
   backend-compare launcher/self-driver pair once, uploads it, and feeds all 20
   existing matrix shards through an explicit fail-closed prebuilt mode instead
@@ -41,10 +42,15 @@
   bootstrap, the producer, and all 20 shards passed. Only the final SoT edge
   gate rejected the unclassified referenced-enum fact carrier. It is now a
   registered `projection` of `selfhost.enum_declaration_rows`; local edge and
-  adequacy gates pass. A fully green remote successor is pending push.
-- This is one open executable substitution rung. Progress remains overall 78%,
-  strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` until the exact
-  current executable, publication, and remote evidence close it.
+  adequacy gates pass. Third run `32706421231` at `cff2a2fa` completed 29/29
+  green in 23m48, including the 23m43 full bootstrap, producer, and all 20
+  artifact-fed shards.
+- This bounded DRV-1 executable substitution rung is closed. The published
+  forecasts remain overall 78%, strict beta 83%, and hard SoT
+  `CLOSED=49 BRIDGE=36 ACTIVE=1` until a denominator review changes them; the
+  executable replacement is real progress but artifact/test counts do not
+  revise those percentages by themselves. Select the next production bypass
+  from current source evidence before opening another implementation track.
 
 ## Historical self-host context - 2026-08-18 DIR-to-MIR lifetime and CI verification
 

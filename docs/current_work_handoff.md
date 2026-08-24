@@ -15,11 +15,10 @@ gate count do not increment either percentage by themselves.
 ## Active self-host context - DRV-1 typed artifact transaction LLVM closure
 
 - The semantic checkpoint is `d6b82a29`; CI toolchain reuse is checkpoint
-  `64eeeda0`, first-remote-run repair is `1df380a1`, and its documentation
-  successor is `f44181d4` on local `main`. This handoff records the second
-  remote result and its focused SoT classification repair.
-  Before its commit the only project dirt is this file,
-  `docs/semantics/sot_owner_spine_registry.md`, and
+  `64eeeda0`, first-remote-run repair is `1df380a1`, and its derived-fact
+  classification successor is `cff2a2fa` on local `main`. This handoff records
+  the final current-source executable proof and the third remote result.
+  Before its commit the only project dirt is this file and
   `src/self_hosted/PROGRESS.md`; after publication the worktree should contain
   only the unrelated user-owned `pgy-80135c2c/`. Do not stage, discard,
   rewrite, or scan that directory as project evidence.
@@ -63,20 +62,24 @@ gate count do not increment either percentage by themselves.
   canonical program meaning. It includes the final referenced-enum/direct-call
   compiler edits and replaces the older stale source snapshot for the next
   falsifier.
-- The current self-driver already consumed the preceding 95,473,996-byte fixed
-  MIR into 22,492,152-byte LLVM in 13m23s. Clang linked that IR with the exact
-  runtime object, and the resulting DRV-1 executable compiled a Pergyra fixture
-  and published an 11,294-byte C artifact. This proves the formerly rejected
-  whole-program row is now crossed, but it is not final current-source proof
-  because that fixed MIR predates the last four compiler edits.
-- The remaining local executable step is only projection of the new exact MIR,
-  followed by the already-proven runtime link/run. Do not start it while
-  available physical memory is below the prior observed projector peak: this
-  session measured 10.5-11.2 GiB free versus approximately 11.7 GB peak, and
-  the large consumers are user processes rather than leaked test processes.
-  Do not terminate them. The projector's 13m23s/11.7GB profile is also the next
-  bounded performance seam: identify repeated whole-program aggregation before
-  adding intra-process parallelism, a cache, or a larger allowance.
+- The exact current MIR now completes the final local executable falsifier. The
+  installed self-driver projected it to 22,492,152-byte LLVM, SHA-256
+  `B55BDC95D128D17B97A53747631FA62F4C75693719866293E3C7C02E2EA10E74`.
+  That IR is byte-identical to the preceding fixed-MIR projection, consistent
+  with the final borrow-safe and inventory/CI/documentation edits preserving
+  executable meaning. Clang linked it with the observation-disabled runtime
+  object into a 25,148,709-byte DRV-1 executable, SHA-256
+  `490D92255CEF75860B1005ECBE08B8BC625932DE6409D2FF4DF779226A89DD6D`.
+- That current-source executable consumed
+  `direct_mir_payload_free_enum_value_parameter.pgy` through the typed `-o`
+  transaction and committed an 11,294-byte C artifact, SHA-256
+  `56BEECAF1E7974DFF66E966D24506E80FECFA1FC1238BDC74E9879CBE29AE001`.
+  The artifact is byte-identical to the preceding success, compiles with GCC,
+  and executes the exact ten-line enum result ending in
+  `payload-free-enum-parameter-ready`. Observed projector private memory peaked
+  at 10.75GiB with 3.23GiB still free; no user process was terminated. Repeated
+  whole-program aggregation remains the next bounded performance seam before
+  any intra-process parallelism, cache, or larger allowance.
 - Push CI retains its existing runner-level parallelism. The local CI delta
   removes a different repeated operation: the 20-way backend-compare matrix
   previously rebuilt the same LLVM-enabled installed compiler in every shard.
@@ -103,21 +106,23 @@ gate count do not increment either percentage by themselves.
   the final `sot-authority-edge` check: the new referenced-enum fact carrier
   had not been classified in the derived-fact registry. It is now registered
   as a `projection` of `selfhost.enum_declaration_rows`, not as a second
-  authority; focused edge and adequacy gates pass locally. A fully green
-  successor remote run is not yet claimed.
+  authority; focused edge and adequacy gates pass locally. Third run
+  `32706421231` at `cff2a2fa` completed all 29/29 jobs green in 23m48; the full
+  bootstrap itself passed in 23m43. This remotely closes the derived-fact
+  repair, full bootstrap, shared toolchain producer, and all 20 artifact-fed
+  backend shards at the executable checkpoint.
 - Last remote baselines remain green: fast/full-platform split run
   `32680354623` completed 13/13 in 40m36 at `88fbe332`; the successor fast/docs
   run `32682690750` completed 28/28 at `e179537d`. This integration does not
   increment the published forecasts by itself: overall remains 78%, strict
   beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-- Next: when at least modest headroom above the measured 11.7GB peak is
-  available, run the current MIR through `bin/pgy-self-driver.exe
-  --mir-json-backend=llvm`, link it with the existing observation-disabled
-  runtime object, and execute one artifact publication. First commit the
-  derived-fact classification plus this handoff, push it, and require the
-  remote fast workflow to become green. Then refresh this card with the exact
-  remote result. Do not count the CI
-  topology edit, MIR bytes, owner files, or tests as substitution progress.
+- This bounded DRV-1 typed-transaction LLVM rung is closed: a Pergyra-produced
+  current MIR reaches a linked compiler executable and commits the output
+  artifact without the forbidden C/native fallback. Next: publish this
+  checkpoint, then select one next production-bypass rung from current source
+  evidence. Measure the reached repeated aggregation before proposing
+  projector parallelism. Do not count the CI topology edit, MIR bytes, owner
+  files, or tests as substitution progress by themselves.
 
 ### Historical archive boundary
 
