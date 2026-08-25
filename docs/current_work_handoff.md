@@ -17,13 +17,14 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - installed source-C stdout world/action closure
+## Active self-host context - source-C stdout world/action closed; select next executable rung
 
-- The active working tree is based on checkpoint
-  `e4bc4b4d7cb96ce7fe33478369cb7de00e1e2310`, which is on local and remote
-  `main`. Project-owned source, gates, and current documents are dirty for lease
-  C. Preserve the unrelated user-owned untracked `pgy-80135c2c/` directory; do
-  not inspect it as evidence, stage it, delete it, or rewrite it.
+- Code checkpoint `20ffa7c7e44174588663f1a89cf86719ee8efeac` is on local
+  and remote `main`. Before this result-only handoff commit, only the active
+  handoff/progress/coordination documents are project-owned dirty state;
+  afterward the worktree should contain only the unrelated user-owned untracked
+  `pgy-80135c2c/` directory. Do not inspect it as evidence, stage it, delete it,
+  or rewrite it.
 - Objective card: make installed default, explicit `--emit-c-verified`, and
   machine-manifest source-C stdout enter the existing `PgyCompilerWorld.source_c`
   zone; priority = request/manifest identity, existing compiler artifact
@@ -56,11 +57,14 @@ gate count do not increment either percentage by themselves.
   `24/24`, Result/Option `4287/4287`, one world, 22 zones, and four members. SoT
   remains 86 authorities / 180 derived carriers and
   `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-- The exact next falsifier is publication of this dirty checkpoint and the
-  existing 29-job push matrix. Until that run is observed, lease C remains
-  active and no successor rung is inferred. This work is `REACHABLE`
-  orchestration dogfood rather than a new C implementation replacement, so
-  overall remains 78% and strict beta remains 83%.
+- Push run `32897701600` completed 29/29 green in 29m41. `build-linux` passed in
+  15m21 and full self-host passed in 29m38; all 20 backend shards, sanitizers,
+  Windows/macOS, codegen bootstrap, and Rocq passed. Lease C is `DONE`. No
+  successor rung is inferred: the next session must observe a production
+  entrypoint and direct bypass, name its owner/last consumer/falsifier, and write
+  a new objective card before implementation. This closure is `REACHABLE`, not
+  another implementation replacement, so overall remains 78%, strict beta 83%,
+  and hard SoT remains `CLOSED=49 BRIDGE=36 ACTIVE=1`.
 
 ### Historical archive boundary
 

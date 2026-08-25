@@ -24,8 +24,13 @@ rewrite history.
 - Focused installed execution preserves exact pre/post default/explicit and
   admitted-manifest hashes (`A29997AD...B8749` and `CB37D99B...19BA`). Component,
   compiler-world, topology, hard, likeness, and SoT authority-edge gates are
-  locally green. Publication is still pending, so this is `REACHABLE`, not a
-  new substitution numerator; 78%, 83%, and `49/36/1` remain unchanged.
+  locally green. This is `REACHABLE`, not a new substitution numerator; 78%,
+  83%, and `49/36/1` remain unchanged.
+- Published code checkpoint `20ffa7c7`. Run `32897701600` completed 29/29 green
+  in 29m41; Linux preparation passed in 15m21 and full self-host in 29m38. All
+  backend shards, sanitizers, platforms, codegen bootstrap, and Rocq passed.
+  Lease C is closed with the same `REACHABLE` classification and unchanged
+  progress denominators.
 
 ## 2026-08-25 - Placed direct intents preserve the bootstrap consumer boundary
 

@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease C — installed source-C stdout world/action boundary
+## DONE lease C — installed source-C stdout world/action boundary
 
 - Base revision: `e4bc4b4d7cb96ce7fe33478369cb7de00e1e2310`.
 - Editing and integration owner: the primary Codex task. Peer Codex tasks are
@@ -70,9 +70,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Likeness remains sentinel `24/24`, Result/Option `4287/4287`, one compiler
   world, 22 zones, and four world members. SoT remains
   `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-- Publication remains the next falsifier. Keep this edit lease active until the
-  code checkpoint is pushed and the existing 29-job matrix is observed; do not
-  infer another executable rung meanwhile.
+- Code checkpoint `20ffa7c7` is on local and remote `main`. Push run
+  `32897701600` completed 29/29 green in 29m41; `build-linux` passed in 15m21
+  and full self-host passed in 29m38. All backend shards, sanitizers, platforms,
+  codegen bootstrap, and Rocq are green. Lease C is released; no successor
+  executable rung is inferred by this result.
 
 ### Parallel read-only assignments
 

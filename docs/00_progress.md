@@ -23,6 +23,13 @@ local green이다. 새 CI job이나 두 번째 self-host build는 추가하지 �
 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 그대로다. 다음 falsifier는 이 checkpoint의
 기존 29-job push matrix이며, 그 전에는 다음 실행 rung을 추정하지 않는다.
 
+Code checkpoint `20ffa7c7`의 push run `32897701600`은 29분 41초에 29/29
+green으로 완료됐다. Linux preparation은 15분 21초, full self-host는 29분 38초였고
+20개 backend shard, sanitizer, Windows/macOS, codegen bootstrap, Rocq가 모두
+통과했다. Lease C는 `DONE`이며 전체 78%, strict beta 83%, SoT
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 그대로다. 다음 작업은 새 production
+bypass를 실제로 관측하고 objective card를 고정한 뒤 시작한다.
+
 2026-08-26 로컬 실행 갱신: nested priority fixture가 빠지던 scalar-only
 direct-MIR LLVM 경로를 exact mixed-callable route로 대체했다. 새 route는 composite
 intent 다음, scalar admission 전에 one function/one method/two intent family를

@@ -4,7 +4,8 @@ Status: `BRIDGE`
 
 ## 2026-08-26 source-to-C stdout world/action evidence
 
-Installed default source-C stdout, explicit `--emit-c-verified`, and explicit
+Checkpoint `20ffa7c7` makes installed default source-C stdout, explicit
+`--emit-c-verified`, and explicit
 machine-manifest stdout now enter the existing `PgyCompilerWorld.source_c`
 zone. `DriverSourceCExecution.ProduceSourceC` owns request admission and calls
 the existing `CompileSourceToCVerified` semantic/emission owner exactly once.
@@ -28,6 +29,10 @@ exits 1 with the typed diagnostic and emits no C. This is production
 `REACHABLE` orchestration dogfood, not another `SUBSTITUTING` numerator: the
 compiler implementation was already Pergyra-owned. Overall, strict beta, and
 hard SoT counts therefore remain unchanged.
+
+Push run `32897701600` completed 29/29 green in 29m41, including 15m21 Linux
+preparation, 29m38 full self-host, all 20 backend shards, sanitizers, platforms,
+codegen bootstrap, and Rocq.
 
 ## 2026-08-25 bounded compiler-purpose source-to-LLVM substitution
 

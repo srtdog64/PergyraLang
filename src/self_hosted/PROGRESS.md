@@ -2,7 +2,7 @@
 
 ## Active self-host context - 2026-08-26 source-C stdout world/action closure
 
-- Working tree based on `e4bc4b4d` removes both installed source-C stdout calls
+- Checkpoint `20ffa7c7` removes both installed source-C stdout calls
   that bypassed `PgyCompilerWorld.source_c`. Default, explicit
   `--emit-c-verified`, and machine-manifest requests now reach one typed payload
   admission and one checked stdout consumer. Artifact publication reuses the
@@ -22,8 +22,12 @@
   `4287/4287`, one world, 22 zones, and four members. This is `REACHABLE`
   orchestration dogfood rather than a new C implementation replacement, so
   overall remains 78%, strict beta 83%, and hard SoT remains
-  `CLOSED=49 BRIDGE=36 ACTIVE=1`. The next falsifier is remote publication of
-  this exact checkpoint; no successor rung is inferred yet.
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Push run `32897701600` completed 29/29 green in 29m41. Linux preparation took
+  15m21 and full self-host took 29m38; all backend shards, sanitizers,
+  platforms, codegen bootstrap, and Rocq passed. This bounded rung is closed;
+  no successor implementation is inferred without a new production bypass and
+  objective card.
 
 ## Active self-host context - 2026-08-26 nested intent LLVM closed
 
