@@ -175,7 +175,7 @@ same route.
   identity, method-owner crosswire, and semantic action-name/target-row
   crosswire.
 - `make self-host-direct-mir-nested-intent-program-llvm-test-smoke` rebuilt and
-  installed Pergyra-built DRV-2, then passed the same LLVM parity and four
+  installed Pergyra-built DRV-2, then passed the same LLVM parity and five
   negatives using the installed driver. The complete component contract also
   passed, including its source-MIR execution ratchet.
 - The new Make target is in the existing full fixed-point invocation in both
@@ -184,9 +184,15 @@ same route.
 - Hard contract, progress metric, UTF/documentation, and diff gates pass.
   Likeness passes at sentinel `24/24` and Result/Option `4287/4287`; the improved
   typed-error count is tightened into the baseline rather than left as a CI
-  warning. Publication remains pending commit/push and the resulting remote CI
-  run. Overall stays 78%, strict beta 83%, and hard SoT
-  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+  warning.
+- Checkpoint `2d43bd66` is published. Run `32884881665` completed 28/29: all
+  executable, proof, platform, sanitizer, and backend jobs passed, but Linux
+  preparation found that the two new fact owners lacked derived-registry rows.
+  The bounded repair classifies both under existing `mir.execution_graph` as
+  `projection`; the exact edge is locally green at 86 authorities / 180 derived
+  carriers without changing `CLOSED=49 BRIDGE=36 ACTIVE=1`. Publication of this
+  repair and a remote 29/29 remain pending. Overall stays 78% and strict beta
+  stays 83%.
 
 ## Peer Codex assignment — read-only audit only
 

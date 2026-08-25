@@ -2,9 +2,9 @@
 
 ## Active self-host context - 2026-08-26 nested intent direct-MIR LLVM publishing
 
-- Base revision `341f7c1d` remains published; this executable delta is still
-  uncommitted. Preserve the unrelated user-owned `pgy-80135c2c/` directory and
-  do not use it as project evidence.
+- Executable checkpoint `2d43bd66` is on local and remote `main`. Preserve the
+  unrelated user-owned `pgy-80135c2c/` directory and do not use it as project
+  evidence.
 - One exclusive route now claims the exact one-function, one-method, two-intent
   family after composite intent and before scalar admission. It seals the
   declaration-index row/bounds plus a bounded source-ID projection, admitted
@@ -29,10 +29,14 @@
   a job or a second self-host compiler invocation.
 - Hard, progress, UTF/documentation, and diff gates pass. Likeness is green at
   sentinel `24/24` and Result/Option `4287/4287`; its improved typed-error floor
-  is ratcheted in this change. Remaining publication evidence is commit/push and
-  remote CI. This bounded family is local `SUBSTITUTING`, but no broader intent
-  family or top-level SoT row is closed: overall remains 78%, strict beta 83%,
-  and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+  is ratcheted in this change. First run `32884881665` finished 28/29: every
+  executable/proof/platform/backend job passed, while Linux preparation rejected
+  the two new fact-owner files missing from the derived-fact registry. The local
+  two-row `mir.execution_graph | projection` repair passes the exact edge at 86
+  authorities / 180 derived carriers. Remaining evidence is repair publication
+  and remote 29/29. This bounded family is local `SUBSTITUTING`, but no broader
+  intent family or top-level SoT row is closed: overall remains 78%, strict beta
+  83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
 
 ## Historical self-host context - 2026-08-25 bounded composite intent LLVM substitution
 

@@ -19,10 +19,9 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - nested intent direct-MIR LLVM publishing
 
-- Base revision is `341f7c1d` on local `main`; publication is not yet claimed.
-  The worktree contains tracked dispatcher/Make/CI/inventory/document edits and
-  project-owned untracked additions for the five mixed-callable route owners
-  plus their focused gate.
+- Executable checkpoint `2d43bd666075c1bd45f83e6c2d92479478da2c9c` is on
+  local `main` and `origin/main`. The project-owned repair set contains the
+  derived-fact registry classification plus these active handoff/progress notes.
   Preserve the unrelated user-owned untracked `pgy-80135c2c/` directory; do not
   inspect it as project evidence, stage it, delete it, or rewrite it.
 - Objective card: execute the nested method/intent priority fixture through one
@@ -59,10 +58,19 @@ gate count do not increment either percentage by themselves.
   invocation. This adds no CI job and no second self-host compiler build.
 - Final local hard, progress, UTF/documentation, and diff gates pass. Likeness
   passes at sentinel `24/24` and Result/Option `4287/4287`, with the improved
-  typed-error minimum tightened in the same change. Next falsifier: commit/push
-  the exact dirty set and observe the remote matrix. Until remote evidence
-  exists, the lease remains `PUBLISHING`, overall stays 78%, strict beta 83%,
-  and hard SoT stays `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+  typed-error minimum tightened in the same change.
+- First publication run `32884881665` completed 28/29: full self-host, codegen,
+  sanitizers, platforms, proofs, and all 20 backend shards passed. `build-linux`
+  reached the final preparation step, then correctly rejected the new route and
+  graph fact owners because their derived classification was missing. The local
+  repair adds only those two `mir.execution_graph | projection` rows. The exact
+  authority edge now passes at 86 authorities / 180 derived carriers and keeps
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`; the broader preparation target passed through
+  component/hard gates and stopped only at the explicitly declared local Coq
+  absence, while the same run's remote Rocq/adequacy gate was green.
+- Next falsifier: commit/push the two-row classification repair and require a
+  remote 29/29 result. Until then the lease remains `PUBLISHING`, overall stays
+  78%, strict beta 83%, and hard SoT stays `CLOSED=49 BRIDGE=36 ACTIVE=1`.
 
 ### Historical archive boundary
 

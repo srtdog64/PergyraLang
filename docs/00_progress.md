@@ -24,6 +24,14 @@ Result/Option `4287/4287`도 green이다. 이 exact family는 local `SUBSTITUTIN
 remote publication과 top-level denominator review 전까지 integrated 78%, strict
 beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 유지한다.
 
+실행 checkpoint `2d43bd66`의 첫 remote run `32884881665`는 28/29였다. Full
+self-host, codegen bootstrap, sanitizers, 세 플랫폼, Rocq, backend 20 shards는
+모두 green이고, 유일한 red는 Linux preparation의 derived-owner registry
+누락이었다. 새 route/graph fact owner 두 개를 기존 `mir.execution_graph`의
+`projection`으로만 등록한 local repair는 authority edge `86 authorities / 180
+derived carriers`에서 green이다. Top-level SoT 수는 `49/36/1` 그대로이며 다음
+falsifier는 이 두 행을 push한 remote 29/29다.
+
 2026-08-25 로컬 실행 갱신: production source-to-LLVM의 C-owned 두 subprocess
 경계를 삭제했다. Public LLVM file/stdout/binary와 package LLVM target은 이제
 installed `--emit-source-llvm-ir-verified SOURCE -o OUTPUT` 한 번으로 들어가며,
