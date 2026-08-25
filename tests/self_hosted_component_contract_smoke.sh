@@ -7320,6 +7320,10 @@ require_text ".github/workflows/self_host_parity.yml" \
     "self-host-direct-mir-composite-intent-program-llvm-test-smoke"
 require_file "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh"
 require_max_lines "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh" 160
+require_file "tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh"
+require_max_lines "tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh" 220
+require_text "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh"'
 require_text "Makefile" \
     "self-host-direct-mir-nested-intent-program-llvm-test-smoke: \$(PGY) self-host-compiler"
 require_text ".github/workflows/ci.yml" \
@@ -7347,14 +7351,16 @@ done <<'NESTED_INTENT_OWNERS'
 direct_mir_nested_intent_program_route_fact_owner.pgy|170
 direct_mir_nested_intent_program_graph_fact_owner.pgy|600
 direct_mir_nested_intent_program_plan_owner.pgy|700
+direct_mir_nested_intent_program_c_emission_owner.pgy|360
 direct_mir_nested_intent_program_llvm_emission_owner.pgy|360
 direct_mir_nested_intent_program_projection_owner.pgy|40
+driver_rung2_nested_intent_c_substitution_owner.pgy|50
 NESTED_INTENT_OWNERS
 require_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
     '    let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);
     if IsSome(composite_intent_payload) { return UnwrapOption(composite_intent_payload); }
-    let nested_intent_payload: Option<String> = CompileAdmittedDirectMirNestedIntentProgramLlvmIfClaimed(admitted, is_llvm);
+    let nested_intent_payload: Option<String> = CompileAdmittedDirectMirNestedIntentProgramForTargetIfClaimed(admitted, target_projection);
     if IsSome(nested_intent_payload) { return UnwrapOption(nested_intent_payload); }
     DirectMirPressureStage(observe_pressure, "scalar-route:start");'
 reject_text \

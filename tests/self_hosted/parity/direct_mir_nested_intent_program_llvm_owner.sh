@@ -157,4 +157,4 @@ for negative in missing-inner-priority priority-graph-drift duplicate-source-ide
         "$WORK_DIR/$negative.err" || fail "$negative fell through to scalar"
 done
 
-echo "[$LABEL] LLVM parity and five no-artifact negatives: PASS"
+source "$ROOT_DIR/tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh"

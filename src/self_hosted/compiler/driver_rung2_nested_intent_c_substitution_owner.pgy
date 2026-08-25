@@ -1,0 +1,38 @@
+// Exact source/MIR-to-C substitution for the sealed nested-intent family.
+// Unclaimed programs alone may continue to the general MIR-to-AST consumer.
+
+import "direct_mir_nested_intent_program_projection_owner.pgy";
+import "domain_topology_graph_plan_consumer_owner.pgy";
+import "driver_pipeline_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+
+func DriverRung2NestedIntentCSubstitutionIfClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    target_projection: CompilerTargetProjectionFact,
+    retire_owned_source_json: Bool
+) -> Option<CompilerEmissionArtifact> {
+    if MirProgramRoutineIndexCount(admitted.routines) != 4 ||
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) != 2 {
+        return None;
+    }
+    let projected: Option<String> =
+        CompileAdmittedDirectMirNestedIntentProgramForTargetIfClaimed(
+            admitted, target_projection);
+    if !IsSome(projected) { return None; }
+    let topology_receipt: MirDomainTopologyGraphPlanConsumptionReceipt =
+        MirDomainTopologyGraphPlanConsumptionFromAdmitted(admitted);
+    let payload: String = MirDomainTopologyGraphPlanAttachToC(
+        topology_receipt, admitted.domain_topology_plan,
+        UnwrapOption(projected));
+    let source_json: String = admitted.routines.source_json;
+    if retire_owned_source_json { MirJsonOwnedInputRelease(source_json); }
+    let artifact: CompilerEmissionArtifact = CompilerEmissionArtifact(
+        "emitted-c", payload, target_projection.schema,
+        target_projection.projection,
+        target_projection.target_capability_fingerprint);
+    if !CompilerEmissionArtifactReady(artifact) {
+        Die("nested intent C substitution artifact fingerprint is invalid");
+    }
+    return Some(artifact);
+}

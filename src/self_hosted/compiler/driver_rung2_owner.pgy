@@ -22,6 +22,7 @@ import "canonical_mir_identity_epoch_owner.pgy";
 import "domain_topology_graph_plan_consumer_owner.pgy";
 import "codegen_callable_receiver_bridge_owner.pgy";
 import "driver_rung2_intent_consumer_owner.pgy";
+import "driver_rung2_nested_intent_c_substitution_owner.pgy";
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
     body_types: SemanticAstBodyTypeBundle;
@@ -250,6 +251,10 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     observe_pressure: Bool,
     retire_owned_source_json: Bool
 ) -> CompilerEmissionArtifact {
+    let nested_c: Option<CompilerEmissionArtifact> =
+        DriverRung2NestedIntentCSubstitutionIfClaimed(
+            admitted, target_projection, retire_owned_source_json);
+    if IsSome(nested_c) { return UnwrapOption(nested_c); }
     let json: String = admitted.routines.source_json;
     let topology_receipt: MirDomainTopologyGraphPlanConsumptionReceipt =
         MirDomainTopologyGraphPlanConsumptionFromAdmitted(admitted);

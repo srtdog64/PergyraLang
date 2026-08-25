@@ -1,23 +1,24 @@
-// Exclusive LLVM boundary for the admitted nested-intent mixed-callable route.
+// Exclusive target-pair boundary for the admitted nested-intent route.
 
+import "direct_mir_nested_intent_program_c_emission_owner.pgy";
 import "direct_mir_nested_intent_program_llvm_emission_owner.pgy";
 
-func CompileAdmittedDirectMirNestedIntentProgramLlvm(
+func CompileAdmittedDirectMirNestedIntentProgramForTargetIfClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    route: DirectMirNestedIntentProgramRouteFact
-) -> String {
-    let plan: DirectMirNestedIntentProgramPlan =
-        DirectMirNestedIntentProgramPlanFromAdmitted(admitted, route);
-    return DirectMirNestedIntentProgramEmitLlvm(plan);
-}
-
-func CompileAdmittedDirectMirNestedIntentProgramLlvmIfClaimed(
-    ref admitted: MirMachineLayerAdmittedJsonInput, is_llvm: Bool
+    target_projection: CompilerTargetProjectionFact
 ) -> Option<String> {
-    if !is_llvm { return None; }
     let route: DirectMirNestedIntentProgramRouteFact =
         DirectMirNestedIntentProgramRouteFactFromAdmitted(admitted);
     if !route.claimed { return None; }
-    return Some(CompileAdmittedDirectMirNestedIntentProgramLlvm(
-        admitted, route));
+    let plan: DirectMirNestedIntentProgramPlan =
+        DirectMirNestedIntentProgramPlanFromAdmitted(admitted, route);
+    if CompilerTargetProjectionFactReadyFor(
+            target_projection, CompilerTargetCpuCProjection()) {
+        return Some(DirectMirNestedIntentProgramEmitC(plan));
+    }
+    if CompilerTargetProjectionFactReadyFor(
+            target_projection, CompilerTargetCpuLlvmProjection()) {
+        return Some(DirectMirNestedIntentProgramEmitLlvm(plan));
+    }
+    Die("direct MIR nested intent target projection is invalid");
 }

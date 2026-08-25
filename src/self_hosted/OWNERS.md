@@ -2427,12 +2427,18 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_nested_intent_program_plan_owner.pgy`
   -- sealed target-neutral callable headers, implicit receiver, ordered intent
   bindings, literal/dynamic priority, step, expectation, and cleanup receipt.
+- `src/self_hosted/compiler/direct_mir_nested_intent_program_c_emission_owner.pgy`
+  -- MIR-blind C consumer preserving the same zone copy/sync, nested runtime
+  priority, active-intent observations, and Bool result owned by the plan.
 - `src/self_hosted/compiler/direct_mir_nested_intent_program_llvm_emission_owner.pgy`
   -- MIR-blind LLVM consumer preserving zone copy/sync, method mutation,
   nested runtime priority, active-intent observations, and Bool result output.
 - `src/self_hosted/compiler/direct_mir_nested_intent_program_projection_owner.pgy`
-  -- LLVM-only exclusive composition boundary issuing and consuming the nested
-  intent plan after composite intent and before scalar admission.
+  -- target-pair exclusive composition boundary issuing the nested plan once
+  after composite intent and before scalar admission, then selecting C/LLVM.
+- `src/self_hosted/compiler/driver_rung2_nested_intent_c_substitution_owner.pgy`
+  -- exact source/MIR-to-C substitution boundary; claimed nested programs emit
+  from the shared plan before the general MIR-to-AST reconstruction consumer.
 - `src/self_hosted/compiler/direct_mir_legacy_intent_program_route_fact_owner.pgy`
   -- exclusive structural claim for the first executable one-function,
   one-subject-action, one-intent, one-subject/zone program family; a claimed

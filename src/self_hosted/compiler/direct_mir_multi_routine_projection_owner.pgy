@@ -64,7 +64,7 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
     if IsSome(intent_payload) { return UnwrapOption(intent_payload); }
     let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);
     if IsSome(composite_intent_payload) { return UnwrapOption(composite_intent_payload); }
-    let nested_intent_payload: Option<String> = CompileAdmittedDirectMirNestedIntentProgramLlvmIfClaimed(admitted, is_llvm);
+    let nested_intent_payload: Option<String> = CompileAdmittedDirectMirNestedIntentProgramForTargetIfClaimed(admitted, target_projection);
     if IsSome(nested_intent_payload) { return UnwrapOption(nested_intent_payload); }
     DirectMirPressureStage(observe_pressure, "scalar-route:start");
     let scalar_program_admission: DirectMirScalarProgramRouteAdmission =

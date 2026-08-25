@@ -1,0 +1,324 @@
+// C materialization from one sealed nested-intent plan.
+// No admitted MIR, source, AST, JSON, or scalar-route fact is read here.
+
+import "direct_mir_nested_intent_program_plan_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+import "../codegen/runtime_abi/runtime_header_owner.pgy";
+import "../codegen/runtime_abi/zone_runtime_owner.pgy";
+import "../codegen/runtime_abi/intent_runtime_symbol_owner.pgy";
+
+func DirectMirNestedIntentCStringContentReady(value: String) -> Bool {
+    let i: Int = 0;
+    while i < StringLength(value) {
+        let code: Int = CharCode(value, StringLength(value), i);
+        if code < 32 || code > 126 || code == 34 || code == 92 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func DirectMirNestedIntentCAbiReady(
+    formatted_print: CompilerRuntimeCallAbiFact,
+    rows: Array<IntentObservabilityAbiRow>
+) -> Bool {
+    return CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) &&
+        formatted_print.symbol != "" && ArrayLength(rows) == 4 &&
+        rows[0].valid && rows[0].source_name == "IntentActiveCount" &&
+        rows[0].argument_count == 0 && rows[0].return_type == "Int" &&
+        rows[1].valid && rows[1].source_name == "IntentActiveName" &&
+        rows[1].argument_count == 1 && rows[1].return_type == "String" &&
+        rows[2].valid && rows[2].source_name == "IntentActivePriority" &&
+        rows[2].argument_count == 1 && rows[2].return_type == "Int" &&
+        rows[3].valid && rows[3].source_name == "IntentActiveConcurrent" &&
+        rows[3].argument_count == 1 && rows[3].return_type == "Bool";
+}
+
+func DirectMirNestedIntentCTypesAndSync(
+    subject_type: String, subject_field: String,
+    zone_type: String, zone_field: String, sync_symbol: String
+) -> String {
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(1024);
+    TextBuilderAppend(output, "typedef struct {\n    int32_t ");
+    TextBuilderAppend(output, subject_field);
+    TextBuilderAppend(output, ";\n} ");
+    TextBuilderAppend(output, subject_type);
+    TextBuilderAppend(output, ";\n\ntypedef struct {\n    ");
+    TextBuilderAppend(output, subject_type);
+    TextBuilderAppend(output, " ");
+    TextBuilderAppend(output, zone_field);
+    TextBuilderAppend(output,
+        ";\n    PGY_ZONE_LOCK_FIELD\n    PGY_ZONE_GENERATION_FIELD\n} ");
+    TextBuilderAppend(output, zone_type);
+    TextBuilderAppend(output, ";\n\nstatic void ");
+    TextBuilderAppend(output, sync_symbol);
+    TextBuilderAppend(output, "(");
+    TextBuilderAppend(output, zone_type);
+    TextBuilderAppend(output,
+        " *self) {\n    PGY_ZONE_WRLOCK(self);\n    PGY_ZONE_GENERATION_INC(self);\n    PGY_ZONE_UNLOCK(self);\n}\n\n");
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return result;
+}
+
+func DirectMirNestedIntentCMethod(
+    ref plan: DirectMirNestedIntentProgramPlan,
+    subject_type: String, subject_field: String, method_symbol: String,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    rows: Array<IntentObservabilityAbiRow>
+) -> String {
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(2048);
+    TextBuilderAppend(output, "static bool ");
+    TextBuilderAppend(output, method_symbol);
+    TextBuilderAppend(output, "(");
+    TextBuilderAppend(output, subject_type);
+    TextBuilderAppend(output, " *self) {\n    self->");
+    TextBuilderAppend(output, subject_field);
+    TextBuilderAppend(output, " += ");
+    TextBuilderAppend(output, ToString(plan.graph.method_delta));
+    TextBuilderAppend(output, ";\n    ");
+    TextBuilderAppend(output, formatted_print.symbol);
+    TextBuilderAppend(output, "(\"%s%d\\n\", \"");
+    TextBuilderAppend(output, plan.graph.method_log_literals[0]);
+    TextBuilderAppend(output, "\", (int)");
+    TextBuilderAppend(output, rows[0].runtime_name);
+    TextBuilderAppend(output, "());\n");
+    let active: Int = 0;
+    while active < 2 {
+        let base: Int = 1 + active * 3;
+        TextBuilderAppend(output, "    ");
+        TextBuilderAppend(output, formatted_print.symbol);
+        TextBuilderAppend(output, "(\"%s%s\\n\", \"");
+        TextBuilderAppend(output, plan.graph.method_log_literals[base]);
+        TextBuilderAppend(output, "\", ");
+        TextBuilderAppend(output, rows[1].runtime_name);
+        TextBuilderAppend(output, "(");
+        TextBuilderAppend(output, ToString(active));
+        TextBuilderAppend(output, "));\n    ");
+        TextBuilderAppend(output, formatted_print.symbol);
+        TextBuilderAppend(output, "(\"%s%d\\n\", \"");
+        TextBuilderAppend(output, plan.graph.method_log_literals[base + 1]);
+        TextBuilderAppend(output, "\", (int)");
+        TextBuilderAppend(output, rows[2].runtime_name);
+        TextBuilderAppend(output, "(");
+        TextBuilderAppend(output, ToString(active));
+        TextBuilderAppend(output, "));\n    ");
+        TextBuilderAppend(output, formatted_print.symbol);
+        TextBuilderAppend(output, "(\"%s%s\\n\", \"");
+        TextBuilderAppend(output, plan.graph.method_log_literals[base + 2]);
+        TextBuilderAppend(output, "\", ");
+        TextBuilderAppend(output, rows[3].runtime_name);
+        TextBuilderAppend(output, "(");
+        TextBuilderAppend(output, ToString(active));
+        TextBuilderAppend(output, ") ? \"true\" : \"false\");\n");
+        active = active + 1;
+    }
+    TextBuilderAppend(output, "    return true;\n}\n\n");
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return result;
+}
+
+func DirectMirNestedIntentCInner(
+    ref plan: DirectMirNestedIntentProgramPlan,
+    subject_type: String, zone_type: String, zone_field: String,
+    method_symbol: String, sync_symbol: String, inner_symbol: String
+) -> String {
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(2048);
+    TextBuilderAppend(output, "static bool ");
+    TextBuilderAppend(output, inner_symbol);
+    TextBuilderAppend(output, "(");
+    TextBuilderAppend(output, zone_type);
+    TextBuilderAppend(output, " *world, ");
+    TextBuilderAppend(output, subject_type);
+    TextBuilderAppend(output,
+        " *subject, int32_t requested) {\n    void *subjects[1] = { subject };\n    int32_t handle = ");
+    TextBuilderAppend(output, IntentRuntimeCEnterFn());
+    TextBuilderAppend(output, "(\"");
+    TextBuilderAppend(output, plan.graph.inner_name);
+    TextBuilderAppend(output, "\", subjects, 1, ");
+    if plan.inner_policy.concurrent { TextBuilderAppend(output, "true"); }
+    else { TextBuilderAppend(output, "false"); }
+    TextBuilderAppend(output,
+        ", requested);\n    if (handle == 0) return false;\n    world->");
+    TextBuilderAppend(output, zone_field);
+    TextBuilderAppend(output, " = *subject;\n    ");
+    TextBuilderAppend(output, sync_symbol);
+    TextBuilderAppend(output, "(world);\n    bool result = ");
+    TextBuilderAppend(output, method_symbol);
+    TextBuilderAppend(output, "(&world->");
+    TextBuilderAppend(output, zone_field);
+    TextBuilderAppend(output, ");\n    ");
+    TextBuilderAppend(output, sync_symbol);
+    TextBuilderAppend(output, "(world);\n    *subject = world->");
+    TextBuilderAppend(output, zone_field);
+    TextBuilderAppend(output, ";\n    ");
+    TextBuilderAppend(output, IntentRuntimeCExitFn());
+    TextBuilderAppend(output, "(handle);\n    return result;\n}\n\n");
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return result;
+}
+
+func DirectMirNestedIntentCOuter(
+    ref plan: DirectMirNestedIntentProgramPlan,
+    subject_type: String, zone_type: String, subject_field: String,
+    outer_symbol: String, inner_symbol: String
+) -> String {
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(1536);
+    TextBuilderAppend(output, "static bool ");
+    TextBuilderAppend(output, outer_symbol);
+    TextBuilderAppend(output, "(");
+    TextBuilderAppend(output, zone_type);
+    TextBuilderAppend(output, " *world, ");
+    TextBuilderAppend(output, subject_type);
+    TextBuilderAppend(output,
+        " *subject) {\n    void *subjects[1] = { subject };\n    int32_t handle = ");
+    TextBuilderAppend(output, IntentRuntimeCEnterFn());
+    TextBuilderAppend(output, "(\"");
+    TextBuilderAppend(output, plan.graph.outer_name);
+    TextBuilderAppend(output, "\", subjects, 1, ");
+    if plan.outer_policy.concurrent { TextBuilderAppend(output, "true"); }
+    else { TextBuilderAppend(output, "false"); }
+    TextBuilderAppend(output, ", ");
+    TextBuilderAppend(output, ToString(plan.outer_policy.priority_literal));
+    TextBuilderAppend(output,
+        ");\n    if (handle == 0) return false;\n    bool result = ");
+    TextBuilderAppend(output, inner_symbol);
+    TextBuilderAppend(output, "(world, subject, ");
+    TextBuilderAppend(output, ToString(plan.outer_policy.nested_argument));
+    TextBuilderAppend(output, ") && subject->");
+    TextBuilderAppend(output, subject_field);
+    TextBuilderAppend(output, " == ");
+    TextBuilderAppend(output, ToString(plan.outer_policy.expected_value));
+    TextBuilderAppend(output, ";\n    ");
+    TextBuilderAppend(output, IntentRuntimeCExitFn());
+    TextBuilderAppend(output, "(handle);\n    return result;\n}\n\n");
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return result;
+}
+
+func DirectMirNestedIntentCMain(
+    ref plan: DirectMirNestedIntentProgramPlan,
+    subject_type: String, subject_field: String,
+    zone_type: String, zone_field: String, outer_symbol: String,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> String {
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(1536);
+    TextBuilderAppend(output, "int main(void) {\n    ");
+    TextBuilderAppend(output, subject_type);
+    TextBuilderAppend(output, " subject = { .");
+    TextBuilderAppend(output, subject_field);
+    TextBuilderAppend(output, " = ");
+    TextBuilderAppend(output, ToString(plan.graph.initial_value));
+    TextBuilderAppend(output, " };\n    ");
+    TextBuilderAppend(output, zone_type);
+    TextBuilderAppend(output, " world = { .");
+    TextBuilderAppend(output, zone_field);
+    TextBuilderAppend(output,
+        " = subject };\n    PGY_ZONE_LOCK_INIT(&world);\n    bool result = ");
+    TextBuilderAppend(output, outer_symbol);
+    TextBuilderAppend(output, "(&world, &subject);\n    ");
+    TextBuilderAppend(output, formatted_print.symbol);
+    TextBuilderAppend(output, "(\"%s%s\\n\", \"");
+    TextBuilderAppend(output, plan.graph.main_log_literals[0]);
+    TextBuilderAppend(output,
+        "\", result ? \"true\" : \"false\");\n    ");
+    TextBuilderAppend(output, formatted_print.symbol);
+    TextBuilderAppend(output, "(\"%s%d\\n\", \"");
+    TextBuilderAppend(output, plan.graph.main_log_literals[1]);
+    TextBuilderAppend(output, "\", (int)subject.");
+    TextBuilderAppend(output, subject_field);
+    TextBuilderAppend(output,
+        ");\n    PGY_ZONE_LOCK_DESTROY(&world);\n    return 0;\n}\n");
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return result;
+}
+
+func DirectMirNestedIntentProgramEmitC(
+    ref plan: DirectMirNestedIntentProgramPlan
+) -> String {
+    if !DirectMirNestedIntentProgramPlanReady(plan) {
+        Die("direct MIR nested intent C receipt is invalid");
+    }
+    let formatted_print: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFormattedPrintFact();
+    let rows: Array<IntentObservabilityAbiRow> = [
+        IntentObservabilityAbiRowForSource("IntentActiveCount"),
+        IntentObservabilityAbiRowForSource("IntentActiveName"),
+        IntentObservabilityAbiRowForSource("IntentActivePriority"),
+        IntentObservabilityAbiRowForSource("IntentActiveConcurrent")];
+    if !DirectMirNestedIntentCAbiReady(formatted_print, rows) {
+        Die("direct MIR nested intent C runtime ABI is invalid");
+    }
+    let literal: Int = 0;
+    while literal < ArrayLength(plan.graph.method_log_literals) {
+        if !DirectMirNestedIntentCStringContentReady(
+                plan.graph.method_log_literals[literal]) {
+            Die("direct MIR nested intent C method literal is invalid");
+        }
+        literal = literal + 1;
+    }
+    literal = 0;
+    while literal < ArrayLength(plan.graph.main_log_literals) {
+        if !DirectMirNestedIntentCStringContentReady(
+                plan.graph.main_log_literals[literal]) {
+            Die("direct MIR nested intent C Main literal is invalid");
+        }
+        literal = literal + 1;
+    }
+    let subject_type: String = CompilerSymbolCIdentifier(
+        plan.graph.subject_type_name);
+    let subject_field: String = CompilerSymbolCIdentifier(
+        plan.graph.subject_field_name);
+    let zone_type: String = CompilerSymbolCIdentifier(
+        plan.graph.zone_type_name);
+    let zone_field: String = CompilerSymbolCIdentifier(
+        plan.graph.zone_field_name);
+    let method_symbol: String = CompilerSymbolCIdentifier(Concat(
+        plan.graph.subject_type_name, Concat("_", plan.graph.method_name)));
+    let outer_symbol: String = CompilerSymbolCIdentifier(plan.graph.outer_name);
+    let inner_symbol: String = CompilerSymbolCIdentifier(plan.graph.inner_name);
+    let sync_symbol: String = CompilerSymbolCIdentifier(Concat(
+        plan.graph.zone_type_name, "_sync"));
+    if subject_type == "" || subject_field == "" || zone_type == "" ||
+        zone_field == "" || method_symbol == "" || outer_symbol == "" ||
+        inner_symbol == "" || sync_symbol == "" ||
+        subject_type == zone_type || outer_symbol == inner_symbol {
+        Die("direct MIR nested intent C symbols are invalid");
+    }
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(8192);
+    TextBuilderAppend(output,
+        "#include <stdbool.h>\n#include <stdint.h>\n#include <stdio.h>\n");
+    TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(
+        false, false, false, false, false, false, false, false, false, true));
+    TextBuilderAppend(output, DomainRuntimeZoneCHeaderIncludeBlock());
+    TextBuilderAppend(output, "\n");
+    TextBuilderAppend(output, DirectMirNestedIntentCTypesAndSync(
+        subject_type, subject_field, zone_type, zone_field, sync_symbol));
+    TextBuilderAppend(output, DirectMirNestedIntentCMethod(
+        plan, subject_type, subject_field, method_symbol,
+        formatted_print, rows));
+    TextBuilderAppend(output, DirectMirNestedIntentCInner(
+        plan, subject_type, zone_type, zone_field, method_symbol,
+        sync_symbol, inner_symbol));
+    TextBuilderAppend(output, DirectMirNestedIntentCOuter(
+        plan, subject_type, zone_type, subject_field,
+        outer_symbol, inner_symbol));
+    TextBuilderAppend(output, DirectMirNestedIntentCMain(
+        plan, subject_type, subject_field, zone_type, zone_field,
+        outer_symbol, formatted_print));
+    let program: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return program;
+}

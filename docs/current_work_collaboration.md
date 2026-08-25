@@ -6,6 +6,62 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease E — nested priority/observability direct-C substitution
+
+- Base revision: `5d2f7e6e060a67e2950deba574f334d59889f6f6`.
+- Editing and integration owner: the primary Codex task. Peer Codex tasks are
+  read-only auditors and must not edit, stage, commit, push, or run a self-host
+  build while this lease is active.
+- Objective: make the exact admitted one-subject/one-zone/two-intent nested
+  priority/observability family produce C from the same sealed
+  `DirectMirNestedIntentProgramPlan` already consumed by direct LLVM, then make
+  production source-C and direct-MIR C consume that one C projection instead of
+  reconstructing an AST or falling through to the scalar route.
+- Priority order: exact native/public behavior; one route/graph/header/policy
+  plan; MIR-blind target-specific C materialization; byte-identical source-C and
+  direct-C artifacts; fail-closed claimed-family mutations; old-path rejection;
+  then emitted warning cleanliness and patch size.
+- Fact owner: `DirectMirNestedIntentProgramPlanFromAdmitted`, with its admitted
+  route, graph, routine-header, outer-policy, and inner-policy facts. Existing
+  intent observability ABI rows and runtime symbols remain ABI authority. No C
+  emitter may reopen admitted MIR, reconstructed AST, source text, or raw JSON.
+- Production entrypoints and last consumers: installed
+  `DriverCliSourceCArtifact`/stdout through
+  `CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved`, and installed
+  `DriverCliDirectMirCArtifact` through
+  `CompileAdmittedDirectMirMultiRoutineForTargetObserved`. Both must consume one
+  shared claimed-plan C projection before artifact publication.
+- Direct bypass to delete: for this exact claimed family, source-C currently
+  enters `DriverRung2IntentTreeEmissionOrDie` and reconstructs/reanalyzes an AST;
+  direct-MIR C skips the LLVM-only claimed projection and dies later at
+  `scalar-program-route`. The claimed family must not retry either path.
+- Observed RED: the current admitted MIR projects and executes through direct
+  LLVM, but direct C exits 1 with `direct MIR scalar program route rejected` and
+  publishes no artifact. Public installed C and native C both execute the exact
+  nine-line `active.count/name/priority/concurrent`, `outer.ok`, and `captures`
+  output, proving an executable behavior oracle while source-C still uses the
+  reconstructed-AST path.
+- Falsifier and integration gate: one current-source MIR must produce
+  byte-identical source-C and direct-C artifacts, both compile warning-clean and
+  execute the exact nine-line output also produced by native C/LLVM and direct
+  LLVM. Existing missing-priority, graph-drift, duplicate-source, method-owner,
+  and action-name mutations must fail before either C artifact is published,
+  and static ordering must reject MIR-to-AST/scalar retry after a nested route
+  claim. Source a bounded C sibling from the existing nested-intent target so no
+  CI job or second self-host compiler build is added. This exact family is a
+  `SUBSTITUTING` delta; do not promote broader intent or top-level SoT status
+  without denominator evidence.
+
+### Parallel read-only assignments
+
+1. Plan/emitter auditor: inspect the sealed nested plan, existing LLVM emitter,
+   runtime ABI owners, and source-C admission point. Report the minimum C
+   materialization seam and any lifetime/dual-authority hazards; make no edits.
+2. Gate/integration auditor: inspect the existing nested-intent gate, Make/CI
+   reuse, owner caps, exact public/direct/native evidence, and mutation set.
+   Report the smallest non-duplicating executable/negative ratchet; make no
+   edits.
+
 ## DONE lease D — installed MIR-C stdout world/action boundary
 
 - Base revision: `5bbb62877e42216a949d024c603ab3392f2eef84`.
