@@ -1,12 +1,12 @@
 # Self-Hosted Compiler World Architecture
 
-Status: `hard-self-host-shape-contract / source-MIR REACHABLE BRIDGE`
+Status: `hard-self-host-shape-contract / source-MIR/source-C REACHABLE BRIDGE`
 
 The self-hosted compiler must not become a Pergyra rewrite of the C folder
 layout. Pergyra's language surface is intent-first and world/zone-oriented, so
 the target hard self-host shape is rooted in `PgyCompilerWorld`.
 
-The bounded direct-MIR and source-to-MIR slices are now part of the production
+The bounded direct-MIR, source-to-MIR, and source-to-C slices are now part of the production
 call graph. The installed self-driver and the full bootstrap artifact root
 share the same source-to-MIR world/action owner; source folders remain fact
 boundaries, not competing program graphs. The reachable paths are:
@@ -23,6 +23,12 @@ driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2I
     -> PgyCompilerWorld.source_mir
     -> DriverSourceMirZone.execution
     -> DriverSourceMirExecution.PublishSourceMirArtifact
+
+driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceC -> PublishSourceCArtifactThroughPgyCompilerWorld
+    -> PgyCompilerWorld.PublishSourceCArtifact
+    -> PgyCompilerWorld.source_c
+    -> DriverSourceCZone.execution
+    -> DriverSourceCExecution.PublishSourceCArtifact
 
 bin/pgy --self-driver -> native sibling launcher -> bin/pgy-self-driver
     -> driver_rung2_main.Main -> RunDriverRung2FromArgs
@@ -44,18 +50,18 @@ SURFACE/REACHABLE/SUBSTITUTING distinction and takeover order remain owned by
 
 `PgyCompilerWorld` is the self-host compiler orchestration owner. Stage
 directories own facts; resource zones own isolated compiler resources. The
-production direct-MIR and source-to-MIR entrypoints now reach two bounded
+production direct-MIR, source-to-MIR, and source-to-C entrypoints now reach three bounded
 world slices after their old direct subject/file-helper calls were deleted.
-Source-to-C and MIR-to-C modes still bypass the declared root intent through
-`Main -> Compile*` calls. Root-intent takeover follows when a real compiler
+MIR-to-C modes still bypass the declared root intent through direct installed
+compile/commit calls. Root-intent takeover follows when a real compiler
 purpose binder and its cross-axis fact bundle reach the production call graph,
 delete the direct bypass, and earn the same replacement evidence. The number
 of actions is not the takeover criterion.
 
 - `src/self_hosted/compiler/world.pgy` names the hard-substitution world.
-- The import closure declares exactly 20 concrete resource-zone types, while
+- The import closure declares exactly 21 concrete resource-zone types, while
   `PgyCompilerWorld` contains only the production-reachable `direct_mir` and
-  `source_mir` members. A declared target zone becomes a world member only in
+  `source_mir`, and `source_c` members. A declared target zone becomes a world member only in
   the rung that deletes its old production bypass.
 - `DriverRung2DirectMirZone` owns only the execution subject's authority and
   lifetime boundary. Target selection, MIR, backend projection, artifact
@@ -69,8 +75,13 @@ of actions is not the takeover criterion.
   rejects an empty output path before compilation and commits once through the
   shared artifact transaction. Empty-path stdout sentinels and temp-file round
   trips are forbidden.
+- `DriverSourceCZone` owns only source-to-C execution authority and lifetime.
+  Its action validates subject/topology and artifact identity, consumes the
+  existing `CompileSourceToCVerified` and shared transaction exactly once, and
+  preserves executed, request-rejected, and artifact-rejected outcomes. It does
+  not own source, semantic, MIR, target, or C-emission facts.
 - `compiler_world_direct_mir_owner.pgy` is the sole composition owner. It
-  materializes both active zones in positional order and delegates through
+  materializes all three active zones in positional order and delegates through
   `PgyCompilerWorld`; it may not declare another world.
 - `CompilePergyraProgram` is the root compiler intent.
 - No aggregate compiler zone mirrors those resources. The former
@@ -79,12 +90,12 @@ of actions is not the takeover criterion.
   unused; it is forbidden by the compiler-world gate.
 - `ProgramEmitter` is the current C-emission participant that drives writes
   into `EmissionZone`; it is not a resource zone.
-- `DriverRung2DirectMirZone`, `DriverSourceMirZone`, `SourceIntakeZone`, `TokenStreamZone`,
+- `DriverRung2DirectMirZone`, `DriverSourceMirZone`, `DriverSourceCZone`, `SourceIntakeZone`, `TokenStreamZone`,
   `AstTreeZone`, `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`,
   `AbiLayoutZone`, `TargetCapabilityZone`, `CompatibilityEvolutionZone`,
   `AirEvidenceZone`, `SandboxCapabilityZone`, `SymbolFactTableZone`,
   `AbiRowProjectionZone`, `EmissionZone`, `ArtifactZone`, `TestHarnessZone`,
-  `SubprocessRunnerZone`, and `ParityZone` are the 20 concrete resource zones.
+  `SubprocessRunnerZone`, and `ParityZone` are the 21 concrete resource zones.
 - `StagePathManifest` is the canonical path fact for the self-hosted source,
   test, parity, and stage entrypoint locations.
 - `path_manifest_owner.pgy` owns the current Pergyra string values for those
@@ -111,7 +122,7 @@ of actions is not the takeover criterion.
 
 This is not a claim that the released compiler is self-hosted or that the
 current bootstrap executes the whole root intent. The bootstrap executes the
-`direct_mir` and `source_mir` world members and their real actions; the remaining zone types and
+`direct_mir`, `source_mir`, and `source_c` world members and their real actions; the remaining zone types and
 intents are target topology, not dormant members filled with zero values. New
 hard-substitution work must extend that one graph and remove the corresponding
 direct bypass rather than grow a second C-style tree.
@@ -164,7 +175,8 @@ PgyCompilerWorld
     +-- Emission
     +-- Artifact
     +-- DirectMIR
-    `-- SourceMIR
+    +-- SourceMIR
+    `-- SourceC
 ```
 
 This is a target facade projection, not a claim that four new aggregate zones
@@ -188,6 +200,7 @@ missing fact, or become a second authority.
 | `BackendResources.Artifact` | `ArtifactZone`, `TestHarnessZone`, `SubprocessRunnerZone`, `ParityZone` |
 | `BackendResources.DirectMIR` | `DriverRung2DirectMirZone` |
 | `BackendResources.SourceMIR` | `DriverSourceMirZone` |
+| `BackendResources.SourceC` | `DriverSourceCZone` |
 
 The facade is allowed to become visible in `world.pgy` only after all of the
 following are true:
@@ -240,6 +253,9 @@ For compiler self-hosting that means:
   a read-only payload action and write-authorized artifact action own their
   distinct publication transitions while existing typed owners retain
   source/MIR semantics.
+- `DriverSourceCZone` owns the production source-to-C execution subject's
+  authority and lifetime. It admits one existing C compiler artifact and one
+  typed publication transition without copying semantic or emission facts.
 - `CompatibilityEvolutionZone` owns source, ABI/binary, behavior, diagnostic,
   AIR evidence, MIR JSON, runtime trace, capability profile, stdlib module, and
   obsolete-migration metadata facts.
@@ -264,6 +280,10 @@ For current codegen this is the concrete split:
   pressure-observed requests enter one admission owner through two
   capability-separated actions, and only the full driver source may use the
   pressure-observed request.
+- `DriverSourceCZone`: `subject slot execution:
+  DriverSourceCExecution` with `authority execution`; source/output identity
+  enters one write-authorized action and its typed outcome reaches installed
+  CLI without a direct compile/commit retry.
 - `EmissionZone`: `object slot c_output: EmittedC`, driven by
   `subject slot emitter: ProgramEmitter`.
 - `TypeEnvZone`: `object slot bindings: TypeEnvironment`, consumed as
@@ -318,8 +338,8 @@ drifts from `path_manifest_owner.pgy`. The same smoke is called by
 `make self-host-preparation-test-smoke`.
 
 For the owner-edit loop, `tests/self_host_compiler_topology_smoke.sh` checks the
-root world, exactly 20 concrete resource zones and two executable world members,
-the ordered `direct_mir` and `source_mir` bindings, four derived stage clusters,
+root world, exactly 21 concrete resource zones and three executable world members,
+the ordered `direct_mir`, `source_mir`, and `source_c` bindings, four derived stage clusters,
 aggregate-zone prohibition, and the absence of a second compiler world in one
 small pass. It also pins the production Main -> composition -> world -> zone
 path so Main cannot silently restore the direct subject call.

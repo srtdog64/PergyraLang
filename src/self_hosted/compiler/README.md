@@ -242,7 +242,7 @@ checks stdout and file-output parity across that shared driver fixture frontier
 without moving artifact generation out of the stage owners.
 
 The root `CompilePergyraProgram` intent in `world.pgy` remains a scaffold, while
-the `direct_mir` and `source_mir` members are production-reachable. The file is parse-gated by
+the `direct_mir`, `source_mir`, and `source_c` members are production-reachable. The file is parse-gated by
 `make self-host-compiler-world-contract-test-smoke` and wired into
 `make self-host-preparation-test-smoke`. That gate also enforces
 **manifest-to-reality conformance**: every stage `StagePathManifest` names must

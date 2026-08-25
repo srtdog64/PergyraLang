@@ -391,7 +391,7 @@ composition boundary다. 물리적 stage 폴더는 각 fact owner의 경계라 �
 `direct_mir`, `source_mir`, `source_c` 세 field는 positional order로 실제 materialize되고
 나머지 zone과 root intent는 import-reachable surface다.
 
-재귀 import closure에는 world 1개와 concrete zone 20개가 있다. 정확한 전체
+재귀 import closure에는 world 1개와 concrete zone 21개가 있다. 정확한 전체
 declaration census는 gate가 다시 생성하는 관측값이며, import surface의 선언 수를
 실행 증거로 세지 않는다.
 
@@ -427,16 +427,18 @@ production declaration과 composition은 다음처럼 나뉜다.
   identity/schema, typed receipt/rejection, outcome validation과 diagnostic;
 - `compiler/driver_source_mir_execution_owner.pgy`: 실제 source-to-MIR
   subject/action/zone, pressure admission, payload production과 artifact commit;
-- `compiler/world.pgy`: world 1개와 concrete zone 20개를 선언하고, world
-  member로는 실제 실행되는 `direct_mir`, `source_mir` 둘만 binding;
+- `compiler/driver_source_c_execution_owner.pgy`: 실제 source-to-C
+  subject/action/zone, artifact identity admission과 typed commit outcome;
+- `compiler/world.pgy`: world 1개와 concrete zone 21개를 선언하고, world
+  member로는 실제 실행되는 `direct_mir`, `source_mir`, `source_c` 셋만 binding;
 - `compiler/stage_intents.pgy`: intent 4개;
 - `compiler/authority_owner.pgy`: role 4개, ability 4개;
 - `compiler/compiler_world_direct_mir_owner.pgy`: 새 world를 선언하지 않고
-  정확한 arity와 순서로 두 executable zone을 한 번 materialize하는 유일한
+  정확한 arity와 순서로 세 executable zone을 한 번 materialize하는 유일한
   composition function. 미실행 zone의 aggregate zero-fill은 금지된다.
 
-`world.pgy`의 기존 readiness action은 현재 chain에서 호출되지 않는다. 두 실제
-action만 target 또는 pressure admission과 artifact write/rejected transition을
+`world.pgy`의 기존 readiness action은 현재 chain에서 호출되지 않는다. 네 실제
+action만 target, pressure, source-C admission과 payload/artifact transition을
 수행한다. 따라서 world가 import됐다는
 사실이나 domain 선언 수를 C-owned compiler substitution으로 세지 않는다.
 `bin/pgy.exe src/self_hosted/compiler/world.pgy --emit-c`는 현재 exit 0이지만,

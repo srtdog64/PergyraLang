@@ -335,26 +335,29 @@ SENTINEL_MAX=24
 # absent graphs, modes, types, and reconstructed priority nodes explicit.
 # 4242 -> 4246 (2026-08-25): intent mode admission preserves typed AST child
 # absence and atom-text reads through the DIR owner instead of sentinels.
-RESULT_USE_MIN=4246
+# 4246 -> 4257 (2026-08-25): source-C world/action admission carries executed,
+# request-rejected, and artifact-rejected outcomes to the final CLI consumer.
+RESULT_USE_MIN=4257
 COMPILER_WORLD_SURFACE_MIN=1
-COMPILER_RESOURCE_ZONES_EXACT=20
-# The import closure declares 20 resource-zone types, but the runtime world
+COMPILER_RESOURCE_ZONES_EXACT=21
+# The import closure declares 21 resource-zone types, but the runtime world
 # contains only the production-reachable slice. Adding a member requires
 # deleting that stage's old production bypass first.
-COMPILER_WORLD_MEMBERS_EXACT=2
+COMPILER_WORLD_MEMBERS_EXACT=3
 COMPILER_INTENT_SURFACE_MIN=14
 # Four duplicated intent `where` clauses moved behind action-owned `within`
 # contracts while the reachable direct-MIR action added its real zone. Count
 # both spellings; the one-row drop is removal of duplicate authority prose,
 # not loss of a resource boundary.
-# The source-to-MIR subject now has two real zone-bound publication actions:
-# read-only payload production and write-authorized artifact publication.
+# The source-to-MIR subject has two real zone-bound publication actions;
+# source-to-C adds one write-authorized action after deleting its installed
+# direct compile/commit bypass.
 # 29 -> 37 (2026-08-09): world.pgy's step bindings evolved from 'where: XZone;'
 # rows to 'requires Intent within XZone authorized by self { ... }' blocks; the
 # counter only knew the old spellings, so the metric read a strengthening as a
 # loss. The pattern now admits the requires-block spelling and the floor rises
 # to the re-measured total.
-COMPILER_ZONE_BOUND_STEPS_MIN=37
+COMPILER_ZONE_BOUND_STEPS_MIN=38
 COMPILER_STAGE_BINDINGS_EXACT=5
 COMPILER_WORLD_FACT_CONSUMERS_MIN=19
 STAGE_PAYLOAD_CONSUMERS_EXACT=7
@@ -551,7 +554,8 @@ compiler_world_surface=$(count_lines_in_files '^world[[:space:]]+PgyCompilerWorl
 compiler_resource_zones=$(count_lines_in_files '^(public[[:space:]]+)?zone[[:space:]]' \
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/driver_rung2_execution_owner.pgy \
-    src/self_hosted/compiler/driver_source_mir_execution_owner.pgy)
+    src/self_hosted/compiler/driver_source_mir_execution_owner.pgy \
+    src/self_hosted/compiler/driver_source_c_execution_owner.pgy)
 compiler_world_members=$(count_world_zone_members)
 compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
     src/self_hosted/compiler/world.pgy \
@@ -560,7 +564,8 @@ compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy \
     src/self_hosted/compiler/driver_rung2_execution_owner.pgy \
-    src/self_hosted/compiler/driver_source_mir_execution_owner.pgy)
+    src/self_hosted/compiler/driver_source_mir_execution_owner.pgy \
+    src/self_hosted/compiler/driver_source_c_execution_owner.pgy)
 compiler_stage_bindings=$(count_stage_world_bindings)
 compiler_world_fact_consumers=$(count_lines_in_files 'Compiler[A-Za-z0-9]+Ready\(' \
     src/self_hosted/compiler/world.pgy)
@@ -671,6 +676,8 @@ require_compiler_world_zone "direct_mir" "DriverRung2DirectMirZone" \
     "src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 require_compiler_world_zone "source_mir" "DriverSourceMirZone" \
     "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
+require_compiler_world_zone "source_c" "DriverSourceCZone" \
+    "src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
 
 require_file_text "AGENTS.md" "## Hard Pergyra-Native Dogfood Guard"
 require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" 'Status: `BRIDGE`'

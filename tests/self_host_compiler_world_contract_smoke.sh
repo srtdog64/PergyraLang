@@ -191,7 +191,10 @@ forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSo
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_cli_request_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_installed_cli_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileSourceToCVerified("
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "PublishSourceCArtifactThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "DriverSourceCExecutionOutcomeReadyFor("
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "DriverSourceCExecutionOutcomeDiagnostic("
+forbid_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileSourceToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--emit-c-artifact-verified"'
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args["
@@ -208,6 +211,9 @@ forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMi
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "action ProduceSourceMir("
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "action PublishSourceMirArtifact("
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "SelfMirProgramJsonWriteArtifactVerified("
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "action PublishSourceCArtifact("
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "CompileSourceToCVerified("
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "SelfMirArtifactCommitPayload("
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args[0] == "--mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileMirJsonToCVerified("
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileMirJsonToCVerified("
@@ -354,9 +360,11 @@ for term in \
     "zone ParityZone" \
     "zone direct_mir: DriverRung2DirectMirZone" \
     "zone source_mir: DriverSourceMirZone" \
+    "zone source_c: DriverSourceCZone" \
     "func EmitDirectMir(" \
     "func ProduceSourceMir(" \
     "func PublishSourceMirArtifact(" \
+    "func PublishSourceCArtifact(" \
     "intent CompilePergyraProgram" \
     "step Frontend" \
     "step MiddleEnd" \
