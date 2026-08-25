@@ -1,54 +1,47 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-25 bounded compiler-purpose source-to-LLVM substitution
+## Active self-host context - 2026-08-25 intent policy C-codegen last consumer
 
-- Executable checkpoint `3e5ad3d6` and compiler-world gate repair `43982bbf`
-  are published on `main`. Before this result-only update, the worktree contains
-  only the unrelated user-owned `pgy-80135c2c/` directory. Preserve it.
-- Objective card: replace the C host's source-to-MIR plus
-  `--mir-json-backend=llvm` subprocess pair with one production
-  Pergyra-purpose invocation. Fact owners remain
-  `DriverSourceMirProducePayloadAdmitted`,
-  `CompileMirJsonTextToDirectBackendVerifiedObserved`, and
-  `SelfMirArtifactCommitPayload`; the last orchestration consumer is
-  `DriverSourceLlvmIntentExecution.Compile`. Missing typed outcomes, Bool/
-  outcome disagreement, fixed lifecycle steps, native retry, partial output,
-  and the retired plural C materializer are forbidden.
-- Production public LLVM file/stdout/binary and package targets now invoke
-  `--emit-source-llvm-ir-verified SOURCE -o OUTPUT` once.
-  `CompilePergyraProgram` has one real-purpose `Compile` action rather than
-  source-MIR/LLVM lifecycle steps. Its ephemeral subject carries one typed
-  published, source-rejected, or projection-rejected outcome.
-- The sole world now materializes 22 concrete zones and four executable members
-  in order: `direct_mir`, `source_mir`, `source_llvm`, `source_c`.
-  The direct action owner remains 161 lines; the responsibility-named
-  source-LLVM publication owner is 68 lines. Likeness observes 4,267
-  Result/Option uses and 35 zone-bound rows.
-- A current-source Pergyra-built installed driver is green. Installed CLI
-  source-to-LLVM is byte-equal to the direct-MIR oracle, source and projection
-  failures remain distinct, and neither leaves a partial artifact. Public LLVM
-  file/stdout and default compile/run consume the intent exactly once without
-  native pipeline timing. Package LLVM counting is
-  `mir/intent/intent`, replacing the old five-call
-  `mir/mir/llvm/mir/llvm` sequence.
-- Focused takeover, topology, likeness, source-MIR/source-C action, artifact
-  transaction, initializer projection, hard contract, package, public LLVM,
-  installed CLI, and complete component gates are green after the final owner
-  extraction.
-- This exact compiler-purpose slice is production `SUBSTITUTING`, but it does
-  not close the broader `selfhost.intent_declaration_rows` BRIDGE or install
-  the v3 typed-transition consumer. Overall remains 78%, strict beta 83%, and
-  hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` after current remote evidence.
-- Documentation quality, progress metric, beta checklist, SoT authority edge,
-  single-owner, and protocol registry gates are also green.
-- First publication run `32847222699` was 28/29: only `build-linux` found stale
-  compiler-world assertions after the artifact-request owner split. Repair
-  `43982bbf` makes that gate follow the new owner and exported
-  `On action_succeeded` action contract. Run `32851043420` is 29/29 green in
-  28m43, including full self-host and all 20 backend shards.
-- Next falsifier: the attached mode/priority AST-last-consumer review becomes
-  the next candidate only through the next executable composite-intent LLVM
-  rung; do not open a general query/cache track.
+- The active change starts from published revision
+  `3698ab198fd2d84ca66834db0ff90a22cb2ac9f1`. Before its checkpoint commit,
+  the worktree contains this bounded implementation plus the unrelated
+  user-owned `pgy-80135c2c/` directory. Preserve that directory and do not use
+  it as project evidence.
+- Objective card: delete the C emitter's reconstructed-AST read of intent
+  mode/priority. Admitted MIR `IntentMode` and `IntentEval(priority)` carriers,
+  the canonical routine identity epoch, and the exact semantic expression
+  occurrence own the production receipt; the direct semantic entrypoint builds
+  the same explicit receipt from admitted DIR facts. The last consumer is
+  `CodegenIntentObservabilityEmitPrologue`. AST reopening, missing-receipt
+  defaults, name-only joins, graph reconstruction, and MIR/AST dual reads are
+  forbidden.
+- `CodegenIntentPolicyView` is the canonical-routine keyed codegen input. The
+  production bridge exact-cross-seals routine syntax ID, intent name, admitted
+  carrier row, and priority graph occurrence. Mode and priority emitters now
+  consume only that view; neither contains `TypedAstArena` nor
+  `AstTreeArtifact`.
+- Missing/duplicate mode, missing/duplicate priority graph, and graph-content
+  drift fail before C publication with owned diagnostics. The graph-drift
+  mutation changes the MIR graph while keeping `expr0` spelling stable, so
+  byte spelling cannot conceal a stale semantic occurrence.
+- Current-source seed projection produced a 10,609,620-byte C artifact with no
+  `CODEGEN ERROR`; the isolated driver and zero-intent source-to-C path passed.
+  Official `make self-host-compiler` installed the Pergyra-built DRV-2 in
+  515.18 seconds. The installed nested mode/priority public/native C execution
+  gate, composite-intent direct-MIR LLVM gate, and final complete component
+  contract all pass.
+- This closes the C observability AST-last-consumer seam, not the broader
+  `selfhost.intent_declaration_rows` family. Overall remains 78%, strict beta
+  83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`; no percentage is added for
+  a bounded consumer migration by itself. The last published remote baseline
+  remains run `32851043420`, 29/29 green in 28m43, until this checkpoint's push
+  CI is observed.
+- Next executable falsifier is already RED: the admitted MIR for
+  `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`
+  fails closed under installed `--mir-json-backend=llvm` at owner
+  `scalar-program-route`, stage `referenced-enum`, and publishes no artifact.
+  A following rung must explain and replace that exact LLVM bypass; do not open
+  a general query/cache track or another unrelated SoT cleanup.
 
 ## Historical self-host context - 2026-08-25 bounded composite intent LLVM substitution
 

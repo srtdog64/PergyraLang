@@ -6,6 +6,7 @@ import "../input/domain_runtime_codegen_view_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
 import "../../compiler/target_projection_fact_owner.pgy";
 import "../input/intent_execution_codegen_view_owner.pgy";
+import "../input/intent_policy_codegen_view_owner.pgy";
 func GenerateCFromVerifiedSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
@@ -13,19 +14,18 @@ func GenerateCFromVerifiedSemanticArtifact(
     receiver_facts: CodegenCallableReceiverFacts,
     ref domain_runtime: CodegenDomainRuntimeFacts,
     ref intent_execution: CodegenIntentExecutionView,
+    ref intent_policy: CodegenIntentPolicyView,
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool
 ) -> String {
     if !CompilerTargetProjectionFactReadyFor(
-        target_projection, CompilerTargetCpuCProjection()
-    ) {
+        target_projection, CompilerTargetCpuCProjection()) {
         Die("self-host C emission target projection fact is missing or invalid");
     }
     return GenerateCUnitFromReadySemanticFacts(
-        artifact, semantic_analysis, body_types, receiver_facts,
-        domain_runtime, intent_execution,
-        true, machine_declaration, observe_pressure
+        artifact, semantic_analysis, body_types, receiver_facts, domain_runtime,
+        intent_execution, intent_policy, true, machine_declaration, observe_pressure
     );
 }
 func GenerateCUnitFromSemanticArtifact(

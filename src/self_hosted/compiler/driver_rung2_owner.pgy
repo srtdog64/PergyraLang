@@ -374,6 +374,7 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
             GenerateCFromVerifiedSemanticArtifact(
                 artifact, codegen_analysis, codegen_body_types, codegen_view.receivers,
                 codegen_view.domain_runtime, codegen_view.intent_execution,
+                codegen_view.intent_policy,
                 admitted.machine_declaration, target_projection,
                 observe_pressure
             )

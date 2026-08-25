@@ -4,6 +4,7 @@
 // after admission for C ABI spelling (locals, enum payload members, symbols).
 
 import "../input/intent_execution_codegen_view_owner.pgy";
+import "../input/intent_policy_codegen_view_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
@@ -18,11 +19,10 @@ import "intent_execution_plan_local_emit_owner.pgy";
 import "intent_execution_plan_control_emit_owner.pgy";
 
 func CodegenIntentExecutionPlanDefinitionBlock(
-    artifact: AstTreeArtifact,
     ref view: CodegenIntentExecutionView,
     ref intents: SemanticAstIntentSignatureFacts,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     base_env: CodegenTypeEnv,
+    ref intent_policy: CodegenIntentPolicyView,
     uses_intent_observability: Bool
 ) -> String {
     if !view.valid {
@@ -61,8 +61,8 @@ func CodegenIntentExecutionPlanDefinitionBlock(
             body, view, routine_syntax_id, env
         );
         CodegenIntentObservabilityEmitPrologue(
-            body, uses_intent_observability, artifact, routine_syntax_id,
-            intents, intent_index, expression_surfaces, env,
+            body, uses_intent_observability, routine_syntax_id,
+            intent_policy, intents, intent_index, env,
             "        pgy_runtime_panic_internal_invariant_export(\"typed intent runtime admission failed\");\n"
         );
         ArrayPush(body, Concat(

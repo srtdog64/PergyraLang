@@ -1316,6 +1316,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy` --
   bounded codegen view of one admitted typed intent plan, canonical routine
   identity epoch, and its exact semantic expression roots.
+- `src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy` --
+  canonical-routine keyed admitted intent mode and priority receipt consumed by
+  C emission without reopening AST children or reconstructing graph roots.
 
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
@@ -1806,6 +1809,10 @@ inventory must not become a second fact-family owner registry.
   one-way renderer from the admitted target-neutral runtime plan to exact C
   role binding and projection-sync prologues; it owns no source, JSON, ordinal,
   or same-name recovery path.
+- `src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy` --
+  exact semantic-DIR or machine-admitted-MIR intent policy join into the one C
+  codegen receipt; the MIR route binds canonical routine identity, carrier row,
+  and semantic expression occurrence without an AST fallback.
 
 - `src/self_hosted/compiler/reachability_owner.pgy` -- mechanism reachability
   contract: no mechanism without a consumer, or an explicit declaration that

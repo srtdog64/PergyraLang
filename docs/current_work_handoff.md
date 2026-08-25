@@ -6,81 +6,66 @@ This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
 owner, and the named executable gate.
 
+Concurrent work must first read
+`docs/current_work_collaboration.md`. Its top non-`DONE` edit lease prevents
+two Codex tasks from editing or publishing the same executable rung; it is a
+coordination aid, not completion evidence.
+
 Project-wide progress is tracked separately in `docs/00_progress.md`. The last
 published 2026-08-18 working forecast is 78% (75-81% range) for language beta
 plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - bounded compiler-purpose source-to-LLVM remote GREEN
+## Active self-host context - intent policy C-codegen last consumer
 
-- Executable checkpoint `3e5ad3d6` and compiler-world gate repair `43982bbf`
-  are on `main` and `origin/main`. Before this result-only handoff update, the
-  worktree contains only the unrelated user-owned untracked
-  `pgy-80135c2c/` directory. Do not stage, inspect as project evidence,
-  delete, or rewrite that directory.
-- Objective card: objective = replace the C host's source-to-MIR plus
-  `--mir-json-backend=llvm` subprocess pair with one production
-  Pergyra-purpose invocation; priority = stable source/target/artifact identity,
-  one intent terminal outcome, old-path deletion, negative ratchet, executable
-  parity, then remote evidence; fact owners =
-  `DriverSourceMirProducePayloadAdmitted`,
-  `CompileMirJsonTextToDirectBackendVerifiedObserved`, and
-  `SelfMirArtifactCommitPayload`; last legitimate orchestration consumer =
-  `DriverSourceLlvmIntentExecution.Compile`; forbidden = C two-step
-  orchestration, native retry, fixed `ProduceMir/PublishLlvm` lifecycle steps,
-  Bool-only failure collapse, missing outcome recovery, partial artifact, or a
-  second world; falsifier = byte drift, non-distinct source/projection failure,
-  more than one installed intent call, or old backend argv reappearing.
-- Production public LLVM file/stdout/binary and package targets invoke
-  `--emit-source-llvm-ir-verified SOURCE -o OUTPUT` once.
-  `PgyCompilerWorld.CompileSourceToLlvm` invokes the canonical
-  `CompilePergyraProgram` intent once. The intent has one real-purpose
-  `Compile` action; source-MIR admission and LLVM publication are existing
-  typed function-owner details rather than a fixed compiler lifecycle.
-- The intent execution subject holds one ephemeral
-  `Option<DriverSourceLlvmIntentOutcome>`. Published, source-rejected, and
-  projection-rejected remain distinct; missing outcome and Bool/outcome
-  disagreement fail closed. The responsibility-named 68-line projection
-  publication owner consumes the existing 161-line direct execution commit
-  owner without an unused pass-through action.
-- The sole world materializes exactly 22 concrete zones and four executable
-  members in order: `direct_mir`, `source_mir`, `source_llvm`,
-  `source_c`. Likeness is green at Result/Option 4,267 and 35 zone-bound rows.
-  The former five readiness-only root steps cannot return under the topology
-  and compiler-root takeover ratchets.
-- A final current-source Pergyra-built `bin/pgy-self-driver.exe` installed
-  successfully. Installed CLI LLVM is byte-equal to the direct-MIR oracle;
-  source admission and artifact transaction failures retain distinct typed
-  diagnostics and no partial output. Public file/stdout and default compile/run
-  observe exactly one intent invocation and no native pipeline timing. Package
-  LLVM counting is `mir/intent/intent`, replacing the old
-  `mir/mir/llvm/mir/llvm` sequence.
-- Local green evidence: final installer; installed CLI; public LLVM file/stdout;
-  default LLVM compile/run; package commands; source-MIR/source-C action gates;
-  artifact transaction; initializer projection; compiler-root takeover;
-  topology; likeness; hard contract; complete component contract; shell syntax;
-  compiler-world source shape; documentation quality; progress metric; beta
-  checklist; SoT authority edge; single-owner/protocol registry; and
-  `git diff --check`.
-- Grade: this exact source-to-LLVM compiler-purpose slice is production
-  `SUBSTITUTING`. The broader `selfhost.intent_declaration_rows` remains
-  `BRIDGE`; v3 typed transitions remain `REACHABLE`; no universal compiler
-  lifecycle or query/cache architecture is claimed. Overall remains 78%,
-  strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` after current
-  remote evidence.
-- First publication run `32847222699` reached 28/29: every bootstrap,
-  sanitizer, platform, proof, and backend shard passed; `build-linux` alone
-  found that the compiler-world source-shape gate still expected artifact
-  functions and the old five-step scaffold in the retired installed CLI owner.
-  Repair `43982bbf` retargets those assertions to the artifact-request owner,
-  recognizes the exported canonical action and `On action_succeeded` AST
-  carrier, and keeps its zone/subject authorization check.
-- Current run `32851043420` is 29/29 green in 28m43, including full self-host,
-  Linux/Windows/macOS, sanitizers, Rocq, codegen bootstrap, and all 20 backend
-  shards. Next falsifier: select the attached review's intent mode/priority
-  AST-last-consumer work only through the next executable composite-intent LLVM
-  path. Do not start a general query, cache, or unrelated SoT track.
+- Base revision `3698ab198fd2d84ca66834db0ff90a22cb2ac9f1` is on local
+  `main` and `origin/main`. Before this checkpoint commit, the worktree contains
+  this bounded implementation plus the unrelated user-owned untracked
+  `pgy-80135c2c/` directory. Do not stage, inspect as project evidence, delete,
+  or rewrite that directory.
+- Objective card: objective = delete the reconstructed-AST read of intent
+  mode/priority from C emission; priority = exact semantic identity, one
+  admitted policy receipt, old-read deletion, negative ratchet, installed
+  execution parity, then remote evidence; fact owner = admitted MIR
+  `IntentMode` and `IntentEval(priority)` carriers plus canonical routine and
+  exact semantic expression occurrence, while the direct semantic entrypoint
+  materializes an explicit DIR-derived receipt; last legitimate consumer =
+  `CodegenIntentObservabilityEmitPrologue`; forbidden = `TypedAstArena*` or
+  `AstTreeArtifact` in mode/priority emitters, default recovery, name-only join,
+  graph reconstruction, or MIR/AST dual read; falsifier = missing/duplicate
+  carrier, missing/drifted graph occurrence, identity mismatch, or runtime
+  public/native drift.
+- `CodegenIntentPolicyView` owns the canonical-routine keyed C-codegen input.
+  The production bridge exact-cross-seals syntax ID, intent name, admitted MIR
+  carrier row, and semantic expression root. The semantic-only entrypoint
+  produces the same shape once from admitted DIR facts. Both mode and priority
+  emitters now consume only this receipt and cannot reopen AST children.
+- The priority graph-drift negative changes the MIR graph node while preserving
+  the `expr0` spelling. Missing graph, duplicate priority, and drift therefore
+  fail before artifact publication rather than falling back to string or AST
+  reconstruction. Missing/duplicate mode remains independently rejected.
+- Observed local evidence: current source graph through the Pergyra-built seed
+  emitted 10,609,620 bytes of C in 114.27 seconds with no `CODEGEN ERROR`; the
+  isolated driver compiled in 17.12 seconds; zero-intent source-to-C passed;
+  official `make self-host-compiler` installed DRV-2 in 515.18 seconds; the
+  installed nested mode/priority MIR-carriage and public/native C execution
+  gate passed; installed composite-intent direct-MIR LLVM success/failure plus
+  four no-artifact negatives passed; and the final complete component contract
+  passed after its internal source-MIR action ratchet.
+- Grade: the C observability AST-last-consumer seam is closed. The broader
+  `selfhost.intent_declaration_rows` row remains `BRIDGE`; no general intent
+  policy engine or compiler lifecycle is claimed. Overall remains 78%, strict
+  beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. The last published
+  remote baseline is still run `32851043420`, 29/29 green in 28m43, until this
+  checkpoint is pushed and its CI result is observed.
+- Next falsifier is observed RED, not an inferred queue item: project the
+  admitted MIR from
+  `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`
+  through installed `--mir-json-backend=llvm`. It fails closed at
+  `owner=scalar-program-route stage=referenced-enum` and publishes no artifact.
+  The next rung must explain and replace that exact LLVM bypass before another
+  SoT cleanup; do not start a general query/cache track.
 
 ### Historical archive boundary
 

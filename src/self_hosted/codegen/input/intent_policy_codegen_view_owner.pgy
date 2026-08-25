@@ -1,0 +1,82 @@
+// Exact admitted intent mode/priority rows consumed by C emission.
+//
+// Producers may be the direct semantic admission boundary or the machine-
+// admitted MIR boundary.  Codegen sees only this canonical-routine keyed view
+// and must not reopen AST children or invent a missing policy row.
+
+import "../../semantic/ast_expression_graph_fact_owner.pgy";
+import "../../semantic/ast_intent_signature_fact_owner.pgy";
+import "../text/text_owner.pgy";
+
+struct CodegenIntentPolicyView {
+    admitted: Bool;
+    canonical_routine_syntax_ids: Array<Int>;
+    intent_names: Array<String>;
+    concurrent: Array<Bool>;
+    priority_present: Array<Bool>;
+    priority_expression_roots: Array<Int>;
+    expression_graph: SemanticExpressionGraphFacts;
+}
+
+func CodegenIntentPolicyViewReadyForSignatures(
+    ref view: CodegenIntentPolicyView,
+    ref intents: SemanticAstIntentSignatureFacts
+) -> Bool {
+    let count: Int = SemanticAstIntentSignatureCount(intents);
+    if !view.admitted || !intents.ok ||
+        ArrayLength(view.canonical_routine_syntax_ids) != count ||
+        ArrayLength(view.intent_names) != count ||
+        ArrayLength(view.concurrent) != count ||
+        ArrayLength(view.priority_present) != count ||
+        ArrayLength(view.priority_expression_roots) != count ||
+        !view.expression_graph.ok ||
+        !SemanticExpressionGraphArenaReady(view.expression_graph.arena) {
+        return false;
+    }
+    let graph_node_count: Int = SemanticExpressionGraphArenaNodeCount(
+        view.expression_graph.arena
+    );
+    let row: Int = 0;
+    while row < count {
+        let syntax_id: Int = view.canonical_routine_syntax_ids[row];
+        let root: Int = view.priority_expression_roots[row];
+        if syntax_id <= 0 || syntax_id != intents.intent_node_ids[row] ||
+            view.intent_names[row] == "" ||
+            view.intent_names[row] != intents.names[row] ||
+            (view.priority_present[row] &&
+             (root < 0 || root >= graph_node_count)) ||
+            (!view.priority_present[row] && root != -1) {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if view.canonical_routine_syntax_ids[prior] == syntax_id ||
+                view.intent_names[prior] == view.intent_names[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func CodegenIntentPolicyExactRowOrDie(
+    ref view: CodegenIntentPolicyView,
+    intent_index: Int,
+    canonical_routine_syntax_id: Int,
+    intent_name: String
+) -> Int {
+    if !view.admitted || intent_index < 0 ||
+        intent_index >= ArrayLength(view.canonical_routine_syntax_ids) ||
+        intent_index >= ArrayLength(view.intent_names) ||
+        intent_index >= ArrayLength(view.concurrent) ||
+        intent_index >= ArrayLength(view.priority_present) ||
+        intent_index >= ArrayLength(view.priority_expression_roots) ||
+        view.canonical_routine_syntax_ids[intent_index] !=
+            canonical_routine_syntax_id ||
+        view.intent_names[intent_index] != intent_name {
+        Die("codegen intent policy identity is missing or stale");
+    }
+    return intent_index;
+}

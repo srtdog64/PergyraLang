@@ -1,0 +1,202 @@
+// Admitted semantic/MIR intent policy -> one exact C-codegen view.
+//
+// The semantic entrypoint materializes a DIR receipt once.  The production
+// MIR entrypoint consumes only machine-admitted carriers and the canonical
+// expression occurrence join.  Neither route leaves an AST fallback in C
+// emission.
+
+import "../codegen/input/intent_policy_codegen_view_owner.pgy";
+import "../dir/intent_mode_fact_owner.pgy";
+import "../dir/intent_priority_fact_owner.pgy";
+import "../mir_lower/expression_graph_semantic_occurrence_owner.pgy";
+import "../mir_lower/intent_mode_projection_owner.pgy";
+import "../mir_lower/intent_priority_projection_owner.pgy";
+import "../mir_lower/intent_routine_carrier_projection_owner.pgy";
+import "../mir_lower/machine_layer_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../semantic/ast_artifact_verdict_owner.pgy";
+
+func CodegenIntentPolicyViewFromAdmittedSemanticOrDie(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis
+) -> CodegenIntentPolicyView {
+    let modes: SelfDirIntentModeFacts = SelfDirIntentModeFactsFromArtifact(
+        artifact, analysis.intent_signatures
+    );
+    let priorities: SelfDirIntentPriorityFacts =
+        SelfDirIntentPriorityFactsFromArtifact(
+            artifact, analysis.intent_signatures,
+            analysis.expression_surfaces, analysis.constructors,
+            analysis.function_tables
+        );
+    if !SelfDirIntentModeFactsReady(
+            artifact, analysis.intent_signatures.intent_node_ids, modes
+        ) || !SelfDirIntentPriorityFactsReady(
+            artifact, analysis.expression_surfaces,
+            analysis.intent_signatures.intent_node_ids, priorities
+        ) {
+        Die("semantic intent policy receipt is missing or invalid");
+    }
+    let syntax_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let concurrent: Array<Bool> = [];
+    let priority_present: Array<Bool> = [];
+    let priority_roots: Array<Int> = [];
+    let row: Int = 0;
+    while row < SemanticAstIntentSignatureCount(
+        analysis.intent_signatures
+    ) {
+        ArrayPush(
+            syntax_ids, analysis.intent_signatures.intent_node_ids[row]
+        );
+        ArrayPush(names, analysis.intent_signatures.names[row]);
+        ArrayPush(concurrent, modes.names[row] == "concurrent");
+        ArrayPush(priority_present, priorities.present[row]);
+        if priorities.present[row] {
+            ArrayPush(priority_roots, priorities.expression_root_ids[row]);
+        } else {
+            ArrayPush(priority_roots, -1);
+        }
+        row = row + 1;
+    }
+    let view: CodegenIntentPolicyView = CodegenIntentPolicyView(
+        true, syntax_ids, names, concurrent, priority_present,
+        priority_roots, analysis.expression_surfaces.expression_graph
+    );
+    if !CodegenIntentPolicyViewReadyForSignatures(
+        view, analysis.intent_signatures
+    ) {
+        Die("semantic intent policy receipt did not cross codegen admission");
+    }
+    return view;
+}
+
+func CodegenIntentPolicyMirRoutineRowOrDie(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    canonical_routine_source_syntax_ids: Array<String>,
+    canonical_syntax_id: Int,
+    intent_name: String
+) -> Int {
+    if canonical_syntax_id <= 0 || intent_name == "" ||
+        ArrayLength(canonical_routine_source_syntax_ids) !=
+            MirProgramRoutineIndexCount(admitted.routines) {
+        Die("MIR intent policy identity epoch is incomplete");
+    }
+    let found: Int = -1;
+    let matches: Int = 0;
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(admitted.routines) {
+        if admitted.routines.kinds[row] == "intent" &&
+            canonical_routine_source_syntax_ids[row] ==
+                ToString(canonical_syntax_id) {
+            matches = matches + 1;
+            found = row;
+            if admitted.routines.names[row] != intent_name {
+                Die("MIR intent policy name identity is stale");
+            }
+        }
+        row = row + 1;
+    }
+    if matches != 1 || found < 0 ||
+        !MirProgramRoutineIndexRowReady(admitted.routines, found) {
+        Die("MIR intent policy routine identity is missing or duplicated");
+    }
+    return found;
+}
+
+func CodegenIntentPolicyViewFromAdmittedMirOrDie(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    analysis: SemanticAstArtifactAnalysis,
+    ref occurrences: MirExpressionSemanticOccurrenceIndex,
+    canonical_routine_source_syntax_ids: Array<String>
+) -> CodegenIntentPolicyView {
+    if !occurrences.valid {
+        Die("MIR intent policy expression occurrence identity is invalid");
+    }
+    let mir_intent_count: Int = 0;
+    let routine_row: Int = 0;
+    while routine_row < MirProgramRoutineIndexCount(admitted.routines) {
+        if admitted.routines.kinds[routine_row] == "intent" {
+            mir_intent_count = mir_intent_count + 1;
+        }
+        routine_row = routine_row + 1;
+    }
+    if mir_intent_count != SemanticAstIntentSignatureCount(
+        analysis.intent_signatures
+    ) {
+        Die("MIR intent policy inventory does not match semantic signatures");
+    }
+    let syntax_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let concurrent: Array<Bool> = [];
+    let priority_present: Array<Bool> = [];
+    let priority_roots: Array<Int> = [];
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(
+        analysis.intent_signatures
+    ) {
+        let syntax_id: Int =
+            analysis.intent_signatures.intent_node_ids[intent_index];
+        let intent_name: String =
+            analysis.intent_signatures.names[intent_index];
+        let row: Int = CodegenIntentPolicyMirRoutineRowOrDie(
+            admitted, canonical_routine_source_syntax_ids,
+            syntax_id, intent_name
+        );
+        let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+            admitted.routines, row
+        );
+        let carriers: MirIntentRoutineCarrierProjection =
+            MirIntentRoutineCarrierProjectionFromBlockZero(
+                admitted.routines, index, row, intent_name
+            );
+        if !index.valid || !carriers.valid {
+            Die("MIR intent policy carrier inventory is invalid");
+        }
+        let mode: MirIntentModeProjection =
+            MirIntentModeProjectionFromCarriers(
+                intent_name, carriers.carrier_names,
+                carriers.carrier_arg0s, carriers.carrier_arg1s,
+                carriers.carrier_slots, carriers.carrier_results,
+                carriers.carrier_abi_type_names,
+                carriers.carrier_source_types, carriers.carrier_expr0s
+            );
+        let priority: MirIntentPriorityProjection =
+            MirIntentPriorityProjectionFromCarriers(
+                admitted.routines, intent_name, carriers.carrier_names,
+                carriers.carrier_arg0s, carriers.carrier_arg1s,
+                carriers.carrier_slots, carriers.carrier_results,
+                carriers.carrier_abi_type_names,
+                carriers.carrier_source_types, carriers.carrier_expr0s,
+                carriers.carrier_rows
+            );
+        if !mode.valid { Die(mode.diagnostic_message); }
+        if !priority.valid { Die(priority.diagnostic_message); }
+        let priority_root: Int = -1;
+        if priority.present {
+            priority_root = MirExpressionSemanticRootForInstruction(
+                occurrences, priority.global_row,
+                AstExpressionLaneAtom(), 0
+            );
+            if priority_root < 0 {
+                Die("MIR intent priority has no exact semantic graph occurrence");
+            }
+        }
+        ArrayPush(syntax_ids, syntax_id);
+        ArrayPush(names, intent_name);
+        ArrayPush(concurrent, mode.mode == "concurrent");
+        ArrayPush(priority_present, priority.present);
+        ArrayPush(priority_roots, priority_root);
+        intent_index = intent_index + 1;
+    }
+    let view: CodegenIntentPolicyView = CodegenIntentPolicyView(
+        true, syntax_ids, names, concurrent, priority_present,
+        priority_roots, analysis.expression_surfaces.expression_graph
+    );
+    if !CodegenIntentPolicyViewReadyForSignatures(
+        view, analysis.intent_signatures
+    ) {
+        Die("MIR intent policy did not cross codegen admission");
+    }
+    return view;
+}

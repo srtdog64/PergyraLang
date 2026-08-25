@@ -13,6 +13,7 @@ import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../input/semantic_kind_codegen_view_owner.pgy";
 import "../input/domain_runtime_codegen_view_owner.pgy";
+import "../input/intent_policy_codegen_view_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/list_runtime_owner.pgy";
 import "../runtime_abi/queue_runtime_owner.pgy";
@@ -215,6 +216,7 @@ func GenerateCUnitFromReadySemanticFacts(
     receiver_facts: CodegenCallableReceiverFacts,
     ref domain_runtime: CodegenDomainRuntimeFacts,
     ref intent_execution: CodegenIntentExecutionView,
+    ref intent_policy: CodegenIntentPolicyView,
     require_entrypoint: Bool,
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
@@ -278,6 +280,11 @@ func GenerateCUnitFromReadySemanticFacts(
         artifact, semantic_analysis.intent_signatures
     ) {
         Die("semantic intent signature facts are missing or stale");
+    }
+    if !CodegenIntentPolicyViewReadyForSignatures(
+        intent_policy, semantic_analysis.intent_signatures
+    ) {
+        Die("codegen intent policy facts are missing or stale");
     }
     if observe_pressure { Log("[codegen-pressure-stage] function-env:start"); }
     let env_acc: Array<String> = [BuildFunctionEnv(
@@ -388,13 +395,15 @@ func GenerateCUnitFromReadySemanticFacts(
         artifact, signatures, semantic_analysis.intent_signatures,
         semantic_analysis.zone_authorities,
         semantic_analysis.expression_surfaces, base_env, intent_execution,
+        intent_policy,
         usage.uses_intent_observability
     );
     let admitted_intent_definition_block: String =
         CodegenIntentExecutionPlanDefinitionBlock(
-            artifact, intent_execution,
+            intent_execution,
             semantic_analysis.intent_signatures,
-            semantic_analysis.expression_surfaces, base_env,
+            base_env,
+            intent_policy,
             usage.uses_intent_observability
         );
     if observe_pressure { Log("[codegen-pressure-stage] support-blocks:done"); }

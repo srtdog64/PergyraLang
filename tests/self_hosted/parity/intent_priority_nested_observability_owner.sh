@@ -38,12 +38,13 @@ mkdir -p "$BUILD_DIR"
 
 "$PYTHON_BIN" - "$MIR_JSON" "$NATIVE_MIR_JSON" \
     "$BUILD_DIR/priority.missing-graph.mir.json" \
-    "$BUILD_DIR/priority.duplicate.mir.json" <<'PY'
+    "$BUILD_DIR/priority.duplicate.mir.json" \
+    "$BUILD_DIR/priority.graph-drift.mir.json" <<'PY'
 import copy
 import json
 import sys
 
-self_path, native_path, missing_path, duplicate_path = sys.argv[1:]
+self_path, native_path, missing_path, duplicate_path, drift_path = sys.argv[1:]
 
 def load(path):
     with open(path, encoding="utf-8-sig") as stream:
@@ -101,9 +102,16 @@ for routine in duplicate["routines"]:
 with open(duplicate_path, "w", encoding="utf-8", newline="\n") as stream:
     json.dump(duplicate, stream, separators=(",", ":"))
     stream.write("\n")
+
+drift = copy.deepcopy(self_doc)
+drift_rows = priorities(drift)
+drift_rows["OuterPriority"]["expr0_graph"]["nodes"][0]["text"] = "2"
+with open(drift_path, "w", encoding="utf-8", newline="\n") as stream:
+    json.dump(drift, stream, separators=(",", ":"))
+    stream.write("\n")
 PY
 
-for mutation in missing-graph duplicate; do
+for mutation in missing-graph duplicate graph-drift; do
     set +e
     (cd "$ROOT_DIR" && "$DRIVER" --mir-json \
         "${BUILD_DIR#"$ROOT_DIR/"}/priority.$mutation.mir.json") \
@@ -118,6 +126,9 @@ grep -Fq 'MIR intent priority carrier shape is invalid' \
 grep -Fq 'MIR intent priority carrier is duplicated' \
     "$BUILD_DIR/duplicate.out" "$BUILD_DIR/duplicate.err" ||
     fail "duplicate priority lost its owned diagnostic"
+grep -Fq 'MIR instruction expression graph is missing or invalid' \
+    "$BUILD_DIR/graph-drift.out" "$BUILD_DIR/graph-drift.err" ||
+    fail "priority graph drift lost its owned diagnostic"
 
 self_c="$BUILD_DIR/priority.self.c"
 (cd "$ROOT_DIR" && "$DRIVER" "$SOURCE_REL" --emit-c-verified) \

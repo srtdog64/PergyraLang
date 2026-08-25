@@ -9,11 +9,10 @@ import "intent_priority_emit_owner.pgy";
 func CodegenIntentObservabilityEmitPrologue(
     inout body: Array<String>,
     enabled: Bool,
-    artifact: AstTreeArtifact,
     intent_node: Int,
+    ref policy: CodegenIntentPolicyView,
     ref intents: SemanticAstIntentSignatureFacts,
     intent_index: Int,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     env: CodegenTypeEnv,
     admission_failure_body: String
 ) -> Void {
@@ -65,10 +64,13 @@ func CodegenIntentObservabilityEmitPrologue(
         }
     }
     let concurrent: String = ToString(
-        CodegenIntentModeConcurrent(artifact, intent_node)
+        CodegenIntentModeConcurrent(
+            policy, intent_index, intent_node, intents.names[intent_index]
+        )
     );
     let priority: String = CodegenIntentPriorityExpression(
-        artifact, intent_node, expression_surfaces, env
+        policy, intent_index, intent_node,
+        intents.names[intent_index], env
     );
     let enter_suffix: String = Concat(
         ", ", Concat(ToString(subject_count), Concat(", ", Concat(

@@ -2003,6 +2003,27 @@ require_max_lines \
     "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy" 160
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy"
+require_file \
+    "src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy" 110
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy"
+require_file \
+    "src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy" 240
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy"
+require_text \
+    "src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy" \
+    'admitted.routines.names[row] != intent_name'
+require_text \
+    "src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy" \
+    'MIR intent policy name identity is stale'
+reject_text \
+    "src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy" \
+    'admitted.routines.names[row] == intent_name'
 require_file "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" 260
@@ -2263,6 +2284,9 @@ require_text \
     "func CodegenIntentPriorityExpression("
 require_text \
     "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" \
+    "policy.priority_expression_roots[row]"
+reject_text \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" \
     "CodegenSemanticExpressionGraphOrDie("
 require_text \
     "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy" \
@@ -2320,6 +2344,9 @@ require_max_lines \
 require_text \
     "tests/self_hosted/parity/intent_priority_nested_observability_owner.sh" \
     'active.1.priority=9'
+require_text \
+    "tests/self_hosted/parity/intent_priority_nested_observability_owner.sh" \
+    'priority.graph-drift.mir.json'
 require_file \
     "tests/self_hosted/parity/intent_mode_nested_observability_owner.sh"
 require_max_lines \
@@ -2333,6 +2360,15 @@ require_text \
 require_text \
     "tests/self_hosted/parity/intent_nested_callable_execution_owner.sh" \
     "intent_mode_nested_observability_owner.sh"
+for intent_policy_emitter in \
+    "src/self_hosted/codegen/emission/intent_mode_emit_owner.pgy" \
+    "src/self_hosted/codegen/emission/intent_priority_emit_owner.pgy"; do
+    reject_text "$intent_policy_emitter" "TypedAstArena"
+    reject_text "$intent_policy_emitter" "AstTreeArtifact"
+done
+require_text \
+    "src/self_hosted/compiler/codegen_callable_receiver_bridge_owner.pgy" \
+    "CodegenIntentPolicyViewFromAdmittedMirOrDie("
 reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     "pgy_intent_"
 require_text \

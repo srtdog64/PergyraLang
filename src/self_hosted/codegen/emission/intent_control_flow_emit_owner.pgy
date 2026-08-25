@@ -31,8 +31,8 @@ func CodegenIntentEmitControlPrologue(
     inout body: Array<String>,
     step_count: Int,
     uses_intent_observability: Bool,
-    artifact: AstTreeArtifact,
     intent_node: Int,
+    ref intent_policy: CodegenIntentPolicyView,
     ref intents: SemanticAstIntentSignatureFacts,
     intent_index: Int,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
@@ -46,8 +46,8 @@ func CodegenIntentEmitControlPrologue(
         )
     ));
     CodegenIntentObservabilityEmitPrologue(
-        body, uses_intent_observability, artifact, intent_node,
-        intents, intent_index, expression_surfaces, env,
+        body, uses_intent_observability, intent_node, intent_policy,
+        intents, intent_index, env,
         "        __intent_failed = true;\n        goto __intent_cleanup;\n"
     );
 }
