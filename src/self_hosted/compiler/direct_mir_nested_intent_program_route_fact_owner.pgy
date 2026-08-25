@@ -1,0 +1,139 @@
+// Exclusive structural claim for one nested-intent callable program.
+//
+// The route owns only admitted inventory identity: one entrypoint, one subject
+// method, two intents, one subject declaration, and one zone declaration.  The
+// target-neutral plan must seal names, syntax IDs, policy carriers, call edges,
+// expression graphs, and field identity before LLVM emission.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir_lower/machine_layer_fact_owner.pgy";
+
+struct DirectMirNestedIntentProgramRouteFact {
+    let valid: Bool;
+    let digest: Int;
+    let claimed: Bool;
+    let main_row: Int;
+    let method_row: Int;
+    let intent_rows: Array<Int>;
+    let subject_declaration_row: Int;
+    let zone_declaration_row: Int;
+}
+
+func DirectMirNestedIntentProgramRouteFactDigest(
+    ref fact: DirectMirNestedIntentProgramRouteFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(967L, fact.main_row);
+    hash = DirectMirCfgHashInt(hash, fact.method_row);
+    hash = DirectMirScalarCfgHashInts(hash, fact.intent_rows);
+    hash = DirectMirCfgHashInt(hash, fact.subject_declaration_row);
+    hash = DirectMirCfgHashInt(hash, fact.zone_declaration_row);
+    if fact.claimed { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirNestedIntentProgramRouteFactReady(
+    ref fact: DirectMirNestedIntentProgramRouteFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirNestedIntentProgramRouteFactDigest(fact) {
+        return false;
+    }
+    if !fact.claimed {
+        return fact.main_row == -1 && fact.method_row == -1 &&
+            ArrayLength(fact.intent_rows) == 0 &&
+            fact.subject_declaration_row == -1 &&
+            fact.zone_declaration_row == -1;
+    }
+    return fact.main_row >= 0 && fact.method_row >= 0 &&
+        ArrayLength(fact.intent_rows) == 2 && fact.intent_rows[0] >= 0 &&
+        fact.intent_rows[1] >= 0 && fact.intent_rows[0] != fact.intent_rows[1] &&
+        fact.main_row != fact.method_row &&
+        fact.main_row != fact.intent_rows[0] &&
+        fact.main_row != fact.intent_rows[1] &&
+        fact.method_row != fact.intent_rows[0] &&
+        fact.method_row != fact.intent_rows[1] &&
+        fact.subject_declaration_row >= 0 && fact.zone_declaration_row >= 0 &&
+        fact.subject_declaration_row != fact.zone_declaration_row;
+}
+
+func DirectMirNestedIntentProgramRouteFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirNestedIntentProgramRouteFact {
+    let subject_row: Int = -1;
+    let zone_row: Int = -1;
+    let subject_count: Int = 0;
+    let zone_count: Int = 0;
+    let declaration_row: Int = 0;
+    while declaration_row < MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) {
+        if admitted.domain_runtime_admission.declarations.kinds[
+                declaration_row] == "subject" && admitted.
+                domain_runtime_admission.declarations.nominal_kinds[
+                    declaration_row] == "subject" {
+            subject_count = subject_count + 1;
+            subject_row = declaration_row;
+        } else if admitted.domain_runtime_admission.declarations.kinds[
+                declaration_row] == "zone" && admitted.
+                domain_runtime_admission.declarations.nominal_kinds[
+                    declaration_row] == "zone" {
+            zone_count = zone_count + 1;
+            zone_row = declaration_row;
+        }
+        declaration_row = declaration_row + 1;
+    }
+    let subject_name: String = "";
+    if subject_row >= 0 {
+        subject_name = admitted.domain_runtime_admission.declarations.names[
+            subject_row];
+    }
+    let main_row: Int = -1;
+    let method_row: Int = -1;
+    let function_count: Int = 0;
+    let method_count: Int = 0;
+    let intents: Array<Int> = [];
+    let unsupported: Bool = false;
+    let routine_row: Int = 0;
+    while routine_row < MirProgramRoutineIndexCount(admitted.routines) {
+        if admitted.routines.kinds[routine_row] == "function" {
+            function_count = function_count + 1;
+            main_row = routine_row;
+        } else if admitted.routines.kinds[routine_row] == "method" {
+            method_count = method_count + 1;
+            method_row = routine_row;
+        } else if admitted.routines.kinds[routine_row] == "intent" {
+            ArrayPush(intents, routine_row);
+        } else {
+            unsupported = true;
+        }
+        routine_row = routine_row + 1;
+    }
+    let claimed: Bool = !unsupported && subject_count == 1 && zone_count == 1 &&
+        subject_name != "" && function_count == 1 && method_count == 1 &&
+        ArrayLength(intents) == 2 &&
+        MirProgramRoutineIndexCount(admitted.routines) == 4 &&
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) == 2;
+    if !claimed {
+        main_row = -1;
+        method_row = -1;
+        subject_row = -1;
+        zone_row = -1;
+        while ArrayLength(intents) > 0 { ArrayPop(intents); }
+    }
+    let source: DirectMirNestedIntentProgramRouteFact =
+        DirectMirNestedIntentProgramRouteFact(
+            true, 0, claimed, main_row, method_row, intents, subject_row,
+            zone_row);
+    let sealed: DirectMirNestedIntentProgramRouteFact =
+        DirectMirNestedIntentProgramRouteFact(
+            source.valid, DirectMirNestedIntentProgramRouteFactDigest(source),
+            source.claimed, source.main_row, source.method_row,
+            source.intent_rows, source.subject_declaration_row,
+            source.zone_declaration_row);
+    if !DirectMirNestedIntentProgramRouteFactReady(sealed) {
+        Die("direct MIR nested intent route receipt is invalid");
+    }
+    return sealed;
+}

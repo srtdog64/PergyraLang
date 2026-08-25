@@ -17,60 +17,52 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - nested intent direct-MIR LLVM route
+## Active self-host context - nested intent direct-MIR LLVM publishing
 
-- Executable checkpoint `a9e0784115c98eda4a52db0b28f9a9a46b26eeb6`
-  is on local `main` and `origin/main`. Before this result-only handoff commit,
-  only the collaboration ledger, this handoff, and `src/self_hosted/PROGRESS.md`
-  are dirty. Preserve the unrelated user-owned untracked `pgy-80135c2c/`
-  directory; do not inspect it as project evidence, stage it, delete it, or
-  rewrite it.
-- The preceding intent-policy C-codegen lease is `DONE`. `CodegenIntentPolicyView`
-  now exact-cross-seals canonical routine syntax ID/name, admitted MIR mode and
-  priority carriers, and the semantic expression occurrence; the direct
-  semantic entrypoint materializes the same DIR-derived receipt. Mode and
-  priority emission no longer reopen `TypedAstArena` or `AstTreeArtifact`.
-  Missing, duplicate, stale identity, missing graph, graph drift, and absent-row
-  nonzero-root cases fail before artifact publication.
-- Final evidence for that closure: checkpoint `a9e07841` completed CI run
-  `32870231909` at 29/29 green in 29m24. It includes full self-host, codegen
-  bootstrap, all three platforms, sanitizers, Rocq, and all 20 backend shards.
-  The earlier 28/29 likeness failure was repaired without raising the sentinel
-  ceiling or lowering Result/Option use: final local likeness is `24/24` and
-  `4267/4267`.
-- Grade: only the C observability AST-last-consumer seam is closed. The broader
-  `selfhost.intent_declaration_rows` row remains `BRIDGE`; no general intent
-  policy engine or compiler lifecycle is claimed. Overall remains 78%, strict
-  beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-- Active objective card: objective = make installed direct-MIR
-  `--mir-json-backend=llvm` execute the nested method/intent priority fixture
-  through one exclusive mixed-callable route; priority = declaration and
-  routine identity, routine kind/owner/source syntax, exact intent carriers and
-  expression root, owner-directed call/field graph, negative ratchet, then
-  installed parity; fact owners = admitted program declaration/routine facts,
-  the referenced-enum owner only for actually referenced enums, and
-  `MirIntentRoutineCarrierProjection` / `MirIntentModeProjection` /
-  `MirIntentPriorityProjection`; last legitimate consumer = the exclusive route
-  in `DirectMirMultiRoutineProjection` before scalar admission; forbidden =
-  priority `0` fallback, source/AST reconstruction, widening function-only
-  signature semantics, fixture branching, native retry, or a general query/
-  cache track.
-- The falsifier is observed RED. Admitted MIR from
-  `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`
-  publishes no LLVM artifact and first rejects at
-  `owner=scalar-program-route stage=referenced-enum`. That owner scans all
-  routines through function-only signature readiness even though the fixture
-  has no enums. Canonical-empty enum handling alone then exposes the next
-  rejection at `owner=callable-route-envelope stage=signature`; an enum-only
-  patch is therefore insufficient.
-- The next implementation must claim the one prepared lease in
-  `docs/current_work_collaboration.md`, add the exclusive mixed function/method/
-  intent route, and seal `Main -> Outer`, `Outer -> Inner`, `Inner -> Capture`,
-  subject/zone fields, and dynamic priority parameter `requested` from admitted
-  facts. Its executable falsifier is installed LLVM emit/link/run parity with
-  literal Outer priority `1`, runtime Inner priority, no scalar-route receipt,
-  and no artifact for graph drift, missing priority, or syntax/name crosswire.
-  No implementation of this new rung is claimed yet.
+- Base revision is `341f7c1d` on local `main`; publication is not yet claimed.
+  The worktree contains tracked dispatcher/Make/CI/inventory/document edits and
+  project-owned untracked additions for the five mixed-callable route owners
+  plus their focused gate.
+  Preserve the unrelated user-owned untracked `pgy-80135c2c/` directory; do not
+  inspect it as project evidence, stage it, delete it, or rewrite it.
+- Objective card: execute the nested method/intent priority fixture through one
+  exclusive direct-MIR LLVM route; priority = admitted declaration/routine
+  identity, exact intent carriers and expression root, owner-directed call and
+  field graph, no-artifact negatives, then installed execution parity; fact
+  owners = declaration-index row/bounds plus the graph's bounded source-ID
+  projection, the admitted routine index, and intent carrier/mode/priority/
+  binding projections; last consumer = the route after composite
+  intent and before scalar admission; forbidden = priority `0`, raw source/AST
+  reconstruction, function-only signature widening, fixture branching, native
+  retry, or a general query/cache track.
+- The observed RED was scalar-route `referenced-enum`, followed by scalar
+  callable-signature rejection if enum absence was patched locally. That
+  unrelated owner was left unchanged. The new route claims the exact mixed
+  family and seals `Main -> OuterPriority -> InnerPriority -> Capture`, the
+  subject/zone fields, literal priority `1`, and dynamic priority from the
+  unique `value/Int/requested` intent binding.
+- Actual MIR corrected two initial assumptions. Intent header params are empty;
+  their source inputs live in ordered intent bindings. Method `self` is an
+  implicit receiver with null type/ABI, validated separately from explicit
+  typed formals. Ownerless routine identity is consumed from the admitted
+  routine index; the plan does not reopen raw JSON to create a second owner.
+- Current executable evidence is local GREEN. An isolated current-source driver
+  emitted direct LLVM and public/native execution each matched the exact
+  nine-line golden. The 160-line focused gate passes in about seven seconds and
+  rejects missing Inner priority, priority graph drift, duplicate source
+  identity, method-owner crosswire, and semantic action-name/target-row
+  crosswire without publishing artifacts. The installed Make target then
+  rebuilt and installed Pergyra-built DRV-2 and passed the same gate.
+- Structural evidence is GREEN: the complete component contract passed, all
+  five new owner files are capped, the dispatcher remains at 110 lines, and
+  push plus weekly CI call the new target inside their existing single Make
+  invocation. This adds no CI job and no second self-host compiler build.
+- Final local hard, progress, UTF/documentation, and diff gates pass. Likeness
+  passes at sentinel `24/24` and Result/Option `4287/4287`, with the improved
+  typed-error minimum tightened in the same change. Next falsifier: commit/push
+  the exact dirty set and observe the remote matrix. Until remote evidence
+  exists, the lease remains `PUBLISHING`, overall stays 78%, strict beta 83%,
+  and hard SoT stays `CLOSED=49 BRIDGE=36 ACTIVE=1`.
 
 ### Historical archive boundary
 

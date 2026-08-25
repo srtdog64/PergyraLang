@@ -1,0 +1,629 @@
+// Target-neutral execution receipt for one nested intent program.
+// Ordered callable headers, policy carriers, formal parameters, and expression
+// occurrences are sealed here before LLVM text materialization.
+
+import "artifact_zone_owner.pgy";
+import "target_capability_owner.pgy";
+import "direct_mir_nested_intent_program_graph_fact_owner.pgy";
+import "direct_mir_routine_parameter_set_admission_owner.pgy";
+import "../mir_lower/intent_mode_projection_owner.pgy";
+import "../mir_lower/intent_priority_projection_owner.pgy";
+import "../mir_lower/intent_cleanup_contract_owner.pgy";
+
+struct DirectMirNestedIntentRoutineHeaderFact {
+    let valid: Bool;
+    let digest: Int;
+    let row: Int;
+    let kind: String;
+    let owner: String;
+    let name: String;
+    let source_syntax_id: Int;
+    let receiver_carriage: String;
+    let return_type: String;
+    let parameters: DirectMirRoutineParameterSetFact;
+}
+
+func DirectMirNestedIntentRoutineHeaderFactDigest(
+    ref fact: DirectMirNestedIntentRoutineHeaderFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(977L, fact.row);
+    hash = DirectMirCfgHashString(hash, fact.kind);
+    hash = DirectMirCfgHashString(hash, fact.owner);
+    hash = DirectMirCfgHashString(hash, fact.name);
+    hash = DirectMirCfgHashInt(hash, fact.source_syntax_id);
+    hash = DirectMirCfgHashString(hash, fact.receiver_carriage);
+    hash = DirectMirCfgHashString(hash, fact.return_type);
+    hash = DirectMirCfgHashInt(hash, fact.parameters.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirNestedIntentRoutineHeaderFactReady(
+    ref fact: DirectMirNestedIntentRoutineHeaderFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+            DirectMirNestedIntentRoutineHeaderFactDigest(fact) &&
+        fact.row >= 0 &&
+        (fact.kind == "function" || fact.kind == "method" ||
+         fact.kind == "intent") && IsIdentifier(fact.name) &&
+        fact.source_syntax_id > 0 && fact.receiver_carriage != "" &&
+        fact.return_type != "" &&
+        DirectMirRoutineParameterSetFactReady(fact.parameters);
+}
+
+func DirectMirNestedIntentEmptyParameterSetFact(
+) -> DirectMirRoutineParameterSetFact {
+    let strings: Array<String> = [];
+    let ints: Array<Int> = []; let bools: Array<Bool> = [];
+    let source: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFact(
+            true, 0, strings, strings, strings, strings, strings, strings,
+            ints, bools, ints, InvalidDirectMirRoutineParamFact());
+    return DirectMirRoutineParameterSetFact(
+        source.valid, DirectMirRoutineParameterSetFactDigest(source),
+        source.names, source.type_names, source.carriages,
+        source.resources, source.pass_shapes, source.abi_type_names,
+        source.abi_layout_ids, source.abi_required, source.param_digests,
+        source.first);
+}
+
+func DirectMirNestedIntentImplicitReceiverParamReady(
+    json: String, start: Int, end: Int, expected_owner: String
+) -> Bool {
+    let routine: JsonObjectFactTable =
+        JsonObjectFactTableFromBounds(json, start, end);
+    let params: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(routine, "params");
+    if expected_owner == "" || !DirectMirExactObjectArrayCount(params, 1) {
+        return false;
+    }
+    let receiver: JsonObjectFactTable = JsonArrayObjectFactAt(params, 0);
+    let name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        receiver.json, receiver.start, receiver.end, "name");
+    return JsonObjectFactTableReady(receiver) &&
+        JsonObjectFactCount(receiver) == 9 && IsSome(name) &&
+        UnwrapOption(name) == "self" &&
+        DirectMirObjectFieldKindEquals(receiver, "type", "null") &&
+        JsonObjectFactStringFieldEquals(receiver, "carriage", "value") &&
+        JsonObjectFactStringFieldEquals(receiver, "resource", "none") &&
+        JsonObjectFactStringFieldEquals(receiver, "pass", "direct") &&
+        DirectMirObjectFieldKindEquals(
+            receiver, "abi_type_name", "null") &&
+        DirectMirObjectNumberEquals(receiver, "abi_layout_id", "0") &&
+        JsonObjectBoolFieldEqualsWithin(
+            receiver.json, receiver.start, receiver.end,
+            "abi_layout_required", false) &&
+        DirectMirObjectFieldKindEquals(receiver, "abi_layout", "null");
+}
+
+func DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput, row: Int
+) -> DirectMirNestedIntentRoutineHeaderFact {
+    let invalid_parameters: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFactInvalid();
+    let invalid: DirectMirNestedIntentRoutineHeaderFact =
+        DirectMirNestedIntentRoutineHeaderFact(
+            false, 0, -1, "", "", "", -1, "", "", invalid_parameters);
+    if !MirProgramRoutineIndexRowReady(admitted.routines, row) {
+        Die("direct MIR nested intent header row is invalid");
+    }
+    let name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.ends[row], "name");
+    let kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.ends[row], "kind");
+    let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.ends[row], "source_syntax_id");
+    let receiver: Option<String> = MirObjectUniqueStringFactAtBounds(
+        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.ends[row], "receiver_carriage");
+    let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.ends[row], "return");
+    let generic_bounds: Array<Int> = [0, 0];
+    let param_bounds: Array<Int> = [0, 0];
+    let indexed_owner: String = admitted.routines.owners[row];
+    if !IsSome(name) {
+        Die("direct MIR nested intent header name is invalid");
+    }
+    if !IsSome(kind) {
+        Die("direct MIR nested intent header kind is invalid");
+    }
+    if !IsSome(syntax) {
+        Die("direct MIR nested intent header syntax is invalid");
+    }
+    if !IsSome(receiver) {
+        Die("direct MIR nested intent header receiver is invalid");
+    }
+    if !IsSome(return_type) {
+        Die("direct MIR nested intent header return is invalid");
+    }
+    if !MirObjectArrayBoundsAtBounds(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row], "generics", generic_bounds) {
+        Die("direct MIR nested intent header generics are invalid");
+    }
+    if !MirObjectArrayBoundsAtBounds(
+            admitted.routines.source_json, admitted.routines.starts[row],
+            admitted.routines.ends[row], "params", param_bounds) {
+        Die("direct MIR nested intent header params are invalid");
+    }
+    if UnwrapOption(name) != admitted.routines.names[row] ||
+        UnwrapOption(kind) != admitted.routines.kinds[row] ||
+        UnwrapOption(syntax) != admitted.routines.source_syntax_ids[row] ||
+        UnwrapOption(receiver) != admitted.routines.receiver_carriages[row] ||
+        ToInt(UnwrapOption(syntax)) <= 0 ||
+        ToString(ToInt(UnwrapOption(syntax))) != UnwrapOption(syntax) {
+        Die("direct MIR nested intent indexed header identity is invalid");
+    }
+    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+        admitted.routines.source_json, admitted.routines.starts[row],
+        admitted.routines.ends[row]);
+    if ArrayLength(header.generic_names) != 0 ||
+        header.return_type != UnwrapOption(return_type) {
+        Die("direct MIR nested intent generic or return header is invalid");
+    }
+    let parameters: DirectMirRoutineParameterSetFact =
+        DirectMirRoutineParameterSetFactFromBounds(
+            admitted.routines.source_json, param_bounds[0], param_bounds[1],
+            header.param_names, header.param_types,
+            header.param_carriages, header.param_resources,
+            header.param_pass_shapes);
+    if UnwrapOption(kind) == "method" {
+        if !DirectMirNestedIntentImplicitReceiverParamReady(
+                admitted.routines.source_json,
+                admitted.routines.starts[row], admitted.routines.ends[row],
+                indexed_owner) {
+            Die("direct MIR nested intent implicit receiver is invalid");
+        }
+        parameters = DirectMirNestedIntentEmptyParameterSetFact();
+    }
+    if !DirectMirRoutineParameterSetFactReady(parameters) {
+        Die("direct MIR nested intent explicit parameter set is invalid");
+    }
+    let source: DirectMirNestedIntentRoutineHeaderFact =
+        DirectMirNestedIntentRoutineHeaderFact(
+            true, 0, row, UnwrapOption(kind), indexed_owner,
+            UnwrapOption(name), ToInt(UnwrapOption(syntax)),
+            UnwrapOption(receiver), UnwrapOption(return_type), parameters);
+    let sealed: DirectMirNestedIntentRoutineHeaderFact =
+        DirectMirNestedIntentRoutineHeaderFact(
+            source.valid, DirectMirNestedIntentRoutineHeaderFactDigest(source),
+            source.row, source.kind, source.owner, source.name,
+            source.source_syntax_id, source.receiver_carriage,
+            source.return_type, source.parameters);
+    if !DirectMirNestedIntentRoutineHeaderFactReady(sealed) {
+        Die("direct MIR nested intent sealed header is invalid");
+    }
+    return sealed;
+}
+
+struct DirectMirNestedIntentPolicyFact {
+    let valid: Bool;
+    let digest: Int;
+    let routine_row: Int;
+    let name: String;
+    let concurrent: Bool;
+    let priority_kind: String;
+    let priority_literal: Int;
+    let priority_parameter_ordinal: Int;
+    let step_name: String;
+    let nested_argument: Int;
+    let expected_value: Int;
+}
+
+func DirectMirNestedIntentPolicyFactDigest(
+    ref fact: DirectMirNestedIntentPolicyFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(983L, fact.routine_row);
+    hash = DirectMirCfgHashString(hash, fact.name);
+    if fact.concurrent { hash = DirectMirCfgHashInt(hash, 1); }
+    hash = DirectMirCfgHashString(hash, fact.priority_kind);
+    hash = DirectMirCfgHashInt(hash, fact.priority_literal);
+    hash = DirectMirCfgHashInt(hash, fact.priority_parameter_ordinal);
+    hash = DirectMirCfgHashString(hash, fact.step_name);
+    hash = DirectMirCfgHashInt(hash, fact.nested_argument);
+    hash = DirectMirCfgHashInt(hash, fact.expected_value);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirNestedIntentPolicyFactReady(
+    ref fact: DirectMirNestedIntentPolicyFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirNestedIntentPolicyFactDigest(fact) ||
+        fact.routine_row < 0 || !IsIdentifier(fact.name) ||
+        !IsIdentifier(fact.step_name) {
+        return false;
+    }
+    if fact.priority_kind == "literal" {
+        return fact.priority_parameter_ordinal == -1;
+    }
+    return fact.priority_kind == "parameter" &&
+        fact.priority_parameter_ordinal >= 0 && fact.priority_literal == 0;
+}
+
+func DirectMirNestedIntentParticipantBindingsReady(
+    ref bindings: MirIntentBindingProjection,
+    ref graph: DirectMirNestedIntentProgramGraphFact, outer: Bool
+) -> Bool {
+    let expected_count: Int = 3;
+    if outer { expected_count = 2; }
+    if !bindings.ok || ArrayLength(bindings.aliases) != expected_count {
+        return false;
+    }
+    if bindings.aliases[0] != graph.zone_alias ||
+        bindings.type_names[0] != graph.zone_type_name ||
+        bindings.kinds[0] != "participant" ||
+        bindings.aliases[1] != graph.subject_alias ||
+        bindings.type_names[1] != graph.subject_type_name ||
+        bindings.kinds[1] != "participant" {
+        return false;
+    }
+    if outer { return true; }
+    return IsIdentifier(bindings.aliases[2]) &&
+        bindings.type_names[2] == "Int" && bindings.kinds[2] == "value";
+}
+
+func DirectMirNestedIntentNestedArgument(
+    ref sequence: MirExpressionGraphSequence,
+    ref graph: DirectMirNestedIntentProgramGraphFact
+) -> Int {
+    if !sequence.ok || sequence.ready_node_count != 8 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 7 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != graph.inner_name ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[1] != SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[1] != graph.inner_name ||
+        sequence.arena.node_texts[2] != graph.zone_alias ||
+        sequence.arena.topology.node_kinds[3] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[3] != 1 ||
+        sequence.arena.topology.right_children[3] != 2 ||
+        sequence.arena.node_texts[4] != graph.subject_alias ||
+        sequence.arena.topology.node_kinds[5] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[5] != 3 ||
+        sequence.arena.topology.right_children[5] != 4 ||
+        sequence.arena.topology.node_kinds[6] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[7] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[7] != 5 ||
+        sequence.arena.topology.right_children[7] != 6 {
+        Die("direct MIR nested intent call argument graph is invalid");
+    }
+    return DirectMirLegacyIntentProgramCanonicalInteger(sequence, 6);
+}
+
+func DirectMirNestedIntentExpectedValue(
+    ref sequence: MirExpressionGraphSequence,
+    ref graph: DirectMirNestedIntentProgramGraphFact, outer: Bool
+) -> Int {
+    if !outer {
+        if !sequence.ok || sequence.ready_node_count != 1 ||
+            ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 0 ||
+            sequence.arena.topology.node_kinds[0] !=
+                AstExpressionNodeBoolLiteral() ||
+            sequence.arena.node_texts[0] != "true" {
+            Die("direct MIR nested intent action expectation is invalid");
+        }
+        return 1;
+    }
+    if !sequence.ok || sequence.ready_node_count != 5 ||
+        ArrayLength(sequence.roots) != 1 || sequence.roots[0] != 4 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[0] != graph.subject_alias ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeLeaf() ||
+        sequence.arena.node_texts[1] != graph.subject_field_name ||
+        sequence.arena.topology.node_kinds[2] !=
+            AstExpressionNodeMemberAccess() ||
+        sequence.arena.topology.left_children[2] != 0 ||
+        sequence.arena.topology.right_children[2] != 1 ||
+        sequence.arena.topology.node_kinds[3] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[4] != AstExpressionNodeEquality() ||
+        sequence.arena.topology.left_children[4] != 2 ||
+        sequence.arena.topology.right_children[4] != 3 {
+        Die("direct MIR nested intent outer expectation is invalid");
+    }
+    return DirectMirLegacyIntentProgramCanonicalInteger(sequence, 3);
+}
+
+func DirectMirNestedIntentPolicyFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref graph: DirectMirNestedIntentProgramGraphFact,
+    ref header: DirectMirNestedIntentRoutineHeaderFact, outer: Bool
+) -> DirectMirNestedIntentPolicyFact {
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, header.row);
+    if !MirIntentRoutineStructureReady(admitted.routines, index, header.row) ||
+        MirIntentRollbackContractError(
+            admitted.routines, index, header.row, header.name) != "" ||
+        MirIntentInvalidationContractError(
+            admitted.routines, index, header.row) != "" {
+        Die("direct MIR nested intent cleanup contract is invalid");
+    }
+    let carriers: MirIntentRoutineCarrierProjection =
+        MirIntentRoutineCarrierProjectionFromBlockZero(
+            admitted.routines, index, header.row, header.name);
+    let mode: MirIntentModeProjection = MirIntentModeProjectionFromCarriers(
+        header.name, carriers.carrier_names, carriers.carrier_arg0s,
+        carriers.carrier_arg1s, carriers.carrier_slots,
+        carriers.carrier_results, carriers.carrier_abi_type_names,
+        carriers.carrier_source_types, carriers.carrier_expr0s);
+    let priority: MirIntentPriorityProjection =
+        MirIntentPriorityProjectionFromCarriers(
+            admitted.routines, header.name, carriers.carrier_names,
+            carriers.carrier_arg0s, carriers.carrier_arg1s,
+            carriers.carrier_slots, carriers.carrier_results,
+            carriers.carrier_abi_type_names, carriers.carrier_source_types,
+            carriers.carrier_expr0s, carriers.carrier_rows);
+    let bindings: MirIntentBindingProjection =
+        MirIntentBindingProjectionFromCarriers(
+            carriers.carrier_names, carriers.carrier_arg0s,
+            carriers.carrier_arg1s, carriers.carrier_slots, header.name);
+    let phases: MirIntentPhaseProjection = MirIntentPhaseProjectionFromCarriers(
+        admitted.routines, bindings.step_names, carriers.carrier_names,
+        carriers.carrier_arg0s, carriers.carrier_arg1s,
+        carriers.carrier_slots, carriers.carrier_results,
+        carriers.carrier_abi_type_names, carriers.carrier_source_types,
+        carriers.carrier_expr0s, carriers.carrier_rows);
+    if !carriers.valid || !mode.valid || !priority.valid || !priority.present ||
+        !DirectMirNestedIntentParticipantBindingsReady(
+            bindings, graph, outer) || !phases.ok ||
+        ArrayLength(bindings.step_names) != 1 ||
+        ArrayLength(phases.on_rows) != 1 || phases.on_rows[0] < 0 ||
+        phases.expect_rows[0] < 0 || phases.guard_rows[0] != -1 ||
+        phases.post_rows[0] != -1 || phases.compensate_counts[0] != 0 {
+        Die("direct MIR nested intent carrier spine is invalid");
+    }
+    let action: MirIntentActionGraphFact = MirIntentActionGraphFromInstruction(
+        admitted.routines, phases.on_rows[0], phases.on_texts[0]);
+    if !action.ok ||
+        (outer && (action.receiver_alias != "" ||
+                   action.call_target_name != graph.inner_name)) ||
+        (!outer && (action.receiver_alias != graph.subject_alias ||
+                    action.action_name != graph.method_name)) {
+        Die("direct MIR nested intent step target is invalid");
+    }
+    let priority_sequence: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, priority.global_row, 0);
+    let priority_kind: String = "literal";
+    let priority_literal: Int = 0;
+    let priority_ordinal: Int = -1;
+    if outer {
+        if !priority_sequence.ok || priority_sequence.ready_node_count != 1 ||
+            ArrayLength(priority_sequence.roots) != 1 ||
+            priority_sequence.roots[0] != 0 {
+            Die("direct MIR nested intent literal priority graph is invalid");
+        }
+        priority_literal = DirectMirLegacyIntentProgramCanonicalInteger(
+            priority_sequence, 0);
+    } else {
+        priority_kind = "parameter";
+        if !priority_sequence.ok || priority_sequence.ready_node_count != 1 ||
+            ArrayLength(priority_sequence.roots) != 1 ||
+            priority_sequence.roots[0] != 0 ||
+            priority_sequence.arena.topology.node_kinds[0] !=
+                AstExpressionNodeLeaf() {
+            Die("direct MIR nested intent parameter priority graph is invalid");
+        }
+        let binding_row: Int = 0;
+        while binding_row < ArrayLength(bindings.aliases) {
+            if bindings.aliases[binding_row] ==
+                    priority_sequence.arena.node_texts[0] &&
+                bindings.type_names[binding_row] == "Int" &&
+                bindings.kinds[binding_row] == "value" {
+                if priority_ordinal >= 0 {
+                    Die("direct MIR nested intent priority binding is ambiguous");
+                }
+                priority_ordinal = binding_row;
+            }
+            binding_row = binding_row + 1;
+        }
+        if priority_ordinal < 0 {
+            Die("direct MIR nested intent priority binding is missing");
+        }
+    }
+    let on_sequence: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, phases.on_rows[0], 0);
+    let expect_sequence: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, phases.expect_rows[0], 0);
+    let nested_argument: Int = 0;
+    if outer {
+        nested_argument = DirectMirNestedIntentNestedArgument(
+            on_sequence, graph);
+    }
+    let expected: Int = DirectMirNestedIntentExpectedValue(
+        expect_sequence, graph, outer);
+    let source: DirectMirNestedIntentPolicyFact =
+        DirectMirNestedIntentPolicyFact(
+            true, 0, header.row, header.name,
+            mode.mode == "concurrent", priority_kind, priority_literal,
+            priority_ordinal, bindings.step_names[0], nested_argument,
+            expected);
+    let sealed: DirectMirNestedIntentPolicyFact =
+        DirectMirNestedIntentPolicyFact(
+            source.valid, DirectMirNestedIntentPolicyFactDigest(source),
+            source.routine_row, source.name, source.concurrent,
+            source.priority_kind, source.priority_literal,
+            source.priority_parameter_ordinal, source.step_name,
+            source.nested_argument, source.expected_value);
+    if !DirectMirNestedIntentPolicyFactReady(sealed) {
+        Die("direct MIR nested intent policy receipt is invalid");
+    }
+    return sealed;
+}
+
+struct DirectMirNestedIntentProgramPlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let route: DirectMirNestedIntentProgramRouteFact;
+    let graph: DirectMirNestedIntentProgramGraphFact;
+    let main: DirectMirNestedIntentRoutineHeaderFact;
+    let method: DirectMirNestedIntentRoutineHeaderFact;
+    let outer_header: DirectMirNestedIntentRoutineHeaderFact;
+    let inner_header: DirectMirNestedIntentRoutineHeaderFact;
+    let outer_policy: DirectMirNestedIntentPolicyFact;
+    let inner_policy: DirectMirNestedIntentPolicyFact;
+}
+
+func DirectMirNestedIntentProgramPlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-nested-intent-program-plan.v1";
+}
+
+func DirectMirNestedIntentProgramPlanDigest(
+    ref plan: DirectMirNestedIntentProgramPlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(991L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.route.digest);
+    hash = DirectMirCfgHashInt(hash, plan.graph.digest);
+    hash = DirectMirCfgHashInt(hash, plan.main.digest);
+    hash = DirectMirCfgHashInt(hash, plan.method.digest);
+    hash = DirectMirCfgHashInt(hash, plan.outer_header.digest);
+    hash = DirectMirCfgHashInt(hash, plan.inner_header.digest);
+    hash = DirectMirCfgHashInt(hash, plan.outer_policy.digest);
+    hash = DirectMirCfgHashInt(hash, plan.inner_policy.digest);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirNestedIntentProgramPlanReady(
+    ref plan: DirectMirNestedIntentProgramPlan
+) -> Bool {
+    return plan.valid && plan.schema ==
+            DirectMirNestedIntentProgramPlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirNestedIntentProgramPlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirNestedIntentProgramRouteFactReady(plan.route) &&
+        plan.route.claimed &&
+        DirectMirNestedIntentProgramGraphFactReady(plan.graph) &&
+        DirectMirNestedIntentRoutineHeaderFactReady(plan.main) &&
+        DirectMirNestedIntentRoutineHeaderFactReady(plan.method) &&
+        DirectMirNestedIntentRoutineHeaderFactReady(plan.outer_header) &&
+        DirectMirNestedIntentRoutineHeaderFactReady(plan.inner_header) &&
+        DirectMirNestedIntentPolicyFactReady(plan.outer_policy) &&
+        DirectMirNestedIntentPolicyFactReady(plan.inner_policy) &&
+        plan.main.row == plan.graph.main_row &&
+        plan.method.row == plan.graph.method_row &&
+        plan.outer_header.row == plan.graph.outer_row &&
+        plan.inner_header.row == plan.graph.inner_row &&
+        plan.outer_policy.routine_row == plan.graph.outer_row &&
+        plan.inner_policy.routine_row == plan.graph.inner_row;
+}
+
+func DirectMirNestedIntentProgramHeadersReady(
+    ref graph: DirectMirNestedIntentProgramGraphFact,
+    ref main: DirectMirNestedIntentRoutineHeaderFact,
+    ref method: DirectMirNestedIntentRoutineHeaderFact,
+    ref outer: DirectMirNestedIntentRoutineHeaderFact,
+    ref inner: DirectMirNestedIntentRoutineHeaderFact
+) -> Bool {
+    return main.kind == "function" && main.owner == "" &&
+        main.name == "Main" && main.receiver_carriage == "none" &&
+        main.return_type == "Void" &&
+        ArrayLength(main.parameters.names) == 0 &&
+        method.kind == "method" && method.owner == graph.subject_type_name &&
+        method.name == graph.method_name &&
+        method.receiver_carriage == "mutable-identity" &&
+        method.return_type == "Bool" &&
+        ArrayLength(method.parameters.names) == 0 &&
+        outer.kind == "intent" && outer.owner == "" &&
+        outer.name == graph.outer_name && outer.receiver_carriage == "none" &&
+        outer.return_type == "Bool" &&
+        ArrayLength(outer.parameters.names) == 0 &&
+        inner.kind == "intent" && inner.owner == "" &&
+        inner.name == graph.inner_name && inner.receiver_carriage == "none" &&
+        inner.return_type == "Bool" &&
+        ArrayLength(inner.parameters.names) == 0;
+}
+
+func DirectMirNestedIntentProgramPlanFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    route: DirectMirNestedIntentProgramRouteFact
+) -> DirectMirNestedIntentProgramPlan {
+    let graph: DirectMirNestedIntentProgramGraphFact =
+        DirectMirNestedIntentProgramGraphFactFromAdmitted(admitted, route);
+    let main: DirectMirNestedIntentRoutineHeaderFact =
+        DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
+            admitted, graph.main_row);
+    let method: DirectMirNestedIntentRoutineHeaderFact =
+        DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
+            admitted, graph.method_row);
+    let outer: DirectMirNestedIntentRoutineHeaderFact =
+        DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
+            admitted, graph.outer_row);
+    let inner: DirectMirNestedIntentRoutineHeaderFact =
+        DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
+            admitted, graph.inner_row);
+    if !DirectMirNestedIntentRoutineHeaderFactReady(main) {
+        Die("direct MIR nested intent Main header is invalid");
+    }
+    if !DirectMirNestedIntentRoutineHeaderFactReady(method) {
+        Die("direct MIR nested intent method header is invalid");
+    }
+    if !DirectMirNestedIntentRoutineHeaderFactReady(outer) {
+        Die("direct MIR nested intent outer header is invalid");
+    }
+    if !DirectMirNestedIntentRoutineHeaderFactReady(inner) {
+        Die("direct MIR nested intent inner header is invalid");
+    }
+    if !DirectMirNestedIntentProgramHeadersReady(
+            graph, main, method, outer, inner) {
+        Die("direct MIR nested intent routine envelope is invalid");
+    }
+    if main.source_syntax_id != graph.routine_syntax_ids[0] ||
+        method.source_syntax_id != graph.routine_syntax_ids[1] ||
+        outer.source_syntax_id != graph.routine_syntax_ids[2] ||
+        inner.source_syntax_id != graph.routine_syntax_ids[3] {
+        Die("direct MIR nested intent routine source identity is invalid");
+    }
+    let outer_policy: DirectMirNestedIntentPolicyFact =
+        DirectMirNestedIntentPolicyFactFromAdmitted(
+            admitted, graph, outer, true);
+    let inner_policy: DirectMirNestedIntentPolicyFact =
+        DirectMirNestedIntentPolicyFactFromAdmitted(
+            admitted, graph, inner, false);
+    if outer_policy.concurrent || !inner_policy.concurrent ||
+        outer_policy.priority_kind != "literal" ||
+        inner_policy.priority_kind != "parameter" {
+        Die("direct MIR nested intent policy modes are invalid");
+    }
+    let source: DirectMirNestedIntentProgramPlan =
+        DirectMirNestedIntentProgramPlan(
+            true, DirectMirNestedIntentProgramPlanSchema(),
+            CompilerArtifactPlanRevision(), 0,
+            CompilerTargetCapabilitySchema(),
+            CompilerTargetCapabilityFingerprint(), route, graph, main, method,
+            outer, inner, outer_policy, inner_policy);
+    let sealed: DirectMirNestedIntentProgramPlan =
+        DirectMirNestedIntentProgramPlan(
+            source.valid, source.schema, source.revision,
+            DirectMirNestedIntentProgramPlanDigest(source),
+            source.target_capability_schema,
+            source.target_capability_fingerprint, source.route, source.graph,
+            source.main, source.method, source.outer_header,
+            source.inner_header, source.outer_policy, source.inner_policy);
+    if !DirectMirNestedIntentProgramPlanReady(sealed) {
+        Die("direct MIR nested intent program plan is invalid");
+    }
+    return sealed;
+}

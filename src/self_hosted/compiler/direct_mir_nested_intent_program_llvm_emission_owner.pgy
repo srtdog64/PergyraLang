@@ -1,0 +1,313 @@
+// LLVM materialization from one sealed nested-intent plan.
+// No admitted MIR, source, AST, or scalar-route fact is read in this owner.
+
+import "direct_mir_nested_intent_program_plan_owner.pgy";
+import "direct_mir_legacy_intent_program_llvm_emission_owner.pgy";
+
+func DirectMirNestedIntentLlvmIndexedSymbol(
+    family: String, row: Int
+) -> String {
+    return Concat(".pgy.nested.", Concat(
+        family, Concat(".", ToString(row))));
+}
+
+func DirectMirNestedIntentLlvmGlobals(
+    ref plan: DirectMirNestedIntentProgramPlan
+) -> String {
+    let output: String =
+        "@.pgy.nested.format.int = private unnamed_addr constant [6 x i8] c\"%s%d\\0A\\00\", align 1\n@.pgy.nested.format.string = private unnamed_addr constant [6 x i8] c\"%s%s\\0A\\00\", align 1\n";
+    output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+        ".pgy.nested.bool.true", "true"));
+    output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+        ".pgy.nested.bool.false", "false"));
+    output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+        ".pgy.nested.outer.name", plan.graph.outer_name));
+    output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+        ".pgy.nested.inner.name", plan.graph.inner_name));
+    let row: Int = 0;
+    while row < ArrayLength(plan.graph.method_log_literals) {
+        output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+            DirectMirNestedIntentLlvmIndexedSymbol("method.log", row),
+            plan.graph.method_log_literals[row]));
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.graph.main_log_literals) {
+        output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+            DirectMirNestedIntentLlvmIndexedSymbol("main.log", row),
+            plan.graph.main_log_literals[row]));
+        row = row + 1;
+    }
+    return Concat(output, "\n");
+}
+
+func DirectMirNestedIntentLlvmDeclarations(
+    formatted_print: CompilerRuntimeCallAbiFact,
+    rows: Array<IntentObservabilityAbiRow>
+) -> String {
+    if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) ||
+        ArrayLength(rows) != 4 {
+        Die("direct MIR nested intent runtime ABI is invalid");
+    }
+    let output: String = Concat("declare i32 @", formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n");
+    output = Concat(output, Concat("declare i32 @", Concat(
+        IntentRuntimeCEnterFn(), "(ptr, ptr, i32, i1, i32)\n")));
+    output = Concat(output, Concat("declare void @", Concat(
+        IntentRuntimeCExitFn(), "(i32)\n")));
+    let row: Int = 0;
+    while row < ArrayLength(rows) {
+        if !rows[row].valid || rows[row].runtime_name == "" ||
+            rows[row].argument_count < 0 || rows[row].argument_count > 1 {
+            Die("direct MIR nested intent observability ABI is invalid");
+        }
+        let return_type: String = "ptr";
+        if rows[row].return_type == "Int" { return_type = "i32"; }
+        else if rows[row].return_type == "Bool" { return_type = "i1"; }
+        output = Concat(output, Concat("declare ", Concat(
+            return_type, Concat(" @", rows[row].runtime_name))));
+        if rows[row].argument_count == 0 { output = Concat(output, "()\n"); }
+        else { output = Concat(output, "(i32)\n"); }
+        row = row + 1;
+    }
+    return Concat(output, "\n");
+}
+
+func DirectMirNestedIntentLlvmZoneSync(
+    ref plan: DirectMirNestedIntentProgramPlan, zone_type: String
+) -> String {
+    let symbol: String = CompilerSymbolCIdentifier(Concat(
+        plan.graph.zone_type_name, "_sync"));
+    if symbol == "" { Die("direct MIR nested intent zone sync symbol is invalid"); }
+    let output: String = Concat("define internal void @", symbol);
+    output = Concat(output, "(ptr %zone) {\nentry:\n  %generation = getelementptr inbounds %");
+    output = Concat(output, zone_type);
+    output = Concat(output,
+        ", ptr %zone, i32 0, i32 1\n  %prior = atomicrmw add ptr %generation, i32 1 release, align 4\n  ret void\n}\n\n");
+    return output;
+}
+
+func DirectMirNestedIntentLlvmMethod(
+    ref plan: DirectMirNestedIntentProgramPlan, subject_type: String,
+    method_symbol: String, formatted_print: CompilerRuntimeCallAbiFact,
+    rows: Array<IntentObservabilityAbiRow>
+) -> String {
+    let output: String = Concat("define internal i1 @", method_symbol);
+    output = Concat(output, "(ptr %self) {\nentry:\n  %field = getelementptr inbounds %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %self, i32 0, i32 0\n  %old = load i32, ptr %field, align 4\n  %next = add i32 %old, ");
+    output = Concat(output, ToString(plan.graph.method_delta));
+    output = Concat(output, "\n  store i32 %next, ptr %field, align 4\n  %active.count = call i32 @");
+    output = Concat(output, rows[0].runtime_name);
+    output = Concat(output, "()\n  %log.0 = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.nested.format.int, ptr @.pgy.nested.method.log.0, i32 %active.count)\n");
+    let active: Int = 0;
+    while active < 2 {
+        let base: Int = 1 + active * 3;
+        output = Concat(output, Concat("  %active.name.", Concat(
+            ToString(active), " = call ptr @")));
+        output = Concat(output, rows[1].runtime_name);
+        output = Concat(output, Concat("(i32 ", Concat(
+            ToString(active), ")\n  %log.")));
+        output = Concat(output, ToString(base));
+        output = Concat(output, " = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, Concat(
+            "(ptr @.pgy.nested.format.string, ptr @.pgy.nested.method.log.",
+            Concat(ToString(base), Concat(", ptr %active.name.", Concat(
+                ToString(active), ")\n")))));
+        output = Concat(output, Concat("  %active.priority.", Concat(
+            ToString(active), " = call i32 @")));
+        output = Concat(output, rows[2].runtime_name);
+        output = Concat(output, Concat("(i32 ", Concat(
+            ToString(active), ")\n  %log.")));
+        output = Concat(output, ToString(base + 1));
+        output = Concat(output, " = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, Concat(
+            "(ptr @.pgy.nested.format.int, ptr @.pgy.nested.method.log.",
+            Concat(ToString(base + 1), Concat(", i32 %active.priority.",
+                Concat(ToString(active), ")\n")))));
+        output = Concat(output, Concat("  %active.concurrent.", Concat(
+            ToString(active), " = call i1 @")));
+        output = Concat(output, rows[3].runtime_name);
+        output = Concat(output, Concat("(i32 ", Concat(
+            ToString(active), ")\n  %active.concurrent.text.")));
+        output = Concat(output, Concat(ToString(active), Concat(
+            " = select i1 %active.concurrent.", Concat(ToString(active),
+            ", ptr @.pgy.nested.bool.true, ptr @.pgy.nested.bool.false\n  %log."))));
+        output = Concat(output, ToString(base + 2));
+        output = Concat(output, " = call i32 (ptr, ...) @");
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, Concat(
+            "(ptr @.pgy.nested.format.string, ptr @.pgy.nested.method.log.",
+            Concat(ToString(base + 2), Concat(", ptr %active.concurrent.text.",
+                Concat(ToString(active), ")\n")))));
+        active = active + 1;
+    }
+    output = Concat(output, "  ret i1 true\n}\n\n");
+    return output;
+}
+
+func DirectMirNestedIntentLlvmInner(
+    ref plan: DirectMirNestedIntentProgramPlan, subject_type: String,
+    zone_type: String, method_symbol: String, sync_symbol: String,
+    inner_symbol: String
+) -> String {
+    let priority: String = Concat("%pgy.param.", ToString(
+        plan.inner_policy.priority_parameter_ordinal));
+    let output: String = Concat("define internal i1 @", inner_symbol);
+    output = Concat(output,
+        "(ptr %pgy.param.0, ptr %pgy.param.1, i32 %pgy.param.2) {\nentry:\n  %subjects = alloca [1 x ptr], align 8\n  %subject.slot = getelementptr [1 x ptr], ptr %subjects, i32 0, i32 0\n  store ptr %pgy.param.1, ptr %subject.slot, align 8\n  %handle = call i32 @");
+    output = Concat(output, IntentRuntimeCEnterFn());
+    output = Concat(output,
+        "(ptr @.pgy.nested.inner.name, ptr %subject.slot, i32 1, i1 ");
+    if plan.inner_policy.concurrent { output = Concat(output, "true"); }
+    else { output = Concat(output, "false"); }
+    output = Concat(output, Concat(", i32 ", Concat(priority,
+        ")\n  %entered = icmp ne i32 %handle, 0\n  br i1 %entered, label %run, label %enter.failed\n\nrun:\n  %zone.slot = getelementptr inbounds %")));
+    output = Concat(output, zone_type);
+    output = Concat(output, ", ptr %pgy.param.0, i32 0, i32 0\n  %subject.input = load %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %pgy.param.1, align 4\n  store %");
+    output = Concat(output, subject_type);
+    output = Concat(output, " %subject.input, ptr %zone.slot, align 4\n  call void @");
+    output = Concat(output, sync_symbol);
+    output = Concat(output, "(ptr %pgy.param.0)\n  %action.ok = call i1 @");
+    output = Concat(output, method_symbol);
+    output = Concat(output, "(ptr %zone.slot)\n  call void @");
+    output = Concat(output, sync_symbol);
+    output = Concat(output, "(ptr %pgy.param.0)\n  %subject.output = load %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %zone.slot, align 4\n  store %");
+    output = Concat(output, subject_type);
+    output = Concat(output,
+        " %subject.output, ptr %pgy.param.1, align 4\n  call void @");
+    output = Concat(output, IntentRuntimeCExitFn());
+    output = Concat(output,
+        "(i32 %handle)\n  ret i1 %action.ok\n\nenter.failed:\n  ret i1 false\n}\n\n");
+    return output;
+}
+
+func DirectMirNestedIntentLlvmOuter(
+    ref plan: DirectMirNestedIntentProgramPlan, subject_type: String,
+    outer_symbol: String, inner_symbol: String
+) -> String {
+    let output: String = Concat("define internal i1 @", outer_symbol);
+    output = Concat(output,
+        "(ptr %pgy.param.0, ptr %pgy.param.1) {\nentry:\n  %subjects = alloca [1 x ptr], align 8\n  %subject.slot = getelementptr [1 x ptr], ptr %subjects, i32 0, i32 0\n  store ptr %pgy.param.1, ptr %subject.slot, align 8\n  %handle = call i32 @");
+    output = Concat(output, IntentRuntimeCEnterFn());
+    output = Concat(output,
+        "(ptr @.pgy.nested.outer.name, ptr %subject.slot, i32 1, i1 ");
+    if plan.outer_policy.concurrent { output = Concat(output, "true"); }
+    else { output = Concat(output, "false"); }
+    output = Concat(output, Concat(", i32 ", Concat(
+        ToString(plan.outer_policy.priority_literal),
+        ")\n  %entered = icmp ne i32 %handle, 0\n  br i1 %entered, label %run, label %enter.failed\n\nrun:\n  %inner.ok = call i1 @")));
+    output = Concat(output, inner_symbol);
+    output = Concat(output, Concat(
+        "(ptr %pgy.param.0, ptr %pgy.param.1, i32 ", Concat(
+            ToString(plan.outer_policy.nested_argument),
+            ")\n  br i1 %inner.ok, label %check, label %finish.false\n\ncheck:\n  %field = getelementptr inbounds %")));
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %pgy.param.1, i32 0, i32 0\n  %value = load i32, ptr %field, align 4\n  %expect = icmp eq i32 %value, ");
+    output = Concat(output, ToString(plan.outer_policy.expected_value));
+    output = Concat(output,
+        "\n  br i1 %expect, label %finish.true, label %finish.false\n\nfinish.true:\n  call void @");
+    output = Concat(output, IntentRuntimeCExitFn());
+    output = Concat(output,
+        "(i32 %handle)\n  ret i1 true\n\nfinish.false:\n  call void @");
+    output = Concat(output, IntentRuntimeCExitFn());
+    output = Concat(output,
+        "(i32 %handle)\n  ret i1 false\n\nenter.failed:\n  ret i1 false\n}\n\n");
+    return output;
+}
+
+func DirectMirNestedIntentLlvmMain(
+    ref plan: DirectMirNestedIntentProgramPlan, subject_type: String,
+    zone_type: String, outer_symbol: String,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> String {
+    let output: String = "define internal void @Main() {\nentry:\n  %subject = alloca %";
+    output = Concat(output, subject_type);
+    output = Concat(output, ", align 4\n  %subject.init = insertvalue %");
+    output = Concat(output, subject_type);
+    output = Concat(output, Concat(" zeroinitializer, i32 ", Concat(
+        ToString(plan.graph.initial_value), ", 0\n  store %")));
+    output = Concat(output, subject_type);
+    output = Concat(output, " %subject.init, ptr %subject, align 4\n  %zone = alloca %");
+    output = Concat(output, zone_type);
+    output = Concat(output, ", align 4\n  %subject.copy = load %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %subject, align 4\n  %zone.init = insertvalue %");
+    output = Concat(output, zone_type);
+    output = Concat(output, " zeroinitializer, %");
+    output = Concat(output, subject_type);
+    output = Concat(output, " %subject.copy, 0\n  store %");
+    output = Concat(output, zone_type);
+    output = Concat(output, " %zone.init, ptr %zone, align 4\n  %result = call i1 @");
+    output = Concat(output, outer_symbol);
+    output = Concat(output,
+        "(ptr %zone, ptr %subject)\n  %result.text = select i1 %result, ptr @.pgy.nested.bool.true, ptr @.pgy.nested.bool.false\n  %log.0 = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.nested.format.string, ptr @.pgy.nested.main.log.0, ptr %result.text)\n  %field = getelementptr inbounds %");
+    output = Concat(output, subject_type);
+    output = Concat(output,
+        ", ptr %subject, i32 0, i32 0\n  %value = load i32, ptr %field, align 4\n  %log.1 = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.nested.format.int, ptr @.pgy.nested.main.log.1, i32 %value)\n  ret void\n}\n\ndefine i32 @main() {\nentry:\n  call void @Main()\n  ret i32 0\n}\n");
+    return output;
+}
+
+func DirectMirNestedIntentProgramEmitLlvm(
+    ref plan: DirectMirNestedIntentProgramPlan
+) -> String {
+    if !DirectMirNestedIntentProgramPlanReady(plan) {
+        Die("direct MIR nested intent LLVM receipt is invalid");
+    }
+    let formatted_print: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFormattedPrintFact();
+    let rows: Array<IntentObservabilityAbiRow> = [
+        IntentObservabilityAbiRowForSource("IntentActiveCount"),
+        IntentObservabilityAbiRowForSource("IntentActiveName"),
+        IntentObservabilityAbiRowForSource("IntentActivePriority"),
+        IntentObservabilityAbiRowForSource("IntentActiveConcurrent")];
+    let subject_type: String = CompilerSymbolCIdentifier(
+        plan.graph.subject_type_name);
+    let zone_type: String = CompilerSymbolCIdentifier(
+        plan.graph.zone_type_name);
+    let method_symbol: String = CompilerSymbolCIdentifier(Concat(
+        plan.graph.subject_type_name, Concat("_", plan.graph.method_name)));
+    let outer_symbol: String = CompilerSymbolCIdentifier(plan.graph.outer_name);
+    let inner_symbol: String = CompilerSymbolCIdentifier(plan.graph.inner_name);
+    let sync_symbol: String = CompilerSymbolCIdentifier(Concat(
+        plan.graph.zone_type_name, "_sync"));
+    if subject_type == "" || zone_type == "" || method_symbol == "" ||
+        outer_symbol == "" || inner_symbol == "" || sync_symbol == "" ||
+        subject_type == zone_type || outer_symbol == inner_symbol {
+        Die("direct MIR nested intent LLVM symbols are invalid");
+    }
+    let output: String = Concat("%", Concat(
+        subject_type, Concat(" = type { i32 }\n%", Concat(
+            zone_type, Concat(" = type { %", Concat(
+                subject_type, ", i32 }\n\n"))))));
+    output = Concat(output, DirectMirNestedIntentLlvmGlobals(plan));
+    output = Concat(output, DirectMirNestedIntentLlvmDeclarations(
+        formatted_print, rows));
+    output = Concat(output, DirectMirNestedIntentLlvmZoneSync(
+        plan, zone_type));
+    output = Concat(output, DirectMirNestedIntentLlvmMethod(
+        plan, subject_type, method_symbol, formatted_print, rows));
+    output = Concat(output, DirectMirNestedIntentLlvmInner(
+        plan, subject_type, zone_type, method_symbol, sync_symbol,
+        inner_symbol));
+    output = Concat(output, DirectMirNestedIntentLlvmOuter(
+        plan, subject_type, outer_symbol, inner_symbol));
+    output = Concat(output, DirectMirNestedIntentLlvmMain(
+        plan, subject_type, zone_type, outer_symbol, formatted_print));
+    return output;
+}

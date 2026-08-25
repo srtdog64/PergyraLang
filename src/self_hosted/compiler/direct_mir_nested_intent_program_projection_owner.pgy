@@ -1,0 +1,23 @@
+// Exclusive LLVM boundary for the admitted nested-intent mixed-callable route.
+
+import "direct_mir_nested_intent_program_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirNestedIntentProgramLlvm(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    route: DirectMirNestedIntentProgramRouteFact
+) -> String {
+    let plan: DirectMirNestedIntentProgramPlan =
+        DirectMirNestedIntentProgramPlanFromAdmitted(admitted, route);
+    return DirectMirNestedIntentProgramEmitLlvm(plan);
+}
+
+func CompileAdmittedDirectMirNestedIntentProgramLlvmIfClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput, is_llvm: Bool
+) -> Option<String> {
+    if !is_llvm { return None; }
+    let route: DirectMirNestedIntentProgramRouteFact =
+        DirectMirNestedIntentProgramRouteFactFromAdmitted(admitted);
+    if !route.claimed { return None; }
+    return Some(CompileAdmittedDirectMirNestedIntentProgramLlvm(
+        admitted, route));
+}

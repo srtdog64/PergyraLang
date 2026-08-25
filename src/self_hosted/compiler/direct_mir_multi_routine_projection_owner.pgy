@@ -5,6 +5,7 @@ import "direct_mir_collection_program_route_fact_owner.pgy";
 import "direct_mir_collection_program_projection_owner.pgy";
 import "direct_mir_legacy_intent_program_projection_owner.pgy";
 import "direct_mir_composite_intent_program_projection_owner.pgy";
+import "direct_mir_nested_intent_program_projection_owner.pgy";
 import "direct_mir_two_routine_nominal_projection_owner.pgy";
 import "direct_mir_two_routine_classification_owner.pgy";
 import "direct_mir_inferred_generic_nominal_projection_owner.pgy";
@@ -44,16 +45,14 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
             admitted, target_projection); }
     if DirectMirArrayReturnProgramCandidate(admitted) {
         let return_plan: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanFromAdmitted(admitted);
-        let return_abi: DirectMirArrayIntAbiProjection = DirectMirArrayReturnAbiProjectionFromPlan(
-            return_plan, target_projection);
+        let return_abi: DirectMirArrayIntAbiProjection =
+            DirectMirArrayReturnAbiProjectionFromPlan(return_plan, target_projection);
         if is_llvm {
             return DirectMirArrayReturnEmitLlvm(
-                return_plan, return_abi, formatted_print, line_format
-            );
+                return_plan, return_abi, formatted_print, line_format);
         }
         return DirectMirArrayReturnEmitC(
-            return_plan, return_abi, formatted_print, line_format
-        );
+            return_plan, return_abi, formatted_print, line_format);
     }
     let collection_route: DirectMirCollectionProgramRouteFact =
         DirectMirCollectionProgramRouteFactFromAdmitted(admitted);
@@ -65,6 +64,8 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
     if IsSome(intent_payload) { return UnwrapOption(intent_payload); }
     let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);
     if IsSome(composite_intent_payload) { return UnwrapOption(composite_intent_payload); }
+    let nested_intent_payload: Option<String> = CompileAdmittedDirectMirNestedIntentProgramLlvmIfClaimed(admitted, is_llvm);
+    if IsSome(nested_intent_payload) { return UnwrapOption(nested_intent_payload); }
     DirectMirPressureStage(observe_pressure, "scalar-route:start");
     let scalar_program_admission: DirectMirScalarProgramRouteAdmission =
         DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted);
@@ -105,6 +106,5 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
             admitted, is_llvm, formatted_print, line_format
         );
     }
-    return CompileAdmittedDirectMirTerminalMultiRoutine(admitted, target_projection, is_llvm,
-        formatted_print, line_format, scalar_program_admission);
+    return CompileAdmittedDirectMirTerminalMultiRoutine(admitted, target_projection, is_llvm, formatted_print, line_format, scalar_program_admission);
 }

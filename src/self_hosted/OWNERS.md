@@ -2390,6 +2390,21 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_composite_intent_program_projection_owner.pgy`
   -- LLVM-only exclusive composition boundary issuing and consuming the
   composite intent plan before scalar admission.
+- `src/self_hosted/compiler/direct_mir_nested_intent_program_route_fact_owner.pgy`
+  -- exclusive structural claim for the one-function, one-method, two-intent
+  nested-priority family before scalar-only admission.
+- `src/self_hosted/compiler/direct_mir_nested_intent_program_graph_fact_owner.pgy`
+  -- admitted declaration, routine, field, call, and observation DAG receipt
+  for `Main -> Outer -> Inner -> method`, without source or AST reconstruction.
+- `src/self_hosted/compiler/direct_mir_nested_intent_program_plan_owner.pgy`
+  -- sealed target-neutral callable headers, implicit receiver, ordered intent
+  bindings, literal/dynamic priority, step, expectation, and cleanup receipt.
+- `src/self_hosted/compiler/direct_mir_nested_intent_program_llvm_emission_owner.pgy`
+  -- MIR-blind LLVM consumer preserving zone copy/sync, method mutation,
+  nested runtime priority, active-intent observations, and Bool result output.
+- `src/self_hosted/compiler/direct_mir_nested_intent_program_projection_owner.pgy`
+  -- LLVM-only exclusive composition boundary issuing and consuming the nested
+  intent plan after composite intent and before scalar admission.
 - `src/self_hosted/compiler/direct_mir_legacy_intent_program_route_fact_owner.pgy`
   -- exclusive structural claim for the first executable one-function,
   one-subject-action, one-intent, one-subject/zone program family; a claimed

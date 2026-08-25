@@ -1,0 +1,540 @@
+// Sealed declaration, callable, and observability graph for one nested intent.
+// This owner consumes admitted indexes and expression DAGs only; it never
+// reparses source text or reconstructs an AST.
+
+import "direct_mir_nested_intent_program_route_fact_owner.pgy";
+import "direct_mir_legacy_intent_program_graph_fact_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "../mir_lower/intent_routine_carrier_projection_owner.pgy";
+import "../mir_lower/intent_phase_projection_owner.pgy";
+import "../mir_lower/intent_action_contract_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../lib/intent_observability_abi_projection_owner.pgy";
+
+struct DirectMirNestedIntentProgramGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let main_row: Int;
+    let method_row: Int;
+    let outer_row: Int;
+    let inner_row: Int;
+    let routine_syntax_ids: Array<Int>;
+    let declaration_syntax_ids: Array<Int>;
+    let subject_type_name: String;
+    let zone_type_name: String;
+    let subject_field_name: String;
+    let zone_field_name: String;
+    let method_name: String;
+    let outer_name: String;
+    let inner_name: String;
+    let subject_alias: String;
+    let zone_alias: String;
+    let initial_value: Int;
+    let method_delta: Int;
+    let method_log_literals: Array<String>;
+    let main_log_literals: Array<String>;
+}
+
+func DirectMirNestedIntentProgramGraphFactDigest(
+    ref fact: DirectMirNestedIntentProgramGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(971L, fact.main_row);
+    hash = DirectMirCfgHashInt(hash, fact.method_row);
+    hash = DirectMirCfgHashInt(hash, fact.outer_row);
+    hash = DirectMirCfgHashInt(hash, fact.inner_row);
+    hash = DirectMirScalarCfgHashInts(hash, fact.routine_syntax_ids);
+    hash = DirectMirScalarCfgHashInts(hash, fact.declaration_syntax_ids);
+    hash = DirectMirCfgHashString(hash, fact.subject_type_name);
+    hash = DirectMirCfgHashString(hash, fact.zone_type_name);
+    hash = DirectMirCfgHashString(hash, fact.subject_field_name);
+    hash = DirectMirCfgHashString(hash, fact.zone_field_name);
+    hash = DirectMirCfgHashString(hash, fact.method_name);
+    hash = DirectMirCfgHashString(hash, fact.outer_name);
+    hash = DirectMirCfgHashString(hash, fact.inner_name);
+    hash = DirectMirCfgHashString(hash, fact.subject_alias);
+    hash = DirectMirCfgHashString(hash, fact.zone_alias);
+    hash = DirectMirCfgHashInt(hash, fact.initial_value);
+    hash = DirectMirCfgHashInt(hash, fact.method_delta);
+    let row: Int = 0;
+    while row < ArrayLength(fact.method_log_literals) {
+        hash = DirectMirCfgHashString(hash, fact.method_log_literals[row]);
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(fact.main_log_literals) {
+        hash = DirectMirCfgHashString(hash, fact.main_log_literals[row]);
+        row = row + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirNestedIntentProgramGraphFactReady(
+    ref fact: DirectMirNestedIntentProgramGraphFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirNestedIntentProgramGraphFactDigest(fact) ||
+        fact.main_row < 0 || fact.method_row < 0 || fact.outer_row < 0 ||
+        fact.inner_row < 0 || fact.outer_row == fact.inner_row ||
+        ArrayLength(fact.routine_syntax_ids) != 4 ||
+        ArrayLength(fact.declaration_syntax_ids) != 2 ||
+        !IsIdentifier(fact.subject_type_name) ||
+        !IsIdentifier(fact.zone_type_name) ||
+        !IsIdentifier(fact.subject_field_name) ||
+        !IsIdentifier(fact.zone_field_name) ||
+        !IsIdentifier(fact.method_name) || !IsIdentifier(fact.outer_name) ||
+        !IsIdentifier(fact.inner_name) || !IsIdentifier(fact.subject_alias) ||
+        !IsIdentifier(fact.zone_alias) ||
+        fact.subject_type_name == fact.zone_type_name ||
+        fact.outer_name == fact.inner_name || fact.method_delta == 0 ||
+        ArrayLength(fact.method_log_literals) != 7 ||
+        ArrayLength(fact.main_log_literals) != 2 {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(fact.routine_syntax_ids) {
+        if fact.routine_syntax_ids[row] <= 0 { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.routine_syntax_ids[prior] == fact.routine_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return fact.declaration_syntax_ids[0] > 0 &&
+        fact.declaration_syntax_ids[1] > 0 &&
+        fact.declaration_syntax_ids[0] != fact.declaration_syntax_ids[1];
+}
+
+func DirectMirNestedIntentProgramDeclarationSyntaxId(
+    ref admitted: MirMachineLayerAdmittedJsonInput, row: Int
+) -> Int {
+    if row < 0 || row >= MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations) {
+        return -1;
+    }
+    let declaration: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.document.root.json,
+        admitted.domain_runtime_admission.declarations.starts[row],
+        admitted.domain_runtime_admission.declarations.ends[row]);
+    let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        declaration.json, declaration.start, declaration.end,
+        "source_syntax_id");
+    if !JsonObjectFactTableReady(declaration) || !IsSome(syntax) ||
+        ToInt(UnwrapOption(syntax)) <= 0 ||
+        ToString(ToInt(UnwrapOption(syntax))) != UnwrapOption(syntax) {
+        return -1;
+    }
+    return ToInt(UnwrapOption(syntax));
+}
+
+func DirectMirNestedIntentProgramFieldNames(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirNestedIntentProgramRouteFact
+) -> Array<String> {
+    let result: Array<String> = [];
+    let subject_field: String = "";
+    let zone_field: String = "";
+    let subject_count: Int = 0;
+    let zone_count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(admitted.domain_runtime_admission.declarations.
+            field_identities.field_names) {
+        if admitted.domain_runtime_admission.declarations.field_identities.
+                field_owner_indices[row] == route.subject_declaration_row &&
+            admitted.domain_runtime_admission.declarations.field_identities.
+                field_kinds[row] == "field" &&
+            admitted.domain_runtime_admission.declarations.field_identities.
+                field_type_names[row] == "Int" &&
+            MirProgramDeclarationFieldIdentityPositiveDecimal(
+                admitted.domain_runtime_admission.declarations.
+                    field_identities.field_source_syntax_ids[row]) {
+            subject_count = subject_count + 1;
+            subject_field = admitted.domain_runtime_admission.declarations.
+                field_identities.field_names[row];
+        }
+        if admitted.domain_runtime_admission.declarations.field_identities.
+                field_owner_indices[row] == route.zone_declaration_row &&
+            admitted.domain_runtime_admission.declarations.field_identities.
+                field_kinds[row] == "subject_slot" &&
+            admitted.domain_runtime_admission.declarations.field_identities.
+                field_type_names[row] == admitted.domain_runtime_admission.
+                    declarations.names[route.subject_declaration_row] &&
+            MirProgramDeclarationFieldIdentityPositiveDecimal(
+                admitted.domain_runtime_admission.declarations.
+                    field_identities.field_source_syntax_ids[row]) {
+            zone_count = zone_count + 1;
+            zone_field = admitted.domain_runtime_admission.declarations.
+                field_identities.field_names[row];
+        }
+        row = row + 1;
+    }
+    if !admitted.domain_runtime_admission.declarations.field_identities.valid ||
+        ArrayLength(admitted.domain_runtime_admission.declarations.
+            field_identities.field_names) != 2 ||
+        subject_count != 1 || zone_count != 1 ||
+        !IsIdentifier(subject_field) || !IsIdentifier(zone_field) {
+        return result;
+    }
+    ArrayPush(result, subject_field);
+    ArrayPush(result, zone_field);
+    return result;
+}
+
+func DirectMirNestedIntentProgramIntentEdge(
+    ref admitted: MirMachineLayerAdmittedJsonInput, routine_row: Int
+) -> MirIntentActionGraphFact {
+    let invalid: MirIntentActionGraphFact =
+        MirIntentActionGraphFact(false, "", "", "");
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, routine_row);
+    let intent_name: String = admitted.routines.names[routine_row];
+    if !index.valid { return invalid; }
+    let carriers: MirIntentRoutineCarrierProjection =
+        MirIntentRoutineCarrierProjectionFromBlockZero(
+            admitted.routines, index, routine_row, intent_name);
+    let bindings: MirIntentBindingProjection =
+        MirIntentBindingProjectionFromCarriers(
+            carriers.carrier_names, carriers.carrier_arg0s,
+            carriers.carrier_arg1s, carriers.carrier_slots, intent_name);
+    let phases: MirIntentPhaseProjection =
+        MirIntentPhaseProjectionFromCarriers(
+            admitted.routines, bindings.step_names, carriers.carrier_names,
+            carriers.carrier_arg0s, carriers.carrier_arg1s,
+            carriers.carrier_slots, carriers.carrier_results,
+            carriers.carrier_abi_type_names, carriers.carrier_source_types,
+            carriers.carrier_expr0s, carriers.carrier_rows);
+    if !carriers.valid || !bindings.ok || !phases.ok ||
+        ArrayLength(bindings.step_names) != 1 ||
+        ArrayLength(phases.on_rows) != 1 || phases.on_rows[0] < 0 {
+        return invalid;
+    }
+    return MirIntentActionGraphFromInstruction(
+        admitted.routines, phases.on_rows[0], phases.on_texts[0]);
+}
+
+func DirectMirNestedIntentProgramMethodLogLiteral(
+    ref sequence: MirExpressionGraphSequence, source_name: String,
+    ordinal: Int, stringify: Bool
+) -> Option<String> {
+    let abi: IntentObservabilityAbiRow =
+        IntentObservabilityAbiRowForSource(source_name);
+    let node_count: Int = 6;
+    let accessor_node: Int = 2;
+    let ordinal_node: Int = 3;
+    let final_argument: Int = 4;
+    if source_name == "IntentActiveCount" {
+        node_count = 7; accessor_node = 4; ordinal_node = -1;
+        final_argument = 5;
+    } else if stringify {
+        node_count = 9; accessor_node = 4; ordinal_node = 5;
+        final_argument = 7;
+    }
+    if !abi.valid || !sequence.ok || sequence.ready_node_count != node_count ||
+        ArrayLength(sequence.roots) != 1 ||
+        sequence.roots[0] != node_count - 1 ||
+        sequence.arena.topology.node_kinds[0] !=
+            AstExpressionNodeStringLiteral() ||
+        sequence.arena.topology.node_kinds[node_count - 1] !=
+            AstExpressionNodeAdd() ||
+        sequence.arena.topology.left_children[node_count - 1] != 0 ||
+        sequence.arena.topology.right_children[node_count - 1] !=
+            final_argument ||
+        sequence.arena.topology.node_kinds[accessor_node] !=
+            AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[accessor_node] !=
+            SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[accessor_node] != source_name ||
+        sequence.arena.identities.runtime_call_abi_ids[accessor_node] !=
+            abi.runtime_call_abi_id {
+        return None;
+    }
+    if ordinal_node >= 0 &&
+        (sequence.arena.topology.node_kinds[ordinal_node] !=
+            AstExpressionNodeIntegerLiteral() ||
+         DirectMirLegacyIntentProgramCanonicalInteger(
+            sequence, ordinal_node) != ordinal) {
+        return None;
+    }
+    let literal: Option<String> = DirectMirAsciiLiteralContent(
+        sequence.arena.node_texts[0]);
+    if !IsSome(literal) { return None; }
+    return literal;
+}
+
+func DirectMirNestedIntentProgramMainFacts(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirNestedIntentProgramRouteFact,
+    subject_type: String, zone_type: String, outer_name: String,
+    subject_field: String
+) -> Array<String> {
+    let result: Array<String> = [];
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, route.main_row);
+    if !index.valid || admitted.routines.names[route.main_row] != "Main" ||
+        admitted.routines.routine_block_counts[route.main_row] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, route.main_row, 0) != 4 ||
+        ArrayLength(index.source_local_names) != 2 ||
+        ArrayLength(index.source_local_types) != 2 {
+        return result;
+    }
+    let subject_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, route.main_row, 0, 0);
+    let zone_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, route.main_row, 0, 1);
+    let outer_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, route.main_row, 0, 2);
+    let field_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, route.main_row, 0, 3);
+    let subject_instruction: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, subject_global);
+    let zone_instruction: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, zone_global);
+    let outer_instruction: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, outer_global);
+    let field_instruction: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, field_global);
+    if !subject_instruction.valid || !zone_instruction.valid ||
+        !outer_instruction.valid || !field_instruction.valid ||
+        subject_instruction.name != "ssa-def" ||
+        zone_instruction.name != "ssa-def" ||
+        subject_instruction.arg1 != subject_type ||
+        subject_instruction.abi_type_name != subject_type ||
+        zone_instruction.arg1 != zone_type ||
+        zone_instruction.abi_type_name != zone_type ||
+        outer_instruction.name != "stmt" || field_instruction.name != "stmt" ||
+        outer_instruction.arg0 != "Log" || field_instruction.arg0 != "Log" ||
+        subject_instruction.arg0 == "" || zone_instruction.arg0 == "" ||
+        subject_instruction.arg0 == zone_instruction.arg0 ||
+        index.source_local_names[0] != subject_instruction.arg0 ||
+        index.source_local_types[0] != subject_type ||
+        index.source_local_names[1] != zone_instruction.arg0 ||
+        index.source_local_types[1] != zone_type {
+        return result;
+    }
+    let subject_graph: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, subject_global, 0);
+    let zone_graph: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, zone_global, 0);
+    if !DirectMirLegacyIntentMainConstructionReady(
+            admitted, subject_graph, subject_type, subject_instruction.arg0,
+            false, subject_instruction.arg0) ||
+        !DirectMirLegacyIntentMainConstructionReady(
+            admitted, zone_graph, zone_type, zone_instruction.arg0, true,
+            subject_instruction.arg0) {
+        return result;
+    }
+    let outer_graph: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, outer_global, 0);
+    let field_graph: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, field_global, 0);
+    if !outer_graph.ok || outer_graph.ready_node_count != 11 ||
+        ArrayLength(outer_graph.roots) != 1 || outer_graph.roots[0] != 10 ||
+        outer_graph.arena.topology.node_kinds[0] !=
+            AstExpressionNodeStringLiteral() ||
+        outer_graph.arena.topology.node_kinds[4] != AstExpressionNodeCall() ||
+        outer_graph.arena.call_target_kinds[4] != SemanticCallTargetDirect() ||
+        outer_graph.arena.call_target_names[4] != outer_name ||
+        outer_graph.arena.node_texts[5] != zone_instruction.arg0 ||
+        outer_graph.arena.node_texts[7] != subject_instruction.arg0 ||
+        outer_graph.arena.topology.node_kinds[10] != AstExpressionNodeAdd() ||
+        !field_graph.ok || field_graph.ready_node_count != 8 ||
+        ArrayLength(field_graph.roots) != 1 || field_graph.roots[0] != 7 ||
+        field_graph.arena.topology.node_kinds[0] !=
+            AstExpressionNodeStringLiteral() ||
+        field_graph.arena.topology.node_kinds[5] !=
+            AstExpressionNodeMemberAccess() ||
+        field_graph.arena.node_texts[3] != subject_instruction.arg0 ||
+        field_graph.arena.node_texts[4] != subject_field ||
+        field_graph.arena.topology.node_kinds[7] != AstExpressionNodeAdd() {
+        return result;
+    }
+    let outer_literal: Option<String> = DirectMirAsciiLiteralContent(
+        outer_graph.arena.node_texts[0]);
+    let field_literal: Option<String> = DirectMirAsciiLiteralContent(
+        field_graph.arena.node_texts[0]);
+    if !IsSome(outer_literal) || !IsSome(field_literal) { return result; }
+    ArrayPush(result, subject_instruction.arg0);
+    ArrayPush(result, zone_instruction.arg0);
+    ArrayPush(result, ToString(
+        DirectMirLegacyIntentProgramCanonicalInteger(subject_graph, 2)));
+    ArrayPush(result, UnwrapOption(outer_literal));
+    ArrayPush(result, UnwrapOption(field_literal));
+    return result;
+}
+
+func DirectMirNestedIntentProgramMethodFacts(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirNestedIntentProgramRouteFact, subject_field: String
+) -> Array<String> {
+    let result: Array<String> = [];
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, route.method_row);
+    if !index.valid || admitted.routines.routine_block_counts[
+            route.method_row] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, route.method_row, 0) != 9 {
+        return result;
+    }
+    let assignment_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, route.method_row, 0, 0);
+    let assignment: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, assignment_global);
+    let value: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, assignment_global, 0);
+    if !assignment.valid || assignment.name != "ssa-def" ||
+        assignment.arg0 != subject_field || assignment.arg1 != "owner_field" ||
+        assignment.abi_type_name != "Int" || !value.ok ||
+        value.ready_node_count != 3 || value.roots[0] != 2 ||
+        value.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        value.arena.node_texts[0] != subject_field ||
+        value.arena.topology.node_kinds[1] !=
+            AstExpressionNodeIntegerLiteral() ||
+        value.arena.topology.node_kinds[2] != AstExpressionNodeAdd() {
+        return result;
+    }
+    ArrayPush(result, ToString(
+        DirectMirLegacyIntentProgramCanonicalInteger(value, 1)));
+    let sources: Array<String> = [
+        "IntentActiveCount", "IntentActiveName", "IntentActivePriority",
+        "IntentActiveConcurrent", "IntentActiveName",
+        "IntentActivePriority", "IntentActiveConcurrent"];
+    let row: Int = 0;
+    while row < 7 {
+        let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, route.method_row, 0, row + 1);
+        let instruction: MirRoutineInstructionScalarCapture =
+            MirRoutineInstructionFactBundleAtGlobal(
+                index.instruction_facts, global);
+        let sequence: MirExpressionGraphSequence =
+            DirectMirLegacyIntentProgramExpressionSequence(
+                admitted.routines, global, 0);
+        let ordinal: Int = -1;
+        if row > 0 && row < 4 { ordinal = 0; }
+        else if row >= 4 { ordinal = 1; }
+        let stringify: Bool = row != 1 && row != 4;
+        let literal: Option<String> =
+            DirectMirNestedIntentProgramMethodLogLiteral(
+                sequence, sources[row], ordinal, stringify);
+        if !instruction.valid || instruction.name != "stmt" ||
+            instruction.arg0 != "Log" || !IsSome(literal) {
+            while ArrayLength(result) > 0 { ArrayPop(result); }
+            return result;
+        }
+        ArrayPush(result, UnwrapOption(literal));
+        row = row + 1;
+    }
+    let return_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, route.method_row, 0, 8);
+    let returned: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, return_global, 0);
+    if !returned.ok || returned.ready_node_count != 1 ||
+        returned.arena.topology.node_kinds[0] !=
+            AstExpressionNodeBoolLiteral() ||
+        returned.arena.node_texts[0] != "true" {
+        while ArrayLength(result) > 0 { ArrayPop(result); }
+    }
+    return result;
+}
+
+func DirectMirNestedIntentProgramGraphFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirNestedIntentProgramRouteFact
+) -> DirectMirNestedIntentProgramGraphFact {
+    if !DirectMirNestedIntentProgramRouteFactReady(route) || !route.claimed {
+        Die("direct MIR nested intent graph route is invalid");
+    }
+    let subject_type: String = admitted.domain_runtime_admission.declarations.
+        names[route.subject_declaration_row];
+    let zone_type: String = admitted.domain_runtime_admission.declarations.
+        names[route.zone_declaration_row];
+    let fields: Array<String> = DirectMirNestedIntentProgramFieldNames(
+        admitted, route);
+    if ArrayLength(fields) != 2 { Die("direct MIR nested intent field identity is invalid"); }
+    let first_edge: MirIntentActionGraphFact =
+        DirectMirNestedIntentProgramIntentEdge(
+            admitted, route.intent_rows[0]);
+    let second_edge: MirIntentActionGraphFact =
+        DirectMirNestedIntentProgramIntentEdge(
+            admitted, route.intent_rows[1]);
+    let outer_row: Int = -1; let inner_row: Int = -1;
+    if first_edge.ok && first_edge.receiver_alias == "" && second_edge.ok &&
+            second_edge.receiver_alias != "" {
+        outer_row = route.intent_rows[0]; inner_row = route.intent_rows[1];
+    } else if second_edge.ok && second_edge.receiver_alias == "" &&
+            first_edge.ok && first_edge.receiver_alias != "" {
+        outer_row = route.intent_rows[1]; inner_row = route.intent_rows[0];
+    } else { Die("direct MIR nested intent call direction is invalid"); }
+    let outer_name: String = admitted.routines.names[outer_row];
+    let inner_name: String = admitted.routines.names[inner_row];
+    let method_name: String = admitted.routines.names[route.method_row];
+    let outer_edge: MirIntentActionGraphFact =
+        DirectMirNestedIntentProgramIntentEdge(admitted, outer_row);
+    let inner_edge: MirIntentActionGraphFact =
+        DirectMirNestedIntentProgramIntentEdge(admitted, inner_row);
+    if outer_edge.call_target_name != inner_name ||
+        inner_edge.action_name != method_name ||
+        inner_edge.call_target_name != Concat(
+            subject_type, Concat("_", method_name)) {
+        Die("direct MIR nested intent callable identity is stale");
+    }
+    let main: Array<String> = DirectMirNestedIntentProgramMainFacts(
+        admitted, route, subject_type, zone_type, outer_name, fields[0]);
+    let method: Array<String> = DirectMirNestedIntentProgramMethodFacts(
+        admitted, route, fields[0]);
+    if ArrayLength(main) != 5 || ArrayLength(method) != 8 ||
+        inner_edge.receiver_alias != main[0] {
+        Die("direct MIR nested intent executable graph is invalid");
+    }
+    let routine_ids: Array<Int> = [
+        ToInt(admitted.routines.source_syntax_ids[route.main_row]),
+        ToInt(admitted.routines.source_syntax_ids[route.method_row]),
+        ToInt(admitted.routines.source_syntax_ids[outer_row]),
+        ToInt(admitted.routines.source_syntax_ids[inner_row])];
+    let declaration_ids: Array<Int> = [
+        DirectMirNestedIntentProgramDeclarationSyntaxId(
+            admitted, route.subject_declaration_row),
+        DirectMirNestedIntentProgramDeclarationSyntaxId(
+            admitted, route.zone_declaration_row)];
+    let method_literals: Array<String> = [];
+    let row: Int = 1;
+    while row < ArrayLength(method) {
+        ArrayPush(method_literals, method[row]); row = row + 1;
+    }
+    let main_literals: Array<String> = [main[3], main[4]];
+    let source: DirectMirNestedIntentProgramGraphFact =
+        DirectMirNestedIntentProgramGraphFact(
+            true, 0, route.main_row, route.method_row, outer_row, inner_row,
+            routine_ids, declaration_ids, subject_type, zone_type, fields[0],
+            fields[1], method_name, outer_name, inner_name, main[0], main[1],
+            ToInt(main[2]), ToInt(method[0]), method_literals, main_literals);
+    let sealed: DirectMirNestedIntentProgramGraphFact =
+        DirectMirNestedIntentProgramGraphFact(
+            source.valid, DirectMirNestedIntentProgramGraphFactDigest(source),
+            source.main_row, source.method_row, source.outer_row,
+            source.inner_row, source.routine_syntax_ids,
+            source.declaration_syntax_ids, source.subject_type_name,
+            source.zone_type_name, source.subject_field_name,
+            source.zone_field_name, source.method_name, source.outer_name,
+            source.inner_name, source.subject_alias, source.zone_alias,
+            source.initial_value, source.method_delta,
+            source.method_log_literals, source.main_log_literals);
+    if !DirectMirNestedIntentProgramGraphFactReady(sealed) {
+        Die("direct MIR nested intent graph receipt is invalid");
+    }
+    return sealed;
+}

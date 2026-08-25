@@ -98,6 +98,7 @@ jobs:
           self-host-intent-observability-mir-identity-test-smoke
           self-host-direct-mir-legacy-intent-program-llvm-test-smoke
           self-host-direct-mir-composite-intent-program-llvm-test-smoke
+          self-host-direct-mir-nested-intent-program-llvm-test-smoke
           self-host-driver-source-c-execution-action-test-smoke
           self-host-intent-guard-post-compensation-execution-test-smoke
           self-host-intent-typed-compensation-test-smoke

@@ -7310,6 +7310,14 @@ require_text ".github/workflows/ci.yml" \
     "self-host-direct-mir-composite-intent-program-llvm-test-smoke"
 require_text ".github/workflows/self_host_parity.yml" \
     "self-host-direct-mir-composite-intent-program-llvm-test-smoke"
+require_file "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh"
+require_max_lines "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh" 160
+require_text "Makefile" \
+    "self-host-direct-mir-nested-intent-program-llvm-test-smoke: \$(PGY) self-host-compiler"
+require_text ".github/workflows/ci.yml" \
+    "self-host-direct-mir-nested-intent-program-llvm-test-smoke"
+require_text ".github/workflows/self_host_parity.yml" \
+    "self-host-direct-mir-nested-intent-program-llvm-test-smoke"
 while IFS='|' read -r composite_intent_owner composite_intent_cap; do
     require_file "src/self_hosted/compiler/$composite_intent_owner"
     require_max_lines \
@@ -7322,15 +7330,31 @@ direct_mir_composite_intent_program_plan_owner.pgy|800
 direct_mir_composite_intent_program_llvm_emission_owner.pgy|860
 direct_mir_composite_intent_program_projection_owner.pgy|40
 COMPOSITE_INTENT_OWNERS
+while IFS='|' read -r nested_intent_owner nested_intent_cap; do
+    require_file "src/self_hosted/compiler/$nested_intent_owner"
+    require_max_lines \
+        "src/self_hosted/compiler/$nested_intent_owner" \
+        "$nested_intent_cap"
+done <<'NESTED_INTENT_OWNERS'
+direct_mir_nested_intent_program_route_fact_owner.pgy|170
+direct_mir_nested_intent_program_graph_fact_owner.pgy|600
+direct_mir_nested_intent_program_plan_owner.pgy|700
+direct_mir_nested_intent_program_llvm_emission_owner.pgy|360
+direct_mir_nested_intent_program_projection_owner.pgy|40
+NESTED_INTENT_OWNERS
 require_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
-    "CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed("
-require_text \
-    "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
-    "if IsSome(composite_intent_payload) {"
+    '    let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);
+    if IsSome(composite_intent_payload) { return UnwrapOption(composite_intent_payload); }
+    let nested_intent_payload: Option<String> = CompileAdmittedDirectMirNestedIntentProgramLlvmIfClaimed(admitted, is_llvm);
+    if IsSome(nested_intent_payload) { return UnwrapOption(nested_intent_payload); }
+    DirectMirPressureStage(observe_pressure, "scalar-route:start");'
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy" \
     "CompositeIntent"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy" \
+    "NestedIntent"
 require_text "src/compiler/compiler_self_host_artifact.c" \
     "opt_profile, true, verbose, &compiled_runtime, &runtime_error);"
 reject_text "src/compiler/compiler_self_host_artifact.c" \

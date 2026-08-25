@@ -337,7 +337,7 @@ SENTINEL_MAX=24
 # absence and atom-text reads through the DIR owner instead of sentinels.
 # 4246 -> 4257 (2026-08-25): source-C world/action admission carries executed,
 # request-rejected, and artifact-rejected outcomes to the final CLI consumer.
-RESULT_USE_MIN=4267
+RESULT_USE_MIN=4287
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

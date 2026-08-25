@@ -100,12 +100,13 @@ typed absence with a numeric sentinel or raise the likeness ceiling to hide the
 drop. If a view already has an explicit presence bit, its unused numeric slot
 is storage only; lookup failure itself remains `Option`/`Result`.
 
-## READY, UNCLAIMED lease B — nested intent direct-MIR LLVM route
+## PUBLISHING lease B — nested intent direct-MIR LLVM route
 
 Lease A's publication preconditions are satisfied: correction checkpoint
-`a9e07841` completed CI run `32870231909` at 29/29 green. Exactly one task may
-claim this executable rung. Other tasks remain read-only auditors; do not open
-parallel implementation tracks on the same route.
+`a9e07841` completed CI run `32870231909` at 29/29 green. Codex goal
+`019f8921-1147-70c1-8eff-b6fee8e59aec` owns this executable rung. Other tasks
+remain read-only auditors; do not open parallel implementation tracks on the
+same route.
 
 - Objective: make the installed direct-MIR `--mir-json-backend=llvm` path
   execute the nested method/intent priority fixture through one exclusive mixed
@@ -115,10 +116,10 @@ parallel implementation tracks on the same route.
   kind/owner/source-syntax identity; exact intent mode/priority carrier and
   expression occurrence; owner-directed call/field graph; fail-closed
   negatives; then installed LLVM execution parity.
-- Fact owners: the program declaration index owns admitted declarations;
-  `DirectMirScalarProgramReferencedEnumFact` owns only actually referenced enum
-  declaration/variant/payload identity; admitted routine facts own callable
-  kind, owner, and source syntax ID; `MirIntentRoutineCarrierProjection`,
+- Fact owners: the program declaration index owns exact declaration row/bounds,
+  the graph owns its bounded source-syntax projection, and the routine index
+  owns normalized callable kind/owner/source syntax ID;
+  `MirIntentRoutineCarrierProjection`,
   `MirIntentModeProjection`, and `MirIntentPriorityProjection` own intent policy
   carriage and its exact semantic expression root.
 - Last legitimate consumer: an exclusive mixed function/method/intent route in
@@ -132,18 +133,20 @@ parallel implementation tracks on the same route.
   `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`
   through the installed LLVM backend publishes no artifact and first fails at
   `owner=scalar-program-route stage=referenced-enum`.
-- Two-stage cause: the referenced-enum owner scans every routine through
-  function-only `DirectMirRoutineSignatureFactReady`, although this fixture has
-  no enum declarations. Returning canonical empty for no enums exposes the
-  next scalar-only rejection at `owner=callable-route-envelope stage=signature`.
-  Therefore an enum-only patch cannot close the rung.
-- Minimal executable delta: make the referenced-enum owner canonical-empty when
-  no enum declarations exist and kind-neutral only for the actually referenced
-  type subset; add the exclusive mixed-callable route; exact-cross-seal the
-  declaration, routine, intent-policy, and expression-graph identities; derive
-  `Main -> Outer`, `Outer -> Inner`, `Inner -> Capture`, and subject/zone field
-  identity from admitted facts. Evaluate Inner's dynamic priority parameter
-  `requested` in LLVM routine scope; absence must never become priority `0`.
+- Dispatch cause: the fixture currently falls into the scalar-only route, whose
+  first rejection is `referenced-enum`; a local no-enum repair would then expose
+  `callable-route-envelope stage=signature`. The executable delta instead
+  claims one mixed-callable route after composite intent and before scalar
+  admission. The referenced-enum owner is not reached and is outside this
+  lease.
+- Minimal executable delta: add the exclusive mixed-callable route, sealed
+  graph/plan, LLVM emitter, and thin projection; exact-cross-seal declaration,
+  routine, intent-policy, ordered intent-binding, and expression-graph identities;
+  derive `Main -> Outer`, `Outer -> Inner`, `Inner -> Capture`, and subject/zone
+  field identity from admitted facts. Preserve priority as a literal-or-formal-
+  parameter operand rather than collapsing it to `Int`; evaluate Inner's
+  dynamic parameter `requested` in LLVM routine scope, and never substitute
+  priority `0` for absence.
 - Falsifiers: installed direct-MIR LLVM emits, links, and runs with byte-equal
   expected output and no scalar-route receipt; Outer observes literal priority
   `1`, Inner observes runtime `requested`; graph drift, missing priority, and
@@ -152,10 +155,43 @@ parallel implementation tracks on the same route.
   enums. Retain composite-intent no-artifact negatives and finish with the
   component, hard, graph, documentation, and installed parity gates.
 
+### Current observed evidence
+
+- The exclusive route now claims after composite intent and before scalar
+  admission. It seals `Main -> OuterPriority -> InnerPriority -> Capture`, the
+  subject/zone fields, literal Outer priority `1`, and Inner priority from the
+  unique `value/Int/requested` intent binding. It does not touch the unrelated
+  referenced-enum owner.
+- Actual MIR contradicted the initial routine-parameter assumption: intent
+  header `params` are empty and `world/probe/requested` live in ordered intent
+  binding carriers. Method `self` is an implicit receiver with null type/ABI,
+  so it is validated at the receiver boundary and excluded from the explicit
+  typed parameter set. Ownerless routine identity comes only from the admitted
+  routine index rather than a second raw-JSON owner read.
+- An isolated current-source driver emitted LLVM, linked through the public
+  self-host path, and matched native LLVM against the exact nine-line golden.
+  The focused gate completes in about seven seconds with five no-artifact
+  negatives: missing Inner priority, priority graph drift, duplicate source
+  identity, method-owner crosswire, and semantic action-name/target-row
+  crosswire.
+- `make self-host-direct-mir-nested-intent-program-llvm-test-smoke` rebuilt and
+  installed Pergyra-built DRV-2, then passed the same LLVM parity and four
+  negatives using the installed driver. The complete component contract also
+  passed, including its source-MIR execution ratchet.
+- The new Make target is in the existing full fixed-point invocation in both
+  push CI and weekly self-host parity; it adds no job and no second self-host
+  compiler build. The dispatcher remains at its existing 110-line ratchet.
+- Hard contract, progress metric, UTF/documentation, and diff gates pass.
+  Likeness passes at sentinel `24/24` and Result/Option `4287/4287`; the improved
+  typed-error count is tightened into the baseline rather than left as a CI
+  warning. Publication remains pending commit/push and the resulting remote CI
+  run. Overall stays 78%, strict beta 83%, and hard SoT
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+
 ## Peer Codex assignment — read-only audit only
 
 If another Codex is operating on this checkout, perform this bounded task and
-do not implement changes in lease A:
+do not implement changes in lease B:
 
 1. Read the active objective and diff without modifying files.
 2. Look only for dual authority, a hidden AST/default fallback, an inexact
@@ -164,7 +200,7 @@ do not implement changes in lease A:
 3. Report findings with exact file and line evidence to the user or append them
    under `Peer review notes` below. If there are no findings, say which claims
    were checked; do not report a generic approval.
-4. Do not commit or push shared `main` while lease A is `ACTIVE` or
+4. Do not commit or push shared `main` while lease B is `ACTIVE` or
    `PUBLISHING`.
 
 ## Peer review notes
@@ -189,3 +225,12 @@ do not implement changes in lease A:
   absent row with nonzero root. The lease owner restored the exact invariant
   `priority_present[row] || root == 0` and added a component-contract ratchet
   for the absent-row nonzero receipt.
+- Lease B read-only header audit found two impossible assumptions before the
+  executable path was sealed: ownerless routines store `owner:null` while the
+  admitted index owns normalized `""`, and method `self` has null type/ABI so
+  it cannot enter the explicit typed-formal owner. Both were corrected without
+  weakening the shared parameter fact.
+- Lease B read-only gate audit kept LLVM behavior out of the 174/180-line
+  C-only priority gate, selected a separate 160-line sibling gate, preserved
+  the dispatcher 110-line cap, and connected both CI workflows through the
+  existing single Make invocation.

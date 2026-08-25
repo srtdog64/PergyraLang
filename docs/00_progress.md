@@ -1,6 +1,28 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-25
+마지막 업데이트: 2026-08-26
+
+2026-08-26 로컬 실행 갱신: nested priority fixture가 빠지던 scalar-only
+direct-MIR LLVM 경로를 exact mixed-callable route로 대체했다. 새 route는 composite
+intent 다음, scalar admission 전에 one function/one method/two intent family를
+독점 claim하고 `Main -> OuterPriority -> InnerPriority -> Capture`, subject/zone
+field, Outer literal priority `1`, Inner dynamic priority를 admitted declaration,
+routine, intent binding/carrier, expression DAG에서 seal한다. Actual MIR에서 intent
+header params는 비어 있고 `world/probe/requested`는 ordered intent bindings가
+소유하며, method `self`는 null type/ABI의 implicit receiver다. 이를 explicit typed
+formal로 완화하거나 raw JSON owner를 다시 읽지 않았다.
+
+Isolated current-source driver와 최종 Pergyra-built installed DRV-2 모두 public
+self/native LLVM의 정확한 9줄 출력을 각각 golden과 byte-equal로 실행했다.
+160-line focused gate는 약 7초이며 missing Inner priority, priority graph drift,
+duplicate source identity, method-owner crosswire, semantic action-name/target-row
+crosswire에서 artifact를 남기지 않는다. Component contract와 owner
+caps가 green이고 dispatcher는 기존 110-line ceiling을 유지한다. Push/weekly CI는
+새 타깃을 기존 single Make invocation에 넣어 job이나 self-host compiler build를
+추가하지 않는다. Hard/progress/documentation/diff gate와 likeness sentinel `24/24`,
+Result/Option `4287/4287`도 green이다. 이 exact family는 local `SUBSTITUTING`이지만
+remote publication과 top-level denominator review 전까지 integrated 78%, strict
+beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 유지한다.
 
 2026-08-25 로컬 실행 갱신: production source-to-LLVM의 C-owned 두 subprocess
 경계를 삭제했다. Public LLVM file/stdout/binary와 package LLVM target은 이제
