@@ -1,0 +1,334 @@
+// Target-neutral declaration and action graph for the canonical composite
+// intent family.  This owner consumes admitted declaration fields and method
+// expression DAGs; it never reads source text or assigns meaning by spelling.
+
+import "direct_mir_composite_intent_program_route_fact_owner.pgy";
+import "direct_mir_legacy_intent_program_graph_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+
+struct DirectMirCompositeIntentProgramGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let subject_type_name: String;
+    let subject_field_names: Array<String>;
+    let zone_type_names: Array<String>;
+    let zone_field_names: Array<String>;
+    let method_names: Array<String>;
+    let method_field_ordinals: Array<Int>;
+    let method_deltas: Array<Int>;
+}
+
+func DirectMirCompositeIntentProgramGraphFactDigest(
+    ref fact: DirectMirCompositeIntentProgramGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(941L, fact.subject_type_name);
+    let row: Int = 0;
+    while row < ArrayLength(fact.subject_field_names) {
+        hash = DirectMirCfgHashString(hash, fact.subject_field_names[row]);
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(fact.zone_type_names) {
+        hash = DirectMirCfgHashString(hash, fact.zone_type_names[row]);
+        hash = DirectMirCfgHashString(hash, fact.zone_field_names[row]);
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(fact.method_names) {
+        hash = DirectMirCfgHashString(hash, fact.method_names[row]);
+        hash = DirectMirCfgHashInt(hash, fact.method_field_ordinals[row]);
+        hash = DirectMirCfgHashInt(hash, fact.method_deltas[row]);
+        row = row + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCompositeIntentStringsDistinct(
+    values: Array<String>
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(values) {
+        if !IsIdentifier(values[row]) { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if values[prior] == values[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirCompositeIntentProgramGraphFactReady(
+    ref fact: DirectMirCompositeIntentProgramGraphFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirCompositeIntentProgramGraphFactDigest(fact) ||
+        !IsIdentifier(fact.subject_type_name) ||
+        ArrayLength(fact.subject_field_names) != 3 ||
+        ArrayLength(fact.zone_type_names) != 3 ||
+        ArrayLength(fact.zone_field_names) != 3 ||
+        ArrayLength(fact.method_names) != 6 ||
+        ArrayLength(fact.method_field_ordinals) != 6 ||
+        ArrayLength(fact.method_deltas) != 6 ||
+        !DirectMirCompositeIntentStringsDistinct(fact.subject_field_names) ||
+        !DirectMirCompositeIntentStringsDistinct(fact.zone_type_names) ||
+        !DirectMirCompositeIntentStringsDistinct(fact.method_names) {
+        return false;
+    }
+    let field_seen: Array<Int> = [0, 0, 0];
+    let row: Int = 0;
+    while row < 3 {
+        if !IsIdentifier(fact.zone_field_names[row]) ||
+            fact.zone_type_names[row] == fact.subject_type_name {
+            return false;
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < 6 {
+        let ordinal: Int = fact.method_field_ordinals[row];
+        if ordinal < 0 || ordinal >= 3 {
+            return false;
+        }
+        ArraySet(field_seen, ordinal, field_seen[ordinal] + 1);
+        row = row + 1;
+    }
+    row = 0;
+    while row < 3 {
+        if field_seen[row] != 2 { return false; }
+        let forward_count: Int = 0;
+        let rollback_count: Int = 0;
+        let method_row: Int = 0;
+        while method_row < 6 {
+            if fact.method_field_ordinals[method_row] == row {
+                if fact.method_deltas[method_row] >= 0 {
+                    forward_count = forward_count + 1;
+                } else {
+                    rollback_count = rollback_count + 1;
+                }
+            }
+            method_row = method_row + 1;
+        }
+        if forward_count != 1 || rollback_count != 1 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirCompositeIntentSubjectFields(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirCompositeIntentProgramRouteFact
+) -> Array<String> {
+    let fields: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(
+            admitted.domain_runtime_admission.declarations.field_identities
+                .field_names
+        ) {
+        if admitted.domain_runtime_admission.declarations.field_identities
+                .field_owner_indices[row] ==
+                route.subject_declaration_row {
+            if admitted.domain_runtime_admission.declarations.field_identities
+                    .field_kinds[row] != "field" ||
+                admitted.domain_runtime_admission.declarations.field_identities
+                    .field_type_names[row] != "Int" ||
+                !IsIdentifier(
+                    admitted.domain_runtime_admission.declarations
+                        .field_identities.field_names[row]
+                ) {
+                Die("direct MIR composite intent subject field is invalid");
+            }
+            ArrayPush(
+                fields,
+                admitted.domain_runtime_admission.declarations
+                    .field_identities.field_names[row]
+            );
+        }
+        row = row + 1;
+    }
+    if ArrayLength(fields) != 3 {
+        Die("direct MIR composite intent subject field inventory is invalid");
+    }
+    return fields;
+}
+
+func DirectMirCompositeIntentZoneField(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    declaration_row: Int,
+    subject_type_name: String
+) -> String {
+    let name: String = "";
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(
+            admitted.domain_runtime_admission.declarations.field_identities
+                .field_names
+        ) {
+        if admitted.domain_runtime_admission.declarations.field_identities
+                .field_owner_indices[row] == declaration_row {
+            count = count + 1;
+            if admitted.domain_runtime_admission.declarations.field_identities
+                    .field_kinds[row] != "subject_slot" ||
+                admitted.domain_runtime_admission.declarations.field_identities
+                    .field_type_names[row] != subject_type_name ||
+                !IsIdentifier(
+                    admitted.domain_runtime_admission.declarations
+                        .field_identities.field_names[row]
+                ) {
+                Die("direct MIR composite intent zone slot is invalid");
+            }
+            name = admitted.domain_runtime_admission.declarations
+                .field_identities.field_names[row];
+        }
+        row = row + 1;
+    }
+    if count != 1 || name == "" {
+        Die("direct MIR composite intent zone slot inventory is invalid");
+    }
+    return name;
+}
+
+func DirectMirCompositeIntentMethodDelta(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int,
+    subject_fields: Array<String>
+) -> Array<Int> {
+    let result: Array<Int> = [];
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, routine_row
+    );
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, 0
+    );
+    let scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, global
+        );
+    if !index.valid || admitted.routines.routine_block_counts[routine_row] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, routine_row, 0
+        ) != 1 || global < 0 || !scalar.valid ||
+        admitted.routines.instruction_kinds[global] != "def" ||
+        admitted.routines.instruction_source_types[global] !=
+            "AST_ASSIGNMENT" || scalar.name != "ssa-def" ||
+        scalar.arg0 == "" || scalar.arg1 != "owner_field" ||
+        scalar.slot_anchor != "" || scalar.abi_type_name != "Int" ||
+        scalar.expr1 != scalar.arg0 {
+        Die("direct MIR composite intent action assignment is invalid");
+    }
+    let ordinal: Int = -1;
+    let field_row: Int = 0;
+    while field_row < ArrayLength(subject_fields) {
+        if subject_fields[field_row] == scalar.arg0 {
+            if ordinal >= 0 {
+                Die("direct MIR composite intent action field is ambiguous");
+            }
+            ordinal = field_row;
+        }
+        field_row = field_row + 1;
+    }
+    let value: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, global, 0
+        );
+    let target: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, global, 1
+        );
+    if ordinal < 0 || !value.ok || value.ready_node_count != 3 ||
+        ArrayLength(value.roots) != 1 || value.roots[0] != 2 ||
+        value.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        value.arena.node_texts[0] != scalar.arg0 ||
+        value.arena.topology.node_kinds[1] !=
+            AstExpressionNodeIntegerLiteral() ||
+        (value.arena.topology.node_kinds[2] != AstExpressionNodeAdd() &&
+         value.arena.topology.node_kinds[2] != AstExpressionNodeSubtract()) ||
+        value.arena.topology.left_children[2] != 0 ||
+        value.arena.topology.right_children[2] != 1 ||
+        !DirectMirLegacyIntentProgramGraphHasNoCallTargets(value) ||
+        !target.ok || target.ready_node_count != 1 ||
+        ArrayLength(target.roots) != 1 || target.roots[0] != 0 ||
+        target.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        target.arena.node_texts[0] != scalar.arg0 ||
+        !DirectMirLegacyIntentProgramGraphHasNoCallTargets(target) {
+        Die("direct MIR composite intent action expression graph is invalid");
+    }
+    let delta: Int = DirectMirLegacyIntentProgramCanonicalInteger(value, 1);
+    if value.arena.topology.node_kinds[2] == AstExpressionNodeSubtract() {
+        delta = 0 - delta;
+    }
+    ArrayPush(result, ordinal);
+    ArrayPush(result, delta);
+    return result;
+}
+
+func DirectMirCompositeIntentProgramGraphFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    route: DirectMirCompositeIntentProgramRouteFact
+) -> DirectMirCompositeIntentProgramGraphFact {
+    if !DirectMirCompositeIntentProgramRouteFactReady(route) ||
+        !route.claimed {
+        Die("direct MIR composite intent graph route is invalid");
+    }
+    let subject_type: String =
+        admitted.domain_runtime_admission.declarations.names[
+            route.subject_declaration_row
+        ];
+    let subject_fields: Array<String> =
+        DirectMirCompositeIntentSubjectFields(admitted, route);
+    let zone_types: Array<String> = [];
+    let zone_fields: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(route.zone_declaration_rows) {
+        let declaration_row: Int = route.zone_declaration_rows[row];
+        ArrayPush(
+            zone_types,
+            admitted.domain_runtime_admission.declarations.names[
+                declaration_row
+            ]
+        );
+        ArrayPush(
+            zone_fields,
+            DirectMirCompositeIntentZoneField(
+                admitted, declaration_row, subject_type
+            )
+        );
+        row = row + 1;
+    }
+    let method_names: Array<String> = [];
+    let method_fields: Array<Int> = [];
+    let method_deltas: Array<Int> = [];
+    row = 0;
+    while row < ArrayLength(route.method_rows) {
+        let routine_row: Int = route.method_rows[row];
+        let pair: Array<Int> = DirectMirCompositeIntentMethodDelta(
+            admitted, routine_row, subject_fields
+        );
+        ArrayPush(method_names, admitted.routines.names[routine_row]);
+        ArrayPush(method_fields, pair[0]);
+        ArrayPush(method_deltas, pair[1]);
+        row = row + 1;
+    }
+    let source: DirectMirCompositeIntentProgramGraphFact =
+        DirectMirCompositeIntentProgramGraphFact(
+            true, 0, subject_type, subject_fields, zone_types, zone_fields,
+            method_names, method_fields, method_deltas
+        );
+    let sealed: DirectMirCompositeIntentProgramGraphFact =
+        DirectMirCompositeIntentProgramGraphFact(
+            source.valid,
+            DirectMirCompositeIntentProgramGraphFactDigest(source),
+            source.subject_type_name, source.subject_field_names,
+            source.zone_type_names, source.zone_field_names,
+            source.method_names, source.method_field_ordinals,
+            source.method_deltas
+        );
+    if !DirectMirCompositeIntentProgramGraphFactReady(sealed) {
+        Die("direct MIR composite intent graph receipt is invalid");
+    }
+    return sealed;
+}

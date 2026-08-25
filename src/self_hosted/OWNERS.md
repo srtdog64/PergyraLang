@@ -2358,6 +2358,22 @@ inventory must not become a second fact-family owner registry.
   cleanup facts.
 - `src/self_hosted/compiler/direct_mir_collection_program_projection_owner.pgy`
   -- selected-target composition boundary that issues one sealed plan.
+- `src/self_hosted/compiler/direct_mir_composite_intent_program_route_fact_owner.pgy`
+  -- exclusive structural claim for the canonical twelve-routine composite
+  intent family; a claimed malformed family cannot fall through to the scalar
+  program route.
+- `src/self_hosted/compiler/direct_mir_composite_intent_program_graph_fact_owner.pgy`
+  -- admitted declaration, zone-slot, method-mutation, and Main-expression DAG
+  receipt for that family, without source-text or AST reconstruction.
+- `src/self_hosted/compiler/direct_mir_composite_intent_program_plan_owner.pgy`
+  -- sealed target-neutral subject, zone, method, intent-step, compensation,
+  and observability plan derived only from admitted carrier and DAG facts.
+- `src/self_hosted/compiler/direct_mir_composite_intent_program_llvm_emission_owner.pgy`
+  -- MIR-blind LLVM consumer preserving three-zone state, leaf and aggregate
+  intent execution, failure compensation, history, step, and trace output.
+- `src/self_hosted/compiler/direct_mir_composite_intent_program_projection_owner.pgy`
+  -- LLVM-only exclusive composition boundary issuing and consuming the
+  composite intent plan before scalar admission.
 - `src/self_hosted/compiler/direct_mir_legacy_intent_program_route_fact_owner.pgy`
   -- exclusive structural claim for the first executable one-function,
   one-subject-action, one-intent, one-subject/zone program family; a claimed

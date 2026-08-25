@@ -156,7 +156,7 @@ grep -Fq "outside the installed self-host driver contract" \
 
 set +e
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN &&
-    PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS0="$WORK_DIR/missing-runtime.obj" \
+    PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS1="$WORK_DIR/missing-runtime.obj" \
     "$PGY" "$RUNTIME_SOURCE" --backend=llvm -o ".tmp/self_hosted/default_llvm_installed/stale-runtime-program$suffix") >"$WORK_DIR/stale-runtime.out" 2>"$WORK_DIR/stale-runtime.err"
 stale_runtime_rc=$?
 set -e

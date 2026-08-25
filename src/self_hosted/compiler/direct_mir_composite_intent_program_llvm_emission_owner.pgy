@@ -1,0 +1,853 @@
+// MIR-blind LLVM materialization for one sealed composite-intent plan.
+
+import "direct_mir_composite_intent_program_plan_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+import "../codegen/runtime_abi/intent_runtime_symbol_owner.pgy";
+import "../lib/intent_observability_abi_projection_owner.pgy";
+
+func DirectMirCompositeIntentLlvmIntentSymbol(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    row: Int
+) -> String {
+    return CompilerSymbolCIdentifier(plan.intent_names[row]);
+}
+
+func DirectMirCompositeIntentLlvmMethodSymbol(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    row: Int
+) -> String {
+    return CompilerSymbolCIdentifier(Concat(
+        Concat(plan.graph.subject_type_name, "_"),
+        plan.graph.method_names[row]
+    ));
+}
+
+func DirectMirCompositeIntentLlvmZoneSyncSymbol(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    row: Int
+) -> String {
+    return CompilerSymbolCIdentifier(Concat(
+        plan.graph.zone_type_names[row], "_sync"
+    ));
+}
+
+func DirectMirCompositeIntentLlvmIndexedSymbol(
+    family: String,
+    row: Int
+) -> String {
+    return Concat(".pgy.composite.", Concat(
+        family, Concat(".", ToString(row))
+    ));
+}
+
+func DirectMirCompositeIntentLlvmLiteralReady(value: String) -> Bool {
+    let row: Int = 0;
+    while row < StringLength(value) {
+        let code: Int = CharCode(value, StringLength(value), row);
+        if code < 32 || code > 126 || code == 34 || code == 37 ||
+            code == 92 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirCompositeIntentLlvmStringGlobal(
+    symbol: String,
+    value: String
+) -> String {
+    if symbol == "" || !DirectMirCompositeIntentLlvmLiteralReady(value) {
+        Die("direct MIR composite intent LLVM string fact is invalid");
+    }
+    let output: String = Concat("@", symbol);
+    output = Concat(output, " = private unnamed_addr constant [");
+    output = Concat(output, ToString(StringLength(value) + 1));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, value);
+    output = Concat(output, "\\00\", align 1\n");
+    return output;
+}
+
+func DirectMirCompositeIntentLlvmFormatGlobal(
+    symbol: String,
+    value: String
+) -> String {
+    let ready: Bool = symbol != "";
+    let row: Int = 0;
+    while row < StringLength(value) {
+        let code: Int = CharCode(value, StringLength(value), row);
+        if code < 32 || code > 126 || code == 34 || code == 92 {
+            ready = false;
+        }
+        row = row + 1;
+    }
+    if !ready {
+        Die("direct MIR composite intent LLVM format fact is invalid");
+    }
+    let output: String = Concat("@", symbol);
+    output = Concat(output, " = private unnamed_addr constant [");
+    output = Concat(output, ToString(StringLength(value) + 2));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, value);
+    output = Concat(output, "\\0A\\00\", align 1\n");
+    return output;
+}
+
+func DirectMirCompositeIntentLlvmFormatNoNewlineGlobal(
+    symbol: String,
+    value: String
+) -> String {
+    let ready: Bool = symbol != "";
+    let row: Int = 0;
+    while row < StringLength(value) {
+        let code: Int = CharCode(value, StringLength(value), row);
+        if code < 32 || code > 126 || code == 34 || code == 92 {
+            ready = false;
+        }
+        row = row + 1;
+    }
+    if !ready {
+        Die("direct MIR composite intent LLVM format fact is invalid");
+    }
+    let output: String = Concat("@", symbol);
+    output = Concat(output, " = private unnamed_addr constant [");
+    output = Concat(output, ToString(StringLength(value) + 1));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, value);
+    output = Concat(output, "\\00\", align 1\n");
+    return output;
+}
+
+func DirectMirCompositeIntentLlvmGlobals(
+    ref plan: DirectMirCompositeIntentProgramPlan
+) -> String {
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(plan.intent_names) {
+        output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+            DirectMirCompositeIntentLlvmIndexedSymbol("intent", row),
+            plan.intent_names[row]
+        ));
+        output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+            DirectMirCompositeIntentLlvmIndexedSymbol("subject", row),
+            plan.intent_subject_aliases[row]
+        ));
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.graph.zone_type_names) {
+        output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+            DirectMirCompositeIntentLlvmIndexedSymbol("zone", row),
+            plan.graph.zone_type_names[row]
+        ));
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.step_names) {
+        output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+            DirectMirCompositeIntentLlvmIndexedSymbol("step", row),
+            plan.step_names[row]
+        ));
+        output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+            DirectMirCompositeIntentLlvmIndexedSymbol("expect", row),
+            Concat("expect:", plan.step_names[row])
+        ));
+        output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+            DirectMirCompositeIntentLlvmIndexedSymbol("nested", row),
+            Concat("intent:", plan.step_names[row])
+        ));
+        row = row + 1;
+    }
+    output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+        ".pgy.composite.zone.marker", "<zone>"
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+        ".pgy.composite.unbound", "<unbound>"
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+        ".pgy.composite.bool.true", "true"
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmStringGlobal(
+        ".pgy.composite.bool.false", "false"
+    ));
+    row = 0;
+    while row < ArrayLength(plan.main.log_literals) {
+        if !DirectMirCompositeIntentLlvmLiteralReady(
+                plan.main.log_literals[row]
+            ) {
+            Die("direct MIR composite intent Main literal is invalid");
+        }
+        row = row + 1;
+    }
+    let formats: Array<String> = [
+        Concat(plan.main.log_literals[0], "%s"),
+        Concat(plan.main.log_literals[1], Concat("%s", Concat(
+            plan.main.log_literals[2], Concat("%d", Concat(
+                plan.main.log_literals[3], "%s"
+            ))
+        ))),
+        Concat(plan.main.log_literals[4], Concat("%d", Concat(
+            plan.main.log_literals[5], Concat("%d", Concat(
+                plan.main.log_literals[6], "%d"
+            ))
+        ))),
+        Concat(plan.main.log_literals[7], "%d"),
+        Concat(plan.main.log_literals[8], "%d"),
+        Concat(plan.main.log_literals[9], "%d"),
+        Concat(plan.main.log_literals[10], "%d"),
+        Concat(plan.main.log_literals[11], Concat("%s", Concat(
+            plan.main.log_literals[12], Concat("%s", Concat(
+                plan.main.log_literals[13], Concat("%s", Concat(
+                    plan.main.log_literals[14], "%s"
+                ))
+            ))
+        ))),
+        Concat(plan.main.log_literals[15], "%s")
+    ];
+    row = 0;
+    while row < ArrayLength(formats) {
+        if row == 8 {
+            output = Concat(
+                output,
+                DirectMirCompositeIntentLlvmFormatNoNewlineGlobal(
+                    DirectMirCompositeIntentLlvmIndexedSymbol("format", row),
+                    formats[row]
+                )
+            );
+        } else {
+            output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+                DirectMirCompositeIntentLlvmIndexedSymbol("format", row),
+                formats[row]
+            ));
+        }
+        row = row + 1;
+    }
+    return Concat(output, "\n");
+}
+
+func DirectMirCompositeIntentLlvmDeclarations(
+    formatted_print: CompilerRuntimeCallAbiFact,
+    rows: Array<IntentObservabilityAbiRow>
+) -> String {
+    if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) ||
+        ArrayLength(rows) != 9 {
+        Die("direct MIR composite intent runtime ABI is invalid");
+    }
+    let output: String = Concat("declare i32 @", formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n");
+    output = Concat(output, Concat("declare i32 @", Concat(
+        IntentRuntimeCEnterFn(), "(ptr, ptr, i32, i1, i32)\n"
+    )));
+    output = Concat(output, Concat("declare void @", Concat(
+        IntentRuntimeCExitFn(), "(i32)\n"
+    )));
+    output = Concat(output, Concat("declare void @", Concat(
+        IntentRuntimeCTraceStepFn(), "(i32, ptr, ptr)\n"
+    )));
+    output = Concat(output, Concat("declare void @", Concat(
+        IntentRuntimeCTraceBindFn(), "(i32, ptr, ptr)\n"
+    )));
+    output = Concat(output, Concat("declare void @", Concat(
+        IntentRuntimeCTraceStepOkFn(), "(i32, ptr)\n"
+    )));
+    output = Concat(output, Concat("declare void @", Concat(
+        IntentRuntimeCTraceFailFn(), "(i32, ptr)\n"
+    )));
+    output = Concat(output, Concat("declare void @", Concat(
+        IntentRuntimeCTraceMaterializeFn(), "(i32, ptr, ptr, ptr)\n"
+    )));
+    let row: Int = 0;
+    while row < ArrayLength(rows) {
+        if !rows[row].valid || rows[row].runtime_name == "" {
+            Die("direct MIR composite intent observability ABI is invalid");
+        }
+        let return_type: String = "ptr";
+        if rows[row].return_type == "Int" { return_type = "i32"; }
+        else if rows[row].return_type == "Bool" { return_type = "i1"; }
+        output = Concat(output, Concat("declare ", Concat(
+            return_type, Concat(" @", rows[row].runtime_name)
+        )));
+        if rows[row].argument_count == 0 {
+            output = Concat(output, "()\n");
+        } else if rows[row].argument_count == 1 {
+            output = Concat(output, "(i32)\n");
+        } else {
+            Die("direct MIR composite intent observability arity is invalid");
+        }
+        row = row + 1;
+    }
+    return Concat(output, "\n");
+}
+
+func DirectMirCompositeIntentLlvmZoneSync(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    row: Int
+) -> String {
+    let zone_type: String = CompilerSymbolCIdentifier(
+        plan.graph.zone_type_names[row]
+    );
+    let output: String = Concat("define internal void @",
+        DirectMirCompositeIntentLlvmZoneSyncSymbol(plan, row));
+    output = Concat(output, "(ptr %zone) {\nentry:\n");
+    output = Concat(output, Concat(
+        "  %generation = getelementptr inbounds %", Concat(
+            zone_type, ", ptr %zone, i32 0, i32 1\n"
+        )
+    ));
+    output = Concat(output,
+        "  %prior = atomicrmw add ptr %generation, i32 1 release, align 4\n");
+    output = Concat(output, "  ret void\n}\n\n");
+    return output;
+}
+
+func DirectMirCompositeIntentLlvmMethod(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    row: Int
+) -> String {
+    let subject_type: String = CompilerSymbolCIdentifier(
+        plan.graph.subject_type_name
+    );
+    let output: String = Concat("define internal void @",
+        DirectMirCompositeIntentLlvmMethodSymbol(plan, row));
+    output = Concat(output, "(ptr %self) {\nentry:\n");
+    output = Concat(output, Concat(
+        "  %field = getelementptr inbounds %", Concat(
+            subject_type, Concat(", ptr %self, i32 0, i32 ", Concat(
+                ToString(plan.graph.method_field_ordinals[row]), "\n"
+            ))
+        )
+    ));
+    output = Concat(output,
+        "  %old = load i32, ptr %field, align 4\n  %next = add i32 %old, ");
+    output = Concat(output, ToString(plan.graph.method_deltas[row]));
+    output = Concat(output,
+        "\n  store i32 %next, ptr %field, align 4\n  ret void\n}\n\n");
+    return output;
+}
+
+func DirectMirCompositeIntentLlvmEnter(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    intent_row: Int,
+    first_label: String
+) -> String {
+    let output: String =
+        "  %subjects = alloca [1 x ptr], align 8\n";
+    output = Concat(output,
+        "  %subject.slot = getelementptr [1 x ptr], ptr %subjects, i32 0, i32 0\n");
+    output = Concat(output,
+        "  store ptr %subject, ptr %subject.slot, align 8\n  %handle = call i32 @");
+    output = Concat(output, IntentRuntimeCEnterFn());
+    output = Concat(output, "(ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("intent", intent_row));
+    output = Concat(output, ", ptr %subject.slot, i32 1, i1 ");
+    if plan.intent_concurrent[intent_row] {
+        output = Concat(output, "true");
+    } else { output = Concat(output, "false"); }
+    output = Concat(output, Concat(", i32 ", Concat(
+        ToString(plan.intent_priorities[intent_row]), ")\n"
+    )));
+    output = Concat(output,
+        "  %entered = icmp ne i32 %handle, 0\n  br i1 %entered, label %");
+    output = Concat(output, first_label);
+    output = Concat(output, ", label %intent.enter.failed\n\n");
+    return output;
+}
+
+func DirectMirCompositeIntentLlvmLeafIntent(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    intent_row: Int
+) -> String {
+    let step: Int = plan.intent_step_starts[intent_row];
+    let zone: Int = plan.step_zone_ordinals[step];
+    let field: Int = plan.step_field_ordinals[step];
+    let action: Int = plan.step_action_method_rows[step];
+    let compensation: Int = plan.step_compensation_method_rows[step];
+    let subject_type: String = CompilerSymbolCIdentifier(
+        plan.graph.subject_type_name
+    );
+    let zone_type: String = CompilerSymbolCIdentifier(
+        plan.graph.zone_type_names[zone]
+    );
+    let output: String = Concat("define internal i1 @",
+        DirectMirCompositeIntentLlvmIntentSymbol(plan, intent_row));
+    output = Concat(output, "(ptr %zone, ptr %subject) {\nentry:\n");
+    output = Concat(output, DirectMirCompositeIntentLlvmEnter(
+        plan, intent_row, "intent.run"
+    ));
+    output = Concat(output, "intent.run:\n  call void @");
+    output = Concat(output, IntentRuntimeCTraceStepFn());
+    output = Concat(output, "(i32 %handle, ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("step", step));
+    output = Concat(output, ", ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("zone", zone));
+    output = Concat(output, ")\n  call void @");
+    output = Concat(output, IntentRuntimeCTraceBindFn());
+    output = Concat(output, "(i32 %handle, ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("subject", intent_row));
+    output = Concat(output, ", ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("subject", intent_row));
+    output = Concat(output, ")\n  %zone.slot = getelementptr inbounds %");
+    output = Concat(output, zone_type);
+    output = Concat(output, ", ptr %zone, i32 0, i32 0\n  %input = load %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %subject, align 4\n  store %");
+    output = Concat(output, subject_type);
+    output = Concat(output,
+        " %input, ptr %zone.slot, align 4\n  call void @");
+    output = Concat(output, IntentRuntimeCTraceMaterializeFn());
+    output = Concat(output, "(i32 %handle, ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("subject", intent_row));
+    output = Concat(output, ", ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("subject", intent_row));
+    output = Concat(output, ", ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("zone", zone));
+    output = Concat(output, ")\n  call void @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmZoneSyncSymbol(plan, zone));
+    output = Concat(output, "(ptr %zone)\n  call void @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmMethodSymbol(plan, action));
+    output = Concat(output, "(ptr %zone.slot)\n  call void @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmZoneSyncSymbol(plan, zone));
+    output = Concat(output, "(ptr %zone)\n  %after = load %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %zone.slot, align 4\n  store %");
+    output = Concat(output, subject_type);
+    output = Concat(output,
+        " %after, ptr %subject, align 4\n  %field = getelementptr inbounds %");
+    output = Concat(output, subject_type);
+    output = Concat(output, Concat(", ptr %zone.slot, i32 0, i32 ", Concat(
+        ToString(field), "\n"
+    )));
+    output = Concat(output,
+        "  %value = load i32, ptr %field, align 4\n  %ok = icmp sgt i32 %value, ");
+    output = Concat(output, ToString(plan.step_thresholds[step]));
+    output = Concat(output,
+        "\n  br i1 %ok, label %intent.success, label %intent.failure\n\nintent.success:\n  call void @");
+    output = Concat(output, IntentRuntimeCTraceStepOkFn());
+    output = Concat(output, "(i32 %handle, ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("step", step));
+    output = Concat(output, ")\n  call void @");
+    output = Concat(output, IntentRuntimeCExitFn());
+    output = Concat(output,
+        "(i32 %handle)\n  ret i1 true\n\nintent.failure:\n  call void @");
+    output = Concat(output, IntentRuntimeCTraceFailFn());
+    output = Concat(output, "(i32 %handle, ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol("expect", step));
+    output = Concat(output, ")\n  call void @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmMethodSymbol(plan, compensation));
+    output = Concat(output, "(ptr %subject)\n  %compensated = load %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %subject, align 4\n  store %");
+    output = Concat(output, subject_type);
+    output = Concat(output, " %compensated, ptr %zone.slot, align 4\n  call void @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmZoneSyncSymbol(plan, zone));
+    output = Concat(output, "(ptr %zone)\n  call void @");
+    output = Concat(output, IntentRuntimeCExitFn());
+    output = Concat(output,
+        "(i32 %handle)\n  ret i1 false\n\nintent.enter.failed:\n  ret i1 false\n}\n\n");
+    return output;
+}
+
+func DirectMirCompositeIntentLlvmNestedFailure(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    step: Int,
+    label: String,
+    reason_family: String
+) -> String {
+    let output: String = Concat(label, ":\n  call void @");
+    output = Concat(output, IntentRuntimeCTraceFailFn());
+    output = Concat(output, "(i32 %handle, ptr @");
+    output = Concat(output,
+        DirectMirCompositeIntentLlvmIndexedSymbol(reason_family, step));
+    output = Concat(output, ")\n  call void @");
+    output = Concat(output, IntentRuntimeCExitFn());
+    output = Concat(output, "(i32 %handle)\n  ret i1 false\n\n");
+    return output;
+}
+
+func DirectMirCompositeIntentLlvmNestedIntent(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    intent_row: Int
+) -> String {
+    let start: Int = plan.intent_step_starts[intent_row];
+    let count: Int = plan.intent_step_counts[intent_row];
+    let subject_type: String = CompilerSymbolCIdentifier(
+        plan.graph.subject_type_name
+    );
+    let output: String = Concat("define internal i1 @",
+        DirectMirCompositeIntentLlvmIntentSymbol(plan, intent_row));
+    output = Concat(output,
+        "(ptr %zone0, ptr %zone1, ptr %zone2, ptr %subject) {\nentry:\n");
+    output = Concat(output, DirectMirCompositeIntentLlvmEnter(
+        plan, intent_row, "step.0"
+    ));
+    let step_offset: Int = 0;
+    while step_offset < count {
+        let step: Int = start + step_offset;
+        let zone: Int = plan.step_zone_ordinals[step];
+        let field: Int = plan.step_field_ordinals[step];
+        let target: Int = plan.step_target_intent_rows[step];
+        let zone_type: String = CompilerSymbolCIdentifier(
+            plan.graph.zone_type_names[zone]
+        );
+        output = Concat(output, Concat("step.", Concat(
+            ToString(step_offset), ":\n  call void @"
+        )));
+        output = Concat(output, IntentRuntimeCTraceStepFn());
+        output = Concat(output, "(i32 %handle, ptr @");
+        output = Concat(output,
+            DirectMirCompositeIntentLlvmIndexedSymbol("step", step));
+        output = Concat(output,
+            ", ptr @.pgy.composite.zone.marker)\n  call void @");
+        output = Concat(output, IntentRuntimeCTraceBindFn());
+        output = Concat(output, "(i32 %handle, ptr @");
+        output = Concat(output,
+            DirectMirCompositeIntentLlvmIndexedSymbol("subject", intent_row));
+        output = Concat(output,
+            ", ptr @.pgy.composite.unbound)\n  %target.");
+        output = Concat(output, ToString(step_offset));
+        output = Concat(output, " = call i1 @");
+        output = Concat(output,
+            DirectMirCompositeIntentLlvmIntentSymbol(plan, target));
+        if target == plan.aggregate_intent_row {
+            output = Concat(output,
+                "(ptr %zone0, ptr %zone1, ptr %zone2, ptr %subject)\n");
+        } else {
+            output = Concat(output, Concat("(ptr %zone", Concat(
+                ToString(zone), ", ptr %subject)\n"
+            )));
+        }
+        output = Concat(output, Concat("  br i1 %target.", Concat(
+            ToString(step_offset), Concat(", label %target.ok.", Concat(
+                ToString(step_offset), Concat(", label %fail.target.", Concat(
+                    ToString(step_offset), "\n\n"
+                ))
+            ))
+        )));
+        output = Concat(output, Concat("target.ok.", Concat(
+            ToString(step_offset), ":\n  %slot."
+        )));
+        output = Concat(output, ToString(step_offset));
+        output = Concat(output, " = getelementptr inbounds %");
+        output = Concat(output, zone_type);
+        output = Concat(output, Concat(", ptr %zone", Concat(
+            ToString(zone), ", i32 0, i32 0\n  %field."
+        )));
+        output = Concat(output, ToString(step_offset));
+        output = Concat(output, " = getelementptr inbounds %");
+        output = Concat(output, subject_type);
+        output = Concat(output, Concat(", ptr %slot.", Concat(
+            ToString(step_offset), Concat(", i32 0, i32 ", Concat(
+                ToString(field), "\n  %value."
+            ))
+        )));
+        output = Concat(output, ToString(step_offset));
+        output = Concat(output, Concat(" = load i32, ptr %field.", Concat(
+            ToString(step_offset), ", align 4\n  %expect."
+        )));
+        output = Concat(output, ToString(step_offset));
+        output = Concat(output, Concat(" = icmp sgt i32 %value.", Concat(
+            ToString(step_offset), Concat(", ", Concat(
+                ToString(plan.step_thresholds[step]), "\n  br i1 %expect."
+            ))
+        )));
+        output = Concat(output, ToString(step_offset));
+        output = Concat(output, Concat(", label %expect.ok.", Concat(
+            ToString(step_offset), Concat(", label %fail.expect.", Concat(
+                ToString(step_offset), "\n\n"
+            ))
+        )));
+        output = Concat(output, Concat("expect.ok.", Concat(
+            ToString(step_offset), ":\n  call void @"
+        )));
+        output = Concat(output, IntentRuntimeCTraceStepOkFn());
+        output = Concat(output, "(i32 %handle, ptr @");
+        output = Concat(output,
+            DirectMirCompositeIntentLlvmIndexedSymbol("step", step));
+        output = Concat(output, ")\n");
+        if step_offset + 1 < count {
+            output = Concat(output, Concat("  br label %step.", Concat(
+                ToString(step_offset + 1), "\n\n"
+            )));
+        } else {
+            output = Concat(output, "  call void @");
+            output = Concat(output, IntentRuntimeCExitFn());
+            output = Concat(output,
+                "(i32 %handle)\n  ret i1 true\n\n");
+        }
+        output = Concat(output, DirectMirCompositeIntentLlvmNestedFailure(
+            plan, step, Concat("fail.target.", ToString(step_offset)), "nested"
+        ));
+        output = Concat(output, DirectMirCompositeIntentLlvmNestedFailure(
+            plan, step, Concat("fail.expect.", ToString(step_offset)), "expect"
+        ));
+        step_offset = step_offset + 1;
+    }
+    output = Concat(output,
+        "intent.enter.failed:\n  ret i1 false\n}\n\n");
+    return output;
+}
+
+func DirectMirCompositeIntentLlvmMain(
+    ref plan: DirectMirCompositeIntentProgramPlan,
+    formatted_print: CompilerRuntimeCallAbiFact,
+    rows: Array<IntentObservabilityAbiRow>
+) -> String {
+    let subject_type: String = CompilerSymbolCIdentifier(
+        plan.graph.subject_type_name
+    );
+    let output: String = "define internal void @Main() {\nentry:\n";
+    output = Concat(output, Concat("  %subject = alloca %", Concat(
+        subject_type, ", align 4\n  %subject.init.0 = insertvalue %"
+    )));
+    output = Concat(output, subject_type);
+    output = Concat(output, Concat(" zeroinitializer, i32 ", Concat(
+        ToString(plan.main.initial_values[0]), ", 0\n"
+    )));
+    let field: Int = 1;
+    while field < 3 {
+        output = Concat(output, Concat("  %subject.init.", Concat(
+            ToString(field), Concat(" = insertvalue %", Concat(
+                subject_type, Concat(" %subject.init.", Concat(
+                    ToString(field - 1), Concat(", i32 ", Concat(
+                        ToString(plan.main.initial_values[field]), Concat(
+                            ", ", Concat(ToString(field), "\n")
+                        )
+                    ))
+                ))
+            ))
+        )));
+        field = field + 1;
+    }
+    output = Concat(output, Concat("  store %", Concat(
+        subject_type, Concat(" %subject.init.2, ptr %subject, align 4\n", "")
+    )));
+    let zone: Int = 0;
+    while zone < 3 {
+        let zone_type: String = CompilerSymbolCIdentifier(
+            plan.graph.zone_type_names[zone]
+        );
+        output = Concat(output, Concat("  %zone", Concat(
+            ToString(zone), Concat(" = alloca %", Concat(
+                zone_type, ", align 4\n  %subject.copy."
+            ))
+        )));
+        output = Concat(output, Concat(ToString(zone), Concat(
+            " = load %", Concat(subject_type, Concat(
+                ", ptr %subject, align 4\n  %zone.init.", ToString(zone)
+            ))
+        )));
+        output = Concat(output, Concat(" = insertvalue %", Concat(
+            zone_type, Concat(" zeroinitializer, %", Concat(
+                subject_type, Concat(" %subject.copy.", Concat(
+                    ToString(zone), " , 0\n  store %"
+                ))
+            ))
+        )));
+        output = Concat(output, Concat(zone_type, Concat(" %zone.init.", Concat(
+            ToString(zone), Concat(", ptr %zone", Concat(
+                ToString(zone), ", align 4\n"
+            ))
+        ))));
+        zone = zone + 1;
+    }
+    output = Concat(output, "  %result = call i1 @");
+    output = Concat(output, DirectMirCompositeIntentLlvmIntentSymbol(
+        plan, plan.root_intent_row
+    ));
+    output = Concat(output,
+        "(ptr %zone0, ptr %zone1, ptr %zone2, ptr %subject)\n");
+    output = Concat(output,
+        "  %result.text = select i1 %result, ptr @.pgy.composite.bool.true, ptr @.pgy.composite.bool.false\n  %log.0 = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.composite.format.0, ptr %result.text)\n");
+    output = Concat(output, Concat("  %last.name = call ptr @", Concat(
+        rows[0].runtime_name, "()\n  %last.steps = call i32 @"
+    )));
+    output = Concat(output, Concat(rows[1].runtime_name,
+        "()\n  %last.failed = call i1 @"));
+    output = Concat(output, Concat(rows[2].runtime_name,
+        "()\n  %last.failed.text = select i1 %last.failed, ptr @.pgy.composite.bool.true, ptr @.pgy.composite.bool.false\n  %log.1 = call i32 (ptr, ...) @"));
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.composite.format.1, ptr %last.name, i32 %last.steps, ptr %last.failed.text)\n");
+    field = 0;
+    while field < 3 {
+        output = Concat(output, Concat("  %subject.field.", Concat(
+            ToString(field), Concat(" = getelementptr inbounds %", Concat(
+                subject_type, Concat(", ptr %subject, i32 0, i32 ", Concat(
+                    ToString(field), Concat("\n  %subject.value.", Concat(
+                        ToString(field), Concat(" = load i32, ptr %subject.field.", Concat(
+                            ToString(field), ", align 4\n"
+                        ))
+                    ))
+                ))
+            ))
+        )));
+        field = field + 1;
+    }
+    output = Concat(output, "  %log.2 = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.composite.format.2, i32 %subject.value.0, i32 %subject.value.1, i32 %subject.value.2)\n");
+    zone = 0;
+    while zone < 3 {
+        let zone_type: String = CompilerSymbolCIdentifier(
+            plan.graph.zone_type_names[zone]
+        );
+        let zone_field: Int = zone;
+        output = Concat(output, Concat("  %zone.slot.", Concat(
+            ToString(zone), Concat(" = getelementptr inbounds %", Concat(
+                zone_type, Concat(", ptr %zone", Concat(
+                    ToString(zone), ", i32 0, i32 0\n"
+                ))
+            ))
+        )));
+        output = Concat(output, Concat("  %zone.field.", Concat(
+            ToString(zone), Concat(" = getelementptr inbounds %", Concat(
+                subject_type, Concat(", ptr %zone.slot.", Concat(
+                    ToString(zone), Concat(", i32 0, i32 ", Concat(
+                        ToString(zone_field), "\n"
+                    ))
+                ))
+            ))
+        )));
+        output = Concat(output, Concat("  %zone.value.", Concat(
+            ToString(zone), Concat(" = load i32, ptr %zone.field.", Concat(
+                ToString(zone), ", align 4\n  %log."
+            ))
+        )));
+        output = Concat(output, Concat(ToString(zone + 3),
+            " = call i32 (ptr, ...) @"));
+        output = Concat(output, formatted_print.symbol);
+        output = Concat(output, Concat("(ptr @.pgy.composite.format.", Concat(
+            ToString(zone + 3), Concat(", i32 %zone.value.", Concat(
+                ToString(zone), ")\n"
+            ))
+        )));
+        zone = zone + 1;
+    }
+    output = Concat(output, Concat("  %history.count = call i32 @", Concat(
+        rows[3].runtime_name, "()\n  %log.6 = call i32 (ptr, ...) @"
+    )));
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.composite.format.6, i32 %history.count)\n  br label %history.check\n\nhistory.check:\n  %history.i = phi i32 [ 0, %entry ], [ %history.next, %history.body ]\n  %history.bound = call i32 @");
+    output = Concat(output, rows[3].runtime_name);
+    output = Concat(output,
+        "()\n  %history.more = icmp slt i32 %history.i, %history.bound\n  br i1 %history.more, label %history.body, label %history.done\n\nhistory.body:\n  %history.name = call ptr @");
+    output = Concat(output, rows[4].runtime_name);
+    output = Concat(output, "(i32 %history.i)\n  %history.phase = call ptr @");
+    output = Concat(output, rows[5].runtime_name);
+    output = Concat(output,
+        "(i32 %history.i)\n  %history.participant = call ptr @");
+    output = Concat(output, rows[6].runtime_name);
+    output = Concat(output, "(i32 %history.i)\n  %history.ok = call i1 @");
+    output = Concat(output, rows[7].runtime_name);
+    output = Concat(output,
+        "(i32 %history.i)\n  %history.ok.text = select i1 %history.ok, ptr @.pgy.composite.bool.true, ptr @.pgy.composite.bool.false\n  %log.7 = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.composite.format.7, ptr %history.name, ptr %history.phase, ptr %history.participant, ptr %history.ok.text)\n  %history.next = add i32 %history.i, 1\n  br label %history.check\n\nhistory.done:\n  %last.trace = call ptr @");
+    output = Concat(output, rows[8].runtime_name);
+    output = Concat(output, "()\n  %log.8 = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output,
+        "(ptr @.pgy.composite.format.8, ptr %last.trace)\n  ret void\n}\n\ndefine i32 @main() {\nentry:\n  call void @Main()\n  ret i32 0\n}\n");
+    return output;
+}
+
+func DirectMirCompositeIntentProgramEmitLlvm(
+    ref plan: DirectMirCompositeIntentProgramPlan
+) -> String {
+    if !DirectMirCompositeIntentProgramPlanReady(plan) {
+        Die("direct MIR composite intent LLVM receipt is invalid");
+    }
+    let formatted_print: CompilerRuntimeCallAbiFact =
+        CompilerRuntimeCallAbiFormattedPrintFact();
+    let rows: Array<IntentObservabilityAbiRow> = [
+        IntentObservabilityAbiRowForSource("IntentLastName"),
+        IntentObservabilityAbiRowForSource("IntentLastStepCount"),
+        IntentObservabilityAbiRowForSource("IntentLastFailed"),
+        IntentObservabilityAbiRowForSource("IntentHistoryCount"),
+        IntentObservabilityAbiRowForSource("IntentHistoryStepName"),
+        IntentObservabilityAbiRowForSource("IntentHistoryStepPhase"),
+        IntentObservabilityAbiRowForSource("IntentHistoryStepParticipant"),
+        IntentObservabilityAbiRowForSource("IntentHistoryStepOk"),
+        IntentObservabilityAbiRowForSource("IntentLastTrace")
+    ];
+    let subject_type: String = CompilerSymbolCIdentifier(
+        plan.graph.subject_type_name
+    );
+    if subject_type == "" { Die("direct MIR composite intent subject symbol is invalid"); }
+    let output: String = Concat("%", Concat(
+        subject_type, " = type { i32, i32, i32 }\n"
+    ));
+    let row: Int = 0;
+    while row < 3 {
+        let zone_type: String = CompilerSymbolCIdentifier(
+            plan.graph.zone_type_names[row]
+        );
+        if zone_type == "" || zone_type == subject_type {
+            Die("direct MIR composite intent zone symbol is invalid");
+        }
+        output = Concat(output, Concat("%", Concat(
+            zone_type, Concat(" = type { %", Concat(
+                subject_type, ", i32 }\n"
+            ))
+        )));
+        row = row + 1;
+    }
+    output = Concat(output, "\n");
+    output = Concat(output, DirectMirCompositeIntentLlvmGlobals(plan));
+    output = Concat(output, DirectMirCompositeIntentLlvmDeclarations(
+        formatted_print, rows
+    ));
+    row = 0;
+    while row < 3 {
+        output = Concat(output,
+            DirectMirCompositeIntentLlvmZoneSync(plan, row));
+        row = row + 1;
+    }
+    row = 0;
+    while row < 6 {
+        output = Concat(output,
+            DirectMirCompositeIntentLlvmMethod(plan, row));
+        row = row + 1;
+    }
+    row = 0;
+    while row < 5 {
+        if row != plan.aggregate_intent_row && row != plan.root_intent_row {
+            output = Concat(output,
+                DirectMirCompositeIntentLlvmLeafIntent(plan, row));
+        }
+        row = row + 1;
+    }
+    output = Concat(output, DirectMirCompositeIntentLlvmNestedIntent(
+        plan, plan.aggregate_intent_row
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmNestedIntent(
+        plan, plan.root_intent_row
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmMain(
+        plan, formatted_print, rows
+    ));
+    return output;
+}

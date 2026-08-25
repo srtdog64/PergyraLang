@@ -114,11 +114,13 @@ compiler_compile_link_self_host_llvm_artifact(
     }
     if (!pgy_select_llvm_ir_compiler(&clang_selection))
         return compiler_error("Unable to detect an LLVM IR-capable clang");
-    /* The admitted self-host LLVM surface does not yet carry intent
-     * observability calls. Reuse the canonical external runtime object owner
-     * for every other runtime row; never infer linkage by scanning LLVM text. */
+    /* A machine-admitted self-host LLVM artifact may consume the intent
+     * observability ABI. Until the artifact protocol carries a narrower typed
+     * runtime-requirement receipt, the self-host LLVM link boundary owns one
+     * observability-capable runtime default. Never infer linkage by scanning
+     * LLVM text. */
     runtime_obj_path = compiler_llvm_runtime_object_ensure(
-        opt_profile, false, verbose, &compiled_runtime, &runtime_error);
+        opt_profile, true, verbose, &compiled_runtime, &runtime_error);
     if (runtime_obj_path == NULL)
         return compiler_error(runtime_error != NULL ? runtime_error
                               : "Self-host LLVM runtime object unavailable");

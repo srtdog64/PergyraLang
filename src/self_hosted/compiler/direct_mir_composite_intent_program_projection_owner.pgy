@@ -1,0 +1,26 @@
+// Exclusive LLVM composition boundary for the canonical composite-intent
+// family.  A structural claim is never reinterpreted by the scalar route.
+
+import "direct_mir_composite_intent_program_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirCompositeIntentProgramLlvm(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    route: DirectMirCompositeIntentProgramRouteFact
+) -> String {
+    let plan: DirectMirCompositeIntentProgramPlan =
+        DirectMirCompositeIntentProgramPlanFromAdmitted(admitted, route);
+    return DirectMirCompositeIntentProgramEmitLlvm(plan);
+}
+
+func CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    is_llvm: Bool
+) -> Option<String> {
+    if !is_llvm { return None; }
+    let route: DirectMirCompositeIntentProgramRouteFact =
+        DirectMirCompositeIntentProgramRouteFactFromAdmitted(admitted);
+    if !route.claimed { return None; }
+    return Some(CompileAdmittedDirectMirCompositeIntentProgramLlvm(
+        admitted, route
+    ));
+}

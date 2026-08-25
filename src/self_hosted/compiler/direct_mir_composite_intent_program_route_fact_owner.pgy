@@ -1,0 +1,158 @@
+// Exclusive structural claim for the canonical composite-intent family.
+//
+// The claim consumes the admitted routine/declaration inventory only.  Names,
+// expression meaning, action pairing, intent topology, and Main observability
+// remain unclaimed until the target-neutral plan seals them.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir_lower/machine_layer_fact_owner.pgy";
+import "../codegen/text/text_owner.pgy";
+
+struct DirectMirCompositeIntentProgramRouteFact {
+    let valid: Bool;
+    let digest: Int;
+    let claimed: Bool;
+    let main_row: Int;
+    let subject_declaration_row: Int;
+    let zone_declaration_rows: Array<Int>;
+    let method_rows: Array<Int>;
+    let intent_rows: Array<Int>;
+}
+
+func DirectMirCompositeIntentProgramRouteFactDigest(
+    ref fact: DirectMirCompositeIntentProgramRouteFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(929L, fact.main_row);
+    hash = DirectMirCfgHashInt(hash, fact.subject_declaration_row);
+    hash = DirectMirScalarCfgHashInts(hash, fact.zone_declaration_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.method_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.intent_rows);
+    if fact.claimed { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirCompositeIntentProgramRouteFactReady(
+    ref fact: DirectMirCompositeIntentProgramRouteFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirCompositeIntentProgramRouteFactDigest(fact) {
+        return false;
+    }
+    if !fact.claimed {
+        return fact.main_row == -1 &&
+            fact.subject_declaration_row == -1 &&
+            ArrayLength(fact.zone_declaration_rows) == 0 &&
+            ArrayLength(fact.method_rows) == 0 &&
+            ArrayLength(fact.intent_rows) == 0;
+    }
+    if fact.main_row < 0 || fact.subject_declaration_row < 0 ||
+        ArrayLength(fact.zone_declaration_rows) != 3 ||
+        ArrayLength(fact.method_rows) != 6 ||
+        ArrayLength(fact.intent_rows) != 5 {
+        return false;
+    }
+    let prior: Int = 0;
+    while prior < ArrayLength(fact.zone_declaration_rows) {
+        if fact.zone_declaration_rows[prior] < 0 ||
+            fact.zone_declaration_rows[prior] ==
+                fact.subject_declaration_row {
+            return false;
+        }
+        let row: Int = 0;
+        while row < prior {
+            if fact.zone_declaration_rows[row] ==
+                    fact.zone_declaration_rows[prior] {
+                return false;
+            }
+            row = row + 1;
+        }
+        prior = prior + 1;
+    }
+    return true;
+}
+
+func DirectMirCompositeIntentProgramRouteFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirCompositeIntentProgramRouteFact {
+    let zones: Array<Int> = [];
+    let methods: Array<Int> = [];
+    let intents: Array<Int> = [];
+    let subject_row: Int = -1;
+    let subject_count: Int = 0;
+    let declaration_row: Int = 0;
+    while declaration_row < MirProgramDeclarationIndexCount(
+        admitted.domain_runtime_admission.declarations
+    ) {
+        if admitted.domain_runtime_admission.declarations.kinds[
+                declaration_row] == "subject" &&
+            admitted.domain_runtime_admission.declarations.nominal_kinds[
+                declaration_row] == "subject" {
+            subject_count = subject_count + 1;
+            subject_row = declaration_row;
+        } else if admitted.domain_runtime_admission.declarations.kinds[
+                declaration_row] == "zone" &&
+            admitted.domain_runtime_admission.declarations.nominal_kinds[
+                declaration_row] == "zone" {
+            ArrayPush(zones, declaration_row);
+        }
+        declaration_row = declaration_row + 1;
+    }
+    let subject_name: String = "";
+    if subject_row >= 0 {
+        subject_name = admitted.domain_runtime_admission.declarations.names[
+            subject_row
+        ];
+    }
+    let main_row: Int = -1;
+    let function_count: Int = 0;
+    let unsupported_routine: Bool = false;
+    let routine_row: Int = 0;
+    while routine_row < MirProgramRoutineIndexCount(admitted.routines) {
+        if admitted.routines.kinds[routine_row] == "function" &&
+            admitted.routines.owners[routine_row] == "" {
+            function_count = function_count + 1;
+            main_row = routine_row;
+        } else if admitted.routines.kinds[routine_row] == "method" &&
+            admitted.routines.owners[routine_row] == subject_name {
+            ArrayPush(methods, routine_row);
+        } else if admitted.routines.kinds[routine_row] == "intent" &&
+            admitted.routines.owners[routine_row] == "" {
+            ArrayPush(intents, routine_row);
+        } else {
+            unsupported_routine = true;
+        }
+        routine_row = routine_row + 1;
+    }
+    let claimed: Bool = !unsupported_routine && subject_count == 1 &&
+        subject_name != "" && function_count == 1 &&
+        MirProgramRoutineIndexCount(admitted.routines) == 12 &&
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations
+        ) == 4 && ArrayLength(zones) == 3 &&
+        ArrayLength(methods) == 6 && ArrayLength(intents) == 5;
+    if !claimed {
+        main_row = -1;
+        subject_row = -1;
+        while ArrayLength(zones) > 0 { ArrayPop(zones); }
+        while ArrayLength(methods) > 0 { ArrayPop(methods); }
+        while ArrayLength(intents) > 0 { ArrayPop(intents); }
+    }
+    let source: DirectMirCompositeIntentProgramRouteFact =
+        DirectMirCompositeIntentProgramRouteFact(
+            true, 0, claimed, main_row, subject_row, zones, methods, intents
+        );
+    let sealed: DirectMirCompositeIntentProgramRouteFact =
+        DirectMirCompositeIntentProgramRouteFact(
+            source.valid,
+            DirectMirCompositeIntentProgramRouteFactDigest(source),
+            source.claimed, source.main_row,
+            source.subject_declaration_row, source.zone_declaration_rows,
+            source.method_rows, source.intent_rows
+        );
+    if !DirectMirCompositeIntentProgramRouteFactReady(sealed) {
+        Die("direct MIR composite intent route receipt is invalid");
+    }
+    return sealed;
+}
