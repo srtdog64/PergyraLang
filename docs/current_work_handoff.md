@@ -12,16 +12,17 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - source-C world/action reachable; publication is RED
+## Active self-host context - source-C world/action reachable; publication is GREEN
 
 - Executable checkpoint `a94737dd` moves the production installed source-C
   artifact path behind `PgyCompilerWorld.source_c` and
   `DriverSourceCExecution.PublishSourceCArtifact`. It and documentation
   checkpoint `d8d1cce2` are published. Their first run `32811885342` completed
   28/29: full self-host and every job except `build-linux` passed. Repair
-  checkpoint `1721b6aa` is one commit ahead of `origin/main` before this handoff
-  commit; only progress documents and the unrelated user-owned
-  `pgy-80135c2c/` directory should be dirty.
+  checkpoint `1721b6aa` plus handoff `6217f0d7` is now remotely closed by run
+  `32814568145` at 29/29 green. Before this final result-only handoff commit,
+  `main` matches `origin/main`; only progress documents and the unrelated
+  user-owned `pgy-80135c2c/` directory should be dirty.
 - Active objective card: objective = route `DriverCliSourceCArtifact` compile
   and commit through one real world/zone/subject action; priority = preserve C
   artifact and target fingerprint, typed success/rejection/artifact failure,
@@ -65,8 +66,15 @@ gate count do not increment either percentage by themselves.
   83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. On the source-C first run,
   full self-host completed green in 27m25 and its new action gate took about
   0.58s. The only red was the stale exact-two-member likeness baseline; repair
-  `1721b6aa` updates the measured topology rather than weakening it. The only
-  active next falsifier is publishing that repair with all 29 push jobs green.
+  `1721b6aa` updates the measured topology rather than weakening it. Repair run
+  `32814568145` completed 29/29 green in 29m21; full self-host took 29m16,
+  build-linux 15m06, and the focused source-C gate about 0.65s. The exact Linux
+  likeness rows are 4,257/21/3/38 and PASS. This result-only handoff successor
+  is locally documentation/progress/beta-gated and uses `[skip ci]` so it does
+  not rerun the unchanged 29-job matrix a third time. The next executable rung
+  may now be selected from current production evidence; the visible candidate
+  is installed general MIR-to-C direct compile/commit, not another SoT-only
+  cleanup.
 
 ### Historical archive boundary
 

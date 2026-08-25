@@ -38,7 +38,13 @@
   actions, and 4,257 Result/Option uses. Compiler topology/world contracts and
   the source-C execution/transaction gates pass locally; Windows Coq is a
   declared skip while the failed run's actual Coq job and adequacy step passed.
-  The active falsifier is remote 29/29 publication of the repair.
+  Repair run `32814568145` then completed 29/29 green in 29m21: full self-host
+  29m16, build-linux 15m06, focused source-C action about 0.65s. Linux measured
+  the exact 4,257/21/3/38 likeness rows and passed. This result-only progress
+  successor is locally documentation/progress/beta-gated and uses `[skip ci]`
+  to avoid a third unchanged full matrix. The next executable candidate is the
+  installed general MIR-to-C direct compile/commit bypass; do not reopen broad
+  SoT cleanup before selecting that rung from current source evidence.
 
 ## Historical self-host context - 2026-08-25 bounded composite intent LLVM substitution
 
