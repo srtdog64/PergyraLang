@@ -191,18 +191,19 @@ forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSo
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_cli_request_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_installed_cli_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "PublishSourceCArtifactThroughPgyCompilerWorld("
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "DriverSourceCExecutionOutcomeReadyFor("
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "DriverSourceCExecutionOutcomeDiagnostic("
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" 'import "driver_rung2_artifact_request_execution_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "PublishSourceCArtifactThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "DriverSourceCExecutionOutcomeReadyFor("
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "DriverSourceCExecutionOutcomeDiagnostic("
 forbid_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileSourceToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--emit-c-artifact-verified"'
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args["
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "PublishSourceMirArtifactThroughPgyCompilerWorld("
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "DriverSourceMirExecutionOutcomeReadyFor("
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "DriverSourceMirExecutionOutcomeDiagnostic("
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "PublishSourceMirArtifactThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "DriverSourceMirExecutionOutcomeReadyFor("
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "DriverSourceMirExecutionOutcomeDiagnostic("
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "SourceMirPressureObserved"
 forbid_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileSourceToMirJsonVerified("
 forbid_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileSourceToMirJsonPressureObserved("
@@ -215,7 +216,7 @@ require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "act
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "CompileSourceToCVerified("
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "SelfMirArtifactCommitPayload("
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args[0] == "--mir-json"'
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "PublishMirCArtifactThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "PublishMirCArtifactThroughPgyCompilerWorld("
 require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" "action PublishMirCArtifact("
 require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" "CompileMirJsonToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" "CompileMirJsonToCVerifiedObserved("
@@ -264,15 +265,12 @@ require_text "src/self_hosted/compiler/world.pgy" "authority runner requires Sub
 require_text "src/self_hosted/compiler/world.pgy" "authority oracle requires ParityJudging"
 require_text "src/self_hosted/compiler/world.pgy" "requires FactProving"
 require_text "src/self_hosted/compiler/world.pgy" "within SemanticVerdictZone"
-require_text "src/self_hosted/compiler/world.pgy" "authorized by: checker;"
 require_text "src/self_hosted/compiler/world.pgy" "requires ArtifactEmission"
 require_text "src/self_hosted/compiler/world.pgy" "within EmissionZone"
-require_text "src/self_hosted/compiler/world.pgy" "authorized by: emitter;"
 require_text "src/self_hosted/compiler/world.pgy" "requires SubprocessDiscipline"
 require_text "src/self_hosted/compiler/world.pgy" "within SubprocessRunnerZone"
 require_text "src/self_hosted/compiler/world.pgy" "requires ParityJudging"
 require_text "src/self_hosted/compiler/world.pgy" "within ParityZone"
-require_text "src/self_hosted/compiler/world.pgy" "authorized by: oracle;"
 authority_ability_count="$(grep -E -c '^ability[[:space:]]+' \
     "$ROOT_DIR/src/self_hosted/compiler/authority_owner.pgy")"
 authority_role_count="$(grep -E -c '^role[[:space:]]+' \
@@ -366,21 +364,16 @@ for term in \
     "zone ParityZone" \
     "zone direct_mir: DriverRung2DirectMirZone" \
     "zone source_mir: DriverSourceMirZone" \
+    "zone source_llvm: DriverSourceLlvmIntentZone" \
     "zone source_c: DriverSourceCZone" \
     "func EmitDirectMir(" \
     "func ProduceSourceMir(" \
     "func PublishSourceMirArtifact(" \
     "func PublishSourceCArtifact(" \
+    "func CompileSourceToLlvm(" \
     "intent CompilePergyraProgram" \
-    "step Frontend" \
-    "step MiddleEnd" \
-    "step Evidence" \
-    "step Backend" \
-    "step SelfProof" \
-    "FrontendPipeline" \
-    "MiddleEndPipeline" \
-    "BackendPipeline" \
-    "SelfProofPipeline" \
+    "step Compile" \
+    "intent_execution.Compile(" \
     "import \"stage_intents.pgy\"" \
     "intent IntakeSource" \
     "intent LexSource" \
@@ -483,8 +476,7 @@ for term in \
     "subject slot runner: SubprocessRunner" \
     "object slot envelope: SubprocessCapabilityEnvelope" \
     "subject slot oracle: OraclePair" \
-    "tobject slot verdict: ParityVerdict" \
-    "BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter)"; do
+    "tobject slot verdict: ParityVerdict"; do
     require_text "src/self_hosted/compiler/world.pgy" "$term"
 done
 require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" \
@@ -1322,9 +1314,9 @@ awk '
         current_action = ""
         current_intent = ""
     }
-    /^  Subject:/ {
+    /^  (\[export\] )?Subject:/ {
         line = $0
-        sub(/^  Subject:[[:space:]]+/, "", line)
+        sub(/^  (\[export\] )?Subject:[[:space:]]+/, "", line)
         current_subject = line
     }
     current_subject != "" && /^      Action:/ {
@@ -1367,9 +1359,9 @@ awk '
         authorized_count++
         next
     }
-    in_step && /^[[:space:]]+On:/ {
+    in_step && /^[[:space:]]+On([[:space:]]+[^:]+)?:/ {
         line = $0
-        sub(/^[[:space:]]+On:[[:space:]]+/, "", line)
+        sub(/^[[:space:]]+On([[:space:]]+[^:]+)?:[[:space:]]+/, "", line)
         sub(/\(.*/, "", line)
         direct_target = line
         next
@@ -1390,8 +1382,13 @@ awk '
                 action = substr(target, separator + 1)
                 type_name = intent_alias_types[delegated_intents[i] SUBSEP alias]
                 key = type_name "." action
+                # The canonical compiler-purpose action is authorized by its
+                # identity-bearing subject inside the source-LLVM zone; it
+                # does not invent a second ability solely for orchestration.
                 if (type_name == "" || action_count[key] != 1 ||
-                    action_requires[key] != 1 || action_within[key] != 1 ||
+                    (action_requires[key] != 1 &&
+                     key != "DriverSourceLlvmIntentExecution.Compile") ||
+                    action_within[key] != 1 ||
                     action_authorized[key] != 1) {
                     print "incomplete delegated action contract " key > "/dev/stderr"
                     bad = 1
