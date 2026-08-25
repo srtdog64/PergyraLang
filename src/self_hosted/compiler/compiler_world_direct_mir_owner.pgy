@@ -33,14 +33,24 @@ func EmitDirectMirThroughPgyCompilerWorld(
         machine_declaration, request, observe_pressure);
 }
 
+func ProduceMirCThroughPgyCompilerWorld(
+    mir_json_path: String,
+    observation_request: DriverRung2MirCRequest,
+    machine_request: DriverRung2MirCMachineRequest
+) -> DriverRung2MirCPayloadAdmission with caps io_read {
+    let compiler_world: PgyCompilerWorld = PgyCompilerWorldMaterializeExecutableZones();
+    return compiler_world.ProduceMirC(
+        mir_json_path, observation_request, machine_request);
+}
+
 func PublishMirCArtifactThroughPgyCompilerWorld(
     mir_json_path: String, output_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration,
-    request: DriverRung2MirCRequest
+    observation_request: DriverRung2MirCRequest,
+    machine_request: DriverRung2MirCMachineRequest
 ) -> DriverRung2ExecutionOutcome with caps io_read, io_write {
     let compiler_world: PgyCompilerWorld = PgyCompilerWorldMaterializeExecutableZones();
     return compiler_world.PublishMirCArtifact(mir_json_path, output_path,
-        machine_declaration, request);
+        observation_request, machine_request);
 }
 
 func ProduceSourceMirThroughPgyCompilerWorld(

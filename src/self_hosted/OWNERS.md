@@ -2131,6 +2131,22 @@ inventory must not become a second fact-family owner registry.
   direct-backend and general MIR-to-C actions share one target acceptance and
   atomic commit transition inside the existing one-subject direct-MIR authority
   zone, while the typed MIR and backend owners remain unchanged.
+- `src/self_hosted/compiler/driver_mir_c_protocol_owner.pgy` -- detached
+  MIR-to-C payload admission receipt, rejection, readiness, and diagnostics.
+  It keeps pressure observation independent from default versus explicitly
+  verified machine-declaration identity, seals manifest ID/fingerprint, and
+  carries the canonical target fact plus original compiler artifact. It owns no
+  compilation, publication, or semantic/emission fact.
+- `src/self_hosted/compiler/driver_mir_c_payload_execution_owner.pgy` -- sole
+  MIR-to-C payload producer shared by the direct-MIR subject's read-only stdout
+  and write-authorized artifact actions. It validates request identity and the
+  canonical CPU-C target, dispatches the existing observed/unobserved compiler
+  exactly once, and issues one typed admission without reconstructing backend
+  facts.
+- `src/self_hosted/compiler/driver_mir_c_stdout_execution_owner.pgy` -- checked
+  read-only last consumer for installed MIR-to-C stdout. It enters the existing
+  direct-MIR compiler-world zone, accepts only a ready typed admission, and logs
+  the preserved compiler artifact payload without a commit or fallback.
 - `src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy` -- source-to-
   MIR request, identity/schema, detached payload/artifact receipt, rejection,
   outcome validation, and diagnostic protocol. It owns no compilation,

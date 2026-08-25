@@ -11,6 +11,7 @@ SOURCE_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution
 SOURCE_LLVM_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy"
 SOURCE_C_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
 SOURCE_C_STDOUT="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy"
+MIR_C_STDOUT="$ROOT_DIR/src/self_hosted/compiler/driver_mir_c_stdout_execution_owner.pgy"
 COMPOSITION="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
 ROOT_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/compiler_root_intent_execution_owner.pgy"
 MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
@@ -32,6 +33,7 @@ fail() {
 [[ -f "$SOURCE_LLVM_EXECUTION" ]] || fail "missing source-to-LLVM intent execution owner"
 [[ -f "$SOURCE_C_EXECUTION" ]] || fail "missing source-to-C execution owner"
 [[ -f "$SOURCE_C_STDOUT" ]] || fail "missing source-to-C stdout execution owner"
+[[ -f "$MIR_C_STDOUT" ]] || fail "missing MIR-to-C stdout execution owner"
 [[ -f "$COMPOSITION" ]] || fail "missing direct-MIR world composition owner"
 [[ -f "$ROOT_EXECUTION" ]] || fail "missing compiler-purpose root execution owner"
 [[ -f "$MAIN" ]] || fail "missing production compiler entrypoint"
@@ -190,6 +192,7 @@ for owner_term in \
     "$WORLD|zone source_llvm: DriverSourceLlvmIntentZone" \
     "$WORLD|zone source_c: DriverSourceCZone" \
     "$WORLD|return self.direct_mir.execution.EmitDirectMir(" \
+    "$WORLD|return self.direct_mir.execution.ProduceMirC(" \
     "$WORLD|return self.direct_mir.execution.PublishMirCArtifact(" \
     "$WORLD|return self.source_mir.execution.ProduceSourceMir(" \
     "$WORLD|return self.source_mir.execution.PublishSourceMirArtifact(" \
@@ -199,6 +202,7 @@ for owner_term in \
     "$COMPOSITION|import \"world.pgy\";" \
     "$COMPOSITION|func PgyCompilerWorldMaterializeExecutableZones()" \
     "$COMPOSITION|func EmitDirectMirThroughPgyCompilerWorld(" \
+    "$COMPOSITION|func ProduceMirCThroughPgyCompilerWorld(" \
     "$COMPOSITION|func PublishMirCArtifactThroughPgyCompilerWorld(" \
     "$COMPOSITION|func ProduceSourceMirThroughPgyCompilerWorld(" \
     "$COMPOSITION|func PublishSourceMirArtifactThroughPgyCompilerWorld(" \
@@ -209,6 +213,7 @@ for owner_term in \
     "$COMPOSITION|DriverSourceLlvmIntentZone(" \
     "$COMPOSITION|DriverSourceCZone(" \
     "$COMPOSITION|return compiler_world.EmitDirectMir(" \
+    "$COMPOSITION|return compiler_world.ProduceMirC(" \
     "$COMPOSITION|return compiler_world.PublishMirCArtifact(" \
     "$COMPOSITION|return compiler_world.ProduceSourceMir(" \
     "$COMPOSITION|return compiler_world.PublishSourceMirArtifact(" \
@@ -216,12 +221,18 @@ for owner_term in \
     "$COMPOSITION|return compiler_world.PublishSourceCArtifact(" \
     "$SOURCE_C_STDOUT|ProduceSourceCThroughPgyCompilerWorld(" \
     "$SOURCE_C_STDOUT|DriverSourceCPayloadAdmissionReadyFor(" \
+    "$MIR_C_STDOUT|ProduceMirCThroughPgyCompilerWorld(" \
+    "$MIR_C_STDOUT|DriverRung2MirCPayloadAdmissionReadyFor(" \
     "$MAIN|import \"driver_rung2_installed_cli_owner.pgy\";" \
     "$MAIN|DriverRung2ExecuteInstalledRequest(request);" \
     "$INSTALLED|case DriverCliSourceCStdout(source_path):" \
     "$INSTALLED|case DriverCliSourceCManifestStdout(source_path, manifest_path):" \
+    "$INSTALLED|case DriverCliMirCStdout(input_path):" \
+    "$INSTALLED|case DriverCliMirCManifestStdout(input_path, manifest_path):" \
     "$READ_EXECUTION|case DriverCliSourceCStdout(source_path):" \
     "$READ_EXECUTION|case DriverCliSourceCManifestStdout(source_path, manifest_path):" \
+    "$READ_EXECUTION|case DriverCliMirCStdout(input_path):" \
+    "$READ_EXECUTION|case DriverCliMirCManifestStdout(input_path, manifest_path):" \
     "$INSTALLED|case DriverCliSourceLlvmArtifact(source_path, output_path):" \
     "$ARTIFACT_EXECUTION|EmitDirectMirThroughPgyCompilerWorld(" \
     "$ARTIFACT_EXECUTION|PublishMirCArtifactThroughPgyCompilerWorld(" \
@@ -235,10 +246,10 @@ for owner_term in \
         fail "direct-MIR topology fact must occur exactly once: $term"
 done
 
-[[ "$(grep -F -c -- 'within DriverRung2DirectMirZone' "$EXECUTION")" -eq 2 ]] ||
-    fail "direct-MIR subject must expose exactly two zone-bound artifact actions"
-[[ "$(grep -F -c -- 'authorized by self' "$EXECUTION")" -eq 2 ]] ||
-    fail "both direct-MIR artifact actions must retain subject authority"
+[[ "$(grep -F -c -- 'within DriverRung2DirectMirZone' "$EXECUTION")" -eq 3 ]] ||
+    fail "direct-MIR subject must expose exactly three zone-bound actions"
+[[ "$(grep -F -c -- 'authorized by self' "$EXECUTION")" -eq 3 ]] ||
+    fail "all direct-MIR actions must retain subject authority"
 [[ "$(grep -F -c -- 'within DriverSourceMirZone' "$SOURCE_EXECUTION")" -eq 2 ]] ||
     fail "source-MIR subject must expose exactly two zone-bound publication actions"
 [[ "$(grep -F -c -- 'authorized by self' "$SOURCE_EXECUTION")" -eq 2 ]] ||
@@ -259,6 +270,18 @@ for installed_case in \
         END { exit found ? 0 : 1 }
     ' "$INSTALLED" || fail "installed source-C case lost read delegation: $installed_case"
 done
+[[ "$(grep -F -c -- 'DriverRung2CliLogMirCPayloadOrDie(' "$READ_EXECUTION")" -eq 2 ]] ||
+    fail "both installed MIR-C stdout requests must reach one checked consumer"
+for installed_case in \
+    'case DriverCliMirCStdout(input_path):' \
+    'case DriverCliMirCManifestStdout(input_path, manifest_path):'; do
+    awk -v header="$installed_case" '
+        index($0, header) { active = 1; next }
+        active && /DriverRung2ExecuteReadRequest\(request\);/ { found = 1; exit }
+        active && /case DriverCli/ { exit }
+        END { exit found ? 0 : 1 }
+    ' "$INSTALLED" || fail "installed MIR-C case lost read delegation: $installed_case"
+done
 
 if grep -Fq -- 'import "driver_rung2_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "driver_source_mir_execution_owner.pgy";' "$MAIN" ||
@@ -266,6 +289,7 @@ if grep -Fq -- 'import "driver_rung2_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "driver_source_c_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "world.pgy";' "$MAIN" ||
     grep -Fq -- '.EmitDirectMir(' "$MAIN" ||
+    grep -Fq -- '.ProduceMirC(' "$MAIN" ||
     grep -Fq -- '.PublishMirCArtifact(' "$MAIN" ||
     grep -Fq -- '.ProduceSourceMir(' "$MAIN" ||
     grep -Fq -- '.ProduceSourceC(' "$MAIN" ||
@@ -361,6 +385,7 @@ awk '
     /^\| `BackendResources\.SourceLLVM` \| `DriverSourceLlvmIntentZone` \|$/ { source_llvm++ }
     /^\| `BackendResources\.SourceC` \| `DriverSourceCZone` \|$/ { source_c++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishDirectMir -> EmitDirectMirThroughPgyCompilerWorld/ { reachable_path++ }
+    /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2ExecuteReadRequest -> DriverRung2CliLogMirCPayloadOrDie -> ProduceMirCThroughPgyCompilerWorld/ { reachable_mir_c_stdout_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceMir -> PublishSourceMirArtifactThroughPgyCompilerWorld/ { reachable_source_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceC -> PublishSourceCArtifactThroughPgyCompilerWorld/ { reachable_source_c_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2ExecuteReadRequest -> DriverRung2CliLogSourceCPayloadOrDie -> ProduceSourceCThroughPgyCompilerWorld/ { reachable_source_c_stdout_path++ }
@@ -377,7 +402,8 @@ awk '
             abi != 1 || target != 1 || emission != 1 || artifact != 1 ||
             direct_mir != 1 || source_mir != 1 || source_llvm != 1 ||
             source_c != 1 ||
-            reachable_path != 1 || reachable_source_path != 1 ||
+            reachable_path != 1 || reachable_mir_c_stdout_path != 1 ||
+            reachable_source_path != 1 ||
             reachable_source_c_path != 1 ||
             reachable_source_c_stdout_path != 1 ||
             reachable_source_llvm_path != 1 ||

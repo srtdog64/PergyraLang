@@ -1,0 +1,90 @@
+// Sole MIR-to-C payload producer shared by stdout and artifact consumers.
+// Existing compiler and target owners retain semantic/emission authority.
+
+import "driver_mir_c_protocol_owner.pgy";
+import "driver_rung2_owner.pgy";
+
+func DriverRung2MirCRequestDiagnostic(
+    subject_identity: String,
+    mir_json_path: String,
+    machine_request: DriverRung2MirCMachineRequest
+) -> String {
+    if subject_identity != DriverRung2ExecutionOwnerIdentity() {
+        return "MIR C execution subject identity is invalid";
+    }
+    if mir_json_path == "" { return "MIR C input path is empty"; }
+    match machine_request {
+        case MirCDefaultMachine: return "";
+        case MirCManifestVerified(declaration):
+            if !SelfHostMachineLayerDeclarationReady(declaration) {
+                return "MIR C machine declaration is invalid";
+            }
+            return "";
+    }
+}
+
+func DriverRung2CompileMirCForRequest(
+    mir_json_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    request: DriverRung2MirCRequest
+) -> CompilerEmissionArtifact with caps io_read {
+    match request {
+        case MirCVerified:
+            return CompileMirJsonToCVerified(
+                mir_json_path, machine_declaration
+            );
+        case MirCPressureObserved:
+            return CompileMirJsonToCVerifiedObserved(
+                mir_json_path, machine_declaration
+            );
+    }
+}
+
+func DriverRung2MirCProducePayloadAdmitted(
+    subject_identity: String,
+    mir_json_path: String,
+    observation_request: DriverRung2MirCRequest,
+    machine_request: DriverRung2MirCMachineRequest
+) -> DriverRung2MirCPayloadAdmission with caps io_read {
+    let diagnostic: String = DriverRung2MirCRequestDiagnostic(
+        subject_identity, mir_json_path, machine_request
+    );
+    if diagnostic != "" {
+        return DriverRung2MirCPayloadDeniedAdmission(
+            mir_json_path, observation_request, machine_request, diagnostic
+        );
+    }
+    let projection_name: String = CompilerTargetCpuCProjection();
+    let target_projection: CompilerTargetProjectionFact =
+        CompilerTargetProjectionFactFromOwner(projection_name);
+    if !CompilerTargetProjectionFactReadyFor(
+        target_projection, projection_name
+    ) {
+        return DriverRung2MirCPayloadDeniedAdmission(
+            mir_json_path, observation_request, machine_request,
+            "MIR C execution target admission failed"
+        );
+    }
+    let artifact: CompilerEmissionArtifact =
+        DriverRung2CompileMirCForRequest(
+            mir_json_path,
+            DriverRung2MirCMachineDeclaration(machine_request),
+            observation_request
+        );
+    if !DriverRung2EmissionArtifactReadyForTarget(
+        artifact, target_projection
+    ) {
+        return DriverRung2MirCPayloadDeniedAdmission(
+            mir_json_path, observation_request, machine_request,
+            "MIR C compiler artifact does not match the admitted target"
+        );
+    }
+    return DriverRung2MirCPayloadAdmitted(DriverRung2MirCPayloadReceipt(
+        DriverRung2ExecutionOutcomeSchema(),
+        DriverRung2MirCObservationMode(observation_request),
+        DriverRung2MirCMachineMode(machine_request), mir_json_path,
+        DriverRung2MirCManifestId(machine_request),
+        DriverRung2MirCManifestFingerprint(machine_request),
+        target_projection, artifact
+    ));
+}

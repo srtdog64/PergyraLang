@@ -17,54 +17,52 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - source-C stdout world/action closed; select next executable rung
+## Active self-host context - installed MIR-C stdout world/action local green; publication pending
 
-- Code checkpoint `20ffa7c7e44174588663f1a89cf86719ee8efeac` is on local
-  and remote `main`. Before this result-only handoff commit, only the active
-  handoff/progress/coordination documents are project-owned dirty state;
-  afterward the worktree should contain only the unrelated user-owned untracked
-  `pgy-80135c2c/` directory. Do not inspect it as evidence, stage it, delete it,
-  or rewrite it.
-- Objective card: make installed default, explicit `--emit-c-verified`, and
-  machine-manifest source-C stdout enter the existing `PgyCompilerWorld.source_c`
-  zone; priority = request/manifest identity, existing compiler artifact
-  readiness, typed outcome, exact bytes, invalid-manifest failure, then old-path
-  rejection; fact owner = `CompileSourceToCVerified`; orchestration owner =
-  `DriverSourceCExecution`; last consumer =
-  `DriverRung2CliLogSourceCPayloadOrDie`; forbidden = direct compiler calls in
-  the read executor, native retry, stdout temp artifacts, a second world/zone,
-  copied artifact facts, or malformed-manifest defaulting.
-- Both prior read-executor bypasses are deleted. One request-mode-aware payload
-  admission calls the compiler once and retains its original
-  `CompilerEmissionArtifact`; source-C artifact publication and stdout consume
-  that admission. The stdout owner has no compiler call, commit, or write
-  capability. No new Make target, workflow job, or second bootstrap was added.
-- A parallel typed-owner/gate audit found and reproduced the hidden fallback:
-  malformed explicit manifest JSON exited 0 and emitted the 9,430-byte default
-  C artifact. `SourceCDefault` now admits only legitimate absence;
-  `SourceCManifestVerified` requires a ready declaration. The same malformed
-  request now exits 1 with `source C machine declaration is invalid` and emits
-  no C. The manifest-bearing request variant and detached receipt also seal the
-  declaration's manifest ID and fingerprint, so an admission from another
-  manifest cannot validate for the current request.
-- Focused installed execution is GREEN. Default and explicit pre/post output is
-  byte-identical at 9,430 bytes and SHA-256 `A29997AD...B8749`; admitted manifest
-  output remains 9,472 bytes and `CB37D99B...19BA`. The existing source-C Make
-  target proves stdout/artifact parity, manifest mapping, typed rejection,
-  execution, and transaction failure after one self-host build.
-- Local component, compiler-world, recursive topology, hard substitution,
-  likeness, and SoT authority-edge gates are GREEN. Likeness remains sentinel
-  `24/24`, Result/Option `4287/4287`, one world, 22 zones, and four members. SoT
-  remains 86 authorities / 180 derived carriers and
-  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-- Push run `32897701600` completed 29/29 green in 29m41. `build-linux` passed in
-  15m21 and full self-host passed in 29m38; all 20 backend shards, sanitizers,
-  Windows/macOS, codegen bootstrap, and Rocq passed. Lease C is `DONE`. No
-  successor rung is inferred: the next session must observe a production
-  entrypoint and direct bypass, name its owner/last consumer/falsifier, and write
-  a new objective card before implementation. This closure is `REACHABLE`, not
-  another implementation replacement, so overall remains 78%, strict beta 83%,
-  and hard SoT remains `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Base revision `5bbb62877e42216a949d024c603ab3392f2eef84` is on local and
+  remote `main`. The project-owned dirty tree is Lease D implementation, gates,
+  workflow wiring, and live handoff documentation. Preserve the unrelated
+  user-owned untracked `pgy-80135c2c/` directory: do not inspect it as evidence,
+  stage it, delete it, or rewrite it.
+- Objective card: make installed `--mir-json INPUT` stdout and its explicit
+  machine-manifest form enter `PgyCompilerWorld.direct_mir` and consume the same
+  typed MIR-C payload admission as artifact publication. Priority = preserve
+  observation request identity; independently seal default versus verified
+  manifest identity; preserve the canonical CPU-C target and original
+  `CompilerEmissionArtifact`; compile once; preserve exact bytes; then reject
+  old reads. Semantic owner = `CompileMirJsonToCVerified[Observed]`;
+  orchestration owner = `DriverRung2Execution`; last consumer =
+  `DriverRung2CliLogMirCPayloadOrDie`. Forbidden = direct compiler calls in the
+  read executor, malformed-manifest defaulting, a second world/zone/compiler
+  call, reconstructed target facts, or stdout temp publication.
+- Parallel read-only owner and gate audits fixed two independent request axes:
+  existing `DriverRung2MirCRequest` retains verified versus pressure-observed
+  behavior, while `DriverRung2MirCMachineRequest` owns default versus explicit
+  manifest identity. One common payload producer validates both axes, admits
+  the canonical CPU-C target, calls the selected compiler exactly once, and
+  carries the original artifact plus target fact to stdout or atomic artifact
+  publication. The stdout consumer has no write/commit capability.
+- The hidden fallback was reproduced before the change: malformed explicit
+  manifest JSON exited 0 and emitted the 9,430-byte default C payload. It now
+  exits nonzero with `MIR C machine declaration is invalid` and emits no C.
+  Default stdout remains 9,430 bytes at SHA-256 `A29997AD...B8749`; the default
+  artifact remains 9,174 host-normalized bytes at `F36551DE...96A33`; admitted
+  manifest stdout remains 9,472 bytes at `CB37D99B...19BA`.
+- The existing installed-driver Make target is locally GREEN after a fresh
+  Pergyra-built DRV-2 install. It proves default/artifact parity, admitted
+  manifest output, typed invalid-manifest rejection, one common producer, and
+  no read-executor compiler bypass. Narrow compiler-world/topology/action gates
+  are also GREEN. The push workflow now invokes this existing target in its
+  existing single Make call; it adds no job or second self-host compiler build.
+- Final component, compiler-world, recursive topology, hard, likeness,
+  progress, SoT authority-edge, protocol, and documentation gates are locally
+  GREEN, as is `git diff --check`. Likeness remains sentinel `24/24`,
+  Result/Option `4287/4287`, one world, 22 zones, and four members; SoT remains
+  86 authorities / 180 derived carriers and `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+  Code checkpoint, push, and the remote 29-job matrix are still pending and
+  must not be inferred from local evidence. This is `REACHABLE` orchestration
+  closure, not another implementation replacement, so overall remains 78% and
+  strict beta 83%.
 
 ### Historical archive boundary
 

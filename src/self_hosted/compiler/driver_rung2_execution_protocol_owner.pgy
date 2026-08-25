@@ -2,6 +2,7 @@
 // execution actions. It owns no compilation, artifact write, or world.
 
 import "target_projection_fact_owner.pgy";
+import "driver_pipeline_owner.pgy";
 import "../mir/artifact_transaction_owner.pgy";
 
 enum DriverRung2DirectMirRequest {
@@ -40,6 +41,19 @@ func DriverRung2ExecutionOwnerIdentity() -> String {
 
 func DriverRung2ExecutionOutcomeSchema() -> String {
     return "pgy.driver-rung2-execution-outcome.v1";
+}
+
+func DriverRung2EmissionArtifactReadyForTarget(
+    artifact: CompilerEmissionArtifact,
+    ref target_projection: CompilerTargetProjectionFact
+) -> Bool {
+    return CompilerTargetProjectionFactReadyFor(
+        target_projection, target_projection.projection
+    ) && CompilerEmissionArtifactReady(artifact) &&
+        artifact.target_capability_schema == target_projection.schema &&
+        artifact.target_projection == target_projection.projection &&
+        artifact.target_capability_fingerprint ==
+            target_projection.target_capability_fingerprint;
 }
 
 func DriverRung2DirectMirRequestProjection(

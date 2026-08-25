@@ -150,6 +150,7 @@ for stage in 'consumer:input:start' 'consumer:input:done' \
         "$WORK_DIR/mir-observed.out" "$WORK_DIR/mir-observed.err" ||
         fail "pressure-observed MIR-C mode lost stage: $stage"
 done
+source "$ROOT_DIR/tests/self_hosted/parity/driver_mir_c_stdout_execution_action_gate.sh"
 source_hash_after="$(sha256sum "$ROOT_DIR/$SOURCE_REL" | awk '{print $1}')"
 [[ "$source_hash_before" == "$source_hash_after" ]] ||
     fail "stdout mode overwrote its source operand"

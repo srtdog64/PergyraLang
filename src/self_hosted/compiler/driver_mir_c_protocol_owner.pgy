@@ -1,0 +1,171 @@
+// Detached MIR-to-C payload admission protocol. Observation policy and machine
+// declaration identity remain independent axes; this owner compiles nothing.
+
+import "driver_rung2_execution_protocol_owner.pgy";
+
+enum DriverRung2MirCMachineRequest {
+    MirCDefaultMachine,
+    MirCManifestVerified(SelfHostMachineLayerDeclaration),
+}
+
+tobject DriverRung2MirCPayloadReceipt {
+    schema: String;
+    observation_mode: String;
+    machine_mode: String;
+    mir_json_path: String;
+    machine_manifest_id: String;
+    machine_manifest_fingerprint: String;
+    target_projection: CompilerTargetProjectionFact;
+    artifact: CompilerEmissionArtifact;
+}
+
+tobject DriverRung2MirCPayloadRejection {
+    schema: String;
+    observation_mode: String;
+    machine_mode: String;
+    mir_json_path: String;
+    machine_manifest_id: String;
+    machine_manifest_fingerprint: String;
+    target_projection: String;
+    diagnostic: String;
+}
+
+enum DriverRung2MirCPayloadAdmission {
+    DriverRung2MirCPayloadAdmitted(DriverRung2MirCPayloadReceipt),
+    DriverRung2MirCPayloadDenied(DriverRung2MirCPayloadRejection),
+}
+
+func DriverRung2MirCObservationMode(
+    request: DriverRung2MirCRequest
+) -> String {
+    match request {
+        case MirCVerified: return "verified";
+        case MirCPressureObserved: return "pressure-observed";
+    }
+}
+
+func DriverRung2MirCMachineMode(
+    request: DriverRung2MirCMachineRequest
+) -> String {
+    match request {
+        case MirCDefaultMachine: return "default";
+        case MirCManifestVerified(declaration): return "manifest-verified";
+    }
+}
+
+func DriverRung2MirCMachineDeclaration(
+    request: DriverRung2MirCMachineRequest
+) -> SelfHostMachineLayerDeclaration {
+    match request {
+        case MirCDefaultMachine: return SelfHostMachineLayerDeclarationEmpty();
+        case MirCManifestVerified(declaration): return declaration;
+    }
+}
+
+func DriverRung2MirCManifestId(
+    request: DriverRung2MirCMachineRequest
+) -> String {
+    match request {
+        case MirCDefaultMachine: return "";
+        case MirCManifestVerified(declaration): return declaration.manifest_id;
+    }
+}
+
+func DriverRung2MirCManifestFingerprint(
+    request: DriverRung2MirCMachineRequest
+) -> String {
+    match request {
+        case MirCDefaultMachine: return "";
+        case MirCManifestVerified(declaration):
+            return declaration.manifest_fingerprint;
+    }
+}
+
+func DriverRung2MirCPayloadDeniedAdmission(
+    mir_json_path: String,
+    observation_request: DriverRung2MirCRequest,
+    machine_request: DriverRung2MirCMachineRequest,
+    diagnostic: String
+) -> DriverRung2MirCPayloadAdmission {
+    return DriverRung2MirCPayloadDenied(DriverRung2MirCPayloadRejection(
+        DriverRung2ExecutionOutcomeSchema(),
+        DriverRung2MirCObservationMode(observation_request),
+        DriverRung2MirCMachineMode(machine_request), mir_json_path,
+        DriverRung2MirCManifestId(machine_request),
+        DriverRung2MirCManifestFingerprint(machine_request),
+        CompilerTargetCpuCProjection(), diagnostic
+    ));
+}
+
+func DriverRung2MirCPayloadReceiptReadyFor(
+    receipt: DriverRung2MirCPayloadReceipt,
+    expected_mir_json_path: String,
+    expected_observation_request: DriverRung2MirCRequest,
+    expected_machine_request: DriverRung2MirCMachineRequest
+) -> Bool {
+    return receipt.schema == DriverRung2ExecutionOutcomeSchema() &&
+        receipt.observation_mode ==
+            DriverRung2MirCObservationMode(expected_observation_request) &&
+        receipt.machine_mode ==
+            DriverRung2MirCMachineMode(expected_machine_request) &&
+        receipt.mir_json_path == expected_mir_json_path &&
+        receipt.machine_manifest_id ==
+            DriverRung2MirCManifestId(expected_machine_request) &&
+        receipt.machine_manifest_fingerprint ==
+            DriverRung2MirCManifestFingerprint(expected_machine_request) &&
+        receipt.target_projection.projection ==
+            CompilerTargetCpuCProjection() &&
+        DriverRung2EmissionArtifactReadyForTarget(
+            receipt.artifact, receipt.target_projection
+        );
+}
+
+func DriverRung2MirCPayloadAdmissionReadyFor(
+    admission: DriverRung2MirCPayloadAdmission,
+    expected_mir_json_path: String,
+    expected_observation_request: DriverRung2MirCRequest,
+    expected_machine_request: DriverRung2MirCMachineRequest
+) -> Bool {
+    match admission {
+        case DriverRung2MirCPayloadAdmitted(receipt):
+            return DriverRung2MirCPayloadReceiptReadyFor(
+                receipt, expected_mir_json_path,
+                expected_observation_request, expected_machine_request
+            );
+        case DriverRung2MirCPayloadDenied(rejection): return false;
+    }
+}
+
+func DriverRung2MirCPayloadAdmissionDiagnostic(
+    admission: DriverRung2MirCPayloadAdmission,
+    expected_mir_json_path: String,
+    expected_observation_request: DriverRung2MirCRequest,
+    expected_machine_request: DriverRung2MirCMachineRequest
+) -> String {
+    match admission {
+        case DriverRung2MirCPayloadAdmitted(receipt):
+            if DriverRung2MirCPayloadReceiptReadyFor(
+                receipt, expected_mir_json_path,
+                expected_observation_request, expected_machine_request
+            ) { return ""; }
+            return "MIR C payload receipt is invalid";
+        case DriverRung2MirCPayloadDenied(rejection):
+            if rejection.schema != DriverRung2ExecutionOutcomeSchema() ||
+                rejection.observation_mode != DriverRung2MirCObservationMode(
+                    expected_observation_request
+                ) || rejection.machine_mode !=
+                    DriverRung2MirCMachineMode(expected_machine_request) ||
+                rejection.mir_json_path != expected_mir_json_path ||
+                rejection.machine_manifest_id !=
+                    DriverRung2MirCManifestId(expected_machine_request) ||
+                rejection.machine_manifest_fingerprint !=
+                    DriverRung2MirCManifestFingerprint(
+                        expected_machine_request
+                    ) || rejection.target_projection !=
+                    CompilerTargetCpuCProjection() ||
+                rejection.diagnostic == "" {
+                return "MIR C payload rejection is invalid";
+            }
+            return rejection.diagnostic;
+    }
+}

@@ -2,6 +2,32 @@
 
 마지막 업데이트: 2026-08-26
 
+2026-08-26 로컬 실행 갱신: installed MIR-C stdout의 기본 요청과 명시적
+machine-manifest 요청을 기존 `PgyCompilerWorld.direct_mir` zone과 MIR-C artifact
+publication이 공유하는 typed payload admission 뒤로 옮겼다. 기존 verified/
+pressure-observed 축과 default/manifest 축은 서로 다른 typed identity로 유지한다.
+공통 producer는 두 축, canonical CPU-C target을 검증한 뒤 컴파일러를 한 번만
+호출하고 원본 `CompilerEmissionArtifact`와 target fact를 stdout 또는 atomic
+publication consumer에 전달한다. Read executor의 두 직접 compiler call은 삭제됐다.
+
+병렬 읽기 전용 감사가 malformed explicit manifest의 hidden default를 재현했다.
+변경 전에는 exit 0으로 9,430-byte default C를 내보냈지만, 이제 `MIR C machine
+declaration is invalid`와 함께 nonzero로 끝나고 C payload를 내보내지 않는다.
+정상 default stdout은 9,430 bytes SHA `A29997AD...B8749`, host-normalized artifact는
+9,174 bytes `F36551DE...96A33`, 정상 manifest stdout은 9,472 bytes
+`CB37D99B...19BA`로 유지됐다.
+
+기존 installed-driver Make target은 current-source Pergyra-built DRV-2 설치 뒤
+local green이며 narrow world/topology/action ratchet도 통과했다. Push workflow는
+기존 한 Make invocation에 이 target을 추가해 새 job이나 두 번째 self-host build를
+만들지 않는다. Component/world/topology/hard/likeness/progress/SoT/protocol/
+documentation/diff gate는 local green이다. Likeness는 sentinel `24/24`,
+Result/Option `4287/4287`, world `1`, zone `22`, member `4`; SoT edge는
+86 authorities / 180 derived carriers를 유지한다. Code publication과 remote
+29-job matrix는 아직 pending이다. 이 작업은 production orchestration의
+`REACHABLE` closure이므로 전체 78%, strict beta 83%, SoT
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 그대로다.
+
 2026-08-26 로컬 실행 갱신: installed source-C의 기본 stdout, 명시적
 `--emit-c-verified`, machine-manifest stdout이 기존 `PgyCompilerWorld.source_c`
 zone과 하나의 typed payload admission을 거치도록 바꿨다. Read executor에 있던

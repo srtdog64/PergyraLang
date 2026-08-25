@@ -127,7 +127,8 @@ jobs:
             self-host-direct-mir-legacy-intent-program-llvm-test-smoke \
             self-host-direct-mir-composite-intent-program-llvm-test-smoke \
             self-host-direct-mir-nested-intent-program-llvm-test-smoke \
-            self-host-driver-source-c-execution-action-test-smoke
+            self-host-driver-source-c-execution-action-test-smoke \
+            self-host-installed-driver-cli-mode-test-smoke
           PGY_BIN="$PWD/bin/pgy" bash tests/selfhost_bootstrap_policy_corpus_smoke.sh
 
   self-host-codegen-bootstrap-linux:

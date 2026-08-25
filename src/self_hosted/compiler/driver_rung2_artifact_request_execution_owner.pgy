@@ -47,8 +47,7 @@ func DriverRung2InstalledPublishMirC(
 ) -> Void with caps io_read, io_write {
     let outcome: DriverRung2ExecutionOutcome =
         PublishMirCArtifactThroughPgyCompilerWorld(
-            input_path, output_path,
-            SelfHostMachineLayerDeclarationEmpty(), mir_c_request
+            input_path, output_path, mir_c_request, MirCDefaultMachine
         );
     let projection: String = CompilerTargetCpuCProjection();
     if !DriverRung2ExecutionOutcomeReadyFor(

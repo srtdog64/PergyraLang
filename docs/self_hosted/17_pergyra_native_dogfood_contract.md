@@ -2,6 +2,31 @@
 
 Status: `BRIDGE`
 
+## 2026-08-26 MIR-to-C stdout world/action evidence
+
+Installed `--mir-json INPUT` stdout and its explicit machine-manifest form now
+enter the existing `PgyCompilerWorld.direct_mir` zone. The existing
+verified/pressure-observed request remains one typed axis, while default versus
+explicit verified manifest identity is a separate typed axis. One shared
+payload producer validates both, admits the canonical CPU-C target, invokes
+`CompileMirJsonToCVerified[Observed]` exactly once, and retains the original
+`CompilerEmissionArtifact` and target fact for either stdout or atomic artifact
+publication.
+
+The read executor's two direct compiler calls are deleted and negative-gated.
+Its last consumer accepts only a ready detached receipt and has no write or
+commit capability. Malformed explicit manifest input no longer collapses to a
+legitimate default request: the installed driver returns a typed diagnostic,
+nonzero status, and no C payload. Default, artifact, and admitted-manifest
+outputs retain their observed byte identities under the focused installed gate.
+
+This is production `REACHABLE` orchestration dogfood, not a new
+`SUBSTITUTING` numerator. MIR-to-C emission was already Pergyra-owned; this rung
+closes the remaining stdout bypass through the existing world/action and shared
+payload admission. Focused installed execution plus component, world/topology,
+hard, likeness, progress, SoT, protocol, documentation, and diff gates are
+local green. Code publication and the remote matrix remain pending.
+
 ## 2026-08-26 source-to-C stdout world/action evidence
 
 Checkpoint `20ffa7c7` makes installed default source-C stdout, explicit

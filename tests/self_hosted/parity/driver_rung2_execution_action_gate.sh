@@ -8,9 +8,12 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
     local artifact="$root/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
     local protocol="$root/src/self_hosted/compiler/driver_rung2_execution_protocol_owner.pgy"
     local execution="$root/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+    local mir_protocol="$root/src/self_hosted/compiler/driver_mir_c_protocol_owner.pgy"
+    local mir_payload="$root/src/self_hosted/compiler/driver_mir_c_payload_execution_owner.pgy"
     local world="$root/src/self_hosted/compiler/world.pgy"
     local composition="$root/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
-    for term in "$main" "$installed" "$artifact" "$protocol" "$execution" "$world" "$composition"; do
+    for term in "$main" "$installed" "$artifact" "$protocol" "$execution" \
+        "$mir_protocol" "$mir_payload" "$world" "$composition"; do
         [[ -f "$term" ]] || { echo "[driver-rung2-execution-action] missing owner: ${term#"$root/"}" >&2; return 1; }
     done
     for term in 'DriverRung2DirectMirRequest' 'DriverRung2MirCRequest' \
@@ -46,27 +49,32 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
             echo "[driver-rung2-execution-action] protocol authority leaked into execution: $term" >&2; return 1; }
     done
     for term in 'import "driver_rung2_execution_protocol_owner.pgy";' \
-        'subject DriverRung2Execution' 'action EmitDirectMir(' 'action PublishMirCArtifact(' \
+        'import "driver_mir_c_payload_execution_owner.pgy";' \
+        'subject DriverRung2Execution' 'action EmitDirectMir(' 'action ProduceMirC(' \
+        'action PublishMirCArtifact(' \
         'within DriverRung2DirectMirZone' 'authorized by self' \
         'func DriverRung2CommitArtifactForTarget(' 'CompilerTargetProjectionFactFromOwner(' \
-        'CompileMirJsonToDirectBackendVerifiedObserved(' 'CompileMirJsonToCVerified(' \
-        'CompileMirJsonToCVerifiedObserved(' 'CompilerEmissionArtifactReady(artifact)' \
+        'CompileMirJsonToDirectBackendVerifiedObserved(' \
+        'DriverRung2EmissionArtifactReadyForTarget(' \
         'SelfMirArtifactCommitPayload(output_path, artifact.payload)' 'match committed {' \
         'case SelfMirArtifactCommitted(receipt):' 'case SelfMirArtifactRejected(failure):' \
         'public zone DriverRung2DirectMirZone' 'subject slot execution: DriverRung2Execution'; do
         grep -Fq -- "$term" "$execution" || {
             echo "[driver-rung2-execution-action] missing transition: $term" >&2; return 1; }
     done
-    [[ "$(grep -Ec -- '^[[:space:]]*action ' "$execution")" -eq 2 ]] || {
-        echo "[driver-rung2-execution-action] exactly two MIR actions are required" >&2; return 1; }
+    [[ "$(grep -Ec -- '^[[:space:]]*action ' "$execution")" -eq 3 ]] || {
+        echo "[driver-rung2-execution-action] exactly three MIR actions are required" >&2; return 1; }
     [[ "$(grep -F -c -- 'SelfMirArtifactCommitPayload(output_path, artifact.payload)' "$execution")" -eq 1 ]] || {
         echo "[driver-rung2-execution-action] one shared typed commit transition is required" >&2; return 1; }
-    for term in 'CompileMirJsonToDirectBackendVerifiedObserved(' 'CompileMirJsonToCVerified(' \
-        'CompileMirJsonToCVerifiedObserved('; do
-        [[ "$(grep -F -c -- "$term" "$execution")" -eq 1 ]] || {
-            echo "[driver-rung2-execution-action] compiler owner call count drifted: $term" >&2; return 1; }
+    [[ "$(grep -F -c -- 'CompileMirJsonToDirectBackendVerifiedObserved(' "$execution")" -eq 1 ]] || {
+        echo "[driver-rung2-execution-action] direct compiler owner call count drifted" >&2; return 1; }
+    for term in 'CompileMirJsonToCVerified(' 'CompileMirJsonToCVerifiedObserved('; do
+        [[ "$(grep -F -c -- "$term" "$mir_payload")" -eq 1 ]] || {
+            echo "[driver-rung2-execution-action] MIR-C compiler owner call count drifted: $term" >&2; return 1; }
+        ! grep -Fq -- "$term" "$execution" || {
+            echo "[driver-rung2-execution-action] MIR-C compiler call escaped payload owner: $term" >&2; return 1; }
     done
-    for term in '.EmitDirectMir(' '.PublishMirCArtifact(' 'DriverRung2DirectMirZone(' \
+    for term in '.EmitDirectMir(' '.ProduceMirC(' '.PublishMirCArtifact(' 'DriverRung2DirectMirZone(' \
         'DriverRung2Execution(' 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld('; do
         grep -Fq -- "$term" "$world" "$composition" || {
             echo "[driver-rung2-execution-action] world composition is incomplete: $term" >&2; return 1; }

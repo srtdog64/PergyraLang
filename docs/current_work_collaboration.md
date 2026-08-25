@@ -6,6 +6,87 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease D — installed MIR-C stdout world/action boundary
+
+- Base revision: `5bbb62877e42216a949d024c603ab3392f2eef84`.
+- Editing and integration owner: the primary Codex task. Peer Codex tasks are
+  read-only auditors and must not edit, stage, commit, push, or run a self-host
+  build while this lease is active.
+- Objective: make both installed MIR-C stdout requests (`--mir-json INPUT` and
+  its explicit machine-manifest form) enter the existing
+  `PgyCompilerWorld.direct_mir` zone and consume the same typed MIR-C payload
+  admission as artifact publication before the read executor logs C text.
+- Priority order: preserve the existing observation request identity; make
+  default versus explicit machine declaration an independent typed fact;
+  preserve canonical C target projection and the original compiler artifact;
+  compile once; retain byte-exact stdout and artifact behavior; then reject the
+  old bypass.
+- Fact owners: `CompileMirJsonToCVerified` and
+  `CompileMirJsonToCVerifiedObserved` remain semantic/emission owners;
+  `DriverRung2Execution` owns direct-MIR request/outcome orchestration;
+  `PgyCompilerWorld.direct_mir` owns executable composition;
+  `SelfHostMachineLayerDeclaration` remains manifest authority; and the
+  existing compiler target-projection owner remains C target authority.
+- Last legitimate consumer: `DriverRung2ExecuteReadRequest`, through one
+  MIR-C payload logger that accepts only a ready typed admission; artifact
+  publication consumes that same admission before the existing atomic commit.
+- Forbidden fallback: either direct `CompileMirJsonToCVerified` call in
+  `driver_rung2_cli_read_execution_owner.pgy`; invalid explicit manifest
+  collapse to the default declaration; a second world/zone/compiler call;
+  reconstructed target projection; temp-artifact publication for stdout; or
+  duplicated default/manifest and observed/unobserved policy in consumers.
+- Observed RED: the read executor contains two direct MIR-C compiler calls.
+  Default stdout is 9,430 bytes at SHA-256 `A29997AD...B8749`; an admitted
+  manifest is 9,472 bytes at `CB37D99B...19BA`; artifact output is byte-equal
+  after host-newline normalization. An explicitly malformed manifest currently
+  exits 0 and emits the 9,430-byte default output, proving a hidden fallback.
+- Falsifier and integration gate: default and admitted-manifest stdout must
+  preserve the observed bytes through one ready typed admission; default
+  artifact publication must consume that same admission; malformed explicit
+  manifest must exit nonzero with no C payload; and the read executor must have
+  no direct compiler call. Source a bounded sibling ratchet from the existing
+  installed CLI mode gate so no Make target, CI job, or second compiler build is
+  added. Then run component/world/topology/hard/likeness/document gates and the
+  existing remote push matrix. This is `REACHABLE` dogfood closure, not a new
+  `SUBSTITUTING` replacement, so progress and SoT counts do not change.
+
+### Parallel read-only assignments
+
+1. Typed-owner auditor: inspect the proposed two-axis request/admission seam,
+   canonical target authority, and shared stdout/artifact consumption. Report
+   exact dual-authority, hidden-default, or identity risks; make no edits.
+2. Gate/CI auditor: inspect the existing installed CLI gate, Make/workflow
+   invocation, topology/component budgets, and the proposed sourced sibling.
+   Report the smallest non-duplicating falsifier; make no edits.
+
+### Current observed evidence
+
+- Both read-only audits are complete. The typed-owner audit retained
+  `DriverRung2MirCRequest` as the observation axis and required a separate
+  machine-request axis plus one common producer carrying the canonical target
+  fact and original compiler artifact. The gate audit reused the existing
+  installed-driver target and required only admitted-manifest and malformed-
+  manifest invocations in a sourced sibling; neither auditor edited the tree.
+- Both read-executor compiler calls are removed. Stdout and artifact publication
+  consume `DriverRung2MirCProducePayloadAdmitted`; compiler selection exists
+  only inside that producer, and the stdout owner cannot write or commit.
+- The malformed explicit manifest baseline exited 0 and emitted the 9,430-byte
+  default C payload. It now exits nonzero with `MIR C machine declaration is
+  invalid` and emits no C. Default stdout remains 9,430 bytes at
+  `A29997AD...B8749`, the host-normalized artifact remains 9,174 bytes at
+  `F36551DE...96A33`, and admitted-manifest stdout remains 9,472 bytes at
+  `CB37D99B...19BA`.
+- A current-source Pergyra-built DRV-2 was installed and the existing focused
+  target is GREEN. Component, compiler-world, recursive topology, hard,
+  likeness, progress, SoT authority-edge, protocol, documentation, and diff
+  gates are locally GREEN. Likeness remains sentinel `24/24`, Result/Option
+  `4287/4287`, one world, 22 zones, and four members; SoT remains 86 authorities
+  / 180 derived carriers and `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- The push workflow invokes the same installed-driver target inside the existing
+  Make call, so no job or second self-host compiler build is added. Lease D
+  stays `ACTIVE` until its code checkpoint is published and the remote 29-job
+  matrix is observed green.
+
 ## DONE lease C — installed source-C stdout world/action boundary
 
 - Base revision: `e4bc4b4d7cb96ce7fe33478369cb7de00e1e2310`.

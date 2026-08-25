@@ -292,11 +292,20 @@ world PgyCompilerWorld {
             output_path, machine_declaration, request, observe_pressure);
     }
 
+    func ProduceMirC(self, mir_json_path: String,
+        observation_request: DriverRung2MirCRequest,
+        machine_request: DriverRung2MirCMachineRequest
+    ) -> DriverRung2MirCPayloadAdmission with caps io_read {
+        return self.direct_mir.execution.ProduceMirC(
+            mir_json_path, observation_request, machine_request);
+    }
+
     func PublishMirCArtifact(self, mir_json_path: String, output_path: String,
-        machine_declaration: SelfHostMachineLayerDeclaration, request: DriverRung2MirCRequest
+        observation_request: DriverRung2MirCRequest,
+        machine_request: DriverRung2MirCMachineRequest
     ) -> DriverRung2ExecutionOutcome with caps io_read, io_write {
         return self.direct_mir.execution.PublishMirCArtifact(mir_json_path,
-            output_path, machine_declaration, request);
+            output_path, observation_request, machine_request);
     }
     func ProduceSourceMir(self, source_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration, request: DriverSourceMirRequest

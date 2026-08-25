@@ -18,6 +18,12 @@ driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2I
     -> DriverRung2DirectMirZone.execution
     -> DriverRung2Execution.EmitDirectMir
 
+driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2ExecuteReadRequest -> DriverRung2CliLogMirCPayloadOrDie -> ProduceMirCThroughPgyCompilerWorld
+    -> PgyCompilerWorld.ProduceMirC
+    -> PgyCompilerWorld.direct_mir
+    -> DriverRung2DirectMirZone.execution
+    -> DriverRung2Execution.ProduceMirC
+
 driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceMir -> PublishSourceMirArtifactThroughPgyCompilerWorld
     -> PgyCompilerWorld.PublishSourceMirArtifact
     -> PgyCompilerWorld.source_mir
@@ -78,7 +84,10 @@ The number of actions is not the takeover criterion.
 - `DriverRung2DirectMirZone` owns only the execution subject's authority and
   lifetime boundary. Target selection, MIR, backend projection, artifact
   validation, and output writing remain with their existing owners and the
-  action reached through that zone.
+  action reached through that zone. Its MIR-to-C stdout action and artifact
+  action share one typed payload admission; observation mode remains separate
+  from default versus explicitly verified machine-declaration identity. The
+  stdout consumer has no artifact-transaction or write capability.
 - `DriverSourceMirZone` owns the source-to-MIR execution subject's authority
   and lifetime boundary. Its action admits the pressure mode, consumes exactly
   one existing typed source-to-MIR producer. The same subject exposes an

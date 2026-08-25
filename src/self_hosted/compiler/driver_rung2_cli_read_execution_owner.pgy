@@ -5,6 +5,7 @@ import "capability_manifest_owner.pgy";
 import "dir_text_artifact_owner.pgy";
 import "compiler_world_direct_mir_owner.pgy";
 import "driver_source_c_stdout_execution_owner.pgy";
+import "driver_mir_c_stdout_execution_owner.pgy";
 import "canonical_mir_execution_owner.pgy";
 import "../lexer/scan_owner.pgy";
 import "../lexer/source_input_owner.pgy";
@@ -91,14 +92,16 @@ func DriverRung2ExecuteReadRequest(
                 SelfHostMachineLayerDeclarationFromPath(manifest_path)
             ));
         case DriverCliMirCStdout(input_path):
-            Log(CompileMirJsonToCVerified(
-                input_path, SelfHostMachineLayerDeclarationEmpty()
-            ).payload);
+            DriverRung2CliLogMirCPayloadOrDie(
+                input_path, MirCVerified, MirCDefaultMachine
+            );
         case DriverCliMirCManifestStdout(input_path, manifest_path):
-            Log(CompileMirJsonToCVerified(
-                input_path,
-                SelfHostMachineLayerDeclarationFromPath(manifest_path)
-            ).payload);
+            DriverRung2CliLogMirCPayloadOrDie(
+                input_path, MirCVerified,
+                MirCManifestVerified(
+                    SelfHostMachineLayerDeclarationFromPath(manifest_path)
+                )
+            );
         case DriverCliMissingProjectionProbe(input_path):
             DriverRung2RunMissingProjectionProbe(
                 input_path, SelfHostMachineLayerDeclarationEmpty()

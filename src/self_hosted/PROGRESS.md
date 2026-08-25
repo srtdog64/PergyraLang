@@ -1,5 +1,35 @@
 # Self-Host Progress
 
+## Active self-host context - 2026-08-26 installed MIR-C stdout local closure
+
+- Lease D moves installed `--mir-json INPUT` stdout and its explicit
+  machine-manifest form behind `PgyCompilerWorld.direct_mir` and the same typed
+  payload admission used by MIR-C artifact publication. Verified versus
+  pressure-observed behavior and default versus explicit machine identity are
+  separate typed axes; one producer validates both, admits the canonical CPU-C
+  target, compiles once, and carries the original artifact and target fact.
+- The two read-executor compiler calls are deleted. Its checked stdout consumer
+  can only read a ready admission and has no artifact commit/write capability.
+  Static ratchets reject a new direct call, copied target/artifact authority,
+  compiler calls outside the producer, or a second world/zone action path.
+- A malformed explicit manifest previously exited 0 and emitted the 9,430-byte
+  default C payload. It now exits nonzero with `MIR C machine declaration is
+  invalid` and emits no C. Default stdout remains 9,430 bytes at
+  `A29997AD...B8749`, host-normalized artifact output remains 9,174 bytes at
+  `F36551DE...96A33`, and admitted-manifest stdout remains 9,472 bytes at
+  `CB37D99B...19BA`.
+- The existing installed-driver Make target is locally GREEN after installing a
+  current-source Pergyra-built DRV-2. The push workflow reuses that target in
+  the existing Make invocation, with no new job or second self-host build.
+  Component, world/topology/action, hard, likeness, progress, SoT, protocol,
+  documentation, and diff gates are local green. Likeness remains sentinel
+  `24/24`, Result/Option `4287/4287`, one world, 22 zones, and four members;
+  SoT remains 86 authorities / 180 derived carriers. Code publication and the
+  remote matrix remain pending.
+- This is `REACHABLE` orchestration dogfood rather than a new C implementation
+  replacement. Overall remains 78%, strict beta 83%, and hard SoT remains
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+
 ## Active self-host context - 2026-08-26 source-C stdout world/action closure
 
 - Checkpoint `20ffa7c7` removes both installed source-C stdout calls
