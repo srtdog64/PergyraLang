@@ -12,69 +12,55 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - source-C world/action reachable; publication is GREEN
+## Active self-host context - general MIR-to-C world/action reachable; publication pending
 
-- Executable checkpoint `a94737dd` moves the production installed source-C
-  artifact path behind `PgyCompilerWorld.source_c` and
-  `DriverSourceCExecution.PublishSourceCArtifact`. It and documentation
-  checkpoint `d8d1cce2` are published. Their first run `32811885342` completed
-  28/29: full self-host and every job except `build-linux` passed. Repair
-  checkpoint `1721b6aa` plus handoff `6217f0d7` is now remotely closed by run
-  `32814568145` at 29/29 green. Before this final result-only handoff commit,
-  `main` matches `origin/main`; only progress documents and the unrelated
-  user-owned `pgy-80135c2c/` directory should be dirty.
-- Active objective card: objective = route `DriverCliSourceCArtifact` compile
-  and commit through one real world/zone/subject action; priority = preserve C
-  artifact and target fingerprint, typed success/rejection/artifact failure,
-  one world materializer, no fallback, executable public C evidence; fact
-  owner = existing `CompileSourceToCVerified` and compiler artifact transaction;
-  last legitimate consumer =
-  `PgyCompilerWorld.PublishSourceCArtifact -> DriverSourceCExecution` once;
-  forbidden = installed CLI direct compile/commit, retry, second world, or
-  source/AST rescan; falsifier = direct/public artifact drift, lost execution,
-  invalid identity/topology acceptance, or transaction failure publishing a
-  partial artifact.
-- The world materializer now constructs three append-only positional zones:
-  `direct_mir`, `source_mir`, and `source_c`. The new action validates subject
-  and topology identity plus nonempty source/output, consumes
-  `CompileSourceToCVerified` exactly once, checks the C target artifact and
-  capability fingerprint, commits once, and preserves the original typed
-  transaction failure. `DriverRung2InstalledCommitSourceC` and its direct
-  compile/commit body are deleted and negative-gated.
-- Current-source local evidence is green. The current Pergyra-built installed
-  driver and public launcher produce byte-equal C for canonical composite
-  orchestration; the artifact compiles and executes its ProcessOrder result and
-  trace. A missing parent destination exits nonzero, emits the typed transaction
-  diagnostic, and leaves no artifact. Source-C/source-MIR action gates, atomic
-  artifact contract, complete component contract, SoT edge/single-owner,
-  protocol registry, CI profile, compiler-world topology/contract, and
-  `git diff --check` pass. The repair ratchets exact counts at 21 concrete
-  zones, three positional world members, 38 zone-bound actions, and 4,257
-  Result/Option uses; `world.pgy` remains under its unchanged 600-line cap at
-  597 lines. Local Coq is an explicit declared skip; run `32811885342` checked
-  the model with the installed prover.
-- Grade this as production `REACHABLE` Pergyra-native dogfood. It removes a real
-  orchestration bypass but does not replace a new C-owned compiler path, so it
-  does not add a hard `SUBSTITUTING` numerator. General MIR-to-C still calls its
-  direct installed compile/commit path; compiler-root intent remains `SURFACE`.
-  Do not open that next rung until the current push is green.
-- The preceding composite-intent LLVM checkpoint `4162b81b` is remotely closed:
-  run `32806933585` completed 29/29 green in 28m42; full self-host took 28m38.
-  The new composite gate itself took about 0.74s on Linux. Most of the roughly
-  five-minute delta from the prior equivalent job was fixed-point runtime
-  variance, not a new job or the focused gate. Overall remains 78%, strict beta
-  83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. On the source-C first run,
-  full self-host completed green in 27m25 and its new action gate took about
-  0.58s. The only red was the stale exact-two-member likeness baseline; repair
-  `1721b6aa` updates the measured topology rather than weakening it. Repair run
-  `32814568145` completed 29/29 green in 29m21; full self-host took 29m16,
-  build-linux 15m06, and the focused source-C gate about 0.65s. The exact Linux
-  likeness rows are 4,257/21/3/38 and PASS. This result-only handoff successor
-  is locally documentation/progress/beta-gated and uses `[skip ci]` so it does
-  not rerun the unchanged 29-job matrix a third time. The next executable rung
-  may now be selected from current production evidence; the visible candidate
-  is installed general MIR-to-C direct compile/commit, not another SoT-only
-  cleanup.
+- Executable checkpoint `626f2188` moves both installed general MIR-to-C
+  artifact variants behind
+  `PgyCompilerWorld.direct_mir.execution.PublishMirCArtifact` and deletes
+  `DriverRung2InstalledCommitMirC`. Before this documentation successor, HEAD is
+  `626f2188`; only these progress/handoff documents and the unrelated user-owned
+  `pgy-80135c2c/` directory are dirty. `origin/main` remains `7704e8bb` until the
+  authorized push.
+- Active objective card: objective = route `DriverCliMirCArtifact` and its
+  pressure-observed sibling through the existing MIR execution action boundary;
+  priority = preserve verified/observed C identity and pressure trace, select
+  one existing compiler owner, retain typed terminal outcomes, remove the old
+  path, then executable parity; fact owners =
+  `CompileMirJsonToCVerified[Observed]` and `SelfMirArtifactCommitPayload`; last
+  legitimate consumer = `PgyCompilerWorld.PublishMirCArtifact ->
+  direct_mir.execution.PublishMirCArtifact` once; forbidden = installed direct
+  compile/commit, Bool collapse, retry, source/AST rescan, a fourth mode-shaped
+  zone, or a second world; falsifier = artifact drift, lost pressure stages,
+  wrong target acceptance, or transaction failure leaving final/temp output.
+- Topology remains exactly three positional world members and 21 concrete
+  zones. Direct backend and general MIR-to-C publication share one
+  `DriverRung2Execution` subject/zone because both consume admitted MIR and
+  publish a backend artifact. A responsibility-named protocol owner holds
+  stable requests/outcomes; one shared transition checks target identity and
+  consumes the atomic transaction exactly once. `world.pgy` remains at its
+  unchanged 600-line cap; the execution, protocol, installed CLI, and
+  composition owners are 161/190, 106/130, 160/160, and 78/80 lines.
+- Current local executable evidence is green. The production root emits C; an
+  isolated current-source Pergyra-built candidate installs successfully. The
+  expanded installed CLI gate passes in 5.97 seconds: verified stdout/artifact
+  and pressure-observed artifact are byte-equal, input/C-emission pressure
+  stage pairs remain visible, and a missing-parent transaction emits the typed
+  diagnostic with no artifact. Direct C/LLVM positive parity also passes.
+- Static execution-action, artifact transaction, compiler topology/world,
+  complete component, likeness, documentation, and `git diff --check` gates
+  pass. Likeness observes Result/Option 4,257, concrete zones 21, world members
+  3, and zone-bound actions 39. The broad direct dual-backend script then hits
+  its already-recorded unrelated RED: positive hello C/LLVM passes, but a
+  diagnostic-specific negative expects `expr0_graph` while the current owner
+  emits a generic admission error. Do not report that negative as fixed.
+- This is production `REACHABLE`, not a new `SUBSTITUTING` numerator: the
+  compiler implementation was already Pergyra-owned and this checkpoint removes
+  its last installed orchestration bypass. Overall remains 78%, strict beta
+  83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. The preceding source-C run
+  `32814568145` is 29/29 green in 29m21. Next falsifier: push the executable and
+  handoff commits, require all 29 jobs and full self-host to stay green, then
+  select the next production bypass. The attached review's Intent mode/priority
+  AST last-consumer cleanup remains queued until this executable rung closes.
 
 ### Historical archive boundary
 

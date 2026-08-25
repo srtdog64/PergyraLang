@@ -2,6 +2,25 @@
 
 마지막 업데이트: 2026-08-25
 
+2026-08-25 실행 checkpoint `626f2188`은 installed general MIR-to-C의 직접
+`CompileMirJsonToCVerified[Observed] + SelfMirArtifactCommitPayload` orchestration을
+삭제했다. Verified/pressure-observed artifact 요청은 기존 `PgyCompilerWorld`의
+`direct_mir` zone과 `DriverRung2Execution.PublishMirCArtifact` action을 거치며,
+direct C/LLVM action과 하나의 target/artifact/transaction transition을 공유한다.
+CLI mode 모양을 따라 네 번째 zone이나 두 번째 world를 만들지 않았다. 격리된
+current-source Pergyra-built candidate가 설치됐고, verified stdout/artifact와
+observed artifact는 byte-equal이며 pressure stage 4개가 보존됐다. Missing-parent
+transaction은 typed diagnostic과 함께 실패하고 artifact를 남기지 않았다. 이
+focused installed CLI gate는 candidate 재사용 조건에서 5.97초였다. World 3개와
+concrete zone 21개는 그대로이고 zone-bound action만 38에서 39로 증가했다.
+Compiler-world/topology/component/atomic-transaction/likeness 및 documentation
+gate는 green이다. Adjacent direct C/LLVM positive parity도 green이고, 그 뒤의
+diagnostic-specific negative는 기존 handoff에 기록된 stale `expr0_graph`
+expectation으로 계속 RED다. 이 변경은 Pergyra-owned compiler의 내부 orchestration
+우회를 제거한 production `REACHABLE` 증거이며 새 C-owned 구현 대체가 아니므로
+overall 78%, strict beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 유지한다.
+다음 falsifier는 checkpoint를 push한 뒤 remote 29/29와 full bootstrap이다.
+
 2026-08-25 실행 갱신: checkpoint `19103024`의 exact canonical composite-intent
 public self-host LLVM 대체와 문서 checkpoint `4162b81b`는 remote run
 `32806933585`에서 29/29 green이다. 전체 run은 28분 42초, full self-host job은
@@ -40,9 +59,9 @@ gate는 약 0.65초였다. Linux likeness는 Result/Option 4,257, concrete zones
 world members 3, zone-bound actions 38을 exact로 확인했다. 이 최종 결과 기록은
 로컬 documentation/progress/beta gate를 통과한 docs-only successor이며, 같은
 29-job matrix의 세 번째 무의미한 반복을 피하려고 `[skip ci]`로 게시한다. 다음
-실행 후보는 installed general MIR-to-C의 direct compile/commit 우회다. 아직 active
-rung으로 열기 전 current production evidence를 다시 확인해야 하며, 퍼센트와 SoT
-state는 그대로다.
+실행 후보는 installed general MIR-to-C의 direct compile/commit 우회였고, 후속
+checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure까지
+진행했다. 퍼센트와 SoT state는 그대로다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 
