@@ -1,30 +1,34 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-25 mode carriage closed
+## Active self-host context - 2026-08-25 bounded legacy intent LLVM substitution
 
-- Code checkpoint `2107c4f0` closes the reached execution-mode loss. Native RIR
-  `intent-policy(concurrency)` and `SelfDirIntentModeFacts` own the admitted
-  declaration policy; one exact `IntentMode` carrier preserves it through
-  native/self MIR and reconstructed semantic facts without source or name-table
-  recovery. The former hardcoded `IntentMode: exclusive` path is deleted.
-- Fresh current-source production v16 compiles with 0 errors and the existing
-  three redundant-`who` warnings. Native/self MIR each carry outer exclusive
-  and inner concurrent mode. Public self C equals native C; nested runtime
-  observation is outer `false`, inner `true`, while priority remains 1/9.
-  Missing and duplicate mode carriers fail with their owned diagnostics.
-- The complete component contract, placed/placement-free/nested execution
-  bundle, generated language registry, likeness (`sentinel=24`,
-  `result_use=4246`), 10-row protocol registry, Gate single-owner, and SoT edge
-  census (`86/174`, `49/36/1`) are green. SoT adequacy's live/negative checks
-  pass with a declared Coq/Rocq skip; the formal model is not locally verified.
-- Published predecessor `ccbed622` completed run `32781856770` at 29/29 green
-  in 24m51, with full bootstrap at 24m47. The mode checkpoint and documentation
-  receipt still require push CI. Preserve the unrelated `pgy-80135c2c/`
-  directory.
-- This is executable replacement within an existing BRIDGE row, so overall
-  78%, strict beta 83%, and hard SoT 49/86 remain unchanged. After publication
-  is green, choose the next reached production bypass from executable evidence;
-  do not start another general SoT-only track.
+- Checkpoint `8ee816c6` closes the first public self-host LLVM program with one
+  subject/action, one zone subject slot, and one exclusive one-step intent.
+  A structural 3-routine/2-declaration receipt claims the family before the
+  generic three-routine classifier. Admitted declaration fields, routine and
+  expression indexes, legacy mode/priority/phase/cleanup carriers, and one
+  sealed target-neutral plan are the only LLVM emitter inputs. Source/AST
+  rescans, name/output tables, native retry, and C fallback are absent.
+- Official seed-only codegen lineage and `self_host_compiler_build.sh` produced
+  the current Pergyra-built DRV-2. Public self LLVM and native LLVM compile the
+  committed fixture and execute exact `true`; duplicate mode, non-canonical
+  graph priority, zone-field drift, action-target drift, and missing
+  invalidation cleanup all fail without an artifact. Existing nested mode/
+  priority C runtime parity and the full component/old-path contract are green.
+- Intent runtime symbols now have one self-host spelling owner consumed by the
+  existing C observability emitter and the new direct LLVM emitter. The focused
+  executable gate takes about seven seconds and shares the existing main
+  bootstrap and weekly/release driver build rather than opening another CI job.
+- This exact input feature is bounded `SUBSTITUTING`, not a promotion of the
+  compiler-root intent/world or arbitrary composite intents. Published baseline
+  `e58b069b` completed run `32787388364` at 29/29 green in about 24 minutes; the
+  new checkpoint still requires remote publication. Preserve the unrelated
+  `pgy-80135c2c/` directory.
+- Overall remains 78%, strict beta 83%, and hard SoT `49/86 CLOSED`; no registry
+  row changed state. The next reached executable RED is canonical
+  `examples/composite_intent_orchestration/main.pgy`, which now fails closed at
+  `owner=scalar-program-route stage=referenced-enum`. That exact owner/consumer
+  seam is the only active continuation.
 
 ## Historical self-host context - 2026-08-24 scalar routine emission memory
 

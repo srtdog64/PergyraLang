@@ -12,53 +12,56 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - intent mode carriage closed; publication is RED
+## Active self-host context - bounded legacy intent LLVM substitutes; composite is RED
 
-- Code checkpoint `2107c4f0` carries the admitted intent execution mode through
-  the production self-host path. Before this handoff commit, `main` is one
-  commit ahead of `origin/main`; only these handoff/progress documents and the
-  unrelated user-owned `pgy-80135c2c/` directory should be dirty. Published
-  predecessor `ccbed622` completed push run `32781856770` at 29/29 green in
-  24m51; full bootstrap was the 24m47 critical path.
-- Closed rung objective card: objective = preserve the one admitted
-  `exclusive`/`concurrent` policy through MIR and reconstructed semantic facts
-  into runtime admission; priority = one declaration identity, native/self MIR
-  wire parity, fail-closed reconstruction, nested runtime observation, then
-  patch size; fact owners = native RIR `intent-policy(concurrency)` and
-  `SelfDirIntentModeFacts`; last consumer =
-  `CodegenIntentObservabilityEmitPrologue`; forbidden = AST/source rescan,
-  hardcoded exclusive reconstruction, intent-name mode tables, or missing-row
-  fallback; falsifier = an exclusive outer intent directly nesting a concurrent
-  inner intent, with both active modes observable and missing/duplicate carriers
-  rejected.
-- Native MIR now projects exactly one `IntentMode` row from the existing RIR
-  policy fact. Self DIR admits the parser-materialized direct mode child, self
-  MIR emits the same exact carrier, and MIR-lower reconstructs `IntentMode`
-  solely from it. The former literal `IntentMode: exclusive` path is deleted.
-  Native validation limits the required singleton to intent routines, so an
-  intent's method/action routines do not acquire declaration policy.
-- Fresh current-source production driver v16 compiled with 0 errors and the
-  existing three redundant-`who` warnings. Native/self MIR each contain
-  `OuterPriority=exclusive` and `InnerPriority=concurrent`. Public self C equals
-  native C and runtime observation reports `active.0.concurrent=false` and
-  `active.1.concurrent=true`, while priority remains 1/9. Missing and duplicate
-  mode rows fail with their owned MIR-lower diagnostics.
-- Local green evidence: the focused mode/priority gate; the complete nested-call
-  bundle including placed and placement-free lanes; isolated current native C
-  compiler build; complete component/old-path contract; generated language-word
-  registry; Pergyra likeness with sentinel 24 and errors-as-data floor 4246;
-  protocol registry with 10 rows; Gate single-owner; SoT edge census (`86`
-  authorities, `174` derived carriers, `49 CLOSED / 36 BRIDGE / 1 ACTIVE`);
-  documentation/progress gates; and `git diff --check`. SoT adequacy's live
-  owner/consumer and negative mutations passed with an explicit declared skip
-  because local Coq/Rocq is unavailable; the formal model was not checked
-  locally.
-- This is real executable substitution inside the existing BRIDGE row, not a
-  registry-row promotion. Overall remains 78%, strict beta 83%, and hard SoT
-  remains `49/86 CLOSED`. The immediate RED is publication: push `2107c4f0`
-  plus this documentation receipt and require all 29 jobs, especially full
-  bootstrap, to remain green. After that, select the next production bypass
-  from reached executable evidence; do not reopen a general SoT cleanup track.
+- Code checkpoint `8ee816c6` replaces the public self-host LLVM rejection for
+  one exact input-language program containing one `subject`, one mutating
+  `action`, one `zone` subject slot, and one exclusive one-step `intent`.
+  Before this handoff commit, `main` is one commit ahead of `origin/main`; only
+  these progress/dogfood/handoff documents and the unrelated user-owned
+  `pgy-80135c2c/` directory should be dirty. Published predecessor `e58b069b`
+  completed push run `32787388364` at 29/29 green in about 24 minutes. The new
+  checkpoint's remote publication remains RED until its push run is observed.
+- Closed rung objective card: objective = route that exact self-produced legacy
+  MIR to compiling/running LLVM through the public installed entrypoint;
+  priority = structural exclusive claim, admitted declaration/routine/expression
+  facts, one target-neutral plan, fail-closed malformed facts, runtime parity,
+  then patch size; fact owners = `MirMachineLayerAdmittedJsonInput`, its
+  declaration-field/routine indexes, expression graphs, and legacy intent
+  mode/priority/phase/cleanup projections; last legitimate consumer = the
+  multi-routine dispatcher before scalar/terminal three-routine classification;
+  forbidden = source/AST rescan, intent/name/output lookup tables, generic
+  three-routine reinterpretation after claim, native retry, or C fallback;
+  falsifiers = duplicate mode, non-canonical graph priority, zone-field drift,
+  action-target drift, and missing invalidation cleanup, each with no artifact.
+- `DirectMirLegacyIntentProgramRouteFact` claims only the 3-routine/2-declaration
+  family. Graph and plan owners join subject field, zone slot, action delta,
+  construction/call graphs, exact mode/priority/threshold, and rollback/
+  invalidation rows before the MIR-blind LLVM emitter. Runtime intent symbol
+  spellings now have one self-host owner shared by C observability emission and
+  this direct LLVM slice; the C consumer contains no raw `pgy_intent_*` table.
+- An official isolated `codegen_bootstrap.sh` seed-only lineage rebuilt current
+  gen2, and `self_host_compiler_build.sh` installed the Pergyra-built DRV-2 in
+  about four minutes. The initial receipt RED identified one missing explicit
+  `-> Void` on `DirectMirLegacyIntentCleanupRows`; after correction, self
+  parse/semantic/codegen check is green. Public self LLVM and native LLVM both
+  compile the committed fixture and execute exact `true`.
+- Local green evidence: `direct_mir_legacy_intent_program_llvm_owner.sh`
+  positive parity plus five no-artifact negatives; nested intent mode and
+  priority runtime parity; the complete component/old-path contract; the
+  current-source Pergyra-built driver install; and `git diff --check`. The new
+  focused gate takes about seven seconds and is attached to the existing main
+  bootstrap job and weekly/release parity invocation, reusing their driver
+  build rather than creating another matrix/job.
+- Grade only this exact input feature `SUBSTITUTING`; it does not promote the
+  compiler-root intent/world, arbitrary intent programs, typed
+  `intent_execution`, public self C, or the 12-routine composite family. Overall
+  remains 78%, strict beta 83%, and hard SoT remains `49/86 CLOSED` because no
+  registry row changed state. The next active executable falsifier is
+  `examples/composite_intent_orchestration/main.pgy`; the new driver reaches
+  LLVM projection and fails closed at
+  `owner=scalar-program-route stage=referenced-enum`. Close that reached owner/
+  last-consumer seam before any unrelated SoT or architecture work.
 
 ### Historical archive boundary
 

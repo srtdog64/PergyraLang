@@ -2,6 +2,26 @@
 
 Status: `BRIDGE`
 
+## 2026-08-25 bounded legacy intent LLVM evidence
+
+Checkpoint `8ee816c6` is bounded `SUBSTITUTING` evidence for one exact
+input-language program containing one identity-bearing `subject`, one mutating
+`action`, one `zone` subject slot, and one exclusive one-step `intent`. The
+public installed LLVM entrypoint consumes self-produced legacy MIR through a
+structural 3-routine/2-declaration claim and one sealed plan. Admitted
+declaration fields, routine/expression indexes, mode, priority, phase, and
+cleanup carriers own the result; the emitter does not read MIR, source, or AST.
+
+Public self LLVM and native LLVM both compile and execute exact `true`.
+Duplicate mode, non-canonical graph priority, zone-field drift, action-target
+drift, and missing invalidation cleanup fail without an artifact. This replaces
+the prior generic three-routine rejection for the exact semantic program, so it
+is `SUBSTITUTING`, not keyword `SURFACE` or fixture-only reachability.
+
+The grade does not promote arbitrary intents, typed `intent_execution`, public
+self C, the compiler-root intent/world, or canonical composite orchestration.
+Those remain distinct executable rungs.
+
 ## 2026-08-05 bounded Array<String> call/index evidence
 
 Checkpoint `52715894` is bounded `SUBSTITUTING` evidence for the exact
@@ -1123,14 +1143,16 @@ SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 
 실행하며 기존 `one_mir_array_int_projection.sh`가 C/LLVM parity와 일곱 음성 변조를
 소유한다. 문서의 실패 관측이 현재 실행 증거보다 오래됐던 것이다.
 
-현재 다음 경계는 canonical `examples/composite_intent_orchestration/main.pgy`다.
+Checkpoint `8ee816c6` after the bounded single-intent slice leaves the next
+boundary at canonical `examples/composite_intent_orchestration/main.pgy`.
 Installed AST/DIR은 parser-owned `IntentPriority` 식 그래프와 `Int` admission을
 소비해 native와 동등한 12-node/39-edge/5-intent DIR을 만들고, String priority를
 fail closed하므로 이 bounded stdout slice는 `SUBSTITUTING`이다. 그러나 public C는
-그 다음 MIR instruction 97에서 unknown kind로 멈춘다. 따라서 다음 C/LLVM rung은
-그 instruction의 기존 fact owner와 마지막 orchestration consumer를 찾아 실제
-composite execution을 대체하는 것이다. Priority `0` hardcode, source-text 재파싱,
-fixture 분기, native retry는 금지한다.
+현재 Pergyra-built driver의 LLVM projector에서
+`owner=scalar-program-route stage=referenced-enum`으로 fail closed한다. 따라서
+다음 C/LLVM rung은 그 referenced-enum fact owner와 마지막 orchestration consumer를
+찾아 실제 composite execution을 대체하는 것이다. Priority `0` hardcode,
+source-text 재파싱, fixture 분기, native retry는 금지한다.
 
 ## 세션 메모리와 handoff 규칙
 

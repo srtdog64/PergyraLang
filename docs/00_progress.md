@@ -2,21 +2,22 @@
 
 마지막 업데이트: 2026-08-25
 
-2026-08-25 실행 갱신: 코드 checkpoint `2107c4f0`에서 native RIR의
-`intent-policy(concurrency)`와 self DIR의 `SelfDirIntentModeFacts`가 승인한
-`exclusive`/`concurrent` 정책이 exact `IntentMode` MIR row로 운반되고,
-MIR-lower를 거쳐 self C runtime admission에 도달한다. 기존 hardcoded
-`IntentMode: exclusive`, source rescan, intent-name mode table, missing-row fallback은
-없다. Fresh production v16과 중첩 실행에서 outer mode `false`, inner mode `true`,
-priority 1/9가 관찰됐고 public self C와 native C 출력이 같다. Missing/duplicate mode
-carrier는 각각 소유 진단으로 fail closed다. Component/old-path, 전체 nested bundle,
-generated language registry, likeness sentinel 24/result-use 4246, 10-row protocol
-registry, Gate single-owner, SoT edge census `86/174` 및 diff gate가 green이다.
-Coq/Rocq는 로컬에 없어 adequacy formal model은 declared skip이고 live/negative
-owner 검증만 통과했다. 이번 변화도 기존 BRIDGE 내부 실행 대체이므로 SoT
-`49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%를 유지한다.
-마지막 published baseline은 `ccbed622`의 run `32781856770` 29/29 green이며,
-현재 mode checkpoint의 push CI는 아직 pending이다.
+2026-08-25 실행 갱신: checkpoint `8ee816c6`에서 one subject/action, one zone
+subject slot, one exclusive one-step intent로 이루어진 exact input program이 public
+self-host LLVM 경로를 처음으로 대체한다. 3-routine/2-declaration route receipt가
+generic classifier보다 먼저 family를 배타적으로 claim하고, admitted declaration/
+routine/expression indexes와 legacy mode/priority/phase/cleanup carriers를 하나의
+target-neutral plan으로 봉인한다. Source/AST rescan, name/output table, native retry,
+C fallback은 없다. 공식 seed-only lineage로 만든 Pergyra-built DRV-2에서 public
+self LLVM과 native LLVM이 모두 exact `true`를 실행했고, duplicate mode,
+non-canonical graph priority, zone-field/action-target drift, missing invalidation
+cleanup은 artifact 없이 실패했다. 기존 nested mode/priority parity와 전체
+component/old-path gate도 green이다. 이 exact input slice만 bounded
+`SUBSTITUTING`이며 compiler-root intent/world나 canonical composite를 승격하지
+않는다. Published baseline `e58b069b`의 run `32787388364`는 29/29 green이다.
+SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%는 유지한다.
+다음 executable RED는 `examples/composite_intent_orchestration/main.pgy`의
+`owner=scalar-program-route stage=referenced-enum`이다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 
