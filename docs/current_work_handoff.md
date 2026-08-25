@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-25 (Asia/Seoul)
+Updated: 2026-08-26 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -56,9 +56,14 @@ gate count do not increment either percentage by themselves.
 - Grade: the C observability AST-last-consumer seam is closed. The broader
   `selfhost.intent_declaration_rows` row remains `BRIDGE`; no general intent
   policy engine or compiler lifecycle is claimed. Overall remains 78%, strict
-  beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. The last published
-  remote baseline is still run `32851043420`, 29/29 green in 28m43, until this
-  checkpoint is pushed and its CI result is observed.
+  beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- First checkpoint `b6de9ba7` produced run `32862729216` at 28/29. Every full
+  self-host, codegen bootstrap, platform, sanitizer, Rocq, and backend shard
+  passed; `build-linux` alone rejected likeness drift at sentinel `25 > 24`
+  and Result/Option `4264 < 4267`. The pending fix keeps both baselines strict:
+  explicit priority presence owns the unused root slot, and routine lookup is
+  `Option<Int>`. Local likeness is `24/24` and `4267/4267`; the fixed source
+  graph compiles and both focused execution gates pass.
 - Next falsifier is observed RED, not an inferred queue item: project the
   admitted MIR from
   `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`

@@ -55,7 +55,7 @@ func CodegenIntentPolicyViewFromAdmittedSemanticOrDie(
         if priorities.present[row] {
             ArrayPush(priority_roots, priorities.expression_root_ids[row]);
         } else {
-            ArrayPush(priority_roots, -1);
+            ArrayPush(priority_roots, 0);
         }
         row = row + 1;
     }
@@ -82,7 +82,7 @@ func CodegenIntentPolicyMirRoutineRowOrDie(
             MirProgramRoutineIndexCount(admitted.routines) {
         Die("MIR intent policy identity epoch is incomplete");
     }
-    let found: Int = -1;
+    let found: Option<Int> = None;
     let matches: Int = 0;
     let row: Int = 0;
     while row < MirProgramRoutineIndexCount(admitted.routines) {
@@ -90,18 +90,21 @@ func CodegenIntentPolicyMirRoutineRowOrDie(
             canonical_routine_source_syntax_ids[row] ==
                 ToString(canonical_syntax_id) {
             matches = matches + 1;
-            found = row;
+            found = Some(row);
             if admitted.routines.names[row] != intent_name {
                 Die("MIR intent policy name identity is stale");
             }
         }
         row = row + 1;
     }
-    if matches != 1 || found < 0 ||
-        !MirProgramRoutineIndexRowReady(admitted.routines, found) {
+    if matches != 1 || !IsSome(found) {
         Die("MIR intent policy routine identity is missing or duplicated");
     }
-    return found;
+    let found_row: Int = UnwrapOption(found);
+    if !MirProgramRoutineIndexRowReady(admitted.routines, found_row) {
+        Die("MIR intent policy routine identity is missing or duplicated");
+    }
+    return found_row;
 }
 
 func CodegenIntentPolicyViewFromAdmittedMirOrDie(
@@ -172,7 +175,7 @@ func CodegenIntentPolicyViewFromAdmittedMirOrDie(
             );
         if !mode.valid { Die(mode.diagnostic_message); }
         if !priority.valid { Die(priority.diagnostic_message); }
-        let priority_root: Int = -1;
+        let priority_root: Int = 0;
         if priority.present {
             priority_root = MirExpressionSemanticRootForInstruction(
                 occurrences, priority.global_row,

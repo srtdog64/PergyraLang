@@ -1,6 +1,6 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-08-25 (Asia/Seoul)
+Updated: 2026-08-26 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
@@ -70,6 +70,26 @@ inspect it as project evidence, stage it, delete it, or rewrite it.
   `--mir-json-backend=llvm` fails closed at `scalar-program-route` stage
   `referenced-enum` and publishes no artifact. This is outside lease A and must
   not be repaired until lease A is published and a new objective card is set.
+- First publication checkpoint `b6de9ba7` produced CI run `32862729216` at
+  28/29. All full self-host, codegen bootstrap, platform, sanitizer, proof, and
+  20 backend shards passed; `build-linux` alone caught likeness drift:
+  sentinel `25 > 24` and Result/Option use `4264 < 4267`.
+- The pending fix does not loosen either ratchet. Absent priority uses the
+  existing explicit `priority_present` bit with a non-semantic zero storage
+  value, while routine lookup carries absence as local `Option<Int>`. Local
+  likeness is back at sentinel `24/24` and Result/Option `4267/4267`.
+- The fixed current-source graph generated and compiled; nested mode/priority C
+  parity and composite-intent LLVM parity pass with that isolated driver. The
+  exact failed Linux target passed component, hard, and graph gates locally,
+  then stopped only because local Coq/Rocq is unavailable; remote Rocq passed.
+
+### CI ratchet lesson
+
+When deleting an Option-heavy AST scan, run
+`make self-host-pergyra-likeness-test-smoke` before publication. Do not replace
+typed absence with a numeric sentinel or raise the likeness ceiling to hide the
+drop. If a view already has an explicit presence bit, its unused numeric slot
+is storage only; lookup failure itself remains `Option`/`Result`.
 
 ## Peer Codex assignment — read-only audit only
 

@@ -1,6 +1,6 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-25 intent policy C-codegen last consumer
+## Active self-host context - 2026-08-26 intent policy C-codegen last consumer
 
 - The active change starts from published revision
   `3698ab198fd2d84ca66834db0ff90a22cb2ac9f1`. Before its checkpoint commit,
@@ -33,9 +33,14 @@
 - This closes the C observability AST-last-consumer seam, not the broader
   `selfhost.intent_declaration_rows` family. Overall remains 78%, strict beta
   83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`; no percentage is added for
-  a bounded consumer migration by itself. The last published remote baseline
-  remains run `32851043420`, 29/29 green in 28m43, until this checkpoint's push
-  CI is observed.
+  a bounded consumer migration by itself.
+- Checkpoint `b6de9ba7` reached 28/29 in run `32862729216`. All full self-host,
+  platform, sanitizer, Rocq, codegen bootstrap, and 20 backend shards passed;
+  Linux alone caught sentinel `25 > 24` and Result/Option `4264 < 4267`.
+  The pending correction retains the explicit priority-presence bit and uses
+  local `Option<Int>` for routine lookup, restoring likeness to `24/24` and
+  `4267/4267` without loosening either gate. The corrected source graph compiles
+  and the two focused execution gates pass.
 - Next executable falsifier is already RED: the admitted MIR for
   `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`
   fails closed under installed `--mir-json-backend=llvm` at owner
