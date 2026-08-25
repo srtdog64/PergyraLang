@@ -32,6 +32,15 @@ bootstrap과 formal proof도 통과했다. 유일한 RED인 `build-linux`는 12�
 `49/36/1`, single-owner, protocol registry와 artifact/action ratchet은 local green;
 다음 falsifier는 repair push의 remote 29/29다.
 
+Repair와 첫-run handoff를 포함한 run `32823302830`은 29/29 green으로 닫혔다.
+전체 run은 28분 54초, full self-host는 28분 50초, build-linux는 13분 41초였다.
+Remote SoT edge는 `CLOSED=49 BRIDGE=36 ACTIVE=1`, likeness는 Result/Option 4,257,
+concrete zones 21, world members 3, zone-bound actions 39로 통과했다. 이 결과-only
+문서 successor는 local documentation/progress/beta gate를 다시 통과한 뒤
+`[skip ci]`로 게시해 동일한 29-job matrix의 세 번째 실행을 만들지 않는다.
+General MIR-to-C world/action rung은 이제 remote GREEN이며, 다음 작업은 current
+production evidence에서 새 executable bypass를 선택해야 한다.
+
 2026-08-25 실행 갱신: checkpoint `19103024`의 exact canonical composite-intent
 public self-host LLVM 대체와 문서 checkpoint `4162b81b`는 remote run
 `32806933585`에서 29/29 green이다. 전체 run은 28분 42초, full self-host job은

@@ -12,15 +12,16 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - general MIR-to-C world/action reachable; publication pending
+## Active self-host context - general MIR-to-C world/action reachable; publication GREEN
 
 - Executable checkpoint `626f2188` moves both installed general MIR-to-C
   artifact variants behind
   `PgyCompilerWorld.direct_mir.execution.PublishMirCArtifact` and deletes
-  `DriverRung2InstalledCommitMirC`. Before this documentation successor, HEAD is
-  `626f2188`; only these progress/handoff documents and the unrelated user-owned
-  `pgy-80135c2c/` directory are dirty. `origin/main` remains `7704e8bb` until the
-  authorized push.
+  `DriverRung2InstalledCommitMirC`. Architecture handoff `445db91d`, evidence
+  label repair `d6a01696`, and first-run handoff `cd01faf0` are published. Before
+  this result-only successor, local `main` and `origin/main` both point to
+  `cd01faf0`; only these three progress documents and the unrelated user-owned
+  `pgy-80135c2c/` directory are dirty.
 - Active objective card: objective = route `DriverCliMirCArtifact` and its
   pressure-observed sibling through the existing MIR execution action boundary;
   priority = preserve verified/observed C identity and pressure trace, select
@@ -69,11 +70,16 @@ gate count do not increment either percentage by themselves.
   absent from the executable gate's older CLI-request label. Local repair
   `d6a01696` preserves both independently consumed substrings on one actual gate
   result. Authority edge `CLOSED=49 BRIDGE=36 ACTIVE=1`, single-owner, protocol
-  registry, artifact transaction, and action ratchets are green. Before this
-  result handoff successor, local `main` is one repair commit ahead of
-  `origin/main`; only these three progress documents and user-owned
-  `pgy-80135c2c/` are dirty. Next falsifier: publish the repair and require the
-  replacement run to finish 29/29.
+  registry, artifact transaction, and action ratchets are green.
+- Repair run `32823302830` completed 29/29 GREEN in 28m54. Full self-host took
+  28m50 and build-linux 13m41. Linux observed Result/Option 4,257, concrete
+  zones 21, world members 3, zone-bound actions 39, and SoT 49/36/1; every
+  backend shard, sanitizer, platform, codegen, and proof job also passed. This
+  result-only successor is documentation/progress/beta-gated and uses
+  `[skip ci]` to avoid a third unchanged matrix. The rung is remotely closed.
+  Next action: select one new production bypass from current executable
+  evidence. Do not turn the queued Intent mode/priority AST last-consumer review
+  item into a broad SoT track unless that selected executable rung reaches it.
 
 ### Historical archive boundary
 

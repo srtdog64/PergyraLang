@@ -42,6 +42,14 @@
   result line. Authority edge `49/36/1`, single-owner, protocol registry,
   artifact transaction, and execution-action ratchets pass locally. The next
   falsifier is the repair's remote 29/29.
+- Repair run `32823302830` completed 29/29 green in 28m54. Full self-host took
+  28m50 and build-linux 13m41. Its Linux owner gates observed
+  `CLOSED=49 BRIDGE=36 ACTIVE=1` and exact likeness rows 4,257 Result/Option,
+  21 concrete zones, three world members, and 39 zone-bound actions. This
+  result-only documentation successor uses `[skip ci]` after local docs,
+  progress, and beta gates so the unchanged matrix is not run a third time.
+  The general MIR-to-C world/action rung is remotely closed; the next active
+  rung must be selected from current production bypass evidence.
 
 ## Historical self-host context - 2026-08-25 bounded composite intent LLVM substitution
 
