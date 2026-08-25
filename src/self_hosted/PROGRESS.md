@@ -37,10 +37,15 @@
 - Checkpoint `b6de9ba7` reached 28/29 in run `32862729216`. All full self-host,
   platform, sanitizer, Rocq, codegen bootstrap, and 20 backend shards passed;
   Linux alone caught sentinel `25 > 24` and Result/Option `4264 < 4267`.
-  The pending correction retains the explicit priority-presence bit and uses
+  Correction `eba0103d` retains the explicit priority-presence bit and uses
   local `Option<Int>` for routine lookup, restoring likeness to `24/24` and
   `4267/4267` without loosening either gate. The corrected source graph compiles
-  and the two focused execution gates pass.
+  and the two focused execution gates pass. Run `32866213832` is 29/29 green in
+  29m53.
+- A later peer audit required absent priority receipts to retain canonical zero
+  storage. The pending final checkpoint adds that exact readiness invariant and
+  component ratchet; local likeness, documentation, source-MIR action, and
+  complete component contract pass, but remote completion is not inferred.
 - Next executable falsifier is already RED: the admitted MIR for
   `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`
   fails closed under installed `--mir-json-backend=llvm` at owner

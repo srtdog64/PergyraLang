@@ -64,6 +64,12 @@ gate count do not increment either percentage by themselves.
   explicit priority presence owns the unused root slot, and routine lookup is
   `Option<Int>`. Local likeness is `24/24` and `4267/4267`; the fixed source
   graph compiles and both focused execution gates pass.
+- Fix checkpoint `eba0103d` completed run `32866213832` at 29/29 green in
+  29m53. A subsequent peer audit found that absent priority receipts also need
+  exact zero storage under the explicit presence bit. The pending final
+  checkpoint adds that readiness invariant and component ratchet; local
+  likeness, documentation, source-MIR action, and complete component contract
+  pass, but its remote run is not yet inferred.
 - Next falsifier is observed RED, not an inferred queue item: project the
   admitted MIR from
   `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`

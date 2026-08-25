@@ -82,6 +82,14 @@ inspect it as project evidence, stage it, delete it, or rewrite it.
   parity and composite-intent LLVM parity pass with that isolated driver. The
   exact failed Linux target passed component, hard, and graph gates locally,
   then stopped only because local Coq/Rocq is unavailable; remote Rocq passed.
+- Fix checkpoint `eba0103d` completed run `32866213832` at 29/29 green in
+  29m53, including the repaired Linux likeness row, full self-host, all three
+  platforms, sanitizers, Rocq, codegen bootstrap, and all 20 backend shards.
+- A peer follow-up after that run required absent priority receipts to keep the
+  canonical zero storage value. The pending final checkpoint adds that exact
+  readiness invariant and its structural negative; local likeness, docs, the
+  source-MIR action, and complete component contract pass. A new remote run is
+  required because this is a code invariant, not a result-only note.
 
 ### CI ratchet lesson
 
@@ -90,6 +98,45 @@ When deleting an Option-heavy AST scan, run
 typed absence with a numeric sentinel or raise the likeness ceiling to hide the
 drop. If a view already has an explicit presence bit, its unused numeric slot
 is storage only; lookup failure itself remains `Option`/`Result`.
+
+## Proposed lease B — referenced-enum LLVM last consumer
+
+This card is prepared only. It must not be claimed or implemented until lease
+A is marked `DONE` and the corrected checkpoint is remotely green.
+
+- Goal: make installed direct-MIR `--mir-json-backend=llvm` consume the
+  referenced-enum fact owner for the observed RED fixture instead of failing
+  closed at `scalar-program-route` stage `referenced-enum`.
+- Priority order: exact declaration/variant/payload identity, one fact-owner
+  read, migrate the last LLVM orchestration consumer, delete or narrow the
+  rejection-only path for this admitted shape, negative ratchet, then
+  execution parity.
+- Fact owner:
+  `src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy`
+  owns referenced declarations, variant ordinals/names, and payload types.
+- Last legitimate consumer: the direct-MIR LLVM program projector's
+  referenced-enum admission/projection seam.
+- Forbidden fallback: priority `0` hardcode, source-text reparse, AST
+  reconstruction, fixture branching, native retry, per-fixture special cases,
+  or starting a general query/cache track.
+- Falsifying fixture: admit the MIR from
+  `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`
+  through the installed driver's LLVM backend; it currently publishes no
+  artifact and fails at `owner=scalar-program-route stage=referenced-enum`.
+- Observed root-cause evidence (2026-08-26): the RED MIR has no enum
+  declarations, only `PriorityProbe`, `PriorityProbeZone`, and four routines.
+  `DirectMirScalarProgramReferencedEnumFactFromAdmitted` first builds a
+  signature fact for every routine. `DirectMirRoutineSignatureFactReady`
+  accepts `kind == "function"` only, so the fixture's method/intent routines
+  invalidate that scan before any referenced declaration can be selected. The
+  route then rejects at `referenced-enum`. The rung must therefore replace this
+  scalar-signature-only reference scan with an admitted-declaration-driven
+  referenced-enum owner path; it must not widen routine signatures or pretend
+  absent enums are the semantic fact.
+- Gates: that RED becomes executable parity without artifact publication on
+  failure; retain the four composite-intent no-artifact negatives; run
+  `tests/self_hosted/parity/direct_mir_composite_intent_program_llvm_owner.sh`;
+  then component/hard/graph documentation gates before publication.
 
 ## Peer Codex assignment — read-only audit only
 
@@ -123,3 +170,8 @@ do not implement changes in lease A:
 - No dual authority, hidden AST/default fallback, or missing negative gate was
   found in the reviewed slice. The semantic entrypoint's DIR receipt scan is
   documented as an admission-time read, not a C-emission AST fallback.
+- Follow-up read-only finding: the later sentinel cleanup changed absent
+  priority rows from `-1` to `0`, but readiness initially did not reject an
+  absent row with nonzero root. The lease owner restored the exact invariant
+  `priority_present[row] || root == 0` and added a component-contract ratchet
+  for the absent-row nonzero receipt.

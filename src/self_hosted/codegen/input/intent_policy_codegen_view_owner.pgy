@@ -44,7 +44,8 @@ func CodegenIntentPolicyViewReadyForSignatures(
             view.intent_names[row] == "" ||
             view.intent_names[row] != intents.names[row] ||
             (view.priority_present[row] &&
-             (root < 0 || root >= graph_node_count)) {
+             (root < 0 || root >= graph_node_count)) ||
+            (!view.priority_present[row] && root != 0) {
             return false;
         }
         let prior: Int = 0;

@@ -2009,6 +2009,9 @@ require_max_lines \
     "src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy" 110
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy"
+require_text \
+    "src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy" \
+    '!view.priority_present[row] && root != 0'
 require_file \
     "src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy"
 require_max_lines \
