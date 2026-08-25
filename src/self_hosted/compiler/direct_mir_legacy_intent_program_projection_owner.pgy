@@ -1,0 +1,25 @@
+// LLVM composition boundary for the first admitted legacy intent program.
+
+import "direct_mir_legacy_intent_program_llvm_emission_owner.pgy";
+
+func CompileAdmittedDirectMirLegacyIntentProgramLlvm(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    route: DirectMirLegacyIntentProgramRouteFact
+) -> String {
+    let plan: DirectMirLegacyIntentProgramPlan =
+        DirectMirLegacyIntentProgramPlanFromAdmitted(admitted, route);
+    return DirectMirLegacyIntentProgramEmitLlvm(plan);
+}
+
+func CompileAdmittedDirectMirLegacyIntentProgramLlvmIfClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    is_llvm: Bool
+) -> Option<String> {
+    if !is_llvm { return None; }
+    let route: DirectMirLegacyIntentProgramRouteFact =
+        DirectMirLegacyIntentProgramRouteFactFromAdmitted(admitted);
+    if !route.claimed { return None; }
+    return Some(CompileAdmittedDirectMirLegacyIntentProgramLlvm(
+        admitted, route
+    ));
+}

@@ -1,0 +1,35 @@
+// Stable target-runtime spellings for intent admission, observation, and MIR
+// cleanup.  C and direct LLVM consumers project these names; neither owns a
+// private spelling table.
+
+func IntentRuntimeCEnterFn() -> String {
+    return "pgy_intent_enter_export";
+}
+
+func IntentRuntimeCExitFn() -> String {
+    return "pgy_intent_exit_export";
+}
+
+func IntentRuntimeCTraceStepFn() -> String {
+    return "pgy_intent_trace_step_export";
+}
+
+func IntentRuntimeCTraceBindFn() -> String {
+    return "pgy_intent_trace_bind_export";
+}
+
+func IntentRuntimeCTraceStepOkFn() -> String {
+    return "pgy_intent_trace_step_ok_export";
+}
+
+func IntentRuntimeCTraceFailFn() -> String {
+    return "pgy_intent_trace_fail_export";
+}
+
+func IntentRuntimeCTraceMaterializeFn() -> String {
+    return "pgy_intent_trace_materialize_export";
+}
+
+func IntentRuntimeCMirCleanupFn() -> String {
+    return "pgy_mir_cleanup_op_export";
+}

@@ -1,0 +1,33 @@
+subject Counter {
+    let value: Int;
+
+    action Increment(self) -> Void {
+        value = value + 1;
+    }
+}
+
+zone CounterZone {
+    subject slot counter: Counter
+}
+
+intent IncrementOnce(zone: CounterZone, counter: Counter) {
+    exclusive;
+    priority: 4;
+
+    step increment {
+        where: CounterZone;
+        using: zone;
+        who: counter;
+        on: counter.Increment();
+        expect: zone.counter.value > 0;
+    }
+
+    success: zone.counter.value > 0;
+    failure: false;
+}
+
+func Main() -> Void {
+    let counter = Counter(0);
+    let zone = CounterZone(Clone(counter));
+    Log(IncrementOnce(zone, counter));
+}

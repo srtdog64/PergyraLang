@@ -96,6 +96,7 @@ jobs:
           self-host-hard-contract-test-smoke
           self-host-intent-observability-runtime-test-smoke
           self-host-intent-observability-mir-identity-test-smoke
+          self-host-direct-mir-legacy-intent-program-llvm-test-smoke
           self-host-intent-guard-post-compensation-execution-test-smoke
           self-host-intent-typed-compensation-test-smoke
           self-host-preparation-exhaustive-parity-test-smoke

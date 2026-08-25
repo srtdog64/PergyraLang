@@ -1,0 +1,388 @@
+// Row-order-independent expression identity for the first legacy-carrier
+// intent program.  This owner consumes admitted expression graphs only; it
+// never reads source text or reconstructs an AST.
+
+import "direct_mir_legacy_intent_program_route_fact_owner.pgy";
+import "direct_mir_array_int_graph_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../codegen/text/text_owner.pgy";
+
+struct DirectMirLegacyIntentProgramGraphFact {
+    let valid: Bool;
+    let digest: Int;
+    let subject_type_name: String;
+    let zone_type_name: String;
+    let subject_alias: String;
+    let zone_alias: String;
+    let subject_field_name: String;
+    let method_name: String;
+    let intent_name: String;
+    let initial_value: Int;
+    let delta: Int;
+}
+
+func DirectMirLegacyIntentProgramGraphFactDigest(
+    ref fact: DirectMirLegacyIntentProgramGraphFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(907L, fact.subject_type_name);
+    hash = DirectMirCfgHashString(hash, fact.zone_type_name);
+    hash = DirectMirCfgHashString(hash, fact.subject_alias);
+    hash = DirectMirCfgHashString(hash, fact.zone_alias);
+    hash = DirectMirCfgHashString(hash, fact.subject_field_name);
+    hash = DirectMirCfgHashString(hash, fact.method_name);
+    hash = DirectMirCfgHashString(hash, fact.intent_name);
+    hash = DirectMirCfgHashInt(hash, fact.initial_value);
+    hash = DirectMirCfgHashInt(hash, fact.delta);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirLegacyIntentProgramGraphFactReady(
+    ref fact: DirectMirLegacyIntentProgramGraphFact
+) -> Bool {
+    return fact.valid && fact.digest != 0 && fact.digest ==
+            DirectMirLegacyIntentProgramGraphFactDigest(fact) &&
+        IsIdentifier(fact.subject_type_name) &&
+        IsIdentifier(fact.zone_type_name) &&
+        IsIdentifier(fact.subject_alias) && IsIdentifier(fact.zone_alias) &&
+        IsIdentifier(fact.subject_field_name) &&
+        IsIdentifier(fact.method_name) && IsIdentifier(fact.intent_name) &&
+        fact.subject_type_name != fact.zone_type_name &&
+        fact.subject_alias != fact.zone_alias && fact.delta != 0;
+}
+
+func DirectMirLegacyIntentProgramExpressionSequence(
+    ref routines: MirProgramRoutineIndex,
+    global_row: Int,
+    slot: Int
+) -> MirExpressionGraphSequence {
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            routines.instruction_expressions, global_row
+        );
+    return DirectMirArrayIntGraphFromExpressionFact(
+        routines.source_json, expression, slot
+    );
+}
+
+func DirectMirLegacyIntentProgramCanonicalInteger(
+    ref sequence: MirExpressionGraphSequence,
+    row: Int
+) -> Int {
+    if !sequence.ok || row < 0 || row >=
+            ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.topology.node_kinds[row] !=
+            AstExpressionNodeIntegerLiteral() {
+        Die("direct MIR legacy intent integer graph node is invalid");
+    }
+    let text: String = sequence.arena.node_texts[row];
+    if text == "" || ToString(ToInt(text)) != text {
+        Die("direct MIR legacy intent integer is not canonical");
+    }
+    return ToInt(text);
+}
+
+func DirectMirLegacyIntentProgramGraphHasNoCallTargets(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(sequence.arena.call_target_kinds) {
+        if sequence.arena.call_target_kinds[row] !=
+                SemanticCallTargetNone() ||
+            sequence.arena.call_target_names[row] != "" {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirLegacyIntentMethodDelta(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirLegacyIntentProgramRouteFact,
+    subject_field_name: String
+) -> Int {
+    let row: Int = route.method_row;
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, row
+    );
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, row, 0, 0
+    );
+    let scalar: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, global
+        );
+    if !index.valid || admitted.routines.routine_block_counts[row] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, row, 0
+        ) != 1 || global < 0 || !scalar.valid ||
+        admitted.routines.instruction_kinds[global] != "def" ||
+        admitted.routines.instruction_source_types[global] !=
+            "AST_ASSIGNMENT" || scalar.name != "ssa-def" ||
+        scalar.result == "" || scalar.arg0 != subject_field_name ||
+        scalar.arg1 != "owner_field" || scalar.slot_anchor != "" ||
+        scalar.abi_type_name != "Int" || scalar.expr0 == "" ||
+        scalar.expr1 != subject_field_name {
+        Die("direct MIR legacy intent action assignment is invalid");
+    }
+    let value: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, global, 0
+        );
+    let target: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, global, 1
+        );
+    if !value.ok || value.ready_node_count != 3 ||
+        ArrayLength(value.roots) != 1 || value.roots[0] != 2 ||
+        value.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        value.arena.node_texts[0] != subject_field_name ||
+        value.arena.topology.node_kinds[1] !=
+            AstExpressionNodeIntegerLiteral() ||
+        value.arena.topology.node_kinds[2] != AstExpressionNodeAdd() ||
+        value.arena.topology.left_children[2] != 0 ||
+        value.arena.topology.right_children[2] != 1 ||
+        !DirectMirLegacyIntentProgramGraphHasNoCallTargets(value) ||
+        !target.ok || target.ready_node_count != 1 ||
+        ArrayLength(target.roots) != 1 || target.roots[0] != 0 ||
+        target.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        target.arena.node_texts[0] != subject_field_name ||
+        !DirectMirLegacyIntentProgramGraphHasNoCallTargets(target) {
+        Die("direct MIR legacy intent action expression graph is invalid");
+    }
+    return DirectMirLegacyIntentProgramCanonicalInteger(value, 1);
+}
+
+func DirectMirLegacyIntentMainConstructionReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref sequence: MirExpressionGraphSequence,
+    type_name: String,
+    alias: String,
+    is_zone: Bool,
+    subject_alias: String
+) -> Bool {
+    if !sequence.ok || ArrayLength(sequence.roots) != 1 {
+        return false;
+    }
+    if !is_zone {
+        return sequence.ready_node_count == 4 && sequence.roots[0] == 3 &&
+            sequence.arena.topology.node_kinds[0] ==
+                AstExpressionNodeLeaf() &&
+            sequence.arena.node_texts[0] == type_name &&
+            sequence.arena.topology.node_kinds[1] ==
+                AstExpressionNodeCall() &&
+            sequence.arena.topology.left_children[1] == 0 &&
+            sequence.arena.call_target_kinds[1] ==
+                SemanticCallTargetDirect() &&
+            sequence.arena.call_target_names[1] == type_name &&
+            sequence.arena.topology.node_kinds[2] ==
+                AstExpressionNodeIntegerLiteral() &&
+            sequence.arena.topology.node_kinds[3] ==
+                AstExpressionNodeCallArgument() &&
+            sequence.arena.topology.left_children[3] == 1 &&
+            sequence.arena.topology.right_children[3] == 2;
+    }
+    return sequence.ready_node_count == 7 && sequence.roots[0] == 6 &&
+        sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
+        sequence.arena.node_texts[0] == type_name &&
+        sequence.arena.topology.node_kinds[1] == AstExpressionNodeCall() &&
+        sequence.arena.topology.left_children[1] == 0 &&
+        sequence.arena.call_target_kinds[1] == SemanticCallTargetDirect() &&
+        sequence.arena.call_target_names[1] == type_name &&
+        sequence.arena.topology.node_kinds[2] == AstExpressionNodeLeaf() &&
+        sequence.arena.node_texts[2] == "Clone" &&
+        sequence.arena.topology.node_kinds[3] == AstExpressionNodeCall() &&
+        sequence.arena.topology.left_children[3] == 2 &&
+        sequence.arena.call_target_kinds[3] == SemanticCallTargetDirect() &&
+        sequence.arena.call_target_names[3] == "Clone" &&
+        sequence.arena.topology.node_kinds[4] == AstExpressionNodeLeaf() &&
+        sequence.arena.node_texts[4] == subject_alias &&
+        sequence.arena.topology.node_kinds[5] ==
+            AstExpressionNodeCallArgument() &&
+        sequence.arena.topology.left_children[5] == 3 &&
+        sequence.arena.topology.right_children[5] == 4 &&
+        sequence.arena.topology.node_kinds[6] ==
+            AstExpressionNodeCallArgument() &&
+        sequence.arena.topology.left_children[6] == 1 &&
+        sequence.arena.topology.right_children[6] == 5;
+}
+
+func DirectMirLegacyIntentMainCallReady(
+    ref sequence: MirExpressionGraphSequence,
+    intent_name: String,
+    zone_alias: String,
+    subject_alias: String
+) -> Bool {
+    return sequence.ok && sequence.ready_node_count == 6 &&
+        ArrayLength(sequence.roots) == 1 && sequence.roots[0] == 5 &&
+        sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
+        sequence.arena.node_texts[0] == intent_name &&
+        sequence.arena.topology.node_kinds[1] == AstExpressionNodeCall() &&
+        sequence.arena.topology.left_children[1] == 0 &&
+        sequence.arena.call_target_kinds[1] == SemanticCallTargetDirect() &&
+        sequence.arena.call_target_names[1] == intent_name &&
+        sequence.arena.topology.node_kinds[2] == AstExpressionNodeLeaf() &&
+        sequence.arena.node_texts[2] == zone_alias &&
+        sequence.arena.topology.node_kinds[3] ==
+            AstExpressionNodeCallArgument() &&
+        sequence.arena.topology.left_children[3] == 1 &&
+        sequence.arena.topology.right_children[3] == 2 &&
+        sequence.arena.topology.node_kinds[4] == AstExpressionNodeLeaf() &&
+        sequence.arena.node_texts[4] == subject_alias &&
+        sequence.arena.topology.node_kinds[5] ==
+            AstExpressionNodeCallArgument() &&
+        sequence.arena.topology.left_children[5] == 3 &&
+        sequence.arena.topology.right_children[5] == 4;
+}
+
+func DirectMirLegacyIntentSubjectFieldName(
+    ref fields: MirProgramDeclarationFieldIdentityIndex,
+    subject_type: String
+) -> String {
+    let subject_owner: Int =
+        MirProgramDeclarationFieldIdentityDeclarationIndex(
+            fields, subject_type
+        );
+    let subject_field: String = "";
+    let subject_field_count: Int = 0;
+    let field_row: Int = 0;
+    while field_row < ArrayLength(fields.field_names) {
+        if fields.field_owner_indices[field_row] == subject_owner &&
+            fields.field_kinds[field_row] == "field" &&
+            fields.field_type_names[field_row] == "Int" {
+            subject_field_count = subject_field_count + 1;
+            subject_field = fields.field_names[field_row];
+        }
+        field_row = field_row + 1;
+    }
+    if !fields.valid || subject_owner < 0 || subject_field_count != 1 {
+        Die("direct MIR legacy intent subject field identity is invalid");
+    }
+    return subject_field;
+}
+
+func DirectMirLegacyIntentProgramGraphFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref route: DirectMirLegacyIntentProgramRouteFact
+) -> DirectMirLegacyIntentProgramGraphFact {
+    if !DirectMirLegacyIntentProgramRouteFactReady(route) || !route.claimed {
+        Die("direct MIR legacy intent graph route is invalid");
+    }
+    let subject_type: String = admitted.routines.owners[route.method_row];
+    let zone_type: String = admitted.domain_runtime_admission.declarations.names[
+        route.zone_declaration_row
+    ];
+    let method_name: String = admitted.routines.names[route.method_row];
+    let intent_name: String = admitted.routines.names[route.intent_row];
+    let main_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, route.main_row
+    );
+    if !main_index.valid ||
+        admitted.routines.routine_block_counts[route.main_row] != 1 ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, route.main_row, 0
+        ) != 3 || ArrayLength(main_index.source_local_names) != 2 ||
+        ArrayLength(main_index.source_local_types) != 2 {
+        Die("direct MIR legacy intent Main envelope is invalid");
+    }
+    let subject_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, route.main_row, 0, 0
+    );
+    let zone_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, route.main_row, 0, 1
+    );
+    let log_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, route.main_row, 0, 2
+    );
+    let subject_instruction: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            main_index.instruction_facts, subject_global
+        );
+    let zone_instruction: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            main_index.instruction_facts, zone_global
+        );
+    let log: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            main_index.instruction_facts, log_global
+        );
+    if !subject_instruction.valid || !zone_instruction.valid || !log.valid ||
+        subject_instruction.kind != "" || zone_instruction.kind != "" ||
+        admitted.routines.instruction_kinds[subject_global] != "def" ||
+        admitted.routines.instruction_kinds[zone_global] != "def" ||
+        admitted.routines.instruction_kinds[log_global] != "stmt" ||
+        admitted.routines.instruction_source_types[subject_global] !=
+            "AST_LET_DECL" ||
+        admitted.routines.instruction_source_types[zone_global] !=
+            "AST_LET_DECL" ||
+        admitted.routines.instruction_source_types[log_global] !=
+            "AST_CALL" || subject_instruction.name != "ssa-def" ||
+        zone_instruction.name != "ssa-def" || log.name != "stmt" ||
+        subject_instruction.arg0 == "" || zone_instruction.arg0 == "" ||
+        subject_instruction.arg0 == zone_instruction.arg0 ||
+        subject_instruction.arg1 != subject_type ||
+        zone_instruction.arg1 != zone_type ||
+        subject_instruction.abi_type_name != subject_type ||
+        zone_instruction.abi_type_name != zone_type || log.arg0 != "Log" ||
+        log.result != "" || log.arg1 != "" {
+        Die("direct MIR legacy intent Main instruction identity is invalid");
+    }
+    let subject_alias: String = subject_instruction.arg0;
+    let zone_alias: String = zone_instruction.arg0;
+    if main_index.source_local_names[0] != subject_alias ||
+        main_index.source_local_types[0] != subject_type ||
+        main_index.source_local_names[1] != zone_alias ||
+        main_index.source_local_types[1] != zone_type {
+        Die("direct MIR legacy intent Main local identity is invalid");
+    }
+    let subject_graph: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, subject_global, 0
+        );
+    let zone_graph: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, zone_global, 0
+        );
+    let log_graph: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, log_global, 0
+        );
+    if !DirectMirLegacyIntentMainConstructionReady(
+            admitted, subject_graph, subject_type, subject_alias, false,
+            subject_alias
+        ) || !DirectMirLegacyIntentMainConstructionReady(
+            admitted, zone_graph, zone_type, zone_alias, true, subject_alias
+        ) || !DirectMirLegacyIntentMainCallReady(
+            log_graph, intent_name, zone_alias, subject_alias
+        ) {
+        Die("direct MIR legacy intent Main graph identity is invalid");
+    }
+    let subject_field: String = DirectMirLegacyIntentSubjectFieldName(
+        admitted.domain_runtime_admission.declarations.field_identities,
+        subject_type
+    );
+    let delta: Int = DirectMirLegacyIntentMethodDelta(
+        admitted, route, subject_field
+    );
+    let fact: DirectMirLegacyIntentProgramGraphFact =
+        DirectMirLegacyIntentProgramGraphFact(
+            true, 0, subject_type, zone_type, subject_alias, zone_alias,
+            subject_field, method_name, intent_name,
+            DirectMirLegacyIntentProgramCanonicalInteger(subject_graph, 2),
+            delta
+        );
+    let verified: DirectMirLegacyIntentProgramGraphFact =
+        DirectMirLegacyIntentProgramGraphFact(
+            fact.valid,
+            DirectMirLegacyIntentProgramGraphFactDigest(fact),
+            fact.subject_type_name, fact.zone_type_name,
+            fact.subject_alias, fact.zone_alias, fact.subject_field_name,
+            fact.method_name, fact.intent_name, fact.initial_value,
+            fact.delta
+        );
+    if !DirectMirLegacyIntentProgramGraphFactReady(verified) {
+        Die("direct MIR legacy intent program graph receipt is invalid");
+    }
+    return verified;
+}

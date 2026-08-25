@@ -1,0 +1,250 @@
+// Textual LLVM materialization from one sealed legacy intent receipt.
+// Declaration identity, action mutation, placement copy-in/out, mode,
+// priority, expectation, and cleanup rows are all fixed before this owner.
+
+import "direct_mir_legacy_intent_program_plan_owner.pgy";
+import "symbol_table_owner.pgy";
+import "../codegen/runtime_abi/string_runtime_symbol_owner.pgy";
+import "../codegen/runtime_abi/intent_runtime_symbol_owner.pgy";
+
+func DirectMirLegacyIntentLlvmLiteralReady(value: String) -> Bool {
+    let row: Int = 0;
+    while row < StringLength(value) {
+        let code: Int = CharCode(value, StringLength(value), row);
+        if code < 32 || code > 126 || code == 34 || code == 92 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirLegacyIntentLlvmStringGlobal(
+    symbol: String,
+    value: String
+) -> String {
+    if symbol == "" || !DirectMirLegacyIntentLlvmLiteralReady(value) {
+        Die("direct MIR legacy intent LLVM string fact is invalid");
+    }
+    let output: String = "@";
+    output = Concat(output, symbol);
+    output = Concat(output, " = private unnamed_addr constant [");
+    output = Concat(output, ToString(StringLength(value) + 1));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, value);
+    output = Concat(output, "\\00\", align 1\n");
+    return output;
+}
+
+func DirectMirLegacyIntentLlvmCleanupSymbol(
+    family: String,
+    row: Int,
+    field: String
+) -> String {
+    return Concat(
+        ".pgy.intent.", Concat(family, Concat(
+            ".", Concat(ToString(row), Concat(".", field))
+        ))
+    );
+}
+
+func DirectMirLegacyIntentLlvmCleanupGlobals(
+    family: String,
+    names: Array<String>,
+    slots: Array<String>,
+    args: Array<String>
+) -> String {
+    if !DirectMirLegacyIntentCleanupRowsReady(names, slots, args) {
+        Die("direct MIR legacy intent LLVM cleanup facts are invalid");
+    }
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+            DirectMirLegacyIntentLlvmCleanupSymbol(family, row, "name"),
+            names[row]
+        ));
+        output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+            DirectMirLegacyIntentLlvmCleanupSymbol(family, row, "slot"),
+            slots[row]
+        ));
+        output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+            DirectMirLegacyIntentLlvmCleanupSymbol(family, row, "arg"),
+            args[row]
+        ));
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirLegacyIntentLlvmCleanupCalls(
+    family: String,
+    names: Array<String>,
+    slots: Array<String>,
+    args: Array<String>,
+    handle_value: String
+) -> String {
+    if !DirectMirLegacyIntentCleanupRowsReady(names, slots, args) ||
+        handle_value == "" {
+        Die("direct MIR legacy intent LLVM cleanup call facts are invalid");
+    }
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        output = Concat(output, "  call void @");
+        output = Concat(output, IntentRuntimeCMirCleanupFn());
+        output = Concat(output, "(i32 ");
+        output = Concat(output, handle_value);
+        output = Concat(output, ", ptr @");
+        output = Concat(output,
+            DirectMirLegacyIntentLlvmCleanupSymbol(family, row, "name"));
+        output = Concat(output, ", ptr @");
+        output = Concat(output,
+            DirectMirLegacyIntentLlvmCleanupSymbol(family, row, "slot"));
+        output = Concat(output, ", ptr @");
+        output = Concat(output,
+            DirectMirLegacyIntentLlvmCleanupSymbol(family, row, "arg"));
+        output = Concat(output, ")\n");
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirLegacyIntentProgramEmitLlvm(
+    ref plan: DirectMirLegacyIntentProgramPlan
+) -> String {
+    if !DirectMirLegacyIntentProgramPlanReady(plan) {
+        Die("direct MIR legacy intent LLVM receipt is invalid");
+    }
+    let subject_type: String = CompilerSymbolCIdentifier(
+        plan.graph.subject_type_name
+    );
+    let zone_type: String = CompilerSymbolCIdentifier(
+        plan.graph.zone_type_name
+    );
+    let method_symbol: String = CompilerSymbolCIdentifier(Concat(
+        Concat(plan.graph.subject_type_name, "_"), plan.graph.method_name
+    ));
+    let sync_symbol: String = CompilerSymbolCIdentifier(Concat(
+        plan.graph.zone_type_name, "_sync"
+    ));
+    let intent_symbol: String = CompilerSymbolCIdentifier(
+        plan.graph.intent_name
+    );
+    if subject_type == "" || zone_type == "" || method_symbol == "" ||
+        sync_symbol == "" || intent_symbol == "" ||
+        subject_type == zone_type || method_symbol == intent_symbol ||
+        sync_symbol == intent_symbol {
+        Die("direct MIR legacy intent LLVM symbols are invalid");
+    }
+    let output: String = "%";
+    output = Concat(output, subject_type);
+    output = Concat(output, " = type { i32 }\n%");
+    output = Concat(output, zone_type);
+    output = Concat(output, " = type { %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", i32 }\n\n");
+    output = Concat(output, DirectMirLegacyIntentLlvmStringGlobal(
+        ".pgy.intent.name", plan.graph.intent_name
+    ));
+    output = Concat(output, DirectMirLegacyIntentLlvmCleanupGlobals(
+        "rollback", plan.rollback_names, plan.rollback_slots,
+        plan.rollback_args
+    ));
+    output = Concat(output, DirectMirLegacyIntentLlvmCleanupGlobals(
+        "invalidation", plan.invalidation_names, plan.invalidation_slots,
+        plan.invalidation_args
+    ));
+    output = Concat(output, "\ndeclare void @");
+    output = Concat(output, StringRuntimeCBoolLogFn());
+    output = Concat(output, "(i1)\ndeclare i32 @");
+    output = Concat(output, IntentRuntimeCEnterFn());
+    output = Concat(output, "(ptr, ptr, i32, i1, i32)\ndeclare void @");
+    output = Concat(output, IntentRuntimeCExitFn());
+    output = Concat(output, "(i32)\ndeclare void @");
+    output = Concat(output, IntentRuntimeCMirCleanupFn());
+    output = Concat(output, "(i32, ptr, ptr, ptr)\n\ndefine internal void @");
+    output = Concat(output, sync_symbol);
+    output = Concat(output, "(ptr %zone) {\nentry:\n  %generation = getelementptr inbounds %");
+    output = Concat(output, zone_type);
+    output = Concat(output, ", ptr %zone, i32 0, i32 1\n  %prior = atomicrmw add ptr %generation, i32 1 release, align 4\n  ret void\n}\n\ndefine internal void @");
+    output = Concat(output, method_symbol);
+    output = Concat(output, "(ptr %self) {\nentry:\n  %field = getelementptr inbounds %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %self, i32 0, i32 0\n  %old = load i32, ptr %field, align 4\n  %next = add i32 %old, ");
+    output = Concat(output, ToString(plan.graph.delta));
+    output = Concat(output, "\n  store i32 %next, ptr %field, align 4\n  ret void\n}\n\ndefine internal i1 @");
+    output = Concat(output, intent_symbol);
+    output = Concat(output, "(ptr %zone, ptr %subject) {\nentry:\n  %subjects = alloca [1 x ptr], align 8\n  %subject.slot = getelementptr [1 x ptr], ptr %subjects, i32 0, i32 0\n  store ptr %subject, ptr %subject.slot, align 8\n  %handle = call i32 @");
+    output = Concat(output, IntentRuntimeCEnterFn());
+    output = Concat(output, "(ptr @.pgy.intent.name, ptr %subject.slot, i32 1, i1 ");
+    if plan.concurrent {
+        output = Concat(output, "true");
+    } else {
+        output = Concat(output, "false");
+    }
+    output = Concat(output, ", i32 ");
+    output = Concat(output, ToString(plan.priority));
+    output = Concat(output, ")\n  %entered = icmp ne i32 %handle, 0\n  br i1 %entered, label %intent.run, label %intent.enter.failed\n\nintent.run:\n  %zone.slot = getelementptr inbounds %");
+    output = Concat(output, zone_type);
+    output = Concat(output, ", ptr %zone, i32 0, i32 0\n  %subject.input = load %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %subject, align 4\n  store %");
+    output = Concat(output, subject_type);
+    output = Concat(output, " %subject.input, ptr %zone.slot, align 4\n  call void @");
+    output = Concat(output, sync_symbol);
+    output = Concat(output, "(ptr %zone)\n  call void @");
+    output = Concat(output, method_symbol);
+    output = Concat(output, "(ptr %zone.slot)\n  call void @");
+    output = Concat(output, sync_symbol);
+    output = Concat(output, "(ptr %zone)\n  %subject.output = load %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %zone.slot, align 4\n  store %");
+    output = Concat(output, subject_type);
+    output = Concat(output, " %subject.output, ptr %subject, align 4\n  %value.ptr = getelementptr inbounds %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %zone.slot, i32 0, i32 0\n  %value = load i32, ptr %value.ptr, align 4\n  %expect = icmp sgt i32 %value, ");
+    output = Concat(output, ToString(plan.threshold));
+    output = Concat(output, "\n  br i1 %expect, label %intent.success, label %intent.failure\n\nintent.failure:\n");
+    output = Concat(output, DirectMirLegacyIntentLlvmCleanupCalls(
+        "rollback", plan.rollback_names, plan.rollback_slots,
+        plan.rollback_args, "%handle"
+    ));
+    output = Concat(output, DirectMirLegacyIntentLlvmCleanupCalls(
+        "invalidation", plan.invalidation_names, plan.invalidation_slots,
+        plan.invalidation_args, "%handle"
+    ));
+    output = Concat(output, "  call void @");
+    output = Concat(output, IntentRuntimeCExitFn());
+    output = Concat(output, "(i32 %handle)\n  ret i1 false\n\nintent.success:\n");
+    output = Concat(output, DirectMirLegacyIntentLlvmCleanupCalls(
+        "invalidation", plan.invalidation_names, plan.invalidation_slots,
+        plan.invalidation_args, "%handle"
+    ));
+    output = Concat(output, "  call void @");
+    output = Concat(output, IntentRuntimeCExitFn());
+    output = Concat(output, "(i32 %handle)\n  ret i1 true\n\nintent.enter.failed:\n  ret i1 false\n}\n\ndefine internal void @Main() {\nentry:\n  %subject = alloca %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", align 4\n  %subject.init = insertvalue %");
+    output = Concat(output, subject_type);
+    output = Concat(output, " zeroinitializer, i32 ");
+    output = Concat(output, ToString(plan.graph.initial_value));
+    output = Concat(output, ", 0\n  store %");
+    output = Concat(output, subject_type);
+    output = Concat(output, " %subject.init, ptr %subject, align 4\n  %zone = alloca %");
+    output = Concat(output, zone_type);
+    output = Concat(output, ", align 4\n  %subject.copy = load %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %subject, align 4\n  %zone.init = insertvalue %");
+    output = Concat(output, zone_type);
+    output = Concat(output, " zeroinitializer, %");
+    output = Concat(output, subject_type);
+    output = Concat(output, " %subject.copy, 0\n  store %");
+    output = Concat(output, zone_type);
+    output = Concat(output, " %zone.init, ptr %zone, align 4\n  %result = call i1 @");
+    output = Concat(output, intent_symbol);
+    output = Concat(output, "(ptr %zone, ptr %subject)\n  call void @");
+    output = Concat(output, StringRuntimeCBoolLogFn());
+    output = Concat(output, "(i1 %result)\n  ret void\n}\n\ndefine i32 @main() {\nentry:\n  call void @Main()\n  ret i32 0\n}\n");
+    return output;
+}

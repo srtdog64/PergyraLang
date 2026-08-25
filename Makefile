@@ -3990,6 +3990,11 @@ self-host-intent-observability-mir-identity-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/intent_observability_mir_identity_owner.sh
 
+.PHONY: self-host-direct-mir-legacy-intent-program-llvm-test-smoke
+self-host-direct-mir-legacy-intent-program-llvm-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_legacy_intent_program_llvm_owner.sh
+
 self-host-substitution-velocity-test-smoke:
 	"$(BASH)" tests/self_host_substitution_velocity_smoke.sh
 

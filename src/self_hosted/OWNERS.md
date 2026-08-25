@@ -1461,6 +1461,9 @@ inventory must not become a second fact-family owner registry.
   `Result<T, E>` runtime ABI facts and specialized helper symbol ownership.
 - `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- the emitted C string/text runtime blocks.
 - `src/self_hosted/codegen/runtime_abi/string_runtime_symbol_owner.pgy` -- what those runtime entry points are called: C symbol and format-string names. Naming is an ABI fact; emitting is code generation.
+- `src/self_hosted/codegen/runtime_abi/intent_runtime_symbol_owner.pgy` --
+  stable target-runtime spellings for intent admission/exit, observation, and
+  MIR cleanup shared by self-host C and direct LLVM consumers.
 - `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder symbol facts; implementation bodies remain owned by the canonical runtime inline headers.
 - `src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy` --
   owner-directed canonical runtime header composition for allocator,
@@ -2355,6 +2358,23 @@ inventory must not become a second fact-family owner registry.
   cleanup facts.
 - `src/self_hosted/compiler/direct_mir_collection_program_projection_owner.pgy`
   -- selected-target composition boundary that issues one sealed plan.
+- `src/self_hosted/compiler/direct_mir_legacy_intent_program_route_fact_owner.pgy`
+  -- exclusive structural claim for the first executable one-function,
+  one-subject-action, one-intent, one-subject/zone program family; a claimed
+  malformed family cannot fall through to generic three-routine inference.
+- `src/self_hosted/compiler/direct_mir_legacy_intent_program_graph_fact_owner.pgy`
+  -- admitted Main construction/call and action-assignment graph receipt for
+  that family, with no source-text or AST reconstruction.
+- `src/self_hosted/compiler/direct_mir_legacy_intent_program_plan_owner.pgy`
+  -- sealed target-neutral declaration, carrier-policy, placement, action,
+  expectation, and cleanup receipt; mode spelling is erased to one concurrent
+  bit before target materialization.
+- `src/self_hosted/compiler/direct_mir_legacy_intent_program_llvm_emission_owner.pgy`
+  -- MIR-blind LLVM consumer preserving subject mutation, zone copy/sync,
+  runtime admission mode/priority, expectation, cleanup, and Bool observation.
+- `src/self_hosted/compiler/direct_mir_legacy_intent_program_projection_owner.pgy`
+  -- LLVM-only composition boundary issuing and consuming the sealed legacy
+  intent receipt before scalar and generic three-routine routes.
 - `src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy`
   -- late multi-routine decision that gives a claimed collection program one
   fail-closed path before the legacy three-routine classifier.

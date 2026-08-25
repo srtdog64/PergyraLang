@@ -2286,9 +2286,25 @@ for intent_observability_symbol in \
     "pgy_intent_exit_export"
 do
     require_text \
-        "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy" \
+        "src/self_hosted/codegen/runtime_abi/intent_runtime_symbol_owner.pgy" \
         "$intent_observability_symbol"
 done
+for intent_observability_owner_call in \
+    "IntentRuntimeCEnterFn()" \
+    "IntentRuntimeCTraceStepFn()" \
+    "IntentRuntimeCTraceBindFn()" \
+    "IntentRuntimeCTraceMaterializeFn()" \
+    "IntentRuntimeCTraceFailFn()" \
+    "IntentRuntimeCTraceStepOkFn()" \
+    "IntentRuntimeCExitFn()"
+do
+    require_text \
+        "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy" \
+        "$intent_observability_owner_call"
+done
+reject_text \
+    "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy" \
+    "pgy_intent_"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "usage.uses_intent_observability"
 require_text "src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy" \
@@ -7238,6 +7254,13 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
 require_file "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh"
 require_max_lines "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh" 145
 require_text "Makefile" "self-host-intent-observability-runtime-test-smoke: self-host-compiler"
+require_file "tests/self_hosted/parity/direct_mir_legacy_intent_program_llvm_owner.sh"
+require_max_lines "tests/self_hosted/parity/direct_mir_legacy_intent_program_llvm_owner.sh" 190
+require_file "tests/self_hosted/parity/fixture/direct_mir_legacy_intent_program_llvm.pgy"
+require_text "Makefile" \
+    "self-host-direct-mir-legacy-intent-program-llvm-test-smoke: \$(PGY) self-host-compiler"
+require_text ".github/workflows/ci.yml" \
+    "self-host-direct-mir-legacy-intent-program-llvm-test-smoke"
 require_file "tests/self_hosted/parity/intent_observability_mir_identity_owner.sh"
 require_max_lines "tests/self_hosted/parity/intent_observability_mir_identity_owner.sh" 120
 require_file "tests/self_hosted/parity/intent_observability_mir_identity_mutations.py"

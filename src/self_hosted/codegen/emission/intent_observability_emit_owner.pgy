@@ -3,6 +3,7 @@ import "../../semantic/ast_intent_signature_fact_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
+import "../runtime_abi/intent_runtime_symbol_owner.pgy";
 import "intent_mode_emit_owner.pgy";
 import "intent_priority_emit_owner.pgy";
 func CodegenIntentObservabilityEmitPrologue(
@@ -76,14 +77,16 @@ func CodegenIntentObservabilityEmitPrologue(
     );
     if subject_count > 0 {
         ArrayPush(body, Concat(
-            "    __intent_handle = pgy_intent_enter_export(\"",
+            Concat("    __intent_handle = ", Concat(
+                IntentRuntimeCEnterFn(), "(\"")),
             Concat(intents.names[intent_index], Concat(
                 "\", __intent_subjects", enter_suffix
             ))
         ));
     } else {
         ArrayPush(body, Concat(
-            "    __intent_handle = pgy_intent_enter_export(\"",
+            Concat("    __intent_handle = ", Concat(
+                IntentRuntimeCEnterFn(), "(\"")),
             Concat(intents.names[intent_index], Concat("\", NULL", enter_suffix))
         ));
     }
@@ -99,12 +102,14 @@ func CodegenIntentObservabilityEmitStepBegin(
 ) -> Void {
     if !enabled { return; }
     ArrayPush(body, Concat(
-        "    pgy_intent_trace_step_export(__intent_handle, \"", Concat(
+        Concat("    ", Concat(IntentRuntimeCTraceStepFn(),
+            "(__intent_handle, \"")), Concat(
             step_name, Concat("\", \"", Concat(zone_name, "\");\n"))
         ))
     );
     ArrayPush(body, Concat(
-        "    pgy_intent_trace_bind_export(__intent_handle, \"", Concat(
+        Concat("    ", Concat(IntentRuntimeCTraceBindFn(),
+            "(__intent_handle, \"")), Concat(
             participant_name, Concat("\", \"", Concat(
                 slot_name, "\");\n"
             ))
@@ -121,7 +126,8 @@ func CodegenIntentObservabilityEmitTypedStepBegin(
         Die("typed intent observability step identity is missing");
     }
     ArrayPush(body, Concat(
-        "    pgy_intent_trace_step_export(__intent_handle, \"",
+        Concat("    ", Concat(IntentRuntimeCTraceStepFn(),
+            "(__intent_handle, \"")),
         Concat(step_name, Concat("\", \"", Concat(zone_name, "\");\n")))
     ));
 }
@@ -132,7 +138,8 @@ func CodegenIntentObservabilityEmitMaterialize(
 ) -> Void {
     if !enabled { return; }
     ArrayPush(body, Concat(
-        "    pgy_intent_trace_materialize_export(__intent_handle, \"",
+        Concat("    ", Concat(IntentRuntimeCTraceMaterializeFn(),
+            "(__intent_handle, \"")),
         Concat(participant_name, Concat("\", \"", Concat(slot_name,
         Concat("\", \"", Concat(zone_name, "\");\n")))))
     ));
@@ -143,7 +150,8 @@ func CodegenIntentObservabilityFailureLine(
 ) -> String {
     if !enabled { return ""; }
     return Concat(
-        "        pgy_intent_trace_fail_export(__intent_handle, \"",
+        Concat("        ", Concat(IntentRuntimeCTraceFailFn(),
+            "(__intent_handle, \"")),
         Concat(phase, Concat(":", Concat(step_name, "\");\n")))
     );
 }
@@ -153,7 +161,8 @@ func CodegenIntentObservabilityEmitStepOk(
 ) -> Void {
     if !enabled { return; }
     ArrayPush(body, Concat(
-        "    pgy_intent_trace_step_ok_export(__intent_handle, \"",
+        Concat("    ", Concat(IntentRuntimeCTraceStepOkFn(),
+            "(__intent_handle, \"")),
         Concat(step_name, "\");\n")
     ));
 }
@@ -162,7 +171,10 @@ func CodegenIntentObservabilityEmitExit(
     inout body: Array<String>, enabled: Bool
 ) -> Void {
     if enabled {
-        ArrayPush(body,
-            "    if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+        ArrayPush(body, Concat(
+            "    if (__intent_handle != 0) ", Concat(
+                IntentRuntimeCExitFn(), "(__intent_handle);\n"
+            )
+        ));
     }
 }

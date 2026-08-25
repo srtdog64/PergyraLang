@@ -1,0 +1,135 @@
+// Exclusive claim for the first executable legacy-carrier intent program.
+//
+// The claim is deliberately structural: one function, one subject method,
+// one intent, one subject declaration, and one zone declaration.  Once this
+// family is claimed, its semantic plan must fail closed rather than allowing
+// the generic three-routine classifier to reinterpret it.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+struct DirectMirLegacyIntentProgramRouteFact {
+    let valid: Bool;
+    let digest: Int;
+    let claimed: Bool;
+    let main_row: Int;
+    let method_row: Int;
+    let intent_row: Int;
+    let subject_declaration_row: Int;
+    let zone_declaration_row: Int;
+}
+
+func DirectMirLegacyIntentProgramRouteFactDigest(
+    ref fact: DirectMirLegacyIntentProgramRouteFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(887L, fact.main_row);
+    hash = DirectMirCfgHashInt(hash, fact.method_row);
+    hash = DirectMirCfgHashInt(hash, fact.intent_row);
+    hash = DirectMirCfgHashInt(hash, fact.subject_declaration_row);
+    hash = DirectMirCfgHashInt(hash, fact.zone_declaration_row);
+    if fact.claimed { hash = DirectMirCfgHashInt(hash, 1); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirLegacyIntentProgramRouteFactReady(
+    ref fact: DirectMirLegacyIntentProgramRouteFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirLegacyIntentProgramRouteFactDigest(fact) {
+        return false;
+    }
+    if !fact.claimed {
+        return fact.main_row == -1 && fact.method_row == -1 &&
+            fact.intent_row == -1 && fact.subject_declaration_row == -1 &&
+            fact.zone_declaration_row == -1;
+    }
+    return fact.main_row >= 0 && fact.method_row >= 0 &&
+        fact.intent_row >= 0 && fact.subject_declaration_row >= 0 &&
+        fact.zone_declaration_row >= 0 &&
+        fact.main_row != fact.method_row &&
+        fact.main_row != fact.intent_row &&
+        fact.method_row != fact.intent_row &&
+        fact.subject_declaration_row != fact.zone_declaration_row;
+}
+
+func DirectMirLegacyIntentProgramRouteFactFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirLegacyIntentProgramRouteFact {
+    let function_count: Int = 0;
+    let method_count: Int = 0;
+    let intent_count: Int = 0;
+    let main_row: Int = -1;
+    let method_row: Int = -1;
+    let intent_row: Int = -1;
+    let routine_row: Int = 0;
+    while routine_row < MirProgramRoutineIndexCount(admitted.routines) {
+        if admitted.routines.kinds[routine_row] == "function" &&
+            admitted.routines.owners[routine_row] == "" {
+            function_count = function_count + 1;
+            main_row = routine_row;
+        } else if admitted.routines.kinds[routine_row] == "method" {
+            method_count = method_count + 1;
+            method_row = routine_row;
+        } else if admitted.routines.kinds[routine_row] == "intent" &&
+            admitted.routines.owners[routine_row] == "" {
+            intent_count = intent_count + 1;
+            intent_row = routine_row;
+        }
+        routine_row = routine_row + 1;
+    }
+    let subject_count: Int = 0;
+    let zone_count: Int = 0;
+    let subject_row: Int = -1;
+    let zone_row: Int = -1;
+    let declaration_row: Int = 0;
+    while declaration_row < MirProgramDeclarationIndexCount(
+        admitted.domain_runtime_admission.declarations
+    ) {
+        if admitted.domain_runtime_admission.declarations.kinds[
+                declaration_row
+            ] == "subject" &&
+            admitted.domain_runtime_admission.declarations.nominal_kinds[
+                declaration_row
+            ] == "subject" {
+            subject_count = subject_count + 1;
+            subject_row = declaration_row;
+        } else if admitted.domain_runtime_admission.declarations.kinds[
+                declaration_row
+            ] == "zone" &&
+            admitted.domain_runtime_admission.declarations.nominal_kinds[
+                declaration_row
+            ] == "zone" {
+            zone_count = zone_count + 1;
+            zone_row = declaration_row;
+        }
+        declaration_row = declaration_row + 1;
+    }
+    let claimed: Bool = MirProgramRoutineIndexCount(admitted.routines) == 3 &&
+        function_count == 1 && method_count == 1 && intent_count == 1 &&
+        MirProgramDeclarationIndexCount(
+            admitted.domain_runtime_admission.declarations
+        ) == 2 &&
+        subject_count == 1 && zone_count == 1;
+    if !claimed {
+        main_row = -1;
+        method_row = -1;
+        intent_row = -1;
+        subject_row = -1;
+        zone_row = -1;
+    }
+    let fact: DirectMirLegacyIntentProgramRouteFact =
+        DirectMirLegacyIntentProgramRouteFact(
+            true, 0, claimed, main_row, method_row, intent_row,
+            subject_row, zone_row
+        );
+    let verified: DirectMirLegacyIntentProgramRouteFact =
+        DirectMirLegacyIntentProgramRouteFact(
+            fact.valid, DirectMirLegacyIntentProgramRouteFactDigest(fact),
+            fact.claimed, fact.main_row, fact.method_row, fact.intent_row,
+            fact.subject_declaration_row, fact.zone_declaration_row
+        );
+    if !DirectMirLegacyIntentProgramRouteFactReady(verified) {
+        Die("direct MIR legacy intent route receipt is invalid");
+    }
+    return verified;
+}
