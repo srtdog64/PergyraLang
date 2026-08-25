@@ -6,10 +6,10 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## PUBLISHING lease A — intent mode/priority C-codegen last consumer
+## DONE lease A — intent mode/priority C-codegen last consumer
 
 - Base revision: `3698ab198fd2d84ca66834db0ff90a22cb2ac9f1`.
-- Active owner: Codex task `019f8921-1147-70c1-8eff-b6fee8e59aec`.
+- Completed owner: Codex task `019f8921-1147-70c1-8eff-b6fee8e59aec`.
 - Objective: delete the reconstructed-AST read of intent mode/priority from C
   emission and feed the last consumer one exact semantic-DIR or admitted-MIR
   policy receipt.
@@ -26,9 +26,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   missing-graph, and graph-drift negatives; composite-intent LLVM parity; then
   documentation/registry gates and `git diff --check`.
 
-### Edit lease
+### Released edit lease
 
-Until this lease is marked `DONE`, do not edit, stage, commit, or overwrite:
+The following paths were exclusive to lease A while it was active. The lease is
+now released; this list is historical overlap evidence:
 
 - `src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy`
 - `src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy`
@@ -86,10 +87,10 @@ inspect it as project evidence, stage it, delete it, or rewrite it.
   29m53, including the repaired Linux likeness row, full self-host, all three
   platforms, sanitizers, Rocq, codegen bootstrap, and all 20 backend shards.
 - A peer follow-up after that run required absent priority receipts to keep the
-  canonical zero storage value. The pending final checkpoint adds that exact
-  readiness invariant and its structural negative; local likeness, docs, the
-  source-MIR action, and complete component contract pass. A new remote run is
-  required because this is a code invariant, not a result-only note.
+  canonical zero storage value. Final code checkpoint `a9e07841` adds that exact
+  readiness invariant and its structural negative. Run `32870231909` completed
+  29/29 green in 29m24, including full self-host, codegen bootstrap, all three
+  platforms, sanitizers, Rocq, and all 20 backend shards. Lease A is closed.
 
 ### CI ratchet lesson
 
@@ -99,44 +100,57 @@ typed absence with a numeric sentinel or raise the likeness ceiling to hide the
 drop. If a view already has an explicit presence bit, its unused numeric slot
 is storage only; lookup failure itself remains `Option`/`Result`.
 
-## Proposed lease B — referenced-enum LLVM last consumer
+## READY, UNCLAIMED lease B — nested intent direct-MIR LLVM route
 
-This card is prepared only. It must not be claimed or implemented until lease
-A is marked `DONE` and the corrected checkpoint is remotely green.
+Lease A's publication preconditions are satisfied: correction checkpoint
+`a9e07841` completed CI run `32870231909` at 29/29 green. Exactly one task may
+claim this executable rung. Other tasks remain read-only auditors; do not open
+parallel implementation tracks on the same route.
 
-- Goal: make installed direct-MIR `--mir-json-backend=llvm` consume the
-  referenced-enum fact owner for the observed RED fixture instead of failing
-  closed at `scalar-program-route` stage `referenced-enum`.
-- Priority order: exact declaration/variant/payload identity, one fact-owner
-  read, migrate the last LLVM orchestration consumer, delete or narrow the
-  rejection-only path for this admitted shape, negative ratchet, then
-  execution parity.
-- Fact owner:
-  `src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy`
-  owns referenced declarations, variant ordinals/names, and payload types.
-- Last legitimate consumer: the direct-MIR LLVM program projector's
-  referenced-enum admission/projection seam.
+- Objective: make the installed direct-MIR `--mir-json-backend=llvm` path
+  execute the nested method/intent priority fixture through one exclusive mixed
+  callable route. Do not treat the first `referenced-enum` rejection as the
+  entire objective.
+- Priority order: canonical declaration and routine identity; routine
+  kind/owner/source-syntax identity; exact intent mode/priority carrier and
+  expression occurrence; owner-directed call/field graph; fail-closed
+  negatives; then installed LLVM execution parity.
+- Fact owners: the program declaration index owns admitted declarations;
+  `DirectMirScalarProgramReferencedEnumFact` owns only actually referenced enum
+  declaration/variant/payload identity; admitted routine facts own callable
+  kind, owner, and source syntax ID; `MirIntentRoutineCarrierProjection`,
+  `MirIntentModeProjection`, and `MirIntentPriorityProjection` own intent policy
+  carriage and its exact semantic expression root.
+- Last legitimate consumer: an exclusive mixed function/method/intent route in
+  `DirectMirMultiRoutineProjection`, before the scalar-only route, handing its
+  sealed graph to the direct-MIR LLVM terminal projector.
 - Forbidden fallback: priority `0` hardcode, source-text reparse, AST
-  reconstruction, fixture branching, native retry, per-fixture special cases,
-  or starting a general query/cache track.
-- Falsifying fixture: admit the MIR from
+  reconstruction, widening the function-only signature fact to disguise a
+  mixed-callable route, fixture branching, native retry, per-fixture special
+  cases, or starting a general query/cache track.
+- Observed RED: admitted MIR from
   `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`
-  through the installed driver's LLVM backend; it currently publishes no
-  artifact and fails at `owner=scalar-program-route stage=referenced-enum`.
-- Observed root-cause evidence (2026-08-26): the RED MIR has no enum
-  declarations, only `PriorityProbe`, `PriorityProbeZone`, and four routines.
-  `DirectMirScalarProgramReferencedEnumFactFromAdmitted` first builds a
-  signature fact for every routine. `DirectMirRoutineSignatureFactReady`
-  accepts `kind == "function"` only, so the fixture's method/intent routines
-  invalidate that scan before any referenced declaration can be selected. The
-  route then rejects at `referenced-enum`. The rung must therefore replace this
-  scalar-signature-only reference scan with an admitted-declaration-driven
-  referenced-enum owner path; it must not widen routine signatures or pretend
-  absent enums are the semantic fact.
-- Gates: that RED becomes executable parity without artifact publication on
-  failure; retain the four composite-intent no-artifact negatives; run
-  `tests/self_hosted/parity/direct_mir_composite_intent_program_llvm_owner.sh`;
-  then component/hard/graph documentation gates before publication.
+  through the installed LLVM backend publishes no artifact and first fails at
+  `owner=scalar-program-route stage=referenced-enum`.
+- Two-stage cause: the referenced-enum owner scans every routine through
+  function-only `DirectMirRoutineSignatureFactReady`, although this fixture has
+  no enum declarations. Returning canonical empty for no enums exposes the
+  next scalar-only rejection at `owner=callable-route-envelope stage=signature`.
+  Therefore an enum-only patch cannot close the rung.
+- Minimal executable delta: make the referenced-enum owner canonical-empty when
+  no enum declarations exist and kind-neutral only for the actually referenced
+  type subset; add the exclusive mixed-callable route; exact-cross-seal the
+  declaration, routine, intent-policy, and expression-graph identities; derive
+  `Main -> Outer`, `Outer -> Inner`, `Inner -> Capture`, and subject/zone field
+  identity from admitted facts. Evaluate Inner's dynamic priority parameter
+  `requested` in LLVM routine scope; absence must never become priority `0`.
+- Falsifiers: installed direct-MIR LLVM emits, links, and runs with byte-equal
+  expected output and no scalar-route receipt; Outer observes literal priority
+  `1`, Inner observes runtime `requested`; graph drift, missing priority, and
+  syntax/name crosswire publish no artifact. Referenced-enum name/source-ID/
+  payload drift remains a separate owner negative because this fixture has no
+  enums. Retain composite-intent no-artifact negatives and finish with the
+  component, hard, graph, documentation, and installed parity gates.
 
 ## Peer Codex assignment — read-only audit only
 

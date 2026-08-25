@@ -17,66 +17,60 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - intent policy C-codegen last consumer
+## Active self-host context - nested intent direct-MIR LLVM route
 
-- Base revision `3698ab198fd2d84ca66834db0ff90a22cb2ac9f1` is on local
-  `main` and `origin/main`. Before this checkpoint commit, the worktree contains
-  this bounded implementation plus the unrelated user-owned untracked
-  `pgy-80135c2c/` directory. Do not stage, inspect as project evidence, delete,
-  or rewrite that directory.
-- Objective card: objective = delete the reconstructed-AST read of intent
-  mode/priority from C emission; priority = exact semantic identity, one
-  admitted policy receipt, old-read deletion, negative ratchet, installed
-  execution parity, then remote evidence; fact owner = admitted MIR
-  `IntentMode` and `IntentEval(priority)` carriers plus canonical routine and
-  exact semantic expression occurrence, while the direct semantic entrypoint
-  materializes an explicit DIR-derived receipt; last legitimate consumer =
-  `CodegenIntentObservabilityEmitPrologue`; forbidden = `TypedAstArena*` or
-  `AstTreeArtifact` in mode/priority emitters, default recovery, name-only join,
-  graph reconstruction, or MIR/AST dual read; falsifier = missing/duplicate
-  carrier, missing/drifted graph occurrence, identity mismatch, or runtime
-  public/native drift.
-- `CodegenIntentPolicyView` owns the canonical-routine keyed C-codegen input.
-  The production bridge exact-cross-seals syntax ID, intent name, admitted MIR
-  carrier row, and semantic expression root. The semantic-only entrypoint
-  produces the same shape once from admitted DIR facts. Both mode and priority
-  emitters now consume only this receipt and cannot reopen AST children.
-- The priority graph-drift negative changes the MIR graph node while preserving
-  the `expr0` spelling. Missing graph, duplicate priority, and drift therefore
-  fail before artifact publication rather than falling back to string or AST
-  reconstruction. Missing/duplicate mode remains independently rejected.
-- Observed local evidence: current source graph through the Pergyra-built seed
-  emitted 10,609,620 bytes of C in 114.27 seconds with no `CODEGEN ERROR`; the
-  isolated driver compiled in 17.12 seconds; zero-intent source-to-C passed;
-  official `make self-host-compiler` installed DRV-2 in 515.18 seconds; the
-  installed nested mode/priority MIR-carriage and public/native C execution
-  gate passed; installed composite-intent direct-MIR LLVM success/failure plus
-  four no-artifact negatives passed; and the final complete component contract
-  passed after its internal source-MIR action ratchet.
-- Grade: the C observability AST-last-consumer seam is closed. The broader
+- Executable checkpoint `a9e0784115c98eda4a52db0b28f9a9a46b26eeb6`
+  is on local `main` and `origin/main`. Before this result-only handoff commit,
+  only the collaboration ledger, this handoff, and `src/self_hosted/PROGRESS.md`
+  are dirty. Preserve the unrelated user-owned untracked `pgy-80135c2c/`
+  directory; do not inspect it as project evidence, stage it, delete it, or
+  rewrite it.
+- The preceding intent-policy C-codegen lease is `DONE`. `CodegenIntentPolicyView`
+  now exact-cross-seals canonical routine syntax ID/name, admitted MIR mode and
+  priority carriers, and the semantic expression occurrence; the direct
+  semantic entrypoint materializes the same DIR-derived receipt. Mode and
+  priority emission no longer reopen `TypedAstArena` or `AstTreeArtifact`.
+  Missing, duplicate, stale identity, missing graph, graph drift, and absent-row
+  nonzero-root cases fail before artifact publication.
+- Final evidence for that closure: checkpoint `a9e07841` completed CI run
+  `32870231909` at 29/29 green in 29m24. It includes full self-host, codegen
+  bootstrap, all three platforms, sanitizers, Rocq, and all 20 backend shards.
+  The earlier 28/29 likeness failure was repaired without raising the sentinel
+  ceiling or lowering Result/Option use: final local likeness is `24/24` and
+  `4267/4267`.
+- Grade: only the C observability AST-last-consumer seam is closed. The broader
   `selfhost.intent_declaration_rows` row remains `BRIDGE`; no general intent
   policy engine or compiler lifecycle is claimed. Overall remains 78%, strict
   beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-- First checkpoint `b6de9ba7` produced run `32862729216` at 28/29. Every full
-  self-host, codegen bootstrap, platform, sanitizer, Rocq, and backend shard
-  passed; `build-linux` alone rejected likeness drift at sentinel `25 > 24`
-  and Result/Option `4264 < 4267`. The pending fix keeps both baselines strict:
-  explicit priority presence owns the unused root slot, and routine lookup is
-  `Option<Int>`. Local likeness is `24/24` and `4267/4267`; the fixed source
-  graph compiles and both focused execution gates pass.
-- Fix checkpoint `eba0103d` completed run `32866213832` at 29/29 green in
-  29m53. A subsequent peer audit found that absent priority receipts also need
-  exact zero storage under the explicit presence bit. The pending final
-  checkpoint adds that readiness invariant and component ratchet; local
-  likeness, documentation, source-MIR action, and complete component contract
-  pass, but its remote run is not yet inferred.
-- Next falsifier is observed RED, not an inferred queue item: project the
-  admitted MIR from
+- Active objective card: objective = make installed direct-MIR
+  `--mir-json-backend=llvm` execute the nested method/intent priority fixture
+  through one exclusive mixed-callable route; priority = declaration and
+  routine identity, routine kind/owner/source syntax, exact intent carriers and
+  expression root, owner-directed call/field graph, negative ratchet, then
+  installed parity; fact owners = admitted program declaration/routine facts,
+  the referenced-enum owner only for actually referenced enums, and
+  `MirIntentRoutineCarrierProjection` / `MirIntentModeProjection` /
+  `MirIntentPriorityProjection`; last legitimate consumer = the exclusive route
+  in `DirectMirMultiRoutineProjection` before scalar admission; forbidden =
+  priority `0` fallback, source/AST reconstruction, widening function-only
+  signature semantics, fixture branching, native retry, or a general query/
+  cache track.
+- The falsifier is observed RED. Admitted MIR from
   `tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy`
-  through installed `--mir-json-backend=llvm`. It fails closed at
-  `owner=scalar-program-route stage=referenced-enum` and publishes no artifact.
-  The next rung must explain and replace that exact LLVM bypass before another
-  SoT cleanup; do not start a general query/cache track.
+  publishes no LLVM artifact and first rejects at
+  `owner=scalar-program-route stage=referenced-enum`. That owner scans all
+  routines through function-only signature readiness even though the fixture
+  has no enums. Canonical-empty enum handling alone then exposes the next
+  rejection at `owner=callable-route-envelope stage=signature`; an enum-only
+  patch is therefore insufficient.
+- The next implementation must claim the one prepared lease in
+  `docs/current_work_collaboration.md`, add the exclusive mixed function/method/
+  intent route, and seal `Main -> Outer`, `Outer -> Inner`, `Inner -> Capture`,
+  subject/zone fields, and dynamic priority parameter `requested` from admitted
+  facts. Its executable falsifier is installed LLVM emit/link/run parity with
+  literal Outer priority `1`, runtime Inner priority, no scalar-route receipt,
+  and no artifact for graph drift, missing priority, or syntax/name crosswire.
+  No implementation of this new rung is claimed yet.
 
 ### Historical archive boundary
 
