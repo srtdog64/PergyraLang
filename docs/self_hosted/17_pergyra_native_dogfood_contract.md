@@ -2,6 +2,29 @@
 
 Status: `BRIDGE`
 
+## 2026-08-25 bounded composite intent LLVM evidence
+
+Checkpoint `19103024` is bounded `SUBSTITUTING` evidence for the exact
+canonical 12-routine composite orchestration family: one identity-bearing
+subject, three zone boundaries, six mutating methods, five intents, and Main.
+The public installed LLVM entrypoint consumes self-produced MIR through one
+exclusive structural route, admitted declaration/expression-graph receipts,
+and one sealed target-neutral plan. The emitter does not read MIR, source, AST,
+or fixture names, and a claimed malformed family cannot retry scalar admission.
+
+Public self LLVM and native LLVM produce byte-equal success output. The
+`Reserve + 0` failure variant also matches exactly, executes compensation to
+`reserved=-1`, and preserves failed history, step, and trace observation.
+Duplicate mode, missing compensation, action-DAG drift, and zone-slot drift all
+fail without an artifact. This replaces the prior public LLVM rejection for
+the exact semantic program, so it is `SUBSTITUTING`, not keyword `SURFACE` or
+mere reachability.
+
+This grade does not promote arbitrary composite intents, typed
+`intent_execution`, public self C, or the compiler-root intent/world. The
+observability-capable link default is also a bridge until the artifact protocol
+carries a narrower typed runtime requirement.
+
 ## 2026-08-25 bounded legacy intent LLVM evidence
 
 Checkpoint `8ee816c6` is bounded `SUBSTITUTING` evidence for one exact

@@ -1,34 +1,37 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-25 bounded legacy intent LLVM substitution
+## Active self-host context - 2026-08-25 bounded composite intent LLVM substitution
 
-- Checkpoint `8ee816c6` closes the first public self-host LLVM program with one
-  subject/action, one zone subject slot, and one exclusive one-step intent.
-  A structural 3-routine/2-declaration receipt claims the family before the
-  generic three-routine classifier. Admitted declaration fields, routine and
-  expression indexes, legacy mode/priority/phase/cleanup carriers, and one
-  sealed target-neutral plan are the only LLVM emitter inputs. Source/AST
-  rescans, name/output tables, native retry, and C fallback are absent.
-- Official seed-only codegen lineage and `self_host_compiler_build.sh` produced
-  the current Pergyra-built DRV-2. Public self LLVM and native LLVM compile the
-  committed fixture and execute exact `true`; duplicate mode, non-canonical
-  graph priority, zone-field drift, action-target drift, and missing
-  invalidation cleanup all fail without an artifact. Existing nested mode/
-  priority C runtime parity and the full component/old-path contract are green.
-- Intent runtime symbols now have one self-host spelling owner consumed by the
-  existing C observability emitter and the new direct LLVM emitter. The focused
-  executable gate takes about seven seconds and shares the existing main
-  bootstrap and weekly/release driver build rather than opening another CI job.
-- This exact input feature is bounded `SUBSTITUTING`, not a promotion of the
-  compiler-root intent/world or arbitrary composite intents. Published baseline
-  `e58b069b` completed run `32787388364` at 29/29 green in about 24 minutes; the
-  new checkpoint still requires remote publication. Preserve the unrelated
-  `pgy-80135c2c/` directory.
-- Overall remains 78%, strict beta 83%, and hard SoT `49/86 CLOSED`; no registry
-  row changed state. The next reached executable RED is canonical
-  `examples/composite_intent_orchestration/main.pgy`, which now fails closed at
-  `owner=scalar-program-route stage=referenced-enum`. That exact owner/consumer
-  seam is the only active continuation.
+- Checkpoint `19103024` closes public self-host LLVM for the exact canonical
+  12-routine composite orchestration family: one subject, three zones, six
+  mutating methods, five intents, and Main. An exclusive route claims it before
+  scalar admission. Admitted declaration slots and expression DAGs become one
+  sealed plan for seven steps, compensation, history, step, and trace output;
+  the emitter does not read MIR/source/AST or fixture names.
+- A fresh current-source Pergyra-built DRV-2 produces byte-equal public self
+  LLVM/native LLVM output for canonical success and the `Reserve + 0` failure.
+  Failure compensation leaves `reserved=-1`; duplicate mode, missing
+  compensation, action-DAG drift, and zone-slot drift publish no artifact.
+  Legacy intent and general installed default-runtime LLVM regression gates
+  also pass.
+- The public self-host LLVM link boundary uses the observability-capable runtime
+  object as one sound default without scanning LLVM text. The default-runtime
+  negative invalidates its actual `OBS1` cache key. A narrower typed runtime-
+  requirement receipt remains future bridge work, not a second read path.
+- The complete component/removed-path contract, source inventory, SoT edge,
+  protocol registry, and live adequacy mutations are green. Coq is a declared
+  local skip because this Windows host has no prover; remote Rocq remains
+  required. The focused gate reuses the existing full-bootstrap driver, adds no
+  job, and took about 70 seconds locally after installation.
+- Grade only this exact canonical family bounded `SUBSTITUTING`; arbitrary
+  composite intents, typed `intent_execution`, public self C, and the compiler-
+  root intent/world remain open. Published predecessor `07e608c4` completed run
+  `32798240367` at 29/29 green. Preserve the unrelated `pgy-80135c2c/`
+  directory.
+- Overall remains 78%, strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36
+  ACTIVE=1`. The two new derived-fact rows change no authority state. The only
+  active next falsifier is publishing `19103024` and observing all 29 push jobs
+  green; choose the next production bypass only after that result.
 
 ## Historical self-host context - 2026-08-24 scalar routine emission memory
 

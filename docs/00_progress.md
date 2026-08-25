@@ -2,22 +2,27 @@
 
 마지막 업데이트: 2026-08-25
 
-2026-08-25 실행 갱신: checkpoint `8ee816c6`에서 one subject/action, one zone
-subject slot, one exclusive one-step intent로 이루어진 exact input program이 public
-self-host LLVM 경로를 처음으로 대체한다. 3-routine/2-declaration route receipt가
-generic classifier보다 먼저 family를 배타적으로 claim하고, admitted declaration/
-routine/expression indexes와 legacy mode/priority/phase/cleanup carriers를 하나의
-target-neutral plan으로 봉인한다. Source/AST rescan, name/output table, native retry,
-C fallback은 없다. 공식 seed-only lineage로 만든 Pergyra-built DRV-2에서 public
-self LLVM과 native LLVM이 모두 exact `true`를 실행했고, duplicate mode,
-non-canonical graph priority, zone-field/action-target drift, missing invalidation
-cleanup은 artifact 없이 실패했다. 기존 nested mode/priority parity와 전체
-component/old-path gate도 green이다. 이 exact input slice만 bounded
-`SUBSTITUTING`이며 compiler-root intent/world나 canonical composite를 승격하지
-않는다. Published baseline `e58b069b`의 run `32787388364`는 29/29 green이다.
-SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%는 유지한다.
-다음 executable RED는 `examples/composite_intent_orchestration/main.pgy`의
-`owner=scalar-program-route stage=referenced-enum`이다.
+2026-08-25 실행 갱신: checkpoint `19103024`에서 exact canonical
+`examples/composite_intent_orchestration/main.pgy` family가 public self-host LLVM
+경로를 대체한다. 이 family는 12 routines, 4 declarations, one subject, three
+zones, six mutating methods, five intents, Main으로 구성된다. 배타적 route가 scalar
+admission보다 먼저 claim하고, admitted declaration slots와 expression DAGs를
+seven-step target-neutral plan으로 봉인한다. Emitter에는 MIR/source/AST rescan이나
+fixture name table이 없다. Fresh Pergyra-built DRV-2에서 public self LLVM과 native
+LLVM은 canonical success뿐 아니라 `Reserve + 0` compensation failure도 byte-equal
+stdout을 냈고, 실패 상태는 `reserved=-1`이다. Duplicate mode, missing
+compensation, action-DAG drift, zone-slot drift는 artifact 없이 실패한다. Public
+self-host LLVM linker는 LLVM text를 스캔하지 않고 observability-capable runtime
+object를 하나의 sound default로 선택하며, stale-runtime negative도 실제 `OBS1`
+owner key를 검증한다. Legacy intent, general installed LLVM, component/removed-path,
+source inventory, SoT edge와 protocol gate가 green이다. 이 exact canonical
+family만 bounded `SUBSTITUTING`이며 arbitrary composite intent, public self C,
+compiler-root intent/world는 open이다. Published predecessor `07e608c4`의 run
+`32798240367`은 29/29 green이다. 두 derived registry row는 authority state를
+바꾸지 않으므로 SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta
+83%는 유지한다. 다음 executable falsifier는 `19103024`의 remote 29/29
+publication이며, 그 뒤에 current executable evidence로 다음 production bypass를
+선정한다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 

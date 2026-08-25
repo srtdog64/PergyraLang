@@ -12,74 +12,63 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - bounded legacy intent LLVM substitutes; composite is RED
+## Active self-host context - bounded composite intent LLVM substitutes; publication is RED
 
-- Code checkpoint `8ee816c6` replaces the public self-host LLVM rejection for
-  one exact input-language program containing one `subject`, one mutating
-  `action`, one `zone` subject slot, and one exclusive one-step `intent`.
-  Derived-fact registry repair `83a8bea3` classifies its route and graph
-  receipts as `mir.execution_graph` projections without adding an authority or
-  changing a row state. CI provisioning repair `6408bcd0` adds the already
-  required LLVM OpenMP link library to the full-bootstrap job and negative-
-  gates its removal. Before this handoff commit, `main` is one commit ahead of
-  `origin/main`; only this file and the unrelated user-owned `pgy-80135c2c/`
-  directory should be dirty. Published predecessor `e58b069b` completed push
-  run `32787388364` at 29/29 green in about 24 minutes. The new checkpoint's
-  remote publication remains RED until the provisioning repair is pushed and
-  its run is observed.
-- Closed rung objective card: objective = route that exact self-produced legacy
-  MIR to compiling/running LLVM through the public installed entrypoint;
-  priority = structural exclusive claim, admitted declaration/routine/expression
-  facts, one target-neutral plan, fail-closed malformed facts, runtime parity,
-  then patch size; fact owners = `MirMachineLayerAdmittedJsonInput`, its
-  declaration-field/routine indexes, expression graphs, and legacy intent
-  mode/priority/phase/cleanup projections; last legitimate consumer = the
-  multi-routine dispatcher before scalar/terminal three-routine classification;
-  forbidden = source/AST rescan, intent/name/output lookup tables, generic
-  three-routine reinterpretation after claim, native retry, or C fallback;
-  falsifiers = duplicate mode, non-canonical graph priority, zone-field drift,
-  action-target drift, and missing invalidation cleanup, each with no artifact.
-- `DirectMirLegacyIntentProgramRouteFact` claims only the 3-routine/2-declaration
-  family. Graph and plan owners join subject field, zone slot, action delta,
-  construction/call graphs, exact mode/priority/threshold, and rollback/
-  invalidation rows before the MIR-blind LLVM emitter. Runtime intent symbol
-  spellings now have one self-host owner shared by C observability emission and
-  this direct LLVM slice; the C consumer contains no raw `pgy_intent_*` table.
-- An official isolated `codegen_bootstrap.sh` seed-only lineage rebuilt current
-  gen2, and `self_host_compiler_build.sh` installed the Pergyra-built DRV-2 in
-  about four minutes. The initial receipt RED identified one missing explicit
-  `-> Void` on `DirectMirLegacyIntentCleanupRows`; after correction, self
-  parse/semantic/codegen check is green. Public self LLVM and native LLVM both
-  compile the committed fixture and execute exact `true`.
-- Local green evidence: `direct_mir_legacy_intent_program_llvm_owner.sh`
-  positive parity plus five no-artifact negatives; nested intent mode and
-  priority runtime parity; the complete component/old-path contract; the
-  current-source Pergyra-built driver install; and `git diff --check`. The new
-  focused gate takes about seven seconds and is attached to the existing main
-  bootstrap job and weekly/release parity invocation, reusing their driver
-  build rather than creating another matrix/job.
-- Publication sequence is explicit. Run `32794107306` found generated language
-  word inventory drift, fixed by `c2fa0054`. Run `32795059557` then found the
-  two derived-fact registry omissions, fixed by `83a8bea3`. Run `32796249525`
-  made `build-linux`, both fixed-point codegen evidence, Rocq, sanitizers,
-  Windows, macOS, and all 20 backend shards green; its sole 29th-job failure
-  was the newly wired public LLVM gate linking with `clang -lomp` while
-  `self-host-bootstrap-linux` had not installed `libomp-dev`. Repair
-  `6408bcd0` changes runner provisioning only; `self_host_ci_profile_smoke.sh`
-  now fails closed if that dependency is removed. Local CI-profile, build-
-  source-inventory, beta-readiness, documentation, progress, and SoT-edge
-  gates are green. Local formal workflow contracts are green with the 42 Coq
-  proofs explicitly skipped because this Windows host has no prover; the
-  corresponding Rocq 9 remote job in `32796249525` is green.
-- Grade only this exact input feature `SUBSTITUTING`; it does not promote the
-  compiler-root intent/world, arbitrary intent programs, typed
-  `intent_execution`, public self C, or the 12-routine composite family. Overall
-  remains 78%, strict beta 83%, and hard SoT remains `49/86 CLOSED` because no
-  registry row changed state. The next active executable falsifier is
-  `examples/composite_intent_orchestration/main.pgy`; the new driver reaches
-  LLVM projection and fails closed at
-  `owner=scalar-program-route stage=referenced-enum`. Close that reached owner/
-  last-consumer seam before any unrelated SoT or architecture work.
+- Code checkpoint `19103024` replaces the public self-host LLVM rejection for
+  the exact canonical `examples/composite_intent_orchestration/main.pgy`
+  family. It sits on published `07e608c4`; push run `32798240367` for that
+  predecessor completed 29/29 green. Before this handoff commit, local `main`
+  is one code commit ahead of `origin/main`; only progress documents and the
+  unrelated user-owned `pgy-80135c2c/` directory should be dirty. Remote
+  publication for `19103024` remains RED until its push run is observed.
+- Closed rung objective card: objective = compile and run that exact
+  self-produced composite-intent MIR through the public installed LLVM
+  entrypoint; priority = exclusive structural claim, admitted declaration and
+  expression-graph facts, one target-neutral plan, compensation and
+  observability parity, no-artifact negatives, then patch size; fact owners =
+  `MirMachineLayerAdmittedJsonInput`, its declaration/routine indexes,
+  expression DAGs, and intent carrier rows; last legitimate consumer = the
+  multi-routine dispatcher immediately before scalar admission; forbidden =
+  scalar-owner expansion, source/AST rescan, fixture/name/output lookup,
+  native retry, or C fallback; falsifiers = duplicate intent mode, missing
+  compensation carrier, action DAG drift, and zone-slot drift.
+- `DirectMirCompositeIntentProgramRouteFact` exclusively claims the exact
+  12-routine, 4-declaration family: one subject, three zones, six mutating
+  methods, five intents, and Main. The graph owner joins subject fields,
+  zone slots, method deltas, and Main DAGs. The sealed plan owns five intents,
+  seven steps, three leaf action intents, one aggregate, one root, priorities,
+  placement, compensation, and observation. Its LLVM emitter reads that plan,
+  not MIR, source, AST, or a fixture vocabulary table. A claimed malformed
+  family cannot retry the scalar route.
+- Public self LLVM and native LLVM produce byte-equal output for canonical
+  success and the `Reserve + 0` failure variant. The failure executes
+  compensation (`reserved=-1`) and preserves the exact failed history, step,
+  and trace output. All four malformed fact mutations fail without publishing
+  LLVM. The exact canonical family is therefore bounded `SUBSTITUTING`; this
+  does not promote arbitrary composite intents, typed `intent_execution`,
+  public self C, or the compiler-root intent/world.
+- The public self-host LLVM link boundary now selects the observability-capable
+  runtime object as one sound default. It never scans LLVM text. This remains a
+  bounded bridge until the artifact protocol carries a narrower typed runtime-
+  requirement receipt. The existing default-runtime LLVM gate now invalidates
+  the actual `OBS1` prebuilt key and rejects a return to the stale `OBS0` test
+  assumption.
+- Current-source local evidence is green: official seed-only bootstrap and
+  `self_host_compiler_build.sh` installed a fresh Pergyra-built DRV-2; the new
+  success/failure plus four-negative gate passed against it; the adjacent
+  legacy-intent and general installed default-runtime LLVM gates passed; the
+  complete component/removed-path contract passed; source inventory, SoT edge,
+  protocol registry, and live adequacy mutations passed. The local Coq model is
+  an explicit declared skip because this Windows host has no prover; remote
+  Rocq remains mandatory. `git diff --check` is green.
+- The new dynamic gate reuses the existing full-bootstrap driver and adds no
+  matrix or second bootstrap job. It took about 70 seconds with the installed
+  driver locally; a warmed bounded driver took 14.5 seconds. Overall remains
+  78%, strict beta remains 83%, and hard SoT remains `CLOSED=49 BRIDGE=36
+  ACTIVE=1`; the two new registry entries classify derived projections and do
+  not change an authority row state. The only active next falsifier is remote
+  publication of `19103024` with all 29 push jobs green. Select the next
+  production bypass from current executable evidence only after publication.
 
 ### Historical archive boundary
 
