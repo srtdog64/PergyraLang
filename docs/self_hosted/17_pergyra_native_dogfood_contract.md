@@ -2,6 +2,28 @@
 
 Status: `BRIDGE`
 
+## 2026-08-25 general MIR-to-C world/action evidence
+
+The production `DriverCliMirCArtifact` and pressure-observed sibling now reach
+`PgyCompilerWorld.direct_mir.execution.PublishMirCArtifact`. Their former
+installed-CLI `CompileMirJsonToCVerified[Observed] +
+SelfMirArtifactCommitPayload` orchestration is deleted and negative-gated.
+
+This does not create a mode-shaped fourth zone. General MIR-to-C and the
+direct C/LLVM backend actions both consume admitted MIR and publish a backend
+artifact, so they share one `DriverRung2Execution` subject and the existing
+`DriverRung2DirectMirZone`. A separate protocol owner carries the stable
+request/outcome identities; one shared transition admits the exact target
+artifact and consumes the typed transaction once.
+
+An isolated current-source Pergyra-built driver passes verified stdout/artifact
+byte parity, pressure-observed artifact parity and stage observation, and a
+missing-parent transaction rejection with no artifact. This is production
+`REACHABLE` orchestration dogfood, not a new `SUBSTITUTING` numerator: general
+MIR-to-C was already implemented by Pergyra, and this rung removes its last
+installed orchestration bypass rather than replacing another C-owned compiler
+implementation.
+
 ## 2026-08-25 source-to-C world/action evidence
 
 Checkpoint `a94737dd` is production `REACHABLE` dogfood evidence for installed
@@ -403,7 +425,7 @@ declaration census는 gate가 다시 생성하는 관측값이며, import surfac
 | 입력 기능의 passive/mutable nominal literal direct-MIR slice | `SUBSTITUTING` | class/object/tobject value carriage와 subject/vessel stable mutable identity가 한 route/admission 뒤 배타 plan으로 installed C/LLVM exact 12/7/13을 실행한다. 이는 compiler 조직의 vessel/action/intent grade를 올리지 않는다. |
 | 입력 기능의 `binding slot` admission/runtime slice | `SUBSTITUTING` | production self source -> admitted MIR -> general C가 exact binding constructor와 projection assignment를 실행하고 native C/LLVM parity 및 valid-ID wrong-kind negatives를 통과한다 |
 | 입력 기능의 typed intent transition MIR -> self C | v2 bounded `SUBSTITUTING`; v3 zone/observability `REACHABLE` | installed v2 Pergyra plan consumer가 old typed direct/rollback consumer를 대체한다. v3는 exact step-zone identity를 stage-0 self C/native C/LLVM까지 실행했지만 replacement DRV-2 publication은 아직 없다. compiler-root intent 증거는 아니다. |
-| `subject`, `action`, `zone`, `world` | `REACHABLE`; bounded public source-MIR stdout slice is `SUBSTITUTING` | direct-MIR, source-MIR, source-C 세 slice가 production에서 invoke되고 typed outcome이 소비된다. 그중 exact public `pgy --mir-json <source>`는 C pipeline selector를 삭제했지만, source-C world/action은 내부 orchestration reachability이며 compiler world 전체나 새 C-owned path 대체를 뜻하지 않는다. |
+| `subject`, `action`, `zone`, `world` | `REACHABLE`; bounded public source-MIR stdout slice is `SUBSTITUTING` | direct-MIR, general MIR-to-C, source-MIR, source-C 경로가 production에서 invoke되고 typed outcome이 소비된다. general MIR-to-C는 기존 `direct_mir` zone을 공유한다. Exact public `pgy --mir-json <source>`만 C pipeline selector를 삭제한 대체 증거이며, 나머지 world/action 이동은 compiler world 전체나 새 C-owned path 대체를 뜻하지 않는다. |
 | public source token dump | bounded `SUBSTITUTING` | exact `pgy --tokens <source>`가 installed `DriverCliSourceTokensStdout`와 Pergyra `LexContent`를 소비하고 native fallback을 삭제했다. Native lexer는 parity oracle의 명시적 `--native-pipeline` opt-out으로만 남으며, 이 디버그 출력 slice는 source compiler 전체 lexer/parser 대체를 뜻하지 않는다. |
 | public source AST dump | bounded `SUBSTITUTING` | exact `pgy --ast <source>`가 installed `DriverCliSourceAstStdout`와 import-composed Pergyra `ParseRootProgram`을 소비하고 native fallback을 삭제했다. Native parser는 parity oracle의 명시적 `--native-pipeline` opt-out으로만 남으며, 이 디버그 출력 slice는 source compiler 전체 parser/semantic 대체를 뜻하지 않는다. |
 | public LLVM IR file/stdout delivery | bounded `SUBSTITUTING` | exact `pgy <source> --emit-llvm [-o <output.ll>]`가 installed source-MIR와 DirectMirLlvm action을 각 한 번 소비하고 native libLLVM emitter 우회를 삭제했다. General CFG coverage는 open이다. |
@@ -421,8 +443,10 @@ self-host compiler 내부에 호출되는 `effect`/`relation` action graph가 �
 
 production declaration과 composition은 다음처럼 나뉜다.
 
-- `compiler/driver_rung2_execution_owner.pgy`: 실제 direct-MIR subject/action과
-  zone;
+- `compiler/driver_rung2_execution_protocol_owner.pgy`: direct-backend와
+  general MIR-to-C가 공유하는 request/outcome protocol;
+- `compiler/driver_rung2_execution_owner.pgy`: admitted-MIR artifact의 두 실제
+  subject action, 공통 target/transaction transition과 한 authority zone;
 - `compiler/driver_source_mir_protocol_owner.pgy`: source-to-MIR request,
   identity/schema, typed receipt/rejection, outcome validation과 diagnostic;
 - `compiler/driver_source_mir_execution_owner.pgy`: 실제 source-to-MIR
@@ -437,12 +461,13 @@ production declaration과 composition은 다음처럼 나뉜다.
   정확한 arity와 순서로 세 executable zone을 한 번 materialize하는 유일한
   composition function. 미실행 zone의 aggregate zero-fill은 금지된다.
 
-`world.pgy`의 기존 readiness action은 현재 chain에서 호출되지 않는다. 네 실제
+`world.pgy`의 기존 readiness action은 현재 chain에서 호출되지 않는다. 다섯 실제
 action만 target, pressure, source-C admission과 payload/artifact transition을
 수행한다. 따라서 world가 import됐다는
 사실이나 domain 선언 수를 C-owned compiler substitution으로 세지 않는다.
-`bin/pgy.exe src/self_hosted/compiler/world.pgy --emit-c`는 현재 exit 0이지만,
-semantic compile 성공 역시 production call-site나 대체 증거를 대신하지 않는다.
+`world.pgy` 자체는 executable `Main`을 소유하지 않아 current compiler의
+entrypoint-cardinality boundary에서 fail closed한다. Production root의 semantic C
+생성 성공도 실제 call-site나 대체 증거를 대신하지 않는다.
 
 ### 현재 action authority 증거의 세 층
 
@@ -607,8 +632,10 @@ IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
   runtime singleton이나 stable-address identity를 뜻하지 않는다.
 - resource zone과 root intent를 조합하지만 token, AST, MIR, ABI, target,
   artifact 사실을 복제하거나 재판단하지 않는다.
-- 현재 `PgyCompilerWorld`는 direct-MIR mode에서 실제 도달하지만 한 zone/action
-  slice만 조합한다. import된 다른 zone/intent를 실행 진척으로 세지 않는다.
+- 현재 `PgyCompilerWorld`는 `direct_mir`, `source_mir`, `source_c` 세 positional
+  zone을 실제 조합한다. Direct-backend와 general MIR-to-C는 같은
+  `direct_mir` zone의 두 action이다. Import된 다른 zone/intent를 실행 진척으로
+  세지 않는다.
 - C emitter world와 LLVM emitter world를 따로 만들지 않는다. 하나의
   compiler world가 동일한 MIR/type/ABI/target fact에서 두 projection을
   선택한다.
@@ -750,7 +777,10 @@ consumer다. parser, MIR, ABI, target facts의 새로운 owner가 아니다.
    실제 orchestration을 옮기고 file-helper 및 Main 직접 commit 우회를 삭제했다.
 6. **source-to-C action 확장 — green**: installed source-C compile/commit을 세 번째
    world zone의 subject action으로 옮기고 CLI 직접 orchestration 우회를 삭제했다.
-7. **intent takeover — open**: 실제 action/zone 개수만으로 승격하지 않는다.
+7. **general MIR-to-C action 확장 — green**: installed verified/observed MIR-C
+   compile/commit을 기존 direct-MIR subject/zone의 두 번째 action으로 옮기고
+   직접 orchestration 우회를 삭제했다. 모드별 네 번째 zone은 만들지 않았다.
+8. **intent takeover — open**: 실제 action/zone 개수만으로 승격하지 않는다.
    한 real-purpose binder가 participant/coordination/authority/effect/boundary/
    compensation/trace bundle과 성공/실패 의미를 소유하고 production direct
    bypass를 삭제할 때만 root intent를 entrypoint에서 호출한다.
@@ -854,6 +884,33 @@ action과 stale/source-identity negative가 통과했고 native libLLVM retry는
 따라서 이 file form도 bounded `SUBSTITUTING`으로 센다. `8bc7f525`에서 stdout도
 같은 두 action 뒤 fixed 16 KiB binary stream으로 치환됐고 file/stdout bytes가 같다.
 General LLVM CFG coverage는 아직 별도 open 경계다.
+
+## 완료된 general MIR-to-C zone/world 결속 objective card
+
+- Objective: `DriverCliMirCArtifact`와 pressure-observed sibling의 compile과
+  publication을 기존 `PgyCompilerWorld.direct_mir` subject action으로 옮기고
+  installed CLI의 직접 compile/commit을 삭제한다.
+- Priority: verified/observed artifact identity와 pressure trace, 기존 compiler
+  owner의 exact-once 선택, typed success/rejection/artifact failure, no fallback,
+  executable parity 순서다.
+- Fact owner: `CompileMirJsonToCVerified[Observed]`가 admitted MIR와 C emission
+  artifact를, `SelfMirArtifactCommitPayload`가 transaction을 계속 소유한다. 새
+  action은 typed request dispatch와 target/artifact/commit 전이만 소유한다.
+- Last legitimate consumer: `PgyCompilerWorld.PublishMirCArtifact`가
+  `direct_mir.execution.PublishMirCArtifact`를 한 번 호출하고 installed CLI가
+  typed outcome을 최종 소비한다.
+- Forbidden fallback: installed CLI의 직접 compiler/transaction 호출, Bool
+  outcome 축약, retry, source/AST rescan, mode-shaped fourth zone, second world.
+- Falsifying case: stdout/verified/observed C bytes가 갈리거나 pressure stage가
+  사라지거나, wrong artifact identity가 수용되거나 transaction rejection 뒤
+  final/temp artifact가 남는 경우다.
+- Gate: `installed_driver_cli_mode_owner.sh`,
+  `driver_rung2_execution_action_gate.sh`, atomic artifact contract,
+  compiler-world topology/component ratchet, remote full bootstrap.
+
+이 objective는 actual installed call graph에서 `OUTCOME_CONSUMED`까지 달성되어
+`REACHABLE`이다. 이미 Pergyra-owned이던 general MIR-to-C compiler 구현의 마지막
+orchestration 우회를 없앤 것이므로 hard substitution percentage는 바꾸지 않는다.
 
 ## 완료된 source-to-C zone/world 결속 objective card
 

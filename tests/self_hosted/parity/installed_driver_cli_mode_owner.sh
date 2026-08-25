@@ -116,6 +116,22 @@ tr -d '\r' <"$WORK_DIR/mir.artifact.c" >"$WORK_DIR/mir.artifact.normalized.c"
 cmp -s "$WORK_DIR/mir.stdout.normalized.c" \
     "$WORK_DIR/mir.artifact.normalized.c" ||
     fail "MIR-C stdout and artifact payloads differ"
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/source.mir.json" \
+    --observe-mir-consumer-stages -o "$WORK_REL/mir.observed.c" \
+    >"$WORK_DIR/mir-observed.out" 2>"$WORK_DIR/mir-observed.err") ||
+    fail "pressure-observed MIR-C artifact mode failed"
+[[ -s "$WORK_DIR/mir.observed.c" ]] ||
+    fail "pressure-observed MIR-C mode emitted no artifact"
+tr -d '\r' <"$WORK_DIR/mir.observed.c" >"$WORK_DIR/mir.observed.normalized.c"
+cmp -s "$WORK_DIR/mir.stdout.normalized.c" \
+    "$WORK_DIR/mir.observed.normalized.c" ||
+    fail "pressure observation changed the MIR-C artifact payload"
+for stage in 'consumer:input:start' 'consumer:input:done' \
+    'consumer:c-emission:start' 'consumer:c-emission:done'; do
+    grep -Fq -- "[driver-pressure-stage] $stage" \
+        "$WORK_DIR/mir-observed.out" "$WORK_DIR/mir-observed.err" ||
+        fail "pressure-observed MIR-C mode lost stage: $stage"
+done
 source_hash_after="$(sha256sum "$ROOT_DIR/$SOURCE_REL" | awk '{print $1}')"
 [[ "$source_hash_before" == "$source_hash_after" ]] ||
     fail "stdout mode overwrote its source operand"
@@ -150,6 +166,10 @@ missing_source_output_rc=$?
     >"$WORK_DIR/missing-mir-output.out" \
     2>"$WORK_DIR/missing-mir-output.err")
 missing_mir_output_rc=$?
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/source.mir.json" \
+    -o "$WORK_REL/mir-c-missing-parent/out.c" \
+    >"$WORK_DIR/rejected-mir-c.out" 2>"$WORK_DIR/rejected-mir-c.err")
+rejected_mir_c_rc=$?
 (cd "$ROOT_DIR" && "$DRIVER" >"$WORK_DIR/empty.out" 2>"$WORK_DIR/empty.err")
 empty_rc=$?
 set -e
@@ -183,14 +203,20 @@ grep -Fq 'MIR C mode requires' "$WORK_DIR/legacy-mir-c.out" ||
     fail "source-MIR -o accepted a missing output"
 [[ "$missing_mir_output_rc" -ne 0 ]] ||
     fail "MIR-C -o accepted a missing output"
+[[ "$rejected_mir_c_rc" -ne 0 && \
+    ! -e "$WORK_DIR/mir-c-missing-parent/out.c" ]] ||
+    fail "MIR-C transaction rejection published an artifact"
+grep -Fq 'artifact transaction rejected:' \
+    "$WORK_DIR/rejected-mir-c.out" "$WORK_DIR/rejected-mir-c.err" ||
+    fail "MIR-C transaction rejection lost its typed diagnostic"
 [[ "$empty_rc" -ne 0 ]] || fail "empty argv recovered an implicit source"
 grep -Fq 'requires an explicit source or mode' "$WORK_DIR/empty.out" ||
     fail "empty argv rejection lost its owned diagnostic"
 
-for artifact in artifact.c source.artifact.mir.json mir.artifact.c; do
+for artifact in artifact.c source.artifact.mir.json mir.artifact.c mir.observed.c; do
     if compgen -G "$WORK_DIR/$artifact.pgy-tmp-*" >/dev/null; then
         fail "$artifact left a temporary publication"
     fi
 done
 
-echo "[self-host-installed-cli-mode] one typed argv owner keeps source-C, source-MIR, and MIR-C stdout/artifact effects disjoint"
+echo "[self-host-installed-cli-mode] one typed argv owner keeps source-C, source-MIR, and MIR-C stdout/artifact effects disjoint; MIR-C world/action pressure and transaction rejection pass"

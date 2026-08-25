@@ -173,12 +173,14 @@ zone-bound handle, complete consumer migration, old-path deletion, and a
 missing-child negative gate land together. They must not be implemented as a
 second aggregate owner.
 
-The bounded executable topology currently has two ordered members:
-`direct_mir: DriverRung2DirectMirZone` and
-`source_mir: DriverSourceMirZone`. The sole composition owner materializes both
-once. Production `Main` reaches their actions and consumes typed outcomes; it
-does not directly call a backend/source-MIR producer or commit the migrated
-artifact. The exact public `pgy --mir-json <source>` request now makes the
+The bounded executable topology currently has three ordered members:
+`direct_mir: DriverRung2DirectMirZone`, `source_mir: DriverSourceMirZone`, and
+`source_c: DriverSourceCZone`. The sole composition owner materializes all
+three once. Production `Main` reaches their actions and consumes typed
+outcomes; it does not directly call a migrated backend/source producer or
+commit its artifact. Both direct-backend publication and general MIR-to-C
+publication share the existing `direct_mir` authority/lifetime boundary; a CLI
+mode does not create a fourth zone. The exact public `pgy --mir-json <source>` request now makes the
 `source_mir` stdout slice `SUBSTITUTING`: `pgy_driver.c` selects the installed
 Pergyra-built sibling before `driver_run_pipeline`, and missing/unsupported
 requests fail without native retry. This does not make the whole world or every

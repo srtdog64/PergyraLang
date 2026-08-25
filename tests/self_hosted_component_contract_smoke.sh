@@ -16003,7 +16003,7 @@ require_file "tests/self_hosted/parity/driver_rung2_execution_action_gate.sh"
 require_max_lines \
     "tests/self_hosted/parity/driver_rung2_execution_action_gate.sh" 105
 require_text "tests/self_hosted/parity/driver_rung2_execution_action_gate.sh" \
-    '# Owns the reachable direct-MIR action boundary and its no-bypass ratchet.'
+    '# Structural ratchet for the reachable MIR execution actions and their one'
 require_text "tests/self_hosted/parity/driver_rung2_execution_action_gate.sh" \
     'pgy_selfhost_assert_driver_rung2_execution_action()'
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
@@ -22912,6 +22912,13 @@ require_text \
 require_file "src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" 190
+require_file "src/self_hosted/compiler/driver_rung2_execution_protocol_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_rung2_execution_protocol_owner.pgy" 130
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" \
+    'import "driver_rung2_execution_protocol_owner.pgy";'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/compiler/driver_rung2_execution_protocol_owner.pgy'
 require_file "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" 260
@@ -22961,6 +22968,8 @@ require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func EmitDirectMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+    'func PublishMirCArtifactThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'let compiler_world: PgyCompilerWorld = PgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func ProduceSourceMirThroughPgyCompilerWorld('
@@ -22973,11 +22982,21 @@ require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'EmitDirectMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    'PublishMirCArtifactThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'PublishSourceMirArtifactThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'PublishSourceCArtifactThroughPgyCompilerWorld('
 reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'DriverRung2InstalledCommitSourceC'
+reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    'DriverRung2InstalledCommitMirC'
+reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    'CompileMirJsonToCVerified('
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" \
+    'action PublishMirCArtifact('
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" \
+    'func DriverRung2CommitArtifactForTarget('
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--mir-json-backend=c"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \

@@ -215,7 +215,13 @@ require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "act
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "CompileSourceToCVerified("
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "SelfMirArtifactCommitPayload("
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args[0] == "--mir-json"'
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileMirJsonToCVerified("
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "PublishMirCArtifactThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" "action PublishMirCArtifact("
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" "CompileMirJsonToCVerified("
+require_text "src/self_hosted/compiler/driver_rung2_execution_owner.pgy" "CompileMirJsonToCVerifiedObserved("
+forbid_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileMirJsonToCVerified("
+forbid_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "SelfMirArtifactCommitPayload("
+forbid_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "DriverRung2InstalledCommitMirC"
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileMirJsonToCVerified("
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCArtifact"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "driver_pipeline_owner.pgy";'

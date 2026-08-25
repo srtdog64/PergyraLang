@@ -140,8 +140,6 @@ compiler_world_count="$(
 
 for owner_term in \
     "$EXECUTION|public zone DriverRung2DirectMirZone" \
-    "$EXECUTION|within DriverRung2DirectMirZone" \
-    "$EXECUTION|authorized by self" \
     "$EXECUTION|subject slot execution: DriverRung2Execution" \
     "$EXECUTION|authority execution" \
     "$SOURCE_EXECUTION|public zone DriverSourceMirZone" \
@@ -156,12 +154,14 @@ for owner_term in \
     "$WORLD|zone source_mir: DriverSourceMirZone" \
     "$WORLD|zone source_c: DriverSourceCZone" \
     "$WORLD|return self.direct_mir.execution.EmitDirectMir(" \
+    "$WORLD|return self.direct_mir.execution.PublishMirCArtifact(" \
     "$WORLD|return self.source_mir.execution.ProduceSourceMir(" \
     "$WORLD|return self.source_mir.execution.PublishSourceMirArtifact(" \
     "$WORLD|return self.source_c.execution.PublishSourceCArtifact(" \
     "$COMPOSITION|import \"world.pgy\";" \
     "$COMPOSITION|func PgyCompilerWorldMaterializeExecutableZones()" \
     "$COMPOSITION|func EmitDirectMirThroughPgyCompilerWorld(" \
+    "$COMPOSITION|func PublishMirCArtifactThroughPgyCompilerWorld(" \
     "$COMPOSITION|func ProduceSourceMirThroughPgyCompilerWorld(" \
     "$COMPOSITION|func PublishSourceMirArtifactThroughPgyCompilerWorld(" \
     "$COMPOSITION|func PublishSourceCArtifactThroughPgyCompilerWorld(" \
@@ -169,12 +169,14 @@ for owner_term in \
     "$COMPOSITION|DriverSourceMirZone(" \
     "$COMPOSITION|DriverSourceCZone(" \
     "$COMPOSITION|return compiler_world.EmitDirectMir(" \
+    "$COMPOSITION|return compiler_world.PublishMirCArtifact(" \
     "$COMPOSITION|return compiler_world.ProduceSourceMir(" \
     "$COMPOSITION|return compiler_world.PublishSourceMirArtifact(" \
     "$COMPOSITION|return compiler_world.PublishSourceCArtifact(" \
     "$MAIN|import \"driver_rung2_installed_cli_owner.pgy\";" \
     "$MAIN|DriverRung2ExecuteInstalledRequest(request);" \
     "$INSTALLED|EmitDirectMirThroughPgyCompilerWorld(" \
+    "$INSTALLED|PublishMirCArtifactThroughPgyCompilerWorld(" \
     "$INSTALLED|PublishSourceMirArtifactThroughPgyCompilerWorld(" \
     "$INSTALLED|PublishSourceCArtifactThroughPgyCompilerWorld("; do
     owner="${owner_term%%|*}"
@@ -183,6 +185,10 @@ for owner_term in \
         fail "direct-MIR topology fact must occur exactly once: $term"
 done
 
+[[ "$(grep -F -c -- 'within DriverRung2DirectMirZone' "$EXECUTION")" -eq 2 ]] ||
+    fail "direct-MIR subject must expose exactly two zone-bound artifact actions"
+[[ "$(grep -F -c -- 'authorized by self' "$EXECUTION")" -eq 2 ]] ||
+    fail "both direct-MIR artifact actions must retain subject authority"
 [[ "$(grep -F -c -- 'within DriverSourceMirZone' "$SOURCE_EXECUTION")" -eq 2 ]] ||
     fail "source-MIR subject must expose exactly two zone-bound publication actions"
 [[ "$(grep -F -c -- 'authorized by self' "$SOURCE_EXECUTION")" -eq 2 ]] ||
@@ -193,6 +199,7 @@ if grep -Fq -- 'import "driver_rung2_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "driver_source_c_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "world.pgy";' "$MAIN" ||
     grep -Fq -- '.EmitDirectMir(' "$MAIN" ||
+    grep -Fq -- '.PublishMirCArtifact(' "$MAIN" ||
     grep -Fq -- '.ProduceSourceMir(' "$MAIN" ||
     grep -Fq -- '.PublishSourceMirArtifact(' "$MAIN" ||
     grep -Fq -- '.PublishSourceCArtifact(' "$MAIN"; then

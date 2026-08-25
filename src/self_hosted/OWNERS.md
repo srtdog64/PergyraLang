@@ -2115,11 +2115,15 @@ inventory must not become a second fact-family owner registry.
   AIR, libLLVM, or artifact-derived runtime policy. The LLVM leg consumes the
   canonical external runtime object owned by `compiler_runtime_cache.c` and
   cannot claim projection identity.
+- `src/self_hosted/compiler/driver_rung2_execution_protocol_owner.pgy` --
+  stable request, target, receipt, rejection, and artifact-failure protocol
+  shared by the direct-backend and general MIR-to-C execution actions. It owns
+  no compilation, artifact write, or world composition.
 - `src/self_hosted/compiler/driver_rung2_execution_owner.pgy` -- reachable
-  identity-bearing action boundary for the direct-MIR rung. It owns request-
-  to-target admission, exact emitted-artifact acceptance, output write, and
-  execution stage/result facts plus the one-subject direct-MIR authority zone,
-  while reusing the existing typed MIR and backend owners unchanged.
+  identity-bearing action boundary for admitted-MIR artifact publication. Its
+  direct-backend and general MIR-to-C actions share one target acceptance and
+  atomic commit transition inside the existing one-subject direct-MIR authority
+  zone, while the typed MIR and backend owners remain unchanged.
 - `src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy` -- source-to-
   MIR request, identity/schema, detached payload/artifact receipt, rejection,
   outcome validation, and diagnostic protocol. It owns no compilation,
@@ -3897,8 +3901,8 @@ inventory must not become a second fact-family owner registry.
   probe requests. Artifact variants fail before reads.
 - `src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy` -- installed
   artifact-effect executor. It delegates read variants to the read owner and
-  publishes only typed artifact variants through the compiler-world and atomic
-  transaction owners.
+  publishes only typed artifact variants through compiler-world actions. It
+  owns no direct compiler call or atomic transaction transition.
 - `src/compiler/driver_self_host_llvm_selection_owner.c` -- native public LLVM
   request admission adapter. It distinguishes plain binary and exact file-form
   IR requests but owns no source, MIR, or backend fact.

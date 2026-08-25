@@ -20,7 +20,6 @@ func DriverRung2InstalledPublishSourceC(
         Exit(1);
     }
 }
-
 func DriverRung2InstalledPublishSourceMir(
     source_path: String,
     output_path: String,
@@ -40,26 +39,24 @@ func DriverRung2InstalledPublishSourceMir(
         Exit(1);
     }
 }
-
-func DriverRung2InstalledCommitMirC(
+func DriverRung2InstalledPublishMirC(
     input_path: String,
     output_path: String,
-    observe_pressure: Bool
+    mir_c_request: DriverRung2MirCRequest
 ) -> Void with caps io_read, io_write {
-    let payload: String = "";
-    if observe_pressure {
-        payload = CompileMirJsonToCVerifiedObserved(
-            input_path, SelfHostMachineLayerDeclarationEmpty()
-        ).payload;
-    } else {
-        payload = CompileMirJsonToCVerified(
-            input_path, SelfHostMachineLayerDeclarationEmpty()
-        ).payload;
-    }
-    let committed: SelfMirArtifactCommitOutcome =
-        SelfMirArtifactCommitPayload(output_path, payload);
-    if !SelfMirArtifactCommitOutcomeReady(committed) {
-        Die("MIR compiler artifact transaction failed");
+    let outcome: DriverRung2ExecutionOutcome =
+        PublishMirCArtifactThroughPgyCompilerWorld(
+            input_path, output_path,
+            SelfHostMachineLayerDeclarationEmpty(), mir_c_request
+        );
+    let projection: String = CompilerTargetCpuCProjection();
+    if !DriverRung2ExecutionOutcomeReadyFor(
+        outcome, output_path, projection
+    ) {
+        Log(DriverRung2ExecutionOutcomeDiagnostic(
+            outcome, output_path, projection
+        ));
+        Exit(1);
     }
 }
 
@@ -112,9 +109,13 @@ func DriverRung2ExecuteInstalledRequest(
                 source_path, output_path, SourceMirPressureObserved
             );
         case DriverCliMirCArtifact(input_path, output_path):
-            DriverRung2InstalledCommitMirC(input_path, output_path, false);
+            DriverRung2InstalledPublishMirC(
+                input_path, output_path, MirCVerified
+            );
         case DriverCliMirCObservedArtifact(input_path, output_path):
-            DriverRung2InstalledCommitMirC(input_path, output_path, true);
+            DriverRung2InstalledPublishMirC(
+                input_path, output_path, MirCPressureObserved
+            );
         case DriverCliDirectMirCArtifact(input_path, output_path):
             DriverRung2InstalledPublishDirectMir(
                 input_path, output_path, DirectMirC, false

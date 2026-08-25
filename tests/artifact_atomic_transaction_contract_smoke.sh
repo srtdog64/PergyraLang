@@ -6,7 +6,8 @@
 # failure_tag_only, outcome_bool_collapse_before_last_consumer,
 # receipt_as_authority_or_projection_source, unknown_failure_status,
 # known_wrong_target_projection, source_mir_main_direct_commit,
-# source_mir_file_helper_fallback, source_c_installed_direct_compile_commit.
+# source_mir_file_helper_fallback, source_c_installed_direct_compile_commit,
+# mir_c_installed_direct_compile_commit.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,6 +18,7 @@ TX_OWNER="$ROOT_DIR/src/self_hosted/mir/artifact_transaction_owner.pgy"
 JSON_EMIT="$ROOT_DIR/src/self_hosted/lib/json_emit.pgy"
 DRIVER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 ACTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+ACTION_PROTOCOL="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_execution_protocol_owner.pgy"
 SOURCE_MIR_ACTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 CLI="$ROOT_DIR/src/self_hosted/compiler/driver_cli_owner.pgy"
@@ -27,7 +29,7 @@ INSTALLED_CLI="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_own
 SOURCE_C_ACTION_GATE="$ROOT_DIR/tests/self_hosted/parity/driver_source_c_execution_action_gate.sh"
 
 for path in "$CORE" "$WRITER" "$INSTRUCTION_WRITER" "$TX_OWNER" "$JSON_EMIT" \
-    "$DRIVER" "$ACTION" "$SOURCE_MIR_ACTION" "$MAIN" "$CLI" "$REQUEST" "$SOURCE_ACTION_GATE" \
+    "$DRIVER" "$ACTION" "$ACTION_PROTOCOL" "$SOURCE_MIR_ACTION" "$MAIN" "$CLI" "$REQUEST" "$SOURCE_ACTION_GATE" \
     "$SOURCE_C_ACTION" "$INSTALLED_CLI" "$SOURCE_C_ACTION_GATE"; do
     [[ -f "$path" ]] || { echo "missing artifact transaction owner: $path" >&2; exit 1; }
 done
@@ -93,7 +95,7 @@ if grep -Fq 'SelfMirProgramJsonWriteFile(projection.facts' "$DRIVER"; then
     echo "production source-to-MIR path reintroduced the validating wrapper" >&2
     exit 1
 fi
-grep -Fq 'DriverRung2Executed(DriverRung2ExecutionReceipt)' "$ACTION"
+grep -Fq 'DriverRung2Executed(DriverRung2ExecutionReceipt)' "$ACTION_PROTOCOL"
 for term in 'match committed {' 'case SelfMirArtifactCommitted(receipt):' \
     'SelfMirArtifactReceiptReadyFor(receipt, output_path)' \
     'case SelfMirArtifactRejected(failure):' \
@@ -127,6 +129,15 @@ grep -Fq 'PublishSourceCArtifactThroughPgyCompilerWorld(' "$INSTALLED_CLI" || {
 source_c_publish="$(awk '/^func DriverRung2InstalledPublishSourceC\(/{inside=1} inside{print} inside && /^}/{exit}' "$INSTALLED_CLI")"
 if grep -Eq 'CompileSourceToCVerified\(|SelfMirArtifactCommitPayload\(' <<<"$source_c_publish"; then
     echo "source-C installed direct compile/commit bypass returned" >&2
+    exit 1
+fi
+grep -Fq 'PublishMirCArtifactThroughPgyCompilerWorld(' "$INSTALLED_CLI" || {
+    echo "installed CLI lost the MIR-C world/action boundary" >&2
+    exit 1
+}
+mir_c_publish="$(awk '/^func DriverRung2InstalledPublishMirC\(/{inside=1} inside{print} inside && /^}/{exit}' "$INSTALLED_CLI")"
+if grep -Eq 'CompileMirJsonToCVerified(Observed)?\(|SelfMirArtifactCommitPayload\(' <<<"$mir_c_publish"; then
+    echo "MIR-C installed direct compile/commit bypass returned" >&2
     exit 1
 fi
 

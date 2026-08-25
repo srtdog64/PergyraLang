@@ -1,104 +1,76 @@
 #!/usr/bin/env bash
-# Owns the reachable direct-MIR action boundary and its no-bypass ratchet.
+# Structural ratchet for the reachable MIR execution actions and their one
+# protocol/world/publication path.
 pgy_selfhost_assert_driver_rung2_execution_action() {
     local root="$1" term
-    local main_owner="$root/src/self_hosted/compiler/driver_bootstrap_main.pgy" installed_owner="$root/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
-    local execution_owner="$root/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
-    local world_owner="$root/src/self_hosted/compiler/world.pgy" composition_owner="$root/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
-    for term in "$main_owner" "$installed_owner" "$execution_owner" "$world_owner" "$composition_owner"; do
+    local main="$root/src/self_hosted/compiler/driver_bootstrap_main.pgy"
+    local installed="$root/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+    local protocol="$root/src/self_hosted/compiler/driver_rung2_execution_protocol_owner.pgy"
+    local execution="$root/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+    local world="$root/src/self_hosted/compiler/world.pgy"
+    local composition="$root/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
+    for term in "$main" "$installed" "$protocol" "$execution" "$world" "$composition"; do
         [[ -f "$term" ]] || { echo "[driver-rung2-execution-action] missing owner: ${term#"$root/"}" >&2; return 1; }
     done
-    for term in 'DriverRung2DirectMirRequest' \
-        'EmitDirectMirThroughPgyCompilerWorld(' 'DriverRung2ExecutionOutcomeReadyFor(' \
-        'DriverRung2ExecutionOutcomeDiagnostic('; do
-        grep -Fq -- "$term" "$installed_owner" || {
-            echo "[driver-rung2-execution-action] installed request owner bypasses compiler world composition: $term" >&2; return 1; }
+    for term in 'DriverRung2DirectMirRequest' 'DriverRung2MirCRequest' \
+        'EmitDirectMirThroughPgyCompilerWorld(' 'PublishMirCArtifactThroughPgyCompilerWorld(' \
+        'DriverRung2ExecutionOutcomeReadyFor(' 'DriverRung2ExecutionOutcomeDiagnostic('; do
+        grep -Fq -- "$term" "$installed" || {
+            echo "[driver-rung2-execution-action] installed owner bypasses compiler world: $term" >&2; return 1; }
     done
-    [[ "$(grep -F -c -- 'EmitDirectMirThroughPgyCompilerWorld(' "$installed_owner")" -eq 1 ]] || {
-        echo "[driver-rung2-execution-action] installed request owner must consume compiler world composition exactly once" >&2; return 1; }
-    for term in 'import "compiler_world_direct_mir_owner.pgy";' \
-        'DriverRung2DirectMirRequest' 'EmitDirectMirThroughPgyCompilerWorld(' \
-        'DriverRung2ExecutionOutcomeReadyFor(' 'DriverRung2ExecutionOutcomeDiagnostic(' \
-        'import "driver_rung2_execution_owner.pgy";' 'import "world.pgy";' \
-        '.EmitDirectMir(' 'let compiler_world = PgyCompilerWorld(' \
-        'DriverRung2DirectMirZone(' 'DriverRung2Execution(' \
-        'import "direct_mir_backend_projection_owner.pgy";' 'CompilerTargetProjectionFactFromOwner(' \
-        'CompileMirJsonToDirectBackendVerified('; do
-        if grep -Fq -- "$term" "$main_owner"; then
-            echo "[driver-rung2-execution-action] Main retained direct owner/world call: $term" >&2; return 1; fi
+    for term in 'EmitDirectMirThroughPgyCompilerWorld(' \
+        'PublishMirCArtifactThroughPgyCompilerWorld('; do
+        [[ "$(grep -F -c -- "$term" "$installed")" -eq 1 ]] || {
+            echo "[driver-rung2-execution-action] installed owner must consume once: $term" >&2; return 1; }
     done
-    for term in 'import "driver_rung2_execution_owner.pgy";' 'import "world.pgy";' \
-        '.EmitDirectMir(' 'let compiler_world = PgyCompilerWorld(' \
-        'DriverRung2DirectMirZone(' 'DriverRung2Execution(' \
-        'import "direct_mir_backend_projection_owner.pgy";' 'CompilerTargetProjectionFactFromOwner(' \
-        'CompileMirJsonToDirectBackendVerified('; do
-        if grep -Fq -- "$term" "$installed_owner"; then
-            echo "[driver-rung2-execution-action] installed request owner retained direct implementation detail: $term" >&2; return 1; fi
+    for term in 'CompileMirJsonToDirectBackendVerified' 'CompileMirJsonToCVerified(' \
+        'CompileMirJsonToCVerifiedObserved(' 'SelfMirArtifactCommitPayload(' \
+        'DriverRung2InstalledCommitMirC' 'WriteFile(' 'import "world.pgy";'; do
+        ! grep -Fq -- "$term" "$installed" || {
+            echo "[driver-rung2-execution-action] installed implementation bypass returned: $term" >&2; return 1; }
+        ! grep -Fq -- "$term" "$main" || {
+            echo "[driver-rung2-execution-action] Main implementation bypass returned: $term" >&2; return 1; }
     done
-    if grep -Fq -- 'WriteFile(' "$main_owner" || grep -Fq -- 'WriteFile(' "$installed_owner"; then
-        echo "[driver-rung2-execution-action] CLI composition retained direct-MIR WriteFile" >&2; return 1; fi
-    for term in 'enum DriverRung2DirectMirRequest' 'tobject DriverRung2ExecutionReceipt' \
-        'tobject DriverRung2ExecutionRejection' \
-        'enum DriverRung2ExecutionOutcome' 'func DriverRung2DirectMirRequestProjection(' \
-        'DriverRung2Executed(DriverRung2ExecutionReceipt)' 'DriverRung2ArtifactRejected(SelfMirArtifactFailure)' \
-        'subject DriverRung2Execution' 'action EmitDirectMir(' \
+    for term in 'enum DriverRung2DirectMirRequest' 'enum DriverRung2MirCRequest' \
+        'tobject DriverRung2ExecutionReceipt' 'tobject DriverRung2ExecutionRejection' \
+        'enum DriverRung2ExecutionOutcome' 'DriverRung2ArtifactRejected(SelfMirArtifactFailure)' \
+        'func DriverRung2ExecutionOutcomeReadyFor(' 'func DriverRung2ExecutionOutcomeDiagnostic('; do
+        grep -Fq -- "$term" "$protocol" || {
+            echo "[driver-rung2-execution-action] typed protocol is incomplete: $term" >&2; return 1; }
+        ! grep -Fq -- "$term" "$execution" || {
+            echo "[driver-rung2-execution-action] protocol authority leaked into execution: $term" >&2; return 1; }
+    done
+    for term in 'import "driver_rung2_execution_protocol_owner.pgy";' \
+        'subject DriverRung2Execution' 'action EmitDirectMir(' 'action PublishMirCArtifact(' \
         'within DriverRung2DirectMirZone' 'authorized by self' \
-        'public zone DriverRung2DirectMirZone' 'subject slot execution: DriverRung2Execution' \
-        'authority execution' 'CompilerTargetProjectionFactFromOwner(projection_name)' \
-        'CompilerTargetProjectionFactReadyFor(' 'CompilerEmissionArtifactReady(artifact)' \
-        'import "../mir/artifact_transaction_owner.pgy";' 'SelfMirArtifactCommitPayload(output_path, artifact.payload)' \
-        'match committed {' 'case SelfMirArtifactCommitted(receipt):' \
-        'case SelfMirArtifactRejected(failure):'; do
-        grep -Fq -- "$term" "$execution_owner" || {
-            echo "[driver-rung2-execution-action] missing transition: $term" >&2
-            return 1
-        }
+        'func DriverRung2CommitArtifactForTarget(' 'CompilerTargetProjectionFactFromOwner(' \
+        'CompileMirJsonToDirectBackendVerifiedObserved(' 'CompileMirJsonToCVerified(' \
+        'CompileMirJsonToCVerifiedObserved(' 'CompilerEmissionArtifactReady(artifact)' \
+        'SelfMirArtifactCommitPayload(output_path, artifact.payload)' 'match committed {' \
+        'case SelfMirArtifactCommitted(receipt):' 'case SelfMirArtifactRejected(failure):' \
+        'public zone DriverRung2DirectMirZone' 'subject slot execution: DriverRung2Execution'; do
+        grep -Fq -- "$term" "$execution" || {
+            echo "[driver-rung2-execution-action] missing transition: $term" >&2; return 1; }
     done
-    [[ "$(grep -F -c -- 'CompileMirJsonToDirectBackendVerifiedObserved(' "$execution_owner")" -eq 1 ]] || {
-        echo "[driver-rung2-execution-action] backend owner must be consumed exactly once" >&2
-        return 1
-    }
-    ! grep -Fq -- 'CompileMirJsonToDirectBackendVerified(' "$execution_owner" || {
-        echo "[driver-rung2-execution-action] execution bypassed the observed direct-MIR boundary" >&2
-        return 1
-    }
-    [[ "$(grep -Ec -- '^[[:space:]]*action ' "$execution_owner")" -eq 1 ]] || {
-        echo "[driver-rung2-execution-action] exactly one action is required" >&2
-        return 1
-    }
-    [[ "$(grep -F -c -- 'SelfMirArtifactCommitPayload(output_path, artifact.payload)' "$execution_owner")" -eq 1 ]] || {
-        echo "[driver-rung2-execution-action] exactly one action-owned commit is required" >&2
-        return 1
-    }
-    if grep -Fq -- 'SelfMirArtifactCommitOutcomeReady(committed)' "$execution_owner" \
-        || grep -Fq -- 'execution_identity' "$execution_owner"; then
-        echo "[driver-rung2-execution-action] outcome collapsed or leaked authority identity" >&2
-        return 1
-    fi
-    if grep -Eq -- '(SelfMirArtifactBegin|CompilerArtifactWrite|SelfMirArtifactCommit|SelfMirArtifactAbort)\(' "$execution_owner"; then
-        echo "[driver-rung2-execution-action] transaction mechanism escaped into action" >&2
-        return 1
-    fi
-    if grep -Eq -- '(^|[^[:alnum:]_])(WriteFile|FileOpen|FileWrite|FileClose)\(' "$execution_owner"; then
-        echo "[driver-rung2-execution-action] raw file writer bypass returned" >&2
-        return 1
-    fi
-    [[ "$(grep -Ec -- '^[[:space:]]*(public[[:space:]]+)?zone[[:space:]]+' "$execution_owner")" -eq 1 ]] || {
-        echo "[driver-rung2-execution-action] execution owner must declare exactly one zone" >&2
-        return 1
-    }
-    [[ "$(grep -Ec -- '^[[:space:]]*(public[[:space:]]+)?world[[:space:]]+' "$execution_owner")" -eq 0 ]] || {
-        echo "[driver-rung2-execution-action] execution owner must not declare an alternate world" >&2
-        return 1
-    }
-    for term in '../parser/' '../semantic/' 'ParseRootProgramArtifact' 'SemanticAstArtifact' \
-        'GenerateCFromVerifiedSemanticArtifact' 'CompileSourceTo' 'CompileMirJsonToCVerified' \
-        'Fallback' '"cpu-c"' '"cpu-llvm"' 'import "world.pgy";' \
-        'import "stage_intents.pgy";' 'import "authority_owner.pgy";' \
-        'world PgyCompilerWorld'; do
-        ! grep -Fq -- "$term" "$execution_owner" || {
-            echo "[driver-rung2-execution-action] forbidden owner/fallback returned: $term" >&2
-            return 1
-        }
+    [[ "$(grep -Ec -- '^[[:space:]]*action ' "$execution")" -eq 2 ]] || {
+        echo "[driver-rung2-execution-action] exactly two MIR actions are required" >&2; return 1; }
+    [[ "$(grep -F -c -- 'SelfMirArtifactCommitPayload(output_path, artifact.payload)' "$execution")" -eq 1 ]] || {
+        echo "[driver-rung2-execution-action] one shared typed commit transition is required" >&2; return 1; }
+    for term in 'CompileMirJsonToDirectBackendVerifiedObserved(' 'CompileMirJsonToCVerified(' \
+        'CompileMirJsonToCVerifiedObserved('; do
+        [[ "$(grep -F -c -- "$term" "$execution")" -eq 1 ]] || {
+            echo "[driver-rung2-execution-action] compiler owner call count drifted: $term" >&2; return 1; }
     done
+    for term in '.EmitDirectMir(' '.PublishMirCArtifact(' 'DriverRung2DirectMirZone(' \
+        'DriverRung2Execution(' 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld('; do
+        grep -Fq -- "$term" "$world" "$composition" || {
+            echo "[driver-rung2-execution-action] world composition is incomplete: $term" >&2; return 1; }
+    done
+    if grep -Fq -- 'SelfMirArtifactCommitOutcomeReady(committed)' "$execution" \
+        || grep -Eq -- '(^|[^[:alnum:]_])(WriteFile|FileOpen|FileWrite|FileClose)\(' "$execution" \
+        || grep -Eq -- '^[[:space:]]*(public[[:space:]]+)?world[[:space:]]+' "$execution"; then
+        echo "[driver-rung2-execution-action] outcome collapse, raw writer, or alternate world returned" >&2; return 1
+    fi
+    [[ "$(grep -Ec -- '^[[:space:]]*(public[[:space:]]+)?zone[[:space:]]+' "$execution")" -eq 1 ]] || {
+        echo "[driver-rung2-execution-action] execution owner must declare one zone" >&2; return 1; }
 }

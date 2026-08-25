@@ -286,28 +286,31 @@ world PgyCompilerWorld {
         machine_declaration: SelfHostMachineLayerDeclaration, request: DriverRung2DirectMirRequest,
         observe_pressure: Bool
     ) -> DriverRung2ExecutionOutcome with caps io_read, io_write {
-        return self.direct_mir.execution.EmitDirectMir(mir_json_path, output_path,
-            machine_declaration, request, observe_pressure);
+        return self.direct_mir.execution.EmitDirectMir(mir_json_path,
+            output_path, machine_declaration, request, observe_pressure);
     }
 
-    func ProduceSourceMir(
-        self, source_path: String,
+    func PublishMirCArtifact(self, mir_json_path: String, output_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration, request: DriverRung2MirCRequest
+    ) -> DriverRung2ExecutionOutcome with caps io_read, io_write {
+        return self.direct_mir.execution.PublishMirCArtifact(mir_json_path,
+            output_path, machine_declaration, request);
+    }
+    func ProduceSourceMir(self, source_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration, request: DriverSourceMirRequest
     ) -> DriverSourceMirExecutionOutcome with caps io_read {
         return self.source_mir.execution.ProduceSourceMir(source_path,
             machine_declaration, request);
     }
 
-    func PublishSourceMirArtifact(
-        self, source_path: String, output_path: String,
+    func PublishSourceMirArtifact(self, source_path: String, output_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration, request: DriverSourceMirRequest
     ) -> DriverSourceMirExecutionOutcome with caps io_read, io_write {
         return self.source_mir.execution.PublishSourceMirArtifact(source_path,
             output_path, machine_declaration, request);
     }
 
-    func PublishSourceCArtifact(
-        self, source_path: String, output_path: String,
+    func PublishSourceCArtifact(self, source_path: String, output_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration
     ) -> DriverSourceCExecutionOutcome with caps io_read, io_write {
         return self.source_c.execution.PublishSourceCArtifact(source_path,

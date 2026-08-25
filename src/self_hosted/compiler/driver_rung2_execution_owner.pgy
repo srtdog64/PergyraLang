@@ -1,102 +1,67 @@
-// Reachable direct-MIR action boundary: typed MIR/backend owners keep semantic
-// authority; this subject owns admission, artifact acceptance, and completion.
+// Reachable MIR execution action boundary. Typed compiler owners retain
+// semantic authority; this subject owns admission and atomic publication.
 
+import "driver_rung2_execution_protocol_owner.pgy";
+import "driver_rung2_owner.pgy";
 import "direct_mir_backend_projection_owner.pgy";
-import "target_projection_fact_owner.pgy";
 import "../mir/artifact_transaction_owner.pgy";
 
-enum DriverRung2DirectMirRequest {
-    DirectMirC,
-    DirectMirLlvm,
-}
-
-tobject DriverRung2ExecutionReceipt {
-    schema: String;
-    target_projection: String;
-    final_path: String;
-    atomic_visibility: Bool;
-    crash_durable: Bool;
-}
-
-tobject DriverRung2ExecutionRejection {
-    schema: String;
-    target_projection: String;
-    diagnostic: String;
-}
-
-enum DriverRung2ExecutionOutcome {
-    DriverRung2Executed(DriverRung2ExecutionReceipt),
-    DriverRung2Rejected(DriverRung2ExecutionRejection),
-    DriverRung2ArtifactRejected(SelfMirArtifactFailure),
-}
-
-func DriverRung2ExecutionOwnerIdentity() -> String {
-    return "driver-rung2-direct-mir-execution";
-}
-
-func DriverRung2ExecutionOutcomeSchema() -> String {
-    return "pgy.driver-rung2-execution-outcome.v1";
-}
-
-func DriverRung2DirectMirRequestProjection(
-    request: DriverRung2DirectMirRequest
-) -> String {
-    match request {
-        case DirectMirC: return CompilerTargetCpuCProjection();
-        case DirectMirLlvm: return CompilerTargetCpuLlvmProjection();
+func DriverRung2CommitArtifactForTarget(
+    artifact: CompilerEmissionArtifact,
+    target_projection: CompilerTargetProjectionFact,
+    output_path: String
+) -> DriverRung2ExecutionOutcome with caps io_write {
+    if output_path == "" {
+        return DriverRung2RejectedOutcome(
+            target_projection.projection,
+            "MIR artifact destination path is empty"
+        );
     }
-}
-
-func DriverRung2RejectedOutcome(
-    target_projection: String,
-    diagnostic: String
-) -> DriverRung2ExecutionOutcome {
-    return DriverRung2Rejected(DriverRung2ExecutionRejection(
-        DriverRung2ExecutionOutcomeSchema(),
-        target_projection,
-        diagnostic
-    ));
-}
-
-func DriverRung2ExecutionOutcomeReadyFor(
-    outcome: DriverRung2ExecutionOutcome,
-    expected_output_path: String,
-    expected_target_projection: String
-) -> Bool {
-    match outcome {
-        case DriverRung2Executed(receipt):
-            return receipt.schema == DriverRung2ExecutionOutcomeSchema() &&
-                receipt.target_projection == expected_target_projection &&
-                CompilerTargetProjectionKnown(expected_target_projection) &&
-                receipt.final_path == expected_output_path &&
-                receipt.atomic_visibility && !receipt.crash_durable;
-        case DriverRung2Rejected(rejection): return false;
-        case DriverRung2ArtifactRejected(failure): return false;
+    if !CompilerEmissionArtifactReady(artifact) ||
+        artifact.target_capability_schema != target_projection.schema ||
+        artifact.target_projection != target_projection.projection ||
+        artifact.target_capability_fingerprint !=
+            target_projection.target_capability_fingerprint {
+        return DriverRung2RejectedOutcome(
+            target_projection.projection,
+            "MIR execution artifact does not match the admitted target"
+        );
     }
-}
-
-func DriverRung2ExecutionOutcomeDiagnostic(
-    outcome: DriverRung2ExecutionOutcome,
-    expected_output_path: String,
-    expected_target_projection: String
-) -> String {
-    match outcome {
-        case DriverRung2Executed(receipt):
-            if DriverRung2ExecutionOutcomeReadyFor(
-                outcome, expected_output_path, expected_target_projection
-            ) { return ""; }
-            return "direct MIR execution receipt is invalid";
-        case DriverRung2Rejected(rejection):
-            if rejection.schema != DriverRung2ExecutionOutcomeSchema() ||
-                rejection.target_projection != expected_target_projection ||
-                !CompilerTargetProjectionKnown(expected_target_projection) ||
-                rejection.diagnostic == "" {
-                return "direct MIR execution rejection payload is invalid";
+    let committed: SelfMirArtifactCommitOutcome =
+        SelfMirArtifactCommitPayload(output_path, artifact.payload);
+    match committed {
+        case SelfMirArtifactCommitted(receipt):
+            if !SelfMirArtifactReceiptReadyFor(receipt, output_path) {
+                return DriverRung2RejectedOutcome(
+                    target_projection.projection,
+                    "MIR artifact receipt is invalid"
+                );
             }
-            return rejection.diagnostic;
-        case DriverRung2ArtifactRejected(failure):
-            return SelfMirArtifactFailureDiagnostic(
-                failure, expected_output_path
+            return DriverRung2Executed(DriverRung2ExecutionReceipt(
+                DriverRung2ExecutionOutcomeSchema(),
+                target_projection.projection,
+                receipt.final_path,
+                receipt.atomic_visibility,
+                receipt.crash_durable
+            ));
+        case SelfMirArtifactRejected(failure):
+            return DriverRung2ArtifactRejected(failure);
+    }
+}
+
+func DriverRung2CompileMirCForRequest(
+    mir_json_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    request: DriverRung2MirCRequest
+) -> CompilerEmissionArtifact with caps io_read {
+    match request {
+        case MirCVerified:
+            return CompileMirJsonToCVerified(
+                mir_json_path, machine_declaration
+            );
+        case MirCPressureObserved:
+            return CompileMirJsonToCVerifiedObserved(
+                mir_json_path, machine_declaration
             );
     }
 }
@@ -123,7 +88,11 @@ subject DriverRung2Execution {
                 "direct MIR execution subject identity is invalid"
             );
         }
-
+        if mir_json_path == "" {
+            return DriverRung2RejectedOutcome(
+                projection_name, "direct MIR input path is empty"
+            );
+        }
         let target_projection: CompilerTargetProjectionFact =
             CompilerTargetProjectionFactFromOwner(projection_name);
         if !CompilerTargetProjectionFactReadyFor(
@@ -134,48 +103,58 @@ subject DriverRung2Execution {
                 "direct MIR execution target admission failed"
             );
         }
-
         let artifact: CompilerEmissionArtifact =
             CompileMirJsonToDirectBackendVerifiedObserved(
                 mir_json_path, machine_declaration, target_projection,
                 observe_pressure
             );
-        if !CompilerEmissionArtifactReady(artifact) ||
-            artifact.target_capability_schema != target_projection.schema ||
-            artifact.target_projection != target_projection.projection ||
-            artifact.target_capability_fingerprint !=
-                target_projection.target_capability_fingerprint {
+        return DriverRung2CommitArtifactForTarget(
+            artifact, target_projection, output_path
+        );
+    }
+
+    action PublishMirCArtifact(
+        self,
+        mir_json_path: String,
+        output_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration,
+        request: DriverRung2MirCRequest
+    ) -> DriverRung2ExecutionOutcome
+        within DriverRung2DirectMirZone
+        authorized by self
+        with caps io_read, io_write {
+        let projection_name: String = CompilerTargetCpuCProjection();
+        if self.identity != DriverRung2ExecutionOwnerIdentity() {
             return DriverRung2RejectedOutcome(
-                projection_name,
-                "direct MIR execution artifact does not match the admitted target"
+                projection_name, "MIR C execution subject identity is invalid"
             );
         }
-
-        let committed: SelfMirArtifactCommitOutcome =
-            SelfMirArtifactCommitPayload(output_path, artifact.payload);
-        match committed {
-            case SelfMirArtifactCommitted(receipt):
-                if !SelfMirArtifactReceiptReadyFor(receipt, output_path) {
-                    return DriverRung2RejectedOutcome(
-                        projection_name,
-                        "direct MIR artifact receipt is invalid"
-                    );
-                }
-                return DriverRung2Executed(DriverRung2ExecutionReceipt(
-                    DriverRung2ExecutionOutcomeSchema(),
-                    projection_name,
-                    receipt.final_path,
-                    receipt.atomic_visibility,
-                    receipt.crash_durable
-                ));
-            case SelfMirArtifactRejected(failure):
-                return DriverRung2ArtifactRejected(failure);
+        if mir_json_path == "" {
+            return DriverRung2RejectedOutcome(
+                projection_name, "MIR C input path is empty"
+            );
         }
+        let target_projection: CompilerTargetProjectionFact =
+            CompilerTargetProjectionFactFromOwner(projection_name);
+        if !CompilerTargetProjectionFactReadyFor(
+            target_projection, projection_name
+        ) {
+            return DriverRung2RejectedOutcome(
+                projection_name, "MIR C execution target admission failed"
+            );
+        }
+        let artifact: CompilerEmissionArtifact =
+            DriverRung2CompileMirCForRequest(
+                mir_json_path, machine_declaration, request
+            );
+        return DriverRung2CommitArtifactForTarget(
+            artifact, target_projection, output_path
+        );
     }
 }
 
-// This boundary owns authority/lifetime only; target selection, projection,
-// emission, and validation stay with the owners called by EmitDirectMir.
+// Both actions consume admitted MIR and publish a backend artifact under one
+// authority/lifetime boundary; CLI mode spelling does not create another zone.
 public zone DriverRung2DirectMirZone {
     subject slot execution: DriverRung2Execution
     authority execution
