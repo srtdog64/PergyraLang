@@ -272,6 +272,8 @@ src/self_hosted/compiler/direct_mir_inferred_generic_nominal_graph_fact_owner.pg
 src/self_hosted/compiler/direct_mir_inferred_generic_scalar_abi_fact_owner.pgy | DirectMirInferredGenericScalarAbiFact | abi.layout_rows | projection
 src/self_hosted/compiler/direct_mir_inferred_generic_scalar_graph_fact_owner.pgy | DirectMirInferredGenericScalarGraphFact | mir.generic_specialization | projection
 src/self_hosted/compiler/direct_mir_inferred_generic_specialization_fact_owner.pgy | DirectMirInferredGenericSpecializationFact | mir.generic_specialization | projection
+src/self_hosted/compiler/direct_mir_legacy_intent_program_graph_fact_owner.pgy | DirectMirLegacyIntentProgramGraphFactFromAdmitted | mir.execution_graph | projection
+src/self_hosted/compiler/direct_mir_legacy_intent_program_route_fact_owner.pgy | DirectMirLegacyIntentProgramRouteFactFromAdmitted | mir.execution_graph | projection
 src/self_hosted/compiler/direct_mir_mixed_lane_generic_specialization_fact_owner.pgy | DirectMirMixedLaneGenericSpecializationFact | mir.generic_specialization | projection
 src/self_hosted/compiler/direct_mir_nominal_declaration_abi_fact_owner.pgy | DirectMirNominalDeclarationAbiFact | abi.layout_rows | projection
 src/self_hosted/compiler/direct_mir_nominal_literal_declaration_fact_owner.pgy | DirectMirNominalLiteralDeclarationFact | mir.execution_graph | projection
