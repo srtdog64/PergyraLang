@@ -12,63 +12,53 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - bounded composite intent LLVM substitutes; publication is RED
+## Active self-host context - source-C world/action reachable; publication is RED
 
-- Code checkpoint `19103024` replaces the public self-host LLVM rejection for
-  the exact canonical `examples/composite_intent_orchestration/main.pgy`
-  family. It sits on published `07e608c4`; push run `32798240367` for that
-  predecessor completed 29/29 green. Before this handoff commit, local `main`
-  is one code commit ahead of `origin/main`; only progress documents and the
-  unrelated user-owned `pgy-80135c2c/` directory should be dirty. Remote
-  publication for `19103024` remains RED until its push run is observed.
-- Closed rung objective card: objective = compile and run that exact
-  self-produced composite-intent MIR through the public installed LLVM
-  entrypoint; priority = exclusive structural claim, admitted declaration and
-  expression-graph facts, one target-neutral plan, compensation and
-  observability parity, no-artifact negatives, then patch size; fact owners =
-  `MirMachineLayerAdmittedJsonInput`, its declaration/routine indexes,
-  expression DAGs, and intent carrier rows; last legitimate consumer = the
-  multi-routine dispatcher immediately before scalar admission; forbidden =
-  scalar-owner expansion, source/AST rescan, fixture/name/output lookup,
-  native retry, or C fallback; falsifiers = duplicate intent mode, missing
-  compensation carrier, action DAG drift, and zone-slot drift.
-- `DirectMirCompositeIntentProgramRouteFact` exclusively claims the exact
-  12-routine, 4-declaration family: one subject, three zones, six mutating
-  methods, five intents, and Main. The graph owner joins subject fields,
-  zone slots, method deltas, and Main DAGs. The sealed plan owns five intents,
-  seven steps, three leaf action intents, one aggregate, one root, priorities,
-  placement, compensation, and observation. Its LLVM emitter reads that plan,
-  not MIR, source, AST, or a fixture vocabulary table. A claimed malformed
-  family cannot retry the scalar route.
-- Public self LLVM and native LLVM produce byte-equal output for canonical
-  success and the `Reserve + 0` failure variant. The failure executes
-  compensation (`reserved=-1`) and preserves the exact failed history, step,
-  and trace output. All four malformed fact mutations fail without publishing
-  LLVM. The exact canonical family is therefore bounded `SUBSTITUTING`; this
-  does not promote arbitrary composite intents, typed `intent_execution`,
-  public self C, or the compiler-root intent/world.
-- The public self-host LLVM link boundary now selects the observability-capable
-  runtime object as one sound default. It never scans LLVM text. This remains a
-  bounded bridge until the artifact protocol carries a narrower typed runtime-
-  requirement receipt. The existing default-runtime LLVM gate now invalidates
-  the actual `OBS1` prebuilt key and rejects a return to the stale `OBS0` test
-  assumption.
-- Current-source local evidence is green: official seed-only bootstrap and
-  `self_host_compiler_build.sh` installed a fresh Pergyra-built DRV-2; the new
-  success/failure plus four-negative gate passed against it; the adjacent
-  legacy-intent and general installed default-runtime LLVM gates passed; the
-  complete component/removed-path contract passed; source inventory, SoT edge,
-  protocol registry, and live adequacy mutations passed. The local Coq model is
-  an explicit declared skip because this Windows host has no prover; remote
-  Rocq remains mandatory. `git diff --check` is green.
-- The new dynamic gate reuses the existing full-bootstrap driver and adds no
-  matrix or second bootstrap job. It took about 70 seconds with the installed
-  driver locally; a warmed bounded driver took 14.5 seconds. Overall remains
-  78%, strict beta remains 83%, and hard SoT remains `CLOSED=49 BRIDGE=36
-  ACTIVE=1`; the two new registry entries classify derived projections and do
-  not change an authority row state. The only active next falsifier is remote
-  publication of `19103024` with all 29 push jobs green. Select the next
-  production bypass from current executable evidence only after publication.
+- Executable checkpoint `a94737dd` moves the production installed source-C
+  artifact path behind `PgyCompilerWorld.source_c` and
+  `DriverSourceCExecution.PublishSourceCArtifact`. Before this handoff commit,
+  local `main` is one executable commit ahead of `origin/main`; only progress
+  documents and the unrelated user-owned `pgy-80135c2c/` directory should be
+  dirty. Remote publication for this checkpoint remains RED until its push run
+  is observed.
+- Active objective card: objective = route `DriverCliSourceCArtifact` compile
+  and commit through one real world/zone/subject action; priority = preserve C
+  artifact and target fingerprint, typed success/rejection/artifact failure,
+  one world materializer, no fallback, executable public C evidence; fact
+  owner = existing `CompileSourceToCVerified` and compiler artifact transaction;
+  last legitimate consumer =
+  `PgyCompilerWorld.PublishSourceCArtifact -> DriverSourceCExecution` once;
+  forbidden = installed CLI direct compile/commit, retry, second world, or
+  source/AST rescan; falsifier = direct/public artifact drift, lost execution,
+  invalid identity/topology acceptance, or transaction failure publishing a
+  partial artifact.
+- The world materializer now constructs three append-only positional zones:
+  `direct_mir`, `source_mir`, and `source_c`. The new action validates subject
+  and topology identity plus nonempty source/output, consumes
+  `CompileSourceToCVerified` exactly once, checks the C target artifact and
+  capability fingerprint, commits once, and preserves the original typed
+  transaction failure. `DriverRung2InstalledCommitSourceC` and its direct
+  compile/commit body are deleted and negative-gated.
+- Current-source local evidence is green. The current Pergyra-built installed
+  driver and public launcher produce byte-equal C for canonical composite
+  orchestration; the artifact compiles and executes its ProcessOrder result and
+  trace. A missing parent destination exits nonzero, emits the typed transaction
+  diagnostic, and leaves no artifact. Source-C/source-MIR action gates, atomic
+  artifact contract, complete component contract, SoT edge/single-owner,
+  protocol registry, CI profile, and `git diff --check` pass.
+- Grade this as production `REACHABLE` Pergyra-native dogfood. It removes a real
+  orchestration bypass but does not replace a new C-owned compiler path, so it
+  does not add a hard `SUBSTITUTING` numerator. General MIR-to-C still calls its
+  direct installed compile/commit path; compiler-root intent remains `SURFACE`.
+  Do not open that next rung until the current push is green.
+- The preceding composite-intent LLVM checkpoint `4162b81b` is remotely closed:
+  run `32806933585` completed 29/29 green in 28m42; full self-host took 28m38.
+  The new composite gate itself took about 0.74s on Linux. Most of the roughly
+  five-minute delta from the prior equivalent job was fixed-point runtime
+  variance, not a new job or the focused gate. Overall remains 78%, strict beta
+  83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. The only active next
+  falsifier is publishing the source-C world/action checkpoint with all 29 push
+  jobs green.
 
 ### Historical archive boundary
 

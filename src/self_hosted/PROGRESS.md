@@ -1,6 +1,38 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-25 bounded composite intent LLVM substitution
+## Active self-host context - 2026-08-25 source-C world/action reachability
+
+- Executable checkpoint `a94737dd` deletes the installed source-C CLI's direct
+  `CompileSourceToCVerified + SelfMirArtifactCommitPayload` orchestration. The
+  one `PgyCompilerWorld` now materializes an append-only third `source_c` zone,
+  and `DriverSourceCExecution.PublishSourceCArtifact` owns request admission,
+  typed outcome transition, and one artifact commit. Existing parser, semantic,
+  MIR, target, C-emission, and transaction owners retain their facts.
+- The last CLI consumer receives `DriverSourceCExecuted`, typed rejection, or
+  the original `SelfMirArtifactFailure`; missing subject/topology identity,
+  empty source/output, wrong target artifact, invalid receipt, and transaction
+  failure cannot fall back to the retired direct path. The component and atomic
+  transaction ratchets reject that path's return.
+- A current Pergyra-built installed driver and public launcher emit byte-equal C
+  for `examples/composite_intent_orchestration/main.pgy`. The artifact compiles
+  and executes the canonical ProcessOrder result and trace. A missing parent
+  destination exits nonzero with a typed transaction diagnostic and publishes
+  no artifact. Source-C/source-MIR action gates, component inventory, atomic
+  artifact contract, SoT edge/single-owner, protocol registry, and CI profile
+  are green locally.
+- This is production `REACHABLE` Pergyra-native dogfood and removes a real
+  orchestration bypass, but it does not replace a new C-owned compiler path;
+  therefore it is not a new `SUBSTITUTING` numerator. General MIR-to-C still has
+  its direct installed orchestration and compiler-root intent remains
+  `SURFACE`. Preserve the unrelated `pgy-80135c2c/` directory.
+- The preceding composite-intent LLVM checkpoint `4162b81b` is published by run
+  `32806933585` at 29/29 green. The run took 28m42 and full self-host 28m38; the
+  new composite gate itself took about 0.74s, while most delta was fixed-point
+  runtime variance. Overall remains 78%, strict beta 83%, and hard SoT
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`. The active falsifier is remote publication of
+  the source-C world/action checkpoint with all 29 jobs green.
+
+## Historical self-host context - 2026-08-25 bounded composite intent LLVM substitution
 
 - Checkpoint `19103024` closes public self-host LLVM for the exact canonical
   12-routine composite orchestration family: one subject, three zones, six
@@ -12,26 +44,10 @@
   LLVM/native LLVM output for canonical success and the `Reserve + 0` failure.
   Failure compensation leaves `reserved=-1`; duplicate mode, missing
   compensation, action-DAG drift, and zone-slot drift publish no artifact.
-  Legacy intent and general installed default-runtime LLVM regression gates
-  also pass.
-- The public self-host LLVM link boundary uses the observability-capable runtime
-  object as one sound default without scanning LLVM text. The default-runtime
-  negative invalidates its actual `OBS1` cache key. A narrower typed runtime-
-  requirement receipt remains future bridge work, not a second read path.
-- The complete component/removed-path contract, source inventory, SoT edge,
-  protocol registry, and live adequacy mutations are green. Coq is a declared
-  local skip because this Windows host has no prover; remote Rocq remains
-  required. The focused gate reuses the existing full-bootstrap driver, adds no
-  job, and took about 70 seconds locally after installation.
-- Grade only this exact canonical family bounded `SUBSTITUTING`; arbitrary
-  composite intents, typed `intent_execution`, public self C, and the compiler-
-  root intent/world remain open. Published predecessor `07e608c4` completed run
-  `32798240367` at 29/29 green. Preserve the unrelated `pgy-80135c2c/`
-  directory.
-- Overall remains 78%, strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36
-  ACTIVE=1`. The two new derived-fact rows change no authority state. The only
-  active next falsifier is publishing `19103024` and observing all 29 push jobs
-  green; choose the next production bypass only after that result.
+- `4162b81b` completed remote run `32806933585` at 29/29 green. The exact family
+  is bounded `SUBSTITUTING`; arbitrary composite intents, typed
+  `intent_execution`, public self C classification, and compiler-root
+  intent/world are not promoted.
 
 ## Historical self-host context - 2026-08-24 scalar routine emission memory
 

@@ -307,9 +307,11 @@ feature를 대체하는 실제 dogfood다.
 
 ## 4. 미해결 / 주의
 
-- direct-MIR의 `DriverRung2Execution.EmitDirectMir`과 그 zone/world slice만
-  현재 `REACHABLE`이다. source-to-MIR/source-to-C mode와 root intent는 아직
-  기존 func 경로나 호출되지 않는 표면에 남아 있다.
+- direct-MIR, source-to-MIR, source-to-C mode는 같은 `PgyCompilerWorld`의
+  positional zone과 subject/action을 실제로 호출하므로 `REACHABLE`이다. Public
+  source-MIR stdout의 bounded `SUBSTITUTING` 등급과 이 내부 orchestration 등급은
+  구분한다. General MIR-to-C는 아직 direct func 경로이고 root intent는 호출되지
+  않는 `SURFACE`다.
 - subject/action이 전역 helper를 호출하는 C 선언 순서는
   `subject_action_global_helper` backend-compare 사례가 고정한다. action에
   중복 C prototype이나 local fallback을 넣어 이 순서를 우회하지 않는다.

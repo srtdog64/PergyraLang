@@ -2,27 +2,27 @@
 
 마지막 업데이트: 2026-08-25
 
-2026-08-25 실행 갱신: checkpoint `19103024`에서 exact canonical
-`examples/composite_intent_orchestration/main.pgy` family가 public self-host LLVM
-경로를 대체한다. 이 family는 12 routines, 4 declarations, one subject, three
-zones, six mutating methods, five intents, Main으로 구성된다. 배타적 route가 scalar
-admission보다 먼저 claim하고, admitted declaration slots와 expression DAGs를
-seven-step target-neutral plan으로 봉인한다. Emitter에는 MIR/source/AST rescan이나
-fixture name table이 없다. Fresh Pergyra-built DRV-2에서 public self LLVM과 native
-LLVM은 canonical success뿐 아니라 `Reserve + 0` compensation failure도 byte-equal
-stdout을 냈고, 실패 상태는 `reserved=-1`이다. Duplicate mode, missing
-compensation, action-DAG drift, zone-slot drift는 artifact 없이 실패한다. Public
-self-host LLVM linker는 LLVM text를 스캔하지 않고 observability-capable runtime
-object를 하나의 sound default로 선택하며, stale-runtime negative도 실제 `OBS1`
-owner key를 검증한다. Legacy intent, general installed LLVM, component/removed-path,
-source inventory, SoT edge와 protocol gate가 green이다. 이 exact canonical
-family만 bounded `SUBSTITUTING`이며 arbitrary composite intent, public self C,
-compiler-root intent/world는 open이다. Published predecessor `07e608c4`의 run
-`32798240367`은 29/29 green이다. 두 derived registry row는 authority state를
-바꾸지 않으므로 SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta
-83%는 유지한다. 다음 executable falsifier는 `19103024`의 remote 29/29
-publication이며, 그 뒤에 current executable evidence로 다음 production bypass를
-선정한다.
+2026-08-25 실행 갱신: checkpoint `19103024`의 exact canonical composite-intent
+public self-host LLVM 대체와 문서 checkpoint `4162b81b`는 remote run
+`32806933585`에서 29/29 green이다. 전체 run은 28분 42초, full self-host job은
+28분 38초였고 새 composite gate 자체는 Linux에서 약 0.74초였다. 직전 green보다
+늘어난 약 5분의 대부분은 DRV fixed-point 구간의 변동이며, 새 gate나 matrix/job
+증가가 원인이 아니다. 이 exact family만 bounded `SUBSTITUTING`이고 arbitrary
+composite intent와 compiler-root intent/world는 계속 open이다.
+
+현재 executable checkpoint `a94737dd`는 다음 production dogfood 우회인 installed
+source-to-C의 직접 `CompileSourceToCVerified + SelfMirArtifactCommitPayload` 호출을
+삭제했다. `PgyCompilerWorld`의 세 번째 positional `source_c` zone과
+`DriverSourceCExecution.PublishSourceCArtifact` action이 기존 compiler/emission
+owner를 정확히 한 번 소비하고 typed receipt/rejection/artifact failure를 마지막
+CLI consumer까지 유지한다. Canonical composite source의 direct installed/public
+C artifact가 byte-equal이고, 생성 C 실행의 intent result/trace가 유지되며,
+missing-parent transaction failure는 artifact 없이 typed diagnostic으로 끝난다.
+이는 실제 production orchestration의 `REACHABLE` dogfood 진전이지만 새로운
+C-owned compiler path를 대체한 것은 아니므로 hard substitution 퍼센트로 세지
+않는다. SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`, 통합 78%, strict beta 83%는
+유지한다. 다음 falsifier는 이 source-C world/action checkpoint의 remote 29/29
+publication이다.
 
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 
