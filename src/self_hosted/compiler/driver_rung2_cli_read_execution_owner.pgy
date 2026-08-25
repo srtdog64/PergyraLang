@@ -4,6 +4,7 @@ import "driver_rung2_cli_request_owner.pgy";
 import "capability_manifest_owner.pgy";
 import "dir_text_artifact_owner.pgy";
 import "compiler_world_direct_mir_owner.pgy";
+import "driver_source_c_stdout_execution_owner.pgy";
 import "canonical_mir_execution_owner.pgy";
 import "../lexer/scan_owner.pgy";
 import "../lexer/source_input_owner.pgy";
@@ -52,14 +53,16 @@ func DriverRung2ExecuteReadRequest(
                 manifest_path
             ));
         case DriverCliSourceCStdout(source_path):
-            Log(CompileSourceToCVerified(
-                source_path, SelfHostMachineLayerDeclarationEmpty()
-            ).payload);
+            DriverRung2CliLogSourceCPayloadOrDie(
+                source_path, SourceCDefault
+            );
         case DriverCliSourceCManifestStdout(source_path, manifest_path):
-            Log(CompileSourceToCVerified(
+            DriverRung2CliLogSourceCPayloadOrDie(
                 source_path,
-                SelfHostMachineLayerDeclarationFromPath(manifest_path)
-            ).payload);
+                SourceCManifestVerified(
+                    SelfHostMachineLayerDeclarationFromPath(manifest_path)
+                )
+            );
         case DriverCliSourceMirStdout(source_path):
             DriverRung2CliLogSourceMirPayloadOrDie(
                 source_path, SelfHostMachineLayerDeclarationEmpty()

@@ -30,6 +30,12 @@ driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2I
     -> DriverSourceCZone.execution
     -> DriverSourceCExecution.PublishSourceCArtifact
 
+driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2ExecuteReadRequest -> DriverRung2CliLogSourceCPayloadOrDie -> ProduceSourceCThroughPgyCompilerWorld
+    -> PgyCompilerWorld.ProduceSourceC
+    -> PgyCompilerWorld.source_c
+    -> DriverSourceCZone.execution
+    -> DriverSourceCExecution.ProduceSourceC
+
 driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceLlvm -> CompileSourceToLlvmThroughPgyCompilerWorld
     -> PgyCompilerWorld.CompileSourceToLlvm
     -> CompilePergyraProgram
@@ -272,8 +278,9 @@ For compiler self-hosting that means:
   source-MIR and direct-LLVM owners once and does not duplicate their facts or
   turn their implementation order into a fixed language lifecycle.
 - `DriverSourceCZone` owns the production source-to-C execution subject's
-  authority and lifetime. It admits one existing C compiler artifact and one
-  typed publication transition without copying semantic or emission facts.
+  authority and lifetime. One shared admission preserves the existing C
+  compiler artifact for a read-only payload action and a write-authorized
+  artifact action without copying semantic or emission facts.
 - `CompatibilityEvolutionZone` owns source, ABI/binary, behavior, diagnostic,
   AIR evidence, MIR JSON, runtime trace, capability profile, stdlib module, and
   obsolete-migration metadata facts.
@@ -304,8 +311,9 @@ For current codegen this is the concrete split:
   for the world wrapper's final consistency check.
 - `DriverSourceCZone`: `subject slot execution:
   DriverSourceCExecution` with `authority execution`; source/output identity
-  enters one write-authorized action and its typed outcome reaches installed
-  CLI without a direct compile/commit retry.
+  enters one shared admission through read-only payload and write-authorized
+  artifact actions, and typed outcomes reach installed CLI without a direct
+  compile/commit retry.
 - `EmissionZone`: `object slot c_output: EmittedC`, driven by
   `subject slot emitter: ProgramEmitter`.
 - `TypeEnvZone`: `object slot bindings: TypeEnvironment`, consumed as

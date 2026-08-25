@@ -15,6 +15,7 @@ SOURCE="examples/composite_intent_orchestration/main.pgy"
 WORK_REL=".tmp/self_hosted/driver_source_c_execution_action"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
+PROTOCOL_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_protocol_owner.pgy"
 WORLD_OWNER="$ROOT_DIR/src/self_hosted/compiler/world.pgy"
 COMPOSITION_OWNER="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
 INSTALLED_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
@@ -33,14 +34,16 @@ fi
 [[ -x "$SELF_DRIVER" ]] || fail "missing installed self-host driver: $SELF_DRIVER"
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 
-for owner in "$SOURCE_OWNER" "$WORLD_OWNER" "$COMPOSITION_OWNER" \
+for owner in "$SOURCE_OWNER" "$PROTOCOL_OWNER" "$WORLD_OWNER" "$COMPOSITION_OWNER" \
     "$INSTALLED_OWNER" "$ARTIFACT_EXECUTION_OWNER"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 for term in 'tobject DriverSourceCExecutionReceipt' \
     'tobject DriverSourceCExecutionRejection' \
-    'enum DriverSourceCExecutionOutcome' \
-    'subject DriverSourceCExecution' 'action PublishSourceCArtifact(' \
+    'enum DriverSourceCExecutionOutcome'; do
+    require_text "$PROTOCOL_OWNER" "$term"
+done
+for term in 'subject DriverSourceCExecution' 'action PublishSourceCArtifact(' \
     'within DriverSourceCZone' 'authorized by self' \
     'public zone DriverSourceCZone' \
     'subject slot execution: DriverSourceCExecution' 'authority execution' \
@@ -48,7 +51,7 @@ for term in 'tobject DriverSourceCExecutionReceipt' \
     'source C execution topology identity is invalid' \
     'source C artifact destination path is empty' \
     'CompileSourceToCVerified(' 'SelfMirArtifactCommitPayload(' \
-    'case SelfMirArtifactCommitted(receipt):' \
+    'case SelfMirArtifactCommitted(commit_receipt):' \
     'case SelfMirArtifactRejected(failure):'; do
     require_text "$SOURCE_OWNER" "$term"
 done
@@ -70,6 +73,7 @@ for term in 'DriverSourceCZone(DriverSourceCExecution(' \
 done
 for term in 'func DriverRung2InstalledPublishSourceC(' \
     'PublishSourceCArtifactThroughPgyCompilerWorld(' \
+    'source_path, output_path, SourceCDefault' \
     'DriverSourceCExecutionOutcomeReadyFor(' \
     'DriverSourceCExecutionOutcomeDiagnostic('; do
     require_text "$ARTIFACT_EXECUTION_OWNER" "$term"
@@ -118,5 +122,7 @@ set -e
     fail "artifact transaction failure published source C"
 grep -Fq 'artifact transaction rejected:' "$WORK_DIR/rejected.out" "$WORK_DIR/rejected.err" ||
     fail "artifact transaction failure lost its typed diagnostic"
+
+source "$ROOT_DIR/tests/self_hosted/parity/driver_source_c_stdout_execution_action_gate.sh"
 
 echo "[driver-source-c-execution-action] world/action artifact parity, execution, and transaction rejection: PASS"

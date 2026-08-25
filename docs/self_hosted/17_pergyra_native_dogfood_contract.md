@@ -2,6 +2,33 @@
 
 Status: `BRIDGE`
 
+## 2026-08-26 source-to-C stdout world/action evidence
+
+Installed default source-C stdout, explicit `--emit-c-verified`, and explicit
+machine-manifest stdout now enter the existing `PgyCompilerWorld.source_c`
+zone. `DriverSourceCExecution.ProduceSourceC` owns request admission and calls
+the existing `CompileSourceToCVerified` semantic/emission owner exactly once.
+The read executor consumes the typed payload only through
+`DriverRung2CliLogSourceCPayloadOrDie`; its two direct compiler calls are deleted
+and negative-gated.
+
+Artifact and stdout actions share one admission containing the original
+`CompilerEmissionArtifact`. They do not copy payload, target projection, or
+capability fingerprint into a second semantic authority, and stdout does not
+publish a temporary artifact. `SourceCDefault` has no declaration payload;
+`SourceCManifestVerified` carries one ready declaration, and the detached
+receipt seals its manifest ID and fingerprint. This closes the previous hidden
+fallback where malformed explicit JSON collapsed to the same empty declaration
+as a default request and still emitted C.
+
+The installed focused gate proves unchanged pre/post bytes for default and
+explicit output (9,430 bytes, SHA-256 `A29997AD...B8749`) and for admitted
+manifest output (9,472 bytes, `CB37D99B...19BA`). The malformed manifest now
+exits 1 with the typed diagnostic and emits no C. This is production
+`REACHABLE` orchestration dogfood, not another `SUBSTITUTING` numerator: the
+compiler implementation was already Pergyra-owned. Overall, strict beta, and
+hard SoT counts therefore remain unchanged.
+
 ## 2026-08-25 bounded compiler-purpose source-to-LLVM substitution
 
 Production public LLVM file/stdout/binary and package LLVM targets now reach

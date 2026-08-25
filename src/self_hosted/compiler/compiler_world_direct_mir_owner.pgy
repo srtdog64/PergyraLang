@@ -28,8 +28,7 @@ func EmitDirectMirThroughPgyCompilerWorld(
     machine_declaration: SelfHostMachineLayerDeclaration,
     request: DriverRung2DirectMirRequest, observe_pressure: Bool
 ) -> DriverRung2ExecutionOutcome with caps io_read, io_write {
-    let compiler_world: PgyCompilerWorld =
-        PgyCompilerWorldMaterializeExecutableZones();
+    let compiler_world: PgyCompilerWorld = PgyCompilerWorldMaterializeExecutableZones();
     return compiler_world.EmitDirectMir(mir_json_path, output_path,
         machine_declaration, request, observe_pressure);
 }
@@ -39,8 +38,7 @@ func PublishMirCArtifactThroughPgyCompilerWorld(
     machine_declaration: SelfHostMachineLayerDeclaration,
     request: DriverRung2MirCRequest
 ) -> DriverRung2ExecutionOutcome with caps io_read, io_write {
-    let compiler_world: PgyCompilerWorld =
-        PgyCompilerWorldMaterializeExecutableZones();
+    let compiler_world: PgyCompilerWorld = PgyCompilerWorldMaterializeExecutableZones();
     return compiler_world.PublishMirCArtifact(mir_json_path, output_path,
         machine_declaration, request);
 }
@@ -50,10 +48,8 @@ func ProduceSourceMirThroughPgyCompilerWorld(
     machine_declaration: SelfHostMachineLayerDeclaration,
     request: DriverSourceMirRequest
 ) -> DriverSourceMirPayloadAdmission with caps io_read {
-    let compiler_world: PgyCompilerWorld =
-        PgyCompilerWorldMaterializeExecutableZones();
-    return compiler_world.ProduceSourceMir(source_path,
-        machine_declaration, request);
+    let compiler_world: PgyCompilerWorld = PgyCompilerWorldMaterializeExecutableZones();
+    return compiler_world.ProduceSourceMir(source_path, machine_declaration, request);
 }
 
 func PublishSourceMirArtifactThroughPgyCompilerWorld(
@@ -62,19 +58,23 @@ func PublishSourceMirArtifactThroughPgyCompilerWorld(
     machine_declaration: SelfHostMachineLayerDeclaration,
     request: DriverSourceMirRequest
 ) -> DriverSourceMirExecutionOutcome with caps io_read, io_write {
-    let compiler_world: PgyCompilerWorld =
-        PgyCompilerWorldMaterializeExecutableZones();
+    let compiler_world: PgyCompilerWorld = PgyCompilerWorldMaterializeExecutableZones();
     return compiler_world.PublishSourceMirArtifact(source_path, output_path,
         machine_declaration, request);
+}
+
+func ProduceSourceCThroughPgyCompilerWorld(
+    source_path: String, request: DriverSourceCRequest
+) -> DriverSourceCPayloadAdmission with caps io_read {
+    let compiler_world: PgyCompilerWorld = PgyCompilerWorldMaterializeExecutableZones();
+    return compiler_world.ProduceSourceC(source_path, request);
 }
 
 func PublishSourceCArtifactThroughPgyCompilerWorld(
     source_path: String,
     output_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    request: DriverSourceCRequest
 ) -> DriverSourceCExecutionOutcome with caps io_read, io_write {
-    let compiler_world: PgyCompilerWorld =
-        PgyCompilerWorldMaterializeExecutableZones();
-    return compiler_world.PublishSourceCArtifact(source_path, output_path,
-        machine_declaration);
+    let compiler_world: PgyCompilerWorld = PgyCompilerWorldMaterializeExecutableZones();
+    return compiler_world.PublishSourceCArtifact(source_path, output_path, request);
 }

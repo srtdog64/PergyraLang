@@ -2144,11 +2144,23 @@ inventory must not become a second fact-family owner registry.
   `io_read` payload action and `io_read, io_write` artifact action share that
   admission; only the latter owns one atomic commit. It owns no lexer, parser,
   semantic, DIR, or MIR fact.
+- `src/self_hosted/compiler/driver_source_c_protocol_owner.pgy` -- detached
+  source-to-C payload/artifact receipts, rejections, outcome readiness, and
+  diagnostics. The typed request carries an admitted machine declaration; its
+  payload receipt seals the declaration manifest ID/fingerprint and preserves
+  the existing `CompilerEmissionArtifact` rather than copying payload, target,
+  or capability facts. It owns no compilation, publication, or
+  semantic/emission fact.
 - `src/self_hosted/compiler/driver_source_c_execution_owner.pgy` -- production
-  source-to-C request/outcome protocol, execution subject, exact existing
-  compiler consumption, artifact transaction transition, and the sole
-  `DriverSourceCZone` declaration. It owns no parser, semantic, MIR, target, or
-  C-emission fact.
+  source-to-C admission and execution subject, exact existing compiler
+  consumption, artifact transaction transition, and the sole
+  `DriverSourceCZone` declaration. Its read-only payload action and
+  write-authorized artifact action consume one admission owner. It owns no
+  parser, semantic, MIR, target, or C-emission fact.
+- `src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy` --
+  read-only last consumer for installed source-C stdout requests. It enters the
+  existing compiler world, accepts only a ready typed payload admission, and
+  logs the preserved compiler artifact payload without a commit or fallback.
 - `src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy` -- active-slice
   composition owner for the single `PgyCompilerWorld`. It constructs the
   ordered direct-MIR, source-to-MIR, and source-to-C zones once through
@@ -3920,7 +3932,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy` --
   read-only executor for admitted token stdout, import-composed AST stdout,
   compiler stdout, machine-manifest, canonicalization, and missing-projection
-  probe requests. Artifact variants fail before reads.
+  probe requests. Source-C stdout delegates to its checked typed last consumer;
+  artifact variants fail before reads.
 - `src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy` -- installed
   artifact-effect executor. It delegates read variants to the read owner and
   publishes only typed artifact variants through compiler-world actions. It

@@ -10,8 +10,7 @@ func DriverRung2InstalledPublishSourceC(
 ) -> Void with caps io_read, io_write {
     let outcome: DriverSourceCExecutionOutcome =
         PublishSourceCArtifactThroughPgyCompilerWorld(
-            source_path, output_path,
-            SelfHostMachineLayerDeclarationEmpty()
+            source_path, output_path, SourceCDefault
         );
     if !DriverSourceCExecutionOutcomeReadyFor(
         outcome, source_path, output_path

@@ -10,10 +10,12 @@ EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 SOURCE_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 SOURCE_LLVM_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy"
 SOURCE_C_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
+SOURCE_C_STDOUT="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy"
 COMPOSITION="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
 ROOT_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/compiler_root_intent_execution_owner.pgy"
 MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 INSTALLED="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+READ_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 ARTIFACT_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
 COMPILER_ROOT="$ROOT_DIR/src/self_hosted/compiler"
 ARCH="$ROOT_DIR/docs/self_hosted/11_compiler_world_architecture.md"
@@ -29,10 +31,12 @@ fail() {
 [[ -f "$SOURCE_EXECUTION" ]] || fail "missing source-to-MIR execution owner"
 [[ -f "$SOURCE_LLVM_EXECUTION" ]] || fail "missing source-to-LLVM intent execution owner"
 [[ -f "$SOURCE_C_EXECUTION" ]] || fail "missing source-to-C execution owner"
+[[ -f "$SOURCE_C_STDOUT" ]] || fail "missing source-to-C stdout execution owner"
 [[ -f "$COMPOSITION" ]] || fail "missing direct-MIR world composition owner"
 [[ -f "$ROOT_EXECUTION" ]] || fail "missing compiler-purpose root execution owner"
 [[ -f "$MAIN" ]] || fail "missing production compiler entrypoint"
 [[ -f "$INSTALLED" ]] || fail "missing installed CLI request executor"
+[[ -f "$READ_EXECUTION" ]] || fail "missing read-only CLI request executor"
 [[ -f "$ARTIFACT_EXECUTION" ]] || fail "missing installed artifact request executor"
 [[ -f "$ARCH" ]] || fail "missing compiler world architecture"
 
@@ -178,8 +182,7 @@ for owner_term in \
     "$SOURCE_LLVM_EXECUTION|subject slot execution: DriverSourceLlvmIntentExecution" \
     "$SOURCE_LLVM_EXECUTION|authority execution" \
     "$SOURCE_C_EXECUTION|public zone DriverSourceCZone" \
-    "$SOURCE_C_EXECUTION|within DriverSourceCZone" \
-    "$SOURCE_C_EXECUTION|authorized by self" \
+    "$SOURCE_C_EXECUTION|action ProduceSourceC(" \
     "$SOURCE_C_EXECUTION|subject slot execution: DriverSourceCExecution" \
     "$SOURCE_C_EXECUTION|authority execution" \
     "$WORLD|zone direct_mir: DriverRung2DirectMirZone" \
@@ -191,6 +194,7 @@ for owner_term in \
     "$WORLD|return self.source_mir.execution.ProduceSourceMir(" \
     "$WORLD|return self.source_mir.execution.PublishSourceMirArtifact(" \
     "$WORLD|let completed: Bool = CompilePergyraProgram(" \
+    "$WORLD|return self.source_c.execution.ProduceSourceC(" \
     "$WORLD|return self.source_c.execution.PublishSourceCArtifact(" \
     "$COMPOSITION|import \"world.pgy\";" \
     "$COMPOSITION|func PgyCompilerWorldMaterializeExecutableZones()" \
@@ -198,6 +202,7 @@ for owner_term in \
     "$COMPOSITION|func PublishMirCArtifactThroughPgyCompilerWorld(" \
     "$COMPOSITION|func ProduceSourceMirThroughPgyCompilerWorld(" \
     "$COMPOSITION|func PublishSourceMirArtifactThroughPgyCompilerWorld(" \
+    "$COMPOSITION|func ProduceSourceCThroughPgyCompilerWorld(" \
     "$COMPOSITION|func PublishSourceCArtifactThroughPgyCompilerWorld(" \
     "$COMPOSITION|DriverRung2DirectMirZone(" \
     "$COMPOSITION|DriverSourceMirZone(" \
@@ -207,9 +212,16 @@ for owner_term in \
     "$COMPOSITION|return compiler_world.PublishMirCArtifact(" \
     "$COMPOSITION|return compiler_world.ProduceSourceMir(" \
     "$COMPOSITION|return compiler_world.PublishSourceMirArtifact(" \
+    "$COMPOSITION|return compiler_world.ProduceSourceC(" \
     "$COMPOSITION|return compiler_world.PublishSourceCArtifact(" \
+    "$SOURCE_C_STDOUT|ProduceSourceCThroughPgyCompilerWorld(" \
+    "$SOURCE_C_STDOUT|DriverSourceCPayloadAdmissionReadyFor(" \
     "$MAIN|import \"driver_rung2_installed_cli_owner.pgy\";" \
     "$MAIN|DriverRung2ExecuteInstalledRequest(request);" \
+    "$INSTALLED|case DriverCliSourceCStdout(source_path):" \
+    "$INSTALLED|case DriverCliSourceCManifestStdout(source_path, manifest_path):" \
+    "$READ_EXECUTION|case DriverCliSourceCStdout(source_path):" \
+    "$READ_EXECUTION|case DriverCliSourceCManifestStdout(source_path, manifest_path):" \
     "$INSTALLED|case DriverCliSourceLlvmArtifact(source_path, output_path):" \
     "$ARTIFACT_EXECUTION|EmitDirectMirThroughPgyCompilerWorld(" \
     "$ARTIFACT_EXECUTION|PublishMirCArtifactThroughPgyCompilerWorld(" \
@@ -231,6 +243,22 @@ done
     fail "source-MIR subject must expose exactly two zone-bound publication actions"
 [[ "$(grep -F -c -- 'authorized by self' "$SOURCE_EXECUTION")" -eq 2 ]] ||
     fail "both source-MIR publication actions must retain subject authority"
+[[ "$(grep -F -c -- 'within DriverSourceCZone' "$SOURCE_C_EXECUTION")" -eq 2 ]] ||
+    fail "source-C subject must expose payload and artifact actions in one zone"
+[[ "$(grep -F -c -- 'authorized by self' "$SOURCE_C_EXECUTION")" -eq 2 ]] ||
+    fail "both source-C actions must retain subject authority"
+[[ "$(grep -F -c -- 'DriverRung2CliLogSourceCPayloadOrDie(' "$READ_EXECUTION")" -eq 2 ]] ||
+    fail "both installed source-C stdout requests must reach one checked consumer"
+for installed_case in \
+    'case DriverCliSourceCStdout(source_path):' \
+    'case DriverCliSourceCManifestStdout(source_path, manifest_path):'; do
+    awk -v header="$installed_case" '
+        index($0, header) { active = 1; next }
+        active && /DriverRung2ExecuteReadRequest\(request\);/ { found = 1; exit }
+        active && /case DriverCli/ { exit }
+        END { exit found ? 0 : 1 }
+    ' "$INSTALLED" || fail "installed source-C case lost read delegation: $installed_case"
+done
 
 if grep -Fq -- 'import "driver_rung2_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "driver_source_mir_execution_owner.pgy";' "$MAIN" ||
@@ -240,6 +268,7 @@ if grep -Fq -- 'import "driver_rung2_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- '.EmitDirectMir(' "$MAIN" ||
     grep -Fq -- '.PublishMirCArtifact(' "$MAIN" ||
     grep -Fq -- '.ProduceSourceMir(' "$MAIN" ||
+    grep -Fq -- '.ProduceSourceC(' "$MAIN" ||
     grep -Fq -- 'CompilePergyraProgram(' "$MAIN" ||
     grep -Fq -- '.PublishSourceMirArtifact(' "$MAIN" ||
     grep -Fq -- '.PublishSourceCArtifact(' "$MAIN"; then
@@ -334,6 +363,7 @@ awk '
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishDirectMir -> EmitDirectMirThroughPgyCompilerWorld/ { reachable_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceMir -> PublishSourceMirArtifactThroughPgyCompilerWorld/ { reachable_source_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceC -> PublishSourceCArtifactThroughPgyCompilerWorld/ { reachable_source_c_path++ }
+    /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2ExecuteReadRequest -> DriverRung2CliLogSourceCPayloadOrDie -> ProduceSourceCThroughPgyCompilerWorld/ { reachable_source_c_stdout_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceLlvm -> CompileSourceToLlvmThroughPgyCompilerWorld/ { reachable_source_llvm_path++ }
     /exactly 22 concrete resource zones and four executable world members/ { exact_topology++ }
     /target facade projection, not a claim that four new aggregate zones/ {
@@ -348,7 +378,9 @@ awk '
             direct_mir != 1 || source_mir != 1 || source_llvm != 1 ||
             source_c != 1 ||
             reachable_path != 1 || reachable_source_path != 1 ||
-            reachable_source_c_path != 1 || reachable_source_llvm_path != 1 ||
+            reachable_source_c_path != 1 ||
+            reachable_source_c_stdout_path != 1 ||
+            reachable_source_llvm_path != 1 ||
             exact_topology != 1 ||
             projection != 1 || no_bundle != 1) {
             exit 1

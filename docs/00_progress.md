@@ -2,6 +2,27 @@
 
 마지막 업데이트: 2026-08-26
 
+2026-08-26 로컬 실행 갱신: installed source-C의 기본 stdout, 명시적
+`--emit-c-verified`, machine-manifest stdout이 기존 `PgyCompilerWorld.source_c`
+zone과 하나의 typed payload admission을 거치도록 바꿨다. Read executor에 있던
+두 `CompileSourceToCVerified` 직접 호출은 삭제됐고, artifact publication도 같은
+admission의 원본 `CompilerEmissionArtifact`를 소비한다. stdout용 임시 artifact,
+두 번째 world/zone, payload/projection/fingerprint 복제 authority는 만들지 않았다.
+
+병렬 읽기 전용 감사에서 malformed explicit manifest가 default empty declaration으로
+붕괴해 C를 내보내던 hidden fallback을 찾았다. 이제 `SourceCDefault`와
+`SourceCManifestVerified`가 요청 정체성을 보존한다. 잘못된 manifest는 typed
+diagnostic과 함께 exit 1, C payload 0으로 닫히고, 정상 default/explicit 출력은
+변경 전후 9,430 bytes SHA `A29997AD...B8749`, 정상 manifest 출력은 9,472 bytes
+`CB37D99B...19BA`로 정확히 유지됐다.
+
+Focused installed Make gate, component/world/topology/hard/likeness/SoT edge가
+local green이다. 새 CI job이나 두 번째 self-host build는 추가하지 않았다. 이
+작업은 이미 Pergyra-owned인 컴파일러의 내부 orchestration bypass를 없앤
+`REACHABLE` 증거이므로 전체 78%, strict beta 83%, SoT
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 그대로다. 다음 falsifier는 이 checkpoint의
+기존 29-job push matrix이며, 그 전에는 다음 실행 rung을 추정하지 않는다.
+
 2026-08-26 로컬 실행 갱신: nested priority fixture가 빠지던 scalar-only
 direct-MIR LLVM 경로를 exact mixed-callable route로 대체했다. 새 route는 composite
 intent 다음, scalar admission 전에 one function/one method/two intent family를

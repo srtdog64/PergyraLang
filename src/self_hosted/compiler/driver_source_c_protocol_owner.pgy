@@ -1,0 +1,225 @@
+// Source-to-C payload and artifact execution protocol owner.
+// It validates detached outcomes but owns no compilation, publication, or
+// semantic/emission fact.
+
+import "driver_pipeline_owner.pgy";
+import "../mir/artifact_transaction_owner.pgy";
+
+enum DriverSourceCRequest {
+    SourceCDefault,
+    SourceCManifestVerified(SelfHostMachineLayerDeclaration),
+}
+
+tobject DriverSourceCPayloadReceipt {
+    schema: String;
+    request_mode: String;
+    source_path: String;
+    machine_manifest_id: String;
+    machine_manifest_fingerprint: String;
+    artifact: CompilerEmissionArtifact;
+}
+
+tobject DriverSourceCPayloadRejection {
+    schema: String;
+    request_mode: String;
+    source_path: String;
+    machine_manifest_id: String;
+    machine_manifest_fingerprint: String;
+    diagnostic: String;
+}
+
+enum DriverSourceCPayloadAdmission {
+    DriverSourceCPayloadAdmitted(DriverSourceCPayloadReceipt),
+    DriverSourceCPayloadDenied(DriverSourceCPayloadRejection),
+}
+
+tobject DriverSourceCExecutionReceipt {
+    schema: String;
+    source_path: String;
+    final_path: String;
+    target_capability_fingerprint: Int;
+    atomic_visibility: Bool;
+    crash_durable: Bool;
+}
+
+tobject DriverSourceCExecutionRejection {
+    schema: String;
+    source_path: String;
+    final_path: String;
+    diagnostic: String;
+}
+
+enum DriverSourceCExecutionOutcome {
+    DriverSourceCExecuted(DriverSourceCExecutionReceipt),
+    DriverSourceCRejected(DriverSourceCExecutionRejection),
+    DriverSourceCArtifactRejected(SelfMirArtifactFailure),
+}
+
+func DriverSourceCExecutionOwnerIdentity() -> String {
+    return "driver-source-c-execution";
+}
+
+func DriverSourceCExecutionTopologyIdentity() -> String {
+    return "driver-source-c-zone.v1";
+}
+
+func DriverSourceCExecutionOutcomeSchema() -> String {
+    return "pgy.driver-source-c-execution-outcome.v1";
+}
+
+func DriverSourceCRequestMode(request: DriverSourceCRequest) -> String {
+    match request {
+        case SourceCDefault: return "default";
+        case SourceCManifestVerified(declaration): return "manifest-verified";
+    }
+}
+
+func DriverSourceCRequestDeclaration(
+    request: DriverSourceCRequest
+) -> SelfHostMachineLayerDeclaration {
+    match request {
+        case SourceCDefault: return SelfHostMachineLayerDeclarationEmpty();
+        case SourceCManifestVerified(declaration): return declaration;
+    }
+}
+
+func DriverSourceCRequestManifestId(request: DriverSourceCRequest) -> String {
+    match request {
+        case SourceCDefault: return "";
+        case SourceCManifestVerified(declaration): return declaration.manifest_id;
+    }
+}
+
+func DriverSourceCRequestManifestFingerprint(
+    request: DriverSourceCRequest
+) -> String {
+    match request {
+        case SourceCDefault: return "";
+        case SourceCManifestVerified(declaration):
+            return declaration.manifest_fingerprint;
+    }
+}
+
+func DriverSourceCPayloadDeniedAdmission(
+    request: DriverSourceCRequest,
+    source_path: String,
+    diagnostic: String
+) -> DriverSourceCPayloadAdmission {
+    return DriverSourceCPayloadDenied(DriverSourceCPayloadRejection(
+        DriverSourceCExecutionOutcomeSchema(),
+        DriverSourceCRequestMode(request), source_path,
+        DriverSourceCRequestManifestId(request),
+        DriverSourceCRequestManifestFingerprint(request), diagnostic
+    ));
+}
+
+func DriverSourceCRejectedOutcome(
+    source_path: String,
+    final_path: String,
+    diagnostic: String
+) -> DriverSourceCExecutionOutcome {
+    return DriverSourceCRejected(DriverSourceCExecutionRejection(
+        DriverSourceCExecutionOutcomeSchema(), source_path, final_path,
+        diagnostic
+    ));
+}
+
+func DriverSourceCPayloadReceiptReadyFor(
+    receipt: DriverSourceCPayloadReceipt,
+    expected_source_path: String,
+    expected_request: DriverSourceCRequest
+) -> Bool {
+    return receipt.schema == DriverSourceCExecutionOutcomeSchema() &&
+        receipt.request_mode == DriverSourceCRequestMode(expected_request) &&
+        receipt.source_path == expected_source_path &&
+        receipt.machine_manifest_id ==
+            DriverSourceCRequestManifestId(expected_request) &&
+        receipt.machine_manifest_fingerprint ==
+            DriverSourceCRequestManifestFingerprint(expected_request) &&
+        CompilerEmissionArtifactReady(receipt.artifact);
+}
+
+func DriverSourceCPayloadAdmissionReadyFor(
+    admission: DriverSourceCPayloadAdmission,
+    expected_source_path: String,
+    expected_request: DriverSourceCRequest
+) -> Bool {
+    match admission {
+        case DriverSourceCPayloadAdmitted(receipt):
+            return DriverSourceCPayloadReceiptReadyFor(
+                receipt, expected_source_path, expected_request
+            );
+        case DriverSourceCPayloadDenied(rejection): return false;
+    }
+}
+
+func DriverSourceCPayloadAdmissionDiagnostic(
+    admission: DriverSourceCPayloadAdmission,
+    expected_source_path: String,
+    expected_request: DriverSourceCRequest
+) -> String {
+    match admission {
+        case DriverSourceCPayloadAdmitted(receipt):
+            if DriverSourceCPayloadReceiptReadyFor(
+                receipt, expected_source_path, expected_request
+            ) { return ""; }
+            return "source C payload receipt is invalid";
+        case DriverSourceCPayloadDenied(rejection):
+            if rejection.schema != DriverSourceCExecutionOutcomeSchema() ||
+                rejection.request_mode !=
+                    DriverSourceCRequestMode(expected_request) ||
+                rejection.source_path != expected_source_path ||
+                rejection.machine_manifest_id !=
+                    DriverSourceCRequestManifestId(expected_request) ||
+                rejection.machine_manifest_fingerprint !=
+                    DriverSourceCRequestManifestFingerprint(expected_request) ||
+                rejection.diagnostic == "" {
+                return "source C payload rejection is invalid";
+            }
+            return rejection.diagnostic;
+    }
+}
+
+func DriverSourceCExecutionOutcomeReadyFor(
+    outcome: DriverSourceCExecutionOutcome,
+    expected_source_path: String,
+    expected_final_path: String
+) -> Bool {
+    match outcome {
+        case DriverSourceCExecuted(receipt):
+            return receipt.schema == DriverSourceCExecutionOutcomeSchema() &&
+                receipt.source_path == expected_source_path &&
+                receipt.final_path == expected_final_path &&
+                receipt.target_capability_fingerprint ==
+                    CompilerTargetCapabilityFingerprint() &&
+                receipt.atomic_visibility && !receipt.crash_durable;
+        case DriverSourceCRejected(rejection): return false;
+        case DriverSourceCArtifactRejected(failure): return false;
+    }
+}
+
+func DriverSourceCExecutionOutcomeDiagnostic(
+    outcome: DriverSourceCExecutionOutcome,
+    expected_source_path: String,
+    expected_final_path: String
+) -> String {
+    match outcome {
+        case DriverSourceCExecuted(receipt):
+            if DriverSourceCExecutionOutcomeReadyFor(
+                outcome, expected_source_path, expected_final_path
+            ) { return ""; }
+            return "source C execution receipt is invalid";
+        case DriverSourceCRejected(rejection):
+            if rejection.schema != DriverSourceCExecutionOutcomeSchema() ||
+                rejection.source_path != expected_source_path ||
+                rejection.final_path != expected_final_path ||
+                rejection.diagnostic == "" {
+                return "source C execution rejection payload is invalid";
+            }
+            return rejection.diagnostic;
+        case DriverSourceCArtifactRejected(failure):
+            return SelfMirArtifactFailureDiagnostic(
+                failure, expected_final_path
+            );
+    }
+}

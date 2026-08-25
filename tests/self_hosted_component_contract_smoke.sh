@@ -6885,6 +6885,14 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMirJsonVerified("
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    'DriverRung2CliLogSourceCPayloadOrDie('
+require_text "src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy" \
+    'ProduceSourceCThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy" \
+    'DriverSourceCPayloadAdmissionReadyFor('
+reject_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    'CompileSourceToCVerified('
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'ProduceSourceMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'DriverSourceMirPayloadAdmissionReadyFor('
@@ -8778,6 +8786,13 @@ require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--emit-dir-verified"'
 require_file "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" 150
+require_file "src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy" 40
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    'import "driver_source_c_stdout_execution_owner.pgy";'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy'
 require_file "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" 160
 require_file "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
@@ -23014,13 +23029,26 @@ require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
     'import "driver_source_mir_protocol_owner.pgy";'
 require_text "src/self_hosted/OWNERS.md" \
     'src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy'
+require_file "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" 230
 require_file "src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" 180
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
+    'import "driver_source_c_protocol_owner.pgy";'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/compiler/driver_source_c_protocol_owner.pgy'
 require_file \
     "tests/self_hosted/parity/driver_source_c_execution_action_gate.sh"
 require_max_lines \
     "tests/self_hosted/parity/driver_source_c_execution_action_gate.sh" 130
+require_file \
+    "tests/self_hosted/parity/driver_source_c_stdout_execution_action_gate.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_source_c_stdout_execution_action_gate.sh" 115
+require_text "tests/self_hosted/parity/driver_source_c_execution_action_gate.sh" \
+    'driver_source_c_stdout_execution_action_gate.sh'
 require_text "src/self_hosted/OWNERS.md" \
     'src/self_hosted/compiler/driver_source_c_execution_owner.pgy'
 require_text "Makefile" \
@@ -23045,6 +23073,12 @@ require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
     'within DriverSourceCZone'
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
+    'action ProduceSourceC('
+require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" \
+    'SourceCManifestVerified(SelfHostMachineLayerDeclaration)'
+require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" \
+    'DriverSourceCRequestManifestFingerprint(expected_request)'
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
     'SelfMirArtifactCommitPayload('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'import "world.pgy";'
@@ -23060,6 +23094,8 @@ require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func ProduceSourceMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func PublishSourceMirArtifactThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+    'func ProduceSourceCThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func PublishSourceCArtifactThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \

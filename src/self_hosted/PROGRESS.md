@@ -1,5 +1,30 @@
 # Self-Host Progress
 
+## Active self-host context - 2026-08-26 source-C stdout world/action closure
+
+- Working tree based on `e4bc4b4d` removes both installed source-C stdout calls
+  that bypassed `PgyCompilerWorld.source_c`. Default, explicit
+  `--emit-c-verified`, and machine-manifest requests now reach one typed payload
+  admission and one checked stdout consumer. Artifact publication reuses the
+  same admission and preserves the original `CompilerEmissionArtifact`.
+- A peer audit exposed a hidden default: malformed explicit manifest JSON was
+  converted to `SelfHostMachineLayerDeclarationEmpty()` and emitted ordinary C.
+  Explicit request identity now requires a ready declaration, exits 1 with the
+  typed diagnostic on invalid input, and emits no C. Legitimate default absence
+  remains explicit and accepted.
+- The installed focused Make target is GREEN. Exact pre/post default and
+  explicit output remain 9,430 bytes at SHA-256 `A29997AD...B8749`; admitted
+  manifest output remains 9,472 bytes at `CB37D99B...19BA`. The target reuses
+  one self-host build and sources the stdout falsifier from the existing
+  source-C action gate; no CI job or second bootstrap was added.
+- Component, compiler-world, topology, hard, likeness, and SoT authority-edge
+  gates are local GREEN. Likeness remains sentinel `24/24`, Result/Option
+  `4287/4287`, one world, 22 zones, and four members. This is `REACHABLE`
+  orchestration dogfood rather than a new C implementation replacement, so
+  overall remains 78%, strict beta 83%, and hard SoT remains
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`. The next falsifier is remote publication of
+  this exact checkpoint; no successor rung is inferred yet.
+
 ## Active self-host context - 2026-08-26 nested intent LLVM closed
 
 - Repair checkpoint `6be30daa` is on local and remote `main`. Preserve the

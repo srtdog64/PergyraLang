@@ -1,167 +1,146 @@
 // Production-reachable source-to-C orchestration and publication boundary.
 // Existing typed compiler owners retain semantic and emission authority; this
-// subject owns only request admission and the artifact transaction transition.
+// subject owns request admission and the artifact transaction transition.
 
+import "driver_source_c_protocol_owner.pgy";
 import "driver_rung2_owner.pgy";
 import "../mir/artifact_transaction_owner.pgy";
 
-tobject DriverSourceCExecutionReceipt {
-    schema: String;
-    source_path: String;
-    final_path: String;
-    target_capability_fingerprint: Int;
-    atomic_visibility: Bool;
-    crash_durable: Bool;
-}
-
-tobject DriverSourceCExecutionRejection {
-    schema: String;
-    source_path: String;
-    final_path: String;
-    diagnostic: String;
-}
-
-enum DriverSourceCExecutionOutcome {
-    DriverSourceCExecuted(DriverSourceCExecutionReceipt),
-    DriverSourceCRejected(DriverSourceCExecutionRejection),
-    DriverSourceCArtifactRejected(SelfMirArtifactFailure),
-}
-
-func DriverSourceCExecutionOwnerIdentity() -> String {
-    return "driver-source-c-execution";
-}
-
-func DriverSourceCExecutionTopologyIdentity() -> String {
-    return "driver-source-c-zone.v1";
-}
-
-func DriverSourceCExecutionOutcomeSchema() -> String {
-    return "pgy.driver-source-c-execution-outcome.v1";
-}
-
-func DriverSourceCRejectedOutcome(
+func DriverSourceCRequestDiagnostic(
+    subject_identity: String,
+    topology_identity: String,
     source_path: String,
-    final_path: String,
-    diagnostic: String
-) -> DriverSourceCExecutionOutcome {
-    return DriverSourceCRejected(DriverSourceCExecutionRejection(
-        DriverSourceCExecutionOutcomeSchema(), source_path, final_path,
-        diagnostic
-    ));
-}
-
-func DriverSourceCExecutionOutcomeReadyFor(
-    outcome: DriverSourceCExecutionOutcome,
-    expected_source_path: String,
-    expected_final_path: String
-) -> Bool {
-    match outcome {
-        case DriverSourceCExecuted(receipt):
-            return receipt.schema == DriverSourceCExecutionOutcomeSchema() &&
-                receipt.source_path == expected_source_path &&
-                receipt.final_path == expected_final_path &&
-                receipt.target_capability_fingerprint ==
-                    CompilerTargetCapabilityFingerprint() &&
-                receipt.atomic_visibility && !receipt.crash_durable;
-        case DriverSourceCRejected(rejection): return false;
-        case DriverSourceCArtifactRejected(failure): return false;
-    }
-}
-
-func DriverSourceCExecutionOutcomeDiagnostic(
-    outcome: DriverSourceCExecutionOutcome,
-    expected_source_path: String,
-    expected_final_path: String
+    request: DriverSourceCRequest
 ) -> String {
-    match outcome {
-        case DriverSourceCExecuted(receipt):
-            if DriverSourceCExecutionOutcomeReadyFor(
-                outcome, expected_source_path, expected_final_path
-            ) { return ""; }
-            return "source C execution receipt is invalid";
-        case DriverSourceCRejected(rejection):
-            if rejection.schema != DriverSourceCExecutionOutcomeSchema() ||
-                rejection.source_path != expected_source_path ||
-                rejection.final_path != expected_final_path ||
-                rejection.diagnostic == "" {
-                return "source C execution rejection payload is invalid";
-            }
-            return rejection.diagnostic;
-        case DriverSourceCArtifactRejected(failure):
-            return SelfMirArtifactFailureDiagnostic(
-                failure, expected_final_path
-            );
+    if subject_identity != DriverSourceCExecutionOwnerIdentity() {
+        return "source C execution subject identity is invalid";
     }
+    if topology_identity != DriverSourceCExecutionTopologyIdentity() {
+        return "source C execution topology identity is invalid";
+    }
+    if source_path == "" { return "source C input path is empty"; }
+    match request {
+        case SourceCDefault: return "";
+        case SourceCManifestVerified(declaration):
+            if !SelfHostMachineLayerDeclarationReady(declaration) {
+                return "source C machine declaration is invalid";
+            }
+            return "";
+    }
+}
+
+func DriverSourceCProducePayloadAdmitted(
+    subject_identity: String,
+    topology_identity: String,
+    source_path: String,
+    request: DriverSourceCRequest
+) -> DriverSourceCPayloadAdmission with caps io_read {
+    let diagnostic: String = DriverSourceCRequestDiagnostic(
+        subject_identity, topology_identity, source_path, request
+    );
+    if diagnostic != "" {
+        return DriverSourceCPayloadDeniedAdmission(
+            request, source_path, diagnostic
+        );
+    }
+    let artifact: CompilerEmissionArtifact = CompileSourceToCVerified(
+        source_path, DriverSourceCRequestDeclaration(request)
+    );
+    if !CompilerEmissionArtifactReady(artifact) {
+        return DriverSourceCPayloadDeniedAdmission(
+            request, source_path,
+            "source C compiler artifact target is invalid"
+        );
+    }
+    return DriverSourceCPayloadAdmitted(DriverSourceCPayloadReceipt(
+        DriverSourceCExecutionOutcomeSchema(),
+        DriverSourceCRequestMode(request), source_path,
+        DriverSourceCRequestManifestId(request),
+        DriverSourceCRequestManifestFingerprint(request), artifact
+    ));
 }
 
 subject DriverSourceCExecution {
     let identity: String;
     let topology_identity: String;
 
+    action ProduceSourceC(
+        self,
+        source_path: String,
+        request: DriverSourceCRequest
+    ) -> DriverSourceCPayloadAdmission
+        within DriverSourceCZone
+        authorized by self
+        with caps io_read {
+        return DriverSourceCProducePayloadAdmitted(
+            self.identity, self.topology_identity, source_path,
+            request
+        );
+    }
+
     action PublishSourceCArtifact(
         self,
         source_path: String,
         output_path: String,
-        machine_declaration: SelfHostMachineLayerDeclaration
+        request: DriverSourceCRequest
     ) -> DriverSourceCExecutionOutcome
         within DriverSourceCZone
         authorized by self
         with caps io_read, io_write {
-        if self.identity != DriverSourceCExecutionOwnerIdentity() {
-            return DriverSourceCRejectedOutcome(
-                source_path, output_path,
-                "source C execution subject identity is invalid"
-            );
-        }
-        if self.topology_identity !=
-            DriverSourceCExecutionTopologyIdentity() {
-            return DriverSourceCRejectedOutcome(
-                source_path, output_path,
-                "source C execution topology identity is invalid"
-            );
-        }
-        if source_path == "" {
-            return DriverSourceCRejectedOutcome(
-                source_path, output_path,
-                "source C input path is empty"
-            );
-        }
         if output_path == "" {
             return DriverSourceCRejectedOutcome(
                 source_path, output_path,
                 "source C artifact destination path is empty"
             );
         }
-        let artifact: CompilerEmissionArtifact = CompileSourceToCVerified(
-            source_path, machine_declaration
-        );
-        if !CompilerEmissionArtifactReady(artifact) ||
-            artifact.target_projection != CompilerTargetCpuCProjection() {
-            return DriverSourceCRejectedOutcome(
-                source_path, output_path,
-                "source C compiler artifact target is invalid"
+        let admission: DriverSourceCPayloadAdmission =
+            DriverSourceCProducePayloadAdmitted(
+                self.identity, self.topology_identity, source_path,
+                request
             );
-        }
-        let committed: SelfMirArtifactCommitOutcome =
-            SelfMirArtifactCommitPayload(output_path, artifact.payload);
-        match committed {
-            case SelfMirArtifactCommitted(receipt):
-                if !SelfMirArtifactReceiptReadyFor(receipt, output_path) {
-                    return DriverSourceCRejectedOutcome(
-                        source_path, output_path,
-                        "source C artifact receipt is invalid"
-                    );
-                }
-                return DriverSourceCExecuted(
-                    DriverSourceCExecutionReceipt(
-                        DriverSourceCExecutionOutcomeSchema(),
-                        source_path, receipt.final_path,
-                        artifact.target_capability_fingerprint,
-                        receipt.atomic_visibility, receipt.crash_durable
+        match admission {
+            case DriverSourceCPayloadDenied(rejection):
+                return DriverSourceCRejectedOutcome(
+                    source_path, output_path,
+                    DriverSourceCPayloadAdmissionDiagnostic(
+                        admission, source_path, request
                     )
                 );
-            case SelfMirArtifactRejected(failure):
-                return DriverSourceCArtifactRejected(failure);
+            case DriverSourceCPayloadAdmitted(receipt):
+                if !DriverSourceCPayloadReceiptReadyFor(
+                    receipt, source_path, request
+                ) {
+                    return DriverSourceCRejectedOutcome(
+                        source_path, output_path,
+                        "source C payload receipt is invalid"
+                    );
+                }
+                let committed: SelfMirArtifactCommitOutcome =
+                    SelfMirArtifactCommitPayload(
+                        output_path, receipt.artifact.payload
+                    );
+                match committed {
+                    case SelfMirArtifactCommitted(commit_receipt):
+                        if !SelfMirArtifactReceiptReadyFor(
+                            commit_receipt, output_path
+                        ) {
+                            return DriverSourceCRejectedOutcome(
+                                source_path, output_path,
+                                "source C artifact receipt is invalid"
+                            );
+                        }
+                        return DriverSourceCExecuted(
+                            DriverSourceCExecutionReceipt(
+                                DriverSourceCExecutionOutcomeSchema(),
+                                source_path, commit_receipt.final_path,
+                                receipt.artifact.target_capability_fingerprint,
+                                commit_receipt.atomic_visibility,
+                                commit_receipt.crash_durable
+                            )
+                        );
+                    case SelfMirArtifactRejected(failure):
+                        return DriverSourceCArtifactRejected(failure);
+                }
         }
     }
 }

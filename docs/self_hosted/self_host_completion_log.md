@@ -6,6 +6,27 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-26 - Source-C stdout enters the existing compiler world
+
+- Removed the two direct `CompileSourceToCVerified` calls from the installed
+  read executor. Default, explicit verified, and manifest stdout now reach the
+  existing source-C zone through one typed payload action and one checked last
+  consumer. Artifact publication consumes the same admission.
+- Independent typed-owner and gate/CI audits kept the original compiler
+  artifact intact, rejected duplicate target/fingerprint authority, and reused
+  the existing Make/workflow path. No stdout temp artifact, second world/zone,
+  CI job, or second self-host build was added.
+- The audit reproduced a hidden fallback: malformed explicit manifest JSON
+  became the default empty declaration, exited 0, and emitted 9,430 bytes of C.
+  Typed request mode now distinguishes legitimate default absence from an
+  invalid explicit declaration. The malformed request exits 1 with a stable
+  diagnostic and no C payload.
+- Focused installed execution preserves exact pre/post default/explicit and
+  admitted-manifest hashes (`A29997AD...B8749` and `CB37D99B...19BA`). Component,
+  compiler-world, topology, hard, likeness, and SoT authority-edge gates are
+  locally green. Publication is still pending, so this is `REACHABLE`, not a
+  new substitution numerator; 78%, 83%, and `49/36/1` remain unchanged.
+
 ## 2026-08-25 - Placed direct intents preserve the bootstrap consumer boundary
 
 - Published checkpoint `175859ef` includes code checkpoint `55b2091c`, its

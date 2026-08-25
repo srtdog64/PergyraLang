@@ -312,11 +312,19 @@ world PgyCompilerWorld {
             output_path, machine_declaration, request);
     }
 
+    func ProduceSourceC(self, source_path: String,
+        request: DriverSourceCRequest
+    ) -> DriverSourceCPayloadAdmission with caps io_read {
+        return self.source_c.execution.ProduceSourceC(
+            source_path, request
+        );
+    }
+
     func PublishSourceCArtifact(self, source_path: String, output_path: String,
-        machine_declaration: SelfHostMachineLayerDeclaration
+        request: DriverSourceCRequest
     ) -> DriverSourceCExecutionOutcome with caps io_read, io_write {
         return self.source_c.execution.PublishSourceCArtifact(source_path,
-            output_path, machine_declaration);
+            output_path, request);
     }
 
     func CompileSourceToLlvm(self, source_path: String, output_path: String,

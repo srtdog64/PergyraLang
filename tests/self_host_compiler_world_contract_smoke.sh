@@ -192,10 +192,24 @@ forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: 
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_cli_request_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_installed_cli_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" 'import "driver_rung2_artifact_request_execution_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" 'import "driver_source_c_stdout_execution_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "PublishSourceCArtifactThroughPgyCompilerWorld("
 require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "DriverSourceCExecutionOutcomeReadyFor("
 require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "DriverSourceCExecutionOutcomeDiagnostic("
 forbid_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileSourceToCVerified("
+require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" "enum DriverSourceCRequest"
+require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" "enum DriverSourceCPayloadAdmission"
+require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" "func DriverSourceCPayloadAdmissionReadyFor("
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "action ProduceSourceC("
+require_text "src/self_hosted/compiler/world.pgy" "func ProduceSourceC("
+require_text "src/self_hosted/compiler/world.pgy" "self.source_c.execution.ProduceSourceC("
+require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" "func ProduceSourceCThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy" "ProduceSourceCThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy" "DriverSourceCPayloadAdmissionReadyFor("
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" "case DriverCliSourceCStdout(source_path):"
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" "case DriverCliSourceCManifestStdout(source_path, manifest_path):"
+forbid_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" "CompileSourceToCVerified("
+forbid_text "src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy" "CompileSourceToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--emit-c-artifact-verified"'
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args["
@@ -369,6 +383,7 @@ for term in \
     "func EmitDirectMir(" \
     "func ProduceSourceMir(" \
     "func PublishSourceMirArtifact(" \
+    "func ProduceSourceC(" \
     "func PublishSourceCArtifact(" \
     "func CompileSourceToLlvm(" \
     "intent CompilePergyraProgram" \

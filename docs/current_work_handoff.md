@@ -17,67 +17,50 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - nested intent LLVM closed; select next executable rung
+## Active self-host context - installed source-C stdout world/action closure
 
-- Repair checkpoint `6be30daa4e34dfebdb03dedad24c3f3e65926a67` is on local
-  `main` and `origin/main`. Before this result-only handoff commit, only the
-  active handoff/progress documents are project-owned dirty state; afterward
-  the worktree should contain only the unrelated user-owned untracked
-  `pgy-80135c2c/` directory.
-  Do not inspect it as project evidence, stage it, delete it, or rewrite it.
-- Objective card: execute the nested method/intent priority fixture through one
-  exclusive direct-MIR LLVM route; priority = admitted declaration/routine
-  identity, exact intent carriers and expression root, owner-directed call and
-  field graph, no-artifact negatives, then installed execution parity; fact
-  owners = declaration-index row/bounds plus the graph's bounded source-ID
-  projection, the admitted routine index, and intent carrier/mode/priority/
-  binding projections; last consumer = the route after composite
-  intent and before scalar admission; forbidden = priority `0`, raw source/AST
-  reconstruction, function-only signature widening, fixture branching, native
-  retry, or a general query/cache track.
-- The observed RED was scalar-route `referenced-enum`, followed by scalar
-  callable-signature rejection if enum absence was patched locally. That
-  unrelated owner was left unchanged. The new route claims the exact mixed
-  family and seals `Main -> OuterPriority -> InnerPriority -> Capture`, the
-  subject/zone fields, literal priority `1`, and dynamic priority from the
-  unique `value/Int/requested` intent binding.
-- Actual MIR corrected two initial assumptions. Intent header params are empty;
-  their source inputs live in ordered intent bindings. Method `self` is an
-  implicit receiver with null type/ABI, validated separately from explicit
-  typed formals. Ownerless routine identity is consumed from the admitted
-  routine index; the plan does not reopen raw JSON to create a second owner.
-- Current executable evidence is local GREEN. An isolated current-source driver
-  emitted direct LLVM and public/native execution each matched the exact
-  nine-line golden. The 160-line focused gate passes in about seven seconds and
-  rejects missing Inner priority, priority graph drift, duplicate source
-  identity, method-owner crosswire, and semantic action-name/target-row
-  crosswire without publishing artifacts. The installed Make target then
-  rebuilt and installed Pergyra-built DRV-2 and passed the same gate.
-- Structural evidence is GREEN: the complete component contract passed, all
-  five new owner files are capped, the dispatcher remains at 110 lines, and
-  push plus weekly CI call the new target inside their existing single Make
-  invocation. This adds no CI job and no second self-host compiler build.
-- Final local hard, progress, UTF/documentation, and diff gates pass. Likeness
-  passes at sentinel `24/24` and Result/Option `4287/4287`, with the improved
-  typed-error minimum tightened in the same change.
-- First publication run `32884881665` completed 28/29: full self-host, codegen,
-  sanitizers, platforms, proofs, and all 20 backend shards passed. `build-linux`
-  reached the final preparation step, then correctly rejected the new route and
-  graph fact owners because their derived classification was missing. The local
-  repair adds only those two `mir.execution_graph | projection` rows. The exact
-  authority edge now passes at 86 authorities / 180 derived carriers and keeps
-  `CLOSED=49 BRIDGE=36 ACTIVE=1`; the broader preparation target passed through
-  component/hard gates and stopped only at the explicitly declared local Coq
-  absence, while the same run's remote Rocq/adequacy gate was green.
-- Repair run `32888031601` completed 29/29 green in 29m19. `build-linux` passed
-  in 15m18, full self-host passed in 29m15, and all 20 backend shards,
-  sanitizers, platforms, codegen, and Rocq remained green. Lease B is `DONE`.
-- No successor implementation rung is inferred by this result-only handoff.
-  The next session must observe the production entrypoint and its direct bypass,
-  name the existing Pergyra fact owner and last orchestration consumer, and fix
-  one executable falsifier before opening edits. Do not reopen general SoT work.
-  Overall stays 78%, strict beta 83%, and hard SoT stays
+- The active working tree is based on checkpoint
+  `e4bc4b4d7cb96ce7fe33478369cb7de00e1e2310`, which is on local and remote
+  `main`. Project-owned source, gates, and current documents are dirty for lease
+  C. Preserve the unrelated user-owned untracked `pgy-80135c2c/` directory; do
+  not inspect it as evidence, stage it, delete it, or rewrite it.
+- Objective card: make installed default, explicit `--emit-c-verified`, and
+  machine-manifest source-C stdout enter the existing `PgyCompilerWorld.source_c`
+  zone; priority = request/manifest identity, existing compiler artifact
+  readiness, typed outcome, exact bytes, invalid-manifest failure, then old-path
+  rejection; fact owner = `CompileSourceToCVerified`; orchestration owner =
+  `DriverSourceCExecution`; last consumer =
+  `DriverRung2CliLogSourceCPayloadOrDie`; forbidden = direct compiler calls in
+  the read executor, native retry, stdout temp artifacts, a second world/zone,
+  copied artifact facts, or malformed-manifest defaulting.
+- Both prior read-executor bypasses are deleted. One request-mode-aware payload
+  admission calls the compiler once and retains its original
+  `CompilerEmissionArtifact`; source-C artifact publication and stdout consume
+  that admission. The stdout owner has no compiler call, commit, or write
+  capability. No new Make target, workflow job, or second bootstrap was added.
+- A parallel typed-owner/gate audit found and reproduced the hidden fallback:
+  malformed explicit manifest JSON exited 0 and emitted the 9,430-byte default
+  C artifact. `SourceCDefault` now admits only legitimate absence;
+  `SourceCManifestVerified` requires a ready declaration. The same malformed
+  request now exits 1 with `source C machine declaration is invalid` and emits
+  no C. The manifest-bearing request variant and detached receipt also seal the
+  declaration's manifest ID and fingerprint, so an admission from another
+  manifest cannot validate for the current request.
+- Focused installed execution is GREEN. Default and explicit pre/post output is
+  byte-identical at 9,430 bytes and SHA-256 `A29997AD...B8749`; admitted manifest
+  output remains 9,472 bytes and `CB37D99B...19BA`. The existing source-C Make
+  target proves stdout/artifact parity, manifest mapping, typed rejection,
+  execution, and transaction failure after one self-host build.
+- Local component, compiler-world, recursive topology, hard substitution,
+  likeness, and SoT authority-edge gates are GREEN. Likeness remains sentinel
+  `24/24`, Result/Option `4287/4287`, one world, 22 zones, and four members. SoT
+  remains 86 authorities / 180 derived carriers and
   `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- The exact next falsifier is publication of this dirty checkpoint and the
+  existing 29-job push matrix. Until that run is observed, lease C remains
+  active and no successor rung is inferred. This work is `REACHABLE`
+  orchestration dogfood rather than a new C implementation replacement, so
+  overall remains 78% and strict beta remains 83%.
 
 ### Historical archive boundary
 

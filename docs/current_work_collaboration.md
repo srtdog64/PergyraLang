@@ -6,6 +6,84 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease C — installed source-C stdout world/action boundary
+
+- Base revision: `e4bc4b4d7cb96ce7fe33478369cb7de00e1e2310`.
+- Editing and integration owner: the primary Codex task. Peer Codex tasks are
+  read-only auditors and must not edit, stage, commit, push, or run the long
+  self-host build while this lease is active.
+- Objective: make both installed source-C stdout requests (`SOURCE` and
+  `--emit-c-verified`, with or without a machine manifest) enter the existing
+  `PgyCompilerWorld.source_c` zone and consume one typed payload admission
+  before the read executor logs C text.
+- Priority order: preserve request and manifest identity; validate the existing
+  source-C subject and topology identity; preserve the compiler artifact target
+  projection and capability fingerprint; return a typed payload outcome;
+  retain byte-exact stdout and failure behavior; then reject the old bypass.
+- Fact owners: `CompileSourceToCVerified` remains the semantic/emission owner;
+  `DriverSourceCExecution` owns source-C request/outcome orchestration;
+  `PgyCompilerWorld.source_c` owns executable composition; and
+  `SelfHostMachineLayerDeclaration` remains the manifest owner.
+- Last legitimate consumer: `DriverRung2ExecuteReadRequest`, through one
+  source-C payload logger that accepts only a ready typed admission.
+- Forbidden fallback: a direct `CompileSourceToCVerified` call in
+  `driver_rung2_cli_read_execution_owner.pgy`, native retry, artifact-temp
+  publication for stdout, a second world or source-C zone, an empty/default
+  payload, or duplicate semantic/emission validation outside the existing
+  compiler artifact owner.
+- Observed RED: the current read executor contains exactly two direct
+  `CompileSourceToCVerified` calls for `DriverCliSourceCStdout` and
+  `DriverCliSourceCManifestStdout`; both bypass the already production-reachable
+  source-C world/action boundary.
+- Falsifier and integration gate: the installed default and
+  `--emit-c-verified` paths, including a manifest form, must produce byte-exact
+  C through a ready typed admission; the read executor must contain no direct
+  compiler call; invalid subject/topology/artifact identity must remain typed
+  failure with no fallback. Run the bounded source-C parity gate first, then
+  component/world/topology/hard/likeness/document gates and the existing remote
+  push matrix. This is `REACHABLE` dogfood closure, not a new hard
+  `SUBSTITUTING` replacement, so progress and SoT counts do not change.
+
+### Current observed evidence
+
+- The typed-owner audit required stdout and artifact publication to consume one
+  payload admission carrying the original `CompilerEmissionArtifact`; no copied
+  payload/projection/fingerprint authority was added. The gate audit kept the
+  existing Make target and workflow invocation, so this rung adds no job and no
+  second self-host compiler build.
+- The peer audit also found a real hidden fallback: an explicitly supplied
+  malformed machine manifest collapsed to the same empty declaration as the
+  default request. The new `SourceCDefault` / `SourceCManifestVerified` request
+  identity makes the default absence explicit and rejects an invalid explicit
+  declaration before compilation.
+- The focused installed gate is GREEN. Default and explicit
+  `--emit-c-verified` stdout are raw-byte-equal, while the artifact action has
+  the same payload after host-newline normalization; an admitted manifest
+  preserves its machine-layer mapping; and the invalid manifest exits 1 with
+  `source C machine declaration is invalid` and no C payload.
+- Exact pre/post evidence is stable: default and explicit output remain 9,430
+  bytes at SHA-256 `A29997AD...B8749`; admitted-manifest output remains 9,472
+  bytes at `CB37D99B...19BA`. Before this rung the invalid manifest exited 0 and
+  emitted the 9,430-byte default artifact; it now fails closed.
+- Complete component inventory, compiler-world contract, recursive topology,
+  hard substitution, likeness, and SoT authority-edge gates are locally GREEN.
+  Likeness remains sentinel `24/24`, Result/Option `4287/4287`, one compiler
+  world, 22 zones, and four world members. SoT remains
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Publication remains the next falsifier. Keep this edit lease active until the
+  code checkpoint is pushed and the existing 29-job matrix is observed; do not
+  infer another executable rung meanwhile.
+
+### Parallel read-only assignments
+
+1. Typed-owner auditor: inspect only the proposed source-C payload admission
+   and its reuse by artifact/stdout consumers for dual authority, invalid
+   identity/fingerprint handling, or a hidden default. Report exact file/line
+   findings; make no edits.
+2. Gate/CI auditor: inspect only the bounded falsifier, existing Make target,
+   workflow invocation, and line/duplication budgets. Recommend the smallest
+   gate change that adds no job and no second self-host build; make no edits.
+
 ## DONE lease A — intent mode/priority C-codegen last consumer
 
 - Base revision: `3698ab198fd2d84ca66834db0ff90a22cb2ac9f1`.
