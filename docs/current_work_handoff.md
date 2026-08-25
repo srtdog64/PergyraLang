@@ -12,12 +12,13 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - bounded compiler-purpose source-to-LLVM locally GREEN
+## Active self-host context - bounded compiler-purpose source-to-LLVM remote GREEN
 
-- Verified base/pre-commit HEAD is `83a5c952` on `main`. The worktree contains
-  the source-to-LLVM intent takeover, its owner/gate/document updates, and the
-  unrelated user-owned untracked `pgy-80135c2c/` directory. Do not stage,
-  inspect as project evidence, delete, or rewrite that directory.
+- Executable checkpoint `3e5ad3d6` and compiler-world gate repair `43982bbf`
+  are on `main` and `origin/main`. Before this result-only handoff update, the
+  worktree contains only the unrelated user-owned untracked
+  `pgy-80135c2c/` directory. Do not stage, inspect as project evidence,
+  delete, or rewrite that directory.
 - Objective card: objective = replace the C host's source-to-MIR plus
   `--mir-json-backend=llvm` subprocess pair with one production
   Pergyra-purpose invocation; priority = stable source/target/artifact identity,
@@ -59,20 +60,27 @@ gate count do not increment either percentage by themselves.
   default LLVM compile/run; package commands; source-MIR/source-C action gates;
   artifact transaction; initializer projection; compiler-root takeover;
   topology; likeness; hard contract; complete component contract; shell syntax;
-  documentation quality; progress metric; beta checklist; SoT authority edge;
-  single-owner/protocol registry; and `git diff --check`.
+  compiler-world source shape; documentation quality; progress metric; beta
+  checklist; SoT authority edge; single-owner/protocol registry; and
+  `git diff --check`.
 - Grade: this exact source-to-LLVM compiler-purpose slice is production
   `SUBSTITUTING`. The broader `selfhost.intent_declaration_rows` remains
   `BRIDGE`; v3 typed transitions remain `REACHABLE`; no universal compiler
   lifecycle or query/cache architecture is claimed. Overall remains 78%,
-  strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` pending current
+  strict beta 83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` after current
   remote evidence.
-- Last remote baseline `32823302830` is 29/29 green in 28m54 for the preceding
-  general MIR-to-C closure. Next falsifier: commit and push this current rung,
-  require all 29 jobs including full self-host to remain green, then select the
-  attached review's intent mode/priority AST-last-consumer work only through
-  the next executable composite-intent LLVM path. Do not start a general query,
-  cache, or unrelated SoT track.
+- First publication run `32847222699` reached 28/29: every bootstrap,
+  sanitizer, platform, proof, and backend shard passed; `build-linux` alone
+  found that the compiler-world source-shape gate still expected artifact
+  functions and the old five-step scaffold in the retired installed CLI owner.
+  Repair `43982bbf` retargets those assertions to the artifact-request owner,
+  recognizes the exported canonical action and `On action_succeeded` AST
+  carrier, and keeps its zone/subject authorization check.
+- Current run `32851043420` is 29/29 green in 28m43, including full self-host,
+  Linux/Windows/macOS, sanitizers, Rocq, codegen bootstrap, and all 20 backend
+  shards. Next falsifier: select the attached review's intent mode/priority
+  AST-last-consumer work only through the next executable composite-intent LLVM
+  path. Do not start a general query, cache, or unrelated SoT track.
 
 ### Historical archive boundary
 

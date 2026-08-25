@@ -20,11 +20,15 @@ MIR oracle과 LLVM byte parity, distinct source/projection failure, no-partial-o
 22 concrete zones와 `direct_mir/source_mir/source_llvm/source_c` 네 member,
 likeness는 Result/Option 4,267과 zone-bound rows 35를 exact로 관측한다. 이 bounded
 compiler-purpose slice는 실제 C path replacement인 `SUBSTITUTING`이지만 아직
-current revision의 remote 29/29 증거가 없으므로 overall 78%, strict beta 83%,
-SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 유지한다. 다음 publication falsifier는
-full self-host를 포함한 remote matrix이며, 그 뒤 첨부 리뷰가 명시한 intent
+overall 78%, strict beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 유지한다.
+Executable checkpoint `3e5ad3d6`의 첫 publication run `32847222699`은 28/29로,
+bootstrap/sanitizer/platform/proof/backend shard는 모두 통과하고 `build-linux`의
+stale compiler-world owner assertion만 실패했다. Gate repair `43982bbf`는 artifact
+요청의 새 owner, exported canonical action, `On action_succeeded` AST carrier를
+검사하도록 갱신했다. 후속 run `32851043420`은 28분 43초에 full self-host와 20개
+backend shard를 포함해 29/29 green이다. 다음 falsifier는 첨부 리뷰의 intent
 mode/priority AST last-consumer를 다음 executable composite-intent LLVM rung에서
-실제로 도달할 때 닫는다.
+실제로 도달할 때 닫는 것이다.
 
 2026-08-25 실행 checkpoint `626f2188`은 installed general MIR-to-C의 직접
 `CompileMirJsonToCVerified[Observed] + SelfMirArtifactCommitPayload` orchestration을

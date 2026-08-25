@@ -2,9 +2,9 @@
 
 ## Active self-host context - 2026-08-25 bounded compiler-purpose source-to-LLVM substitution
 
-- Pre-commit HEAD is `83a5c952`; the current worktree contains this executable
-  rung plus documentation/gate updates and the unrelated user-owned
-  `pgy-80135c2c/` directory. Preserve that directory.
+- Executable checkpoint `3e5ad3d6` and compiler-world gate repair `43982bbf`
+  are published on `main`. Before this result-only update, the worktree contains
+  only the unrelated user-owned `pgy-80135c2c/` directory. Preserve it.
 - Objective card: replace the C host's source-to-MIR plus
   `--mir-json-backend=llvm` subprocess pair with one production
   Pergyra-purpose invocation. Fact owners remain
@@ -38,14 +38,17 @@
 - This exact compiler-purpose slice is production `SUBSTITUTING`, but it does
   not close the broader `selfhost.intent_declaration_rows` BRIDGE or install
   the v3 typed-transition consumer. Overall remains 78%, strict beta 83%, and
-  hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` until current remote evidence.
+  hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` after current remote evidence.
 - Documentation quality, progress metric, beta checklist, SoT authority edge,
   single-owner, and protocol registry gates are also green.
-- Next falsifier: commit and push, then require all 29 jobs including full
-  self-host to remain green. The
-  attached mode/priority AST-last-consumer review becomes the next candidate
-  only through the next executable composite-intent LLVM rung; do not open a
-  general query/cache track.
+- First publication run `32847222699` was 28/29: only `build-linux` found stale
+  compiler-world assertions after the artifact-request owner split. Repair
+  `43982bbf` makes that gate follow the new owner and exported
+  `On action_succeeded` action contract. Run `32851043420` is 29/29 green in
+  28m43, including full self-host and all 20 backend shards.
+- Next falsifier: the attached mode/priority AST-last-consumer review becomes
+  the next candidate only through the next executable composite-intent LLVM
+  rung; do not open a general query/cache track.
 
 ## Historical self-host context - 2026-08-25 bounded composite intent LLVM substitution
 
