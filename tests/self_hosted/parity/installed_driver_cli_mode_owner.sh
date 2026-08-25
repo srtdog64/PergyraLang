@@ -219,4 +219,4 @@ for artifact in artifact.c source.artifact.mir.json mir.artifact.c mir.observed.
     fi
 done
 
-echo "[self-host-installed-cli-mode] one typed argv owner keeps source-C, source-MIR, and MIR-C stdout/artifact effects disjoint; MIR-C world/action pressure and transaction rejection pass"
+echo "[self-host-installed-cli-mode] one typed argv owner keeps source-C, source-MIR, and MIR-C stdout/artifact effects disjoint; general MIR-C world/action artifact parity, pressure observation, and transaction rejection: PASS"
