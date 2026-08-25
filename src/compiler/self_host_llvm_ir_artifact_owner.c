@@ -50,9 +50,8 @@ driver_publish_self_host_llvm_ir_file(const char *launcher_path,
     }
     free(output_directory);
 
-    rc = driver_materialize_self_host_llvm_artifacts(
-        launcher_path, source_path, workspace.primary_path,
-        workspace.secondary_path, false);
+    rc = driver_materialize_self_host_llvm_artifact(
+        launcher_path, source_path, workspace.secondary_path, false);
     if (rc == 0 && rename(workspace.secondary_path, output_path) != 0) {
         fprintf(stderr, "pgy: could not publish the self-host LLVM IR artifact\n");
         rc = 1;

@@ -173,14 +173,16 @@ zone-bound handle, complete consumer migration, old-path deletion, and a
 missing-child negative gate land together. They must not be implemented as a
 second aggregate owner.
 
-The bounded executable topology currently has three ordered members:
-`direct_mir: DriverRung2DirectMirZone`, `source_mir: DriverSourceMirZone`, and
-`source_c: DriverSourceCZone`. The sole composition owner materializes all
-three once. Production `Main` reaches their actions and consumes typed
+The bounded executable topology currently has four ordered members:
+`direct_mir: DriverRung2DirectMirZone`, `source_mir: DriverSourceMirZone`,
+`source_llvm: DriverSourceLlvmIntentZone`, and `source_c: DriverSourceCZone`.
+The sole composition owner materializes all four once. Production `Main`
+reaches their actions and consumes typed
 outcomes; it does not directly call a migrated backend/source producer or
 commit its artifact. Both direct-backend publication and general MIR-to-C
-publication share the existing `direct_mir` authority/lifetime boundary; a CLI
-mode does not create a fourth zone. The exact public `pgy --mir-json <source>` request now makes the
+publication share the existing `direct_mir` authority/lifetime boundary. The
+fourth zone owns the real-purpose source-to-LLVM intent execution boundary; it
+does not exist merely because there is another CLI mode. The exact public `pgy --mir-json <source>` request now makes the
 `source_mir` stdout slice `SUBSTITUTING`: `pgy_driver.c` selects the installed
 Pergyra-built sibling before `driver_run_pipeline`, and missing/unsupported
 requests fail without native retry. This does not make the whole world or every
@@ -243,8 +245,10 @@ boundary for that surface, and `tests/self_hosted/parity/driver_rung1_parity.sh`
 checks stdout and file-output parity across that shared driver fixture frontier
 without moving artifact generation out of the stage owners.
 
-The root `CompilePergyraProgram` intent in `world.pgy` remains a scaffold, while
-the `direct_mir`, `source_mir`, and `source_c` members are production-reachable. The file is parse-gated by
+The root `CompilePergyraProgram` intent in `world.pgy` now substitutes the
+bounded production source-to-LLVM path, while the `direct_mir`, `source_mir`,
+`source_llvm`, and `source_c` members are production-reachable. The remaining
+compiler-purpose surface is not implied to be substituting. The file is parse-gated by
 `make self-host-compiler-world-contract-test-smoke` and wired into
 `make self-host-preparation-test-smoke`. That gate also enforces
 **manifest-to-reality conformance**: every stage `StagePathManifest` names must

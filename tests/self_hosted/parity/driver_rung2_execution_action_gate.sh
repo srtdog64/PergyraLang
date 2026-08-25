@@ -5,29 +5,34 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
     local root="$1" term
     local main="$root/src/self_hosted/compiler/driver_bootstrap_main.pgy"
     local installed="$root/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+    local artifact="$root/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
     local protocol="$root/src/self_hosted/compiler/driver_rung2_execution_protocol_owner.pgy"
     local execution="$root/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
     local world="$root/src/self_hosted/compiler/world.pgy"
     local composition="$root/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
-    for term in "$main" "$installed" "$protocol" "$execution" "$world" "$composition"; do
+    for term in "$main" "$installed" "$artifact" "$protocol" "$execution" "$world" "$composition"; do
         [[ -f "$term" ]] || { echo "[driver-rung2-execution-action] missing owner: ${term#"$root/"}" >&2; return 1; }
     done
     for term in 'DriverRung2DirectMirRequest' 'DriverRung2MirCRequest' \
         'EmitDirectMirThroughPgyCompilerWorld(' 'PublishMirCArtifactThroughPgyCompilerWorld(' \
         'DriverRung2ExecutionOutcomeReadyFor(' 'DriverRung2ExecutionOutcomeDiagnostic('; do
-        grep -Fq -- "$term" "$installed" || {
-            echo "[driver-rung2-execution-action] installed owner bypasses compiler world: $term" >&2; return 1; }
+        grep -Fq -- "$term" "$artifact" || {
+            echo "[driver-rung2-execution-action] artifact executor bypasses compiler world: $term" >&2; return 1; }
     done
     for term in 'EmitDirectMirThroughPgyCompilerWorld(' \
         'PublishMirCArtifactThroughPgyCompilerWorld('; do
-        [[ "$(grep -F -c -- "$term" "$installed")" -eq 1 ]] || {
-            echo "[driver-rung2-execution-action] installed owner must consume once: $term" >&2; return 1; }
+        [[ "$(grep -F -c -- "$term" "$artifact")" -eq 1 ]] || {
+            echo "[driver-rung2-execution-action] artifact executor must consume once: $term" >&2; return 1; }
+        ! grep -Fq -- "$term" "$installed" || {
+            echo "[driver-rung2-execution-action] installed root regained world consumption: $term" >&2; return 1; }
     done
     for term in 'CompileMirJsonToDirectBackendVerified' 'CompileMirJsonToCVerified(' \
         'CompileMirJsonToCVerifiedObserved(' 'SelfMirArtifactCommitPayload(' \
         'DriverRung2InstalledCommitMirC' 'WriteFile(' 'import "world.pgy";'; do
         ! grep -Fq -- "$term" "$installed" || {
             echo "[driver-rung2-execution-action] installed implementation bypass returned: $term" >&2; return 1; }
+        ! grep -Fq -- "$term" "$artifact" || {
+            echo "[driver-rung2-execution-action] artifact executor bypass returned: $term" >&2; return 1; }
         ! grep -Fq -- "$term" "$main" || {
             echo "[driver-rung2-execution-action] Main implementation bypass returned: $term" >&2; return 1; }
     done

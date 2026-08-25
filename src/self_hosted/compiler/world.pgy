@@ -11,6 +11,7 @@ import "symbol_table_owner.pgy";
 import "stage_artifact_owner.pgy";
 import "driver_rung2_execution_owner.pgy";
 import "driver_source_mir_execution_owner.pgy";
+import "driver_source_llvm_intent_execution_owner.pgy";
 import "driver_source_c_execution_owner.pgy";
 subject SourceUnit {
     let path: String;
@@ -279,6 +280,7 @@ world PgyCompilerWorld {
     // required world facts may not be supplied by aggregate zero-fill.
     zone direct_mir: DriverRung2DirectMirZone
     zone source_mir: DriverSourceMirZone
+    zone source_llvm: DriverSourceLlvmIntentZone
     zone source_c: DriverSourceCZone
 
     func EmitDirectMir(
@@ -298,7 +300,7 @@ world PgyCompilerWorld {
     }
     func ProduceSourceMir(self, source_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration, request: DriverSourceMirRequest
-    ) -> DriverSourceMirExecutionOutcome with caps io_read {
+    ) -> DriverSourceMirPayloadAdmission with caps io_read {
         return self.source_mir.execution.ProduceSourceMir(source_path,
             machine_declaration, request);
     }
@@ -315,6 +317,42 @@ world PgyCompilerWorld {
     ) -> DriverSourceCExecutionOutcome with caps io_read, io_write {
         return self.source_c.execution.PublishSourceCArtifact(source_path,
             output_path, machine_declaration);
+    }
+
+    func CompileSourceToLlvm(self, source_path: String, output_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration
+    ) -> DriverSourceLlvmIntentOutcome with caps io_read, io_write {
+        let intent_zone: DriverSourceLlvmIntentZone = Clone(source_llvm);
+        let intent_execution: DriverSourceLlvmIntentExecution =
+            Clone(source_llvm.execution);
+        let source_execution: DriverSourceMirExecution =
+            Clone(source_mir.execution);
+        let direct_execution: DriverRung2Execution =
+            Clone(direct_mir.execution);
+        let completed: Bool = CompilePergyraProgram(
+            intent_zone, intent_execution, source_execution, direct_execution,
+            source_path, output_path, machine_declaration
+        );
+        if !IsSome(intent_execution.outcome) {
+            return DriverSourceLlvmProjectionRejectedOutcome(
+                DriverLlvmPayloadRequestFailure(
+                    output_path, "source LLVM intent produced no typed outcome"
+                )
+            );
+        }
+        let outcome: DriverSourceLlvmIntentOutcome =
+            UnwrapOption(intent_execution.outcome);
+        if completed != DriverSourceLlvmIntentOutcomeReadyFor(
+            outcome, output_path
+        ) {
+            return DriverSourceLlvmProjectionRejectedOutcome(
+                DriverLlvmPayloadRequestFailure(
+                    output_path,
+                    "source LLVM intent completion disagrees with its typed outcome"
+                )
+            );
+        }
+        return outcome;
     }
 }
 
@@ -509,90 +547,23 @@ intent ProveSelfHostedParity(parity_zone: ParityZone, oracle: OraclePair) {
 }
 
 intent CompilePergyraProgram(
-    intake: SourceIntakeZone,
-    tokens: TokenStreamZone,
-    ast: AstTreeZone,
-    semantic_zone: SemanticVerdictZone,
-    lower_zone: MirFactGraphZone,
-    types: TypeEnvZone,
-    abi_layout: AbiLayoutZone,
-    target_capability_zone: TargetCapabilityZone,
-    compatibility_zone: CompatibilityEvolutionZone,
-    air_evidence_zone: AirEvidenceZone,
-    symbol_zone: SymbolFactTableZone,
-    abi_row_zone: AbiRowProjectionZone,
-    emit_zone: EmissionZone,
-    artifact_zone: ArtifactZone,
-    harness_zone: TestHarnessZone,
-    subprocess_zone: SubprocessRunnerZone,
-    parity_zone: ParityZone,
-    source: SourceUnit,
-    paths: StagePathManifest,
-    lexer: LexerStage,
-    parser: ParserStage,
-    checker: SemanticStage,
-    lowerer: MirLowerStage,
-    emitter: ProgramEmitter,
-    target_planner: TargetProjectionPlanner,
-    compatibility_owner: CompatibilityEvolutionOwner,
-    evidence_owner: AirEvidenceOwner,
-    symbol_owner: SymbolTableOwner,
-    abi_projector: AbiRowProjector,
-    artifact_sink: ArtifactSink,
-    harness_runner: TestHarnessRunner,
-    subprocess_runner: SubprocessRunner,
-    oracle: OraclePair
+    intent_zone: DriverSourceLlvmIntentZone,
+    intent_execution: DriverSourceLlvmIntentExecution,
+    source_execution: DriverSourceMirExecution,
+    direct_execution: DriverRung2Execution,
+    source_path: String,
+    output_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) {
     exclusive;
 
-    step Frontend {
-        where: SourceIntakeZone;
-        using: intake;
-        who: source;
-        authorized by: source;
-        on: FrontendPipeline(intake, tokens, ast, paths, source, lexer, parser);
-        expect: true;
-    }
-
-    step MiddleEnd {
-        where: SemanticVerdictZone;
-        using: semantic_zone;
-        who: checker;
-        authorized by: checker;
-        on: MiddleEndPipeline(semantic_zone, lower_zone, checker, lowerer);
-        expect: true;
-    }
-
-    step Evidence {
-        where: AirEvidenceZone;
-        using: air_evidence_zone;
-        who: evidence_owner;
-        requires: AirEvidenceProving;
-        authorized by: evidence_owner;
-        on: ProveHardSelfHostEvidence(
-            air_evidence_zone, compatibility_zone, symbol_zone, abi_row_zone,
-            artifact_zone, harness_zone, subprocess_zone, evidence_owner,
-            compatibility_owner, symbol_owner,
-            abi_projector, artifact_sink, harness_runner, subprocess_runner);
-        expect: true;
-    }
-
-    step Backend {
-        where: EmissionZone;
-        using: emit_zone;
-        who: emitter;
-        authorized by: emitter;
-        on: BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter);
-        expect: true;
-    }
-
-    step SelfProof {
-        where: ParityZone;
-        using: parity_zone;
-        who: oracle;
-        authorized by: oracle;
-        on: SelfProofPipeline(parity_zone, oracle);
-        expect: true;
+    step Compile {
+        using: intent_zone;
+        on action_succeeded: intent_execution.Compile(
+            source_execution, direct_execution,
+            source_path, output_path, machine_declaration
+        );
+        expect: action_succeeded;
     }
 
     success: true;

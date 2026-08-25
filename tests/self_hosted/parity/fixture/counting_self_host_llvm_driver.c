@@ -39,19 +39,13 @@ main(int argc, char **argv)
         return 2;
     if (mode == NULL)
         mode = "ok";
-    if (strcmp(argv[1], "--emit-mir-json-verified") == 0) {
-        rc = append_count("producer\n");
-        if (rc != 0)
-            return rc;
-        if (strcmp(mode, "producer-fail") == 0)
-            return 7;
-        return write_text(argv[4], "{}\n");
-    }
-    if (strcmp(argv[1], "--mir-json-backend=llvm") != 0)
+    if (strcmp(argv[1], "--emit-source-llvm-ir-verified") != 0)
         return 8;
-    rc = append_count("backend\n");
+    rc = append_count("intent\n");
     if (rc != 0)
         return rc;
+    if (strcmp(mode, "producer-fail") == 0)
+        return 7;
     if (strcmp(mode, "backend-fail") == 0)
         return 9;
     if (strcmp(mode, "malformed") == 0)

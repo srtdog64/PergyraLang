@@ -1,0 +1,109 @@
+// Installed artifact-request executor. Each function admits one CLI request
+// into its existing world/action owner; source-to-LLVM additionally consumes
+// the canonical compiler intent outcome and trace.
+
+import "driver_rung2_cli_request_owner.pgy";
+import "compiler_root_intent_execution_owner.pgy";
+
+func DriverRung2InstalledPublishSourceC(
+    source_path: String, output_path: String
+) -> Void with caps io_read, io_write {
+    let outcome: DriverSourceCExecutionOutcome =
+        PublishSourceCArtifactThroughPgyCompilerWorld(
+            source_path, output_path,
+            SelfHostMachineLayerDeclarationEmpty()
+        );
+    if !DriverSourceCExecutionOutcomeReadyFor(
+        outcome, source_path, output_path
+    ) {
+        Log(DriverSourceCExecutionOutcomeDiagnostic(outcome, source_path, output_path));
+        Exit(1);
+    }
+}
+
+func DriverRung2InstalledPublishSourceMir(
+    source_path: String,
+    output_path: String,
+    source_request: DriverSourceMirRequest
+) -> Void with caps io_read, io_write {
+    let source_outcome: DriverSourceMirExecutionOutcome =
+        PublishSourceMirArtifactThroughPgyCompilerWorld(
+            source_path, output_path,
+            SelfHostMachineLayerDeclarationEmpty(), source_request
+        );
+    if !DriverSourceMirExecutionOutcomeReadyFor(
+        source_outcome, source_path, output_path, source_request
+    ) {
+        Log(DriverSourceMirExecutionOutcomeDiagnostic(
+            source_outcome, source_path, output_path, source_request
+        ));
+        Exit(1);
+    }
+}
+
+func DriverRung2InstalledPublishMirC(
+    input_path: String,
+    output_path: String,
+    mir_c_request: DriverRung2MirCRequest
+) -> Void with caps io_read, io_write {
+    let outcome: DriverRung2ExecutionOutcome =
+        PublishMirCArtifactThroughPgyCompilerWorld(
+            input_path, output_path,
+            SelfHostMachineLayerDeclarationEmpty(), mir_c_request
+        );
+    let projection: String = CompilerTargetCpuCProjection();
+    if !DriverRung2ExecutionOutcomeReadyFor(
+        outcome, output_path, projection
+    ) {
+        Log(DriverRung2ExecutionOutcomeDiagnostic(
+            outcome, output_path, projection
+        ));
+        Exit(1);
+    }
+}
+
+func DriverRung2InstalledPublishDirectMir(
+    input_path: String,
+    output_path: String,
+    direct_request: DriverRung2DirectMirRequest,
+    observe_pressure: Bool
+) -> Void with caps io_read, io_write {
+    let outcome: DriverRung2ExecutionOutcome =
+        EmitDirectMirThroughPgyCompilerWorld(
+            input_path, output_path,
+            SelfHostMachineLayerDeclarationEmpty(), direct_request,
+            observe_pressure
+        );
+    let projection: String =
+        DriverRung2DirectMirRequestProjection(direct_request);
+    if !DriverRung2ExecutionOutcomeReadyFor(
+        outcome, output_path, projection
+    ) {
+        Log(DriverRung2ExecutionOutcomeDiagnostic(
+            outcome, output_path, projection
+        ));
+        Exit(1);
+    }
+}
+
+func DriverRung2InstalledPublishSourceLlvm(
+    source_path: String,
+    output_path: String
+) -> Void with caps io_read, io_write {
+    let history_before: Int = IntentHistoryCount();
+    let outcome: DriverSourceLlvmIntentOutcome =
+        CompileSourceToLlvmThroughPgyCompilerWorld(
+            source_path, output_path, SelfHostMachineLayerDeclarationEmpty()
+        );
+    if !DriverSourceLlvmIntentOutcomeReadyFor(outcome, output_path) {
+        Log(DriverSourceLlvmIntentOutcomeDiagnostic(
+            outcome, source_path, output_path
+        ));
+        Exit(1);
+    }
+    if IntentHistoryCount() != history_before + 1 ||
+        IntentLastName() != "CompilePergyraProgram" || IntentLastFailed() {
+        Log("source LLVM intent trace did not record one successful canonical root");
+        Exit(1);
+    }
+}

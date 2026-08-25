@@ -5874,6 +5874,8 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSour
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "SemanticCallableResolutionContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "ParserNumberSpellingContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
+    "SemanticExpressionGraphResolvedCallTypeContractReady()"
 require_text "src/self_hosted/parser/cursor_owner.pgy" \
     'ReadNumber("1000000", 0, cursor) == "1000000"'
 reject_text "src/self_hosted/parser/cursor_owner.pgy" \
@@ -6846,16 +6848,16 @@ require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'ProduceSourceMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
-    'DriverSourceMirExecutionOutcomePayloadReadyFor('
+    'DriverSourceMirPayloadAdmissionReadyFor('
 reject_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'CompileSourceToMirJsonVerified('
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
     'PublishSourceMirArtifactThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
     'DriverSourceMirExecutionOutcomeReadyFor('
-reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+reject_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
     'CompileSourceToMirJsonPressureObserved('
-reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+reject_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
     'CompileSourceToMirJsonVerified('
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     'CompileSourceToMirJsonFilePressureObserved('
@@ -8715,6 +8717,9 @@ require_file "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy
 require_max_lines "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" 150
 require_file "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" 160
+require_file "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" 130
 reject_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "io_write"
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
@@ -8958,15 +8963,16 @@ reject_text "src/compiler/self_host_driver.c" "system("
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "system("
 require_function_text "src/compiler/self_host_llvm_driver.c" \
-    "driver_materialize_self_host_llvm_artifacts(" \
-    "driver_materialize_self_host_mir_artifact("
+    "driver_materialize_self_host_llvm_artifact(" \
+    'intent_argv[1] = "--emit-source-llvm-ir-verified"'
 reject_function_text "src/compiler/self_host_llvm_driver.c" \
-    "driver_materialize_self_host_llvm_artifacts(" \
-    "producer_argv"
+    "driver_materialize_self_host_llvm_artifact(" \
+    "driver_materialize_self_host_mir_artifact("
 require_text "src/compiler/self_host_llvm_driver.c" \
-    'backend_argv[1] = "--mir-json-backend=llvm"'
+    'intent_argv[1] = "--emit-source-llvm-ir-verified"'
 require_text "src/compiler/self_host_llvm_driver.c" \
-    'backend_argv[3] = "-o"'
+    'intent_argv[3] = "-o"'
+reject_text "src/compiler/self_host_llvm_driver.c" "--mir-json-backend=llvm"
 reject_text "src/compiler/self_host_llvm_driver.c" "path_read_file("
 reject_text "src/compiler/self_host_llvm_driver.c" "strstr("
 reject_text "src/compiler/self_host_llvm_driver.c" "driver_run_pipeline("
@@ -8987,7 +8993,7 @@ require_file "tests/self_hosted/parity/package_commands_installed_self_host_owne
 require_file \
     "tests/self_hosted/parity/fixture/counting_package_self_host_driver.c"
 require_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
-    "driver_materialize_self_host_llvm_artifacts("
+    "driver_materialize_self_host_llvm_artifact("
 require_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
     "compiler_transient_artifact_workspace_open("
 reject_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
@@ -8995,7 +9001,7 @@ reject_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
 reject_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
     "compiler_emit_llvm_ir"
 require_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
-    "driver_materialize_self_host_llvm_artifacts("
+    "driver_materialize_self_host_llvm_artifact("
 require_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
     "unsigned char buffer[16384];"
 reject_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
@@ -9052,6 +9058,22 @@ require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
 reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args["
 require_file "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh"
 require_text "Makefile" "self-host-installed-driver-cli-mode-test-smoke"
+require_file "tests/self_hosted/parity/compiler_root_intent_takeover_gate.sh"
+require_file "src/self_hosted/compiler/compiler_root_intent_execution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/compiler_root_intent_execution_owner.pgy" 30
+require_file "src/self_hosted/compiler/driver_source_llvm_intent_protocol_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_source_llvm_intent_protocol_owner.pgy" 180
+require_file "src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy" 100
+require_file \
+    "src/self_hosted/compiler/driver_source_llvm_projection_publication_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_source_llvm_projection_publication_owner.pgy" 90
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/compiler_root_intent_takeover_gate.sh"'
 require_text "Makefile" \
     "self-host-public-machine-manifest-replacement-test-smoke:"
 require_text "Makefile" \
@@ -9155,7 +9177,7 @@ require_text "Makefile" \
     'self-host-default-llvm-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke'
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
-    "public LLVM path did not invoke producer/backend exactly once"
+    "public LLVM path did not invoke the compiler intent exactly once"
 require_text \
     "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "missing driver used native LLVM fallback"
@@ -16059,7 +16081,7 @@ require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     'src/self_hosted/mir_lower/fixture/multilet.pgy'
 require_file "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 300
+    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 330
 require_file "src/self_hosted/compiler/direct_mir_pressure_observation_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_pressure_observation_owner.pgy" 20
@@ -22979,13 +23001,13 @@ require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func PublishSourceCArtifactThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'import "driver_rung2_cli_request_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
     'EmitDirectMirThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
     'PublishMirCArtifactThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
     'PublishSourceMirArtifactThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
     'PublishSourceCArtifactThroughPgyCompilerWorld('
 reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'DriverRung2InstalledCommitSourceC'

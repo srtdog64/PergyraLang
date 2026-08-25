@@ -8,10 +8,13 @@ WORLD="$ROOT_DIR/src/self_hosted/compiler/world.pgy"
 STAGES="$ROOT_DIR/src/self_hosted/compiler/stage_intents.pgy"
 EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 SOURCE_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
+SOURCE_LLVM_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy"
 SOURCE_C_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
 COMPOSITION="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
+ROOT_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/compiler_root_intent_execution_owner.pgy"
 MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 INSTALLED="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+ARTIFACT_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
 COMPILER_ROOT="$ROOT_DIR/src/self_hosted/compiler"
 ARCH="$ROOT_DIR/docs/self_hosted/11_compiler_world_architecture.md"
 
@@ -24,10 +27,13 @@ fail() {
 [[ -f "$STAGES" ]] || fail "missing stage intent owner"
 [[ -f "$EXECUTION" ]] || fail "missing direct-MIR execution owner"
 [[ -f "$SOURCE_EXECUTION" ]] || fail "missing source-to-MIR execution owner"
+[[ -f "$SOURCE_LLVM_EXECUTION" ]] || fail "missing source-to-LLVM intent execution owner"
 [[ -f "$SOURCE_C_EXECUTION" ]] || fail "missing source-to-C execution owner"
 [[ -f "$COMPOSITION" ]] || fail "missing direct-MIR world composition owner"
+[[ -f "$ROOT_EXECUTION" ]] || fail "missing compiler-purpose root execution owner"
 [[ -f "$MAIN" ]] || fail "missing production compiler entrypoint"
 [[ -f "$INSTALLED" ]] || fail "missing installed CLI request executor"
+[[ -f "$ARTIFACT_EXECUTION" ]] || fail "missing installed artifact request executor"
 [[ -f "$ARCH" ]] || fail "missing compiler world architecture"
 
 awk '
@@ -38,6 +44,9 @@ awk '
         }
         if ($0 ~ /^(public[[:space:]]+)?zone[[:space:]]+DriverSourceMirZone[[:space:]]*\{/) {
             source_zone++
+        }
+        if ($0 ~ /^(public[[:space:]]+)?zone[[:space:]]+DriverSourceLlvmIntentZone[[:space:]]*\{/) {
+            source_llvm_zone++
         }
         if ($0 ~ /^(public[[:space:]]+)?zone[[:space:]]+DriverSourceCZone[[:space:]]*\{/) {
             source_c_zone++
@@ -65,8 +74,15 @@ awk '
             source_member++
         }
         if (members == 3 &&
+            $0 ~ /^[[:space:]]+zone[[:space:]]+source_llvm:[[:space:]]+DriverSourceLlvmIntentZone[[:space:]]*$/) {
+            source_llvm_member_is_third++
+        }
+        if ($0 ~ /^[[:space:]]+zone[[:space:]]+source_llvm:[[:space:]]+DriverSourceLlvmIntentZone[[:space:]]*$/) {
+            source_llvm_member++
+        }
+        if (members == 4 &&
             $0 ~ /^[[:space:]]+zone[[:space:]]+source_c:[[:space:]]+DriverSourceCZone[[:space:]]*$/) {
-            source_c_member_is_third++
+            source_c_member_is_fourth++
         }
         if ($0 ~ /^[[:space:]]+zone[[:space:]]+source_c:[[:space:]]+DriverSourceCZone[[:space:]]*$/) {
             source_c_member++
@@ -74,25 +90,25 @@ awk '
     }
     in_world && /^}/ { in_world = 0 }
     /intent[[:space:]]+CompilePergyraProgram[[:space:]]*\(/ { compile_intent++ }
-    /step[[:space:]]+Frontend[[:space:]]*\{/ { frontend++ }
-    /step[[:space:]]+MiddleEnd[[:space:]]*\{/ { middle_end++ }
-    /step[[:space:]]+Evidence[[:space:]]*\{/ { evidence++ }
-    /step[[:space:]]+Backend[[:space:]]*\{/ { backend++ }
-    /step[[:space:]]+SelfProof[[:space:]]*\{/ { self_proof++ }
+    /step[[:space:]]+Compile[[:space:]]*\{/ { compile_step++ }
+    /step[[:space:]]+(Frontend|MiddleEnd|Evidence|Backend|SelfProof)[[:space:]]*\{/ {
+        readiness_step++
+    }
     /SelfHostCompiler/ { duplicate_aggregate++ }
     END {
-        if (zones != 21 || worlds != 1 || members != 3 ||
-            direct_zone != 1 || source_zone != 1 || source_c_zone != 1 ||
-            direct_member != 1 || source_member != 1 || source_c_member != 1 ||
+        if (zones != 22 || worlds != 1 || members != 4 ||
+            direct_zone != 1 || source_zone != 1 || source_llvm_zone != 1 ||
+            source_c_zone != 1 || direct_member != 1 || source_member != 1 ||
+            source_llvm_member != 1 || source_c_member != 1 ||
             direct_member_is_first != 1 || source_member_is_second != 1 ||
-            source_c_member_is_third != 1 ||
-            compile_intent != 1 || frontend != 1 || middle_end != 1 ||
-            evidence != 1 || backend != 1 || self_proof != 1 ||
+            source_llvm_member_is_third != 1 || source_c_member_is_fourth != 1 ||
+            compile_intent != 1 || compile_step != 1 || readiness_step != 0 ||
             duplicate_aggregate != 0) {
             exit 1
         }
     }
-' "$WORLD" "$EXECUTION" "$SOURCE_EXECUTION" "$SOURCE_C_EXECUTION" || fail "world/resource topology drifted"
+' "$WORLD" "$EXECUTION" "$SOURCE_EXECUTION" "$SOURCE_LLVM_EXECUTION" \
+    "$SOURCE_C_EXECUTION" || fail "world/resource topology drifted"
 
 first_world_member="$(awk '
     /^world[[:space:]]+PgyCompilerWorld[[:space:]]*\{/ {
@@ -125,8 +141,18 @@ third_world_member="$(awk '
         if (members == 3) { print $2 "|" $3; exit }
     }
 ' "$WORLD")"
-[[ "$third_world_member" == 'source_c:|DriverSourceCZone' ]] ||
-    fail "source_c must be PgyCompilerWorld's third positional field"
+[[ "$third_world_member" == 'source_llvm:|DriverSourceLlvmIntentZone' ]] ||
+    fail "source_llvm must be PgyCompilerWorld's third positional field"
+
+fourth_world_member="$(awk '
+    /^world[[:space:]]+PgyCompilerWorld[[:space:]]*\{/ { in_world = 1; next }
+    in_world && /^[[:space:]]+zone[[:space:]]+[A-Za-z0-9_]+:/ {
+        members++
+        if (members == 4) { print $2 "|" $3; exit }
+    }
+' "$WORLD")"
+[[ "$fourth_world_member" == 'source_c:|DriverSourceCZone' ]] ||
+    fail "source_c must be PgyCompilerWorld's fourth positional field"
 
 compiler_world_count="$(
     {
@@ -145,6 +171,12 @@ for owner_term in \
     "$SOURCE_EXECUTION|public zone DriverSourceMirZone" \
     "$SOURCE_EXECUTION|subject slot execution: DriverSourceMirExecution" \
     "$SOURCE_EXECUTION|authority execution" \
+    "$SOURCE_LLVM_EXECUTION|public zone DriverSourceLlvmIntentZone" \
+    "$SOURCE_LLVM_EXECUTION|action Compile(" \
+    "$SOURCE_LLVM_EXECUTION|within DriverSourceLlvmIntentZone" \
+    "$SOURCE_LLVM_EXECUTION|authorized by self" \
+    "$SOURCE_LLVM_EXECUTION|subject slot execution: DriverSourceLlvmIntentExecution" \
+    "$SOURCE_LLVM_EXECUTION|authority execution" \
     "$SOURCE_C_EXECUTION|public zone DriverSourceCZone" \
     "$SOURCE_C_EXECUTION|within DriverSourceCZone" \
     "$SOURCE_C_EXECUTION|authorized by self" \
@@ -152,11 +184,13 @@ for owner_term in \
     "$SOURCE_C_EXECUTION|authority execution" \
     "$WORLD|zone direct_mir: DriverRung2DirectMirZone" \
     "$WORLD|zone source_mir: DriverSourceMirZone" \
+    "$WORLD|zone source_llvm: DriverSourceLlvmIntentZone" \
     "$WORLD|zone source_c: DriverSourceCZone" \
     "$WORLD|return self.direct_mir.execution.EmitDirectMir(" \
     "$WORLD|return self.direct_mir.execution.PublishMirCArtifact(" \
     "$WORLD|return self.source_mir.execution.ProduceSourceMir(" \
     "$WORLD|return self.source_mir.execution.PublishSourceMirArtifact(" \
+    "$WORLD|let completed: Bool = CompilePergyraProgram(" \
     "$WORLD|return self.source_c.execution.PublishSourceCArtifact(" \
     "$COMPOSITION|import \"world.pgy\";" \
     "$COMPOSITION|func PgyCompilerWorldMaterializeExecutableZones()" \
@@ -167,6 +201,7 @@ for owner_term in \
     "$COMPOSITION|func PublishSourceCArtifactThroughPgyCompilerWorld(" \
     "$COMPOSITION|DriverRung2DirectMirZone(" \
     "$COMPOSITION|DriverSourceMirZone(" \
+    "$COMPOSITION|DriverSourceLlvmIntentZone(" \
     "$COMPOSITION|DriverSourceCZone(" \
     "$COMPOSITION|return compiler_world.EmitDirectMir(" \
     "$COMPOSITION|return compiler_world.PublishMirCArtifact(" \
@@ -175,10 +210,13 @@ for owner_term in \
     "$COMPOSITION|return compiler_world.PublishSourceCArtifact(" \
     "$MAIN|import \"driver_rung2_installed_cli_owner.pgy\";" \
     "$MAIN|DriverRung2ExecuteInstalledRequest(request);" \
-    "$INSTALLED|EmitDirectMirThroughPgyCompilerWorld(" \
-    "$INSTALLED|PublishMirCArtifactThroughPgyCompilerWorld(" \
-    "$INSTALLED|PublishSourceMirArtifactThroughPgyCompilerWorld(" \
-    "$INSTALLED|PublishSourceCArtifactThroughPgyCompilerWorld("; do
+    "$INSTALLED|case DriverCliSourceLlvmArtifact(source_path, output_path):" \
+    "$ARTIFACT_EXECUTION|EmitDirectMirThroughPgyCompilerWorld(" \
+    "$ARTIFACT_EXECUTION|PublishMirCArtifactThroughPgyCompilerWorld(" \
+    "$ARTIFACT_EXECUTION|PublishSourceMirArtifactThroughPgyCompilerWorld(" \
+    "$ARTIFACT_EXECUTION|PublishSourceCArtifactThroughPgyCompilerWorld(" \
+    "$ARTIFACT_EXECUTION|CompileSourceToLlvmThroughPgyCompilerWorld(" \
+    "$ROOT_EXECUTION|func CompileSourceToLlvmThroughPgyCompilerWorld("; do
     owner="${owner_term%%|*}"
     term="${owner_term#*|}"
     [[ "$(grep -F -c -- "$term" "$owner")" -eq 1 ]] ||
@@ -196,11 +234,13 @@ done
 
 if grep -Fq -- 'import "driver_rung2_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "driver_source_mir_execution_owner.pgy";' "$MAIN" ||
+    grep -Fq -- 'import "driver_source_llvm_intent_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "driver_source_c_execution_owner.pgy";' "$MAIN" ||
     grep -Fq -- 'import "world.pgy";' "$MAIN" ||
     grep -Fq -- '.EmitDirectMir(' "$MAIN" ||
     grep -Fq -- '.PublishMirCArtifact(' "$MAIN" ||
     grep -Fq -- '.ProduceSourceMir(' "$MAIN" ||
+    grep -Fq -- 'CompilePergyraProgram(' "$MAIN" ||
     grep -Fq -- '.PublishSourceMirArtifact(' "$MAIN" ||
     grep -Fq -- '.PublishSourceCArtifact(' "$MAIN"; then
     fail "production Main bypassed the single compiler-world composition path"
@@ -230,6 +270,18 @@ source_zone_decl_count="$(
 [[ "$(grep -F -c -- 'DriverSourceMirZone' "$WORLD")" -eq 1 ]] ||
     fail "PgyCompilerWorld must bind DriverSourceMirZone exactly once"
 
+source_llvm_zone_decl_count="$(
+    {
+        grep -REh --include='*.pgy' \
+            '^[[:space:]]*(public[[:space:]]+)?zone[[:space:]]+DriverSourceLlvmIntentZone[[:space:]]*\{' \
+            "$COMPILER_ROOT" || true
+    } | wc -l | tr -d '[:space:]'
+)"
+[[ "$source_llvm_zone_decl_count" -eq 1 ]] ||
+    fail "DriverSourceLlvmIntentZone must have exactly one declaration"
+[[ "$(grep -F -c -- 'zone source_llvm: DriverSourceLlvmIntentZone' "$WORLD")" -eq 1 ]] ||
+    fail "PgyCompilerWorld must bind DriverSourceLlvmIntentZone exactly once"
+
 source_c_zone_decl_count="$(
     {
         grep -REh --include='*.pgy' \
@@ -256,7 +308,7 @@ awk '
 ' "$STAGES" || fail "derived stage-intent topology drifted"
 
 awk '
-    /^Status: `hard-self-host-shape-contract \/ source-MIR\/source-C REACHABLE BRIDGE`$/ { status++ }
+    /^Status: `hard-self-host-shape-contract \/ bounded source-LLVM intent SUBSTITUTING`$/ { status++ }
     /## Recursive Topology Rule/ { rule++ }
     /## Target Resource Facade/ { facade++ }
     /resource zone -> intent transition -> typed owner fact -> final consumer/ {
@@ -277,11 +329,13 @@ awk '
     /^\| `BackendResources\.Artifact` \| `ArtifactZone`, `TestHarnessZone`, `SubprocessRunnerZone`, `ParityZone` \|$/ { artifact++ }
     /^\| `BackendResources\.DirectMIR` \| `DriverRung2DirectMirZone` \|$/ { direct_mir++ }
     /^\| `BackendResources\.SourceMIR` \| `DriverSourceMirZone` \|$/ { source_mir++ }
+    /^\| `BackendResources\.SourceLLVM` \| `DriverSourceLlvmIntentZone` \|$/ { source_llvm++ }
     /^\| `BackendResources\.SourceC` \| `DriverSourceCZone` \|$/ { source_c++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishDirectMir -> EmitDirectMirThroughPgyCompilerWorld/ { reachable_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceMir -> PublishSourceMirArtifactThroughPgyCompilerWorld/ { reachable_source_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceC -> PublishSourceCArtifactThroughPgyCompilerWorld/ { reachable_source_c_path++ }
-    /exactly 21 concrete resource zones and three executable world members/ { exact_topology++ }
+    /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceLlvm -> CompileSourceToLlvmThroughPgyCompilerWorld/ { reachable_source_llvm_path++ }
+    /exactly 22 concrete resource zones and four executable world members/ { exact_topology++ }
     /target facade projection, not a claim that four new aggregate zones/ {
         projection++
     }
@@ -291,9 +345,11 @@ awk '
             balance != 1 || intake != 1 || token != 1 || ast != 1 ||
             semantic != 1 || mir != 1 || air != 1 || compatibility != 1 ||
             abi != 1 || target != 1 || emission != 1 || artifact != 1 ||
-            direct_mir != 1 || source_mir != 1 || source_c != 1 ||
+            direct_mir != 1 || source_mir != 1 || source_llvm != 1 ||
+            source_c != 1 ||
             reachable_path != 1 || reachable_source_path != 1 ||
-            reachable_source_c_path != 1 || exact_topology != 1 ||
+            reachable_source_c_path != 1 || reachable_source_llvm_path != 1 ||
+            exact_topology != 1 ||
             projection != 1 || no_bundle != 1) {
             exit 1
         }

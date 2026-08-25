@@ -1,0 +1,156 @@
+// Typed protocol for the canonical source-to-LLVM compiler purpose.
+// The intent owns orchestration only; existing source-MIR, target, projection,
+// and artifact transaction owners retain their facts.
+
+import "driver_source_mir_protocol_owner.pgy";
+import "driver_rung2_execution_protocol_owner.pgy";
+
+tobject DriverLlvmPayloadPublicationFailure {
+    schema: String;
+    target_projection: String;
+    final_path: String;
+    stage: String;
+    diagnostic: String;
+    transaction_status: Int;
+    prior_final_preserved: Bool;
+    temp_removed: Bool;
+}
+
+enum DriverLlvmPayloadPublicationOutcome {
+    DriverLlvmPayloadPublished(DriverRung2ExecutionReceipt),
+    DriverLlvmPayloadPublicationRejected(DriverLlvmPayloadPublicationFailure),
+}
+
+enum DriverSourceLlvmIntentOutcome {
+    DriverSourceLlvmPublished(DriverRung2ExecutionReceipt),
+    DriverSourceLlvmSourceRejected(DriverSourceMirExecutionRejection),
+    DriverSourceLlvmProjectionRejected(DriverLlvmPayloadPublicationFailure),
+}
+
+func DriverSourceLlvmIntentSchema() -> String {
+    return "pgy.compiler-source-llvm-intent.v1";
+}
+
+func DriverSourceLlvmPublishedOutcome(
+    receipt: DriverRung2ExecutionReceipt
+) -> DriverSourceLlvmIntentOutcome {
+    return DriverSourceLlvmPublished(receipt);
+}
+
+func DriverSourceLlvmSourceRejectedOutcome(
+    rejection: DriverSourceMirExecutionRejection
+) -> DriverSourceLlvmIntentOutcome {
+    return DriverSourceLlvmSourceRejected(rejection);
+}
+
+func DriverSourceLlvmProjectionRejectedOutcome(
+    failure: DriverLlvmPayloadPublicationFailure
+) -> DriverSourceLlvmIntentOutcome {
+    return DriverSourceLlvmProjectionRejected(failure);
+}
+
+func DriverLlvmPayloadRequestFailure(
+    final_path: String,
+    diagnostic: String
+) -> DriverLlvmPayloadPublicationFailure {
+    return DriverLlvmPayloadPublicationFailure(
+        DriverSourceLlvmIntentSchema(), CompilerTargetCpuLlvmProjection(),
+        final_path, "admission", diagnostic, 0, true, true
+    );
+}
+
+func DriverLlvmPayloadArtifactFailure(
+    failure: SelfMirArtifactFailure
+) -> DriverLlvmPayloadPublicationFailure {
+    return DriverLlvmPayloadPublicationFailure(
+        DriverSourceLlvmIntentSchema(), CompilerTargetCpuLlvmProjection(),
+        failure.final_path, SelfMirArtifactCommitStageName(failure.stage),
+        SelfMirArtifactFailureDiagnostic(failure, failure.final_path),
+        failure.status, failure.prior_final_preserved, failure.temp_removed
+    );
+}
+
+func DriverLlvmPayloadPublicationFailureReadyFor(
+    failure: DriverLlvmPayloadPublicationFailure,
+    expected_final_path: String
+) -> Bool {
+    if failure.schema != DriverSourceLlvmIntentSchema() ||
+        failure.target_projection != CompilerTargetCpuLlvmProjection() ||
+        failure.final_path != expected_final_path || failure.diagnostic == "" ||
+        !failure.prior_final_preserved {
+        return false;
+    }
+    if failure.stage == "admission" {
+        return failure.transaction_status == 0 && failure.temp_removed;
+    }
+    return SelfMirArtifactCommitStatusKnown(failure.transaction_status) &&
+        failure.stage == SelfMirArtifactCommitStageName(
+            SelfMirArtifactCommitStageForStatus(failure.transaction_status)
+        ) && failure.temp_removed ==
+            (failure.transaction_status !=
+                SelfMirArtifactCommitCleanupFailedStatus());
+}
+
+func DriverLlvmPayloadPublicationOutcomeReadyFor(
+    outcome: DriverLlvmPayloadPublicationOutcome,
+    expected_final_path: String
+) -> Bool {
+    match outcome {
+        case DriverLlvmPayloadPublished(receipt):
+            return DriverRung2ExecutionOutcomeReadyFor(
+                DriverRung2Executed(receipt), expected_final_path,
+                CompilerTargetCpuLlvmProjection()
+            );
+        case DriverLlvmPayloadPublicationRejected(failure): return false;
+    }
+}
+
+func DriverLlvmPayloadPublicationFailureDiagnostic(
+    failure: DriverLlvmPayloadPublicationFailure,
+    expected_final_path: String
+) -> String {
+    if !DriverLlvmPayloadPublicationFailureReadyFor(
+        failure, expected_final_path
+    ) {
+        return "source LLVM publication failure payload is invalid";
+    }
+    return failure.diagnostic;
+}
+
+func DriverSourceLlvmIntentOutcomeReadyFor(
+    outcome: DriverSourceLlvmIntentOutcome,
+    expected_final_path: String
+) -> Bool {
+    match outcome {
+        case DriverSourceLlvmPublished(receipt):
+            return DriverRung2ExecutionOutcomeReadyFor(
+                DriverRung2Executed(receipt), expected_final_path,
+                CompilerTargetCpuLlvmProjection()
+            );
+        case DriverSourceLlvmSourceRejected(rejection): return false;
+        case DriverSourceLlvmProjectionRejected(failure): return false;
+    }
+}
+
+func DriverSourceLlvmIntentOutcomeDiagnostic(
+    outcome: DriverSourceLlvmIntentOutcome,
+    source_path: String,
+    expected_final_path: String
+) -> String {
+    match outcome {
+        case DriverSourceLlvmPublished(receipt):
+            if DriverSourceLlvmIntentOutcomeReadyFor(
+                outcome, expected_final_path
+            ) { return ""; }
+            return "source LLVM intent receipt is invalid";
+        case DriverSourceLlvmSourceRejected(rejection):
+            return DriverSourceMirPayloadAdmissionDiagnostic(
+                DriverSourceMirPayloadDenied(rejection), source_path,
+                SourceMirVerified
+            );
+        case DriverSourceLlvmProjectionRejected(failure):
+            return DriverLlvmPayloadPublicationFailureDiagnostic(
+                failure, expected_final_path
+            );
+    }
+}

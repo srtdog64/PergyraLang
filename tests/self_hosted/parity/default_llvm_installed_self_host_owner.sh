@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Public LLVM binaries consume exactly one installed self-host MIR artifact,
-# one textual LLVM projection, and the canonical external runtime object.
-# installed MIR and LLVM artifacts plus the canonical external runtime object own public default-runtime LLVM compile and host-I/O execution.
+# Public LLVM binaries consume exactly one installed compiler-purpose intent
+# artifact and the canonical external runtime object.
 # clang is the final host boundary; native semantic/AIR/libLLVM and
 # artifact-text runtime inference are forbidden.
 set -euo pipefail
@@ -96,9 +95,9 @@ cp "$PGY" "$WORK_DIR/counting-install/pgy$suffix"
     "$WORK_DIR/counting-install/pgy$suffix" "$SOURCE" --backend=llvm --run \
         -o ".tmp/self_hosted/default_llvm_installed/shim-program$suffix") \
     >"$WORK_DIR/shim.out" 2>"$WORK_DIR/shim.err"
-printf 'producer\nbackend\n' >"$WORK_DIR/count.expected"
+printf 'intent\n' >"$WORK_DIR/count.expected"
 cmp -s "$WORK_DIR/count.expected" "$COUNT_FILE" ||
-    fail "public LLVM path did not invoke producer/backend exactly once"
+    fail "public LLVM path did not invoke the compiler intent exactly once"
 grep -Fxq "self-host-llvm-shim" "$WORK_DIR/shim.out" ||
     fail "--run did not execute the self-host LLVM artifact"
 ! grep -Fq "[pipeline timing]" "$WORK_DIR/shim.err" ||
@@ -129,10 +128,10 @@ run_failure() {
         fail "$mode re-entered the native compiler pipeline"
 }
 
-run_failure "producer-fail" 'producer\n' "self-host MIR producer failed with code 7"
-run_failure "backend-fail" 'producer\nbackend\n' "self-host LLVM projector failed with code 9"
-run_failure "malformed" 'producer\nbackend\n' "self-host LLVM compile failed"
-run_failure "runtime-ref" 'producer\nbackend\n' "self-host LLVM compile failed"
+run_failure "producer-fail" 'intent\n' "self-host source LLVM intent failed with code 7"
+run_failure "backend-fail" 'intent\n' "self-host source LLVM intent failed with code 9"
+run_failure "malformed" 'intent\n' "self-host LLVM compile failed"
+run_failure "runtime-ref" 'intent\n' "self-host LLVM compile failed"
 
 cp "$PGY" "$WORK_DIR/missing-install/pgy$suffix"
 set +e
@@ -165,8 +164,8 @@ grep -Fq "Prebuilt LLVM runtime object is stale or missing" "$WORK_DIR/stale-run
 
 runner_body="$(sed -n '/^llvm_runner_execute_installed_self_host_llvm(/,/^#ifdef PGY_LLVM_ENABLED/p' \
     "$ROOT_DIR/src/compiler/llvm_runner.c")"
-[[ "$(grep -Fc 'driver_materialize_self_host_llvm_artifacts(' <<< "$runner_body")" == "1" ]] ||
-    fail "public LLVM runner must materialize one owned artifact pair"
+[[ "$(grep -Fc 'driver_materialize_self_host_llvm_artifact(' <<< "$runner_body")" == "1" ]] ||
+    fail "public LLVM runner must materialize one intent-owned artifact"
 grep -Fq "compiler_compile_link_self_host_llvm_artifact(" <<< "$runner_body" ||
     fail "public LLVM runner lacks the clang-only host boundary"
 ! grep -Eq 'driver_run_pipeline\(|compiler_build_native_llvm\(|llvm_codegen_' <<< "$runner_body" ||
@@ -177,4 +176,4 @@ grep -Fq "compiler_llvm_runtime_object_ensure(" "$ROOT_DIR/src/compiler/compiler
 ! grep -Eq 'path_read_file\(|strstr\(' \
     "$ROOT_DIR/src/compiler/self_host_llvm_driver.c" || fail "native LLVM materializer inferred runtime policy from artifact text"
 
-echo "[self-host-default-llvm] installed MIR+LLVM artifacts and canonical runtime own public LLVM compile/run"
+echo "[self-host-default-llvm] installed compiler intent artifact and canonical runtime own public LLVM compile/run"

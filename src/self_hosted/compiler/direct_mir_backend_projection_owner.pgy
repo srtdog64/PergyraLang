@@ -267,6 +267,30 @@ func CompileMirJsonToDirectBackendVerified(
     );
 }
 
+func CompileMirJsonTextToDirectBackendVerifiedObserved(
+    mir_json: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    target_projection: CompilerTargetProjectionFact,
+    observe_pressure: Bool
+) -> CompilerEmissionArtifact {
+    DirectMirPressureStage(observe_pressure, "input:start");
+    let admitted_opt: Option<MirMachineLayerAdmittedJsonInput> =
+        MirMachineLayerAdmitJsonInput(mir_json, machine_declaration);
+    if !IsSome(admitted_opt) {
+        Die("direct MIR backend projection rejected invalid in-memory MIR facts");
+    }
+    DirectMirPressureStage(observe_pressure, "input:done");
+    DirectMirPressureStage(observe_pressure, "projection:start");
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        UnwrapOption(admitted_opt);
+    let artifact: CompilerEmissionArtifact =
+        CompileAdmittedDirectMirForTargetObserved(
+            admitted, target_projection, observe_pressure
+        );
+    DirectMirPressureStage(observe_pressure, "projection:done");
+    return artifact;
+}
+
 func CompileMirJsonToDirectBackendVerifiedObserved(
     mir_json_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration,

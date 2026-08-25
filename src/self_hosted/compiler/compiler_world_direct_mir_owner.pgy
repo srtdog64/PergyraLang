@@ -3,7 +3,6 @@
 // second world are forbidden. The value is not a physical singleton claim.
 
 import "world.pgy";
-
 func PgyCompilerWorldMaterializeExecutableZones() -> PgyCompilerWorld {
     let compiler_world: PgyCompilerWorld = PgyCompilerWorld(
         DriverRung2DirectMirZone(
@@ -12,6 +11,9 @@ func PgyCompilerWorldMaterializeExecutableZones() -> PgyCompilerWorld {
         DriverSourceMirZone(DriverSourceMirExecution(
             DriverSourceMirExecutionOwnerIdentity(),
             DriverSourceMirExecutionTopologyIdentity()
+        )),
+        DriverSourceLlvmIntentZone(DriverSourceLlvmIntentExecution(
+            DriverSourceLlvmIntentExecutionOwnerIdentity(), None
         )),
         DriverSourceCZone(DriverSourceCExecution(
             DriverSourceCExecutionOwnerIdentity(),
@@ -47,7 +49,7 @@ func ProduceSourceMirThroughPgyCompilerWorld(
     source_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration,
     request: DriverSourceMirRequest
-) -> DriverSourceMirExecutionOutcome with caps io_read {
+) -> DriverSourceMirPayloadAdmission with caps io_read {
     let compiler_world: PgyCompilerWorld =
         PgyCompilerWorldMaterializeExecutableZones();
     return compiler_world.ProduceSourceMir(source_path,

@@ -3,10 +3,9 @@
 
 #include <stdbool.h>
 
-int driver_materialize_self_host_llvm_artifacts(
+int driver_materialize_self_host_llvm_artifact(
     const char *launcher_path,
     const char *source_path,
-    const char *mir_output_path,
     const char *llvm_output_path,
     bool verbose);
 

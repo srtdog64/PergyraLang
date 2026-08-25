@@ -133,8 +133,9 @@ grep -Fxq "package-self-host-shim" "$WORK_DIR/counting-package/test.out" ||
 ! grep -Fq "[pipeline timing]" "$WORK_DIR/counting-package"/*.err ||
     fail "default package command re-entered the native pipeline"
 
-# Backend selection remains manifest-owned. Refresh the deterministic lock,
-# then require one MIR producer and one LLVM projection for each binary target.
+# Backend selection remains manifest-owned. Package verification consumes one
+# MIR request; each binary target then consumes one compiler-purpose intent
+# without a second C-owned MIR/backend pair.
 sed -i.bak 's/backend = "c"/backend = "llvm"/' \
     "$WORK_DIR/counting-package/pgy.toml"
 rm -f "$COUNT_FILE"
@@ -148,7 +149,7 @@ rm -f "$COUNT_FILE"
     PGY_SELF_DRIVER_COUNT_FILE="$COUNT_FILE_FOR_DRIVER" \
         "$COUNTING_PGY" run >llvm-run.out 2>llvm-run.err
 )
-printf 'mir\nmir\nllvm\nmir\nllvm\n' >"$WORK_DIR/llvm.expected"
+printf 'mir\nintent\nintent\n' >"$WORK_DIR/llvm.expected"
 cmp -s "$WORK_DIR/llvm.expected" "$COUNT_FILE" ||
     fail "LLVM package commands ignored the manifest backend owner"
 grep -Fxq "package-self-host-shim" "$WORK_DIR/counting-package/llvm-run.out" ||
@@ -185,11 +186,13 @@ grep -Fq 'llvm_runner_execute_installed_self_host_llvm(' <<<"$pkg_body" ||
 ! grep -Fq 'getenv("PGY_NATIVE_PIPELINE")' "$ROOT_DIR/src/compiler/pkg.c" ||
     fail "package owner duplicated the launcher execution-lane decision"
 
-llvm_owner="$(sed -n '/^driver_materialize_self_host_llvm_artifacts(/,/^}/p' \
+llvm_owner="$(sed -n '/^driver_materialize_self_host_llvm_artifact(/,/^}/p' \
     "$ROOT_DIR/src/compiler/self_host_llvm_driver.c")"
-[[ "$(grep -Fc 'driver_materialize_self_host_mir_artifact(' <<<"$llvm_owner")" == "1" ]] ||
-    fail "LLVM materializer does not consume the shared MIR artifact owner"
-! grep -Fq 'producer_argv' <<<"$llvm_owner" ||
-    fail "LLVM materializer reconstructed the MIR producer command"
+[[ "$(grep -Fc 'pgy_exec_argv(intent_argv, verbose)' <<<"$llvm_owner")" == "1" ]] ||
+    fail "LLVM materializer does not invoke one compiler intent"
+grep -Fq 'intent_argv[1] = "--emit-source-llvm-ir-verified"' <<<"$llvm_owner" ||
+    fail "LLVM materializer lost the canonical compiler-intent request"
+! grep -Eq 'driver_materialize_self_host_mir_artifact|--mir-json-backend=llvm' \
+    <<<"$llvm_owner" || fail "LLVM materializer regained two-step C orchestration"
 
 echo "[self-host-package-commands] package commands consume installed MIR/C/LLVM artifacts and fail closed"

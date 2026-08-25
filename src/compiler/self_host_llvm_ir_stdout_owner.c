@@ -59,9 +59,8 @@ driver_write_self_host_llvm_ir_stdout(const char *launcher_path,
                 "pgy: could not create a private LLVM IR stdout workspace\n");
         return 1;
     }
-    rc = driver_materialize_self_host_llvm_artifacts(
-        launcher_path, source_path, workspace.primary_path,
-        workspace.secondary_path, false);
+    rc = driver_materialize_self_host_llvm_artifact(
+        launcher_path, source_path, workspace.secondary_path, false);
     if (rc == 0)
         rc = driver_stream_llvm_ir_file_to_stdout(workspace.secondary_path);
     compiler_transient_artifact_workspace_close(&workspace);

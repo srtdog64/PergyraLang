@@ -1,13 +1,13 @@
 # Self-Hosted Compiler World Architecture
 
-Status: `hard-self-host-shape-contract / source-MIR/source-C REACHABLE BRIDGE`
+Status: `hard-self-host-shape-contract / bounded source-LLVM intent SUBSTITUTING`
 
 The self-hosted compiler must not become a Pergyra rewrite of the C folder
 layout. Pergyra's language surface is intent-first and world/zone-oriented, so
 the target hard self-host shape is rooted in `PgyCompilerWorld`.
 
-The bounded direct-MIR, source-to-MIR, and source-to-C slices are now part of the production
-call graph. The installed self-driver and the full bootstrap artifact root
+The bounded direct-MIR, source-to-MIR, source-to-LLVM, and source-to-C slices
+are now part of the production call graph. The installed self-driver and the full bootstrap artifact root
 share the same source-to-MIR world/action owner; source folders remain fact
 boundaries, not competing program graphs. The reachable paths are:
 
@@ -30,6 +30,13 @@ driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2I
     -> DriverSourceCZone.execution
     -> DriverSourceCExecution.PublishSourceCArtifact
 
+driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceLlvm -> CompileSourceToLlvmThroughPgyCompilerWorld
+    -> PgyCompilerWorld.CompileSourceToLlvm
+    -> CompilePergyraProgram
+    -> DriverSourceLlvmIntentZone.execution.Compile
+    -> DriverSourceMirProducePayloadAdmitted
+    -> DriverRung2PublishMirPayloadLlvmArtifactForIdentity
+
 bin/pgy --self-driver -> native sibling launcher -> bin/pgy-self-driver
     -> driver_rung2_main.Main -> RunDriverRung2FromArgs
     -> ProduceSourceMirThroughPgyCompilerWorld
@@ -39,10 +46,10 @@ bin/pgy --self-driver -> native sibling launcher -> bin/pgy-self-driver
     -> DriverSourceMirExecution.ProduceSourceMir
 ```
 
-`bin/pgy.exe src/self_hosted/compiler/world.pgy --emit-c` is also green with
-zero errors and zero warnings. This proves that the declared world is a valid
-compilation unit; it does not mean that `CompilePergyraProgram` is the
-production root or that a C-owned compiler path has been replaced. The exact
+Compiling `world.pgy` remains supporting shape evidence only. The distinct
+production evidence is the exact source-to-LLVM entrypoint above: it invokes
+`CompilePergyraProgram` once and the C host's old source-MIR/backend subprocess
+pair is absent. This promotes only that bounded compiler-purpose slice. The exact
 SURFACE/REACHABLE/SUBSTITUTING distinction and takeover order remain owned by
 `17_pergyra_native_dogfood_contract.md`.
 
@@ -50,18 +57,17 @@ SURFACE/REACHABLE/SUBSTITUTING distinction and takeover order remain owned by
 
 `PgyCompilerWorld` is the self-host compiler orchestration owner. Stage
 directories own facts; resource zones own isolated compiler resources. The
-production direct-MIR, source-to-MIR, and source-to-C entrypoints now reach three bounded
-world slices after their old direct subject/file-helper calls were deleted.
-MIR-to-C modes still bypass the declared root intent through direct installed
-compile/commit calls. Root-intent takeover follows when a real compiler
-purpose binder and its cross-axis fact bundle reach the production call graph,
-delete the direct bypass, and earn the same replacement evidence. The number
-of actions is not the takeover criterion.
+production direct-MIR, source-to-MIR, source-to-LLVM, and source-to-C
+entrypoints now reach four bounded world slices after their old direct
+subject/file-helper calls were deleted. Source-to-LLVM reaches the real compiler
+purpose binder and deletes the C host's two-process orchestration. Other slices
+remain action-owned and are not inferred to be universal intent transitions.
+The number of actions is not the takeover criterion.
 
 - `src/self_hosted/compiler/world.pgy` names the hard-substitution world.
-- The import closure declares exactly 21 concrete resource-zone types, while
-  `PgyCompilerWorld` contains only the production-reachable `direct_mir` and
-  `source_mir`, and `source_c` members. A declared target zone becomes a world member only in
+- The import closure declares exactly 22 concrete resource-zone types, while
+  `PgyCompilerWorld` contains only the production-reachable `direct_mir`,
+  `source_mir`, `source_llvm`, and `source_c` members. A declared target zone becomes a world member only in
   the rung that deletes its old production bypass.
 - `DriverRung2DirectMirZone` owns only the execution subject's authority and
   lifetime boundary. Target selection, MIR, backend projection, artifact
@@ -75,27 +81,33 @@ of actions is not the takeover criterion.
   rejects an empty output path before compilation and commits once through the
   shared artifact transaction. Empty-path stdout sentinels and temp-file round
   trips are forbidden.
+- `DriverSourceLlvmIntentZone` owns the compiler-purpose invocation's authority
+  and ephemeral outcome lifetime. Its one `Compile` action coordinates the
+  existing source-MIR and direct-LLVM function owners, preserving typed source
+  and projection failures without exposing a fixed compiler lifecycle.
 - `DriverSourceCZone` owns only source-to-C execution authority and lifetime.
   Its action validates subject/topology and artifact identity, consumes the
   existing `CompileSourceToCVerified` and shared transaction exactly once, and
   preserves executed, request-rejected, and artifact-rejected outcomes. It does
   not own source, semantic, MIR, target, or C-emission facts.
 - `compiler_world_direct_mir_owner.pgy` is the sole composition owner. It
-  materializes all three active zones in positional order and delegates through
+  materializes all four active zones in positional order and delegates through
   `PgyCompilerWorld`; it may not declare another world.
-- `CompilePergyraProgram` is the root compiler intent.
+- `CompilePergyraProgram` is the bounded source-to-LLVM compiler-purpose intent.
+  It has one real-purpose action; source-MIR and LLVM publication remain typed
+  function-owner details rather than source-visible lifecycle steps.
 - No aggregate compiler zone mirrors those resources. The former
   `SelfHostCompiler` aggregate duplicated every stage actor and artifact type
   already owned by the resource zones, while its root-intent parameter was
   unused; it is forbidden by the compiler-world gate.
 - `ProgramEmitter` is the current C-emission participant that drives writes
   into `EmissionZone`; it is not a resource zone.
-- `DriverRung2DirectMirZone`, `DriverSourceMirZone`, `DriverSourceCZone`, `SourceIntakeZone`, `TokenStreamZone`,
+- `DriverRung2DirectMirZone`, `DriverSourceMirZone`, `DriverSourceLlvmIntentZone`, `DriverSourceCZone`, `SourceIntakeZone`, `TokenStreamZone`,
   `AstTreeZone`, `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`,
   `AbiLayoutZone`, `TargetCapabilityZone`, `CompatibilityEvolutionZone`,
   `AirEvidenceZone`, `SandboxCapabilityZone`, `SymbolFactTableZone`,
   `AbiRowProjectionZone`, `EmissionZone`, `ArtifactZone`, `TestHarnessZone`,
-  `SubprocessRunnerZone`, and `ParityZone` are the 21 concrete resource zones.
+  `SubprocessRunnerZone`, and `ParityZone` are the 22 concrete resource zones.
 - `StagePathManifest` is the canonical path fact for the self-hosted source,
   test, parity, and stage entrypoint locations.
 - `path_manifest_owner.pgy` owns the current Pergyra string values for those
@@ -120,10 +132,11 @@ of actions is not the takeover criterion.
 - `lexer/`, `parser/`, `semantic/`, `mir_lower/`, and `codegen/` remain
   source-of-truth owners for their facts.
 
-This is not a claim that the released compiler is self-hosted or that the
-current bootstrap executes the whole root intent. The bootstrap executes the
-`direct_mir`, `source_mir`, and `source_c` world members and their real actions; the remaining zone types and
-intents are target topology, not dormant members filled with zero values. New
+This is not a claim that the released compiler is fully self-hosted. The
+bootstrap executes the bounded `CompilePergyraProgram` source-to-LLVM purpose
+and the `direct_mir`, `source_mir`, `source_llvm`, and `source_c` world members
+with their real actions; the remaining zone types and intents are target
+topology, not dormant members filled with zero values. New
 hard-substitution work must extend that one graph and remove the corresponding
 direct bypass rather than grow a second C-style tree.
 
@@ -200,6 +213,7 @@ missing fact, or become a second authority.
 | `BackendResources.Artifact` | `ArtifactZone`, `TestHarnessZone`, `SubprocessRunnerZone`, `ParityZone` |
 | `BackendResources.DirectMIR` | `DriverRung2DirectMirZone` |
 | `BackendResources.SourceMIR` | `DriverSourceMirZone` |
+| `BackendResources.SourceLLVM` | `DriverSourceLlvmIntentZone` |
 | `BackendResources.SourceC` | `DriverSourceCZone` |
 
 The facade is allowed to become visible in `world.pgy` only after all of the
@@ -253,6 +267,10 @@ For compiler self-hosting that means:
   a read-only payload action and write-authorized artifact action own their
   distinct publication transitions while existing typed owners retain
   source/MIR semantics.
+- `DriverSourceLlvmIntentZone` owns the bounded production compiler-purpose
+  invocation and its ephemeral typed outcome. It coordinates existing
+  source-MIR and direct-LLVM owners once and does not duplicate their facts or
+  turn their implementation order into a fixed language lifecycle.
 - `DriverSourceCZone` owns the production source-to-C execution subject's
   authority and lifetime. It admits one existing C compiler artifact and one
   typed publication transition without copying semantic or emission facts.
@@ -280,6 +298,10 @@ For current codegen this is the concrete split:
   pressure-observed requests enter one admission owner through two
   capability-separated actions, and only the full driver source may use the
   pressure-observed request.
+- `DriverSourceLlvmIntentZone`: `subject slot execution:
+  DriverSourceLlvmIntentExecution` with `authority execution`; one purpose
+  action stores one typed success/source-rejection/projection-rejection outcome
+  for the world wrapper's final consistency check.
 - `DriverSourceCZone`: `subject slot execution:
   DriverSourceCExecution` with `authority execution`; source/output identity
   enters one write-authorized action and its typed outcome reaches installed
@@ -338,8 +360,9 @@ drifts from `path_manifest_owner.pgy`. The same smoke is called by
 `make self-host-preparation-test-smoke`.
 
 For the owner-edit loop, `tests/self_host_compiler_topology_smoke.sh` checks the
-root world, exactly 21 concrete resource zones and three executable world members,
-the ordered `direct_mir`, `source_mir`, and `source_c` bindings, four derived stage clusters,
+root world, exactly 22 concrete resource zones and four executable world members,
+the ordered `direct_mir`, `source_mir`, `source_llvm`, and `source_c` bindings,
+four derived stage clusters,
 aggregate-zone prohibition, and the absence of a second compiler world in one
 small pass. It also pins the production Main -> composition -> world -> zone
 path so Main cannot silently restore the direct subject call.

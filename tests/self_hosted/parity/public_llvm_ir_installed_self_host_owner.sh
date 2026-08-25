@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Exact public --emit-llvm -o is published from installed source-MIR and LLVM
-# actions. Native semantic/libLLVM fallback is forbidden for this file form.
+# Exact public --emit-llvm -o is published from one installed compiler-purpose
+# intent. Native semantic/libLLVM fallback is forbidden for this file form.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -65,9 +65,9 @@ count_for_driver="$(pgy_path_for_compiler "$PGY" "$COUNT_FILE")"
     "$WORK_DIR/counting-install/pgy$suffix" "$SOURCE" --emit-llvm \
     -o "$WORK_REL/counting.ll") >"$WORK_DIR/counting.out" \
     2>"$WORK_DIR/counting.err"
-printf 'producer\nbackend\n' >"$WORK_DIR/count.expected"
+printf 'intent\n' >"$WORK_DIR/count.expected"
 cmp -s "$WORK_DIR/count.expected" "$COUNT_FILE" ||
-    fail "public file form did not invoke producer/backend exactly once"
+    fail "public file form did not invoke the compiler intent exactly once"
 [[ -s "$WORK_DIR/counting.ll" ]] || fail "counting path published no LLVM IR"
 ! grep -Fq '[pipeline timing]' "$WORK_DIR/counting.err" ||
     fail "public file form re-entered the native compiler pipeline"
@@ -92,8 +92,8 @@ reject_driver_failure() {
     grep -Fq "$diagnostic" "$WORK_DIR/$mode.err" ||
         fail "$mode lost its owned diagnostic"
 }
-reject_driver_failure producer-fail 'producer\n' 'self-host MIR producer failed with code 7'
-reject_driver_failure backend-fail 'producer\nbackend\n' 'self-host LLVM projector failed with code 9'
+reject_driver_failure producer-fail 'intent\n' 'self-host source LLVM intent failed with code 7'
+reject_driver_failure backend-fail 'intent\n' 'self-host source LLVM intent failed with code 9'
 
 cp "$PGY" "$WORK_DIR/missing-install/pgy$suffix"
 rm -f "$WORK_DIR/missing.ll" "$WORK_DIR/unsupported.ll"
@@ -132,9 +132,9 @@ require_text "$ROOT_DIR/src/pgy_driver.c" 'return driver_publish_self_host_llvm_
 require_text "$ROOT_DIR/src/compiler/driver_self_host_llvm_selection_owner.c" \
     'driver_self_host_llvm_ir_file_request_supported('
 owner="$ROOT_DIR/src/compiler/self_host_llvm_ir_artifact_owner.c"
-require_text "$owner" 'driver_materialize_self_host_llvm_artifacts('
+require_text "$owner" 'driver_materialize_self_host_llvm_artifact('
 ! grep -Eq 'driver_run_pipeline\(|compiler_emit_llvm_ir|compiler_build_native_llvm\(' "$owner" ||
     fail "LLVM IR publication owner regained native compiler authority"
 require_text "$ROOT_DIR/Makefile" 'self-host-public-llvm-ir-replacement-test-smoke:'
 
-echo "[self-host-public-llvm-ir] installed source-MIR and DirectMirLlvm own public file emission"
+echo "[self-host-public-llvm-ir] installed CompilePergyraProgram intent owns public file emission"

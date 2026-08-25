@@ -112,9 +112,9 @@ llvm_runner_execute_installed_self_host_llvm(
     if (flags->verbose)
         printf("pgy: self-host LLVM artifacts → %s, %s\n",
                workspace.primary_path, workspace.secondary_path);
-    materialize_rc = driver_materialize_self_host_llvm_artifacts(
-        launcher_path, flags->source_path, workspace.primary_path,
-        workspace.secondary_path, flags->verbose);
+    materialize_rc = driver_materialize_self_host_llvm_artifact(
+        launcher_path, flags->source_path, workspace.secondary_path,
+        flags->verbose);
     if (materialize_rc != 0) {
         compiler_transient_artifact_workspace_close(&workspace);
         free(binary_path);

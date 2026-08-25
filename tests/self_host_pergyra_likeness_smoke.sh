@@ -337,27 +337,21 @@ SENTINEL_MAX=24
 # absence and atom-text reads through the DIR owner instead of sentinels.
 # 4246 -> 4257 (2026-08-25): source-C world/action admission carries executed,
 # request-rejected, and artifact-rejected outcomes to the final CLI consumer.
-RESULT_USE_MIN=4257
+RESULT_USE_MIN=4267
 COMPILER_WORLD_SURFACE_MIN=1
-COMPILER_RESOURCE_ZONES_EXACT=21
-# The import closure declares 21 resource-zone types, but the runtime world
+COMPILER_RESOURCE_ZONES_EXACT=22
+# The import closure declares 22 resource-zone types, but the runtime world
 # contains only the production-reachable slice. Adding a member requires
 # deleting that stage's old production bypass first.
-COMPILER_WORLD_MEMBERS_EXACT=3
+COMPILER_WORLD_MEMBERS_EXACT=4
 COMPILER_INTENT_SURFACE_MIN=14
-# Four duplicated intent `where` clauses moved behind action-owned `within`
-# contracts while the reachable direct-MIR action added its real zone. Count
-# both spellings; the one-row drop is removal of duplicate authority prose,
-# not loss of a resource boundary.
-# The source-to-MIR subject has two real zone-bound publication actions;
-# source-to-C adds one write-authorized action after deleting its installed
-# direct compile/commit bypass.
-# 29 -> 37 (2026-08-09): world.pgy's step bindings evolved from 'where: XZone;'
-# rows to 'requires Intent within XZone authorized by self { ... }' blocks; the
-# counter only knew the old spellings, so the metric read a strengthening as a
-# loss. The pattern now admits the requires-block spelling and the floor rises
-# to the re-measured total.
-COMPILER_ZONE_BOUND_STEPS_MIN=38
+# Count both intent `where` and action-owned `within` spellings. The bounded
+# compiler-purpose takeover deletes five readiness-only root steps and adds one
+# real source-to-LLVM action. Four of the old multiline steps matched this
+# metric, so 38 -> 35 is a measured net removal of three fake lifecycle
+# bindings, not loss of a resource boundary. The new zone itself is
+# exact-counted above and its action is included in this floor.
+COMPILER_ZONE_BOUND_STEPS_MIN=35
 COMPILER_STAGE_BINDINGS_EXACT=5
 COMPILER_WORLD_FACT_CONSUMERS_MIN=19
 STAGE_PAYLOAD_CONSUMERS_EXACT=7
@@ -555,6 +549,7 @@ compiler_resource_zones=$(count_lines_in_files '^(public[[:space:]]+)?zone[[:spa
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/driver_rung2_execution_owner.pgy \
     src/self_hosted/compiler/driver_source_mir_execution_owner.pgy \
+    src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy \
     src/self_hosted/compiler/driver_source_c_execution_owner.pgy)
 compiler_world_members=$(count_world_zone_members)
 compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
@@ -565,6 +560,7 @@ compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]
     src/self_hosted/compiler/stage_intents.pgy \
     src/self_hosted/compiler/driver_rung2_execution_owner.pgy \
     src/self_hosted/compiler/driver_source_mir_execution_owner.pgy \
+    src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy \
     src/self_hosted/compiler/driver_source_c_execution_owner.pgy)
 compiler_stage_bindings=$(count_stage_world_bindings)
 compiler_world_fact_consumers=$(count_lines_in_files 'Compiler[A-Za-z0-9]+Ready\(' \
@@ -676,6 +672,8 @@ require_compiler_world_zone "direct_mir" "DriverRung2DirectMirZone" \
     "src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
 require_compiler_world_zone "source_mir" "DriverSourceMirZone" \
     "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
+require_compiler_world_zone "source_llvm" "DriverSourceLlvmIntentZone" \
+    "src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy"
 require_compiler_world_zone "source_c" "DriverSourceCZone" \
     "src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
 
@@ -686,16 +684,12 @@ require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" '| `R
 require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" '| `SUBSTITUTING` |'
 require_file_text "docs/self_hosted/17_pergyra_native_dogfood_contract.md" "CompileMirJsonToDirectBackendVerified"
 
-require_file_text "src/self_hosted/compiler/world.pgy" "step Frontend"
-require_file_text "src/self_hosted/compiler/world.pgy" "on: FrontendPipeline(intake, tokens, ast, paths, source, lexer, parser);"
-require_file_text "src/self_hosted/compiler/world.pgy" "step MiddleEnd"
-require_file_text "src/self_hosted/compiler/world.pgy" "on: MiddleEndPipeline(semantic_zone, lower_zone, checker, lowerer);"
-require_file_text "src/self_hosted/compiler/world.pgy" "step Evidence"
-require_file_text "src/self_hosted/compiler/world.pgy" "on: ProveHardSelfHostEvidence("
-require_file_text "src/self_hosted/compiler/world.pgy" "step Backend"
-require_file_text "src/self_hosted/compiler/world.pgy" "on: BackendPipeline(types, abi_layout, target_capability_zone, emit_zone, target_planner, emitter);"
-require_file_text "src/self_hosted/compiler/world.pgy" "step SelfProof"
-require_file_text "src/self_hosted/compiler/world.pgy" "on: SelfProofPipeline(parity_zone, oracle);"
+require_file_text "src/self_hosted/compiler/world.pgy" "intent CompilePergyraProgram("
+require_file_text "src/self_hosted/compiler/world.pgy" "step Compile"
+require_file_text "src/self_hosted/compiler/world.pgy" "using: intent_zone;"
+require_file_text "src/self_hosted/compiler/world.pgy" \
+    "on action_succeeded: intent_execution.Compile("
+require_file_text "src/self_hosted/compiler/world.pgy" "expect: action_succeeded;"
 
 # ---- improvement nudges (non-fatal): tell the author to tighten the ratchet ----
 if [ "$core_string_munge_sig" -lt "$CORE_STRING_MUNGE_SIG_MAX" ] \

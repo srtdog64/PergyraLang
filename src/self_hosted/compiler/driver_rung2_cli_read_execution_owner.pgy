@@ -13,26 +13,22 @@ func DriverRung2CliLogSourceMirPayloadOrDie(
     source_path: String,
     declaration: SelfHostMachineLayerDeclaration
 ) -> Void with caps io_read {
-    let source_outcome: DriverSourceMirExecutionOutcome =
+    let source_outcome: DriverSourceMirPayloadAdmission =
         ProduceSourceMirThroughPgyCompilerWorld(
             source_path, declaration, SourceMirVerified
         );
-    if !DriverSourceMirExecutionOutcomePayloadReadyFor(
+    if !DriverSourceMirPayloadAdmissionReadyFor(
         source_outcome, source_path, SourceMirVerified
     ) {
-        Log(DriverSourceMirExecutionOutcomePayloadDiagnostic(
+        Log(DriverSourceMirPayloadAdmissionDiagnostic(
             source_outcome, source_path, SourceMirVerified
         ));
         Exit(1);
     }
     match source_outcome {
-        case DriverSourceMirProduced(receipt): Log(receipt.payload);
-        case DriverSourceMirExecuted(receipt):
-            Die("source MIR stdout request published an artifact");
-        case DriverSourceMirRejected(rejection):
+        case DriverSourceMirPayloadAdmitted(receipt): Log(receipt.payload);
+        case DriverSourceMirPayloadDenied(rejection):
             Die("source MIR stdout request returned an unchecked rejection");
-        case DriverSourceMirArtifactRejected(failure):
-            Die("source MIR stdout request reached artifact publication");
     }
 }
 
@@ -110,6 +106,8 @@ func DriverRung2ExecuteReadRequest(
                 SelfHostMachineLayerDeclarationFromPath(manifest_path)
             );
         case DriverCliSourceCArtifact(source_path, output_path):
+            Die("driver rung-2 artifact request requires installed composition root");
+        case DriverCliSourceLlvmArtifact(source_path, output_path):
             Die("driver rung-2 artifact request requires installed composition root");
         case DriverCliSourceMirArtifact(source_path, output_path):
             Die("driver rung-2 artifact request requires installed composition root");

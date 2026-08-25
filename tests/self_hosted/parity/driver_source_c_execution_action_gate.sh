@@ -18,6 +18,7 @@ SOURCE_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_execution_owner
 WORLD_OWNER="$ROOT_DIR/src/self_hosted/compiler/world.pgy"
 COMPOSITION_OWNER="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
 INSTALLED_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+ARTIFACT_EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
 
 fail() { echo "[driver-source-c-execution-action] $1" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
@@ -32,7 +33,8 @@ fi
 [[ -x "$SELF_DRIVER" ]] || fail "missing installed self-host driver: $SELF_DRIVER"
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 
-for owner in "$SOURCE_OWNER" "$WORLD_OWNER" "$COMPOSITION_OWNER" "$INSTALLED_OWNER"; do
+for owner in "$SOURCE_OWNER" "$WORLD_OWNER" "$COMPOSITION_OWNER" \
+    "$INSTALLED_OWNER" "$ARTIFACT_EXECUTION_OWNER"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 for term in 'tobject DriverSourceCExecutionReceipt' \
@@ -70,11 +72,12 @@ for term in 'func DriverRung2InstalledPublishSourceC(' \
     'PublishSourceCArtifactThroughPgyCompilerWorld(' \
     'DriverSourceCExecutionOutcomeReadyFor(' \
     'DriverSourceCExecutionOutcomeDiagnostic('; do
-    require_text "$INSTALLED_OWNER" "$term"
+    require_text "$ARTIFACT_EXECUTION_OWNER" "$term"
 done
-! grep -Fq 'DriverRung2InstalledCommitSourceC' "$INSTALLED_OWNER" ||
+require_text "$INSTALLED_OWNER" 'case DriverCliSourceCArtifact(source_path, output_path):'
+! grep -Fq 'DriverRung2InstalledCommitSourceC' "$ARTIFACT_EXECUTION_OWNER" ||
     fail "retired installed source-C direct commit returned"
-installed_publish="$(awk '/^func DriverRung2InstalledPublishSourceC\(/{inside=1} inside{print} inside && /^}/{exit}' "$INSTALLED_OWNER")"
+installed_publish="$(awk '/^func DriverRung2InstalledPublishSourceC\(/{inside=1} inside{print} inside && /^}/{exit}' "$ARTIFACT_EXECUTION_OWNER")"
 grep -Fq 'CompileSourceToCVerified(' <<<"$installed_publish" &&
     fail "installed CLI regained the direct source-C compiler bypass"
 grep -Fq 'SelfMirArtifactCommitPayload(' <<<"$installed_publish" &&

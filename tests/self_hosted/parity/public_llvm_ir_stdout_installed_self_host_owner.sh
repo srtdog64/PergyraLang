@@ -55,9 +55,9 @@ count_for_driver="$(pgy_path_for_compiler "$PGY" "$COUNT_FILE")"
     PGY_SELF_DRIVER_COUNT_FILE="$count_for_driver" \
     "$WORK_DIR/counting-install/pgy$suffix" "$SOURCE" --emit-llvm) \
     >"$WORK_DIR/counting.ll" 2>"$WORK_DIR/counting.err"
-printf 'producer\nbackend\n' >"$WORK_DIR/count.expected"
+printf 'intent\n' >"$WORK_DIR/count.expected"
 cmp -s "$WORK_DIR/count.expected" "$COUNT_FILE" ||
-    fail "stdout did not invoke producer/backend exactly once"
+    fail "stdout did not invoke the compiler intent exactly once"
 [[ -s "$WORK_DIR/counting.ll" ]] || fail "stdout published no LLVM IR"
 ! grep -Fq '[pipeline timing]' "$WORK_DIR/counting.err" ||
     fail "stdout re-entered the native compiler pipeline"
@@ -82,8 +82,8 @@ reject_stdout() {
     ! grep -Fq '[pipeline timing]' "$WORK_DIR/$mode.err" ||
         fail "$mode re-entered the native pipeline"
 }
-reject_stdout producer-fail 'producer\n' 'self-host MIR producer failed with code 7'
-reject_stdout backend-fail 'producer\nbackend\n' 'self-host LLVM projector failed with code 9'
+reject_stdout producer-fail 'intent\n' 'self-host source LLVM intent failed with code 7'
+reject_stdout backend-fail 'intent\n' 'self-host source LLVM intent failed with code 9'
 
 cp "$PGY" "$WORK_DIR/missing-install/pgy$suffix"
 set +e
@@ -107,7 +107,7 @@ grep -Fq 'outside the installed self-host driver contract' \
 owner="$ROOT_DIR/src/compiler/self_host_llvm_ir_stdout_owner.c"
 require_text "$ROOT_DIR/src/pgy_driver.c" 'driver_self_host_llvm_ir_stdout_request_supported'
 require_text "$ROOT_DIR/src/pgy_driver.c" 'return driver_write_self_host_llvm_ir_stdout('
-require_text "$owner" 'driver_materialize_self_host_llvm_artifacts('
+require_text "$owner" 'driver_materialize_self_host_llvm_artifact('
 require_text "$owner" 'unsigned char buffer[16384];'
 ! grep -Eq 'path_read_file\(|malloc\(|realloc\(|strstr\(|driver_run_pipeline\(|compiler_emit_llvm_ir' "$owner" ||
     fail "stdout owner buffered/reinterpreted LLVM or regained native authority"

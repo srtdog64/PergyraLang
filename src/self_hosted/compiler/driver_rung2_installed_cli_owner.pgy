@@ -4,85 +4,7 @@
 
 import "driver_rung2_cli_request_owner.pgy";
 import "driver_rung2_cli_read_execution_owner.pgy";
-
-func DriverRung2InstalledPublishSourceC(
-    source_path: String, output_path: String
-) -> Void with caps io_read, io_write {
-    let outcome: DriverSourceCExecutionOutcome =
-        PublishSourceCArtifactThroughPgyCompilerWorld(
-            source_path, output_path,
-            SelfHostMachineLayerDeclarationEmpty()
-        );
-    if !DriverSourceCExecutionOutcomeReadyFor(
-        outcome, source_path, output_path
-    ) {
-        Log(DriverSourceCExecutionOutcomeDiagnostic(outcome, source_path, output_path));
-        Exit(1);
-    }
-}
-func DriverRung2InstalledPublishSourceMir(
-    source_path: String,
-    output_path: String,
-    source_request: DriverSourceMirRequest
-) -> Void with caps io_read, io_write {
-    let source_outcome: DriverSourceMirExecutionOutcome =
-        PublishSourceMirArtifactThroughPgyCompilerWorld(
-            source_path, output_path,
-            SelfHostMachineLayerDeclarationEmpty(), source_request
-        );
-    if !DriverSourceMirExecutionOutcomeReadyFor(
-        source_outcome, source_path, output_path, source_request
-    ) {
-        Log(DriverSourceMirExecutionOutcomeDiagnostic(
-            source_outcome, source_path, output_path, source_request
-        ));
-        Exit(1);
-    }
-}
-func DriverRung2InstalledPublishMirC(
-    input_path: String,
-    output_path: String,
-    mir_c_request: DriverRung2MirCRequest
-) -> Void with caps io_read, io_write {
-    let outcome: DriverRung2ExecutionOutcome =
-        PublishMirCArtifactThroughPgyCompilerWorld(
-            input_path, output_path,
-            SelfHostMachineLayerDeclarationEmpty(), mir_c_request
-        );
-    let projection: String = CompilerTargetCpuCProjection();
-    if !DriverRung2ExecutionOutcomeReadyFor(
-        outcome, output_path, projection
-    ) {
-        Log(DriverRung2ExecutionOutcomeDiagnostic(
-            outcome, output_path, projection
-        ));
-        Exit(1);
-    }
-}
-
-func DriverRung2InstalledPublishDirectMir(
-    input_path: String,
-    output_path: String,
-    direct_request: DriverRung2DirectMirRequest,
-    observe_pressure: Bool
-) -> Void with caps io_read, io_write {
-    let outcome: DriverRung2ExecutionOutcome =
-        EmitDirectMirThroughPgyCompilerWorld(
-            input_path, output_path,
-            SelfHostMachineLayerDeclarationEmpty(), direct_request,
-            observe_pressure
-        );
-    let projection: String =
-        DriverRung2DirectMirRequestProjection(direct_request);
-    if !DriverRung2ExecutionOutcomeReadyFor(
-        outcome, output_path, projection
-    ) {
-        Log(DriverRung2ExecutionOutcomeDiagnostic(
-            outcome, output_path, projection
-        ));
-        Exit(1);
-    }
-}
+import "driver_rung2_artifact_request_execution_owner.pgy";
 
 func DriverRung2ExecuteInstalledRequest(
     request: DriverRung2CliRequest
@@ -100,6 +22,8 @@ func DriverRung2ExecuteInstalledRequest(
             DriverRung2ExecuteReadRequest(request);
         case DriverCliSourceCArtifact(source_path, output_path):
             DriverRung2InstalledPublishSourceC(source_path, output_path);
+        case DriverCliSourceLlvmArtifact(source_path, output_path):
+            DriverRung2InstalledPublishSourceLlvm(source_path, output_path);
         case DriverCliSourceMirArtifact(source_path, output_path):
             DriverRung2InstalledPublishSourceMir(
                 source_path, output_path, SourceMirVerified

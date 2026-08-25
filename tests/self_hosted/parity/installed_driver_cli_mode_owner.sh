@@ -21,11 +21,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
+source "$ROOT_DIR/tests/self_hosted/parity/compiler_root_intent_takeover_gate.sh"
 
 DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 WORK_REL=".tmp/self_hosted/installed-driver-cli-mode"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="src/self_hosted/semantic/fixture/valid_call_int.pgy"
+LLVM_SOURCE_REL="examples/hello.pgy"
 MODE="--emit-c-artifact-verified"
 FLAG_PATH="$ROOT_DIR/--emit-c-verified"
 UNKNOWN_FLAG="--unknown-installed-driver-mode"
@@ -98,6 +100,22 @@ tr -d '\r\n' <"$WORK_DIR/source.artifact.mir.json" >"$WORK_DIR/source.artifact.n
 cmp -s "$WORK_DIR/source.stdout.normalized.json" \
     "$WORK_DIR/source.artifact.normalized.json" ||
     fail "source-MIR stdout and artifact payloads differ"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$LLVM_SOURCE_REL" \
+    -o "$WORK_REL/llvm-source.mir.json" \
+    >"$WORK_DIR/llvm-source-mir.out" 2>"$WORK_DIR/llvm-source-mir.err") ||
+    fail "LLVM fixture source-MIR production failed"
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm \
+    "$WORK_REL/llvm-source.mir.json" -o "$WORK_REL/direct-source.ll" \
+    >"$WORK_DIR/direct-source.out" 2>"$WORK_DIR/direct-source.err") ||
+    fail "direct source-MIR LLVM oracle failed"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-source-llvm-ir-verified \
+    "$LLVM_SOURCE_REL" -o "$WORK_REL/intent-source.ll" \
+    >"$WORK_DIR/intent-source.out" 2>"$WORK_DIR/intent-source.err") ||
+    fail "canonical compiler intent execution failed"
+cmp -s "$WORK_DIR/direct-source.ll" "$WORK_DIR/intent-source.ll" ||
+    fail "compiler intent LLVM differs from the admitted direct-MIR projection"
+[[ ! -s "$WORK_DIR/intent-source.out" ]] ||
+    fail "compiler intent artifact mode leaked payload to stdout"
 (cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/source.mir.json" \
     >"$WORK_DIR/mir.c" 2>"$WORK_DIR/mir.err") ||
     fail "MIR-C stdout mode remained shadowed"
@@ -170,6 +188,17 @@ missing_mir_output_rc=$?
     -o "$WORK_REL/mir-c-missing-parent/out.c" \
     >"$WORK_DIR/rejected-mir-c.out" 2>"$WORK_DIR/rejected-mir-c.err")
 rejected_mir_c_rc=$?
+(cd "$ROOT_DIR" && "$DRIVER" --emit-source-llvm-ir-verified \
+    "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    -o "$WORK_REL/rejected-source.ll" \
+    >"$WORK_DIR/rejected-source-llvm.out" \
+    2>"$WORK_DIR/rejected-source-llvm.err")
+rejected_source_llvm_rc=$?
+(cd "$ROOT_DIR" && "$DRIVER" --emit-source-llvm-ir-verified \
+    "$LLVM_SOURCE_REL" -o "$WORK_REL/llvm-missing-parent/out.ll" \
+    >"$WORK_DIR/rejected-projection.out" \
+    2>"$WORK_DIR/rejected-projection.err")
+rejected_projection_rc=$?
 (cd "$ROOT_DIR" && "$DRIVER" >"$WORK_DIR/empty.out" 2>"$WORK_DIR/empty.err")
 empty_rc=$?
 set -e
@@ -209,14 +238,27 @@ grep -Fq 'MIR C mode requires' "$WORK_DIR/legacy-mir-c.out" ||
 grep -Fq 'artifact transaction rejected:' \
     "$WORK_DIR/rejected-mir-c.out" "$WORK_DIR/rejected-mir-c.err" ||
     fail "MIR-C transaction rejection lost its typed diagnostic"
+[[ "$rejected_source_llvm_rc" -ne 0 && \
+    ! -e "$WORK_DIR/rejected-source.ll" ]] ||
+    fail "compiler intent source rejection published an LLVM artifact"
+grep -Fq 'full driver MIR production requires pressure observation' \
+    "$WORK_DIR/rejected-source-llvm.out" "$WORK_DIR/rejected-source-llvm.err" ||
+    fail "compiler intent source-step rejection lost its typed diagnostic"
+[[ "$rejected_projection_rc" -ne 0 && \
+    ! -e "$WORK_DIR/llvm-missing-parent/out.ll" ]] ||
+    fail "compiler intent projection rejection published an LLVM artifact"
+grep -Fq 'artifact transaction rejected:' \
+    "$WORK_DIR/rejected-projection.out" "$WORK_DIR/rejected-projection.err" ||
+    fail "compiler intent projection-step rejection lost its typed diagnostic"
 [[ "$empty_rc" -ne 0 ]] || fail "empty argv recovered an implicit source"
 grep -Fq 'requires an explicit source or mode' "$WORK_DIR/empty.out" ||
     fail "empty argv rejection lost its owned diagnostic"
 
-for artifact in artifact.c source.artifact.mir.json mir.artifact.c mir.observed.c; do
+for artifact in artifact.c source.artifact.mir.json llvm-source.mir.json direct-source.ll \
+    intent-source.ll mir.artifact.c mir.observed.c; do
     if compgen -G "$WORK_DIR/$artifact.pgy-tmp-*" >/dev/null; then
         fail "$artifact left a temporary publication"
     fi
 done
 
-echo "[self-host-installed-cli-mode] one typed argv owner keeps source-C, source-MIR, and MIR-C stdout/artifact effects disjoint; general MIR-C world/action artifact parity, pressure observation, and transaction rejection: PASS"
+echo "[self-host-installed-cli-mode] one typed argv owner keeps source-C, source-MIR, and MIR-C stdout/artifact effects disjoint; general MIR-C world/action artifact parity, pressure observation, and transaction rejection: PASS; CompilePergyraProgram source-to-LLVM parity and typed step failures: PASS"

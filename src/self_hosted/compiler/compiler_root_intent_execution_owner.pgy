@@ -1,0 +1,16 @@
+// Sole executable call boundary for the canonical compiler-purpose intent.
+// The world is materialized once; the intent owns source-MIR -> LLVM ordering.
+
+import "compiler_world_direct_mir_owner.pgy";
+
+func CompileSourceToLlvmThroughPgyCompilerWorld(
+    source_path: String,
+    output_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> DriverSourceLlvmIntentOutcome with caps io_read, io_write {
+    let compiler_world: PgyCompilerWorld =
+        PgyCompilerWorldMaterializeExecutableZones();
+    return compiler_world.CompileSourceToLlvm(
+        source_path, output_path, machine_declaration
+    );
+}

@@ -53,8 +53,8 @@ main(int argc, char **argv)
             return rc;
         return write_text(argv[4], "{}\n");
     }
-    if (strcmp(argv[1], "--mir-json-backend=llvm") == 0) {
-        rc = append_count("llvm\n");
+    if (strcmp(argv[1], "--emit-source-llvm-ir-verified") == 0) {
+        rc = append_count("intent\n");
         if (rc != 0)
             return rc;
         return write_text(

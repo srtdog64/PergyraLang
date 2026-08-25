@@ -1,0 +1,68 @@
+// Admitted source-MIR payload to LLVM publication owner. Projection and
+// artifact transaction facts stay with their existing owners; this boundary
+// translates their terminal result into the compiler-purpose typed protocol.
+
+import "driver_rung2_execution_owner.pgy";
+import "driver_source_llvm_intent_protocol_owner.pgy";
+
+func DriverRung2PublishMirPayloadLlvmArtifactForIdentity(
+    execution_identity: String,
+    source_receipt: DriverSourceMirPayloadReceipt,
+    source_path: String,
+    output_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> DriverLlvmPayloadPublicationOutcome with caps io_write {
+    if execution_identity != DriverRung2ExecutionOwnerIdentity() {
+        return DriverLlvmPayloadPublicationRejected(
+            DriverLlvmPayloadRequestFailure(
+                output_path, "source LLVM execution subject identity is invalid"
+            )
+        );
+    }
+    if !DriverSourceMirPayloadReceiptReadyFor(
+        source_receipt, source_path, SourceMirVerified
+    ) || output_path == "" {
+        return DriverLlvmPayloadPublicationRejected(
+            DriverLlvmPayloadRequestFailure(
+                output_path,
+                "source LLVM publication requires an admitted MIR receipt and destination"
+            )
+        );
+    }
+    let target_projection: CompilerTargetProjectionFact =
+        CompilerTargetProjectionFactFromOwner(
+            CompilerTargetCpuLlvmProjection()
+        );
+    if !CompilerTargetProjectionFactReadyFor(
+        target_projection, CompilerTargetCpuLlvmProjection()
+    ) {
+        return DriverLlvmPayloadPublicationRejected(
+            DriverLlvmPayloadRequestFailure(
+                output_path, "source LLVM target admission failed"
+            )
+        );
+    }
+    let artifact: CompilerEmissionArtifact =
+        CompileMirJsonTextToDirectBackendVerifiedObserved(
+            source_receipt.payload, machine_declaration,
+            target_projection, false
+        );
+    let committed: DriverRung2ExecutionOutcome =
+        DriverRung2CommitArtifactForTarget(
+            artifact, target_projection, output_path
+        );
+    match committed {
+        case DriverRung2Executed(receipt):
+            return DriverLlvmPayloadPublished(receipt);
+        case DriverRung2Rejected(rejection):
+            return DriverLlvmPayloadPublicationRejected(
+                DriverLlvmPayloadRequestFailure(
+                    output_path, rejection.diagnostic
+                )
+            );
+        case DriverRung2ArtifactRejected(failure):
+            return DriverLlvmPayloadPublicationRejected(
+                DriverLlvmPayloadArtifactFailure(failure)
+            );
+    }
+}

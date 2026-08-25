@@ -107,23 +107,14 @@ subject DriverSourceMirExecution {
         source_path: String,
         machine_declaration: SelfHostMachineLayerDeclaration,
         request: DriverSourceMirRequest
-    ) -> DriverSourceMirExecutionOutcome
+    ) -> DriverSourceMirPayloadAdmission
         within DriverSourceMirZone
         authorized by self
         with caps io_read {
-        let admission: DriverSourceMirPayloadAdmission =
-            DriverSourceMirProducePayloadAdmitted(
-                self.identity, self.topology_identity, source_path,
-                machine_declaration, request
-            );
-        match admission {
-            case DriverSourceMirPayloadAdmitted(receipt):
-                return DriverSourceMirProduced(
-                    receipt
-                );
-            case DriverSourceMirPayloadDenied(rejection):
-                return DriverSourceMirRejected(rejection);
-        }
+        return DriverSourceMirProducePayloadAdmitted(
+            self.identity, self.topology_identity, source_path,
+            machine_declaration, request
+        );
     }
 
     action PublishSourceMirArtifact(

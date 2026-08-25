@@ -25,7 +25,7 @@ CLI="$ROOT_DIR/src/self_hosted/compiler/driver_cli_owner.pgy"
 REQUEST="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 SOURCE_ACTION_GATE="$ROOT_DIR/tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh"
 SOURCE_C_ACTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
-INSTALLED_CLI="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+INSTALLED_CLI="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
 SOURCE_C_ACTION_GATE="$ROOT_DIR/tests/self_hosted/parity/driver_source_c_execution_action_gate.sh"
 
 for path in "$CORE" "$WRITER" "$INSTRUCTION_WRITER" "$TX_OWNER" "$JSON_EMIT" \

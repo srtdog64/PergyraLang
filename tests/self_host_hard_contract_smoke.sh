@@ -1022,7 +1022,7 @@ require_text "src/pgy_driver.c" \
 require_text "src/pgy_driver.c" \
     "driver_publish_self_host_llvm_ir_file"
 require_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
-    "driver_materialize_self_host_llvm_artifacts("
+    "driver_materialize_self_host_llvm_artifact("
 forbid_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
     "driver_run_pipeline("
 forbid_text "src/compiler/self_host_llvm_ir_artifact_owner.c" \
@@ -1032,7 +1032,7 @@ require_text "src/pgy_driver.c" \
 require_text "src/pgy_driver.c" \
     "driver_write_self_host_llvm_ir_stdout"
 require_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
-    "driver_materialize_self_host_llvm_artifacts("
+    "driver_materialize_self_host_llvm_artifact("
 forbid_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
     "path_read_file("
 forbid_text "src/compiler/self_host_llvm_ir_stdout_owner.c" \
@@ -1046,12 +1046,10 @@ require_text "src/compiler/self_host_mir_artifact_owner.c" \
 require_text "src/compiler/self_host_mir_artifact_owner.c" \
     'child_argv[3] = "-o";'
 require_text "src/compiler/self_host_llvm_driver.c" \
+    'intent_argv[1] = "--emit-source-llvm-ir-verified"'
+forbid_text "src/compiler/self_host_llvm_driver.c" \
     "driver_materialize_self_host_mir_artifact("
-forbid_text "src/compiler/self_host_llvm_driver.c" "producer_argv"
-require_text "src/compiler/self_host_llvm_driver.c" \
-    'backend_argv[1] = "--mir-json-backend=llvm"'
-require_text "src/compiler/self_host_llvm_driver.c" \
-    'backend_argv[3] = "-o"'
+forbid_text "src/compiler/self_host_llvm_driver.c" "--mir-json-backend=llvm"
 forbid_text "src/compiler/self_host_llvm_driver.c" "driver_run_pipeline("
 forbid_text "src/compiler/self_host_llvm_driver.c" \
     "compiler_build_native_llvm("

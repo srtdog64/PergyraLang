@@ -31,7 +31,6 @@ tobject DriverSourceMirExecutionRejection {
 }
 
 enum DriverSourceMirExecutionOutcome {
-    DriverSourceMirProduced(DriverSourceMirPayloadReceipt),
     DriverSourceMirExecuted(DriverSourceMirExecutionReceipt),
     DriverSourceMirRejected(DriverSourceMirExecutionRejection),
     DriverSourceMirArtifactRejected(SelfMirArtifactFailure),
@@ -111,7 +110,6 @@ func DriverSourceMirExecutionOutcomeReadyFor(
     expected_request: DriverSourceMirRequest
 ) -> Bool {
     match outcome {
-        case DriverSourceMirProduced(receipt): return false;
         case DriverSourceMirExecuted(receipt):
             return receipt.schema ==
                     DriverSourceMirExecutionOutcomeSchema() &&
@@ -122,6 +120,20 @@ func DriverSourceMirExecutionOutcomeReadyFor(
                 receipt.atomic_visibility && !receipt.crash_durable;
         case DriverSourceMirRejected(rejection): return false;
         case DriverSourceMirArtifactRejected(failure): return false;
+    }
+}
+
+func DriverSourceMirPayloadAdmissionReadyFor(
+    admission: DriverSourceMirPayloadAdmission,
+    expected_source_path: String,
+    expected_request: DriverSourceMirRequest
+) -> Bool {
+    match admission {
+        case DriverSourceMirPayloadAdmitted(receipt):
+            return DriverSourceMirPayloadReceiptReadyFor(
+                receipt, expected_source_path, expected_request
+            );
+        case DriverSourceMirPayloadDenied(rejection): return false;
     }
 }
 
@@ -136,22 +148,6 @@ func DriverSourceMirPayloadReceiptReadyFor(
         receipt.payload != "";
 }
 
-func DriverSourceMirExecutionOutcomePayloadReadyFor(
-    outcome: DriverSourceMirExecutionOutcome,
-    expected_source_path: String,
-    expected_request: DriverSourceMirRequest
-) -> Bool {
-    match outcome {
-        case DriverSourceMirProduced(receipt):
-            return DriverSourceMirPayloadReceiptReadyFor(
-                receipt, expected_source_path, expected_request
-            );
-        case DriverSourceMirExecuted(receipt): return false;
-        case DriverSourceMirRejected(rejection): return false;
-        case DriverSourceMirArtifactRejected(failure): return false;
-    }
-}
-
 func DriverSourceMirExecutionOutcomeDiagnostic(
     outcome: DriverSourceMirExecutionOutcome,
     expected_source_path: String,
@@ -159,8 +155,6 @@ func DriverSourceMirExecutionOutcomeDiagnostic(
     expected_request: DriverSourceMirRequest
 ) -> String {
     match outcome {
-        case DriverSourceMirProduced(receipt):
-            return "source MIR execution produced a payload instead of an artifact";
         case DriverSourceMirExecuted(receipt):
             if DriverSourceMirExecutionOutcomeReadyFor(
                 outcome, expected_source_path, expected_output_path,
@@ -184,20 +178,18 @@ func DriverSourceMirExecutionOutcomeDiagnostic(
     }
 }
 
-func DriverSourceMirExecutionOutcomePayloadDiagnostic(
-    outcome: DriverSourceMirExecutionOutcome,
+func DriverSourceMirPayloadAdmissionDiagnostic(
+    admission: DriverSourceMirPayloadAdmission,
     expected_source_path: String,
     expected_request: DriverSourceMirRequest
 ) -> String {
-    match outcome {
-        case DriverSourceMirProduced(receipt):
+    match admission {
+        case DriverSourceMirPayloadAdmitted(receipt):
             if DriverSourceMirPayloadReceiptReadyFor(
                 receipt, expected_source_path, expected_request
             ) { return ""; }
             return "source MIR payload receipt is invalid";
-        case DriverSourceMirExecuted(receipt):
-            return "source MIR execution published an artifact instead of producing a payload";
-        case DriverSourceMirRejected(rejection):
+        case DriverSourceMirPayloadDenied(rejection):
             if rejection.schema !=
                     DriverSourceMirExecutionOutcomeSchema() ||
                 rejection.request_mode !=
@@ -207,7 +199,5 @@ func DriverSourceMirExecutionOutcomePayloadDiagnostic(
                 return "source MIR execution rejection payload is invalid";
             }
             return rejection.diagnostic;
-        case DriverSourceMirArtifactRejected(failure):
-            return "source MIR payload execution unexpectedly reached the artifact transaction";
     }
 }

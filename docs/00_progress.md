@@ -2,6 +2,30 @@
 
 마지막 업데이트: 2026-08-25
 
+2026-08-25 로컬 실행 갱신: production source-to-LLVM의 C-owned 두 subprocess
+경계를 삭제했다. Public LLVM file/stdout/binary와 package LLVM target은 이제
+installed `--emit-source-llvm-ir-verified SOURCE -o OUTPUT` 한 번으로 들어가며,
+`PgyCompilerWorld -> CompilePergyraProgram ->
+DriverSourceLlvmIntentExecution.Compile`이 기존 source-MIR admission과 direct LLVM
+projection/transaction owner를 in-memory receipt로 조정한다. Root intent는
+`ProduceMir/PublishLlvm` 고정 lifecycle을 노출하지 않고 한 real-purpose `Compile`
+action만 갖는다. Typed outcome은 published/source-rejected/projection-rejected를
+구분하고 Bool completion과 불일치하거나 outcome이 없으면 fail closed한다.
+
+최종 current-source Pergyra-built driver 설치가 성공했다. Installed CLI는 direct
+MIR oracle과 LLVM byte parity, distinct source/projection failure, no-partial-output을
+통과했고, public file/stdout 및 default compile/run은 compiler intent를 정확히 한
+번 호출하며 native pipeline에 재진입하지 않는다. Package LLVM counting path는
+기존 `mir/mir/llvm/mir/llvm` 5회에서 `mir/intent/intent` 3회로 줄었다. World는
+22 concrete zones와 `direct_mir/source_mir/source_llvm/source_c` 네 member,
+likeness는 Result/Option 4,267과 zone-bound rows 35를 exact로 관측한다. 이 bounded
+compiler-purpose slice는 실제 C path replacement인 `SUBSTITUTING`이지만 아직
+current revision의 remote 29/29 증거가 없으므로 overall 78%, strict beta 83%,
+SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 유지한다. 다음 publication falsifier는
+full self-host를 포함한 remote matrix이며, 그 뒤 첨부 리뷰가 명시한 intent
+mode/priority AST last-consumer를 다음 executable composite-intent LLVM rung에서
+실제로 도달할 때 닫는다.
+
 2026-08-25 실행 checkpoint `626f2188`은 installed general MIR-to-C의 직접
 `CompileMirJsonToCVerified[Observed] + SelfMirArtifactCommitPayload` orchestration을
 삭제했다. Verified/pressure-observed artifact 요청은 기존 `PgyCompilerWorld`의

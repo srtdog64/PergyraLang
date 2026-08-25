@@ -1,6 +1,6 @@
 # Typed Intent Execution Transition Contract
 
-Status: `BOUNDED SUBSTITUTING / native C+LLVM and admitted self C landed; compiler-root intent remains SURFACE`
+Status: `BOUNDED SUBSTITUTING / typed transition v3 remains REACHABLE; bounded source-LLVM compiler-purpose root is SUBSTITUTING`
 Date: 2026-07-29
 
 ## Objective card
@@ -211,13 +211,14 @@ version-3 zone/observability extension is currently `REACHABLE`: its stage-0
 self C plus native C/LLVM execution gate is green, but the canonical
 Pergyra-built codegen exceeded the unchanged 3072MiB boundary during
 definition emission before a replacement installed driver was produced. It
-does not promote `intent` into a universal
-compiler owner and does not prove compiler-root dogfood.  `PgyCompilerWorld`'s
-production entrypoint still calls no real-purpose root intent that elaborates
-the canonical participant, coordination, authority, effect, boundary,
-compensation, and trace bundle.  Compiler organization `intent` therefore
-remains `SURFACE`, and the broader `selfhost.intent_declaration_rows` registry
-row remains `BRIDGE` until that direct root orchestration is replaced.
+does not promote the typed-transition plan into a universal compiler owner.
+A separate 2026-08-25 production rung now calls one bounded real-purpose
+`CompilePergyraProgram` intent for source-to-LLVM, consumes a typed terminal
+outcome, and deletes the C host's source-MIR/backend subprocess pair. That
+exact purpose is `SUBSTITUTING`; it does not install v3, make every compiler
+stage a lifecycle step, or close the broader `selfhost.intent_declaration_rows`
+registry row. The row remains `BRIDGE` while its remaining declaration/policy
+consumers and transition semantics are open.
 
 The active executable gate is
 `tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`; protocol

@@ -2,8 +2,10 @@
 
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_receiver_type_owner.pgy";
 import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "ast_expression_graph_scalar_shape_owner.pgy";
+import "builtin_signature_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "env_owner.pgy";
@@ -248,6 +250,30 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
             return Some(set_call.return_type_name);
         }
     }
+    if target.name == "Clone" {
+        let clone_call: SemanticCallSpineView =
+            SemanticCallSpineViewFromGraph(graph, root_id);
+        if !clone_call.ok || ArrayLength(clone_call.argument_nodes) != 1 {
+            return None;
+        }
+        let clone_argument_node: Int = clone_call.argument_nodes[0];
+        let clone_argument_type: String =
+            SemanticExpressionGraphCallArgumentScalarTypeName(
+                graph, clone_argument_node, names, types
+            );
+        let clone_receiver_type: Option<String> =
+            SemanticExpressionGraphValueReceiverTypeName(
+                graph, clone_argument_node, constructors, names, types,
+                function_names, function_returns
+            );
+        if IsSome(clone_receiver_type) {
+            clone_argument_type = UnwrapOption(clone_receiver_type);
+        }
+        let clone_argument_types: Array<String> = [clone_argument_type];
+        return SemanticPolymorphicBuiltinReturnTypeOpt(
+            target.name, clone_argument_types
+        );
+    }
     let target_index: Option<Int> = SemanticCallableIndex(
         function_names, target.name
     );
@@ -299,9 +325,13 @@ func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
     let list_fact: ParserExpressionFact = ParseExprFact(
         "ListGet(items, 0)", 0, list_cursor
     );
+    let clone_cursor: Array<Int> = [0];
+    let clone_fact: ParserExpressionFact = ParseExprFact(
+        "Clone(box)", 0, clone_cursor
+    );
     if !direct_fact.ok || direct_cursor[0] != 8 ||
         !member_fact.ok || member_cursor[0] != 9 || !list_fact.ok ||
-        list_cursor[0] != 17 {
+        list_cursor[0] != 17 || !clone_fact.ok || clone_cursor[0] != 10 {
         return false;
     }
     let direct_graph: SemanticExpressionGraphFacts =
@@ -323,6 +353,13 @@ func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
             AstExpressionGraphRows(
                 true, [TypedAstKindLetStmtTag()], [AstExpressionLaneAtom()],
                 [list_fact.root], list_fact.arena
+            ), [0], 1
+        );
+    let clone_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()], [AstExpressionLaneAtom()],
+                [clone_fact.root], clone_fact.arena
             ), [0], 1
         );
     let empty: Array<String> = [];
@@ -356,6 +393,11 @@ func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
             list_graph, list_fact.root, constructors,
             ["items"], ["Int"], ["ListGet"], ["Unknown"]
         );
+    let clone_type: Option<String> =
+        SemanticExpressionGraphResolvedCallReturnTypeName(
+            clone_graph, clone_fact.root, constructors,
+            ["box"], ["Box"], ["Clone"], ["Unknown"]
+        );
     return IsSome(resolved) && UnwrapOption(resolved) == "Int" &&
         IsSome(member) && UnwrapOption(member) == "String" &&
         IsSome(deferred) && UnwrapOption(deferred) == "Option<Int>" &&
@@ -364,5 +406,6 @@ func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
         list_call.list_type_name == "List<Int>" &&
         list_call.element_type_name == "Int" &&
         wrong_list_call.applies && !wrong_list_call.ok &&
-        wrong_list_call.diagnostic_code == "builtin_arg_type_mismatch";
+        wrong_list_call.diagnostic_code == "builtin_arg_type_mismatch" &&
+        IsSome(clone_type) && UnwrapOption(clone_type) == "Box";
 }

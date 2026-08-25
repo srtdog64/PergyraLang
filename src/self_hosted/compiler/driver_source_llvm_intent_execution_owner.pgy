@@ -1,0 +1,82 @@
+// Ephemeral execution owner for the canonical source-to-LLVM compiler purpose.
+// The intent observes one real-purpose action; this subject keeps its typed
+// result so the installed bootstrap lane does not invent a fixed step lifecycle.
+
+import "driver_source_mir_execution_owner.pgy";
+import "driver_rung2_execution_owner.pgy";
+import "driver_source_llvm_projection_publication_owner.pgy";
+
+func DriverSourceLlvmIntentExecutionOwnerIdentity() -> String {
+    return "pgy.compiler-source-llvm-intent-execution.v1";
+}
+
+subject DriverSourceLlvmIntentExecution {
+    let identity: String;
+    let mut outcome: Option<DriverSourceLlvmIntentOutcome>;
+
+    action Compile(
+        self,
+        source_execution: DriverSourceMirExecution,
+        direct_execution: DriverRung2Execution,
+        source_path: String,
+        output_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration
+    ) -> Bool
+        within DriverSourceLlvmIntentZone
+        authorized by self
+        with caps io_read, io_write {
+        if self.identity != DriverSourceLlvmIntentExecutionOwnerIdentity() {
+            self.outcome = Some(
+                DriverSourceLlvmProjectionRejectedOutcome(
+                    DriverLlvmPayloadRequestFailure(
+                        output_path,
+                        "source LLVM intent execution identity is invalid"
+                    )
+                )
+            );
+            return false;
+        }
+        let source_admission: DriverSourceMirPayloadAdmission =
+            DriverSourceMirProducePayloadAdmitted(
+                source_execution.identity,
+                source_execution.topology_identity,
+                source_path, machine_declaration, SourceMirVerified
+            );
+        match source_admission {
+            case DriverSourceMirPayloadDenied(rejection):
+                self.outcome = Some(
+                    DriverSourceLlvmSourceRejectedOutcome(
+                        rejection
+                    )
+                );
+                return false;
+            case DriverSourceMirPayloadAdmitted(source_receipt):
+                let publication: DriverLlvmPayloadPublicationOutcome =
+                    DriverRung2PublishMirPayloadLlvmArtifactForIdentity(
+                        direct_execution.identity, source_receipt,
+                        source_path, output_path, machine_declaration
+                    );
+                match publication {
+                    case DriverLlvmPayloadPublished(receipt):
+                        self.outcome = Some(
+                            DriverSourceLlvmPublishedOutcome(
+                                receipt
+                            )
+                        );
+                        return true;
+                    case DriverLlvmPayloadPublicationRejected(failure):
+                        self.outcome = Some(
+                            DriverSourceLlvmProjectionRejectedOutcome(
+                                failure
+                            )
+                        );
+                        return false;
+                }
+        }
+    }
+}
+
+public zone DriverSourceLlvmIntentZone {
+    subject slot execution: DriverSourceLlvmIntentExecution
+    authority execution
+}

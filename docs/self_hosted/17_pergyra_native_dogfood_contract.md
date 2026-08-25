@@ -2,6 +2,33 @@
 
 Status: `BRIDGE`
 
+## 2026-08-25 bounded compiler-purpose source-to-LLVM substitution
+
+Production public LLVM file/stdout/binary and package LLVM targets now reach
+one installed request, `--emit-source-llvm-ir-verified SOURCE -o OUTPUT`.
+`DriverRung2InstalledPublishSourceLlvm` enters the sole `PgyCompilerWorld`,
+invokes `CompilePergyraProgram` once, and consumes a typed terminal outcome.
+The C host no longer produces a temporary MIR artifact and no longer invokes
+`--mir-json-backend=llvm`; the retired plural materializer is negative-gated.
+
+The root intent deliberately has one real-purpose `Compile` action. Source-MIR
+admission and LLVM publication are existing function-owner details, not a
+fixed lifecycle the language claims every compilation must follow. An
+ephemeral intent execution subject stores exactly one typed published,
+source-rejected, or projection-rejected outcome so the current installed Bool
+intent lane cannot erase the failure identity. Missing outcome, Bool/outcome
+disagreement, wrong owner identity, source rejection, target rejection, and
+artifact transaction failure all fail closed.
+
+The installed driver produces LLVM byte-equal to the admitted direct-MIR
+oracle, reports distinct source/projection diagnostics, and leaves no partial
+artifact. Public file/stdout and default compile/run gates observe exactly one
+compiler-intent invocation and no native pipeline timing. Package LLVM calls
+shrink from the former `mir+llvm` pair per binary target to one `intent` call.
+This exact production slice is `SUBSTITUTING`; it does not promote every
+imported stage intent, v3 typed-transition consumer, or the entire compiler
+organization to `CLOSED`.
+
 ## 2026-08-25 general MIR-to-C world/action evidence
 
 The production `DriverCliMirCArtifact` and pressure-observed sibling now reach
@@ -44,8 +71,9 @@ typed transaction diagnostic.
 This is not a new hard `SUBSTITUTING` numerator. The public source-C compiler
 path was already Pergyra-backed; this checkpoint replaces its internal direct
 orchestration with Pergyra-native world/zone/subject/action structure rather
-than deleting a new C-owned compiler path. General MIR-to-C and compiler-root
-intent takeover remain separate executable rungs.
+than deleting a new C-owned compiler path. General MIR-to-C remains a separate
+action rung; the bounded source-to-LLVM compiler-purpose takeover is recorded
+independently above.
 
 ## 2026-08-25 bounded composite intent LLVM evidence
 
@@ -407,13 +435,14 @@ Wrong identity/target은 typed rejection이고 commit 실패는 원래
 boundary이며 이 실패를 transaction rejection과 하나로 과장하지 않는다.
 
 `src/self_hosted/compiler/world.pgy`는 composition owner를 통해 full bootstrap과
-설치 CLI 양쪽 import/call graph에 들어오며 `PgyCompilerWorld`는 세 slice의 실제
+설치 CLI 양쪽 import/call graph에 들어오며 `PgyCompilerWorld`는 네 slice의 실제
 composition boundary다. 물리적 stage 폴더는 각 fact owner의 경계라 유지하지만,
 서로 다른 source root가 별도 source-to-MIR 결정을 소유하지는 않는다.
-`direct_mir`, `source_mir`, `source_c` 세 field는 positional order로 실제 materialize되고
-나머지 zone과 root intent는 import-reachable surface다.
+`direct_mir`, `source_mir`, `source_llvm`, `source_c` 네 field는 positional order로
+실제 materialize된다. `CompilePergyraProgram`은 source-to-LLVM production
+entrypoint에서 호출되며 나머지 imported stage intent는 surface다.
 
-재귀 import closure에는 world 1개와 concrete zone 21개가 있다. 정확한 전체
+재귀 import closure에는 world 1개와 concrete zone 22개가 있다. 정확한 전체
 declaration census는 gate가 다시 생성하는 관측값이며, import surface의 선언 수를
 실행 증거로 세지 않는다.
 
@@ -428,10 +457,10 @@ declaration census는 gate가 다시 생성하는 관측값이며, import surfac
 | `subject`, `action`, `zone`, `world` | `REACHABLE`; bounded public source-MIR stdout slice is `SUBSTITUTING` | direct-MIR, general MIR-to-C, source-MIR, source-C 경로가 production에서 invoke되고 typed outcome이 소비된다. general MIR-to-C는 기존 `direct_mir` zone을 공유한다. Exact public `pgy --mir-json <source>`만 C pipeline selector를 삭제한 대체 증거이며, 나머지 world/action 이동은 compiler world 전체나 새 C-owned path 대체를 뜻하지 않는다. |
 | public source token dump | bounded `SUBSTITUTING` | exact `pgy --tokens <source>`가 installed `DriverCliSourceTokensStdout`와 Pergyra `LexContent`를 소비하고 native fallback을 삭제했다. Native lexer는 parity oracle의 명시적 `--native-pipeline` opt-out으로만 남으며, 이 디버그 출력 slice는 source compiler 전체 lexer/parser 대체를 뜻하지 않는다. |
 | public source AST dump | bounded `SUBSTITUTING` | exact `pgy --ast <source>`가 installed `DriverCliSourceAstStdout`와 import-composed Pergyra `ParseRootProgram`을 소비하고 native fallback을 삭제했다. Native parser는 parity oracle의 명시적 `--native-pipeline` opt-out으로만 남으며, 이 디버그 출력 slice는 source compiler 전체 parser/semantic 대체를 뜻하지 않는다. |
-| public LLVM IR file/stdout delivery | bounded `SUBSTITUTING` | exact `pgy <source> --emit-llvm [-o <output.ll>]`가 installed source-MIR와 DirectMirLlvm action을 각 한 번 소비하고 native libLLVM emitter 우회를 삭제했다. General CFG coverage는 open이다. |
+| public LLVM IR file/stdout delivery | bounded `SUBSTITUTING` | exact `pgy <source> --emit-llvm [-o <output.ll>]`가 installed `CompilePergyraProgram`을 한 번 소비하고 native libLLVM emitter 및 C-owned source-MIR/backend 2회 orchestration을 삭제했다. General CFG coverage는 open이다. |
 | 입력 기능의 typed scalar-CFG mixed foreach slice | bounded `SUBSTITUTING` | installed direct C/LLVM이 한 sealed plan에서 local `Array<Int>`/`Array<String>` foreach를 exact `60,abbccc`로 실행하고, graph-only String mutation과 13개 type/ABI/graph/LocalRef negative gate를 통과한다. 이는 compiler 조직의 world/action/intent grade를 올리지 않는다. |
 | 입력 기능의 reallocating `Array<Int>` return/parameter slice | bounded `SUBSTITUTING` | installed direct C/LLVM이 routine-qualified `Build return -> Main result -> SumAll parameter`와 한 canonical ABI/storage identity를 sealed CollectionProgramPlan에서 소비해 exact `12,4`와 `20,5`를 실행한다. Legacy ArrayArgument retry, raw ValueId program lookup, fixed-capacity carriage와 backend MIR read는 negative-gated다. 이는 compiler 조직의 world/action/intent grade를 올리지 않는다. |
-| `intent` | `SURFACE` | 14개 import, production call 0 |
+| `intent` | bounded source-to-LLVM compiler purpose는 `SUBSTITUTING`; broader compiler organization은 `BRIDGE` | production `CompilePergyraProgram` call 1개가 source admission, direct LLVM projection, typed terminal outcome을 조정하고 C host의 두 subprocess 우회를 삭제한다. 다른 imported stage intent나 전체 compiler lifecycle까지 승격하지 않는다. |
 | `effect`, `relation` | compiler 조직은 `SURFACE`; 입력 기능의 좁은 runtime slice는 `SUBSTITUTING` | bootstrap closure 안의 compiler declaration/call은 0이다. 별개로 self source -> MIR -> general C가 exact role/member facts를 소비해 `zone_layer_projection_runtime`을 실행한다 |
 
 이 표의 grade는 **self-host 컴파일러를 어떤 Pergyra 구성체로 조직했는가**를
@@ -451,18 +480,25 @@ production declaration과 composition은 다음처럼 나뉜다.
   identity/schema, typed receipt/rejection, outcome validation과 diagnostic;
 - `compiler/driver_source_mir_execution_owner.pgy`: 실제 source-to-MIR
   subject/action/zone, pressure admission, payload production과 artifact commit;
+- `compiler/driver_source_llvm_intent_protocol_owner.pgy`: compiler-purpose의
+  typed success/source-rejection/projection-rejection protocol;
+- `compiler/driver_source_llvm_intent_execution_owner.pgy`: 한 real-purpose
+  `Compile` action과 ephemeral typed outcome;
+- `compiler/driver_source_llvm_projection_publication_owner.pgy`: admitted MIR
+  payload를 기존 direct LLVM/transaction owner에 한 번 전달하는 경계;
 - `compiler/driver_source_c_execution_owner.pgy`: 실제 source-to-C
   subject/action/zone, artifact identity admission과 typed commit outcome;
-- `compiler/world.pgy`: world 1개와 concrete zone 21개를 선언하고, world
-  member로는 실제 실행되는 `direct_mir`, `source_mir`, `source_c` 셋만 binding;
+- `compiler/world.pgy`: world 1개와 concrete zone 22개를 선언하고, world
+  member로는 실제 실행되는 `direct_mir`, `source_mir`, `source_llvm`,
+  `source_c` 넷만 binding;
 - `compiler/stage_intents.pgy`: intent 4개;
 - `compiler/authority_owner.pgy`: role 4개, ability 4개;
 - `compiler/compiler_world_direct_mir_owner.pgy`: 새 world를 선언하지 않고
-  정확한 arity와 순서로 세 executable zone을 한 번 materialize하는 유일한
+  정확한 arity와 순서로 네 executable zone을 한 번 materialize하는 유일한
   composition function. 미실행 zone의 aggregate zero-fill은 금지된다.
 
-`world.pgy`의 기존 readiness action은 현재 chain에서 호출되지 않는다. 다섯 실제
-action만 target, pressure, source-C admission과 payload/artifact transition을
+`world.pgy`의 기존 readiness action은 현재 chain에서 호출되지 않는다. 여섯 실제
+action만 target, pressure, source-C/source-LLVM admission과 payload/artifact transition을
 수행한다. 따라서 world가 import됐다는
 사실이나 domain 선언 수를 C-owned compiler substitution으로 세지 않는다.
 `world.pgy` 자체는 executable `Main`을 소유하지 않아 current compiler의
@@ -535,8 +571,9 @@ subject/action을 호출하고 typed outcome을 소비하며 옛 file-helper 우
 이제 installed sibling의 동일 action을 호출하고 native
 `driver_run_pipeline -> mir_dump_json`로 retry하지 않는다. 따라서 public
 source-MIR stdout slice만 bounded `SUBSTITUTING`으로 올린다. 다른
-world/zone/subject/action slice는 독립 증거가 없는 한 `REACHABLE`이고,
-compiler-root intent는 계속 `SURFACE`다.
+world/zone/subject/action slice는 독립 증거가 없는 한 `REACHABLE`이다. 별도의
+source-to-LLVM production rung만 compiler-purpose intent를 bounded
+`SUBSTITUTING`으로 올리며 이 source-MIR selector가 그 등급을 대신하지 않는다.
 `function_clause_order_minimal`의 실제 production action 실행/parity와 identity,
 topology, pressure mismatch negative를 관측하기 전에는 정적 gate만으로 실행 증거를
 과장하지 않는다.
@@ -632,8 +669,8 @@ IMPORTED -> MATERIALIZED -> INVOKED -> OUTCOME_CONSUMED -> SUBSTITUTING
   runtime singleton이나 stable-address identity를 뜻하지 않는다.
 - resource zone과 root intent를 조합하지만 token, AST, MIR, ABI, target,
   artifact 사실을 복제하거나 재판단하지 않는다.
-- 현재 `PgyCompilerWorld`는 `direct_mir`, `source_mir`, `source_c` 세 positional
-  zone을 실제 조합한다. Direct-backend와 general MIR-to-C는 같은
+- 현재 `PgyCompilerWorld`는 `direct_mir`, `source_mir`, `source_llvm`,
+  `source_c` 네 positional zone을 실제 조합한다. Direct-backend와 general MIR-to-C는 같은
   `direct_mir` zone의 두 action이다. Import된 다른 zone/intent를 실행 진척으로
   세지 않는다.
 - C emitter world와 LLVM emitter world를 따로 만들지 않는다. 하나의
@@ -1239,8 +1276,10 @@ plan과 executable owner gate에 존재한다. 두 action fixture는 predecessor
   제거했으므로 bounded `SUBSTITUTING`이다. v3 step-zone/observability는
   stage-0 self C와 native C/LLVM에서 `REACHABLE`하지만 canonical
   Pergyra-built driver publication 전에는 `SUBSTITUTING`으로 승격하지 않는다.
-  Production root의 canonical real-purpose intent 호출은 여전히 0이므로
-  compiler organization의 `intent` 등급은 `SURFACE`다.
+  이 typed-transition fixture slice 자체는 compiler-purpose root 증거가 아니다.
+  별도의 current source-to-LLVM rung은 canonical real-purpose intent를 production
+  root에서 한 번 호출해 bounded `SUBSTITUTING`이지만, 이 사실로 v3 transition
+  consumer나 전체 compiler organization을 승격하지 않는다.
 
 SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 섞지 않는다. 해당 row는 source declaration/signature와 legacy phase carriage를 유지한다. typed outcome case, success-only completion, carried predecessor와 failure-driven compensation은 `mir.execution_graph` 아래의 named execution subfacts인 `mir.intent_step_transition`과 `mir.intent_terminal_transition`이다. 이 이름들은 독립 top-level registry authority가 아니며, 별도 owner identity와 모든 consumer migration 및 negative gate가 생기기 전에는 새 registry row나 `CLOSED`를 추론하지 않는다.
 
@@ -1277,8 +1316,9 @@ SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 
 
 - Production entrypoint: plain `pgy source.pgy --backend=llvm -o output`과 같은
   binary target의 `--run`이다.
-- Installed driver는 source-to-MIR producer와 `--mir-json-backend=llvm`
-  projector를 각각 정확히 한 번 실행한다. Native launcher는 private artifact
+- Installed driver는 `CompilePergyraProgram` compiler-purpose intent를 정확히 한
+  번 실행하며 그 action이 in-memory source-MIR receipt와 direct LLVM projector를
+  조정한다. Native launcher는 private artifact
   lifetime, `clang -x ir` host compile/link, optional execution만 소유한다.
 - Native `driver_run_pipeline`과 AIR/libLLVM fallback은 없다. LLVM text를
   스캔해 runtime policy를 발명하지도 않는다. Host linker는

@@ -14,6 +14,7 @@ enum DriverRung2CliRequest {
     DriverCliSourceCStdout(String),
     DriverCliSourceCManifestStdout(String, String),
     DriverCliSourceCArtifact(String, String),
+    DriverCliSourceLlvmArtifact(String, String),
     DriverCliSourceMirStdout(String),
     DriverCliSourceMirManifestStdout(String, String),
     DriverCliSourceMirArtifact(String, String),
@@ -113,6 +114,15 @@ func DriverRung2CliRequestFromArgsOrDie(
         );
         DriverRung2CliArtifactPathsOrDie(source_path, output_path);
         return DriverCliSourceCArtifact(source_path, output_path);
+    }
+    if args[0] == "--emit-source-llvm-ir-verified" {
+        if count != 4 || args[2] != "-o" {
+            Die("source LLVM intent mode requires source -o output");
+        }
+        let source_path: String = DriverRung2CliPathOperandOrDie(args[1], "source LLVM input path");
+        let output_path: String = DriverRung2CliPathOperandOrDie(args[3], "source LLVM output path");
+        DriverRung2CliArtifactPathsOrDie(source_path, output_path);
+        return DriverCliSourceLlvmArtifact(source_path, output_path);
     }
     if args[0] == "--emit-mir-json-verified" {
         if count == 2 {
