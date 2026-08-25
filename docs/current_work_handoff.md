@@ -17,13 +17,14 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - nested intent direct-MIR LLVM publishing
+## Active self-host context - nested intent LLVM closed; select next executable rung
 
-- Executable checkpoint `2d43bd666075c1bd45f83e6c2d92479478da2c9c` is on
-  local `main` and `origin/main`. The project-owned repair set contains the
-  derived-fact registry classification plus these active handoff/progress notes.
-  Preserve the unrelated user-owned untracked `pgy-80135c2c/` directory; do not
-  inspect it as project evidence, stage it, delete it, or rewrite it.
+- Repair checkpoint `6be30daa4e34dfebdb03dedad24c3f3e65926a67` is on local
+  `main` and `origin/main`. Before this result-only handoff commit, only the
+  active handoff/progress documents are project-owned dirty state; afterward
+  the worktree should contain only the unrelated user-owned untracked
+  `pgy-80135c2c/` directory.
+  Do not inspect it as project evidence, stage it, delete it, or rewrite it.
 - Objective card: execute the nested method/intent priority fixture through one
   exclusive direct-MIR LLVM route; priority = admitted declaration/routine
   identity, exact intent carriers and expression root, owner-directed call and
@@ -68,9 +69,15 @@ gate count do not increment either percentage by themselves.
   `CLOSED=49 BRIDGE=36 ACTIVE=1`; the broader preparation target passed through
   component/hard gates and stopped only at the explicitly declared local Coq
   absence, while the same run's remote Rocq/adequacy gate was green.
-- Next falsifier: commit/push the two-row classification repair and require a
-  remote 29/29 result. Until then the lease remains `PUBLISHING`, overall stays
-  78%, strict beta 83%, and hard SoT stays `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Repair run `32888031601` completed 29/29 green in 29m19. `build-linux` passed
+  in 15m18, full self-host passed in 29m15, and all 20 backend shards,
+  sanitizers, platforms, codegen, and Rocq remained green. Lease B is `DONE`.
+- No successor implementation rung is inferred by this result-only handoff.
+  The next session must observe the production entrypoint and its direct bypass,
+  name the existing Pergyra fact owner and last orchestration consumer, and fix
+  one executable falsifier before opening edits. Do not reopen general SoT work.
+  Overall stays 78%, strict beta 83%, and hard SoT stays
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
 
 ### Historical archive boundary
 

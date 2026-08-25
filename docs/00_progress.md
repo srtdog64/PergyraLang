@@ -30,7 +30,15 @@ self-host, codegen bootstrap, sanitizers, 세 플랫폼, Rocq, backend 20 shards
 누락이었다. 새 route/graph fact owner 두 개를 기존 `mir.execution_graph`의
 `projection`으로만 등록한 local repair는 authority edge `86 authorities / 180
 derived carriers`에서 green이다. Top-level SoT 수는 `49/36/1` 그대로이며 다음
-falsifier는 이 두 행을 push한 remote 29/29다.
+falsifier는 이 두 행을 push한 remote 29/29였다.
+
+Repair checkpoint `6be30daa`의 run `32888031601`은 29분 19초에 29/29
+green으로 닫혔다. Linux preparation은 15분 18초, full self-host는 29분 15초였고
+20개 backend shard, sanitizers, 세 플랫폼, codegen, Rocq가 모두 통과했다. 이
+bounded nested-intent LLVM family는 remote `SUBSTITUTING`이며, 전체 78%, strict
+beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 그대로다. 다음 작업은 새 SoT
+정리가 아니라 production entrypoint의 다음 직접 우회를 관측해 한 executable
+rung의 objective card를 고정하는 것이다.
 
 2026-08-25 로컬 실행 갱신: production source-to-LLVM의 C-owned 두 subprocess
 경계를 삭제했다. Public LLVM file/stdout/binary와 package LLVM target은 이제

@@ -100,7 +100,7 @@ typed absence with a numeric sentinel or raise the likeness ceiling to hide the
 drop. If a view already has an explicit presence bit, its unused numeric slot
 is storage only; lookup failure itself remains `Option`/`Result`.
 
-## PUBLISHING lease B — nested intent direct-MIR LLVM route
+## DONE lease B — nested intent direct-MIR LLVM route
 
 Lease A's publication preconditions are satisfied: correction checkpoint
 `a9e07841` completed CI run `32870231909` at 29/29 green. Codex goal
@@ -190,9 +190,12 @@ same route.
   preparation found that the two new fact owners lacked derived-registry rows.
   The bounded repair classifies both under existing `mir.execution_graph` as
   `projection`; the exact edge is locally green at 86 authorities / 180 derived
-  carriers without changing `CLOSED=49 BRIDGE=36 ACTIVE=1`. Publication of this
-  repair and a remote 29/29 remain pending. Overall stays 78% and strict beta
-  stays 83%.
+  carriers without changing `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Repair checkpoint `6be30daa` completed run `32888031601` at 29/29 green in
+  29m19. `build-linux` passed in 15m18, full self-host passed in 29m15, and all
+  20 backend shards, sanitizers, platforms, codegen, and Rocq remained green.
+  This lease is closed. Overall stays 78%, strict beta stays 83%, and hard SoT
+  stays `CLOSED=49 BRIDGE=36 ACTIVE=1`.
 
 ## Peer Codex assignment — read-only audit only
 

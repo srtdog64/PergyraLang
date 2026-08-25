@@ -1,8 +1,8 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-26 nested intent direct-MIR LLVM publishing
+## Active self-host context - 2026-08-26 nested intent LLVM closed
 
-- Executable checkpoint `2d43bd66` is on local and remote `main`. Preserve the
+- Repair checkpoint `6be30daa` is on local and remote `main`. Preserve the
   unrelated user-owned `pgy-80135c2c/` directory and do not use it as project
   evidence.
 - One exclusive route now claims the exact one-function, one-method, two-intent
@@ -33,10 +33,12 @@
   executable/proof/platform/backend job passed, while Linux preparation rejected
   the two new fact-owner files missing from the derived-fact registry. The local
   two-row `mir.execution_graph | projection` repair passes the exact edge at 86
-  authorities / 180 derived carriers. Remaining evidence is repair publication
-  and remote 29/29. This bounded family is local `SUBSTITUTING`, but no broader
-  intent family or top-level SoT row is closed: overall remains 78%, strict beta
-  83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+  authorities / 180 derived carriers. Repair run `32888031601` completed 29/29
+  green in 29m19; Linux preparation passed in 15m18 and full self-host passed in
+  29m15. This bounded family is `SUBSTITUTING`, but no broader intent family or
+  top-level SoT row is closed: overall remains 78%, strict beta 83%, and hard
+  SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. Select the next production bypass and
+  write its objective card before further implementation.
 
 ## Historical self-host context - 2026-08-25 bounded composite intent LLVM substitution
 
