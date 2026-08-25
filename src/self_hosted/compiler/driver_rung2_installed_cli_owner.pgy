@@ -5,19 +5,19 @@
 import "driver_rung2_cli_request_owner.pgy";
 import "driver_rung2_cli_read_execution_owner.pgy";
 
-func DriverRung2InstalledCommitSourceC(
-    source_path: String,
-    output_path: String
+func DriverRung2InstalledPublishSourceC(
+    source_path: String, output_path: String
 ) -> Void with caps io_read, io_write {
-    let committed: SelfMirArtifactCommitOutcome =
-        SelfMirArtifactCommitPayload(
-            output_path,
-            CompileSourceToCVerified(
-                source_path, SelfHostMachineLayerDeclarationEmpty()
-            ).payload
+    let outcome: DriverSourceCExecutionOutcome =
+        PublishSourceCArtifactThroughPgyCompilerWorld(
+            source_path, output_path,
+            SelfHostMachineLayerDeclarationEmpty()
         );
-    if !SelfMirArtifactCommitOutcomeReady(committed) {
-        Die("source compiler artifact transaction failed");
+    if !DriverSourceCExecutionOutcomeReadyFor(
+        outcome, source_path, output_path
+    ) {
+        Log(DriverSourceCExecutionOutcomeDiagnostic(outcome, source_path, output_path));
+        Exit(1);
     }
 }
 
@@ -102,7 +102,7 @@ func DriverRung2ExecuteInstalledRequest(
         case DriverCliMachineManifestStdout(manifest_path):
             DriverRung2ExecuteReadRequest(request);
         case DriverCliSourceCArtifact(source_path, output_path):
-            DriverRung2InstalledCommitSourceC(source_path, output_path);
+            DriverRung2InstalledPublishSourceC(source_path, output_path);
         case DriverCliSourceMirArtifact(source_path, output_path):
             DriverRung2InstalledPublishSourceMir(
                 source_path, output_path, SourceMirVerified

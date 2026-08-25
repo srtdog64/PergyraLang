@@ -22922,6 +22922,21 @@ require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
     'import "driver_source_mir_protocol_owner.pgy";'
 require_text "src/self_hosted/OWNERS.md" \
     'src/self_hosted/compiler/driver_source_mir_protocol_owner.pgy'
+require_file "src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" 180
+require_file \
+    "tests/self_hosted/parity/driver_source_c_execution_action_gate.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_source_c_execution_action_gate.sh" 130
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/compiler/driver_source_c_execution_owner.pgy'
+require_text "Makefile" \
+    'self-host-driver-source-c-execution-action-test-smoke: $(PGY) self-host-compiler'
+require_text ".github/workflows/ci.yml" \
+    'self-host-driver-source-c-execution-action-test-smoke'
+require_text ".github/workflows/self_host_parity.yml" \
+    'self-host-driver-source-c-execution-action-test-smoke'
 require_file "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" 80
@@ -22935,6 +22950,10 @@ require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
     'public zone DriverSourceMirZone'
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" \
     'SelfMirProgramJsonWriteArtifactVerified('
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
+    'within DriverSourceCZone'
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
+    'SelfMirArtifactCommitPayload('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'import "world.pgy";'
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
@@ -22947,12 +22966,18 @@ require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func ProduceSourceMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func PublishSourceMirArtifactThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+    'func PublishSourceCArtifactThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'import "driver_rung2_cli_request_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'EmitDirectMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'PublishSourceMirArtifactThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    'PublishSourceCArtifactThroughPgyCompilerWorld('
+reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    'DriverRung2InstalledCommitSourceC'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--mir-json-backend=c"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \

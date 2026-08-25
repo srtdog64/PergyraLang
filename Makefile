@@ -3130,6 +3130,11 @@ self-host-driver-execution-action-optional-within-parity-test-smoke: $(PGY)
 self-host-driver-source-mir-execution-action-test-smoke:
 	"$(BASH)" tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh
 
+.PHONY: self-host-driver-source-c-execution-action-test-smoke
+self-host-driver-source-c-execution-action-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/driver_source_c_execution_action_gate.sh
+
 self-host-codegen-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh

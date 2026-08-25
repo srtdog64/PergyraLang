@@ -1,7 +1,7 @@
 // Sole composition root for the production-reachable compiler world slices.
 //
 // PgyCompilerWorld remains the only compiler-world declaration graph. This
-// owner materializes both positional executable zones; no omitted executable
+// owner materializes all positional executable zones; no omitted executable
 // zone may be supplied through aggregate zero-fill.
 // Inline nesting leaves no surviving origin binding or implicit identity fork.
 // The C/LLVM representation is still a by-value aggregate, not physical
@@ -17,6 +17,10 @@ func PgyCompilerWorldMaterializeExecutableZones() -> PgyCompilerWorld {
         DriverSourceMirZone(DriverSourceMirExecution(
             DriverSourceMirExecutionOwnerIdentity(),
             DriverSourceMirExecutionTopologyIdentity()
+        )),
+        DriverSourceCZone(DriverSourceCExecution(
+            DriverSourceCExecutionOwnerIdentity(),
+            DriverSourceCExecutionTopologyIdentity()
         ))
     );
     return compiler_world;
@@ -59,5 +63,17 @@ func PublishSourceMirArtifactThroughPgyCompilerWorld(
         PgyCompilerWorldMaterializeExecutableZones();
     return compiler_world.PublishSourceMirArtifact(
         source_path, output_path, machine_declaration, request
+    );
+}
+
+func PublishSourceCArtifactThroughPgyCompilerWorld(
+    source_path: String,
+    output_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> DriverSourceCExecutionOutcome with caps io_read, io_write {
+    let compiler_world: PgyCompilerWorld =
+        PgyCompilerWorldMaterializeExecutableZones();
+    return compiler_world.PublishSourceCArtifact(
+        source_path, output_path, machine_declaration
     );
 }

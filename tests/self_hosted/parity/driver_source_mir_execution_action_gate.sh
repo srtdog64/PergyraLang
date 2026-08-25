@@ -79,11 +79,14 @@ world_zones="$(
 world_zone_count="$(printf '%s\n' "$world_zones" | awk 'NF { count++ } END { print count + 0 }')"
 first_world_zone="$(printf '%s\n' "$world_zones" | sed -n '1p')"
 second_world_zone="$(printf '%s\n' "$world_zones" | sed -n '2p')"
-[[ "$world_zone_count" -eq 2 ]] || fail "PgyCompilerWorld must expose exactly two executable zone fields"
+third_world_zone="$(printf '%s\n' "$world_zones" | sed -n '3p')"
+[[ "$world_zone_count" -eq 3 ]] || fail "PgyCompilerWorld must expose exactly three executable zone fields"
 [[ "$first_world_zone" == *'zone direct_mir: DriverRung2DirectMirZone'* ]] ||
     fail "direct-MIR zone is not the first world field"
 [[ "$second_world_zone" == *'zone source_mir: DriverSourceMirZone'* ]] ||
     fail "source-MIR zone is not the second world field"
+[[ "$third_world_zone" == *'zone source_c: DriverSourceCZone'* ]] ||
+    fail "source-C zone is not the third world field"
 require_text "$WORLD_OWNER" 'func ProduceSourceMir('
 require_text "$WORLD_OWNER" 'self.source_mir.execution.ProduceSourceMir('
 require_text "$WORLD_OWNER" 'func PublishSourceMirArtifact('
@@ -109,6 +112,7 @@ constructor_site="$(printf '%s\n' "$constructor_sites" | sed -n '1p' | tr '\\' '
 [[ "$(grep -Ec -- '(^|[^[:alnum:]_])PgyCompilerWorld\(' "$COMPOSITION_OWNER")" -eq 1 ]] ||
     fail "composition root must materialize the world exactly once"
 for term in 'DriverRung2DirectMirZone(' 'DriverSourceMirZone(' \
+    'DriverSourceCZone(' \
     'func ProduceSourceMirThroughPgyCompilerWorld(' \
     'func PublishSourceMirArtifactThroughPgyCompilerWorld('; do
     require_text "$COMPOSITION_OWNER" "$term"

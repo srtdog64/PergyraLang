@@ -6,7 +6,7 @@
 # failure_tag_only, outcome_bool_collapse_before_last_consumer,
 # receipt_as_authority_or_projection_source, unknown_failure_status,
 # known_wrong_target_projection, source_mir_main_direct_commit,
-# source_mir_file_helper_fallback.
+# source_mir_file_helper_fallback, source_c_installed_direct_compile_commit.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,12 +17,18 @@ TX_OWNER="$ROOT_DIR/src/self_hosted/mir/artifact_transaction_owner.pgy"
 JSON_EMIT="$ROOT_DIR/src/self_hosted/lib/json_emit.pgy"
 DRIVER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 ACTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_execution_owner.pgy"
+SOURCE_MIR_ACTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_execution_owner.pgy"
 MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 CLI="$ROOT_DIR/src/self_hosted/compiler/driver_cli_owner.pgy"
+REQUEST="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 SOURCE_ACTION_GATE="$ROOT_DIR/tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh"
+SOURCE_C_ACTION="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_execution_owner.pgy"
+INSTALLED_CLI="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+SOURCE_C_ACTION_GATE="$ROOT_DIR/tests/self_hosted/parity/driver_source_c_execution_action_gate.sh"
 
 for path in "$CORE" "$WRITER" "$INSTRUCTION_WRITER" "$TX_OWNER" "$JSON_EMIT" \
-    "$DRIVER" "$ACTION" "$MAIN" "$CLI" "$SOURCE_ACTION_GATE"; do
+    "$DRIVER" "$ACTION" "$SOURCE_MIR_ACTION" "$MAIN" "$CLI" "$REQUEST" "$SOURCE_ACTION_GATE" \
+    "$SOURCE_C_ACTION" "$INSTALLED_CLI" "$SOURCE_C_ACTION_GATE"; do
     [[ -f "$path" ]] || { echo "missing artifact transaction owner: $path" >&2; exit 1; }
 done
 
@@ -51,7 +57,8 @@ for term in 'tobject SelfMirArtifactReceipt' 'tobject SelfMirArtifactFailure' \
     }
 done
 
-for migrated in "$WRITER" "$INSTRUCTION_WRITER" "$JSON_EMIT" "$ACTION" "$CLI"; do
+for migrated in "$WRITER" "$INSTRUCTION_WRITER" "$JSON_EMIT" "$ACTION" "$CLI" \
+    "$SOURCE_C_ACTION" "$INSTALLED_CLI"; do
     if grep -Eq -- '(^|[^[:alnum:]_])(FileOpen|FileWrite|FileClose|WriteFile)\(' "$migrated"; then
         echo "raw file artifact bypass returned: ${migrated#"$ROOT_DIR/"}" >&2
         exit 1
@@ -61,11 +68,11 @@ if grep -Eq -- 'WriteFile\(' "$MAIN"; then
     echo "bootstrap compiler output bypassed artifact transaction" >&2
     exit 1
 fi
-grep -Fq -- 'args[0] == "--emit-c-artifact-verified"' "$MAIN" || {
+grep -Fq -- 'args[0] == "--emit-c-artifact-verified"' "$REQUEST" || {
     echo "source C artifact transaction lost its explicit mode" >&2
     exit 1
 }
-if grep -Fq -- 'if ArrayLength(args) == 2 {' "$MAIN"; then
+if grep -Fq -- 'if ArrayLength(args) == 2 {' "$REQUEST"; then
     echo "generic source/output artifact fallback returned" >&2
     exit 1
 fi
@@ -74,7 +81,14 @@ fi
     echo "compatibility writer must validate raw MIR facts exactly once" >&2
     exit 1
 }
-grep -Fq 'SelfMirProgramJsonWriteArtifactVerified(' "$DRIVER"
+[[ "$(grep -F -c 'SelfMirProgramJsonWriteArtifactVerified(' "$SOURCE_MIR_ACTION")" -eq 1 ]] || {
+    echo "source-MIR action must consume the verified writer exactly once" >&2
+    exit 1
+}
+if grep -Fq 'SelfMirProgramJsonWriteArtifactVerified(' "$DRIVER"; then
+    echo "source-MIR driver direct artifact-writer bypass returned" >&2
+    exit 1
+fi
 if grep -Fq 'SelfMirProgramJsonWriteFile(projection.facts' "$DRIVER"; then
     echo "production source-to-MIR path reintroduced the validating wrapper" >&2
     exit 1
@@ -106,5 +120,14 @@ grep -Fq 'SelfMirArtifactCommitStatusKnown(failure.status)' "$TX_OWNER" || {
 }
 
 bash "$SOURCE_ACTION_GATE" >/dev/null
+grep -Fq 'PublishSourceCArtifactThroughPgyCompilerWorld(' "$INSTALLED_CLI" || {
+    echo "installed CLI lost the source-C world/action boundary" >&2
+    exit 1
+}
+source_c_publish="$(awk '/^func DriverRung2InstalledPublishSourceC\(/{inside=1} inside{print} inside && /^}/{exit}' "$INSTALLED_CLI")"
+if grep -Eq 'CompileSourceToCVerified\(|SelfMirArtifactCommitPayload\(' <<<"$source_c_publish"; then
+    echo "source-C installed direct compile/commit bypass returned" >&2
+    exit 1
+fi
 
 echo "[artifact-atomic-contract] one runtime owner; typed receipt; no raw final writer; single production validation"

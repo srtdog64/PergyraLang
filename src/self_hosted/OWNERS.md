@@ -2133,10 +2133,15 @@ inventory must not become a second fact-family owner registry.
   `io_read` payload action and `io_read, io_write` artifact action share that
   admission; only the latter owns one atomic commit. It owns no lexer, parser,
   semantic, DIR, or MIR fact.
+- `src/self_hosted/compiler/driver_source_c_execution_owner.pgy` -- production
+  source-to-C request/outcome protocol, execution subject, exact existing
+  compiler consumption, artifact transaction transition, and the sole
+  `DriverSourceCZone` declaration. It owns no parser, semantic, MIR, target, or
+  C-emission fact.
 - `src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy` -- active-slice
   composition owner for the single `PgyCompilerWorld`. It constructs the
-  ordered direct-MIR and source-to-MIR zones once through
-  `PgyCompilerWorldMaterializeExecutableZones`; the two public wrappers only
+  ordered direct-MIR, source-to-MIR, and source-to-C zones once through
+  `PgyCompilerWorldMaterializeExecutableZones`; the public wrappers only
   delegate through world methods. This is not a physical no-copy claim. It owns
   no target, source, MIR, backend, or artifact fact and may not declare another
   world.

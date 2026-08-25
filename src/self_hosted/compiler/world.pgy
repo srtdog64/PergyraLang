@@ -11,6 +11,7 @@ import "symbol_table_owner.pgy";
 import "stage_artifact_owner.pgy";
 import "driver_rung2_execution_owner.pgy";
 import "driver_source_mir_execution_owner.pgy";
+import "driver_source_c_execution_owner.pgy";
 subject SourceUnit {
     let path: String;
     action Read(self, paths: StagePathManifest) -> Bool
@@ -278,6 +279,7 @@ world PgyCompilerWorld {
     // required world facts may not be supplied by aggregate zero-fill.
     zone direct_mir: DriverRung2DirectMirZone
     zone source_mir: DriverSourceMirZone
+    zone source_c: DriverSourceCZone
 
     func EmitDirectMir(
         self,
@@ -313,6 +315,17 @@ world PgyCompilerWorld {
     ) -> DriverSourceMirExecutionOutcome with caps io_read, io_write {
         return self.source_mir.execution.PublishSourceMirArtifact(
             source_path, output_path, machine_declaration, request
+        );
+    }
+
+    func PublishSourceCArtifact(
+        self,
+        source_path: String,
+        output_path: String,
+        machine_declaration: SelfHostMachineLayerDeclaration
+    ) -> DriverSourceCExecutionOutcome with caps io_read, io_write {
+        return self.source_c.execution.PublishSourceCArtifact(
+            source_path, output_path, machine_declaration
         );
     }
 }
