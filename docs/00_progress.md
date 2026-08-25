@@ -21,6 +21,17 @@ expectation으로 계속 RED다. 이 변경은 Pergyra-owned compiler의 내부 
 overall 78%, strict beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 유지한다.
 다음 falsifier는 checkpoint를 push한 뒤 remote 29/29와 full bootstrap이다.
 
+첫 publication run `32821686833`은 28/29로 완료됐다. Full self-host는 16분
+58초에 green이고 모든 20 backend shard, sanitizers, Windows/macOS, codegen
+bootstrap과 formal proof도 통과했다. 유일한 RED인 `build-linux`는 12분 19초
+동안 component contract와 actual Coq adequacy까지 통과한 뒤
+`sot_authority_edge`에서 멈췄다. `selfhost.compiler_artifact_commit` row가 요구한
+새 MIR-C evidence label과 installed CLI gate의 기존 PASS line이 글자 단위로
+달랐기 때문이다. Repair `d6a01696`은 기존 `selfhost.driver_cli_request` label과
+새 MIR-C label을 같은 실행 gate의 한 line에 함께 보존한다. Authority edge
+`49/36/1`, single-owner, protocol registry와 artifact/action ratchet은 local green;
+다음 falsifier는 repair push의 remote 29/29다.
+
 2026-08-25 실행 갱신: checkpoint `19103024`의 exact canonical composite-intent
 public self-host LLVM 대체와 문서 checkpoint `4162b81b`는 remote run
 `32806933585`에서 29/29 green이다. 전체 run은 28분 42초, full self-host job은

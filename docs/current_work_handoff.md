@@ -61,6 +61,19 @@ gate count do not increment either percentage by themselves.
   handoff commits, require all 29 jobs and full self-host to stay green, then
   select the next production bypass. The attached review's Intent mode/priority
   AST last-consumer cleanup remains queued until this executable rung closes.
+- Publication run `32821686833` completed 28/29. Full self-host passed in 16m58;
+  all 20 backend shards, sanitizers, Windows/macOS, codegen bootstrap, and formal
+  proof jobs were green. `build-linux` ran 12m19 and passed the component contract
+  plus actual Coq adequacy, then failed only because the new
+  `selfhost.compiler_artifact_commit` registry row required a MIR-C PASS label
+  absent from the executable gate's older CLI-request label. Local repair
+  `d6a01696` preserves both independently consumed substrings on one actual gate
+  result. Authority edge `CLOSED=49 BRIDGE=36 ACTIVE=1`, single-owner, protocol
+  registry, artifact transaction, and action ratchets are green. Before this
+  result handoff successor, local `main` is one repair commit ahead of
+  `origin/main`; only these three progress documents and user-owned
+  `pgy-80135c2c/` are dirty. Next falsifier: publish the repair and require the
+  replacement run to finish 29/29.
 
 ### Historical archive boundary
 

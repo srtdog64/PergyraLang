@@ -33,6 +33,15 @@
   next falsifier is publishing `626f2188` and requiring all 29 jobs plus the
   full self-host bootstrap to remain green. Do not start the attached review's
   Intent mode/priority AST last-consumer cleanup before this rung closes.
+- First publication run `32821686833` completed 28/29. Full self-host passed in
+  16m58, and all 20 backend shards, sanitizers, platform jobs, codegen bootstrap,
+  and formal proofs were green. The only RED was `build-linux` after 12m19: its
+  final SoT edge check required the new MIR-C enforcement label verbatim, while
+  the executable gate retained only its older CLI-request PASS label. Repair
+  `d6a01696` keeps both independently owned evidence substrings on the same gate
+  result line. Authority edge `49/36/1`, single-owner, protocol registry,
+  artifact transaction, and execution-action ratchets pass locally. The next
+  falsifier is the repair's remote 29/29.
 
 ## Historical self-host context - 2026-08-25 bounded composite intent LLVM substitution
 
