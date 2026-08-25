@@ -17,11 +17,16 @@ gate count do not increment either percentage by themselves.
 - Code checkpoint `8ee816c6` replaces the public self-host LLVM rejection for
   one exact input-language program containing one `subject`, one mutating
   `action`, one `zone` subject slot, and one exclusive one-step `intent`.
-  Before this handoff commit, `main` is one commit ahead of `origin/main`; only
-  these progress/dogfood/handoff documents and the unrelated user-owned
-  `pgy-80135c2c/` directory should be dirty. Published predecessor `e58b069b`
-  completed push run `32787388364` at 29/29 green in about 24 minutes. The new
-  checkpoint's remote publication remains RED until its push run is observed.
+  Derived-fact registry repair `83a8bea3` classifies its route and graph
+  receipts as `mir.execution_graph` projections without adding an authority or
+  changing a row state. CI provisioning repair `6408bcd0` adds the already
+  required LLVM OpenMP link library to the full-bootstrap job and negative-
+  gates its removal. Before this handoff commit, `main` is one commit ahead of
+  `origin/main`; only this file and the unrelated user-owned `pgy-80135c2c/`
+  directory should be dirty. Published predecessor `e58b069b` completed push
+  run `32787388364` at 29/29 green in about 24 minutes. The new checkpoint's
+  remote publication remains RED until the provisioning repair is pushed and
+  its run is observed.
 - Closed rung objective card: objective = route that exact self-produced legacy
   MIR to compiling/running LLVM through the public installed entrypoint;
   priority = structural exclusive claim, admitted declaration/routine/expression
@@ -53,6 +58,19 @@ gate count do not increment either percentage by themselves.
   focused gate takes about seven seconds and is attached to the existing main
   bootstrap job and weekly/release parity invocation, reusing their driver
   build rather than creating another matrix/job.
+- Publication sequence is explicit. Run `32794107306` found generated language
+  word inventory drift, fixed by `c2fa0054`. Run `32795059557` then found the
+  two derived-fact registry omissions, fixed by `83a8bea3`. Run `32796249525`
+  made `build-linux`, both fixed-point codegen evidence, Rocq, sanitizers,
+  Windows, macOS, and all 20 backend shards green; its sole 29th-job failure
+  was the newly wired public LLVM gate linking with `clang -lomp` while
+  `self-host-bootstrap-linux` had not installed `libomp-dev`. Repair
+  `6408bcd0` changes runner provisioning only; `self_host_ci_profile_smoke.sh`
+  now fails closed if that dependency is removed. Local CI-profile, build-
+  source-inventory, beta-readiness, documentation, progress, and SoT-edge
+  gates are green. Local formal workflow contracts are green with the 42 Coq
+  proofs explicitly skipped because this Windows host has no prover; the
+  corresponding Rocq 9 remote job in `32796249525` is green.
 - Grade only this exact input feature `SUBSTITUTING`; it does not promote the
   compiler-root intent/world, arbitrary intent programs, typed
   `intent_execution`, public self C, or the 12-routine composite family. Overall
