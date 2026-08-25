@@ -21,4 +21,5 @@ func CompileAdmittedDirectMirNestedIntentProgramForTargetIfClaimed(
         return Some(DirectMirNestedIntentProgramEmitLlvm(plan));
     }
     Die("direct MIR nested intent target projection is invalid");
+    return None;
 }
