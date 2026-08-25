@@ -29,8 +29,16 @@
   `32806933585` at 29/29 green. The run took 28m42 and full self-host 28m38; the
   new composite gate itself took about 0.74s, while most delta was fixed-point
   runtime variance. Overall remains 78%, strict beta 83%, and hard SoT
-  `CLOSED=49 BRIDGE=36 ACTIVE=1`. The active falsifier is remote publication of
-  the source-C world/action checkpoint with all 29 jobs green.
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- First source-C publication run `32811885342` completed 28/29. Full self-host
+  passed in 27m25 and the new focused action gate took about 0.58s. The only red
+  was `build-linux`: its likeness/topology gate still required exactly two world
+  members. Repair `1721b6aa` includes the new owner in the census and tightens
+  exact baselines to 21 concrete zones, three world members, 38 zone-bound
+  actions, and 4,257 Result/Option uses. Compiler topology/world contracts and
+  the source-C execution/transaction gates pass locally; Windows Coq is a
+  declared skip while the failed run's actual Coq job and adequacy step passed.
+  The active falsifier is remote 29/29 publication of the repair.
 
 ## Historical self-host context - 2026-08-25 bounded composite intent LLVM substitution
 

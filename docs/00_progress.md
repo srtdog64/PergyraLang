@@ -24,6 +24,16 @@ C-owned compiler path를 대체한 것은 아니므로 hard substitution 퍼센�
 유지한다. 다음 falsifier는 이 source-C world/action checkpoint의 remote 29/29
 publication이다.
 
+첫 publication run `32811885342`는 28/29였다. 새 source-C action을 포함한 full
+self-host는 27분 25초에 green이고 focused action gate 자체는 Linux에서 약
+0.58초였다. 유일한 red는 `build-linux`의 old exact topology baseline이었다:
+실제 world member는 의도대로 3개인데 likeness/topology gate가 2개를 요구했다.
+Repair checkpoint `1721b6aa`는 측정 대상에 새 owner를 포함하고 baseline을
+`21 concrete zones / 3 world members / 38 zone-bound actions / 4,257 typed
+Result·Option uses`로 강화한다. Compiler-world contract와 source-C 실행/transaction
+게이트가 로컬 green이며 다음 falsifier는 이 repair의 remote 29/29다. 퍼센트와
+SoT state는 바뀌지 않는다.
+
 ## 2026-08-17 프로젝트 퍼센테이지 기준선
 
 한 숫자가 필요할 때의 현재 작업 예측은 **78%**다. 오차 범위는

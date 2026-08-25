@@ -16,11 +16,12 @@ gate count do not increment either percentage by themselves.
 
 - Executable checkpoint `a94737dd` moves the production installed source-C
   artifact path behind `PgyCompilerWorld.source_c` and
-  `DriverSourceCExecution.PublishSourceCArtifact`. Before this handoff commit,
-  local `main` is one executable commit ahead of `origin/main`; only progress
-  documents and the unrelated user-owned `pgy-80135c2c/` directory should be
-  dirty. Remote publication for this checkpoint remains RED until its push run
-  is observed.
+  `DriverSourceCExecution.PublishSourceCArtifact`. It and documentation
+  checkpoint `d8d1cce2` are published. Their first run `32811885342` completed
+  28/29: full self-host and every job except `build-linux` passed. Repair
+  checkpoint `1721b6aa` is one commit ahead of `origin/main` before this handoff
+  commit; only progress documents and the unrelated user-owned
+  `pgy-80135c2c/` directory should be dirty.
 - Active objective card: objective = route `DriverCliSourceCArtifact` compile
   and commit through one real world/zone/subject action; priority = preserve C
   artifact and target fingerprint, typed success/rejection/artifact failure,
@@ -45,7 +46,12 @@ gate count do not increment either percentage by themselves.
   trace. A missing parent destination exits nonzero, emits the typed transaction
   diagnostic, and leaves no artifact. Source-C/source-MIR action gates, atomic
   artifact contract, complete component contract, SoT edge/single-owner,
-  protocol registry, CI profile, and `git diff --check` pass.
+  protocol registry, CI profile, compiler-world topology/contract, and
+  `git diff --check` pass. The repair ratchets exact counts at 21 concrete
+  zones, three positional world members, 38 zone-bound actions, and 4,257
+  Result/Option uses; `world.pgy` remains under its unchanged 600-line cap at
+  597 lines. Local Coq is an explicit declared skip; run `32811885342` checked
+  the model with the installed prover.
 - Grade this as production `REACHABLE` Pergyra-native dogfood. It removes a real
   orchestration bypass but does not replace a new C-owned compiler path, so it
   does not add a hard `SUBSTITUTING` numerator. General MIR-to-C still calls its
@@ -56,9 +62,11 @@ gate count do not increment either percentage by themselves.
   The new composite gate itself took about 0.74s on Linux. Most of the roughly
   five-minute delta from the prior equivalent job was fixed-point runtime
   variance, not a new job or the focused gate. Overall remains 78%, strict beta
-  83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. The only active next
-  falsifier is publishing the source-C world/action checkpoint with all 29 push
-  jobs green.
+  83%, and hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. On the source-C first run,
+  full self-host completed green in 27m25 and its new action gate took about
+  0.58s. The only red was the stale exact-two-member likeness baseline; repair
+  `1721b6aa` updates the measured topology rather than weakening it. The only
+  active next falsifier is publishing that repair with all 29 push jobs green.
 
 ### Historical archive boundary
 
