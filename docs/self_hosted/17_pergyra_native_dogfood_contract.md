@@ -25,7 +25,9 @@ This is production `REACHABLE` orchestration dogfood, not a new
 closes the remaining stdout bypass through the existing world/action and shared
 payload admission. Focused installed execution plus component, world/topology,
 hard, likeness, progress, SoT, protocol, documentation, and diff gates are
-local green. Code publication and the remote matrix remain pending.
+local green. Checkpoint `e5b159c3` is published, and run `32905167784` completed
+29/29 green in 29m16; `build-linux` passed the installed stdout falsifier in
+15m04 and full self-host passed in 29m12.
 
 ## 2026-08-26 source-to-C stdout world/action evidence
 

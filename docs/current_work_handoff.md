@@ -17,13 +17,14 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - installed MIR-C stdout world/action local green; publication pending
+## Active self-host context - installed MIR-C stdout world/action closed; select next executable rung
 
-- Base revision `5bbb62877e42216a949d024c603ab3392f2eef84` is on local and
-  remote `main`. The project-owned dirty tree is Lease D implementation, gates,
-  workflow wiring, and live handoff documentation. Preserve the unrelated
-  user-owned untracked `pgy-80135c2c/` directory: do not inspect it as evidence,
-  stage it, delete it, or rewrite it.
+- Code checkpoint `e5b159c3bb44c10ae90acd379670489bd26ce8ba` is on local
+  and remote `main`. Before this result-only handoff commit, only the active
+  handoff/progress/coordination documents are project-owned dirty state;
+  afterward the worktree should contain only the unrelated user-owned untracked
+  `pgy-80135c2c/` directory. Do not inspect it as evidence, stage it, delete it,
+  or rewrite it.
 - Objective card: make installed `--mir-json INPUT` stdout and its explicit
   machine-manifest form enter `PgyCompilerWorld.direct_mir` and consume the same
   typed MIR-C payload admission as artifact publication. Priority = preserve
@@ -59,10 +60,15 @@ gate count do not increment either percentage by themselves.
   GREEN, as is `git diff --check`. Likeness remains sentinel `24/24`,
   Result/Option `4287/4287`, one world, 22 zones, and four members; SoT remains
   86 authorities / 180 derived carriers and `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-  Code checkpoint, push, and the remote 29-job matrix are still pending and
-  must not be inferred from local evidence. This is `REACHABLE` orchestration
-  closure, not another implementation replacement, so overall remains 78% and
-  strict beta 83%.
+  This is `REACHABLE` orchestration closure, not another implementation
+  replacement, so overall remains 78% and strict beta 83%.
+- Push run `32905167784` completed 29/29 green in 29m16. `build-linux`, which
+  now executes the installed MIR-C stdout falsifier in its existing Make call,
+  passed in 15m04; full self-host passed in 29m12. All 20 backend shards,
+  sanitizers, Windows/macOS, codegen bootstrap, TSan, and Rocq passed. Lease D
+  is `DONE`. No successor rung is inferred: the next session must observe a
+  production entrypoint and direct bypass, name its owner/last consumer/
+  falsifier, and write a new objective card before implementation.
 
 ### Historical archive boundary
 

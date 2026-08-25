@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease D — installed MIR-C stdout world/action boundary
+## DONE lease D — installed MIR-C stdout world/action boundary
 
 - Base revision: `5bbb62877e42216a949d024c603ab3392f2eef84`.
 - Editing and integration owner: the primary Codex task. Peer Codex tasks are
@@ -83,9 +83,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `4287/4287`, one world, 22 zones, and four members; SoT remains 86 authorities
   / 180 derived carriers and `CLOSED=49 BRIDGE=36 ACTIVE=1`.
 - The push workflow invokes the same installed-driver target inside the existing
-  Make call, so no job or second self-host compiler build is added. Lease D
-  stays `ACTIVE` until its code checkpoint is published and the remote 29-job
-  matrix is observed green.
+  Make call, so no job or second self-host compiler build is added. Code
+  checkpoint `e5b159c3` is on local and remote `main`; push run `32905167784`
+  completed 29/29 green in 29m16. `build-linux` passed in 15m04 and full
+  self-host in 29m12; all backend shards, sanitizers, platforms, codegen
+  bootstrap, TSan, and Rocq are green. Lease D is released, and no successor
+  rung is inferred from this result.
 
 ## DONE lease C — installed source-C stdout world/action boundary
 

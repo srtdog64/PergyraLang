@@ -1,6 +1,6 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-26 installed MIR-C stdout local closure
+## Active self-host context - 2026-08-26 installed MIR-C stdout world/action closure
 
 - Lease D moves installed `--mir-json INPUT` stdout and its explicit
   machine-manifest form behind `PgyCompilerWorld.direct_mir` and the same typed
@@ -29,6 +29,12 @@
 - This is `REACHABLE` orchestration dogfood rather than a new C implementation
   replacement. Overall remains 78%, strict beta 83%, and hard SoT remains
   `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Code checkpoint `e5b159c3` is on local and remote `main`. Push run
+  `32905167784` completed 29/29 green in 29m16; `build-linux` passed in 15m04
+  with the newly wired installed MIR-C stdout gate, and full self-host passed in
+  29m12. All backend shards, sanitizers, platforms, codegen bootstrap, TSan,
+  and Rocq are green. This bounded rung is closed; no successor implementation
+  is inferred without a new production bypass and objective card.
 
 ## Active self-host context - 2026-08-26 source-C stdout world/action closure
 

@@ -23,10 +23,16 @@ local green이며 narrow world/topology/action ratchet도 통과했다. Push wor
 만들지 않는다. Component/world/topology/hard/likeness/progress/SoT/protocol/
 documentation/diff gate는 local green이다. Likeness는 sentinel `24/24`,
 Result/Option `4287/4287`, world `1`, zone `22`, member `4`; SoT edge는
-86 authorities / 180 derived carriers를 유지한다. Code publication과 remote
-29-job matrix는 아직 pending이다. 이 작업은 production orchestration의
-`REACHABLE` closure이므로 전체 78%, strict beta 83%, SoT
+86 authorities / 180 derived carriers를 유지한다. 이 작업은 production
+orchestration의 `REACHABLE` closure이므로 전체 78%, strict beta 83%, SoT
 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 그대로다.
+
+Code checkpoint `e5b159c3`의 push run `32905167784`는 29분 16초에 29/29
+green으로 완료됐다. 새 installed MIR-C stdout falsifier를 기존 Make call에서
+실행한 `build-linux`는 15분 04초, full self-host는 29분 12초였고 20개 backend
+shard, sanitizer, Windows/macOS, codegen bootstrap, TSan, Rocq가 모두 통과했다.
+Lease D는 `DONE`이며 다음 production bypass와 objective card를 관측하기 전에는
+후속 rung을 추정하지 않는다.
 
 2026-08-26 로컬 실행 갱신: installed source-C의 기본 stdout, 명시적
 `--emit-c-verified`, machine-manifest stdout이 기존 `PgyCompilerWorld.source_c`
