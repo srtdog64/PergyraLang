@@ -117,7 +117,7 @@ jobs:
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
       - name: Run the full self-host fixed point and policy-corpus census
         # Reuse one fixed-point build. A second bootstrap job duplicates the

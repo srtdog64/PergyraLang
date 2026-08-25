@@ -156,6 +156,18 @@ if ! grep -Eq \
     exit 1
 fi
 
+bootstrap_job="$(
+    sed -n \
+        '/^  self-host-bootstrap-linux:/,/^  self-host-codegen-bootstrap-linux:/p' \
+        "$WORKFLOW"
+)"
+if ! grep -Eq \
+        'sudo apt-get install -y .*([[:space:]])libomp-dev([[:space:]]|$)' \
+        <<<"$bootstrap_job"; then
+    echo "[self-host-ci-profile] self-host bootstrap must install the LLVM OpenMP link dependency" >&2
+    exit 1
+fi
+
 self_host_parity_job="$(
     sed -n \
         '/^  self-host-parity-linux:/,$p' \
@@ -365,11 +377,6 @@ for required in \
     fi
 done
 
-bootstrap_job="$(
-    sed -n \
-        '/^  self-host-bootstrap-linux:/,/^  self-host-codegen-bootstrap-linux:/p' \
-        "$WORKFLOW"
-)"
 if grep -Fq 'make self-host-driver-bootstrap-test-smoke' <<<"$bootstrap_job"; then
     echo "[self-host-ci-profile] bounded-only bootstrap command reopened in the full fixed-point job" >&2
     exit 1
