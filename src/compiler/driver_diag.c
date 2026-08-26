@@ -8,7 +8,23 @@
 #include "../common/numeric_parse.h"
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
+#include "driver_self_host_selection_owner.h"
 #include "path_utils.h"
+
+int
+driver_emit_uninstalled_self_host_request_fail(const DriverFlags *flags)
+{
+    const char *option = driver_self_host_unowned_ir_option(flags);
+    if (option != NULL) {
+        fprintf(stderr,
+                "pgy: %s has no installed Pergyra fact owner; use explicit --native-pipeline for the native diagnostic\n",
+                option);
+    } else {
+        fprintf(stderr,
+                "pgy: request is outside the installed self-host driver contract\n");
+    }
+    return 1;
+}
 
 typedef struct DriverDiagCodeMap {
     const char *code;

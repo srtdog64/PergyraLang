@@ -14,6 +14,8 @@ WORK_DIR="$ROOT_DIR/.tmp/self_hosted/public-native-ir-explicit-opt-in"
 SOURCE="examples/minimal.pgy"
 LAUNCHER="$ROOT_DIR/src/pgy_driver.c"
 USAGE_OWNER="$ROOT_DIR/src/compiler/driver_usage.c"
+SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c"
+REJECTION_OWNER="$ROOT_DIR/src/compiler/driver_diag.c"
 
 fail() {
     echo "[self-host-public-native-ir-opt-in] $*" >&2
@@ -64,9 +66,13 @@ done
 default_native_calls="$(grep -Fc 'return driver_run_pipeline(&flags);' "$LAUNCHER")"
 [[ "$default_native_calls" == 2 ]] ||
     fail "launcher regained a third/default driver_run_pipeline call"
+grep -Fq 'driver_emit_uninstalled_self_host_request_fail(&flags)' "$LAUNCHER" ||
+    fail "launcher bypassed the uninstalled-request rejection owner"
 grep -Fq 'has no installed Pergyra fact owner; use explicit --native-pipeline' \
-    "$LAUNCHER" || fail "launcher missing explicit native-only diagnostic"
+    "$REJECTION_OWNER" || fail "rejection owner lost the native-only diagnostic"
 for mode in --rir --rir-json --air --air-json --hir --hir-cfg --hir-dom --hir-ssa; do
+    grep -Fq -- "\"$mode\"" "$SELECTION_OWNER" ||
+        fail "selection owner lost the $mode request identity"
     grep -Fq -- "--native-pipeline $mode" "$USAGE_OWNER" ||
         fail "usage does not declare explicit native ownership for $mode"
 done

@@ -61,9 +61,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   minute focused budget while recompiling `driver_rung2_main.pgy`; no green is
   claimed for that run. The already-installed parent CLI gate completed in
   23 seconds, so no timeout or CI allowance was raised.
-- The implementation checkpoint is the commit containing this result. Remote
-  publication/CI is pending. This closes an implicit fallback only; it is not
-  `SUBSTITUTING`, changes no percentage, and closes no registry row.
+- Implementation checkpoint `4eef51ad` is published. First run `32932076025`
+  exposed one structural violation: `src/pgy_driver.c` grew to 359 lines over
+  its unchanged 340-line cap. The repair keeps that cap, moves mode identity to
+  `driver_self_host_selection_owner` and diagnostic emission to `driver_diag`,
+  and leaves the launcher at 340 lines and selection owner at its 140-line cap.
+  A replacement run is pending. This closes an implicit fallback only; it is
+  not `SUBSTITUTING`, changes no percentage, and closes no registry row.
 
 ## DONE lease F — installed public `--mir` diagnostic substitution
 

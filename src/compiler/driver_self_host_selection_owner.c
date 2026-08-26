@@ -130,3 +130,11 @@ driver_self_host_c_artifact_request_supported(const DriverFlags *flags)
         && flags->runtime_mode == RUNTIME_DEFAULT
         && flags->machine_layer_physical_manifest == NULL;
 }
+
+const char *driver_self_host_unowned_ir_option(const DriverFlags *flags)
+{
+    return flags == NULL ? NULL : flags->dump_rir ? "--rir" : flags->dump_rir_json ? "--rir-json" :
+        flags->dump_air ? "--air" : flags->dump_air_json ? "--air-json" : flags->dump_hir ?
+        (flags->hir_dump_mode == HIR_DUMP_CFG ? "--hir-cfg" :
+         flags->hir_dump_mode == HIR_DUMP_DOM ? "--hir-dom" : flags->hir_dump_mode == HIR_DUMP_SSA ? "--hir-ssa" : "--hir") : NULL;
+}

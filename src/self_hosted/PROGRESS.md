@@ -21,10 +21,16 @@
   while recompiling `driver_rung2_main.pgy` and was stopped; it is not claimed
   green and no allowance was increased. The installed parent reused the current
   driver and passed in about 23 seconds.
-- The implementation checkpoint is the commit containing this entry; remote
-  publication/CI is pending. This is fallback closure, not `SUBSTITUTING`.
+- Implementation checkpoint `4eef51ad` is published; remote closure is
+  pending. This is fallback closure, not `SUBSTITUTING`.
   Overall remains 78%, strict beta 83%, and hard SoT remains
   `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Its first run `32932076025` exposed one unchanged-cap
+  failure: the launcher was 359 lines over its 340-line component limit. The
+  local repair moves IR mode selection and diagnostic emission behind their
+  existing owners, restores launcher/selection-owner sizes to 340/140, and
+  passes the incremental build and installed parent CLI. The cap was not
+  raised; repair publication and replacement CI are pending.
 
 ## Historical self-host context - 2026-08-26 public MIR diagnostic substitution
 

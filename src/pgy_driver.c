@@ -2,13 +2,13 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
 #include "common/env_flags.h"
 #include "compiler/driver_app.h"
+#include "compiler/driver_diag.h"
 #include "compiler/repl.h"
 #include "compiler/fmt.h"
 #include "compiler/pkg.h"
@@ -336,24 +336,5 @@ main(int argc, char *argv[])
         return llvm_runner_execute_installed_self_host_llvm(
             argv[0], &flags, NULL);
     }
-    const char *native_ir_option = NULL;
-    if (flags.dump_rir) native_ir_option = "--rir";
-    else if (flags.dump_rir_json) native_ir_option = "--rir-json";
-    else if (flags.dump_air) native_ir_option = "--air";
-    else if (flags.dump_air_json) native_ir_option = "--air-json";
-    else if (flags.dump_hir) {
-        if (flags.hir_dump_mode == HIR_DUMP_CFG) native_ir_option = "--hir-cfg";
-        else if (flags.hir_dump_mode == HIR_DUMP_DOM) native_ir_option = "--hir-dom";
-        else if (flags.hir_dump_mode == HIR_DUMP_SSA) native_ir_option = "--hir-ssa";
-        else native_ir_option = "--hir";
-    }
-    if (native_ir_option != NULL) {
-        fprintf(stderr,
-                "pgy: %s has no installed Pergyra fact owner; use explicit --native-pipeline for the native diagnostic\n",
-                native_ir_option);
-        return 1;
-    }
-    fprintf(stderr,
-            "pgy: request is outside the installed self-host driver contract\n");
-    return 1;
+    return driver_emit_uninstalled_self_host_request_fail(&flags);
 }

@@ -19,10 +19,14 @@ gate count do not increment either percentage by themselves.
 
 ## Active self-host context - explicit-native isolation for unowned public IR
 
-- The implementation checkpoint is the commit containing this handoff, based
-  on `8b8c78f0d6f5efd0eecaeaec7ee2b1796b6723dd`; remote publication and CI are
-  pending. The unrelated user-owned `pgy-80135c2c/` path remains untracked and
-  must not be inspected, staged, deleted, or rewritten.
+- Published implementation checkpoint `4eef51ad` is on local and remote
+  `main`. Its first run `32932076025` found that the launcher reached 359 lines
+  over its unchanged 340-line component cap. The current dirty repair moves
+  mode identity to `driver_self_host_selection_owner` and diagnostic emission
+  to `driver_diag`; launcher/selection owner are now exactly 340/140 lines and
+  local build plus parent CLI are green. Repair publication and replacement CI
+  are pending. The unrelated user-owned `pgy-80135c2c/` path remains untracked
+  and must not be inspected, staged, deleted, or rewritten.
 - Objective card: delete the launcher's final implicit native fallback for
   bare `--rir`, `--rir-json`, `--air`, `--air-json`, `--hir`, `--hir-cfg`,
   `--hir-dom`, and `--hir-ssa`. No complete installed Pergyra producer owns

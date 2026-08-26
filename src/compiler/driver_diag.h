@@ -15,5 +15,6 @@ const char *driver_diag_cause_from_code(const char *code);
 const char *driver_diag_fix_from_code(const char *code);
 bool driver_diag_compatibility_manifest_validate_file(const char *path,
                                                        char **error_message);
+int driver_emit_uninstalled_self_host_request_fail(const DriverFlags *flags);
 
 #endif /* PGY_DRIVER_DIAG_H */

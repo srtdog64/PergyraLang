@@ -18,10 +18,17 @@ observability gate는 local green이다. AIR fixture의 유일한 MIR binding fi
 drift는 세 번 동일하게 재현된 current owner 값으로 갱신했다.
 `mir_machine_layer_smoke.sh`는 `driver_rung2_main.pgy` 재컴파일 중 focused 5분
 예산을 넘겨 중단했으며 green으로 주장하거나 timeout을 늘리지 않는다. 이 entry를
-포함하는 commit이 implementation checkpoint이고 remote publication/CI는 pending이다.
+포함하는 implementation checkpoint `4eef51ad`는 published이고 remote closure는 pending이다.
 이는 implicit fallback 폐쇄일 뿐 Pergyra RIR/AIR/HIR implementation 대체가 아니므로
 `SUBSTITUTING` 진척, 전체 78%, strict beta 83%, SoT
 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 모두 그대로다.
+
+Implementation checkpoint `4eef51ad`의 첫 run `32932076025`은
+`src/pgy_driver.c`가 359줄로 기존 340-line component cap을 넘은 한 건을 잡았다.
+Cap은 올리지 않았다. Mode identity는 `driver_self_host_selection_owner`, missing-owner
+진단은 `driver_diag`로 옮기고 launcher는 한 줄 rejection call만 남겨 정확히
+340/140줄을 회복했다. Local incremental build와 installed parent CLI는 다시 green이며
+repair publication/replacement run은 pending이다.
 
 2026-08-26 원격 폐쇄 갱신: implementation checkpoint `c2ff6548`, closure
 checkpoint `b3da55a3`은 public installed

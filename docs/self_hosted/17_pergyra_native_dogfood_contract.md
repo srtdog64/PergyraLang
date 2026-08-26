@@ -25,6 +25,12 @@ focused recompilation budget and is not claimed green. This is not a Pergyra
 producer replacement and therefore not `SUBSTITUTING` dogfood; it closes only
 an implicit fallback and leaves all progress and SoT counts unchanged.
 
+Checkpoint `4eef51ad` first failed remote `build-linux` because the launcher
+grew to 359 lines over its unchanged 340-line cap. The repair does not relax
+that cap: request identity is owned by `driver_self_host_selection_owner`, the
+failure text by `driver_diag`, and the launcher returns one owned rejection.
+Local line caps, build, and installed CLI are green; replacement CI is pending.
+
 ## 2026-08-26 public MIR diagnostic substitution evidence
 
 Implementation checkpoint `c2ff6548` and published closure checkpoint
