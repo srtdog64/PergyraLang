@@ -42,13 +42,18 @@ fi
 EXPECTED_SELF_DRIVER="$(dirname "$PGY")/$installed_name"
 [[ "$SELF_DRIVER" == "$EXPECTED_SELF_DRIVER" ]] ||
     fail "self-host driver is not installed beside the public launcher"
+MACHINE_MANIFEST="$(pgy_self_driver_machine_manifest_path "$SELF_DRIVER")"
+[[ -s "$MACHINE_MANIFEST" ]] || fail "missing installed machine manifest"
+# Match the production adapter's repository-relative companion spelling.
+MACHINE_MANIFEST_ARG="${MACHINE_MANIFEST#"$ROOT_DIR"/}"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR/direct.c" "$WORK_DIR/launcher.c" \
     "$WORK_DIR/missing.c" "$WORK_DIR/unsupported.c"
 
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-c-artifact-verified \
-    "$SOURCE" "$WORK_REL/direct.c")
+    "$SOURCE" "$WORK_REL/direct.c" --machine-manifest-json \
+    "$MACHINE_MANIFEST_ARG")
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && \
     "$PGY" "$SOURCE" --emit-c -o "$WORK_REL/launcher.c") \
     >"$WORK_DIR/launcher.out" 2>"$WORK_DIR/launcher.err"

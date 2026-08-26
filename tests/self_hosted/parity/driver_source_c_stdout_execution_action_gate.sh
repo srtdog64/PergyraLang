@@ -80,21 +80,21 @@ cmp -s "$WORK_DIR/stdout-default.c" "$WORK_DIR/stdout-explicit.c" ||
 cmp -s "$WORK_DIR/stdout-default.normalized.c" "$WORK_DIR/direct.normalized.c" ||
     fail "source-C stdout and artifact actions produced different payloads"
 
-case "$SELF_DRIVER" in
-    *.exe) MANIFEST="${SELF_DRIVER%.exe}.machine-layer-manifest.json" ;;
-    *) MANIFEST="${SELF_DRIVER}.machine-layer-manifest.json" ;;
-esac
+MANIFEST="$(pgy_self_driver_machine_manifest_path "$SELF_DRIVER")"
 [[ -f "$MANIFEST" ]] || fail "missing installed machine declaration: $MANIFEST"
-MANIFEST_PATH="$MANIFEST"
-command -v cygpath >/dev/null 2>&1 && MANIFEST_PATH="$(cygpath -u "$MANIFEST")"
-MANIFEST_REL="${MANIFEST_PATH#"$ROOT_DIR"/}"
-[[ "$MANIFEST_REL" != "$MANIFEST_PATH" ]] || fail "machine declaration escaped repository"
+MANIFEST_REL="${MANIFEST#"$ROOT_DIR"/}"
+[[ "$MANIFEST_REL" != "$MANIFEST" ]] || fail "machine declaration escaped repository"
 (cd "$ROOT_DIR" && "$SELF_DRIVER" "$SOURCE" --machine-manifest-json "$MANIFEST_REL") \
+    >"$WORK_DIR/stdout-non-machine-manifest.c"
+! grep -Fq 'pgy_machine_layer_require_mapping();' "$WORK_DIR/stdout-non-machine-manifest.c" ||
+    fail "non-machine source emitted a machine startup call"
+(cd "$ROOT_DIR" && "$SELF_DRIVER" tests/cases/backend_compare/device_slot_machine_layer/main.pgy \
+    --machine-manifest-json "$MANIFEST_REL") \
     >"$WORK_DIR/stdout-manifest.c"
 grep -Fq '#include' "$WORK_DIR/stdout-manifest.c" ||
     fail "manifest source-C stdout emitted no C payload"
 grep -Fq 'pgy_machine_layer_require_mapping();' "$WORK_DIR/stdout-manifest.c" ||
-    fail "manifest source-C stdout lost its admitted machine declaration"
+    fail "DeviceSlot source-C stdout lost its admitted machine declaration"
 
 printf '%s\n' '{"schema":"invalid"}' >"$WORK_DIR/invalid-manifest.json"
 set +e

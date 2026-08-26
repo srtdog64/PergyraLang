@@ -171,9 +171,9 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
                                         const char *output_path,
                                         bool verbose)
 {
-    const char *child_argv[5];
+    const char *child_argv[7];
     char *binary;
-    char *canonical_source_path;
+    char *canonical_source_path, *manifest_path;
     int rc;
 
     if (source_path == NULL || source_path[0] == '\0') {
@@ -201,12 +201,21 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
         free(binary);
         return 1;
     }
+    manifest_path = path_replace_extension(binary, ".machine-layer-manifest.json");
+    if (manifest_path == NULL) {
+        fprintf(stderr, "pgy: could not derive installed machine manifest path\n");
+        free(canonical_source_path);
+        free(binary);
+        return 1;
+    }
 
     child_argv[0] = binary;
     child_argv[1] = "--emit-c-artifact-verified";
     child_argv[2] = canonical_source_path;
     child_argv[3] = output_path;
-    child_argv[4] = NULL;
+    child_argv[4] = "--machine-manifest-json";
+    child_argv[5] = manifest_path;
+    child_argv[6] = NULL;
     driver_authorize_self_host_child_io();
     rc = pgy_exec_argv(child_argv, verbose);
     /* The driver can fail before it has anything to say -- a denied source
@@ -223,6 +232,7 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
     }
 
     free(canonical_source_path);
+    free(manifest_path);
     free(binary);
     return rc;
 }

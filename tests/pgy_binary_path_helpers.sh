@@ -333,6 +333,13 @@ pgy_path_for_compiler() {
     pgy_path_for_windows_tool "$path"
 }
 
+pgy_self_driver_machine_manifest_path() {
+    case "$1" in
+        *.exe) printf '%s\n' "${1%.exe}.machine-layer-manifest.json" ;;
+        *) printf '%s\n' "${1}.machine-layer-manifest.json" ;;
+    esac
+}
+
 pgy_normalize_runner_env_paths_for_bash() {
     case "$(uname -s 2>/dev/null || echo unknown)" in
         MINGW*|MSYS*|CYGWIN*)

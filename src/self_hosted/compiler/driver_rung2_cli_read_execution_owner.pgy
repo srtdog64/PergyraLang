@@ -92,7 +92,7 @@ func DriverRung2ExecuteReadRequest(
                 input_path,
                 SelfHostMachineLayerDeclarationFromPath(manifest_path)
             );
-        case DriverCliSourceCArtifact(source_path, output_path):
+        case DriverCliSourceCArtifact(source_path, output_path, manifest_path):
             Die("driver rung-2 artifact request requires installed composition root");
         case DriverCliSourceLlvmArtifact(source_path, output_path):
             Die("driver rung-2 artifact request requires installed composition root");

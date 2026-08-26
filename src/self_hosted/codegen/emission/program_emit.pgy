@@ -369,7 +369,11 @@ func GenerateCUnitFromReadySemanticFacts(
         !SelfHostMachineLayerDeclarationReady(machine_declaration) {
         Die("self-host machine-layer startup declaration is missing");
     }
-    let machine_startup: String = CompilerMachineLayerRuntimeBindingStatement(machine_declaration);
+    let machine_startup: String = "";
+    if usage.uses_machine_layer {
+        machine_startup = CompilerMachineLayerRuntimeBindingStatement(
+            machine_declaration);
+    }
     if usage.uses_spawn { machine_startup = Concat("    pgy_pool_init(0);\n    atexit(pgy_pool_shutdown);\n", machine_startup); }
     if observe_pressure { Log("[codegen-pressure-stage] definitions:start"); }
     let definition_block: String = CodegenProgramFunctionDefinitionBlock(

@@ -9016,6 +9016,10 @@ require_text "src/compiler/self_host_driver.c" \
 require_text "src/compiler/self_host_driver.c" \
     'child_argv[2] = canonical_source_path'
 require_text "src/compiler/self_host_driver.c" 'child_argv[3] = output_path'
+require_text "src/compiler/self_host_driver.c" \
+    'child_argv[4] = "--machine-manifest-json"'
+require_text "src/compiler/self_host_driver.c" \
+    'child_argv[5] = manifest_path'
 reject_text "src/compiler/self_host_driver.c" 'child_argv[1] = source_path'
 require_text "src/compiler/self_host_driver.c" \
     'driver_self_host_source_identity_path_dup('
@@ -9044,6 +9048,10 @@ require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--ast"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "DriverCliSourceCapabilityManifestStdout(String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "DriverCliSourceCArtifact(String, String, String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    'args[3] != "--machine-manifest-json"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "Log(LexContent(source_path, LexerReadSource(source_path)));"
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
@@ -23130,6 +23138,14 @@ require_text "tests/self_hosted/parity/driver_source_c_execution_action_gate.sh"
     'driver_source_c_stdout_execution_action_gate.sh'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'driver_mir_c_stdout_execution_action_gate.sh'
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'public_device_slot_machine_manifest_installed_self_host_owner.sh'
+require_file \
+    "tests/self_hosted/parity/public_device_slot_machine_manifest_installed_self_host_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/public_device_slot_machine_manifest_installed_self_host_owner.sh" 140
+require_text "docs/semantics/sot_owner_spine_registry.md" \
+    'source_c_artifact_machine_manifest_omission,source_c_machine_manifest_missing_or_corrupt_native_retry'
 require_text "src/self_hosted/OWNERS.md" \
     'src/self_hosted/compiler/driver_source_c_execution_owner.pgy'
 require_text "Makefile" \

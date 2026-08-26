@@ -20,8 +20,18 @@ func DriverRung2ExecuteInstalledRequest(
             DriverRung2ExecuteReadRequest(request);
         case DriverCliMachineManifestStdout(manifest_path):
             DriverRung2ExecuteReadRequest(request);
-        case DriverCliSourceCArtifact(source_path, output_path):
-            DriverRung2InstalledPublishSourceC(source_path, output_path);
+        case DriverCliSourceCArtifact(source_path, output_path, manifest_path):
+            if manifest_path == "" {
+                DriverRung2InstalledPublishSourceC(
+                    source_path, output_path, SourceCDefault);
+            } else {
+                DriverRung2InstalledPublishSourceC(
+                    source_path, output_path,
+                    SourceCManifestVerified(
+                        SelfHostMachineLayerDeclarationFromPath(manifest_path)
+                    )
+                );
+            }
         case DriverCliSourceLlvmArtifact(source_path, output_path):
             DriverRung2InstalledPublishSourceLlvm(source_path, output_path);
         case DriverCliSourceMirArtifact(source_path, output_path):

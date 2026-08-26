@@ -24,15 +24,15 @@ ARTIFACT_EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifa
 fail() { echo "[driver-source-c-execution-action] $1" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
 
-if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
-    PGY="${PGY}.exe"
-fi
-if [[ "$SELF_DRIVER" != *.exe ]] && pgy_binary_expects_windows_paths "${SELF_DRIVER}.exe"; then
-    SELF_DRIVER="${SELF_DRIVER}.exe"
-fi
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then PGY="${PGY}.exe"; fi
+if [[ "$SELF_DRIVER" != *.exe ]] && pgy_binary_expects_windows_paths "${SELF_DRIVER}.exe"; then SELF_DRIVER="${SELF_DRIVER}.exe"; fi
 [[ -x "$PGY" ]] || fail "missing public launcher: $PGY"
 [[ -x "$SELF_DRIVER" ]] || fail "missing installed self-host driver: $SELF_DRIVER"
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
+MACHINE_MANIFEST="$(pgy_self_driver_machine_manifest_path "$SELF_DRIVER")"
+[[ -s "$MACHINE_MANIFEST" ]] || fail "missing installed machine manifest"
+# Match the production adapter's repository-relative companion spelling.
+MACHINE_MANIFEST_ARG="${MACHINE_MANIFEST#"$ROOT_DIR"/}"
 
 for owner in "$SOURCE_OWNER" "$PROTOCOL_OWNER" "$WORLD_OWNER" "$COMPOSITION_OWNER" \
     "$INSTALLED_OWNER" "$ARTIFACT_EXECUTION_OWNER"; do
@@ -73,12 +73,13 @@ for term in 'DriverSourceCZone(DriverSourceCExecution(' \
 done
 for term in 'func DriverRung2InstalledPublishSourceC(' \
     'PublishSourceCArtifactThroughPgyCompilerWorld(' \
-    'source_path, output_path, SourceCDefault' \
+    'source_path, output_path, request' \
     'DriverSourceCExecutionOutcomeReadyFor(' \
     'DriverSourceCExecutionOutcomeDiagnostic('; do
     require_text "$ARTIFACT_EXECUTION_OWNER" "$term"
 done
-require_text "$INSTALLED_OWNER" 'case DriverCliSourceCArtifact(source_path, output_path):'
+require_text "$INSTALLED_OWNER" 'case DriverCliSourceCArtifact(source_path, output_path, manifest_path):'
+require_text "$INSTALLED_OWNER" 'SourceCManifestVerified('
 ! grep -Fq 'DriverRung2InstalledCommitSourceC' "$ARTIFACT_EXECUTION_OWNER" ||
     fail "retired installed source-C direct commit returned"
 installed_publish="$(awk '/^func DriverRung2InstalledPublishSourceC\(/{inside=1} inside{print} inside && /^}/{exit}' "$ARTIFACT_EXECUTION_OWNER")"
@@ -90,7 +91,8 @@ grep -Fq 'SelfMirArtifactCommitPayload(' <<<"$installed_publish" &&
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-c-artifact-verified \
-    "$SOURCE" "$WORK_REL/direct.c")
+    "$SOURCE" "$WORK_REL/direct.c" --machine-manifest-json \
+    "$MACHINE_MANIFEST_ARG")
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && \
     "$PGY" "$SOURCE" --emit-c -o "$WORK_REL/public.c") \
     >"$WORK_DIR/public.out" 2>"$WORK_DIR/public.err"

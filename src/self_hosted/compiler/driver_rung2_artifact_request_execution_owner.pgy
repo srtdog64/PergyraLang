@@ -6,11 +6,13 @@ import "driver_rung2_cli_request_owner.pgy";
 import "compiler_root_intent_execution_owner.pgy";
 
 func DriverRung2InstalledPublishSourceC(
-    source_path: String, output_path: String
+    source_path: String,
+    output_path: String,
+    request: DriverSourceCRequest
 ) -> Void with caps io_read, io_write {
     let outcome: DriverSourceCExecutionOutcome =
         PublishSourceCArtifactThroughPgyCompilerWorld(
-            source_path, output_path, SourceCDefault
+            source_path, output_path, request
         );
     if !DriverSourceCExecutionOutcomeReadyFor(
         outcome, source_path, output_path

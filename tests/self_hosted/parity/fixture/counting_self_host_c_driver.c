@@ -9,8 +9,10 @@ main(int argc, char **argv)
     FILE *count;
     FILE *output;
 
-    if (argc != 4
+    if (argc != 6
         || strcmp(argv[1], "--emit-c-artifact-verified") != 0
+        || strcmp(argv[4], "--machine-manifest-json") != 0
+        || argv[5][0] == '\0'
         || count_path == NULL || count_path[0] == '\0')
         return 2;
     count = fopen(count_path, "ab");

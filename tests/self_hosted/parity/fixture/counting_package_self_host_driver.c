@@ -35,8 +35,10 @@ main(int argc, char **argv)
 {
     int rc;
 
-    if (argc == 4
-        && strcmp(argv[1], "--emit-c-artifact-verified") == 0) {
+    if (argc == 6
+        && strcmp(argv[1], "--emit-c-artifact-verified") == 0
+        && strcmp(argv[4], "--machine-manifest-json") == 0
+        && argv[5][0] != '\0') {
         rc = append_count("c\n");
         if (rc != 0)
             return rc;

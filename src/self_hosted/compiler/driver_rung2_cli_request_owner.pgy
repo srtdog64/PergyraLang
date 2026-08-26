@@ -13,7 +13,7 @@ enum DriverRung2CliRequest {
     DriverCliMachineManifestStdout(String),
     DriverCliSourceCStdout(String),
     DriverCliSourceCManifestStdout(String, String),
-    DriverCliSourceCArtifact(String, String),
+    DriverCliSourceCArtifact(String, String, String),
     DriverCliSourceLlvmArtifact(String, String),
     DriverCliSourceMirDiagnosticStdout(String),
     DriverCliSourceMirStdout(String),
@@ -46,9 +46,7 @@ func DriverRung2CliPathOperandOrDie(
     return SelfHostPath.NormalizeSeparators(path);
 }
 func DriverRung2CliArtifactPathsOrDie(input_path: String, output_path: String) -> Void {
-    if input_path == output_path {
-        Die("driver rung-2 input and output paths must differ");
-    }
+    if input_path == output_path { Die("driver rung-2 input and output paths must differ"); }
 }
 func DriverRung2CliRequestFromArgsOrDie(
     args: Array<String>
@@ -100,17 +98,19 @@ func DriverRung2CliRequestFromArgsOrDie(
         );
     }
     if args[0] == "--emit-c-artifact-verified" {
-        if count != 3 {
-            Die("source C artifact mode requires source and output paths");
-        }
-        let source_path: String = DriverRung2CliPathOperandOrDie(
-            args[1], "source C input path"
-        );
+        if count != 3 && count != 5 { Die("source C artifact mode requires source and output paths"); }
+        if count == 5 && args[3] != "--machine-manifest-json" {
+            Die("source C artifact machine manifest flag is invalid"); }
+        let source_path: String =
+            DriverRung2CliPathOperandOrDie(args[1], "source C input path");
         let output_path: String = DriverRung2CliPathOperandOrDie(
-            args[2], "source C artifact output path"
-        );
+            args[2], "source C artifact output path");
+        let manifest_path: String = "";
+        if count == 5 { manifest_path = DriverRung2CliPathOperandOrDie(
+            args[4], "source C machine manifest path"); }
         DriverRung2CliArtifactPathsOrDie(source_path, output_path);
-        return DriverCliSourceCArtifact(source_path, output_path);
+        return DriverCliSourceCArtifact(
+            source_path, output_path, manifest_path);
     }
     if args[0] == "--emit-source-llvm-ir-verified" {
         if count != 4 || args[2] != "-o" {

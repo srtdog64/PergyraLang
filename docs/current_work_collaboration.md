@@ -6,6 +6,62 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease J — installed source-C machine declaration carriage
+
+- Base revision: `5e946a5a2165c784f7028f967f08ae3a1b2aaa1c`.
+- Editing and integration owner: the primary Codex task. No parallel
+  implementation track is open.
+- Objective: make public installed source-to-C carry the already installed
+  machine-layer companion into the existing typed Pergyra source-C request so
+  a real `DeviceSlot<Int>` program reaches its existing machine projection and
+  codegen owners without native re-entry.
+- Priority order: one installed physical declaration; typed request carriage;
+  source-MIR instruction projection; fail closed on missing/corrupt evidence;
+  negative old-path ratchet; then patch size and output familiarity.
+- Fact owner: the installed sibling's immutable
+  `.machine-layer-manifest.json`, admitted only by
+  `SelfHostMachineLayerDeclarationFromPath` and
+  `SourceCManifestVerified`. The launcher owns path carriage, not manifest
+  contents or a second host-sim grant table.
+- Production entrypoint and last consumer: public `pgy SOURCE --emit-c` and
+  plain source compile enter `driver_materialize_self_host_c_artifact`; the
+  source-to-MIR instruction projection is the last consumer before existing
+  MIR validation and C emission.
+- Observed RED: explicit native `--emit-c` succeeds for
+  `tests/cases/backend_compare/device_slot_machine_layer/main.pgy`, while the
+  installed path exits 1 with `instruction=0 machine-layer projection is
+  invalid`. The artifact-mode child receives `SourceCDefault`, so the known
+  `ClaimDeviceSlot` contact meets an empty declaration and fails closed.
+- Forbidden fallback: repeating machine manifest/grant literals in C or
+  Pergyra, scanning source text for `DeviceSlot`, treating a nonempty machine
+  contact as an empty row, retrying `driver_run_pipeline`, accepting a missing
+  or malformed companion, or opening the broader Channel/product-tool surface.
+- Verification and falsifier: real public DeviceSlot C emission and execution
+  must match the explicit-native oracle; a counting child is invoked exactly
+  once with the companion operand; missing and corrupt companions publish no C
+  artifact and show no native timing; static gates reject a public artifact
+  child request that omits `--machine-manifest-json`. Reuse the existing
+  installed-driver Make target and CI job.
+
+### Local result — remote validation pending
+
+- The C adapter now derives the installed sibling manifest path and passes it
+  through the typed three-field source-C artifact request. The installed
+  composition root admits it as `SourceCManifestVerified` and carries that
+  request through the existing `PgyCompilerWorld` source-C action; no grant or
+  machine fact was duplicated.
+- Extending declaration carriage exposed an older usage mismatch: a valid
+  declaration caused a startup call in programs without machine operations,
+  while the matching definition block was usage-gated. Both block and call are
+  now controlled by the same `usage.uses_machine_layer` fact. Non-machine
+  source/MIR emits no startup call; DeviceSlot source/MIR emits both.
+- A fresh typed-source DRV-2 install is green. The focused DeviceSlot gate,
+  general source-C action/default emit gates, and the full installed-driver CLI
+  parent are green. Missing and corrupt installed companions fail without an
+  artifact or native timing. The full component inventory is not claimed: its
+  earlier run reached the static 60-second budget and found only the then-fixed
+  script line cap; exact owner/cap ratchets are covered by the focused gates.
+
 ## DONE lease I — readiness and progress evidence reconciliation
 
 - Base revision: `ab816bc923df2a7d0121a8d74134b2af2fa05a3e`.

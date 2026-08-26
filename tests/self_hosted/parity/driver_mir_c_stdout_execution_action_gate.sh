@@ -130,17 +130,11 @@ cmp -s "$WORK_DIR/mir.stdout.normalized.c" \
     "$WORK_DIR/mir.observed.normalized.c" ||
     fail "shared MIR-C admission changed observation payload parity"
 
-case "$DRIVER" in
-    *.exe) MIR_C_MANIFEST="${DRIVER%.exe}.machine-layer-manifest.json" ;;
-    *) MIR_C_MANIFEST="${DRIVER}.machine-layer-manifest.json" ;;
-esac
+MIR_C_MANIFEST="$(pgy_self_driver_machine_manifest_path "$DRIVER")"
 [[ -f "$MIR_C_MANIFEST" ]] ||
     fail "missing installed machine declaration: $MIR_C_MANIFEST"
-MIR_C_MANIFEST_PATH="$MIR_C_MANIFEST"
-command -v cygpath >/dev/null 2>&1 &&
-    MIR_C_MANIFEST_PATH="$(cygpath -u "$MIR_C_MANIFEST")"
-MIR_C_MANIFEST_REL="${MIR_C_MANIFEST_PATH#"$ROOT_DIR"/}"
-[[ "$MIR_C_MANIFEST_REL" != "$MIR_C_MANIFEST_PATH" ]] ||
+MIR_C_MANIFEST_REL="${MIR_C_MANIFEST#"$ROOT_DIR"/}"
+[[ "$MIR_C_MANIFEST_REL" != "$MIR_C_MANIFEST" ]] ||
     fail "machine declaration escaped repository"
 (cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/source.mir.json" \
     --machine-manifest-json "$MIR_C_MANIFEST_REL") \
@@ -148,8 +142,15 @@ MIR_C_MANIFEST_REL="${MIR_C_MANIFEST_PATH#"$ROOT_DIR"/}"
     fail "admitted-manifest MIR-C stdout failed"
 grep -Fq '#include' "$WORK_DIR/mir-manifest.c" ||
     fail "admitted-manifest MIR-C stdout emitted no C payload"
-grep -Fq 'pgy_machine_layer_require_mapping();' "$WORK_DIR/mir-manifest.c" ||
-    fail "admitted-manifest MIR-C stdout lost its declaration mapping"
+! grep -Fq 'pgy_machine_layer_require_mapping();' "$WORK_DIR/mir-manifest.c" ||
+    fail "non-machine MIR emitted a machine startup call"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    tests/cases/backend_compare/device_slot_machine_layer/main.pgy \
+    --machine-manifest-json "$MIR_C_MANIFEST_REL") >"$WORK_DIR/machine.mir.json"
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json "$WORK_REL/machine.mir.json" \
+    --machine-manifest-json "$MIR_C_MANIFEST_REL") >"$WORK_DIR/machine.c"
+grep -Fq 'pgy_machine_layer_require_mapping();' "$WORK_DIR/machine.c" ||
+    fail "DeviceSlot MIR-C stdout lost its declaration mapping"
 
 printf '%s\n' '{"schema":"invalid"}' >"$WORK_DIR/mir-invalid-manifest.json"
 set +e
