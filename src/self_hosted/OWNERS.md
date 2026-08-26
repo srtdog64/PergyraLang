@@ -1608,7 +1608,8 @@ inventory must not become a second fact-family owner registry.
   are forbidden.
 - `src/self_hosted/codegen/emission/callable_parameter_prototype_owner.pgy` --
   exact C function-pointer parameter declaration and value-carriage admission
-  shared by ordinary and specialized prototype rows.
+  shared by ordinary and specialized prototype rows. It returns one finished
+  declaration String and never carries a TextBuilder across a function boundary.
 - `src/self_hosted/codegen/emission/extern_prototype_block_owner.pgy` --
   host-ABI prototypes for extern "C" members: bare non-static declarations
   under the declared name, definition left to the linker. Distinct from the

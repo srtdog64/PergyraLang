@@ -93,11 +93,13 @@ func CodegenFunctionPrototypeBlock(
                 }
                 let c_binding_name: String =
                     CompilerSymbolCBindingName(p_name);
-                let callable_parameter: Bool =
-                    CodegenAppendCallableParameterPrototypeIfPresent(
-                        output, p_type, c_binding_name, p_mode, struct_env
+                let callable_parameter: Option<String> =
+                    CodegenCallableParameterPrototypeIfPresent(
+                        p_type, c_binding_name, p_mode, struct_env
                     );
-                if !callable_parameter {
+                if IsSome(callable_parameter) {
+                    TextBuilderAppend(output, UnwrapOption(callable_parameter));
+                } else {
                     let cpt: String = AbiLayoutCParamType(p_type, struct_env);
                     if p_name == "self" && mutable_identity_receiver {
                         if p_mode != 0 {
@@ -181,11 +183,13 @@ func CodegenFunctionPrototypeBlock(
                 signatures, signature_index, pn, actuals
             );
             let c_binding_name: String = CompilerSymbolCBindingName(p_name);
-            let callable_parameter: Bool =
-                CodegenAppendCallableParameterPrototypeIfPresent(
-                    output, p_type, c_binding_name, p_mode, struct_env
+            let callable_parameter: Option<String> =
+                CodegenCallableParameterPrototypeIfPresent(
+                    p_type, c_binding_name, p_mode, struct_env
                 );
-            if !callable_parameter {
+            if IsSome(callable_parameter) {
+                TextBuilderAppend(output, UnwrapOption(callable_parameter));
+            } else {
                 let cpt: String = AbiLayoutCParamType(p_type, struct_env);
                 if p_name == "self" && specialized_role_erased {
                     TextBuilderAppend(output, "void *_pgy_raw_self");

@@ -3,20 +3,18 @@
 import "../text/text_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 
-func CodegenAppendCallableParameterPrototypeIfPresent(
-    inout output: TextBuilder,
+func CodegenCallableParameterPrototypeIfPresent(
     semantic_type_name: String,
     c_binding_name: String,
     mode: Int,
     struct_env: CodegenTypeEnv
-) -> Bool {
+) -> Option<String> {
     let declaration: Option<String> = AbiLayoutCCallableParamDeclaration(
         semantic_type_name, c_binding_name, struct_env
     );
-    if !IsSome(declaration) { return false; }
+    if !IsSome(declaration) { return None; }
     if mode != 0 {
         Die("callable C prototype parameters support only value carriage");
     }
-    TextBuilderAppend(output, UnwrapOption(declaration));
-    return true;
+    return declaration;
 }

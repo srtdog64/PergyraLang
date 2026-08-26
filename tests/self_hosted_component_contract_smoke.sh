@@ -18598,8 +18598,11 @@ require_function_text \
     "signature.parameters.abi_layout_ids[ordinal] == 0"
 require_function_text \
     "src/self_hosted/codegen/emission/callable_parameter_prototype_owner.pgy" \
-    "func CodegenAppendCallableParameterPrototypeIfPresent(" \
-    "inout output: TextBuilder"
+    "func CodegenCallableParameterPrototypeIfPresent(" \
+    ") -> Option<String>"
+reject_text \
+    "src/self_hosted/codegen/emission/callable_parameter_prototype_owner.pgy" \
+    "TextBuilder"
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramFirstOrderCallableTypeSupported("
