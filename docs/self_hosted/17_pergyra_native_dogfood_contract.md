@@ -26,10 +26,11 @@ path, not whole machine-layer or compiler-root ownership; SoT status counts and
 published progress remain unchanged.
 
 The follow-up dependency audit accounts for all 37 nonclosed registry rows
-exactly once and opens no parallel implementation tracks. Its sole selected
-successor is the already-reached fixed-MIR semantic-artifact consumer at
-routine 1197/global row 18392. That row is still RED and therefore remains an
-implementation target, not `SUBSTITUTING` evidence.
+exactly once and opens no parallel implementation tracks. Current fixed-point
+evidence rejected the initially cited historical routine-1197 RED before
+implementation. The corrected single successor is the live native
+intent-observability source-name lookup; this selection is not yet
+`SUBSTITUTING` evidence.
 
 ## 2026-08-26 explicit-native isolation for unowned IR diagnostics
 

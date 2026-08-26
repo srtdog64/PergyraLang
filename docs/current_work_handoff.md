@@ -18,10 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - SoT map complete; fixed-MIR member rebind selected
+## Active self-host context - SoT map corrected; native ABI-ID consumers selected
 
-- Dependency-map checkpoint `41a01815` is on local `main` and is the active
-  implementation base. After publication, the only expected dirty paths are
+- Dependency-map checkpoint `41a01815` and first lease pointer `acf6c94f` are
+  published documentation. The active compiler source base remains
+  `464a907a`; the current handoff corrects their stale successor before any
+  implementation edit. After publication, the only expected dirty paths are
   unrelated user/concurrent work named below.
 - Implementation checkpoint `10055d0b` and SoT-gate repair checkpoint
   `464a907a` are on local and remote `main`. The unrelated user-owned untracked
@@ -64,22 +66,25 @@ percentage by themselves.
   `docs/agent_work_directives/sot_closure_dependency_map_2026-08-26.md` is
   complete. Three disjoint reports cover all 37 nonclosed rows exactly once;
   the integration gate observed 37 expected/37 actual/37 unique and no
-  missing, extra, or duplicate ID. Classification is three `READY_NEXT`, 24
-  `DEPENDENCY_BLOCKED`, ten `EVIDENCE_GAP`, and zero `PRODUCT_BOUNDARY`.
-- The sole selected successor is the registry's existing `ACTIVE`
-  `selfhost.semantic_artifact_admission` seam. The current 48,531,749-byte
-  fixed MIR already reaches routine 1197/global row 18392 and fails at
-  `stage=admitted-type` while assigning local SSA `graph.21` into value-result
-  member `analysis.expression_surfaces.expression_graph`.
-- Objective card: join the existing instruction-use, LocalRef, value type,
-  value-result carriage, member ordinal/type, and dominance prefix facts at the
-  current typed-expression consumer. The last consumer is
-  `DirectMirScalarCfgProgramAppendTypedExpressionField`; type-name/text
-  inference, parameter-entry fallback after the SSA definition, a new opcode
-  or plan family, native retry, and a second artifact analysis are forbidden.
-  The existing value-result member-rebind gate must gain the exact compiler
-  shape and damaged-fact negatives before the fixed consumer advances past row
-  18392. No timeout or memory allowance may be raised.
+  missing, extra, or duplicate ID. After current-artifact correction,
+  classification is two `READY_NEXT`, 24 `DEPENDENCY_BLOCKED`, eleven
+  `EVIDENCE_GAP`, and zero `PRODUCT_BOUNDARY`.
+- The initial semantic-artifact successor was rejected before implementation.
+  Its cited 48,531,749-byte routine-1197 failure is historical: the current
+  canonical 236,684,385-byte MIR emits byte-equal 10,464,651-byte gen2/gen3 C,
+  and remote run `32949495441` passes full self-host at exact base `464a907a`.
+- The sole selected successor is `abi.intent_observability_rows`. Installed
+  self-host C/LLVM already consume carried RuntimeCallAbiId; explicit native C
+  and LLVM still reconstruct the row by source name in
+  `emit_builtin_intent_observability` and
+  `llvm_emit_intent_observability_call`.
+- Objective card: semantic admission resolves source spelling once against
+  `PGY_INTENT_OBSERVABILITY_ABI_ROWS_OWNER` and stamps the stable ID carrier;
+  both native emitters then consume by ID and fail closed on missing, forged,
+  zero, or source/ID-mismatched facts. Backend source lookup, sorted-index
+  identity, a second ABI table, and native/installed retry are forbidden. The
+  installed/native C/LLVM history-count gate plus a native carrier negative and
+  static old-lookup ratchet are the integration boundary.
 
 ## Previous self-host context - readiness evidence reconciled; no successor inferred
 

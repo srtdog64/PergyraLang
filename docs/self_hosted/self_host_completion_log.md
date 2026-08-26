@@ -12,14 +12,16 @@ rewrite history.
   execution/projection/resource, and ABI/target/compatibility owner families.
   Their tables match the current registry's 37 `BRIDGE|ACTIVE` rows exactly,
   with no missing, extra, or duplicate owner ID.
-- The map records three `READY_NEXT`, 24 `DEPENDENCY_BLOCKED`, and ten
-  `EVIDENCE_GAP` rows. These classifications do not alter registry status or
+- Current-artifact integration corrected the map to two `READY_NEXT`, 24
+  `DEPENDENCY_BLOCKED`, and eleven `EVIDENCE_GAP` rows. The initially cited
+  48,531,749-byte routine-1197 RED was historical: the canonical
+  236,684,385-byte MIR emits byte-equal 10,464,651-byte gen2/gen3 C and the
+  exact-revision remote full self-host is green.
+- That successor was withdrawn before implementation. Only the live native C
+  and LLVM intent-observability source-name ABI lookups are selected next;
+  installed self-host backends already consume the carried stable ID. These
+  classifications and the correction alter neither registry status nor
   progress.
-- Only the existing `ACTIVE` semantic-artifact admission rung was selected.
-  The fixed MIR reaches routine 1197/global row 18392 and rejects local SSA
-  `graph.21` assigned to the value-result expression-graph member at
-  `stage=admitted-type`. Existing member-rebind type/use facts must close that
-  exact consumer before any other ready candidate opens.
 
 ## 2026-08-26 - Installed DeviceSlot source-C receives its machine declaration
 

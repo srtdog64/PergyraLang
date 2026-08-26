@@ -6,36 +6,48 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease L — fixed-MIR value-result member-rebind consumer
+## ACTIVE lease M — native intent-observability ABI-ID consumption
 
-- Base revision: documentation-only closure-map checkpoint
-  `41a01815637f25922ac17e4af3cec9d6405d74e8`, which preserves implementation
-  base `464a907a010b745c3ec1bdaecf783bbf9e31c037`.
-- Objective: advance the current complete-source fixed-MIR/gen2 consumer past
-  routine 1197/global row 18392 by admitting the existing value-result member
-  rebind `analysis.expression_surfaces.expression_graph = graph`.
-- Priority order: preserve the stable instruction/local/value identities;
-  consume the existing member-rebind member type and use prefix; fail closed on
-  mismatched carriage/type/use; add the exact negative ratchet; then patch
-  size.
-- Fact owners: the admitted MIR instruction/use/local/value-type plans and
-  `DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners`. This
-  lease may join those facts at the existing typed-expression consumer; it may
-  not create another expression, record-layout, or semantic-artifact owner.
-- Last live consumer: `DirectMirScalarCfgProgramAppendTypedExpressionField`
-  rejects the rebind target/value at `stage=admitted-type` while processing
-  `SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody`.
-- Forbidden: text/type-name inference, parameter-entry fallback after the
-  observed `graph.21` SSA definition, a new opcode/V/GraphPlan/cache/shard,
-  native retry, or a second semantic-artifact analysis path.
-- Integration gate: first reproduce the fixed-MIR RED. Then extend the existing
-  value-result member-rebind focused fixture with the exact expression-graph
-  member shape and damaged type/use/carriage mutations. The fixed consumer must
-  advance past row 18392 without increasing a timeout or memory allowance.
-- Classification: this can be executable substitution inside the one active
-  semantic-artifact admission rung. It does not close the top-level row or
-  change a percentage until the old consumer path is removed and negative-
-  gated.
+- Source base: `464a907a010b745c3ec1bdaecf783bbf9e31c037`. Published audit
+  checkpoints `41a01815` and `acf6c94f` are documentation only; current
+  artifact and exact-revision remote evidence correct their stale successor
+  before any implementation edit.
+- Objective: make the explicit native C and LLVM observability emitters consume
+  the semantic-admitted `RuntimeCallAbiId` instead of reconstructing the ABI
+  row from source spelling.
+- Priority order: source-name admission once in semantics; stable ID carriage;
+  row-by-ID consumption in both backends; source/ID mismatch rejection; old-
+  lookup ratchet; then patch size.
+- Fact owner: `PGY_INTENT_OBSERVABILITY_ABI_ROWS_OWNER` in
+  `src/common/intent_observability_abi.def`. Semantic admission may resolve a
+  source spelling to that row once; the AST call is only a stable carrier.
+- Production entrypoint and last consumers: public explicit
+  `pgy --native-pipeline --backend=c|llvm` on
+  `intent_observability_history_count.pgy`; the last consumers are
+  `emit_builtin_intent_observability` and
+  `llvm_emit_intent_observability_call`.
+- Direct bypass to delete: both consumers call
+  `pgy_intent_observability_abi_row_by_source` even though installed self-host
+  C/LLVM already execute from carried ABI IDs.
+- Forbidden: sorted-row-index identity, backend source-name lookup, zero/default
+  ID success, source/ID mismatch, a second ABI table, or native/installed retry.
+- Integration gate: keep installed/native C/LLVM exact runtime parity in
+  `intent_observability_installed_self_host_owner.sh`; preserve the existing
+  carried-ID missing/mismatch/forged/syntax-conflict negatives; add a native
+  carrier probe and a static rejection of the two backend source lookups.
+- Classification: bounded SoT consumer substitution. It does not close the
+  wider compiler-purpose intent obligation or change progress by itself.
+
+## DONE lease L — stale fixed-MIR successor rejected before implementation
+
+- The 48,531,749-byte routine-1197/global-row-18392 failure came from an older
+  frontier. Current canonical evidence is a 236,684,385-byte MIR that emits
+  byte-equal 10,464,651-byte gen2/gen3 C; remote run `32949495441` also passes
+  the exact-revision full self-host gate.
+- No implementation, test, timeout, cache, registry status, or progress change
+  was made under lease L. The audit row moved from `READY_NEXT` to
+  `EVIDENCE_GAP`; a fresh reached remaining consumer is required before it can
+  be selected again.
 
 ## DONE lease K — nonclosed SoT dependency census
 
@@ -58,13 +70,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - All three disjoint reports are complete. Their table union is exactly the
   current 37-row registry set: 37 expected, 37 observed, 37 unique, with no
   missing, extra, or duplicate owner ID.
-- The dependency map classifies three rows `READY_NEXT`, 24
-  `DEPENDENCY_BLOCKED`, and ten `EVIDENCE_GAP`; no row is yet only a
+- The corrected dependency map classifies two rows `READY_NEXT`, 24
+  `DEPENDENCY_BLOCKED`, and eleven `EVIDENCE_GAP`; no row is yet only a
   `PRODUCT_BOUNDARY`.
-- Primary source review selected only the registry's existing `ACTIVE` row,
-  `selfhost.semantic_artifact_admission`. Its current production falsifier is
-  the already reached routine-1197/global-row-18392 value-result member rebind.
-  The other two ready candidates remain inactive.
+- Primary integration rejected the stale semantic-artifact successor before
+  implementation and selected only `abi.intent_observability_rows`: its two
+  native backend source-name lookups are live, while carried-ID installed
+  C/LLVM execution and negative evidence already exist.
 - This audit changed no compiler source, owner status, or progress percentage.
   It prevents parallel SoT implementation from turning dependencies into dual
   authority.

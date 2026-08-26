@@ -32,10 +32,12 @@ including full self-host fixed point and every platform/proof/backend axis.
 This is bounded `SUBSTITUTING`; the top-level registry remains 49/36/1.
 
 The subsequent all-nonclosed-row audit covers the registry exactly once:
-37 expected, 37 observed, no missing, extra, or duplicate owner. It selects
-only the existing `ACTIVE` semantic-artifact admission seam. The next
-executable falsifier is the fixed-MIR routine-1197/global-row-18392
-value-result member rebind; the audit itself changes no status or percentage.
+37 expected, 37 observed, no missing, extra, or duplicate owner. Current
+fixed-point evidence invalidated its first routine-1197 successor before any
+implementation: the canonical 236,684,385-byte MIR emits byte-equal gen2/gen3
+C and exact-revision remote full self-host is green. The corrected single
+successor is native intent-observability ABI-ID consumption; the audit itself
+changes no status or percentage.
 
 Focused evidence on 2026-08-05 closes
 `string_array_index_return.pgy` at checkpoint `52715894`. The 5,048,145-byte

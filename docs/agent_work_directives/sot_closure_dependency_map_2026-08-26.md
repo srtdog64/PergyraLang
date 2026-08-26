@@ -107,16 +107,18 @@ confidence wording, or apparent patch size does not choose the successor.
 - The current registry contains exactly 37 nonclosed rows. The three report
   tables contain exactly 37 unique owner IDs: no missing, extra, or duplicate
   row was observed.
-- Classification is `READY_NEXT=3`, `DEPENDENCY_BLOCKED=24`,
-  `EVIDENCE_GAP=10`, and `PRODUCT_BOUNDARY=0`. These are scheduling findings,
+- Classification is `READY_NEXT=2`, `DEPENDENCY_BLOCKED=24`,
+  `EVIDENCE_GAP=11`, and `PRODUCT_BOUNDARY=0`. These are scheduling findings,
   not registry status or progress changes.
-- The selected successor is the already-`ACTIVE`
-  `selfhost.semantic_artifact_admission` seam. The fixed complete-source MIR
-  reaches routine 1197/global row 18392 and fails at `stage=admitted-type` on
-  the value-result member rebind
-  `analysis.expression_surfaces.expression_graph = graph`. Existing local SSA,
-  value-result carriage, member ordinal, member type, and use-prefix facts own
-  the required join.
-- `selfhost.match_case_pattern` and `abi.intent_observability_rows` remain
-  bounded future candidates. Neither may run in parallel with the selected
-  production rung, and neither is promoted by this audit.
+- Integration rejected the initial `selfhost.semantic_artifact_admission`
+  successor: its 48,531,749-byte routine-1197 failure was historical. The
+  current 236,684,385-byte canonical MIR emits byte-equal 10,464,651-byte
+  gen2/gen3 C, and exact-revision remote full self-host is green.
+- The sole selected successor is `abi.intent_observability_rows`. Public
+  installed C/LLVM already consume carried RuntimeCallAbiId while the explicit
+  native C and LLVM oracle emitters still call
+  `pgy_intent_observability_abi_row_by_source`. The bounded migration must stamp
+  the admitted ID once, consume it by ID in both native emitters, and reject
+  missing, forged, or source/ID-mismatched carriage before artifact creation.
+- `selfhost.match_case_pattern` remains the other bounded future candidate. It
+  may not run in parallel with the selected ABI-ID consumer migration.

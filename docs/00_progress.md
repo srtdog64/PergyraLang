@@ -24,17 +24,19 @@ backend shard가 모두 green이다. 이는 bounded `SUBSTITUTING`이지만 새 
 37개 미폐쇄 SoT 행의 dependency census도 완료했다. 번호 없는
 `docs/agent_work_directives/sot_closure_dependency_map_2026-08-26.md` 아래 세
 보고서의 owner-ID 합집합은 registry와 정확히 37/37이고 누락·추가·중복은 0이다.
-분류는 `READY_NEXT=3`, `DEPENDENCY_BLOCKED=24`, `EVIDENCE_GAP=10`이며 product만
-남은 행은 아직 0이다. 이 감사 자체는 구현이나 폐쇄 수가 아니다.
+현재 artifact와 교차검증한 분류는 `READY_NEXT=2`, `DEPENDENCY_BLOCKED=24`,
+`EVIDENCE_GAP=11`이며 product만 남은 행은 아직 0이다. 최초에 선택했던 48,531,749-
+byte routine-1197 RED는 historical이었다. 현재 canonical MIR은 236,684,385 bytes이고
+10,464,651-byte gen2/gen3 C를 byte-equal로 내며, exact-revision remote full
+self-host도 green이다. 따라서 그 seam은 구현 전에 철회했고 감사 자체도 폐쇄 수로
+세지 않는다.
 
-다음 실행 rung은 세 후보를 병렬로 열지 않고 기존 유일한 `ACTIVE`
-`selfhost.semantic_artifact_admission` 하나만 선택했다. 현재 48,531,749-byte fixed
-MIR은 routine 1197/global row 18392의 value-result member rebind
-`analysis.expression_surfaces.expression_graph = graph`에서 `stage=admitted-type`로
-멈춘다. 기존 LocalRef/value type/member type/use-prefix facts를 소비해 이 정확한
-consumer를 통과시키고, text/type 추론·SSA 이후 parameter-entry fallback·새
-opcode/V/plan·timeout 증가는 금지한다. 이 단계가 실행으로 전진하기 전까지 통합
-83%, strict beta 83%, hard replacement 75%, SoT 49/36/1은 그대로다.
+다음 실행 rung은 `abi.intent_observability_rows` 하나다. Installed self-host C/LLVM은
+이미 carried RuntimeCallAbiId를 소비하지만 explicit native C/LLVM emitter 두 곳은
+아직 source spelling으로 ABI row를 재조회한다. Semantic admission에서 ID를 한 번
+stamp하고 두 backend는 ID로만 소비하며 missing/zero/forged/source-ID mismatch를
+artifact 전에 거부하게 한다. 이 bounded SoT consumer 치환 전까지 통합 83%, strict
+beta 83%, hard replacement 75%, SoT 49/36/1은 그대로다.
 
 2026-08-26 증거 분모 재대조: 실행 가능한 readiness scorecard는 capability 4를
 이미 `READY`로 판정하고, scorecard 본문도 allocator/TextBuilder Phase 1을 hard
