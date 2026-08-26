@@ -6252,9 +6252,9 @@ require_file "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_
 require_file "tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh" 120
-require_file "tests/cases/backend_compare/callable_parameter_builtin_shadow/main.pgy"
+require_file "tests/self_hosted/fixtures/callable_parameter_builtin_shadow.pgy"
 require_text "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh" \
-    'callable_parameter_builtin_shadow/main.pgy'
+    'callable_parameter_builtin_shadow.pgy'
 require_text "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh" \
     'formal-carriage-forged'
 require_text "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh" \
