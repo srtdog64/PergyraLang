@@ -20,11 +20,12 @@ percentage by themselves.
 
 ## Active self-host context - callable-parameter public substitution
 
-- Callable implementation `30b84f80aaf13a8479b533a931ef115dfcea5905` and
-  documentation checkpoint `83ef17b34b70d85942cfaa6a78083e2f8d2c7858` are
-  published. Exact local repair checkpoint
-  `f6d6fb4b90445d788c90e546482742e18cf5c2fa` and this updated handoff are
-  pending publication. The unrelated user-owned
+- Callable implementation `30b84f80aaf13a8479b533a931ef115dfcea5905`, first
+  repair `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, and handoff
+  `a6bd44c453fa2867b8e897745bf9d1147a35517e` are published. Exact local
+  native-MIR repair `024d1ba7f858b09802d97bc0372c29deaa440745`, fixture
+  scope checkpoint `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, and this
+  updated handoff are pending publication. The unrelated user-owned
   `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
@@ -52,7 +53,20 @@ percentage by themselves.
   Repair `f6d6fb4b` returns `Option<String>` and adds a negative structural
   ratchet. A fresh isolated gen2 seed, fresh DRV-2 install, focused and public
   callable gates, and the complete component/source-MIR gate are green after
-  repair. The next falsifier is exact push and the replacement matrix.
+  repair.
+- Replacement run `33002949085` then exposed two later seams. Native
+  `mir_json_dump.c` had serialized `fp->type->stable_id` as parameter identity,
+  producing partial identity for role `Add(self, rhs)`; three bootstrap/aggregate
+  jobs failed there. All 20 backend shards independently stopped at inventory
+  because the self-host-only builtin-shadow fixture was under
+  `tests/cases/backend_compare` without native-default registration.
+- Repair `024d1ba7` deletes the false native field, permits only complete unique
+  or wholly absent identity at the MIR-to-AST breadth owner, and adds a partial-
+  identity negative to full codegen bootstrap. That full bootstrap is local
+  GREEN through `role_operator_dispatch`. Checkpoint `dc7be82f` moves the
+  shadow fixture under `tests/self_hosted/fixtures`; backend inventory and both
+  callable gates are GREEN. The next falsifier is exact push and a new
+  replacement matrix.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
   Physical cleanup was rejected by execution policy before any deletion; do not

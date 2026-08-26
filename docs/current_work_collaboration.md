@@ -8,10 +8,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE lease — callable-parameter installed-path substitution (publication pending)
 
-- Implementation checkpoint `30b84f80aaf13a8479b533a931ef115dfcea5905`
-  is published. Exact local repair checkpoint
-  `f6d6fb4b90445d788c90e546482742e18cf5c2fa` is pending publication from
-  published handoff HEAD `83ef17b34b70d85942cfaa6a78083e2f8d2c7858`.
+- Implementation `30b84f80aaf13a8479b533a931ef115dfcea5905`, first repair
+  `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, and handoff checkpoint
+  `a6bd44c453fa2867b8e897745bf9d1147a35517e` are published. Exact local
+  native-MIR repair `024d1ba7f858b09802d97bc0372c29deaa440745` and fixture
+  scope checkpoint `dc7be82f6cc8da0e6d2427c405101cbf262591bd` are pending
+  publication.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -72,6 +74,19 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   callable gates, and the full component/source-MIR inventory are green after
   the repair. Replacement CI remains the next falsifier, so this lease stays
   `ACTIVE` and no percentage or registry state is promoted yet.
+- Replacement run `33002949085` passed the fresh TextBuilder boundary, then
+  exposed two independent integration seams. Native MIR had mislabeled a
+  parameter type SyntaxNodeId as parameter identity, so role `Add(self, rhs)`
+  carried partial identity and failed three bootstrap/aggregate jobs. The new
+  builtin-shadow fixture was also placed under the native backend inventory,
+  causing all 20 shards to reject one missing default-case registration.
+- Repair `024d1ba7` removes the false native field, admits parameter identity in
+  MIR-to-AST breadth only when it is either complete/unique or wholly absent,
+  and rejects partial carriage in both Pergyra-built and oracle mir_lower.
+  Full codegen bootstrap, including `role_operator_dispatch`, is green locally.
+  Checkpoint `dc7be82f` moves the intentionally self-host-only shadow fixture to
+  `tests/self_hosted/fixtures`; backend inventory and the focused/public callable
+  gates are green. A new replacement run remains required.
 
 ## DONE lease O — structured MatchCase carrier closure
 

@@ -18,11 +18,22 @@ prototype helper가 `TextBuilder`를 함수 경계로 운반한 오류를 fresh 
 발견해 다섯 job이 실패했다. Repair `f6d6fb4b`는 helper가 완성된
 `Option<String>`만 반환하게 하고 해당 `TextBuilder` 경계를 금지하는 ratchet을
 추가했다. Fresh isolated gen2 seed, DRV-2, focused/public callable, full
-component/source-MIR는 repair 뒤 local green이다. Repair push와 replacement CI
-전이므로 원격 green은 주장하지 않는다. Registry census는 그대로 `50 CLOSED / 35
-BRIDGE / 1 ACTIVE`; hard closure와 migration 산술만 현재 census에 맞춰 각각
-58.1%, 78.8%로 바로잡고 통합 83% (81~85%), strict beta 83%, hard replacement
-75%는 유지한다.
+component/source-MIR는 repair 뒤 local green이다. 이 repair는 published였지만
+replacement green 전이므로 원격 폐쇄는 주장하지 않는다. Registry census는 그대로
+`50 CLOSED / 35 BRIDGE / 1 ACTIVE`; hard closure와 migration 산술만 현재
+census에 맞춰 각각 58.1%, 78.8%로 바로잡고 통합 83% (81~85%), strict beta
+83%, hard replacement 75%는 유지한다.
+
+Replacement run `33002949085`는 첫 수명 repair를 통과한 뒤 두 integration seam을
+더 발견했다. Native MIR가 `fp->type->stable_id`를 parameter identity로 잘못
+직렬화해 role `Add(self, rhs)`가 partial identity가 되었고, self-host 전용
+builtin-shadow fixture를 native backend inventory 아래 둬 20 shard가 동일한
+registration 오류로 멈췄다. Repair `024d1ba7`은 가짜 native field를 삭제하고
+MIR-to-AST breadth에서 complete/unique 또는 wholly absent identity만 허용하며 partial
+변조를 거부한다. Full codegen bootstrap은 `role_operator_dispatch`까지 local
+green이다. Checkpoint `dc7be82f`는 shadow fixture를 self-host fixtures로 옮겼고,
+backend inventory와 focused/public callable gate가 green이다. 새 replacement run
+전이므로 원격 폐쇄나 수치 상승은 주장하지 않는다.
 
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,

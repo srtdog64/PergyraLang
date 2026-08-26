@@ -1338,10 +1338,13 @@ mutations. This is bounded consumer substitution evidence; the registry row
 remains `BRIDGE` because general execution-graph consumers and native owners
 remain open.
 
-Implementation `30b84f80` plus lifetime-boundary repair `f6d6fb4b` extend that
-same admitted graph rather than creating a callable side table. Routine
-parameters carry their declaration
-`source_syntax_id`; call nodes carry both `call_target_syntax_id` and
+Implementation `30b84f80`, lifetime repair `f6d6fb4b`, and native-MIR identity
+repair `024d1ba7` extend that same admitted graph rather than creating a
+callable side table. Pergyra-produced routine parameters carry their declaration
+`source_syntax_id`; native MIR without a parameter-identity owner omits that
+field instead of substituting the parameter type ID, and MIR-to-AST breadth
+accepts only wholly absent or complete unique identity rows. Call nodes carry
+both `call_target_syntax_id` and
 `binding_syntax_id`. Declared and formal callable targets must cross-seal those
 IDs with the admitted semantic signature, while builtin and constructor rows
 must retain canonical zero/none identity. Installed C consumes the admitted

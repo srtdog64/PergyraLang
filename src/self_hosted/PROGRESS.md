@@ -21,6 +21,15 @@
   pending. SoT stays
   `CLOSED=50 BRIDGE=35 ACTIVE=1`; hard closure is 58.1%, migration is 78.8%,
   overall remains 83% (81-85%), strict beta 83%, and hard replacement 75%.
+- Replacement `33002949085` passed that lifetime boundary but found false native
+  parameter identity (`fp->type->stable_id`) in role MIR plus a self-host-only
+  fixture accidentally placed under native backend inventory. Repair `024d1ba7`
+  deletes the false field, admits only complete/unique or wholly absent breadth
+  identity, and full codegen bootstrap plus partial-identity negatives are
+  green. Checkpoint `dc7be82f` moves the shadow fixture under self-host fixtures;
+  backend inventory and focused/public callable gates are green. Publication
+  and a new replacement run are pending; percentages and registry census do not
+  change.
 
 ## Historical self-host context - 2026-08-26 structured MatchCase carrier
 
