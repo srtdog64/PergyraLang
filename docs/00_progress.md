@@ -15,6 +15,10 @@ invalid source, native timing 부재, 임시 source/binary 회수, old-call stat
 새 Make target/CI job/timeout/두 번째 compiler build는 없다. 이는 REPL 내부
 compiler 경계만 bounded `SUBSTITUTING`이며 전체 REPL 제품은 여전히 native다.
 전체 78%, strict beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 바꾸지 않는다.
+Directive/audit checkpoint `36af9496`과 implementation checkpoint `48aeccca`는
+published다. Run `32938125698`은 30분 31초에 29/29 green이며 Linux aggregate
+15분 39초, full self-host 30분 27초, Windows/sanitizers 8분 50초, codegen
+bootstrap 7분 46초, backend toolchain 9분 27초, 20개 shard 41~58초였다.
 
 2026-08-26 로컬 fallback 폐쇄 갱신: public `--rir*`, `--air*`, `--hir*`의
 마지막 implicit `driver_run_pipeline` dispatch를 삭제했다. 완전한 Pergyra producer가

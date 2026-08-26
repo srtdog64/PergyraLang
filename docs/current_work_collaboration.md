@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease H — REPL compile/run native-bypass substitution
+## DONE lease H — REPL compile/run native-bypass substitution
 
 - Base revision: `acdab822b7d1ce27c636f73392ebb1d7738bf08a`.
 - Editing and integration owner: the primary Codex task. Peer agents completed
@@ -42,7 +42,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `NOT READY`; this lease does not change whole-product ownership or progress
   percentages by itself.
 
-### Local result
+### Result
 
 - RED with a nonexistent `PGY_SELF_DRIVER_BIN` still ran
   `repl-native-bypass` through native compilation. The direct call is now
@@ -55,8 +55,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - `make self-host-installed-driver-cli-mode-test-smoke` passed with the new
   gate sourced by its existing script. Its one seed/bootstrap preparation took
   about five minutes; no new target, job, timeout, or second driver build was
-  introduced. Publication and remote CI are pending, so Lease H remains
-  `ACTIVE`.
+  introduced.
+- Directive/audit checkpoint `36af9496` and implementation checkpoint
+  `48aeccca` are published on `main`. Push run `32938125698` passed 29/29 in
+  30m31: Linux aggregate 15m39, full self-host 30m27, Windows and sanitizers
+  8m50, codegen bootstrap 7m46, backend toolchain 9m27, and all 20 shards in
+  41-58 seconds. Lease H is closed; no second product-tool track is inferred.
 
 ## DONE lease G — explicit-native isolation for unowned IR diagnostics
 

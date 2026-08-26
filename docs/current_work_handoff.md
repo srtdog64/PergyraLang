@@ -17,12 +17,12 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - REPL compile bypass substitution local green
+## Active self-host context - REPL compile bypass substitution closed
 
-- Base checkpoint is published `acdab822`; the current worktree contains the
-  Lease H source/test/docs delta plus the unrelated user-owned untracked
-  `pgy-80135c2c/` directory, which must not be inspected, staged, deleted, or
-  rewritten. Commit, push, and remote CI for Lease H remain pending.
+- Directive/audit checkpoint `36af9496` and implementation checkpoint
+  `48aeccca` are on local and remote `main`. The worktree is clean except for
+  the unrelated user-owned untracked `pgy-80135c2c/` directory, which must not
+  be inspected, staged, deleted, or rewritten.
 - Objective card: keep the C-owned REPL prompt, declaration accumulation,
   multiline handling, and cleanup, but replace its per-evaluation direct
   `driver_run_pipeline` call with the existing installed Pergyra C compile/run
@@ -43,6 +43,10 @@ gate count do not increment either percentage by themselves.
   target, which reuses the same build and sources the new gate, is green; its
   seed/bootstrap preparation took about five minutes while the focused REPL
   slice itself remained eight seconds.
+- Push run `32938125698` passed 29/29 in 30m31. Linux aggregate took 15m39,
+  full self-host 30m27, Windows and sanitizers 8m50, codegen bootstrap 7m46,
+  backend toolchain 9m27, macOS 2m25, Rocq 1m47, TSan 15 seconds, and all 20
+  backend shards 41-58 seconds.
 - Three reports under the completed nonnumbered agent directive independently
   census launcher paths, package metadata, and native product tools. Package
   manifest/lock is not a compiler substitution target and lacks a typed

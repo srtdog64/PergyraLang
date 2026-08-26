@@ -15,12 +15,16 @@
   are GREEN. The target reused its one seed/self-driver preparation and sourced
   the focused gate; no Make target, CI job, timeout, or second compiler build
   was added.
+- Directive/audit checkpoint `36af9496` and implementation checkpoint
+  `48aeccca` are published. Run `32938125698` passed 29/29 in 30m31, including
+  Linux aggregate 15m39, full self-host 30m27, Windows/sanitizers 8m50,
+  codegen bootstrap 7m46, backend toolchain 9m27, and 20 shards in 41-58
+  seconds.
 - The complete REPL session is still native product tooling and `NOT READY` for
   Pergyra ownership. Package metadata and the other audited product tools also
   lack complete owners. Only the compiler-bearing interior is bounded
   `SUBSTITUTING`; overall 78%, strict beta 83%, and hard SoT
-  `CLOSED=49 BRIDGE=36 ACTIVE=1` remain unchanged. Commit/push/remote CI are
-  pending.
+  `CLOSED=49 BRIDGE=36 ACTIVE=1` remain unchanged. No successor is inferred.
 
 ## Active self-host context - 2026-08-26 explicit-native isolation for unowned IR
 

@@ -24,7 +24,11 @@ rewrite history.
   once counting sibling, missing-driver and invalid-input failure, absence of
   native timing/program publication, cleanup, and the old-call negative.
   Incremental build and the existing installed-driver integration target are
-  green. Commit, push, and remote CI remain pending.
+  green.
+- Directive/audit checkpoint `36af9496` and implementation checkpoint
+  `48aeccca` are published. Run `32938125698` passed 29/29 in 30m31: Linux
+  aggregate 15m39, full self-host 30m27, Windows/sanitizers 8m50, codegen
+  bootstrap 7m46, backend toolchain 9m27, and 20 shards in 41-58 seconds.
 
 ## 2026-08-26 - Unowned public IR diagnostics require explicit native opt-in
 
