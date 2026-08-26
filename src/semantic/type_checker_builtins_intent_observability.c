@@ -7,6 +7,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
+#include "diag_codes.h"
 
 #include "../common/intent_observability_abi.h"
 
@@ -52,6 +53,16 @@ type_check_intent_observability_builtin(ASTNode *call,
         *handled_out = row != NULL;
     if (row == NULL)
         return TYPE_UNKNOWN;
+    if (!ast_call_set_semantic_runtime_call_abi_id(
+            call, row->runtime_call_abi_id)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_NOT_CALLABLE,
+            PGY_FIX_USE_CALLABLE_DECLARATION,
+            call,
+            "Intent observability ABI identity could not be recorded");
+        return TYPE_UNKNOWN;
+    }
 
     argument_count = pgy_intent_observability_argument_count(row);
     check_call_arity(call, argument_count, row->source_name, ctx);

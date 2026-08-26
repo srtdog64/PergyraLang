@@ -6,6 +6,21 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-26 - Native observability emitters consume semantic ABI identity
+
+- Semantic admission now stamps the append-only observability registry row's
+  stable RuntimeCallAbiId on each admitted AST call. The call is a carrier, not
+  a second owner.
+- Explicit native C and LLVM emitters resolve by carried ID and cross-seal the
+  source identity. Their direct source-name row lookups are deleted and a
+  static negative gate prevents their return.
+- The registry probe rejects zero, unknown, and source-mismatched identities.
+  The LLVM-enabled compiler rebuild and installed/native C/LLVM execution
+  parity are local green; remote CI is pending publication.
+- `abi.intent_observability_rows` stays `BRIDGE`: this closes a bounded native
+  consumer seam, not the still-open compiler-purpose root intent. Integrated,
+  strict-beta, hard-replacement, and 49/36/1 registry counts do not change.
+
 ## 2026-08-26 - Nonclosed SoT dependency map is exact
 
 - Three read-only agent reports divide the semantic/syntax/verification,

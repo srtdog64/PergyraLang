@@ -29,8 +29,13 @@ The follow-up dependency audit accounts for all 37 nonclosed registry rows
 exactly once and opens no parallel implementation tracks. Current fixed-point
 evidence rejected the initially cited historical routine-1197 RED before
 implementation. The corrected single successor is the live native
-intent-observability source-name lookup; this selection is not yet
-`SUBSTITUTING` evidence.
+intent-observability source-name lookup. That bounded migration is now local
+green: native semantic admission stamps the owner row's stable ID once, and
+both explicit-native emitters consume the carrier with an ID/source cross-seal.
+The old backend lookup is statically rejected and installed/native C/LLVM
+execution remains equal. This is a native consumer SoT substitution, not a new
+Pergyra-owned production compiler entrypoint; dogfood classification and all
+progress counts therefore remain unchanged.
 
 ## 2026-08-26 explicit-native isolation for unowned IR diagnostics
 

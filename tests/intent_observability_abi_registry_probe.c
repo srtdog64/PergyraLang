@@ -23,6 +23,17 @@ main(void)
     if (pgy_intent_observability_abi_row_by_source("Intent") != NULL
         || pgy_intent_observability_abi_row_by_source("IntentMissing") != NULL)
         return 3;
+    if (pgy_intent_observability_abi_row_by_id(25) != row
+        || pgy_intent_observability_abi_row_by_id(0) != NULL
+        || pgy_intent_observability_abi_row_by_id(999) != NULL
+        || pgy_intent_observability_abi_row_for_carried_identity(
+            25, "IntentHistoryCount") != row
+        || pgy_intent_observability_abi_row_for_carried_identity(
+            25, "IntentActiveConcurrent") != NULL
+        || pgy_intent_observability_abi_row_for_carried_identity(
+            0, "IntentHistoryCount") != NULL) {
+        return 8;
+    }
     row = pgy_intent_observability_abi_row_by_source("IntentActiveConcurrent");
     if (row == NULL || row->parameter_shape != PGY_INTENT_OBSERVABILITY_PARAMS_INT
         || pgy_intent_observability_argument_count(row) != 1

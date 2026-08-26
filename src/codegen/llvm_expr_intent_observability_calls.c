@@ -4,6 +4,7 @@
 #include "llvm_expr_intent_observability_calls.h"
 
 #include "../common/intent_observability_abi.h"
+#include "../semantic/builtin_kind.h"
 
 bool
 llvm_emit_intent_observability_call(ASTNode *node, LLVMGenCtx *ctx,
@@ -12,13 +13,32 @@ llvm_emit_intent_observability_call(ASTNode *node, LLVMGenCtx *ctx,
     const PgyIntentObservabilityAbiRow *row;
     LLVMFuncEntry *fn;
     size_t argument_count;
+    uint32_t builtin_kind = 0;
+    uint32_t runtime_call_abi_id = 0;
 
     if (out == NULL)
         return false;
 
-    row = pgy_intent_observability_abi_row_by_source(callee_name);
-    if (row == NULL)
+    if (!ast_call_semantic_callee_builtin_kind(node, &builtin_kind)
+        || builtin_kind != (uint32_t)BUILTIN_INTENT_OBSERVABILITY) {
         return false;
+    }
+    row = NULL;
+    if (ast_call_semantic_runtime_call_abi_id(
+            node, &runtime_call_abi_id)) {
+        row = pgy_intent_observability_abi_row_for_carried_identity(
+            runtime_call_abi_id, callee_name);
+    }
+    if (row == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM intent observability builtin '%s' is missing its carried ABI identity",
+            callee_name != NULL ? callee_name : "<missing>");
+        *out = NULL;
+        return true;
+    }
     argument_count = pgy_intent_observability_argument_count(row);
     if (ast_call_arg_count(node) != argument_count) {
         llvm_set_error_at_with_hints(ctx, node,

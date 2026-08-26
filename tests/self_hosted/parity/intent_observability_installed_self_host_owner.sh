@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The public installed self-host C and LLVM routes consume the canonical
 # intent-observability ABI row. Native C/LLVM are independent execution oracles.
-# public installed C/LLVM consume zero-, one-, and two-argument registry rows without native re-entry
+# public installed/native C/LLVM consume zero-, one-, and two-argument registry rows without native re-entry
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

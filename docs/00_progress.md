@@ -31,12 +31,14 @@ byte routine-1197 RED는 historical이었다. 현재 canonical MIR은 236,684,38
 self-host도 green이다. 따라서 그 seam은 구현 전에 철회했고 감사 자체도 폐쇄 수로
 세지 않는다.
 
-다음 실행 rung은 `abi.intent_observability_rows` 하나다. Installed self-host C/LLVM은
-이미 carried RuntimeCallAbiId를 소비하지만 explicit native C/LLVM emitter 두 곳은
-아직 source spelling으로 ABI row를 재조회한다. Semantic admission에서 ID를 한 번
-stamp하고 두 backend는 ID로만 소비하며 missing/zero/forged/source-ID mismatch를
-artifact 전에 거부하게 한다. 이 bounded SoT consumer 치환 전까지 통합 83%, strict
-beta 83%, hard replacement 75%, SoT 49/36/1은 그대로다.
+이번 실행 rung `abi.intent_observability_rows`의 네이티브 consumer migration은 로컬
+green이다. Semantic admission이 owner row의 RuntimeCallAbiId를 AST call에 한 번
+stamp하고, explicit native C/LLVM emitter는 이제 그 ID를 source identity와
+cross-seal해 소비한다. 두 backend의 source-spelling row 재조회는 삭제됐고 정적
+ratchet이 복귀를 거부한다. ID 0, unknown ID, source-ID mismatch 음성과 installed/
+native C/LLVM 실행 패리티가 통과했다. Wider compiler-purpose root intent는 여전히
+열려 있으므로 이 bounded consumer 치환만으로 row를 닫거나 퍼센테이지를 올리지
+않는다. 통합 83%, strict beta 83%, hard replacement 75%, SoT 49/36/1은 그대로다.
 
 2026-08-26 증거 분모 재대조: 실행 가능한 readiness scorecard는 capability 4를
 이미 `READY`로 판정하고, scorecard 본문도 allocator/TextBuilder Phase 1을 hard

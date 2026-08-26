@@ -39,6 +39,14 @@ C and exact-revision remote full self-host is green. The corrected single
 successor is native intent-observability ABI-ID consumption; the audit itself
 changes no status or percentage.
 
+That bounded successor is now local green. Native semantic admission stamps the
+registry row's stable RuntimeCallAbiId on the AST call, and the explicit native
+C/LLVM emitters consume the carried ID with a source-identity cross-seal rather
+than reopening the table by source spelling. The LLVM-enabled compiler rebuild,
+51-row registry/negative gate, and installed/native C/LLVM execution parity pass.
+Remote CI is pending; the compiler-purpose root intent remains open, so this is
+consumer substitution evidence without a registry or percentage change.
+
 Focused evidence on 2026-08-05 closes
 `string_array_index_return.pgy` at checkpoint `52715894`. The 5,048,145-byte
 current-source Pergyra-built driver

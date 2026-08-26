@@ -18,13 +18,13 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - SoT map corrected; native ABI-ID consumers selected
+## Active self-host context - native ABI-ID consumer migration local green
 
-- Dependency-map checkpoint `41a01815` and first lease pointer `acf6c94f` are
-  published documentation. The active compiler source base remains
-  `464a907a`; the current handoff corrects their stale successor before any
-  implementation edit. After publication, the only expected dirty paths are
-  unrelated user/concurrent work named below.
+- Dependency-map checkpoints `41a01815`, `acf6c94f`, and correction `2a8807f6`
+  are published. Local build-ignore repair `1e8b5531` is committed. The current
+  implementation is based on that revision; before its publication the
+  expected dirty paths are the bounded intent-observability source/tests/docs
+  plus the unrelated user/concurrent work named below.
 - Implementation checkpoint `10055d0b` and SoT-gate repair checkpoint
   `464a907a` are on local and remote `main`. The unrelated user-owned untracked
   `pgy-80135c2c/` and concurrently created `docs/compiler_architectures/` paths
@@ -73,11 +73,10 @@ percentage by themselves.
   Its cited 48,531,749-byte routine-1197 failure is historical: the current
   canonical 236,684,385-byte MIR emits byte-equal 10,464,651-byte gen2/gen3 C,
   and remote run `32949495441` passes full self-host at exact base `464a907a`.
-- The sole selected successor is `abi.intent_observability_rows`. Installed
-  self-host C/LLVM already consume carried RuntimeCallAbiId; explicit native C
-  and LLVM still reconstruct the row by source name in
-  `emit_builtin_intent_observability` and
-  `llvm_emit_intent_observability_call`.
+- The selected `abi.intent_observability_rows` consumer migration is local
+  green. Semantic admission stamps the stable RuntimeCallAbiId once; explicit
+  native C and LLVM now validate and consume that carried ID instead of
+  reconstructing the row by source name in either emitter.
 - Objective card: semantic admission resolves source spelling once against
   `PGY_INTENT_OBSERVABILITY_ABI_ROWS_OWNER` and stamps the stable ID carrier;
   both native emitters then consume by ID and fail closed on missing, forged,
@@ -85,6 +84,12 @@ percentage by themselves.
   identity, a second ABI table, and native/installed retry are forbidden. The
   installed/native C/LLVM history-count gate plus a native carrier negative and
   static old-lookup ratchet are the integration boundary.
+- Local evidence: the LLVM-enabled native compiler rebuilt and linked; the
+  51-row registry probe rejects zero, unknown, and mismatched identities; the
+  static ratchet rejects both old backend lookups; installed and explicit-native
+  C/LLVM execution parity passes. Remote CI has not yet observed this change.
+  The row remains `BRIDGE`, progress remains 83%/83%/75% and 49/36/1, and no
+  successor is inferred from this supporting consumer migration.
 
 ## Previous self-host context - readiness evidence reconciled; no successor inferred
 

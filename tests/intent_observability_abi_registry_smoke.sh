@@ -3,6 +3,7 @@ set -euo pipefail
 
 # CLOSED fallback identities: native_literal_observability_table,
 # selfhost_literal_observability_signature_table, stale_selfhost_projection.
+# BRIDGE fallback ratchet: native_backend_source_name_abi_lookup.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REGISTRY="$ROOT_DIR/src/common/intent_observability_abi.def"
@@ -135,6 +136,20 @@ fi
     -o "$BUILD_DIR/intent_observability_abi_registry_probe.exe"
 "$BUILD_DIR/intent_observability_abi_registry_probe.exe"
 
+grep -Fq 'ast_call_set_semantic_runtime_call_abi_id(' \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_intent_observability.c"
+for consumer in \
+    src/codegen/transpiler_intent_observability_builtin_emit.c \
+    src/codegen/llvm_expr_intent_observability_calls.c; do
+    grep -Fq 'pgy_intent_observability_abi_row_for_carried_identity(' \
+        "$ROOT_DIR/$consumer"
+    if grep -Fq 'pgy_intent_observability_abi_row_by_source(' \
+            "$ROOT_DIR/$consumer"; then
+        echo "[intent-observability-abi] backend source-name ABI lookup returned: $consumer" >&2
+        exit 1
+    fi
+done
+
 grep -Fq '#include "intent_observability_abi.def"' \
     "$ROOT_DIR/src/common/intent_observability_abi.c"
 grep -Fq 'import "../lib/intent_observability_abi_projection_owner.pgy";' \
@@ -153,4 +168,4 @@ if grep -Eq '"Intent[A-Za-z0-9_]*\^(Int|Bool|String)\^' \
     exit 1
 fi
 
-echo "[intent-observability-abi] 51 native/self-host registry rows plus non-positional identity and parameter-shape negatives: ok"
+echo "[intent-observability-abi] 51 native/self-host registry rows plus carried-ID lookup/cross-seal and backend old-lookup negatives: ok"

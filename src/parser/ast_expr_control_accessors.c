@@ -88,6 +88,35 @@ ast_call_set_semantic_callee_builtin_kind(ASTNode *node, uint32_t kind)
 }
 
 bool
+ast_call_semantic_runtime_call_abi_id(
+    const ASTNode *node, uint32_t *runtime_call_abi_id_out)
+{
+    if (runtime_call_abi_id_out != NULL)
+        *runtime_call_abi_id_out = 0;
+    if (node == NULL || node->type != AST_CALL
+        || !node->data.call.semantic_runtime_call_abi_id_set
+        || node->data.call.semantic_runtime_call_abi_id == 0) {
+        return false;
+    }
+    if (runtime_call_abi_id_out != NULL) {
+        *runtime_call_abi_id_out =
+            node->data.call.semantic_runtime_call_abi_id;
+    }
+    return true;
+}
+
+bool
+ast_call_set_semantic_runtime_call_abi_id(
+    ASTNode *node, uint32_t runtime_call_abi_id)
+{
+    if (node == NULL || node->type != AST_CALL || runtime_call_abi_id == 0)
+        return false;
+    node->data.call.semantic_runtime_call_abi_id = runtime_call_abi_id;
+    node->data.call.semantic_runtime_call_abi_id_set = true;
+    return true;
+}
+
+bool
 ast_call_uses_braced_initializer_syntax(const ASTNode *node)
 {
     return node != NULL && node->type == AST_CALL

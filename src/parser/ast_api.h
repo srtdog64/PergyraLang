@@ -243,6 +243,10 @@ bool ast_call_semantic_callee_builtin_kind(
     const ASTNode *node, uint32_t *kind_out);
 bool ast_call_set_semantic_callee_builtin_kind(
     ASTNode *node, uint32_t kind);
+bool ast_call_semantic_runtime_call_abi_id(
+    const ASTNode *node, uint32_t *runtime_call_abi_id_out);
+bool ast_call_set_semantic_runtime_call_abi_id(
+    ASTNode *node, uint32_t runtime_call_abi_id);
 size_t ast_call_arg_count(const ASTNode* node);
 ASTNode** ast_call_arguments(const ASTNode* node, size_t* count_out);
 ASTNode* ast_call_argument(const ASTNode* node, size_t index);

@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease M — native intent-observability ABI-ID consumption
+## DONE lease M — native intent-observability ABI-ID consumption
 
 - Source base: `464a907a010b745c3ec1bdaecf783bbf9e31c037`. Published audit
   checkpoints `41a01815` and `acf6c94f` are documentation only; current
@@ -37,6 +37,21 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   carrier probe and a static rejection of the two backend source lookups.
 - Classification: bounded SoT consumer substitution. It does not close the
   wider compiler-purpose intent obligation or change progress by itself.
+
+### Result
+
+- Semantic admission records the owner row's stable `RuntimeCallAbiId` on the
+  AST call once. The native C and LLVM emitters consume that carrier through
+  one ID lookup plus source/ID cross-seal; neither emitter calls the source-name
+  lookup anymore.
+- ID zero, unknown IDs, and source/ID mismatch fail closed in the registry
+  probe. The static gate rejects either backend source lookup, and installed
+  plus explicit-native C/LLVM execution remains byte-equal for the focused
+  history-count fixture.
+- `make -j2 pgy`, `intent_observability_abi_registry_smoke.sh`, and
+  `intent_observability_installed_self_host_owner.sh` are local green. Remote
+  CI is pending publication. The row remains `BRIDGE` because the wider
+  compiler-purpose root intent is still open; all progress counts are unchanged.
 
 ## DONE lease L — stale fixed-MIR successor rejected before implementation
 

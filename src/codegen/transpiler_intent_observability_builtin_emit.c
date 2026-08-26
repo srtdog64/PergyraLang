@@ -38,8 +38,13 @@ emit_builtin_intent_observability(ASTNode *call, TranspilerCtx *ctx)
 {
     ASTNode *callee = ast_call_callee(call);
     const char *source_name = ast_identifier_name(callee);
-    const PgyIntentObservabilityAbiRow *row =
-        pgy_intent_observability_abi_row_by_source(source_name);
+    uint32_t runtime_call_abi_id = 0;
+    const PgyIntentObservabilityAbiRow *row = NULL;
+    if (ast_call_semantic_runtime_call_abi_id(
+            call, &runtime_call_abi_id)) {
+        row = pgy_intent_observability_abi_row_for_carried_identity(
+            runtime_call_abi_id, source_name);
+    }
     size_t argument_count = pgy_intent_observability_argument_count(row);
     char *args[2] = { NULL, NULL };
     char *result = NULL;
@@ -49,7 +54,7 @@ emit_builtin_intent_observability(ASTNode *call, TranspilerCtx *ctx)
             PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-            "C backend: missing intent observability ABI row for '%s'",
+            "C backend: missing or mismatched carried intent observability ABI row for '%s'",
             source_name != NULL ? source_name : "<missing>");
         return NULL;
     }

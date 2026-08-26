@@ -36,6 +36,11 @@ const PgyIntentObservabilityAbiRow *pgy_intent_observability_abi_row_at(
     size_t index);
 const PgyIntentObservabilityAbiRow *pgy_intent_observability_abi_row_by_source(
     const char *source_name);
+const PgyIntentObservabilityAbiRow *pgy_intent_observability_abi_row_by_id(
+    uint32_t runtime_call_abi_id);
+const PgyIntentObservabilityAbiRow *
+pgy_intent_observability_abi_row_for_carried_identity(
+    uint32_t runtime_call_abi_id, const char *source_name);
 const char *pgy_intent_observability_return_type_name(
     PgyIntentObservabilityReturnKind kind);
 size_t pgy_intent_observability_argument_count(

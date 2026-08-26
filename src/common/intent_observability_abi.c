@@ -48,6 +48,34 @@ pgy_intent_observability_abi_row_by_source(const char *source_name)
         intent_observability_abi_row_compare);
 }
 
+const PgyIntentObservabilityAbiRow *
+pgy_intent_observability_abi_row_by_id(uint32_t runtime_call_abi_id)
+{
+    if (runtime_call_abi_id == 0)
+        return NULL;
+    for (size_t i = 0; i < pgy_intent_observability_abi_row_count(); i++) {
+        if (kIntentObservabilityAbiRows[i].runtime_call_abi_id
+                == runtime_call_abi_id) {
+            return &kIntentObservabilityAbiRows[i];
+        }
+    }
+    return NULL;
+}
+
+const PgyIntentObservabilityAbiRow *
+pgy_intent_observability_abi_row_for_carried_identity(
+    uint32_t runtime_call_abi_id, const char *source_name)
+{
+    const PgyIntentObservabilityAbiRow *row =
+        pgy_intent_observability_abi_row_by_id(runtime_call_abi_id);
+
+    if (row == NULL || source_name == NULL
+        || strcmp(row->source_name, source_name) != 0) {
+        return NULL;
+    }
+    return row;
+}
+
 const char *
 pgy_intent_observability_return_type_name(
     PgyIntentObservabilityReturnKind kind)
