@@ -8630,8 +8630,7 @@ while IFS= read -r match_pattern_source; do
 done < <(find "$SELF_HOST_DIR" -type f -name '*.pgy' -print)
 while IFS= read -r match_pattern_source; do
     case "$match_pattern_source" in
-        "$SELF_HOST_DIR/hir/ast_match_pattern_fact_owner.pgy"|\
-        "$SELF_HOST_DIR/semantic/ast_statement_fact_owner.pgy") continue ;;
+        "$SELF_HOST_DIR/hir/ast_match_pattern_fact_owner.pgy"|"$SELF_HOST_DIR/semantic/ast_statement_fact_owner.pgy") continue ;;
     esac
     if grep -Fq 'AstMatchCasePatternFactFromReadyArtifact(' \
         "$match_pattern_source"; then

@@ -98,7 +98,8 @@ grep -A 8 -F 'SemanticAstAssignmentTypeFactsFromAdmittedArtifact(' \
 grep -A 8 -F 'SemanticAstStatementTypeFactsFromAdmittedArtifact(' \
     "$BODY_OWNER" | grep -Fq 'function_tables' ||
     fail "statement resolver does not receive shared callable-table fact"
-grep -Fq 'analysis.expression_surfaces, function_tables' "$BODY_OWNER" ||
+grep -A 10 -F 'SemanticAstGenericSpecializationFactsFromAdmittedBody(' \
+    "$BODY_OWNER" | grep -Fq 'function_tables' ||
     fail "generic resolver does not receive shared callable-table fact"
 if grep -Fq 'SemanticAstExpressionFunctionTableFactsRelease' "$BODY_OWNER"; then
     fail "body owner releases callable-table data before graph/MIR consumers finish"
