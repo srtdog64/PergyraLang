@@ -22,11 +22,6 @@ func MirDiagnosticSuccessor(value: Int) -> String {
     return ToString(value);
 }
 
-func MirDiagnosticQuoted(value: String) -> String {
-    if value == "" { return "-"; }
-    return JsonStringLiteral(value);
-}
-
 func MirDiagnosticProjectionFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> String {
@@ -36,6 +31,7 @@ func MirDiagnosticProjectionFromAdmitted(
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(1024);
     let projection_diagnostic: String = "";
+    let projection_value: String = "";
     let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
     TextBuilderAppend(output, "Pergyra MIR diagnostic");
     TextBuilderAppend(output, "\n  schema: ");
@@ -67,18 +63,25 @@ func MirDiagnosticProjectionFromAdmitted(
         TextBuilderAppend(output, "\n  routine[");
         TextBuilderAppend(output, ToString(routine_row));
         TextBuilderAppend(output, "] kind=");
-        TextBuilderAppend(output,
-            MirDiagnosticQuoted(admitted.routines.kinds[routine_row]));
+        projection_value = admitted.routines.kinds[routine_row];
+        if projection_value == "" { projection_value = "-"; }
+        else { projection_value = JsonStringLiteral(projection_value); }
+        TextBuilderAppend(output, projection_value);
         TextBuilderAppend(output, " owner=");
-        TextBuilderAppend(output,
-            MirDiagnosticQuoted(admitted.routines.owners[routine_row]));
+        projection_value = admitted.routines.owners[routine_row];
+        if projection_value == "" { projection_value = "-"; }
+        else { projection_value = JsonStringLiteral(projection_value); }
+        TextBuilderAppend(output, projection_value);
         TextBuilderAppend(output, " name=");
-        TextBuilderAppend(output,
-            MirDiagnosticQuoted(admitted.routines.names[routine_row]));
+        projection_value = admitted.routines.names[routine_row];
+        if projection_value == "" { projection_value = "-"; }
+        else { projection_value = JsonStringLiteral(projection_value); }
+        TextBuilderAppend(output, projection_value);
         TextBuilderAppend(output, " receiver=");
-        TextBuilderAppend(output,
-            MirDiagnosticQuoted(
-                admitted.routines.receiver_carriages[routine_row]));
+        projection_value = admitted.routines.receiver_carriages[routine_row];
+        if projection_value == "" { projection_value = "-"; }
+        else { projection_value = JsonStringLiteral(projection_value); }
+        TextBuilderAppend(output, projection_value);
         TextBuilderAppend(output, " syntax=");
         TextBuilderAppend(output,
             admitted.routines.source_syntax_ids[routine_row]);
@@ -144,33 +147,78 @@ func MirDiagnosticProjectionFromAdmitted(
                 TextBuilderAppend(output, "\n      inst[");
                 TextBuilderAppend(output, ToString(instruction_row));
                 TextBuilderAppend(output, "] kind=");
-                TextBuilderAppend(output,
-                    MirDiagnosticQuoted(
-                        admitted.routines.instruction_kinds[
-                            global_instruction]));
+                projection_value =
+                    admitted.routines.instruction_kinds[global_instruction];
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " slot=");
-                TextBuilderAppend(output,
-                    MirDiagnosticQuoted(scalar.slot_anchor));
+                projection_value = scalar.slot_anchor;
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " name=");
-                TextBuilderAppend(output, MirDiagnosticQuoted(scalar.name));
+                projection_value = scalar.name;
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " result=");
-                TextBuilderAppend(output, MirDiagnosticQuoted(scalar.result));
+                projection_value = scalar.result;
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " arg0=");
-                TextBuilderAppend(output, MirDiagnosticQuoted(scalar.arg0));
+                projection_value = scalar.arg0;
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " arg1=");
-                TextBuilderAppend(output, MirDiagnosticQuoted(scalar.arg1));
+                projection_value = scalar.arg1;
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " expr0=");
-                TextBuilderAppend(output, MirDiagnosticQuoted(scalar.expr0));
+                projection_value = scalar.expr0;
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " expr1=");
-                TextBuilderAppend(output, MirDiagnosticQuoted(scalar.expr1));
+                projection_value = scalar.expr1;
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " source-type=");
-                TextBuilderAppend(output,
-                    MirDiagnosticQuoted(
-                        admitted.routines.instruction_source_types[
-                            global_instruction]));
+                projection_value =
+                    admitted.routines.instruction_source_types[
+                        global_instruction];
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " abi-type=");
-                TextBuilderAppend(output,
-                    MirDiagnosticQuoted(scalar.abi_type_name));
+                projection_value = scalar.abi_type_name;
+                if projection_value == "" { projection_value = "-"; }
+                else {
+                    projection_value = JsonStringLiteral(projection_value);
+                }
+                TextBuilderAppend(output, projection_value);
                 instruction_row = instruction_row + 1;
             }
             block_row = block_row + 1;
