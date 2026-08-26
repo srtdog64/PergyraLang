@@ -64,23 +64,19 @@ func MirDiagnosticProjectionFromAdmitted(
         TextBuilderAppend(output, ToString(routine_row));
         TextBuilderAppend(output, "] kind=");
         projection_value = admitted.routines.kinds[routine_row];
-        if projection_value == "" { projection_value = "-"; }
-        else { projection_value = JsonStringLiteral(projection_value); }
+        if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
         TextBuilderAppend(output, projection_value);
         TextBuilderAppend(output, " owner=");
         projection_value = admitted.routines.owners[routine_row];
-        if projection_value == "" { projection_value = "-"; }
-        else { projection_value = JsonStringLiteral(projection_value); }
+        if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
         TextBuilderAppend(output, projection_value);
         TextBuilderAppend(output, " name=");
         projection_value = admitted.routines.names[routine_row];
-        if projection_value == "" { projection_value = "-"; }
-        else { projection_value = JsonStringLiteral(projection_value); }
+        if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
         TextBuilderAppend(output, projection_value);
         TextBuilderAppend(output, " receiver=");
         projection_value = admitted.routines.receiver_carriages[routine_row];
-        if projection_value == "" { projection_value = "-"; }
-        else { projection_value = JsonStringLiteral(projection_value); }
+        if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
         TextBuilderAppend(output, projection_value);
         TextBuilderAppend(output, " syntax=");
         TextBuilderAppend(output,
@@ -89,7 +85,6 @@ func MirDiagnosticProjectionFromAdmitted(
         TextBuilderAppend(output, ToString(block_count));
         TextBuilderAppend(output, " instructions=");
         TextBuilderAppend(output, ToString(instruction_count));
-
         let block_row: Int = 0;
         while block_row < block_count && projection_diagnostic == "" {
             let global_block: Int =
@@ -126,7 +121,6 @@ func MirDiagnosticProjectionFromAdmitted(
                     admitted.routines.block_succ_false[global_block]));
             TextBuilderAppend(output, " instructions=");
             TextBuilderAppend(output, ToString(block_instruction_count));
-
             let instruction_row: Int = 0;
             while instruction_row < block_instruction_count &&
                 projection_diagnostic == "" {
@@ -149,75 +143,44 @@ func MirDiagnosticProjectionFromAdmitted(
                 TextBuilderAppend(output, "] kind=");
                 projection_value =
                     admitted.routines.instruction_kinds[global_instruction];
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " slot=");
                 projection_value = scalar.slot_anchor;
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " name=");
                 projection_value = scalar.name;
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " result=");
                 projection_value = scalar.result;
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " arg0=");
                 projection_value = scalar.arg0;
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " arg1=");
                 projection_value = scalar.arg1;
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " expr0=");
                 projection_value = scalar.expr0;
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " expr1=");
                 projection_value = scalar.expr1;
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " source-type=");
-                projection_value =
-                    admitted.routines.instruction_source_types[
-                        global_instruction];
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                projection_value = admitted.routines.instruction_source_types[
+                    global_instruction];
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 TextBuilderAppend(output, " abi-type=");
                 projection_value = scalar.abi_type_name;
-                if projection_value == "" { projection_value = "-"; }
-                else {
-                    projection_value = JsonStringLiteral(projection_value);
-                }
+                if projection_value == "" { projection_value = "-"; } else { projection_value = JsonStringLiteral(projection_value); }
                 TextBuilderAppend(output, projection_value);
                 instruction_row = instruction_row + 1;
             }
