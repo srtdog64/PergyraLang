@@ -14,9 +14,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, Linux mutation repair
   `5f73970168b45252b8c6637691e7ef363e8304b3`, canonical expression-identity
   repair `1d4590364e32bb4708659e609cc6a96e6b23b318`, and stable gate-identity
-  ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2` are published. Exact
-  non-monotonic epoch repair `dfbe9b0a1dc224db0ba95193520c264a9c80933f`
-  is local until the pending replacement push/CI.
+  ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2`, non-monotonic epoch repair
+  `dfbe9b0a1dc224db0ba95193520c264a9c80933f`, and CI preparation checkpoint
+  `5d23fdda1be2cf7cf87720eed31f73416bd5dbcc` are published. Namespace-internal
+  canonical callable carriage checkpoint `9ab03311` is committed locally until
+  replacement push/CI.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -145,6 +147,27 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   and the SoT edge census. The complete component rerun exceeded the five-minute
   focused budget and was stopped, so only the earlier v7 component result is
   green. Replacement CI remains required.
+- Exact-head run `33019529720` at `5d23fdda` passed 27/29. `build-linux` failed
+  only a stale static constructor term; full bootstrap failed at
+  `PathCharAt()` because namespace-internal leaf display spelling was compared
+  with canonical `__imp0_SelfHostPath_PathCharAt` target identity. The other
+  27 jobs, including all 20 backend shards and codegen bootstrap, were green.
+- Current owner repair: semantic call-target admission selects the canonical
+  callable-index name and validates exact carried target ID. Direct-MIR
+  declared calls consume a named callee-identity owner: direct leaves require
+  exact declared binding ID, namespace calls require exact persisted
+  member-access topology and target ID. Formal callable text remains checked;
+  declared leaf spelling is not authority. The generic C identity-bound
+  emitter follows the same contract, and the stale program-graph gate now
+  requires the identity-preserving constructor.
+- Fresh v16 executes namespace-internal C/LLVM parity with missing/crossed
+  target and callee-binding negatives, callable C/LLVM parity with 20 negatives,
+  and canonical epoch positives/negatives; program-graph unification is green.
+  A new 6,456,445-byte v16 driver was compiled from a 10,721,396-byte seed C.
+  Earlier exact full-failure closure produced a 270,050,952-byte driver MIR and
+  the repaired consumer emitted 11,180,254-byte C with exit 0. Full bootstrap
+  and component are not claimed green. Only the primary task may publish and
+  monitor the replacement 29/29 run; no parallel edit scope is open.
 
 ## DONE lease O — structured MatchCase carrier closure
 

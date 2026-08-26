@@ -74,6 +74,25 @@ grammar 17/17, callable C/LLVM과 20 negatives, canonical epoch gate, full
 component rerun은 5분 focused 예산을 넘어 중단했으며 green으로 세지 않는다.
 새 원격 CI 전이므로 수치와 registry 상태는 그대로다.
 
+Exact-head run `33019529720`은 `5d23fdda`에서 27/29였다. 20개 backend shard와
+Windows/macOS, sanitizer, TSan, Rocq, toolchain, codegen bootstrap은 모두 green이었다.
+`build-linux`는 identity-preserving expression graph constructor의 낡은 정적 문구 한
+건을 잡았고, full bootstrap은 namespace 내부의 짧은 `PathCharAt()` 표기와 canonical
+`__imp0_SelfHostPath_PathCharAt` target을 같은 display text라고 가정한 지점에서
+멈췄다. Implementation checkpoint `9ab03311`은 callable index의 canonical name 및
+exact call/callee SyntaxNodeId를 declared-call identity로 고정한다. Direct leaf는 declared binding ID,
+namespace call은 persisted member-access topology와 target ID가 정확해야 한다. Formal
+callable spelling 검사는 유지하지만 declared leaf text는 더 이상 authority가 아니다.
+
+Fresh v16 driver(6,456,445 bytes, seed C 10,721,396 bytes)는 namespace 내부 C/LLVM
+실행과 target/binding 4개 음성, callable C/LLVM과 20개 음성, canonical epoch,
+program-graph gate를 통과했다. 같은 원격 실패를 겨냥한 full driver MIR은
+270,050,952 bytes까지 생성됐고 repaired consumer는 11,180,254-byte C를 exit 0으로
+방출했다. Owner split 뒤 v16 재컴파일도 끝났지만 full component/bootstrap은 다시
+green으로 세지 않는다. 원격 29/29가 다음 falsifier이며, SoT `50/35/1`, hard
+58.1%, migration 78.8%, 통합 83% (81~85%), strict beta 83%, hard replacement 75%는
+그대로다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,

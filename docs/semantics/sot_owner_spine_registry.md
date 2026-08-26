@@ -131,6 +131,16 @@ abi.mir_array_string_layout_projection | abi | ArrayStringLayoutProjectionId | S
 ```
 <!-- END sot-owner-spine-registry -->
 
+## Active callable-carriage evidence — 2026-08-27
+
+`selfhost.semantic_artifact_admission` remains `ACTIVE`; no census or progress
+promotion is implied. Namespace-internal declared calls now consume canonical
+callable-index target names plus exact call/callee SyntaxNodeIds, while direct
+declared leaves and namespace member-access topology fail closed on missing or
+crossed carriage. The focused executable ratchet is
+`tests/self_hosted/parity/direct_mir_scalar_namespace_internal_call_owner.sh`.
+Remote replacement CI is still required before any status change.
+
 ## Derived Fact Carriers
 
 Every self-hosted `*_fact_owner.pgy` file is either an authority path in the

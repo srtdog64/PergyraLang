@@ -26,10 +26,12 @@ percentage by themselves.
   `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, and Linux mutation repair
   `5f73970168b45252b8c6637691e7ef363e8304b3`, canonical expression-identity
   repair `1d4590364e32bb4708659e609cc6a96e6b23b318`, and stable gate-identity
-  ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2` are published. Non-monotonic
-  epoch repair `dfbe9b0a1dc224db0ba95193520c264a9c80933f` is the exact local
-  checkpoint. Replacement push/CI remains
-  pending. The unrelated user-owned `pgy-80135c2c/` and
+  ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2`, non-monotonic epoch repair
+  `dfbe9b0a1dc224db0ba95193520c264a9c80933f`, and CI preparation checkpoint
+  `5d23fdda1be2cf7cf87720eed31f73416bd5dbcc` are published. Namespace-internal
+  canonical callable carriage checkpoint `9ab03311` is committed locally;
+  replacement push/CI remains pending. The unrelated user-owned
+  `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
 - Objective card: let canonical `func(T...) -> R` declarations and values retain
@@ -108,10 +110,34 @@ percentage by themselves.
   edge. The post-repair full component rerun exceeded the five-minute focused
   budget and was stopped, so it is not claimed green. A new remote replacement
   run is the next falsifier.
+- Exact-head run `33019529720` at `5d23fdda` passed 27/29. All 20 backend
+  shards, Windows, macOS, sanitizer, TSan, Rocq, toolchain, and codegen
+  bootstrap were green. `build-linux` found one stale static expectation for
+  the identity-preserving expression graph constructor. Full bootstrap reached
+  `PathCharAt()` and rejected a namespace-internal short spelling whose call
+  target carried canonical `__imp0_SelfHostPath_PathCharAt` identity while its
+  leaf still used the local display spelling.
+- The repair makes callable-index canonical target name plus exact
+  call/callee SyntaxNodeIds the declared-call identity. Direct declared calls
+  require exact leaf carriage; namespace calls require the persisted
+  member-access topology and canonical target ID. Formal callable spelling
+  remains checked, but declared call admission and C/LLVM consumption cannot
+  recover identity from leaf display text. Missing and crossed callee binding
+  mutations now fail before artifact publication.
+- Fresh v16 evidence is green for namespace-internal C/LLVM execution and four
+  target/binding negatives, callable C/LLVM execution and all 20 negatives,
+  canonical identity epoch positives/negatives, and program-graph unification.
+  The same source produced a 6,456,445-byte driver after a 10,721,396-byte C
+  seed. Before the final owner split, the exact full 270,050,952-byte driver MIR
+  reached the old failing consumer and the repaired driver emitted an
+  11,180,254-byte C artifact with exit 0. The split preserves that function and
+  is newly compiled in v16. Full bootstrap/component are not claimed green;
+  the replacement 29/29 run remains the next falsifier.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
-  Physical cleanup was rejected by execution policy before any deletion; do not
-  retry that destructive operation as part of this compiler rung.
+  The current root census is 11 `bin*` and 14 `build*` directories, all ignored,
+  with zero exact root tracked paths. They remain physically present because
+  other Codex sessions may be consuming them; do not delete them on this rung.
 - The SoT census remains `CLOSED=50 BRIDGE=35 ACTIVE=1`. Reconciled hard SoT is
   `50/86 = 58.1%` and the migration index is 78.8%; integrated progress remains
   83% (81-85%), strict beta 83%, and hard replacement 75%. These are evidence

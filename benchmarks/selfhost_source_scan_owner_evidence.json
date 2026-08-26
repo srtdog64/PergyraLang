@@ -20,7 +20,7 @@
   },
   "current_callable_owner_hashes": {
     "measured_at": "2026-08-27",
-    "source_revision": "working-tree-namespace-callable-carriage",
+    "source_revision": "9ab03311",
     "note": "identity-resolution owner now joins namespace-local leaf spelling to the canonical callable target; retained performance figures are not remeasured",
     "owner_set_sha256": "DD49849B369548B4B0DFE418345A6A28825D276BF1CFFE73248A4C2D8F308778",
     "owner_files_sha256": {
