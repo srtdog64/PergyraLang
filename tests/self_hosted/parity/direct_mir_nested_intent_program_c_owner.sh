@@ -40,6 +40,14 @@ pgy_selfhost_select_emitted_c_compile_profile ||
 c_command=("$CC" -x c -std=c11 -Wall -Wextra -Werror)
 c_command+=("${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]}")
 if pgy_selfhost_emitted_c_uses_runtime_headers "$C_DIRECT"; then
+    case "$(uname -s 2>/dev/null)" in
+        Linux|*BSD|SunOS)
+            c_command+=(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_DEFAULT_SOURCE)
+            ;;
+        Darwin)
+            c_command+=(-D_DARWIN_C_SOURCE -D_XOPEN_SOURCE=700)
+            ;;
+    esac
     c_command+=(-DPGY_ZONE_THREADSAFE \
         "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
 fi
