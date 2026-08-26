@@ -262,4 +262,6 @@ for artifact in artifact.c source.artifact.mir.json llvm-source.mir.json direct-
     fi
 done
 
-echo "[self-host-installed-cli-mode] one typed argv owner keeps source-C, source-MIR, and MIR-C stdout/artifact effects disjoint; general MIR-C world/action artifact parity, pressure observation, and transaction rejection: PASS; CompilePergyraProgram source-to-LLVM parity and typed step failures: PASS"
+source "$ROOT_DIR/tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"
+echo "[self-host-installed-driver-cli] one typed argv owner keeps public MIR diagnostic, source-C, source-MIR, and MIR-C effects disjoint"
+echo "[self-host-installed-driver-cli] general MIR-C world/action artifact parity, pressure observation, and transaction rejection: PASS"

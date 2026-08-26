@@ -894,6 +894,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/self_host_driver.c \
                    $(COMPILER_DIR)/self_host_machine_manifest_artifact_owner.c \
                    $(COMPILER_DIR)/self_host_mir_artifact_owner.c \
+                   $(COMPILER_DIR)/self_host_mir_diagnostic_stdout_owner.c \
                    $(COMPILER_DIR)/self_host_child_io_authority.c \
                    $(COMPILER_DIR)/self_host_llvm_driver.c \
                    $(COMPILER_DIR)/self_host_llvm_ir_artifact_owner.c \
@@ -4031,7 +4032,7 @@ self-host-generic-specialization-identity-epoch-test-smoke: self-host-canonical-
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/generic_specialization_identity_epoch_owner.sh
 
-self-host-public-mir-json-replacement-test-smoke: self-host-generic-specialization-identity-epoch-test-smoke
+self-host-public-mir-json-replacement-test-smoke: self-host-installed-driver-cli-mode-test-smoke self-host-generic-specialization-identity-epoch-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh
 
@@ -4070,8 +4071,8 @@ self-host-public-llvm-ir-stdout-replacement-test-smoke: self-host-public-nested-
 self-host-live-replacement-test-smoke: self-host-public-llvm-ir-stdout-replacement-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" tests/self_host_live_replacement_smoke.sh
 
-self-host-installed-driver-cli-mode-test-smoke: self-host-compiler
-	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+self-host-installed-driver-cli-mode-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/installed_driver_cli_mode_owner.sh
 
 self-host-default-c-emit-replacement-test-smoke: $(PGY) self-host-compiler

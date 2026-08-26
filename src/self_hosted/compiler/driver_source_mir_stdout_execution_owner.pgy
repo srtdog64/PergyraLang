@@ -1,0 +1,56 @@
+// Shared stdout owner for canonical source-MIR and its admitted diagnostic
+// projection. Both requests reuse the same compiler-world action and payload
+// protocol; the diagnostic path adds full borrowed-text admission, not another
+// source compiler call or a second receipt species.
+
+import "compiler_world_direct_mir_owner.pgy";
+import "../mir_lower/mir_diagnostic_projection_owner.pgy";
+
+func DriverSourceMirStdoutReceiptOrDie(
+    source_path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> DriverSourceMirPayloadReceipt with caps io_read {
+    let outcome: DriverSourceMirPayloadAdmission =
+        ProduceSourceMirThroughPgyCompilerWorld(
+            source_path, declaration, SourceMirVerified
+        );
+    if !DriverSourceMirPayloadAdmissionReadyFor(
+        outcome, source_path, SourceMirVerified
+    ) {
+        Log(DriverSourceMirPayloadAdmissionDiagnostic(
+            outcome, source_path, SourceMirVerified
+        ));
+        Exit(1);
+    }
+    let admitted_receipt: Option<DriverSourceMirPayloadReceipt> = None;
+    match outcome {
+        case DriverSourceMirPayloadAdmitted(receipt):
+            admitted_receipt = Some(receipt);
+        case DriverSourceMirPayloadDenied(rejection):
+            Die("source MIR stdout request returned an unchecked rejection");
+    }
+    if !IsSome(admitted_receipt) {
+        Die("source MIR stdout request lost its admitted receipt");
+    }
+    return UnwrapOption(admitted_receipt);
+}
+
+func DriverSourceMirCanonicalPayloadOrDie(
+    source_path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> String with caps io_read {
+    let receipt: DriverSourceMirPayloadReceipt =
+        DriverSourceMirStdoutReceiptOrDie(source_path, declaration);
+    return receipt.payload;
+}
+
+func DriverSourceMirDiagnosticPayloadOrDie(
+    source_path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> String with caps io_read {
+    let receipt: DriverSourceMirPayloadReceipt =
+        DriverSourceMirStdoutReceiptOrDie(source_path, declaration);
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonAdmitBorrowedText(receipt.payload, declaration);
+    return MirDiagnosticProjectionFromAdmitted(admitted);
+}

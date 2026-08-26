@@ -6,6 +6,103 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease F — installed `--mir` diagnostic substitution
+
+- Base revision: `9ca4a69517142a4c87eb47862afcd55a9a9f2011`.
+- Editing and integration owner: the primary Codex task. Peer Codex tasks are
+  read-only auditors and must not edit, stage, commit, push, or run a self-host
+  build while this lease is active.
+- Objective: make the public installed `pgy --mir SOURCE` request execute the
+  Pergyra source-to-MIR owner, admit that canonical MIR document once, and
+  render one Pergyra-owned human diagnostic projection instead of entering the
+  native `driver_run_pipeline -> mir_dump` path.
+- Priority order: one canonical `pgy.mir.v1` semantic owner; typed admission
+  before rendering; no invented lifecycle or source facts; explicit stable
+  diagnostic-view contract; fail-closed child execution; delete the default
+  native selector; then output familiarity, patch size, and formatting detail.
+- Fact owner: `CompileSourceToMirJsonVerified` owns source-to-MIR production and
+  `MirMachineLayerAdmittedJsonInput` carries the admitted document/routine fact
+  views. The new diagnostic projection may consume those typed views but must
+  not treat serialized JSON text, the legacy C `MIRProgram`, or reconstructed
+  source/AST scans as a second semantic owner.
+- Production entrypoint and last consumer: public `pgy --mir SOURCE`, through
+  the installed self-driver child and its stdout payload consumer. The child
+  must compile, admit, and render exactly once; the native launcher may only
+  relay its exit status and bytes.
+- Direct bypass to delete: default `--mir` currently skips the installed driver
+  and falls through to `driver_run_pipeline(&flags)`, which calls native
+  `mir_dump`. An explicit `--native-pipeline --mir` remains the bounded oracle
+  and escape hatch; it must not be an automatic retry or missing-driver
+  fallback.
+- Forbidden fallback: guessed SSA/liveness/lifecycle counts absent from the
+  admitted MIR contract; JSON substring formatting without typed admission;
+  reparsing source or AST in the diagnostic owner; native retry after a
+  self-driver failure; silent use of the default native path when the installed
+  driver is missing; or a temporary artifact where a stdout payload suffices.
+- Observed RED: with `PGY_SELF_DRIVER_BIN` naming a missing executable, public
+  `pgy --mir examples/hello.pgy` exits 0 and emits the same bytes as explicit
+  native `--mir`, proving the installed self-driver is bypassed. The legacy
+  dump also exposes lifecycle/source details not present in canonical MIR JSON,
+  so byte-copying it would require guessed or second-owner facts.
+- Falsifier and integration gate: public `--mir` must emit the newly declared
+  canonical diagnostic view for a simple routine and one meaningful CFG/local
+  fixture; an explicit native invocation remains independently observable;
+  a missing installed driver, invalid source, malformed required MIR fact, or
+  renderer admission failure must exit nonzero with no MIR payload; and a
+  static selector ratchet must reject default `--mir` reachability to
+  `driver_run_pipeline`/`mir_dump`. Reuse the existing installed-driver build
+  and CI target; add no workflow job and perform no second self-host build.
+
+### Parallel read-only assignments
+
+1. Owner/schema auditor: map every field available from the admitted MIR
+   document/routine/block/instruction views, identify the minimum stable human
+   projection and any missing fact that would force guessing, and report the
+   smallest responsibility-named owner seam; make no edits or builds.
+2. Selector/gate auditor: map the public launcher and installed self-driver
+   dispatch, find the smallest existing gate/CI target to extend, and specify
+   missing-driver, malformed-input, no-payload, and old-bypass ratchets; make no
+   edits or builds.
+
+### Local result
+
+- Public installed `pgy --mir SOURCE` now selects the self-host diagnostic
+  relay after the explicit native opt-out and before final native dispatch.
+  The relay invokes only `--emit-mir-diagnostic-verified`, captures one bounded
+  stdout payload, and never calls `driver_run_pipeline` or `mir_dump`. Explicit
+  `--native-pipeline --mir` remains the independent lifecycle oracle.
+- The Pergyra child reuses `ProduceSourceMirThroughPgyCompilerWorld` and the
+  existing `DriverSourceMirPayloadReceipt`; no mode-specific world, zone,
+  protocol enum, or temporary MIR artifact was added. Borrowed MIR text enters
+  the full schema/parallel/topology/machine/intent admission once, then a typed
+  diagnostic projection renders only admitted routine/block/instruction facts.
+- The native relay owns a 128 MiB payload limit and 300-second child budget.
+  Windows uses a kill-on-close Job Object and process-state polling; POSIX uses
+  a process group plus nonblocking poll. Child failure, timeout, overflow,
+  crash, empty success, descendant-held stdout, stdout-close-before-exit, and
+  final stdout write failure remain distinguishable or fail closed with no
+  child-failure payload prefix relayed.
+- A final current-source Pergyra-built DRV-2 is installed. The full installed
+  CLI gate passes, including simple and four-block CFG diagnostics, adjacency
+  lookup, malformed shared admission, invalid source, missing driver,
+  unsupported options, silent success, descendant-held stdout, and Windows
+  broken-pipe ordering. Public/internal simple diagnostics are byte-identical;
+  public MIR JSON and the explicit native IR probe remain green.
+- `make -n` for the weekly public-MIR/default-C target pair reports one
+  self-host build and one installed-driver gate. The diagnostic sibling is
+  sourced by that existing gate, so no new workflow job, standalone target, or
+  second self-host build exists. SoT edge is unchanged at 86 authorities / 180
+  derived carriers / `CLOSED=49 BRIDGE=36 ACTIVE=1`; likeness remains at its
+  prior core text-munging ceiling of 76.
+- The complete component inventory is not claimed green: the primary task
+  stopped its scan at the static-loop budget. Focused structural/runtime gates
+  own this slice. The POSIX capture branch cannot be compiled by the local
+  MinGW target and remains a required Linux CI falsifier.
+- This bounded public diagnostic is `SUBSTITUTING`: default public `--mir` no
+  longer reaches the real native C `MIRProgram -> mir_dump` path. It does not
+  close a top-level SoT row or claim native-only lifecycle facts, so integrated
+  78%, strict beta 83%, and hard SoT counts remain unchanged pending remote CI.
+
 ## DONE lease E — nested priority/observability direct-C substitution
 
 - Base revision: `5d2f7e6e060a67e2950deba574f334d59889f6f6`.

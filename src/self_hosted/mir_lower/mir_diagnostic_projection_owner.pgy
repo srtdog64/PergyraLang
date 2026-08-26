@@ -1,0 +1,185 @@
+// Stable human-readable projection of one fully admitted pgy.mir.v1 document.
+//
+// This view deliberately omits native lifecycle, liveness, cleanup, source-
+// location, and speculation facts: the admitted program index does not own
+// them.  Rows below are projection coordinates, never serialized MIR ids.
+
+import "mir_json_input_owner.pgy";
+import "routine_instruction_fact_bundle_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func MirDiagnosticProjectionSchema() -> String {
+    return "pgy.mir.diagnostic.v1";
+}
+
+func MirDiagnosticBool(value: Bool) -> String {
+    if value { return "yes"; }
+    return "no";
+}
+
+func MirDiagnosticSuccessor(value: Int) -> String {
+    if value < 0 { return "-"; }
+    return ToString(value);
+}
+
+func MirDiagnosticAppendQuoted(
+    inout output: TextBuilder, value: String
+) -> Void {
+    if value == "" {
+        TextBuilderAppend(output, "-");
+        return;
+    }
+    TextBuilderAppend(output, JsonStringLiteral(value));
+}
+
+func MirDiagnosticProjectionFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> String {
+    if !MirProgramRoutineIndexStructureReady(admitted.routines) {
+        MirLowerFailClosed("MIR diagnostic routine structure is invalid");
+    }
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(1024);
+    let projection_diagnostic: String = "";
+    let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
+    TextBuilderAppend(output, "Pergyra MIR diagnostic");
+    TextBuilderAppend(output, "\n  schema: ");
+    TextBuilderAppend(output, MirDiagnosticProjectionSchema());
+    TextBuilderAppend(output, "\n  mir-schema: pgy.mir.v1");
+    TextBuilderAppend(output, "\n  routines: ");
+    TextBuilderAppend(output, ToString(routine_count));
+
+    let routine_row: Int = 0;
+    while routine_row < routine_count && projection_diagnostic == "" {
+        if !MirProgramRoutineIndexRowReady(admitted.routines, routine_row) {
+            projection_diagnostic = "MIR diagnostic routine row is invalid";
+            continue;
+        }
+        let block_count: Int =
+            admitted.routines.routine_block_counts[routine_row];
+        let instruction_facts: MirRoutineInstructionFactBundle =
+            BuildMirRoutineInstructionFactBundle(
+                admitted.routines, routine_row
+            );
+        if !MirRoutineInstructionFactBundleReady(
+            instruction_facts, block_count
+        ) {
+            projection_diagnostic =
+                "MIR diagnostic instruction facts are invalid";
+            continue;
+        }
+        let instruction_count: Int = ArrayLength(instruction_facts.starts);
+        TextBuilderAppend(output, "\n  routine[");
+        TextBuilderAppend(output, ToString(routine_row));
+        TextBuilderAppend(output, "] kind=");
+        MirDiagnosticAppendQuoted(
+            output, admitted.routines.kinds[routine_row]);
+        TextBuilderAppend(output, " owner=");
+        MirDiagnosticAppendQuoted(
+            output, admitted.routines.owners[routine_row]);
+        TextBuilderAppend(output, " name=");
+        MirDiagnosticAppendQuoted(
+            output, admitted.routines.names[routine_row]);
+        TextBuilderAppend(output, " receiver=");
+        MirDiagnosticAppendQuoted(
+            output, admitted.routines.receiver_carriages[routine_row]);
+        TextBuilderAppend(output, " syntax=");
+        TextBuilderAppend(output,
+            admitted.routines.source_syntax_ids[routine_row]);
+        TextBuilderAppend(output, " blocks=");
+        TextBuilderAppend(output, ToString(block_count));
+        TextBuilderAppend(output, " instructions=");
+        TextBuilderAppend(output, ToString(instruction_count));
+
+        let block_row: Int = 0;
+        while block_row < block_count && projection_diagnostic == "" {
+            let global_block: Int =
+                admitted.routines.routine_block_starts[routine_row] +
+                    block_row;
+            let block_instruction_count: Int =
+                MirProgramRoutineIndexBlockInstructionCountAt(
+                    admitted.routines, routine_row, block_row
+                );
+            if global_block < 0 ||
+                global_block >= ArrayLength(
+                    admitted.routines.block_reachable) ||
+                global_block >= ArrayLength(
+                    admitted.routines.block_succ_true) ||
+                global_block >= ArrayLength(
+                    admitted.routines.block_succ_false) ||
+                block_instruction_count < 0 {
+                projection_diagnostic = "MIR diagnostic block row is invalid";
+                continue;
+            }
+            TextBuilderAppend(output, "\n    block[");
+            TextBuilderAppend(output, ToString(block_row));
+            TextBuilderAppend(output, "] reachable=");
+            TextBuilderAppend(output,
+                MirDiagnosticBool(
+                    admitted.routines.block_reachable[global_block]));
+            TextBuilderAppend(output, " succ-true=");
+            TextBuilderAppend(output,
+                MirDiagnosticSuccessor(
+                    admitted.routines.block_succ_true[global_block]));
+            TextBuilderAppend(output, " succ-false=");
+            TextBuilderAppend(output,
+                MirDiagnosticSuccessor(
+                    admitted.routines.block_succ_false[global_block]));
+            TextBuilderAppend(output, " instructions=");
+            TextBuilderAppend(output, ToString(block_instruction_count));
+
+            let instruction_row: Int = 0;
+            while instruction_row < block_instruction_count &&
+                projection_diagnostic == "" {
+                let global_instruction: Int =
+                    MirProgramRoutineIndexGlobalInstructionRow(
+                        admitted.routines, routine_row, block_row,
+                        instruction_row
+                    );
+                let scalar: MirRoutineInstructionScalarCapture =
+                    MirRoutineInstructionFactBundleAtGlobal(
+                        instruction_facts, global_instruction
+                    );
+                if global_instruction < 0 || !scalar.valid {
+                    projection_diagnostic =
+                        "MIR diagnostic instruction row is invalid";
+                    continue;
+                }
+                TextBuilderAppend(output, "\n      inst[");
+                TextBuilderAppend(output, ToString(instruction_row));
+                TextBuilderAppend(output, "] kind=");
+                MirDiagnosticAppendQuoted(output,
+                    admitted.routines.instruction_kinds[global_instruction]);
+                TextBuilderAppend(output, " slot=");
+                MirDiagnosticAppendQuoted(output, scalar.slot_anchor);
+                TextBuilderAppend(output, " name=");
+                MirDiagnosticAppendQuoted(output, scalar.name);
+                TextBuilderAppend(output, " result=");
+                MirDiagnosticAppendQuoted(output, scalar.result);
+                TextBuilderAppend(output, " arg0=");
+                MirDiagnosticAppendQuoted(output, scalar.arg0);
+                TextBuilderAppend(output, " arg1=");
+                MirDiagnosticAppendQuoted(output, scalar.arg1);
+                TextBuilderAppend(output, " expr0=");
+                MirDiagnosticAppendQuoted(output, scalar.expr0);
+                TextBuilderAppend(output, " expr1=");
+                MirDiagnosticAppendQuoted(output, scalar.expr1);
+                TextBuilderAppend(output, " source-type=");
+                MirDiagnosticAppendQuoted(output,
+                    admitted.routines.instruction_source_types[
+                        global_instruction]);
+                TextBuilderAppend(output, " abi-type=");
+                MirDiagnosticAppendQuoted(output, scalar.abi_type_name);
+                instruction_row = instruction_row + 1;
+            }
+            block_row = block_row + 1;
+        }
+        routine_row = routine_row + 1;
+    }
+    let text: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    if projection_diagnostic != "" {
+        MirLowerFailClosed(projection_diagnostic);
+    }
+    return text;
+}

@@ -130,7 +130,8 @@ require_text "$SIBLING_OWNER" 'driver_self_host_source_identity_path_dup('
 require_text "$SIBLING_OWNER" 'import_resolver_canonicalize_path_dup(source_path)'
 require_text "$MIR_ARTIFACT_OWNER" 'driver_self_host_source_identity_path_dup(source_path)'
 require_text "$PATH_OWNER" "if (*p == '\\\\')"
-# 3 = test oracle + declared --native-pipeline opt-out (docs/152) + final.
+# 3 = test oracle + declared --native-pipeline opt-out (docs/152) + final
+# non-selected dispatch. Public --mir must not add another native reachability.
 [[ "$(grep -F -c 'return driver_run_pipeline(&flags);' "$LAUNCHER_OWNER")" -eq 3 ]] ||
     fail "native pipeline reachability escaped test oracle, declared opt-out, and final non-MIR dispatch"
 grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&

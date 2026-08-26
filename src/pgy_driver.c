@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
-
 #include "common/env_flags.h"
 #include "compiler/driver_app.h"
 #include "compiler/repl.h"
@@ -20,10 +19,10 @@
 #include "compiler/driver_self_host_llvm_selection_owner.h"
 #include "compiler/self_host_llvm_ir_artifact_owner.h"
 #include "compiler/self_host_llvm_ir_stdout_owner.h"
+#include "compiler/self_host_mir_diagnostic_stdout_owner.h"
 #include "compiler/c_runner.h"
 #include "compiler/llvm_runner.h"
-typedef enum
-{
+typedef enum {
     DRIVER_OPTION_NOOP,
     DRIVER_OPTION_BOOL,
     DRIVER_OPTION_BACKEND,
@@ -260,6 +259,7 @@ main(int argc, char *argv[])
     if (flags.native_pipeline
         || pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")))
         return driver_run_pipeline(&flags);
+    if (flags.dump_mir) return driver_run_self_host_mir_diagnostic_request(argv[0], &flags);
     if (flags.dump_machine_manifest_json) {
         if (!driver_self_host_machine_manifest_request_supported(&flags)) {
             fprintf(stderr,

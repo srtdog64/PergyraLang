@@ -3,36 +3,13 @@
 import "driver_rung2_cli_request_owner.pgy";
 import "capability_manifest_owner.pgy";
 import "dir_text_artifact_owner.pgy";
-import "compiler_world_direct_mir_owner.pgy";
 import "driver_source_c_stdout_execution_owner.pgy";
+import "driver_source_mir_stdout_execution_owner.pgy";
 import "driver_mir_c_stdout_execution_owner.pgy";
 import "canonical_mir_execution_owner.pgy";
 import "../lexer/scan_owner.pgy";
 import "../lexer/source_input_owner.pgy";
 import "../parser/program_parse_owner.pgy";
-
-func DriverRung2CliLogSourceMirPayloadOrDie(
-    source_path: String,
-    declaration: SelfHostMachineLayerDeclaration
-) -> Void with caps io_read {
-    let source_outcome: DriverSourceMirPayloadAdmission =
-        ProduceSourceMirThroughPgyCompilerWorld(
-            source_path, declaration, SourceMirVerified
-        );
-    if !DriverSourceMirPayloadAdmissionReadyFor(
-        source_outcome, source_path, SourceMirVerified
-    ) {
-        Log(DriverSourceMirPayloadAdmissionDiagnostic(
-            source_outcome, source_path, SourceMirVerified
-        ));
-        Exit(1);
-    }
-    match source_outcome {
-        case DriverSourceMirPayloadAdmitted(receipt): Log(receipt.payload);
-        case DriverSourceMirPayloadDenied(rejection):
-            Die("source MIR stdout request returned an unchecked rejection");
-    }
-}
 
 func DriverRung2ExecuteReadRequest(
     request: DriverRung2CliRequest
@@ -64,15 +41,19 @@ func DriverRung2ExecuteReadRequest(
                     SelfHostMachineLayerDeclarationFromPath(manifest_path)
                 )
             );
-        case DriverCliSourceMirStdout(source_path):
-            DriverRung2CliLogSourceMirPayloadOrDie(
+        case DriverCliSourceMirDiagnosticStdout(source_path):
+            Log(DriverSourceMirDiagnosticPayloadOrDie(
                 source_path, SelfHostMachineLayerDeclarationEmpty()
-            );
+            ));
+        case DriverCliSourceMirStdout(source_path):
+            Log(DriverSourceMirCanonicalPayloadOrDie(
+                source_path, SelfHostMachineLayerDeclarationEmpty()
+            ));
         case DriverCliSourceMirManifestStdout(source_path, manifest_path):
-            DriverRung2CliLogSourceMirPayloadOrDie(
+            Log(DriverSourceMirCanonicalPayloadOrDie(
                 source_path,
                 SelfHostMachineLayerDeclarationFromPath(manifest_path)
-            );
+            ));
         case DriverCliCanonicalMirStdout(input_path):
             Log(CanonicalizeMirJsonVerified(
                 input_path, SelfHostMachineLayerDeclarationEmpty()

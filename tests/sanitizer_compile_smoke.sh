@@ -77,10 +77,10 @@ for src in "${SOURCES[@]}"; do
     # does not typecheck standalone still exercises parse+semantic, and its
     # nonzero exit is not a sanitizer finding -- only a report is.
     if (( have_timeout )); then
-        timeout "$timeout_s" "$PGY" "$src" --mir > /dev/null 2> "$log"
+        timeout "$timeout_s" "$PGY" "$src" --native-pipeline --mir > /dev/null 2> "$log"
         rc=$?
     else
-        "$PGY" "$src" --mir > /dev/null 2> "$log"
+        "$PGY" "$src" --native-pipeline --mir > /dev/null 2> "$log"
         rc=$?
     fi
     checked=$((checked + 1))

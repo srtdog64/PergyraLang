@@ -2333,7 +2333,7 @@ WITH_SLOT_ORDER_C="$WORK_DIR/with_slot_order.c"
 "$PGY" "$EXAMPLE_FOR_PGY" --hir-cfg > "$HIR_CFG_OUT"
 "$PGY" "$EXAMPLE_FOR_PGY" --hir-dom > "$HIR_DOM_OUT"
 "$PGY" "$EXAMPLE_FOR_PGY" --rir > "$RIR_OUT"
-"$PGY" "$EXAMPLE_FOR_PGY" --mir > "$MIR_OUT"
+"$PGY" "$EXAMPLE_FOR_PGY" --native-pipeline --mir > "$MIR_OUT"
 
 cat > "$PARALLEL_SELECT" <<'EOF'
 func Main() -> Void {
@@ -2351,7 +2351,7 @@ func Main() -> Void {
 EOF
 PARALLEL_SELECT_FOR_PGY="$(to_native_path_for_pgy "$PARALLEL_SELECT")"
 "$PGY" "$PARALLEL_SELECT_FOR_PGY" --native-pipeline --ast > "$PARALLEL_SELECT_AST"
-"$PGY" "$PARALLEL_SELECT_FOR_PGY" --mir > "$PARALLEL_SELECT_MIR"
+"$PGY" "$PARALLEL_SELECT_FOR_PGY" --native-pipeline --mir > "$PARALLEL_SELECT_MIR"
 
 cat > "$WITH_SLOT_ORDER" <<'EOF'
 func Cost() -> Int {
@@ -2426,7 +2426,7 @@ for corpus_rel in "${NON_CFG_CORPUS[@]}"; do
         exit 1
     fi
     corpus_src_for_pgy="$(to_native_path_for_pgy "$corpus_src")"
-    "$PGY" "$corpus_src_for_pgy" --mir > "$NON_CFG_CORPUS_MIR"
+    "$PGY" "$corpus_src_for_pgy" --native-pipeline --mir > "$NON_CFG_CORPUS_MIR"
     if ! grep -Fq "noncfg-fallbacks: total=0 routines=0 recorded=yes" \
         "$NON_CFG_CORPUS_MIR"; then
         echo "non-cfg fallback regression in $corpus_rel:" >&2

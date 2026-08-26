@@ -6892,9 +6892,9 @@ require_text "src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pg
     'DriverSourceCPayloadAdmissionReadyFor('
 reject_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'CompileSourceToCVerified('
-require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" \
     'ProduceSourceMirThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" \
     'DriverSourceMirPayloadAdmissionReadyFor('
 reject_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'CompileSourceToMirJsonVerified('
@@ -8798,6 +8798,12 @@ require_max_lines \
 require_file "src/self_hosted/compiler/driver_mir_c_stdout_execution_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/driver_mir_c_stdout_execution_owner.pgy" 40
+require_file "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" 60
+require_file "src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy" 200
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'import "driver_source_c_stdout_execution_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
@@ -8867,6 +8873,8 @@ require_file "src/compiler/self_host_machine_manifest_artifact_owner.c"
 require_file "src/compiler/self_host_machine_manifest_artifact_owner.h"
 require_file "src/compiler/self_host_mir_artifact_owner.c"
 require_file "src/compiler/self_host_mir_artifact_owner.h"
+require_file "src/compiler/self_host_mir_diagnostic_stdout_owner.c"
+require_file "src/compiler/self_host_mir_diagnostic_stdout_owner.h"
 require_file "src/compiler/self_host_llvm_driver.c"
 require_file "src/compiler/self_host_llvm_driver.h"
 require_file "src/compiler/driver_self_host_selection_owner.c"
@@ -8883,6 +8891,8 @@ require_file "src/compiler/compiler_transient_artifact_workspace.h"
 require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
 require_max_lines "tests/self_hosted/parity/self_host_compiler_build.sh" 220
 require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/fixture/silent_self_host_driver.c"
 require_file "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_ast_installed_self_host_owner.sh"
@@ -8901,10 +8911,16 @@ require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "PARSER GRAPH ERROR: "
 require_max_lines "src/compiler/self_host_driver.c" 270
 require_max_lines "src/compiler/self_host_mir_artifact_owner.c" 90
+require_max_lines "src/compiler/self_host_mir_diagnostic_stdout_owner.c" 130
+require_max_lines "src/compiler/compiler_process.c" 620
 require_max_lines "src/compiler/self_host_llvm_driver.c" 120
 require_max_lines "src/compiler/driver_self_host_selection_owner.c" 140
 require_max_lines "src/compiler/self_host_machine_manifest_artifact_owner.c" 70
 require_max_lines "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh" 160
+require_max_lines \
+    "tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh" 250
+require_max_lines \
+    "tests/self_hosted/parity/fixture/silent_self_host_driver.c" 60
 require_max_lines "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh" 140
 require_max_lines "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh" 120
 require_max_lines "tests/self_hosted/parity/public_ast_installed_self_host_owner.sh" 140
@@ -8952,6 +8968,8 @@ require_text "src/pgy_driver.c" \
 require_text "src/pgy_driver.c" \
     "driver_write_self_host_llvm_ir_stdout"
 require_text "src/pgy_driver.c" 'if (flags.test_native_mir_json_oracle) {'
+require_text "src/pgy_driver.c" \
+    'if (flags.dump_mir) return driver_run_self_host_mir_diagnostic_request(argv[0], &flags);'
 require_text "src/pgy_driver.c" 'if (flags.dump_mir_json) {'
 require_text "src/pgy_driver.c" "driver_self_host_c_artifact_request_supported"
 require_text "src/pgy_driver.c" "if (flags.emit_c_only) {"
@@ -9053,6 +9071,37 @@ reject_text "src/compiler/self_host_driver.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_driver.c" "system("
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "system("
+require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
+    'child_argv[1] = "--emit-mir-diagnostic-verified";'
+require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
+    "pgy_exec_argv_capture_stdout("
+require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
+    "success without a MIR diagnostic payload"
+reject_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
+    "driver_run_pipeline("
+reject_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" "mir_dump("
+require_text "src/compiler/compiler_process.c" \
+    "pgy_exec_argv_capture_stdout("
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "DriverCliSourceMirDiagnosticStdout(String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    'args[0] == "--emit-mir-diagnostic-verified"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    "DriverSourceMirDiagnosticPayloadOrDie("
+require_text "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" \
+    "ProduceSourceMirThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" \
+    "MirJsonAdmitBorrowedText("
+reject_text "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" \
+    "MirMachineLayerAdmitJsonInput("
+require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" \
+    "func MirJsonAdmitBorrowedTextObserved("
+require_text "src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy" \
+    "ref admitted: MirMachineLayerAdmittedJsonInput"
+reject_text "src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy" \
+    "ReadFile("
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"'
 require_function_text "src/compiler/self_host_llvm_driver.c" \
     "driver_materialize_self_host_llvm_artifact(" \
     'intent_argv[1] = "--emit-source-llvm-ir-verified"'
@@ -9206,7 +9255,7 @@ require_max_lines \
 require_text "Makefile" \
     "self-host-generic-specialization-identity-epoch-test-smoke: self-host-canonical-mir-routine-phase-identity-test-smoke"
 require_text "Makefile" \
-    "self-host-public-mir-json-replacement-test-smoke: self-host-generic-specialization-identity-epoch-test-smoke"
+    "self-host-public-mir-json-replacement-test-smoke: self-host-installed-driver-cli-mode-test-smoke self-host-generic-specialization-identity-epoch-test-smoke"
 require_text "Makefile" \
     "self-host-public-llvm-ir-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke"
 require_text "Makefile" \

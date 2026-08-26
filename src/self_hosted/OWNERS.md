@@ -1143,9 +1143,14 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy` -- MIR fact
   graph payload contract facts.
 - `src/self_hosted/mir_lower/mir_json_input_owner.pgy` -- MIR JSON input
-  boundary and the file-backed input-buffer lifetime owner. Borrowed text APIs
-  retain caller ownership; file-backed compilation retires the one raw JSON
-  buffer only after every JSON-indexed consumer has projected typed facts.
+  boundary and the file-backed input-buffer lifetime owner. Its shared borrowed
+  text admission owns schema, parallel-capture, topology, machine, and intent
+  gates while retaining caller ownership; file-backed compilation retires the
+  one raw JSON buffer only after every indexed consumer projects typed facts.
+- `src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy` -- stable
+  human-readable projection of one fully admitted `pgy.mir.v1` program index.
+  Projection rows are presentation coordinates; native lifecycle, liveness,
+  cleanup, source-location, and speculation facts are outside this owner.
 - `src/self_hosted/mir_lower/abi_layout_admission_fact_owner.pgy` -- bounded
   required-layout row admission from instruction-owned spans. It parses the
   exact row once and returns the capture consumed by the Option match plan.
@@ -2160,6 +2165,11 @@ inventory must not become a second fact-family owner registry.
   `io_read` payload action and `io_read, io_write` artifact action share that
   admission; only the latter owns one atomic commit. It owns no lexer, parser,
   semantic, DIR, or MIR fact.
+- `src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy` --
+  shared read-only last consumer for canonical source-MIR JSON and its human
+  diagnostic projection. Both reuse one compiler-world payload receipt; only
+  the diagnostic form performs full borrowed-text admission before rendering.
+  It owns no second compiler action, protocol, publication, or native fallback.
 - `src/self_hosted/compiler/driver_source_c_protocol_owner.pgy` -- detached
   source-to-C payload/artifact receipts, rejections, outcome readiness, and
   diagnostics. The typed request carries an admitted machine declaration; its
@@ -3954,8 +3964,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy` --
   read-only executor for admitted token stdout, import-composed AST stdout,
   compiler stdout, machine-manifest, canonicalization, and missing-projection
-  probe requests. Source-C stdout delegates to its checked typed last consumer;
-  artifact variants fail before reads.
+  probe requests. Source-C and source-MIR stdout delegate to checked typed last
+  consumers; artifact variants fail before reads.
 - `src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy` -- installed
   artifact-effect executor. It delegates read variants to the read owner and
   publishes only typed artifact variants through compiler-world actions. It

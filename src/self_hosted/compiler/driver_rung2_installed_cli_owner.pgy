@@ -60,6 +60,8 @@ func DriverRung2ExecuteInstalledRequest(
             DriverRung2ExecuteReadRequest(request);
         case DriverCliSourceCManifestStdout(source_path, manifest_path):
             DriverRung2ExecuteReadRequest(request);
+        case DriverCliSourceMirDiagnosticStdout(source_path):
+            DriverRung2ExecuteReadRequest(request);
         case DriverCliSourceMirStdout(source_path):
             DriverRung2ExecuteReadRequest(request);
         case DriverCliSourceMirManifestStdout(source_path, manifest_path):

@@ -24,18 +24,14 @@ func MirJsonInputPressureStage(enabled: Bool, stage: String) -> Void {
     }
 }
 
-func MirJsonReadMachineAdmittedInputObserved(
-    path: String,
+func MirJsonAdmitBorrowedTextObserved(
+    json: String,
     declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
 ) -> MirMachineLayerAdmittedJsonInput {
-    let json: String = ReadFile(path);
     if StringLength(json) == 0 {
-        MirLowerFailClosed(Concat("empty or unreadable MIR-JSON file: ", path));
+        MirLowerFailClosed("empty MIR-JSON text");
     }
-    MirJsonInputPressureStage(
-        observe_pressure, "consumer:input:file-read:done"
-    );
     let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
     if !document.valid || !JsonObjectFactStringFieldEquals(
         document.root, "schema", "pgy.mir.v1"
@@ -89,6 +85,30 @@ func MirJsonReadMachineAdmittedInputObserved(
         observe_pressure, "consumer:input:machine-layer:done"
     );
     return UnwrapOption(admitted_opt);
+}
+
+func MirJsonAdmitBorrowedText(
+    json: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> MirMachineLayerAdmittedJsonInput {
+    return MirJsonAdmitBorrowedTextObserved(json, declaration, false);
+}
+
+func MirJsonReadMachineAdmittedInputObserved(
+    path: String,
+    declaration: SelfHostMachineLayerDeclaration,
+    observe_pressure: Bool
+) -> MirMachineLayerAdmittedJsonInput {
+    let json: String = ReadFile(path);
+    if StringLength(json) == 0 {
+        MirLowerFailClosed(Concat("empty or unreadable MIR-JSON file: ", path));
+    }
+    MirJsonInputPressureStage(
+        observe_pressure, "consumer:input:file-read:done"
+    );
+    return MirJsonAdmitBorrowedTextObserved(
+        json, declaration, observe_pressure
+    );
 }
 
 func MirJsonReadMachineAdmittedInput(

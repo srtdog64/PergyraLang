@@ -15,6 +15,7 @@ enum DriverRung2CliRequest {
     DriverCliSourceCManifestStdout(String, String),
     DriverCliSourceCArtifact(String, String),
     DriverCliSourceLlvmArtifact(String, String),
+    DriverCliSourceMirDiagnosticStdout(String),
     DriverCliSourceMirStdout(String),
     DriverCliSourceMirManifestStdout(String, String),
     DriverCliSourceMirArtifact(String, String),
@@ -35,8 +36,7 @@ enum DriverRung2CliRequest {
     DriverCliDirectMirLlvmObservedArtifact(String, String),
 }
 func DriverRung2CliPathOperandOrDie(
-    path: String,
-    purpose: String
+    path: String, purpose: String
 ) -> String {
     if path == "" || StartsWith(path, "-") {
         Die(Concat(purpose, " must be a non-option path"));
@@ -45,10 +45,7 @@ func DriverRung2CliPathOperandOrDie(
     // fact (Dirname, import joins, seen-set dedup) assumes "/".
     return SelfHostPath.NormalizeSeparators(path);
 }
-func DriverRung2CliArtifactPathsOrDie(
-    input_path: String,
-    output_path: String
-) -> Void {
+func DriverRung2CliArtifactPathsOrDie(input_path: String, output_path: String) -> Void {
     if input_path == output_path {
         Die("driver rung-2 input and output paths must differ");
     }
@@ -123,6 +120,12 @@ func DriverRung2CliRequestFromArgsOrDie(
         let output_path: String = DriverRung2CliPathOperandOrDie(args[3], "source LLVM output path");
         DriverRung2CliArtifactPathsOrDie(source_path, output_path);
         return DriverCliSourceLlvmArtifact(source_path, output_path);
+    }
+    if args[0] == "--emit-mir-diagnostic-verified" {
+        if count != 2 { Die("MIR diagnostic mode requires one source path"); }
+        return DriverCliSourceMirDiagnosticStdout(
+            DriverRung2CliPathOperandOrDie(args[1], "MIR diagnostic source path")
+        );
     }
     if args[0] == "--emit-mir-json-verified" {
         if count == 2 {

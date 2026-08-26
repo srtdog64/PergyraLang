@@ -131,14 +131,25 @@ for term in 'enum DriverRung2CliRequest' 'func DriverRung2CliRequestFromArgsOrDi
     require_text "$REQUEST_OWNER" "$term"
 done
 grep -Eq -- '(io_read|io_write|ReadFile\(|WriteFile\(|CompileSource|CompileMir|PublishSourceMir)' "$REQUEST_OWNER" && fail "pure CLI request admission regained compiler or I/O authority"
-for term in 'func DriverRung2CliLogSourceMirPayloadOrDie(' 'ProduceSourceMirThroughPgyCompilerWorld(' \
-    'DriverSourceMirPayloadAdmissionReadyFor(' 'DriverSourceMirPayloadAdmissionDiagnostic(' \
-    'case DriverSourceMirPayloadAdmitted(receipt): Log(receipt.payload);' \
-    'driver rung-2 artifact request requires installed composition root'; do
+for term in 'DriverSourceMirCanonicalPayloadOrDie(' \
+    'DriverCliSourceMirDiagnosticStdout(source_path):' \
+    'DriverSourceMirDiagnosticPayloadOrDie('; do
     require_text "$READ_OWNER" "$term"
 done
-[[ "$(grep -F -c -- 'ProduceSourceMirThroughPgyCompilerWorld(' "$READ_OWNER")" -eq 1 ]] || fail "read executor must delegate source-MIR stdout exactly once"
+[[ "$(grep -F -c -- 'CompileSourceToMirJsonVerified(' "$READ_OWNER")" -eq 0 ]] || fail "read executor regained direct source-MIR production"
 grep -Eq -- '(io_write|SelfMirArtifactCommitPayload|PublishSourceMirArtifact)' "$READ_OWNER" && fail "read executor regained artifact publication authority"
+for term in 'func DriverSourceMirStdoutReceiptOrDie(' \
+    'ProduceSourceMirThroughPgyCompilerWorld(' \
+    'DriverSourceMirPayloadAdmissionReadyFor(' \
+    'DriverSourceMirPayloadAdmissionDiagnostic(' \
+    'case DriverSourceMirPayloadAdmitted(receipt):
+            admitted_receipt = Some(receipt);' \
+    'func DriverSourceMirDiagnosticPayloadOrDie(' \
+    'MirJsonAdmitBorrowedText(receipt.payload, declaration)'; do
+    require_text "$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" "$term"
+done
+[[ "$(grep -F -c -- 'ProduceSourceMirThroughPgyCompilerWorld(' "$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy")" -eq 1 ]] ||
+    fail "source-MIR stdout owner must consume the world action exactly once"
 for term in 'func DriverRung2InstalledPublishSourceMir(' 'PublishSourceMirArtifactThroughPgyCompilerWorld(' \
     'DriverSourceMirExecutionOutcomeReadyFor(' 'DriverSourceMirExecutionOutcomeDiagnostic('; do
     require_text "$ARTIFACT_EXECUTION_OWNER" "$term"
