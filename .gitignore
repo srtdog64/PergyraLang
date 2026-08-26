@@ -6,7 +6,7 @@
 /build/
 /build*/
 /bin/
-/bin-asan-*/
+/bin-*/
 .tmp/
 
 # Ad-hoc debug dumps emitted by --emit-c / --emit-mir / --emit-hir
