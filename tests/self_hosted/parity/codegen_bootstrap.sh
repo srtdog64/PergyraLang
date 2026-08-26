@@ -519,7 +519,7 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
         if [[ "$mir_base" == "role_operator_dispatch" ]]; then
             partial_rel="$B_REL/mir_${mir_base}_partial_identity.json"
             partial="$ROOT_DIR/$partial_rel"
-            sed '0,/{"name":"self","type":null/s//{"name":"self","source_syntax_id":1,"type":null/' \
+            sed 's/{"name":"self","type":null/{"name":"self","source_syntax_id":1,"type":null/g' \
                 "$ROOT_DIR/$mir_json_rel" >"$partial"
             grep -Fq '"source_syntax_id":1' "$partial" || {
                 echo "[self-host-bootstrap] role partial-identity mutation was not applied" >&2
