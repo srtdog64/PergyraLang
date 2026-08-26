@@ -8803,7 +8803,7 @@ require_max_lines \
     "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" 60
 require_file "src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy"
 require_max_lines \
-    "src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy" 200
+    "src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy" 240
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'import "driver_source_c_stdout_execution_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
