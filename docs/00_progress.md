@@ -2,6 +2,44 @@
 
 마지막 업데이트: 2026-08-26
 
+2026-08-26 로컬 실행 갱신: checkpoint `9ad47dd7`, CFG repair `2f4dfe28`, Linux harness repair
+`60e9fb8a`는 exact nested
+priority/observability family의 source-C와 direct-MIR C를 기존 sealed
+`DirectMirNestedIntentProgramPlan` 하나로 수렴시켰다. 이전 direct C는 LLVM-only
+분기에서 route claim 전 `None`을 받아 scalar admission까지 떨어진 뒤 실패했고,
+source-C는 같은 admitted MIR을 tree text/AST로 재구성하고 semantic/codegen을 다시
+수행했다. 이제 projection은 route를 먼저 한 번 claim하고 plan을 한 번 seal한 뒤
+C/LLVM emitter를 target fact로 선택한다. Claimed-invalid family는 다른 경로로
+재해석되지 않는다.
+
+새 C emitter는 admitted MIR, source, AST, JSON을 읽지 않고 plan 및 canonical
+runtime/observability ABI symbol만 소비한다. Source-C의 exact 4-routine/
+2-declaration guard는 이 projection을 `DriverRung2IntentTreeEmissionOrDie`보다 앞에
+배치하며, direct C도 scalar admission 전에 같은 함수를 부른다. Final
+current-source Pergyra-built DRV-2 설치가 성공했고 focused gate는 11.6초에 green이다.
+Source/direct C artifact는 2,488 bytes, SHA-256 `4F2B9434...23E644`로 byte-equal이며,
+thread-safe zone ABI와 `-Wall -Wextra -Werror`로 컴파일되고 정확한 9줄을 실행한다.
+기존 LLVM 5개와 두 C entrypoint의 10개 mutation은 artifact 없이 owned boundary에서
+실패한다. 새 target/job/build는 추가하지 않았다.
+
+이는 exact family의 실제 source-C 재구성 path와 direct-C scalar dead end를 Pergyra
+plan 하나로 대체한 bounded `SUBSTITUTING`이다. Arbitrary intent C나 top-level
+registry row를 닫지는 않으므로 전체 78%, strict beta 83%, SoT
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 유지한다. Full component inventory는 90초
+무출력 뒤 static-loop budget을 지키기 위해 중단했으며 green으로 주장하지 않는다.
+첫 push run `32911287910`은 full self-host body-safety에서 target-invalid `Die` 뒤
+명시적 `return None`이 빠진 것을 잡았다. Repair 뒤 동일 native-oracle driver 방출은
+로컬 0 error로 완료되고 focused gate도 다시 green이다. Replacement run
+`32912230440`은 fixed-point와 DRV-2 설치 뒤 새 thread-safe C harness가 Linux POSIX
+feature macro를 누락한 것을 잡았다. Harness는 기존 bootstrap emitted-C profile과
+같은 macro를 사용하고 local focused gate도 green이다.
+
+Final checkpoint `60e9fb8a`의 run `32913743277`은 29분 25초에 29/29 green으로
+완료됐다. `build-linux`는 15분 24초, full self-host는 29분 20초였으며 20개 backend
+shard, sanitizer, Windows/macOS, codegen bootstrap, TSan, Rocq가 모두 통과했다.
+Lease E는 `DONE`이며 다음 production bypass와 objective card를 관측하기 전에는 후속
+rung을 추정하지 않는다.
+
 2026-08-26 로컬 실행 갱신: installed MIR-C stdout의 기본 요청과 명시적
 machine-manifest 요청을 기존 `PgyCompilerWorld.direct_mir` zone과 MIR-C artifact
 publication이 공유하는 typed payload admission 뒤로 옮겼다. 기존 verified/

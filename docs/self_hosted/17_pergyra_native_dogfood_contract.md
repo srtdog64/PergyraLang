@@ -1407,6 +1407,43 @@ fail closed하므로 이 bounded stdout slice는 `SUBSTITUTING`이다. 그러나
 찾아 실제 composite execution을 대체하는 것이다. Priority `0` hardcode,
 source-text 재파싱, fixture 분기, native retry는 금지한다.
 
+## 완료된 exact nested priority/observability C target-pair substitution
+
+2026-08-26 checkpoint `9ad47dd7`, CFG repair `2f4dfe28`, Linux harness repair
+`60e9fb8a`는 이미 direct LLVM이 소비하던 exact
+one-subject/one-zone/two-intent plan을 C의 production entrypoint까지 확장했다.
+
+- Production entrypoints: installed source-C artifact/stdout와 direct-MIR C
+  artifact다. 전자는 exact family에서 일반 MIR-to-AST reconstruction 전에,
+  후자는 scalar admission 전에 같은 claimed projection을 소비한다.
+- Fact owner: `DirectMirNestedIntentProgramPlanFromAdmitted`가 route, declaration/
+  routine identity, subject/zone field, callable headers, nested argument,
+  literal/dynamic priority, action expectation을 seal한다. C/LLVM emitter는 이
+  plan과 canonical runtime/intent-observability ABI symbol만 소비한다.
+- Deleted bypass: exact source-C의
+  `DriverRung2IntentTreeEmissionOrDie -> reconstructed AST -> semantic/codegen`
+  재분석과 direct-C의 LLVM-only `None -> scalar-program-route` dead end다.
+  Route claim 뒤 plan/ABI/fact 오류는 None이나 다른 compiler lane으로 축약하지
+  않는다.
+- Executable evidence: current-source Pergyra-built DRV-2에서 source/direct C가
+  2,488-byte SHA-256 `4F2B9434...23E644`로 byte-equal하다. Thread-safe zone ABI와
+  warning-as-error C compile 뒤 exact nine-line priority/observability output을
+  실행하며, LLVM 5개와 C 10개 mutation은 artifact 없이 owned diagnostic으로
+  실패한다. 기존 Make target의 sourced sibling을 사용하므로 job/target/build는
+  증가하지 않는다.
+- Grade: 두 실제 production C 우회를 같은 Pergyra-owned plan으로 교체했으므로
+  이 exact family는 bounded `SUBSTITUTING`이다. Arbitrary nested intent, general
+  intent C, compiler-purpose root, `selfhost.intent_declaration_rows` 전체의
+  폐쇄를 뜻하지 않는다.
+- 첫 remote full self-host는 target-invalid `Die` 뒤 명시적 `return None`이 없는
+  CFG를 거부했다. Repair는 이 unreachable fail-closed return만 추가했고 동일
+  native-oracle driver 방출과 focused executable gate는 local green이다. 다음
+  remote run은 fixed-point/DRV-2 뒤 thread-safe C harness의 Linux POSIX feature
+  macro 누락을 잡았다. Harness가 기존 bootstrap emitted-C profile을 그대로
+  따르도록 고쳤다. Final run `32913743277`은 29분 25초에 29/29 green이며
+  `build-linux` 15분 24초, full self-host 29분 20초와 모든 backend shard,
+  sanitizer, platform, codegen bootstrap, TSan, Rocq를 닫았다.
+
 ## 세션 메모리와 handoff 규칙
 
 모든 후속 작업은 `docs/current_work_handoff.md`에 다음을 남긴다.

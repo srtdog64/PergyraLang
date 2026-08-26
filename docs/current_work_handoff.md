@@ -17,58 +17,73 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - installed MIR-C stdout world/action closed; select next executable rung
+## Active self-host context - exact nested priority/observability C target-pair substitution
 
-- Code checkpoint `e5b159c3bb44c10ae90acd379670489bd26ce8ba` is on local
-  and remote `main`. Before this result-only handoff commit, only the active
-  handoff/progress/coordination documents are project-owned dirty state;
+- Code checkpoint `60e9fb8a2d3ed32535c6ceee7d67246f6c32ddba` is on local
+  and remote `main`. Before the result-only handoff commit, the handoff,
+  progress, dogfood, and coordination documents are project-owned dirty state;
   afterward the worktree should contain only the unrelated user-owned untracked
   `pgy-80135c2c/` directory. Do not inspect it as evidence, stage it, delete it,
   or rewrite it.
-- Objective card: make installed `--mir-json INPUT` stdout and its explicit
-  machine-manifest form enter `PgyCompilerWorld.direct_mir` and consume the same
-  typed MIR-C payload admission as artifact publication. Priority = preserve
-  observation request identity; independently seal default versus verified
-  manifest identity; preserve the canonical CPU-C target and original
-  `CompilerEmissionArtifact`; compile once; preserve exact bytes; then reject
-  old reads. Semantic owner = `CompileMirJsonToCVerified[Observed]`;
-  orchestration owner = `DriverRung2Execution`; last consumer =
-  `DriverRung2CliLogMirCPayloadOrDie`. Forbidden = direct compiler calls in the
-  read executor, malformed-manifest defaulting, a second world/zone/compiler
-  call, reconstructed target facts, or stdout temp publication.
-- Parallel read-only owner and gate audits fixed two independent request axes:
-  existing `DriverRung2MirCRequest` retains verified versus pressure-observed
-  behavior, while `DriverRung2MirCMachineRequest` owns default versus explicit
-  manifest identity. One common payload producer validates both axes, admits
-  the canonical CPU-C target, calls the selected compiler exactly once, and
-  carries the original artifact plus target fact to stdout or atomic artifact
-  publication. The stdout consumer has no write/commit capability.
-- The hidden fallback was reproduced before the change: malformed explicit
-  manifest JSON exited 0 and emitted the 9,430-byte default C payload. It now
-  exits nonzero with `MIR C machine declaration is invalid` and emits no C.
-  Default stdout remains 9,430 bytes at SHA-256 `A29997AD...B8749`; the default
-  artifact remains 9,174 host-normalized bytes at `F36551DE...96A33`; admitted
-  manifest stdout remains 9,472 bytes at `CB37D99B...19BA`.
-- The existing installed-driver Make target is locally GREEN after a fresh
-  Pergyra-built DRV-2 install. It proves default/artifact parity, admitted
-  manifest output, typed invalid-manifest rejection, one common producer, and
-  no read-executor compiler bypass. Narrow compiler-world/topology/action gates
-  are also GREEN. The push workflow now invokes this existing target in its
-  existing single Make call; it adds no job or second self-host compiler build.
-- Final component, compiler-world, recursive topology, hard, likeness,
-  progress, SoT authority-edge, protocol, and documentation gates are locally
-  GREEN, as is `git diff --check`. Likeness remains sentinel `24/24`,
-  Result/Option `4287/4287`, one world, 22 zones, and four members; SoT remains
-  86 authorities / 180 derived carriers and `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-  This is `REACHABLE` orchestration closure, not another implementation
-  replacement, so overall remains 78% and strict beta 83%.
-- Push run `32905167784` completed 29/29 green in 29m16. `build-linux`, which
-  now executes the installed MIR-C stdout falsifier in its existing Make call,
-  passed in 15m04; full self-host passed in 29m12. All 20 backend shards,
-  sanitizers, Windows/macOS, codegen bootstrap, TSan, and Rocq passed. Lease D
-  is `DONE`. No successor rung is inferred: the next session must observe a
-  production entrypoint and direct bypass, name its owner/last consumer/
-  falsifier, and write a new objective card before implementation.
+- Objective card: make the exact one-subject/one-zone/two-intent nested
+  priority/observability family emit C from the same sealed
+  `DirectMirNestedIntentProgramPlan` as direct LLVM. Priority = exact behavior,
+  one plan, MIR-blind C materialization, byte-identical source/direct C,
+  claimed-family fail-closed mutations, old-path rejection, then warning
+  cleanliness. Fact owner =
+  `DirectMirNestedIntentProgramPlanFromAdmitted`; last consumers = installed
+  source/MIR-to-C and direct-MIR C artifact entrypoints. Forbidden = source-C
+  MIR-to-AST reconstruction or direct-C scalar retry after this route claims.
+- Two read-only peer audits found the decisive seams before implementation.
+  The old target branch returned `None` for every C request before asking the
+  route owner, and the source-C consumer entered
+  `DriverRung2IntentTreeEmissionOrDie` before any exact projection. The audits
+  also corrected a false eight-line claim to the actual nine-line oracle and
+  showed that the 160-line parent gate could source one sibling without a new
+  Make target, workflow job, or second self-host build.
+- The projection now claims once, seals one plan, and dispatches it to C or
+  LLVM. The C emitter consumes only the plan plus canonical runtime/ABI symbol
+  owners. `DriverRung2NestedIntentCSubstitutionIfClaimed` handles only the exact
+  four-routine/two-declaration source-C family before MIR-to-AST reconstruction;
+  unclaimed programs alone continue to the general path. Direct C consumes the
+  same projection before scalar admission. Claimed-invalid programs die at the
+  nested owner and are never retried.
+- A fresh current-source Pergyra-built DRV-2 is installed. The final focused
+  target script passed in 11.6 seconds. Source-C and direct-MIR C are exactly
+  2,488 bytes with SHA-256 `4F2B9434AF2E8ABCD9F782E2909EA4261CD2E03638A52147E61940D99D23E644`.
+  Their shared artifact compiles with thread-safe zone ABI and
+  `-Wall -Wextra -Werror`, then executes the exact nine-line output. Existing
+  LLVM parity/five negatives plus both C entrypoints' ten no-artifact negatives
+  pass. Focused caps/order ratchets, shell syntax, and `git diff --check` pass.
+- A complete component inventory scan was stopped after 90 seconds with no
+  output to respect the 60-second static-loop budget; it is not claimed green.
+  The real DRV-2 build and executable/negative gate are green and own this
+  slice. First push run `32911287910` found that the new target projection's
+  final `Die` needed an explicit unreachable `return None` for the self-host
+  CFG body-safety proof. Repair `2f4dfe28` adds only that fail-closed return;
+  the exact native-oracle driver emission then completed locally with zero
+  errors and the focused target remained green. Replacement run `32912230440`
+  passed fixed-point equality, installed DRV-2, and the preceding intent gates,
+  then found the new thread-safe C harness omitted Linux POSIX feature macros.
+  Checkpoint `60e9fb8a` mirrors the existing bootstrap emitted-C compiler
+  profile; it does not change the artifact. Shell syntax and the exact focused
+  execution are local green. Final run `32913743277` completed 29/29 green in
+  29m25; `build-linux` took 15m24 and full self-host took 29m20. All 20 backend
+  shards, sanitizers, platforms, codegen bootstrap, TSan, and Rocq passed.
+- Same-mistake rule for this Windows host: run shell gates through
+  `C:\msys64\usr\bin\bash.exe` with `/ucrt64/bin` first on `PATH`. Bare
+  `bash` reaches an unavailable WSL `/bin/bash`, while `/mingw64/bin` selects
+  the wrong runtime family. After directly installing the current DRV-2, run
+  the focused script itself instead of its phony self-host Make prerequisite,
+  which starts a duplicate bootstrap before the actual gate.
+- This exact C family is bounded `SUBSTITUTING`: it replaces both a real
+  source-C reconstruction path and the direct-C scalar dead end with one
+  Pergyra plan. It does not close arbitrary intent C, the broader intent
+  declaration family, or a top-level SoT row. Overall remains 78%, strict beta
+  83%, and hard SoT remains `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Lease E is DONE. Do not infer another implementation from this handoff;
+  observe the next production bypass, write a new objective card, and name its
+  falsifying fixture before opening the next executable rung.
 
 ### Historical archive boundary
 

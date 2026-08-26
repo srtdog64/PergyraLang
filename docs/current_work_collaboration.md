@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease E — nested priority/observability direct-C substitution
+## DONE lease E — nested priority/observability direct-C substitution
 
 - Base revision: `5d2f7e6e060a67e2950deba574f334d59889f6f6`.
 - Editing and integration owner: the primary Codex task. Peer Codex tasks are
@@ -61,6 +61,55 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
    reuse, owner caps, exact public/direct/native evidence, and mutation set.
    Report the smallest non-duplicating executable/negative ratchet; make no
    edits.
+
+### Result
+
+- Code checkpoint `9ad47dd782915aaf0d200d7efa0fb781c8d51736` makes the
+  nested projection claim its route before target selection, seal one plan,
+  and dispatch that plan to MIR-blind C or LLVM emitters. Direct C no longer
+  falls through to scalar admission for the claimed family.
+- `DriverRung2NestedIntentCSubstitutionIfClaimed` gives the exact four-routine,
+  two-declaration source/MIR-to-C family the same projection before
+  `DriverRung2IntentTreeEmissionOrDie`. Unclaimed programs alone continue to
+  the general reconstruction path. File-backed MIR source JSON is retired only
+  after the shared payload and topology projection are complete.
+- The final current-source Pergyra-built DRV-2 install is GREEN. The existing
+  nested gate plus its sourced C sibling passed in 11.6 seconds: source-C and
+  direct-MIR C are byte-identical at 2,488 bytes, SHA-256
+  `4F2B9434...23E644`; thread-safe C compiles with
+  `-Wall -Wextra -Werror`; runtime output is the exact nine-line oracle; and
+  five LLVM plus ten C no-artifact mutations fail at owned boundaries.
+- No Make target, workflow job, or second target-local self-host build was
+  added. The existing target already reaches the sourced sibling. A local full
+  component inventory scan was stopped after 90 seconds with no output to
+  honor the static-loop budget; focused owner caps, ordering ratchets, shell
+  syntax, `git diff --check`, the real DRV-2 build, and the executable gate are
+  GREEN. Its first push run `32911287910` exposed one real self-host CFG
+  falsifier: the claimed-invalid target branch called `Die` but lacked the
+  explicit unreachable `return None` required by the current body-safety
+  proof. Repair checkpoint `2f4dfe2844a8dffd813081b9381e236829204f02`
+  follows the repository's fail-closed return convention. The exact native-
+  oracle driver emission now completes locally with zero errors and the
+  focused executable gate remains GREEN. Replacement run `32912230440`
+  advanced through fixed-point equality and installed DRV-2, then exposed a
+  Linux-only harness mismatch: its thread-safe C invocation omitted the POSIX
+  feature macros already used by the bootstrap emitted-C profile. Checkpoint
+  `60e9fb8a2d3ed32535c6ceee7d67246f6c32ddba` mirrors that profile in the
+  focused sibling without changing generated code. Local shell syntax and the
+  exact executable gate remain GREEN. Final run `32913743277` completed 29/29
+  GREEN in 29m25; `build-linux` took 15m24 and full self-host took 29m20. All
+  20 backend shards, sanitizers, Windows/macOS, codegen bootstrap, TSan, and
+  Rocq passed at checkpoint `60e9fb8a`.
+- Windows repeatability rule: use `C:\msys64\usr\bin\bash.exe` with
+  `/ucrt64/bin` first on `PATH`. Bare `bash` selects the unavailable WSL
+  `/bin/bash` here, and `/mingw64/bin` is not the compiler runtime used by the
+  installed artifacts. Once a current DRV-2 is installed, invoke the focused
+  script directly; immediately invoking the phony self-host Make prerequisite
+  repeats the bootstrap and obscures the actual gate cost.
+- This is bounded `SUBSTITUTING` for the exact nested priority/observability C
+  family. It does not close arbitrary intent C, the wider intent declaration
+  row, or any top-level SoT authority; 78%, strict beta 83%, and
+  `49 CLOSED / 36 BRIDGE / 1 ACTIVE` remain unchanged.
 
 ## DONE lease D — installed MIR-C stdout world/action boundary
 

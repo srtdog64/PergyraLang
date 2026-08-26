@@ -1,6 +1,46 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-26 installed MIR-C stdout world/action closure
+## Active self-host context - 2026-08-26 nested priority/observability C substitution
+
+- Checkpoints `9ad47dd7`, CFG repair `2f4dfe28`, and Linux harness repair
+  `60e9fb8a` make the exact
+  one-subject/one-zone/two-intent nested
+  route target-generic. It claims before target selection, seals one
+  `DirectMirNestedIntentProgramPlan`, and dispatches that plan to MIR-blind C or
+  LLVM emitters. The direct-C request no longer falls through to scalar
+  admission.
+- Exact four-routine/two-declaration source-C enters
+  `DriverRung2NestedIntentCSubstitutionIfClaimed` before the general
+  MIR-to-AST consumer. It attaches the same topology projection and preserves
+  file-backed MIR input retirement. Only an unclaimed program can continue to
+  reconstruction; claimed-invalid facts fail at the nested owner.
+- A fresh current-source Pergyra-built DRV-2 install is GREEN. The final
+  focused target script passed in 11.6 seconds. Source/direct C artifacts are
+  byte-identical at 2,488 bytes, SHA-256 `4F2B9434...23E644`, compile with the
+  thread-safe zone ABI under `-Wall -Wextra -Werror`, and execute the exact
+  nine-line oracle. Existing LLVM parity/five negatives and ten C no-artifact
+  negatives pass.
+- No Make target, CI job, or target-local second self-host build was added. A
+  full component inventory scan exceeded the static-loop budget and was
+  stopped after 90 seconds without output; focused caps/order checks, shell
+  syntax, `git diff --check`, the real DRV-2 build, and the executable gate are
+  green. First push run `32911287910` exposed a missing explicit unreachable
+  `return None` after the target-invalid `Die`; the current self-host CFG proof
+  requires that fail-closed return shape. The repaired exact native-oracle
+  driver emission completes with zero local errors and the focused gate stays
+  green. Replacement run `32912230440` passed fixed-point equality and the
+  installed DRV-2 before finding that the new thread-safe C harness omitted
+  Linux POSIX feature macros. It now mirrors the existing bootstrap emitted-C
+  profile and remains local green. Final run `32913743277` completed 29/29
+  green in 29m25; `build-linux` took 15m24 and full self-host took 29m20. All
+  backend shards, sanitizers, platforms, codegen bootstrap, TSan, and Rocq
+  passed. This bounded rung is closed; no successor is inferred without a new
+  production bypass and objective card.
+- This exact C family is bounded `SUBSTITUTING`, but arbitrary intent C and the
+  wider intent declaration/SoT family remain open. Overall stays 78%, strict
+  beta 83%, and hard SoT stays `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+
+## Historical self-host context - 2026-08-26 installed MIR-C stdout world/action closure
 
 - Lease D moves installed `--mir-json INPUT` stdout and its explicit
   machine-manifest form behind `PgyCompilerWorld.direct_mir` and the same typed
