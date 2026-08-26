@@ -42,6 +42,7 @@ DRIVER_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 CARRIER_OWNER="$ROOT_DIR/src/self_hosted/mir/domain_topology_fact_owner.pgy"
 DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_main.pgy"
 FIXTURE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
+ORDER_DRIFT_FIXTURE="$ROOT_DIR/grammar/04_zone_intent_authority.pgy"
 BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/canonical_identity_epoch_gate"
 PREBUILT_DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"
 DRIVER_BIN="$BUILD_DIR/driver_c.exe"
@@ -49,6 +50,8 @@ RAW_MIR="$BUILD_DIR/raw.mir.json"
 VALID_MIR="$BUILD_DIR/valid-simple.mir.json"
 CANONICAL_MIR="$BUILD_DIR/canonical.mir.json"
 CANONICAL_CARRIER="$BUILD_DIR/canonical-epoch-carrier.mir.json"
+ORDER_DRIFT_MIR="$BUILD_DIR/non-monotonic-routine-order.mir.json"
+ORDER_DRIFT_C="$BUILD_DIR/non-monotonic-routine-order.c"
 
 mkdir -p "$BUILD_DIR"
 
@@ -116,6 +119,10 @@ for term in \
     'MirExpressionIdentityEpochFromArtifactWithSignatures' \
     'header.param_source_syntax_ids[param]' \
     'canonical_param_id' \
+    'source_ids[existing] == source_id' \
+    'canonical_ids[existing] == canonical_id' \
+    'ArraySet(source_ids, shift, source_ids[shift - 1])' \
+    'parameter_shape_matches = ArrayLength(header.param_names) == 0' \
     'MirExpressionIdentityEpochLookup'; do
     grep -Fq -- "$term" "$EXPRESSION_IDENTITY_OWNER" \
         || fail "expression identity epoch lost exact routine/parameter join: $term"
@@ -152,6 +159,35 @@ else
         fail "driver build failed"
     fi
 fi
+
+(cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
+    "${ORDER_DRIFT_FIXTURE#$ROOT_DIR/}" -o \
+    "${ORDER_DRIFT_MIR#$ROOT_DIR/}" >"$BUILD_DIR/order-drift-producer.out" \
+    2>"$BUILD_DIR/order-drift-producer.err") \
+    || fail "non-monotonic routine-order MIR was not produced"
+"$PYTHON_BIN" - "$ORDER_DRIFT_MIR" <<'PY'
+import json
+import pathlib
+import sys
+
+doc = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+routines = doc["routines"]
+source_ids = [int(routine["source_syntax_id"]) for routine in routines]
+if source_ids == sorted(source_ids):
+    raise SystemExit("routine-order falsifier no longer carries non-monotonic source IDs")
+if not any(routine["kind"] == "intent" for routine in routines):
+    raise SystemExit("routine-order falsifier lost its intent routine")
+PY
+if ! (cd "$ROOT_DIR" && "$DRIVER_BIN" --mir-json \
+    "${ORDER_DRIFT_MIR#$ROOT_DIR/}" -o \
+    "${ORDER_DRIFT_C#$ROOT_DIR/}" >"$BUILD_DIR/order-drift-consumer.out" \
+    2>"$BUILD_DIR/order-drift-consumer.err"); then
+    cat "$BUILD_DIR/order-drift-consumer.out" \
+        "$BUILD_DIR/order-drift-consumer.err" >&2
+    fail "non-monotonic routine-order epoch join was rejected"
+fi
+[[ -s "$ORDER_DRIFT_C" ]] \
+    || fail "non-monotonic routine-order C artifact was not produced"
 
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified \
     "${FIXTURE#$ROOT_DIR/}" \

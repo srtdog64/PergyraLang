@@ -29,13 +29,28 @@ func MirExpressionIdentityEpochAppend(
         return false;
     }
     let count: Int = ArrayLength(source_ids);
-    if count > 0 &&
-        (source_ids[count - 1] >= source_id ||
-         canonical_ids[count - 1] >= canonical_id) {
-        return false;
+    let insertion_index: Int = count;
+    let existing: Int = 0;
+    while existing < count {
+        if source_ids[existing] == source_id ||
+            canonical_ids[existing] == canonical_id {
+            return false;
+        }
+        if insertion_index == count && source_ids[existing] > source_id {
+            insertion_index = existing;
+        }
+        existing = existing + 1;
     }
     ArrayPush(source_ids, source_id);
     ArrayPush(canonical_ids, canonical_id);
+    let shift: Int = count;
+    while shift > insertion_index {
+        ArraySet(source_ids, shift, source_ids[shift - 1]);
+        ArraySet(canonical_ids, shift, canonical_ids[shift - 1]);
+        shift = shift - 1;
+    }
+    ArraySet(source_ids, insertion_index, source_id);
+    ArraySet(canonical_ids, insertion_index, canonical_id);
     return true;
 }
 
@@ -126,9 +141,17 @@ func MirExpressionIdentityEpochFromArtifactWithSignatures(
                 signature = signature + 1;
             }
         }
+        let parameter_shape_matches: Bool =
+            canonical_param_count == ArrayLength(header.param_names);
+        if routines.kinds[routine] == "intent" {
+            // Intent participants are owned by the admitted intent execution
+            // plan, not by MIR routine formal-parameter rows.  Do not make
+            // those two fact families a shared numeric epoch.
+            parameter_shape_matches = ArrayLength(header.param_names) == 0;
+        }
         if matches != 1 || source_routine_id <= 0 ||
             !MirRoutineHeaderParameterRowsReady(header) ||
-            canonical_param_count != ArrayLength(header.param_names) ||
+            !parameter_shape_matches ||
             !MirExpressionIdentityEpochAppend(
                 source_routine_id, canonical_routine_id,
                 source_ids, canonical_ids
