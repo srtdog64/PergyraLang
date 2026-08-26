@@ -1372,6 +1372,15 @@ top-level row or change the `CLOSED/BRIDGE/ACTIVE` census. Gate-identity ratchet
 `e070fcec` preserves the stable canonical-epoch pass marker; the SoT edge gate
 observes `CLOSED=50 BRIDGE=35 ACTIVE=1`.
 
+Run `33016014561` reached beyond the first callable epoch mismatch and exposed
+two assumptions inside the same owner: MIR routine inventory order is not
+source SyntaxNodeId order, and intent participants belong to the admitted intent
+execution plan rather than MIR routine formal rows. Repair `dfbe9b0a` keeps the
+exact pair table sorted by source ID, rejects duplicate source or canonical IDs,
+and requires intent routine formal rows to be empty without creating a second
+participant owner. The non-monotonic grammar falsifier is executable evidence;
+this repair does not add or promote a top-level registry row.
+
 GraphPlan v71 does not add a registry row or change a top-level fact identity.
 It tightens the existing declaration-keyed logical-record signature consumer:
 `DirectMirRoutineSignatureFact` owns carriage/pass/resource/ABI facts, and

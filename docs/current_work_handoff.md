@@ -24,10 +24,11 @@ percentage by themselves.
   repair `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, native-MIR repair
   `024d1ba7f858b09802d97bc0372c29deaa440745`, fixture-scope checkpoint
   `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, and Linux mutation repair
-  `5f73970168b45252b8c6637691e7ef363e8304b3` are published. Canonical expression-
-  identity epoch candidate repair `1d4590364e32bb4708659e609cc6a96e6b23b318`
-  and stable gate-identity ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2`
-  are the exact local checkpoints. Replacement push/CI remains
+  `5f73970168b45252b8c6637691e7ef363e8304b3`, canonical expression-identity
+  repair `1d4590364e32bb4708659e609cc6a96e6b23b318`, and stable gate-identity
+  ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2` are published. Non-monotonic
+  epoch repair `dfbe9b0a1dc224db0ba95193520c264a9c80933f` is the exact local
+  checkpoint. Replacement push/CI remains
   pending. The unrelated user-owned `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
@@ -92,7 +93,21 @@ percentage by themselves.
   gate passes; full `src/self_hosted/mir_lower/main.pgy` semantic re-entry emits
   a 1,975,383-byte C artifact; and the complete component contract gate passes.
   The canonical-epoch stable pass marker and SoT edge census are GREEN at
-  `e070fcec`; a new remote replacement run remains the next falsifier.
+  `e070fcec`.
+- Replacement run `33016014561` passed 27/29 and proved the prior callable row
+  no longer fails. `build-linux` then found grammar 04's non-monotonic routine
+  source IDs (`9,22,44,35`) and stale generated language-word inventory. Full
+  bootstrap found the same epoch owner requiring reconstructed intent
+  participants to equal the MIR routine's intentionally empty formal rows.
+- Repair `dfbe9b0a` performs sorted exact-pair insertion, rejects source and
+  canonical ID duplication, and keeps intent participants under the admitted
+  intent execution plan while requiring zero intent routine formal rows. Fresh
+  v9 local evidence is GREEN for callable C/LLVM plus 20 negatives, the
+  canonical epoch gate, all 17 manifest-verified grammar examples, full
+  `mir_lower` C emission (1,975,383 bytes), the language-word registry, and SoT
+  edge. The post-repair full component rerun exceeded the five-minute focused
+  budget and was stopped, so it is not claimed green. A new remote replacement
+  run is the next falsifier.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
   Physical cleanup was rejected by execution policy before any deletion; do not

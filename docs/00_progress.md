@@ -61,6 +61,19 @@ ratchet `e070fcec`는 기존 stable pass marker를 복구했고 SoT edge는
 `CLOSED=50 BRIDGE=35 ACTIVE=1`로 다시 green이다. 수치와 registry 상태는
 그대로다.
 
+Replacement run `33016014561`도 27/29를 통과해 이전 callable 단절은
+넘었지만 두 후속 가정을 반례로 드러냈다. `build-linux`는 routine
+배열이 source SyntaxNodeId 오름차순이라고 가정해 grammar 04의
+`9,22,44,35`를 거부했고 generated language-word inventory drift도 잡았다.
+Full bootstrap은 intent participant를 MIR routine formal row와 같은 fact family로
+잘못 보아 멈췄다. Repair `dfbe9b0a`는 source ID 기준 exact pair를
+정렬 삽입하고 source/canonical 중복을 거부한다. Intent participant는 기존
+intent execution plan이 계속 소유하며 routine formal은 0개여야 한다. Fresh v9에서
+grammar 17/17, callable C/LLVM과 20 negatives, canonical epoch gate, full
+`mir_lower` C emission, language-word generator gate, SoT edge가 green이다. Full
+component rerun은 5분 focused 예산을 넘어 중단했으며 green으로 세지 않는다.
+새 원격 CI 전이므로 수치와 registry 상태는 그대로다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,

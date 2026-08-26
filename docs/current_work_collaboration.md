@@ -11,13 +11,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Implementation `30b84f80aaf13a8479b533a931ef115dfcea5905`, lifetime repair
   `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, native-MIR repair
   `024d1ba7f858b09802d97bc0372c29deaa440745`, fixture-scope repair
-  `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, and Linux mutation repair
-  `5f73970168b45252b8c6637691e7ef363e8304b3` are published. Canonical
-  expression-identity epoch candidate repair
-  `1d4590364e32bb4708659e609cc6a96e6b23b318` is the current exact
-  implementation checkpoint and `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2`
-  restores the stable canonical-epoch gate identity. Both are local until the
-  pending replacement push/CI.
+  `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, Linux mutation repair
+  `5f73970168b45252b8c6637691e7ef363e8304b3`, canonical expression-identity
+  repair `1d4590364e32bb4708659e609cc6a96e6b23b318`, and stable gate-identity
+  ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2` are published. Exact
+  non-monotonic epoch repair `dfbe9b0a1dc224db0ba95193520c264a9c80933f`
+  is local until the pending replacement push/CI.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -130,6 +129,22 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   GREEN. The stable canonical-epoch pass marker and SoT edge census are also
   GREEN at `e070fcec`. Replacement CI is still required before this lease can
   close.
+- Replacement run `33016014561` again passed 27/29. The callable epoch repair
+  reached past the prior `JsonCharCodeAt` failure. `build-linux` then exposed a
+  non-monotonic routine inventory (`9,22,44,35`) in grammar 04 plus stale
+  generated language-word inventory; full bootstrap exposed the same epoch
+  owner equating intent participants with absent MIR routine formal rows.
+- Repair `dfbe9b0a` keeps exact source/canonical pairs sorted by source ID,
+  rejects duplicate IDs on both axes, and leaves intent participant identity
+  with the existing admitted intent execution plan. An intent MIR routine must
+  carry zero formal rows; no second participant owner or compatibility read is
+  introduced. The generator-owned language-word inventory is refreshed.
+- Fresh v9 evidence is GREEN for the canonical epoch gate, callable C/LLVM
+  execution and 20 negatives, full `mir_lower/main.pgy` C emission (1,975,383
+  bytes), all 17 manifest-verified grammar examples, the language-word registry,
+  and the SoT edge census. The complete component rerun exceeded the five-minute
+  focused budget and was stopped, so only the earlier v7 component result is
+  green. Replacement CI remains required.
 
 ## DONE lease O — structured MatchCase carrier closure
 
