@@ -18,78 +18,49 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - native ABI-ID consumer migration local green
+## Active self-host context - carried ABI CI repair ready for replacement run
 
-- Dependency-map checkpoints `41a01815`, `acf6c94f`, and correction `2a8807f6`
-  are published. Local build-ignore repair `1e8b5531` is committed. The current
-  implementation is based on that revision; before its publication the
-  expected dirty paths are the bounded intent-observability source/tests/docs
-  plus the unrelated user/concurrent work named below.
-- Implementation checkpoint `10055d0b` and SoT-gate repair checkpoint
-  `464a907a` are on local and remote `main`. The unrelated user-owned untracked
-  `pgy-80135c2c/` and concurrently created `docs/compiler_architectures/` paths
-  must not be inspected, staged, deleted, or rewritten by this task.
-- Objective card: public installed source-to-C must carry the installed sibling
-  machine declaration through the typed `SourceCManifestVerified` request into
-  the existing Pergyra source-MIR machine projection. The companion is the fact
-  owner; C owns only path carriage. Duplicate grant facts, DeviceSlot source
-  scans, empty-declaration success for nonempty contacts, and native retry are
-  forbidden.
-- Observed RED was exact: explicit native DeviceSlot C emission succeeded while
-  installed emission exited 1 at instruction 0 with an invalid machine-layer
-  projection because artifact mode selected `SourceCDefault`. The installed
-  child now receives `--machine-manifest-json`, and the typed request reaches
-  the existing compiler-world source-C action without another semantic owner.
-- Declaration carriage exposed and closed an older mismatch: startup calls had
-  been declaration-gated while their definitions were machine-usage-gated.
-  Both now consume `usage.uses_machine_layer`. A non-machine source/MIR emits
-  neither call nor block; DeviceSlot source/MIR emits both, compiles, and runs
-  exact `0` equal to the explicit-native oracle.
-- Missing or corrupt installed companions exit nonzero, publish no C artifact,
-  show no native timing, and do not retry. The focused DeviceSlot, default
-  source-C, source-C world/action, and full installed-driver parent gates are
-  local green. A fresh typed-source DRV-2 install is green. Local proof-spine
-  was not claimed because Rocq was unavailable; remote Rocq supplied that
-  evidence.
-- First run `32948170716` found one exact SoT-edge documentation failure: the
-  new CLOSED-row enforcement description was not byte-present in its primary
-  gate. Repair `464a907a` binds both new forbidden-fallback tokens and canonical
-  gate text. Replacement run `32949495441` passed 29/29 in 1h00m10 including
-  15m00 Linux, 23m28 full self-host, 7m15 Windows, 7m54 sanitizers, 7m43
-  codegen bootstrap, 9m10 backend toolchain, 6m08 Rocq, macOS, TSan, and all 20
-  backend shards. Queue delay, not shard execution, dominated wall time.
-- This is bounded `SUBSTITUTING` for a real installed DeviceSlot source-C
-  failure, but it closes no additional top-level registry row. Integrated
-  progress remains 83% (81-85%), strict beta 83%, hard replacement 75%, and SoT
-  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
-- The read-only dependency census under
-  `docs/agent_work_directives/sot_closure_dependency_map_2026-08-26.md` is
-  complete. Three disjoint reports cover all 37 nonclosed rows exactly once;
-  the integration gate observed 37 expected/37 actual/37 unique and no
-  missing, extra, or duplicate ID. After current-artifact correction,
-  classification is two `READY_NEXT`, 24 `DEPENDENCY_BLOCKED`, eleven
-  `EVIDENCE_GAP`, and zero `PRODUCT_BOUNDARY`.
-- The initial semantic-artifact successor was rejected before implementation.
-  Its cited 48,531,749-byte routine-1197 failure is historical: the current
-  canonical 236,684,385-byte MIR emits byte-equal 10,464,651-byte gen2/gen3 C,
-  and remote run `32949495441` passes full self-host at exact base `464a907a`.
-- The selected `abi.intent_observability_rows` consumer migration is local
-  green. Semantic admission stamps the stable RuntimeCallAbiId once; explicit
-  native C and LLVM now validate and consume that carried ID instead of
-  reconstructing the row by source name in either emitter.
-- Objective card: semantic admission resolves source spelling once against
-  `PGY_INTENT_OBSERVABILITY_ABI_ROWS_OWNER` and stamps the stable ID carrier;
-  both native emitters then consume by ID and fail closed on missing, forged,
-  zero, or source/ID-mismatched facts. Backend source lookup, sorted-index
-  identity, a second ABI table, and native/installed retry are forbidden. The
-  installed/native C/LLVM history-count gate plus a native carrier negative and
-  static old-lookup ratchet are the integration boundary.
-- Local evidence: the LLVM-enabled native compiler rebuilt and linked; the
-  51-row registry probe rejects zero, unknown, and mismatched identities; the
-  static ratchet rejects both old backend lookups; installed and explicit-native
-  C/LLVM execution parity passes. Remote CI has not yet observed this change.
-  The row remains `BRIDGE`, progress remains 83%/83%/75% and 49/36/1, and no
-  successor is inferred from this supporting consumer migration.
+- Source/test checkpoint `0a6a69b1` is based on published implementation
+  `301309f9`. The unrelated user-owned `pgy-80135c2c/` and concurrent
+  `docs/compiler_architectures/` paths remain untracked and were not inspected,
+  staged, deleted, or rewritten.
+- Objective card: semantic admission resolves intent-observability source
+  spelling once against `PGY_INTENT_OBSERVABILITY_ABI_ROWS_OWNER`, stamps its
+  stable RuntimeCallAbiId, and leaves C/LLVM as ID consumers only. The semantic
+  type checker is the fact owner and the two native emitters are the last
+  consumers. Backend source-name lookup, absent-carrier success, a second ABI
+  table, and native/installed retry are forbidden. `test-transpile`, the ABI
+  registry ratchet, runtime contract, and replacement push matrix are the
+  verification boundary.
+- Push run `32960178361` for `301309f9` exposed one test-contract regression on
+  Linux, Windows, and macOS: the two direct C-backend arity negatives constructed
+  calls without semantic admission, so the newly correct missing-carrier error
+  preceded their expected arity error. The three jobs reported the same
+  `IntentRecentName` and `IntentActiveStepName` failures; backend implementation
+  and all observed semantic tests remained green.
+- Repair `0a6a69b1` gives those two direct backend fixtures their stable admitted
+  ABI IDs before testing arity. It also reverses two stale static assertions
+  that still required the now-forbidden backend source-name lookup. No backend
+  lookup or compatibility fallback was restored.
+- Local focused evidence is green: `test-transpile` reports 925 passed/0 failed;
+  `intent_observability_abi_registry_smoke.sh`,
+  `runtime_intent_observability_contract_smoke.sh`, and
+  `perf_contract_smoke.sh` pass. The measured end-to-end C compile inside the
+  perf contract was 2.96 seconds against a 60-second ceiling.
+- A replacement remote run is still required before opening another executable
+  rung. The audited successor remains `selfhost.match_case_pattern`: its HIR
+  owner can project one structured pattern fact into the existing
+  SyntaxNodeId-keyed semantic statement carrier, after which MIR and four
+  self-C consumers can delete their text reparses. This is a candidate only,
+  not completed work.
+- Local variant folders are Git-closed by published ignore checkpoint
+  `1e8b5531`: 23 root `bin-codex*`/`build-codex*`/`bin-dev*`/`build-dev*`
+  directories contain only ignored rebuildable output. Physical deletion was
+  attempted only after exact-path and reparse-point validation, but the current
+  execution policy rejected recursive deletion before any file was removed.
+- Progress remains integrated 83% (81-85%), strict beta 83%, hard replacement
+  75%, and SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. CI repair, ignored artifacts,
+  audit prose, and a candidate design do not increment those counts.
 
 ## Previous self-host context - readiness evidence reconciled; no successor inferred
 

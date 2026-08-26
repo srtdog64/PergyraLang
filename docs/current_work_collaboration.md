@@ -6,6 +6,27 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease N — carried ABI CI repair and replacement run
+
+- Source base: published implementation `301309f9`; focused repair checkpoint
+  `0a6a69b1` is local and awaiting publication with this ledger refresh.
+- Objective: restore the push matrix without weakening the carried
+  RuntimeCallAbiId owner chain. The only implementation-rung edit scope is the
+  two direct transpiler negatives and the stale runtime/perf static assertions.
+- Observed failure: Linux, Windows, and macOS in run `32960178361` all reached
+  the same two direct C-backend tests without semantic admission and therefore
+  correctly failed earlier on missing carried ABI identity.
+- Forbidden: backend source-name lookup, implicit ABI admission in codegen,
+  changing error precedence for production calls, staging either unrelated
+  untracked path, or opening the match-pattern implementation before the
+  replacement matrix is green.
+- Local integration gate: `test-transpile` 925/0 plus the ABI registry, runtime
+  intent-observability, and perf contracts are green. Publication and the
+  replacement push run remain the active work.
+- The read-only successor audit is complete. If this lease closes green, the
+  primary task may open one new lease for `selfhost.match_case_pattern`; no
+  parallel implementation is authorized.
+
 ## DONE lease M — native intent-observability ABI-ID consumption
 
 - Source base: `464a907a010b745c3ec1bdaecf783bbf9e31c037`. Published audit
