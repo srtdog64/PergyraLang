@@ -6,6 +6,65 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## DONE lease G — explicit-native isolation for unowned IR diagnostics
+
+- Base revision: `8b8c78f0d6f5efd0eecaeaec7ee2b1796b6723dd`.
+- Editing and integration owner: the primary Codex task. Peer agents completed
+  read-only RIR, AIR, and HIR readiness reports and own no implementation file.
+- Objective: remove the launcher's final implicit native dispatch for bare
+  public `--rir`, `--rir-json`, `--air`, `--air-json`, `--hir`, `--hir-cfg`,
+  `--hir-dom`, and `--hir-ssa`. Until an installed Pergyra producer owns a
+  complete payload, these modes fail closed and the existing native diagnostics
+  remain available only through the declared `--native-pipeline` opt-out.
+- Priority order: no invented IR facts; no implicit C authority; preserve an
+  explicit native oracle; deterministic mode-specific diagnostics; negative
+  ratchet; then compatibility and patch size.
+- Fact owner: none exists for a complete Pergyra RIR/AIR/HIR payload. Native
+  `rir_lower`, `air_synthesize`, and `hir_lower` remain explicit-oracle owners;
+  the launcher request selector owns only whether callers explicitly requested
+  that native authority.
+- Last legitimate consumer: the public argv selector before any installed
+  child or `driver_run_pipeline` execution. A missing required Pergyra fact
+  fails here rather than being guessed or silently sourced from C.
+- Deleted bypass target: the final default `return driver_run_pipeline(&flags)`
+  after all installed self-host selectors in `src/pgy_driver.c`.
+- Forbidden fallback: native retry, native execution selected only because no
+  Pergyra request variant exists, partial MIR/AST projection presented as RIR,
+  AIR, or HIR, native dump parsing, or a fabricated general IR owner.
+- Integration gate: all eight bare modes must exit nonzero with empty stdout
+  and no pipeline-timing marker even when the installed driver is missing;
+  every corresponding explicit `--native-pipeline` mode must remain
+  executable; source ratchets must reject a third/default launcher call to
+  `driver_run_pipeline`. Existing native IR tests must declare the opt-out.
+- Classification: fallback/SoT closure only. It is not `SUBSTITUTING`, does not
+  change the 78%/83% progress lines, and closes no top-level registry row.
+
+### Result
+
+- The final implicit `driver_run_pipeline` dispatch is deleted. Bare public
+  RIR/AIR/HIR diagnostics now fail at the launcher with a mode-specific
+  missing-Pergyra-owner diagnostic, empty stdout, and no timing marker. The
+  same eight diagnostics remain executable only through explicit
+  `--native-pipeline`.
+- The RIR, AIR, and HIR readiness reports all returned `NOT READY`. They name,
+  respectively, the missing ordered RIR program, general AIR graph issuance,
+  and identity-bearing post-semantic HIR routine/CFG facts. No native dump was
+  parsed, no MIR/AST reconstruction was presented as another IR, and no
+  request variant or general producer was invented.
+- The installed-driver parent gate, public MIR diagnostic, new eight-mode
+  negative/opt-in gate, AIR graph validator parity, IR probe, AIR schema/MIR
+  binding, machine-neutral/machine-layer, RIR flow, SEA lane, proof envelope,
+  and C/LLVM observability gates are locally green. The committed AIR fixture
+  had one deterministic July-era MIR binding fingerprint drift and now matches
+  three repeated current-owner observations.
+- `tests/self_hosted/mir_machine_layer_smoke.sh` was stopped after its five-
+  minute focused budget while recompiling `driver_rung2_main.pgy`; no green is
+  claimed for that run. The already-installed parent CLI gate completed in
+  23 seconds, so no timeout or CI allowance was raised.
+- The implementation checkpoint is the commit containing this result. Remote
+  publication/CI is pending. This closes an implicit fallback only; it is not
+  `SUBSTITUTING`, changes no percentage, and closes no registry row.
+
 ## DONE lease F — installed public `--mir` diagnostic substitution
 
 - Base revision: `9ca4a69517142a4c87eb47862afcd55a9a9f2011`.

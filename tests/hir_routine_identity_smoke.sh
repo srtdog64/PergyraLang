@@ -118,7 +118,7 @@ fi
 
 source="$ROOT_DIR/tests/cases/hir_routine_identity/main.pgy"
 source_arg="$(pgy_path_for_compiler "$PGY" "$source")"
-if ! "$PGY" --hir "$source_arg" >"$WORK_DIR/hir.out" 2>"$WORK_DIR/hir.err"; then
+if ! "$PGY" --native-pipeline --hir "$source_arg" >"$WORK_DIR/hir.out" 2>"$WORK_DIR/hir.err"; then
     cat "$WORK_DIR/hir.err" >&2
     exit 1
 fi
@@ -136,7 +136,7 @@ fi
 
 resource_source="$ROOT_DIR/tests/cases/slot_contract/positive/plain_read_write_release/main.pgy"
 resource_arg="$(pgy_path_for_compiler "$PGY" "$resource_source")"
-if ! "$PGY" --rir "$resource_arg" >"$WORK_DIR/rir.out" 2>"$WORK_DIR/rir.err"; then
+if ! "$PGY" --native-pipeline --rir "$resource_arg" >"$WORK_DIR/rir.out" 2>"$WORK_DIR/rir.err"; then
     cat "$WORK_DIR/rir.err" >&2
     exit 1
 fi

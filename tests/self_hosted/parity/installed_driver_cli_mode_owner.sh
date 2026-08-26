@@ -263,5 +263,6 @@ for artifact in artifact.c source.artifact.mir.json llvm-source.mir.json direct-
 done
 
 source "$ROOT_DIR/tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/public_native_ir_explicit_opt_in_owner.sh"
 echo "[self-host-installed-driver-cli] one typed argv owner keeps public MIR diagnostic, source-C, source-MIR, and MIR-C effects disjoint"
 echo "[self-host-installed-driver-cli] general MIR-C world/action artifact parity, pressure observation, and transaction rejection: PASS"

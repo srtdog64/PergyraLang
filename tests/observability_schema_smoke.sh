@@ -105,7 +105,7 @@ WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_observability_schema.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 AIR_JSON_OUT="$WORK_DIR/air_observability.json"
-"$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy")" --backend=c > "$AIR_JSON_OUT"
+"$PGY" --native-pipeline --air-json "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy")" --backend=c > "$AIR_JSON_OUT"
 for required in \
     '"schema":"pgy.air.graph.v1"' \
     '"observability"' \

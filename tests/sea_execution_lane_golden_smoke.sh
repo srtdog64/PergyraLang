@@ -62,9 +62,9 @@ func RoutineBoundaryAir() -> Void {
 }
 EOF
 
-"$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" > "$JSON" 2>"$WORK/err" \
+"$PGY" --native-pipeline --air-json "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" > "$JSON" 2>"$WORK/err" \
     || { cat "$WORK/err" >&2; fail "pgy --air-json failed"; }
-"$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$ROUTINE_FIXTURE")" > "$ROUTINE_JSON" 2>"$WORK/routine.err" \
+"$PGY" --native-pipeline --air-json "$(pgy_path_for_compiler "$PGY" "$ROUTINE_FIXTURE")" > "$ROUTINE_JSON" 2>"$WORK/routine.err" \
     || { cat "$WORK/routine.err" >&2; fail "pgy --air-json routine-boundary fixture failed"; }
 
 grep -Fq '"schema":"pgy.air.graph.v1"' "$JSON" \

@@ -29,7 +29,7 @@ env["PGY_DEBUG_LOOP_FLOW"] = "1"
 started = time.monotonic()
 try:
     run = subprocess.run(
-        [pgy, "--hir", fixture],
+        [pgy, "--native-pipeline", "--hir", fixture],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         env=env,
@@ -72,7 +72,7 @@ grep -Eq 'kind=(for|while).*summary_record_count=1' \
 
 HIT_FIXTURE="$FIXTURE_DIR/summary_hit.pgy"
 HIT_STDERR="$TMP_DIR/summary_hit.stderr"
-PGY_DEBUG_LOOP_FLOW=1 "$PGY_BIN" --hir "$HIT_FIXTURE" \
+PGY_DEBUG_LOOP_FLOW=1 "$PGY_BIN" --native-pipeline --hir "$HIT_FIXTURE" \
     >/dev/null 2>"$HIT_STDERR"
 grep -Eq 'summary_hit_count=[1-9][0-9]*' "$HIT_STDERR" || {
     echo "summary-hit fixture did not apply a cached loop transfer" >&2

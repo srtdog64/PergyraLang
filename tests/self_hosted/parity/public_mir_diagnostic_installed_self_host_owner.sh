@@ -202,9 +202,11 @@ grep -Fq 'success without a MIR diagnostic payload' "$WORK_DIR/closed.err" ||
 require_text "$LAUNCHER" 'if (flags.dump_mir) return driver_run_self_host_mir_diagnostic_request(argv[0], &flags);'
 native_line="$(grep -n 'if (flags.native_pipeline' "$LAUNCHER" | cut -d: -f1)"
 mir_line="$(grep -n 'if (flags.dump_mir) return' "$LAUNCHER" | cut -d: -f1)"
-final_line="$(grep -n 'return driver_run_pipeline(&flags);' "$LAUNCHER" | tail -1 | cut -d: -f1)"
-((native_line < mir_line && mir_line < final_line)) ||
-    fail "default MIR delegation escaped the explicit-native/final-dispatch boundary"
+last_native_dispatch_line="$(grep -n 'return driver_run_pipeline(&flags);' "$LAUNCHER" | tail -1 | cut -d: -f1)"
+native_dispatch_count="$(grep -Fc 'return driver_run_pipeline(&flags);' "$LAUNCHER")"
+((native_dispatch_count == 2 && native_line < mir_line &&
+    last_native_dispatch_line < mir_line)) ||
+    fail "native pipeline dispatch escaped the pre-delegation explicit opt-out boundary"
 require_text "$C_OWNER" 'pgy_exec_argv_capture_stdout('
 require_text "$C_OWNER" '"--emit-mir-diagnostic-verified"'
 require_text "$C_OWNER" 'success without a MIR diagnostic payload'

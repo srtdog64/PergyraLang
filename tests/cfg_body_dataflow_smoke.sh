@@ -2330,9 +2330,9 @@ PARALLEL_SELECT_MIR="$WORK_DIR/parallel_select_mir.txt"
 WITH_SLOT_ORDER="$WORK_DIR/with_slot_order.pgy"
 WITH_SLOT_ORDER_C="$WORK_DIR/with_slot_order.c"
 
-"$PGY" "$EXAMPLE_FOR_PGY" --hir-cfg > "$HIR_CFG_OUT"
-"$PGY" "$EXAMPLE_FOR_PGY" --hir-dom > "$HIR_DOM_OUT"
-"$PGY" "$EXAMPLE_FOR_PGY" --rir > "$RIR_OUT"
+"$PGY" "$EXAMPLE_FOR_PGY" --native-pipeline --hir-cfg > "$HIR_CFG_OUT"
+"$PGY" "$EXAMPLE_FOR_PGY" --native-pipeline --hir-dom > "$HIR_DOM_OUT"
+"$PGY" "$EXAMPLE_FOR_PGY" --native-pipeline --rir > "$RIR_OUT"
 "$PGY" "$EXAMPLE_FOR_PGY" --native-pipeline --mir > "$MIR_OUT"
 
 cat > "$PARALLEL_SELECT" <<'EOF'

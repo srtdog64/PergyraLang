@@ -2,6 +2,29 @@
 
 Status: `BRIDGE`
 
+## 2026-08-26 explicit-native isolation for unowned IR diagnostics
+
+The public launcher no longer interprets the absence of an installed Pergyra
+RIR, AIR, or HIR request as permission to execute the native compiler. Bare
+`--rir`, `--rir-json`, `--air`, `--air-json`, `--hir`, `--hir-cfg`,
+`--hir-dom`, and `--hir-ssa` fail closed at the request boundary. Their native
+diagnostics remain a declared oracle only through explicit
+`--native-pipeline`.
+
+Read-only readiness audits found no complete Pergyra producer for any of these
+payloads. The missing facts begin at the ordered RIR program, general AIR graph
+issuance, and identity-bearing post-semantic HIR routine/CFG owners. Partial
+MIR certificates, typed AST facts, validators, vocabularies, and native JSON
+consumers are not promoted into those authorities. No request variant, native
+dump parser, source/AST rescan, or cross-IR reconstruction was added.
+
+The installed-driver parent gate and the eight-mode fail-closed/explicit-native
+ratchet are locally green alongside public MIR and focused IR/AIR/RIR/HIR
+consumers. The standalone MIR machine-layer smoke exceeded its five-minute
+focused recompilation budget and is not claimed green. This is not a Pergyra
+producer replacement and therefore not `SUBSTITUTING` dogfood; it closes only
+an implicit fallback and leaves all progress and SoT counts unchanged.
+
 ## 2026-08-26 public MIR diagnostic substitution evidence
 
 Implementation checkpoint `c2ff6548` and published closure checkpoint

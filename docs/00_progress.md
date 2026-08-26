@@ -2,6 +2,27 @@
 
 마지막 업데이트: 2026-08-26
 
+2026-08-26 로컬 fallback 폐쇄 갱신: public `--rir*`, `--air*`, `--hir*`의
+마지막 implicit `driver_run_pipeline` dispatch를 삭제했다. 완전한 Pergyra producer가
+없는 bare 요청은 이제 launcher에서 mode별 missing-owner 진단과 함께 nonzero/empty
+stdout으로 fail closed하며, 기존 native diagnostics는 명시적 `--native-pipeline`에서만
+실행된다. RIR/AIR/HIR 읽기 전용 감사가 각각 ordered RIR program,
+general AIR graph issuance, post-semantic HIR routine/CFG carrier의 부재를 확인했기
+때문에 partial MIR/AST reconstruction, native dump parsing, 가짜 request/producer는
+추가하지 않았다.
+
+Current-source 강제 build와 installed-driver parent CLI, public MIR,
+8-mode negative/opt-in, AIR graph JSON parity/schema/MIR binding, IR probe,
+machine-neutral/machine-layer, RIR flow, SEA lane, proof envelope, C/LLVM
+observability gate는 local green이다. AIR fixture의 유일한 MIR binding fingerprint
+drift는 세 번 동일하게 재현된 current owner 값으로 갱신했다.
+`mir_machine_layer_smoke.sh`는 `driver_rung2_main.pgy` 재컴파일 중 focused 5분
+예산을 넘겨 중단했으며 green으로 주장하거나 timeout을 늘리지 않는다. 이 entry를
+포함하는 commit이 implementation checkpoint이고 remote publication/CI는 pending이다.
+이는 implicit fallback 폐쇄일 뿐 Pergyra RIR/AIR/HIR implementation 대체가 아니므로
+`SUBSTITUTING` 진척, 전체 78%, strict beta 83%, SoT
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 모두 그대로다.
+
 2026-08-26 원격 폐쇄 갱신: implementation checkpoint `c2ff6548`, closure
 checkpoint `b3da55a3`은 public installed
 `pgy --mir SOURCE`의 기본 native `driver_run_pipeline -> mir_dump` 우회를

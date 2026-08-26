@@ -332,7 +332,7 @@ if ((compile_rc != 0)); then
     cat "$RIR_LOG" >&2
     exit 1
 fi
-(cd "$ROOT_DIR" && "$PGY" --rir-json \
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --rir-json \
     "$(pgy_path_for_compiler "$PGY" "$RIR_CASE")" >"$RIR_JSON")
 RIR_REL="${RIR_JSON#$ROOT_DIR/}"
 if ! (cd "$ROOT_DIR" && "$RIR_VALIDATOR_BIN" "$RIR_REL" >"$RIR_OUT" 2>&1); then
@@ -351,7 +351,7 @@ if (cd "$ROOT_DIR" && "$RIR_VALIDATOR_BIN" "$RIR_BAD_REL" >"$RIR_BAD_OUT" 2>&1);
     exit 1
 fi
 grep -Fq -- 'MACHINE-RIR ERROR: RIR machine contact is missing or unknown' "$RIR_BAD_OUT"
-(cd "$ROOT_DIR" && "$PGY" --air-json \
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --air-json \
     "$(pgy_path_for_compiler "$PGY" "$CASE")" >"$AIR_RAW")
 PY_BIN=""
 for candidate in python3 python; do

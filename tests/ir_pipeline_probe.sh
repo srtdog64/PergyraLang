@@ -53,7 +53,7 @@ MIR_OUT="$WORK_DIR/mir.txt"
 EXAMPLE_ARG="$(pgy_path_for_compiler "$PGY" "$EXAMPLE")"
 
 "$PGY" "$EXAMPLE_ARG" --dir > "$DIR_OUT"
-"$PGY" "$EXAMPLE_ARG" --rir > "$RIR_OUT"
+"$PGY" "$EXAMPLE_ARG" --native-pipeline --rir > "$RIR_OUT"
 "$PGY" "$EXAMPLE_ARG" --native-pipeline --mir > "$MIR_OUT"
 
 grep -Fq "role-complete" "$DIR_OUT"

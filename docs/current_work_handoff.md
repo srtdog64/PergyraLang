@@ -17,7 +17,50 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - no successor implementation rung
+## Active self-host context - explicit-native isolation for unowned public IR
+
+- The implementation checkpoint is the commit containing this handoff, based
+  on `8b8c78f0d6f5efd0eecaeaec7ee2b1796b6723dd`; remote publication and CI are
+  pending. The unrelated user-owned `pgy-80135c2c/` path remains untracked and
+  must not be inspected, staged, deleted, or rewritten.
+- Objective card: delete the launcher's final implicit native fallback for
+  bare `--rir`, `--rir-json`, `--air`, `--air-json`, `--hir`, `--hir-cfg`,
+  `--hir-dom`, and `--hir-ssa`. No complete installed Pergyra producer owns
+  these payloads, so the launcher request boundary is the last legitimate
+  consumer and must fail closed. Native RIR/AIR/HIR producers remain reachable
+  only through the explicit `--native-pipeline` oracle.
+- The final default `return driver_run_pipeline(&flags)` is deleted. Every bare
+  mode exits nonzero with empty stdout, a mode-specific missing-owner
+  diagnostic, and no pipeline timing even with a missing self-driver. Every
+  explicit-native counterpart remains executable. A negative source ratchet
+  permits exactly the bounded test-native MIR oracle and the declared native
+  opt-out before installed delegation; no later native dispatch is allowed.
+- Read-only RIR/AIR/HIR audits are complete under the nonnumbered directive in
+  `docs/agent_work_directives/`. The first missing owners are an ordered RIR
+  program carrying scope/fact/op/state/flow rows, a general AIR graph issuance
+  fact, and an identity-bearing post-semantic HIR routine/CFG carrier. Their
+  reports under `docs/audits/` are navigation evidence, not semantic authority
+  or an implementation queue.
+- Local green evidence: current-source forced build; installed-driver parent
+  CLI; public MIR; eight-mode explicit-native isolation; AIR graph JSON parity;
+  AIR schema and MIR binding; machine-neutral capability projection; IR probe;
+  machine-layer pipeline; RIR resource flow; SEA lane; proof envelope; and
+  C/LLVM observability. The AIR fixture's sole old binding fingerprint drift
+  was deterministic over three current-owner runs and is refreshed without a
+  schema or field change.
+- `tests/self_hosted/mir_machine_layer_smoke.sh` exceeded its five-minute
+  focused budget while `pgy.exe` recompiled `driver_rung2_main.pgy` and was
+  stopped; do not report it green or increase its allowance. The installed
+  parent gate reused the current driver and completed in about 23 seconds.
+- Classification is fallback/SoT closure, not `SUBSTITUTING`: no Pergyra
+  implementation replaced the native RIR/AIR/HIR producer. Integrated progress
+  remains 78%, strict beta 83%, and hard SoT remains
+  `CLOSED=49 BRIDGE=36 ACTIVE=1` (86 authorities / 180 derived carriers).
+  No successor implementation rung may be inferred until one production
+  bypass reaches an existing complete Pergyra owner and an executable
+  falsifier.
+
+## Previous self-host context - public MIR diagnostic substitution
 
 - Published closure checkpoint `b3da55a3` is on local and remote `main`; the
   substitution implementation entered at `c2ff6548`. Remote CI run

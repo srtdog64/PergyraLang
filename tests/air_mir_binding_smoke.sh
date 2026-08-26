@@ -50,7 +50,7 @@ done
 WORK_DIR="$(mktemp -d "${TMPDIR:-${TEMP:-/tmp}}/pgy_air_mir_binding.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 JSON="$WORK_DIR/air.json"
-"$PGY" --air-json "$ROOT_DIR/tests/cases/semantic_loop_flow/summary_hit.pgy" \
+"$PGY" --native-pipeline --air-json "$ROOT_DIR/tests/cases/semantic_loop_flow/summary_hit.pgy" \
     >"$JSON"
 "$PYTHON_BIN" - "$JSON" <<'PY'
 import json

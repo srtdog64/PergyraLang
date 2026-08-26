@@ -6,6 +6,28 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-26 - Unowned public IR diagnostics require explicit native opt-in
+
+- Deleted the launcher's final implicit native dispatch. Bare public RIR, AIR,
+  and HIR modes now fail closed with empty stdout and mode-specific missing-
+  owner diagnostics; all eight native diagnostic modes remain reachable only
+  through explicit `--native-pipeline`.
+- Three read-only audits found no complete installed Pergyra producer. They
+  name the first missing ordered RIR program, general AIR graph issuance, and
+  post-semantic HIR routine/CFG carrier. Validators, MIR certificates, typed
+  AST facts, and native artifact consumers were not promoted into owners.
+- Existing native IR tests now declare their oracle boundary. The static MIR
+  ratchet was strengthened to require exactly two pre-delegation native calls
+  and reject any final fallback. The installed-driver parent CLI and focused
+  public MIR/eight-mode/AIR/RIR/IR/machine/observability gates are local green.
+- AIR graph parity exposed one deterministic committed fixture fingerprint
+  drift; three current-owner observations agreed and only that field changed.
+  The standalone MIR machine-layer smoke was stopped after its five-minute
+  focused budget during DRV-2 recompilation, and no timeout was increased.
+- The implementation checkpoint is the commit containing this entry; remote
+  publication/CI is pending. This is fallback closure, not `SUBSTITUTING`, so
+  integrated 78%, strict beta 83%, and hard SoT `49/36/1` remain unchanged.
+
 ## 2026-08-26 - Public MIR diagnostic replaces the native dump default
 
 - Published local code checkpoint `c2ff6548`. Default public

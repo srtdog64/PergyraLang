@@ -336,5 +336,24 @@ main(int argc, char *argv[])
         return llvm_runner_execute_installed_self_host_llvm(
             argv[0], &flags, NULL);
     }
-    return driver_run_pipeline(&flags);
+    const char *native_ir_option = NULL;
+    if (flags.dump_rir) native_ir_option = "--rir";
+    else if (flags.dump_rir_json) native_ir_option = "--rir-json";
+    else if (flags.dump_air) native_ir_option = "--air";
+    else if (flags.dump_air_json) native_ir_option = "--air-json";
+    else if (flags.dump_hir) {
+        if (flags.hir_dump_mode == HIR_DUMP_CFG) native_ir_option = "--hir-cfg";
+        else if (flags.hir_dump_mode == HIR_DUMP_DOM) native_ir_option = "--hir-dom";
+        else if (flags.hir_dump_mode == HIR_DUMP_SSA) native_ir_option = "--hir-ssa";
+        else native_ir_option = "--hir";
+    }
+    if (native_ir_option != NULL) {
+        fprintf(stderr,
+                "pgy: %s has no installed Pergyra fact owner; use explicit --native-pipeline for the native diagnostic\n",
+                native_ir_option);
+        return 1;
+    }
+    fprintf(stderr,
+            "pgy: request is outside the installed self-host driver contract\n");
+    return 1;
 }

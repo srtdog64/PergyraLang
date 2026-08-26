@@ -79,11 +79,11 @@ func SelectReceiveAir() -> Int {
 }
 EOF
 
-"$PGY" --air-json "$(to_native_path_for_pgy "$SOURCE")" --backend=c > "$OUT" 2> "$ERR"
-"$PGY" --air-json "$(to_native_path_for_pgy "$BOILERPLATE_SOURCE")" --backend=c > "$BOILERPLATE_OUT" 2> "$BOILERPLATE_ERR"
-"$PGY" --air-json "$(to_native_path_for_pgy "$WORLD_SOURCE")" --backend=c > "$WORLD_OUT" 2> "$WORLD_ERR"
-"$PGY" --air-json "$(to_native_path_for_pgy "$LIFECYCLE_SOURCE")" --backend=c > "$LIFECYCLE_OUT" 2> "$LIFECYCLE_ERR"
-"$PGY" --air-json "$(to_native_path_for_pgy "$SELECT_SOURCE")" --backend=c > "$SELECT_OUT" 2> "$SELECT_ERR"
+"$PGY" --native-pipeline --air-json "$(to_native_path_for_pgy "$SOURCE")" --backend=c > "$OUT" 2> "$ERR"
+"$PGY" --native-pipeline --air-json "$(to_native_path_for_pgy "$BOILERPLATE_SOURCE")" --backend=c > "$BOILERPLATE_OUT" 2> "$BOILERPLATE_ERR"
+"$PGY" --native-pipeline --air-json "$(to_native_path_for_pgy "$WORLD_SOURCE")" --backend=c > "$WORLD_OUT" 2> "$WORLD_ERR"
+"$PGY" --native-pipeline --air-json "$(to_native_path_for_pgy "$LIFECYCLE_SOURCE")" --backend=c > "$LIFECYCLE_OUT" 2> "$LIFECYCLE_ERR"
+"$PGY" --native-pipeline --air-json "$(to_native_path_for_pgy "$SELECT_SOURCE")" --backend=c > "$SELECT_OUT" 2> "$SELECT_ERR"
 
 require_text() {
     local text="$1"

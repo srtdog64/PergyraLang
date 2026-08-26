@@ -68,7 +68,7 @@ foreach ($f in $fix) {
   $airErr = ".tmp\$name.air.err"
   $airOut = ".tmp\$name.air.json"
   Remove-Item -LiteralPath $airOut -ErrorAction SilentlyContinue
-  & $pgy $f.FullName --air-json > $airOut 2>$airErr
+  & $pgy $f.FullName --native-pipeline --air-json > $airOut 2>$airErr
   $airExit = $LASTEXITCODE
   $air = if (Test-Path $airOut) { Get-Content $airOut -Raw } else { '' }
   if ($airExit -ne 0 -or -not $air) {

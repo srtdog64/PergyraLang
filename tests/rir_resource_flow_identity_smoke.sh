@@ -68,7 +68,7 @@ PY
 WORK_DIR="$ROOT_DIR/.tmp/rir_resource_flow_identity"
 mkdir -p "$WORK_DIR"
 RIR_JSON="$WORK_DIR/summary-hit.rir.json"
-"$PGY" --rir-json "$ROOT_DIR/tests/cases/semantic_loop_flow/summary_hit.pgy" \
+"$PGY" --native-pipeline --rir-json "$ROOT_DIR/tests/cases/semantic_loop_flow/summary_hit.pgy" \
     >"$RIR_JSON"
 "$PYTHON_BIN" - "$RIR_JSON" <<'PY'
 import json

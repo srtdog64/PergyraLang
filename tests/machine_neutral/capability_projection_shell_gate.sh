@@ -31,7 +31,7 @@ run_air() {
     local fixture="$1"
     local out="$2"
 
-    "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$fixture")" \
+    "$PGY" --native-pipeline --air-json "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$fixture")" \
         --backend=c >"$out" 2>&1 \
         || {
             cat "$out" >&2

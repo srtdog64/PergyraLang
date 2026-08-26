@@ -1,6 +1,32 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-26 public MIR diagnostic substitution
+## Active self-host context - 2026-08-26 explicit-native isolation for unowned IR
+
+- The final implicit launcher dispatch to `driver_run_pipeline` is deleted for
+  bare public `--rir*`, `--air*`, and `--hir*`. Until complete Pergyra
+  producers exist, all eight requests fail closed with empty stdout and a
+  mode-specific missing-owner diagnostic. Native diagnostics remain available
+  only through explicit `--native-pipeline`.
+- Independent read-only audits found no complete Pergyra producer. The first
+  missing facts are an ordered RIR program with scope/fact/op/state/flow rows,
+  a general AIR graph issuance owner, and an identity-bearing post-semantic HIR
+  routine/CFG carrier. No native dump parser, AST/MIR reconstruction, new
+  request species, or fabricated general IR owner was added.
+- Current-source build, installed-driver parent CLI, public MIR, all eight
+  fail-closed/explicit-native pairs, AIR graph parity/schema/MIR binding, IR
+  probe, machine-neutral/machine-layer, RIR flow, SEA lane, proof envelope, and
+  C/LLVM observability are local GREEN. One committed AIR binding fingerprint
+  was stale but deterministic across three current-owner runs and is refreshed.
+- The separate MIR machine-layer smoke exceeded its five-minute focused budget
+  while recompiling `driver_rung2_main.pgy` and was stopped; it is not claimed
+  green and no allowance was increased. The installed parent reused the current
+  driver and passed in about 23 seconds.
+- The implementation checkpoint is the commit containing this entry; remote
+  publication/CI is pending. This is fallback closure, not `SUBSTITUTING`.
+  Overall remains 78%, strict beta 83%, and hard SoT remains
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+
+## Historical self-host context - 2026-08-26 public MIR diagnostic substitution
 
 - Implementation checkpoint `c2ff6548` and published closure checkpoint
   `b3da55a3` remove default public `pgy --mir SOURCE` reachability

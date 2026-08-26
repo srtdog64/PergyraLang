@@ -65,7 +65,7 @@ env["PGY_DEBUG_FUNCTION_PARAM_FLOW"] = "1"
 env["PGY_DEBUG_RESOURCE_FLOW_FACTS"] = "1"
 try:
     run = subprocess.run(
-        [pgy, "--hir", fixture],
+        [pgy, "--native-pipeline", "--hir", fixture],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
@@ -81,7 +81,7 @@ if run.returncode != 0:
 
 resource_fixture = root / "tests/cases/slot_contract/positive/plain_read_write_release/main.pgy"
 resource_run = subprocess.run(
-    [pgy, "--hir", str(resource_fixture)],
+    [pgy, "--native-pipeline", "--hir", str(resource_fixture)],
     stdout=subprocess.PIPE,
     stderr=subprocess.PIPE,
     env=env,
@@ -150,7 +150,7 @@ PY
 ESCAPE_FIXTURE="$ROOT_DIR/tests/cases/function_param_flow_summary/escape_negative.pgy"
 ESCAPE_ERR="${TMPDIR:-$ROOT_DIR/.tmp}/function_param_flow_escape_negative.err"
 mkdir -p "$(dirname "$ESCAPE_ERR")"
-if "$PGY_BIN" --hir "$ESCAPE_FIXTURE" >/dev/null 2>"$ESCAPE_ERR"; then
+if "$PGY_BIN" --native-pipeline --hir "$ESCAPE_FIXTURE" >/dev/null 2>"$ESCAPE_ERR"; then
     echo "escape-negative fixture unexpectedly passed" >&2
     cat "$ESCAPE_ERR" >&2
     exit 1

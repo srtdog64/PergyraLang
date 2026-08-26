@@ -146,7 +146,7 @@ def _has_authority_contract_binding(air):
 
 
 def air_json(pgy, fixture):
-    proc = subprocess.run([pgy, "--air-json", fixture],
+    proc = subprocess.run([pgy, "--native-pipeline", "--air-json", fixture],
                           capture_output=True, text=True)
     out = proc.stdout
     start = out.find("{")

@@ -191,10 +191,10 @@ trap cleanup_live_air EXIT
 LIVE_AIR_JSON="$LIVE_AIR_JSON_DIR/live.json"
 LIVE_CAP_AIR_JSON="$LIVE_AIR_JSON_DIR/live_cap_env.json"
 set +e
-(cd "$ROOT_DIR" && "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$AIR_SOURCE")" 2>/dev/null \
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --air-json "$(pgy_path_for_compiler "$PGY" "$AIR_SOURCE")" 2>/dev/null \
     | grep '^{' | head -n 1 > "$LIVE_AIR_JSON")
 LIVE_RC=$?
-(cd "$ROOT_DIR" && "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$AIR_CAP_SOURCE")" 2>/dev/null \
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --air-json "$(pgy_path_for_compiler "$PGY" "$AIR_CAP_SOURCE")" 2>/dev/null \
     | grep '^{' | head -n 1 > "$LIVE_CAP_AIR_JSON")
 LIVE_CAP_RC=$?
 set -e
@@ -213,7 +213,7 @@ if [[ "$LIVE_RC" -eq 0 && -s "$LIVE_AIR_JSON" ]]; then
             DRIFT_GUARD="skipped-by-env"
         else
             echo "[self-host-parity:air-graph-json] committed fixture drifted from live pgy --air-json output" >&2
-            echo "regenerate via: pgy --air-json $AIR_SOURCE_REL > $FIXTURE_REL" >&2
+            echo "regenerate via: pgy --native-pipeline --air-json $AIR_SOURCE_REL > $FIXTURE_REL" >&2
             cat "$AIR_JSON_COMPARE_OUT" "$AIR_JSON_COMPARE_ERR" >&2
             exit 1
         fi
@@ -227,7 +227,7 @@ if [[ "$LIVE_CAP_RC" -eq 0 && -s "$LIVE_CAP_AIR_JSON" ]]; then
             DRIFT_GUARD="skipped-by-env"
         else
             echo "[self-host-parity:air-graph-json] committed cap_env fixture drifted from live pgy --air-json output" >&2
-            echo "regenerate via: pgy --air-json $AIR_CAP_SOURCE_REL > $CAP_FIXTURE_REL" >&2
+            echo "regenerate via: pgy --native-pipeline --air-json $AIR_CAP_SOURCE_REL > $CAP_FIXTURE_REL" >&2
             cat "$AIR_JSON_COMPARE_OUT" "$AIR_JSON_COMPARE_ERR" >&2
             exit 1
         fi

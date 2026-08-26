@@ -74,11 +74,11 @@ compiler_path() {
     cat "$WORK_DIR/machine_manifest.err" >&2
     fail "native machine declaration JSON export failed"
 }
-"$PGY" --rir-json "$(compiler_path "$SOURCE_REMOTE")" >"$RIR_JSON" 2>"$WORK_DIR/rir.err" || {
+"$PGY" --native-pipeline --rir-json "$(compiler_path "$SOURCE_REMOTE")" >"$RIR_JSON" 2>"$WORK_DIR/rir.err" || {
     cat "$WORK_DIR/rir.err" >&2
     fail "RIR JSON pipeline rejected the SubmitDeviceRead fixture"
 }
-"$PGY" --air-json "$(compiler_path "$SOURCE_REMOTE")" >"$AIR_JSON" 2>"$WORK_DIR/air.err" || {
+"$PGY" --native-pipeline --air-json "$(compiler_path "$SOURCE_REMOTE")" >"$AIR_JSON" 2>"$WORK_DIR/air.err" || {
     cat "$WORK_DIR/air.err" >&2
     fail "AIR pipeline rejected the existing DeviceSlot fixture"
 }
@@ -87,11 +87,11 @@ compiler_path() {
     cat "$WORK_DIR/mir_read.err" >&2
     fail "MIR pipeline rejected the direct DeviceRead fixture"
 }
-"$PGY" --rir-json "$(compiler_path "$SOURCE_READ")" >"$RIR_READ_JSON" 2>"$WORK_DIR/rir_read.err" || {
+"$PGY" --native-pipeline --rir-json "$(compiler_path "$SOURCE_READ")" >"$RIR_READ_JSON" 2>"$WORK_DIR/rir_read.err" || {
     cat "$WORK_DIR/rir_read.err" >&2
     fail "RIR JSON pipeline rejected the direct DeviceRead fixture"
 }
-"$PGY" --air-json "$(compiler_path "$SOURCE_READ")" >"$AIR_READ_JSON" 2>"$WORK_DIR/air_read.err" || {
+"$PGY" --native-pipeline --air-json "$(compiler_path "$SOURCE_READ")" >"$AIR_READ_JSON" 2>"$WORK_DIR/air_read.err" || {
     cat "$WORK_DIR/air_read.err" >&2
     fail "AIR pipeline rejected the direct DeviceRead fixture"
 }
