@@ -4,7 +4,8 @@ Status: `BRIDGE`
 
 ## 2026-08-26 public MIR diagnostic substitution evidence
 
-Checkpoint `c2ff6548` makes default public installed `pgy --mir SOURCE` enter
+Implementation checkpoint `c2ff6548` and published closure checkpoint
+`b3da55a3` make default public installed `pgy --mir SOURCE` enter
 the sibling Pergyra-built driver's exact `--emit-mir-diagnostic-verified`
 request. The native launcher no longer falls through to C-owned
 `driver_run_pipeline -> mir_dump`; only explicit `--native-pipeline --mir`
@@ -30,8 +31,12 @@ success, descendant-held stdout, and stdout-close-before-exit.
 This is production `SUBSTITUTING` dogfood: a real native C-owned public path is
 replaced by Pergyra source-to-MIR/admission/projection execution. It does not
 claim the native lifecycle fact family, arbitrary diagnostic views, or a
-top-level SoT row. Local DRV-2 and focused gates are green; Linux capture and
-the existing remote matrix remain the next falsifier.
+top-level SoT row. Local DRV-2 and focused gates are green. Final remote run
+`32926584459` passed 29/29 at exact HEAD `b3da55a3` in 18m26, including full
+self-host, Linux complete component/POSIX capture, sanitizers, platform builds,
+proofs, and all backend shards. The closure repair keeps `TextBuilder` and its
+projection scratch in one function owner, adds no new text-to-text helper, and
+holds the owner at 198 lines under its restored 200-line ratchet.
 
 ## 2026-08-26 MIR-to-C stdout world/action evidence
 

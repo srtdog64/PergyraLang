@@ -2,7 +2,8 @@
 
 마지막 업데이트: 2026-08-26
 
-2026-08-26 로컬 실행 갱신: checkpoint `c2ff6548`은 public installed
+2026-08-26 원격 폐쇄 갱신: implementation checkpoint `c2ff6548`, closure
+checkpoint `b3da55a3`은 public installed
 `pgy --mir SOURCE`의 기본 native `driver_run_pipeline -> mir_dump` 우회를
 삭제했다. 명시적 `--native-pipeline --mir`만 기존 lifecycle/liveness/source
 오라클을 유지하며, 기본 요청은 sibling Pergyra-built driver의
@@ -25,7 +26,15 @@ SoT edge, likeness, shell syntax, diff gate가 local green이다. Make dry-run�
 public-MIR/default-C target pair에서 self-host build 1회와 installed gate 1회만
 보여주며 새 job/standalone target/두 번째 bootstrap은 없다. Full component inventory는
 static-loop budget에서 중단되어 green으로 주장하지 않으며, MinGW로 검증할 수 없는
-POSIX capture branch와 기존 29-job matrix가 다음 remote falsifier다.
+POSIX capture branch는 final run `32926584459`에서 검증됐다. 이 run은 exact HEAD
+`b3da55a3`의 29/29 job을 18분 26초에 통과했다. Full self-host는 18분 4초,
+`build-linux`는 15분 6초였고 backend toolchain은 7분 31초 뒤 20개 shard를
+39~76초에 병렬 완료했다. 첫 원격 적색은 TextBuilder parameter가 bootstrap subset을
+넘었고, 다음 적색은 새 `(String) -> String` helper가 likeness 76 ceiling을 넘었으며,
+세 번째는 inlining한 owner가 200-line cap을 넘었다. 최종 형태는 builder와 scratch를
+한 owner 안에 두고 helper를 삭제해 198줄/200 cap, likeness 76/76을 함께 지킨다.
+Full component는 로컬 전체 scan green으로 주장하지 않고, remote `build-linux`의
+완전한 structural inventory 통과를 실행 증거로 기록한다.
 
 이는 실제 C-owned public `mir_dump` 경로를 Pergyra implementation으로 바꾼 bounded
 `SUBSTITUTING`이다. Native-only lifecycle facts나 top-level registry row는 닫지

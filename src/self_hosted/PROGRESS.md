@@ -2,7 +2,8 @@
 
 ## Active self-host context - 2026-08-26 public MIR diagnostic substitution
 
-- Checkpoint `c2ff6548` removes default public `pgy --mir SOURCE` reachability
+- Implementation checkpoint `c2ff6548` and published closure checkpoint
+  `b3da55a3` remove default public `pgy --mir SOURCE` reachability
   to native `driver_run_pipeline -> mir_dump`. Explicit
   `--native-pipeline --mir` remains a bounded oracle; missing or failed
   installed drivers do not retry it.
@@ -20,14 +21,23 @@
   four-block/phi diagnostic, public MIR-JSON, source-MIR world/action, explicit
   native IR, SoT edge, likeness, syntax, and diff gates are local GREEN. Make
   dry-run shows one self-host build and one installed gate. Full component is
-  not claimed green because the primary scan exceeded the static-loop budget;
-  the POSIX capture branch requires Linux CI.
+  not claimed green locally because the primary scan exceeded the static-loop
+  budget. Final remote run `32926584459` passed all 29/29 jobs in 18m26,
+  including full self-host in 18m04, `build-linux` in 15m06, sanitizers,
+  Windows/macOS, codegen bootstrap, Rocq, and all backend shards. Its Linux
+  aggregate remotely owns the complete component and POSIX capture evidence.
+- The remote repair sequence exposed three independent constraints: bootstrap
+  forbids `TextBuilder` parameters, likeness holds core `(String) -> String`
+  munging at 76, and the projection owner remains capped at 200 lines. The
+  final owner keeps builder/scratch local, adds no text helper, and is 198
+  lines; focused native production-root emission reports 0 errors.
 - This is bounded `SUBSTITUTING` because the public native C MIR dump is
   replaced, but no top-level SoT row or native-only lifecycle family closes.
   Overall remains 78%, strict beta 83%, and hard SoT remains
-  `CLOSED=49 BRIDGE=36 ACTIVE=1`. The existing 29-job push matrix is the next
-  falsifier. Parallel architecture audits are separate navigation evidence and
-  open no implementation rung.
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`. The 29-job remote falsifier is closed.
+  Parallel architecture audits are separate navigation evidence and open no
+  implementation rung; the next rung must begin from a fresh production bypass
+  and objective card.
 
 ## Historical self-host context - 2026-08-26 nested priority/observability C substitution
 

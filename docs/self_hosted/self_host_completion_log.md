@@ -25,8 +25,19 @@ rewrite history.
   four-block/phi diagnostics, malformed/missing/silent/descendant negatives,
   public MIR-JSON, source-MIR world/action, explicit native IR, SoT edge,
   likeness, syntax, and diff checks. Make dry-run contains one self-host build
-  and one installed gate. Full component and the POSIX branch are not claimed
-  locally; Linux and the existing 29-job remote matrix remain the falsifier.
+  and one installed gate. Full component is not claimed locally because its
+  primary scan exceeded the static-loop budget.
+- Remote closure found and removed three distinct violations: a `TextBuilder`
+  parameter outside the bounded bootstrap subset; an added `(String) -> String`
+  helper above the likeness ceiling of 76; and a 235-line inlined owner above
+  its 200-line cap. Final checkpoint `b3da55a3` keeps builder and scratch local,
+  removes the helper, restores the 200-line ratchet, and leaves the owner at
+  198 lines. No baseline or cap was relaxed.
+- Final run `32926584459` completed 29/29 in 18m26. Full self-host passed in
+  18m04, `build-linux` in 15m06, sanitizers in 10m34, Windows in 9m08, codegen
+  bootstrap in 7m42, backend toolchain in 7m31, and all 20 backend shards in
+  39-76 seconds. This remotely closes Linux/POSIX, complete component,
+  bootstrap-subset, and likeness falsifiers.
 - This is bounded `SUBSTITUTING`, while integrated 78%, strict beta 83%, and
   hard SoT `49/36/1` remain unchanged. Three separate architecture audits found
   no repeated semantic decision in this route, deferred namespace movement,
