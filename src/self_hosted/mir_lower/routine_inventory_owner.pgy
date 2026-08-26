@@ -17,7 +17,7 @@ struct MirRoutineHeaderFacts {
     let return_type: String;
 }
 
-func MirRoutineHeaderParameterIdentityReady(
+func MirRoutineHeaderParameterRowsReady(
     ref facts: MirRoutineHeaderFacts
 ) -> Bool {
     let count: Int = ArrayLength(facts.param_names);
@@ -28,24 +28,29 @@ func MirRoutineHeaderParameterIdentityReady(
         count != ArrayLength(facts.param_pass_shapes) {
         return false;
     }
+    let identity_count: Int = 0;
     let row: Int = 0;
     while row < count {
         if facts.param_names[row] == "" ||
-            facts.param_source_syntax_ids[row] <= 0 {
+            facts.param_source_syntax_ids[row] < 0 {
             return false;
+        }
+        if facts.param_source_syntax_ids[row] > 0 {
+            identity_count = identity_count + 1;
         }
         let prior: Int = 0;
         while prior < row {
             if facts.param_names[prior] == facts.param_names[row] ||
+                (facts.param_source_syntax_ids[row] > 0 &&
                 facts.param_source_syntax_ids[prior] ==
-                    facts.param_source_syntax_ids[row] {
+                    facts.param_source_syntax_ids[row]) {
                 return false;
             }
             prior = prior + 1;
         }
         row = row + 1;
     }
-    return true;
+    return identity_count == 0 || identity_count == count;
 }
 
 func BuildMirRoutineHeaderFacts(

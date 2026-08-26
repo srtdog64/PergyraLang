@@ -1327,7 +1327,11 @@ inventory must not become a second fact-family owner registry.
   ABI layout rows and stable-identity validation. Integer token materialization
   delegates to the exact-bounded JSON integer owner and never remeasures the
   complete MIR document.
-- `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory facts.
+- `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory
+  facts. Parameter source identities must be either complete and unique or
+  entirely absent; partial carriage fails closed. This MIR-to-AST breadth owner
+  never substitutes a parameter type identity. Callable execution owners still
+  require complete positive parameter identity when that lane is reached.
 - `src/self_hosted/mir_lower/routine_lower.pgy` -- routine CFG/body reconstruction.
 - `src/self_hosted/mir_lower/stmt_render.pgy` -- instruction fact to AST text rendering.
 

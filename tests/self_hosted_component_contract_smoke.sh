@@ -18604,6 +18604,13 @@ reject_text \
     "src/self_hosted/codegen/emission/callable_parameter_prototype_owner.pgy" \
     "TextBuilder"
 reject_text \
+    "src/compiler/mir_json_dump.c" \
+    "fp->type->stable_id"
+require_function_text \
+    "src/self_hosted/mir_lower/routine_inventory_owner.pgy" \
+    "func MirRoutineHeaderParameterRowsReady(" \
+    "identity_count == 0 || identity_count == count"
+reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramFirstOrderCallableTypeSupported("
 reject_text \

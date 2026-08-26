@@ -470,9 +470,9 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
         json, routine_start, routine_end
     );
-    if !MirRoutineHeaderParameterIdentityReady(header) {
+    if !MirRoutineHeaderParameterRowsReady(header) {
         MirLowerFailClosed(Concat(
-            "routine parameter identity facts are missing or invalid: ",
+            "routine parameter rows are invalid or identity carriage is partial: ",
             routine
         ));
     }

@@ -170,8 +170,6 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
             fputc(',', out);
         fputs("{\"name\":", out);
         mir_json_emit_str_or_null(out, fp != NULL ? fp->name : NULL);
-        fprintf(out, ",\"source_syntax_id\":%u",
-                fp != NULL && fp->type != NULL ? fp->type->stable_id : 0);
         fputs(",\"type\":", out);
         mir_json_emit_str_or_null(out, param_type);
         fputs(",\"carriage\":", out);

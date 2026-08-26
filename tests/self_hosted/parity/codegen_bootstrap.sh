@@ -516,6 +516,30 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
             echo "[self-host-bootstrap] mir_lower: codegen-built output differs from oracle-built on $mir_base" >&2
             exit 1
         fi
+        if [[ "$mir_base" == "role_operator_dispatch" ]]; then
+            partial_rel="$B_REL/mir_${mir_base}_partial_identity.json"
+            partial="$ROOT_DIR/$partial_rel"
+            sed '0,/{"name":"self","type":null/s//{"name":"self","source_syntax_id":1,"type":null/' \
+                "$ROOT_DIR/$mir_json_rel" >"$partial"
+            grep -Fq '"source_syntax_id":1' "$partial" || {
+                echo "[self-host-bootstrap] role partial-identity mutation was not applied" >&2
+                exit 1
+            }
+            for lower_kind in self oracle; do
+                lower_bin="$B/mir_lower_${lower_kind}.exe"
+                lower_out="$B/mir_${mir_base}_${lower_kind}_partial.out"
+                lower_err="$B/mir_${mir_base}_${lower_kind}_partial.err"
+                lower_rc=0
+                run_native_capture "$ROOT_DIR" "$lower_out" "$lower_err" \
+                    "$lower_bin" "$partial_rel" || lower_rc=$?
+                if [[ "$lower_rc" -eq 0 ]] ||
+                    ! grep -Fq 'identity carriage is partial' \
+                        "$lower_out" "$lower_err"; then
+                    echo "[self-host-bootstrap] mir_lower $lower_kind accepted partial parameter identity" >&2
+                    exit 1
+                fi
+            done
+        fi
     done
     MIR_SUMMARY="$(IFS=', '; printf '%s' "${BOOTSTRAP_MIR_FIXTURES[*]}")"
     echo "[self-host-bootstrap] codegen compiles mir_lower -> matches oracle-built on $MIR_SUMMARY"
