@@ -357,8 +357,9 @@ test_expression_emit(void)
     TEST("IntentRecentName missing index fails closed");
     {
         ctx = transpiler_ctx_create();
-        result = emit_expression(make_call("IntentRecentName", NULL, 0, 1),
-                                 ctx);
+        ASTNode *call = make_call("IntentRecentName", NULL, 0, 1);
+        EXPECT(ast_call_set_semantic_runtime_call_abi_id(call, 48));
+        result = emit_expression(call, ctx);
         EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
@@ -370,8 +371,9 @@ test_expression_emit(void)
     {
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_number(0, 1) };
-        result = emit_expression(make_call("IntentActiveStepName", args, 1, 1),
-                                 ctx);
+        ASTNode *call = make_call("IntentActiveStepName", args, 1, 1);
+        EXPECT(ast_call_set_semantic_runtime_call_abi_id(call, 13));
+        result = emit_expression(call, ctx);
         EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
