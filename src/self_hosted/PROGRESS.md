@@ -13,8 +13,12 @@
   target, binding, and carriage mutations without publishing an artifact. A
   fresh release DRV-2 build/install, the separate public-installed gate, and the
   full component/source-MIR inventory are local GREEN.
-- Implementation checkpoint `30b84f80` is local; publication and remote
-  replacement CI are still pending. SoT stays
+- Implementation `30b84f80` is published. Run `33000341546` rejected five
+  fresh-build jobs because its prototype helper carried a `TextBuilder`
+  parameter. Local repair `f6d6fb4b` returns a finished `Option<String>` and
+  bans that owner crossing; fresh isolated seed, DRV-2, focused/public callable,
+  and full component gates are green. Repair publication and replacement CI are
+  pending. SoT stays
   `CLOSED=50 BRIDGE=35 ACTIVE=1`; hard closure is 58.1%, migration is 78.8%,
   overall remains 83% (81-85%), strict beta 83%, and hard replacement 75%.
 

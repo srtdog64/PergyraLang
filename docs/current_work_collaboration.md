@@ -8,9 +8,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE lease — callable-parameter installed-path substitution (publication pending)
 
-- Implementation checkpoint: exact local
-  `30b84f80aaf13a8479b533a931ef115dfcea5905`; publication and replacement CI
-  are pending from published base `57d9c3704fb8654b28994aa2f35bb8d9373a9214`.
+- Implementation checkpoint `30b84f80aaf13a8479b533a931ef115dfcea5905`
+  is published. Exact local repair checkpoint
+  `f6d6fb4b90445d788c90e546482742e18cf5c2fa` is pending publication from
+  published handoff HEAD `83ef17b34b70d85942cfaa6a78083e2f8d2c7858`.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -60,11 +61,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   carriage facts before either backend publishes an artifact. Builtins keep
   canonical zero/none identity, while declared and formal callable targets
   require their exact source SyntaxNodeId cross-seal.
-- The full component/source-MIR inventory, the official self-host compiler
-  build, and the post-build installed public gate are locally green at the
-  implementation source now committed as `30b84f80`. Remote CI and publication
-  have not run yet, so this lease remains `ACTIVE` and no percentage or registry
-  status is promoted by the local result alone.
+- The first local component/source-MIR inventory, self-host compiler build, and
+  post-build public gate were green at `30b84f80`, but the compiler build reused
+  a fingerprinted seed and therefore did not prove a fresh bootstrap.
+- First published run `33000341546` rejected five fresh-build jobs because the
+  new prototype helper carried a `TextBuilder` parameter across a function
+  boundary. Repair `f6d6fb4b` returns a finished `Option<String>` instead and
+  adds a component ratchet banning `TextBuilder` from that helper. A fresh
+  isolated gen2 seed, fresh DRV-2 install, focused/internal and installed/public
+  callable gates, and the full component/source-MIR inventory are green after
+  the repair. Replacement CI remains the next falsifier, so this lease stays
+  `ACTIVE` and no percentage or registry state is promoted yet.
 
 ## DONE lease O — structured MatchCase carrier closure
 

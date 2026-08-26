@@ -13,11 +13,16 @@ source-MIR 뒤 semantic re-entry/self-C identity-bound emitter를 소비하고, 
 formal을 둔 falsifier는 정확히 `6`을 출력한다. 19개 missing/forged/cross-wired
 mutation은 artifact publication 전에 실패한다. Fresh release DRV-2 설치, focused
 gate, 별도 installed-public gate, full component/source-MIR inventory는 local
-green이고 구현 checkpoint는 `30b84f80`이다. 아직 push와 replacement CI 전이므로
-publication 완료나 원격 green은 주장하지 않는다. Registry census는 그대로 `50
-CLOSED / 35 BRIDGE / 1 ACTIVE`; hard closure와 migration 산술만 현재 census에
-맞춰 각각 58.1%, 78.8%로 바로잡고 통합 83% (81~85%), strict beta 83%, hard
-replacement 75%는 유지한다.
+green이고 구현 checkpoint는 `30b84f80`이다. 첫 published run `33000341546`은 새
+prototype helper가 `TextBuilder`를 함수 경계로 운반한 오류를 fresh build에서
+발견해 다섯 job이 실패했다. Repair `f6d6fb4b`는 helper가 완성된
+`Option<String>`만 반환하게 하고 해당 `TextBuilder` 경계를 금지하는 ratchet을
+추가했다. Fresh isolated gen2 seed, DRV-2, focused/public callable, full
+component/source-MIR는 repair 뒤 local green이다. Repair push와 replacement CI
+전이므로 원격 green은 주장하지 않는다. Registry census는 그대로 `50 CLOSED / 35
+BRIDGE / 1 ACTIVE`; hard closure와 migration 산술만 현재 census에 맞춰 각각
+58.1%, 78.8%로 바로잡고 통합 83% (81~85%), strict beta 83%, hard replacement
+75%는 유지한다.
 
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,

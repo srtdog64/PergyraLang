@@ -20,10 +20,11 @@ percentage by themselves.
 
 ## Active self-host context - callable-parameter public substitution
 
-- Callable implementation checkpoint is exact local
-  `30b84f80aaf13a8479b533a931ef115dfcea5905`; origin remains exact
-  `57d9c3704fb8654b28994aa2f35bb8d9373a9214`, and this handoff/documentation
-  checkpoint plus publication are pending. The unrelated user-owned
+- Callable implementation `30b84f80aaf13a8479b533a931ef115dfcea5905` and
+  documentation checkpoint `83ef17b34b70d85942cfaa6a78083e2f8d2c7858` are
+  published. Exact local repair checkpoint
+  `f6d6fb4b90445d788c90e546482742e18cf5c2fa` and this updated handoff are
+  pending publication. The unrelated user-owned
   `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
@@ -45,10 +46,13 @@ percentage by themselves.
   publication.
 - A fresh release self-host compiler was built and installed. The focused
   callable gate, separate installed-public gate, full component/source-MIR
-  inventory, and the post-build installed gate are local GREEN. Remote CI has
-  not run for implementation checkpoint `30b84f80`, so the next falsifier is
-  the documentation checkpoint, exact push, and the replacement matrix at the
-  published revision.
+  inventory, and the post-build installed gate are local GREEN. Remote run
+  `33000341546` rejected five fresh-build jobs: a new prototype helper
+  illegally accepted `TextBuilder`, which local fingerprint reuse had hidden.
+  Repair `f6d6fb4b` returns `Option<String>` and adds a negative structural
+  ratchet. A fresh isolated gen2 seed, fresh DRV-2 install, focused and public
+  callable gates, and the complete component/source-MIR gate are green after
+  repair. The next falsifier is exact push and the replacement matrix.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
   Physical cleanup was rejected by execution policy before any deletion; do not
