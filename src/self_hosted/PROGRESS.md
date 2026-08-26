@@ -1,5 +1,27 @@
 # Self-Host Progress
 
+## Active self-host context - 2026-08-26 REPL compile/run substitution
+
+- Public `pgy --repl` keeps its native C session UI, but each executable input
+  now enters the existing installed Pergyra C compile/run owner. The direct
+  `driver_run_pipeline` call is deleted from `repl.c`; missing or failed
+  installed drivers never authorize a native retry.
+- RED used a nonexistent `PGY_SELF_DRIVER_BIN`: the old REPL still compiled and
+  ran `repl-native-bypass` natively. The new focused gate observes real
+  installed execution, an exactly-once counting sibling, missing-driver and
+  invalid-source failures without a program/binary, no native timing, transient
+  cleanup, and the static old-call ban. It passed in 8 seconds.
+- Incremental `make pgy` and the existing installed-driver integration target
+  are GREEN. The target reused its one seed/self-driver preparation and sourced
+  the focused gate; no Make target, CI job, timeout, or second compiler build
+  was added.
+- The complete REPL session is still native product tooling and `NOT READY` for
+  Pergyra ownership. Package metadata and the other audited product tools also
+  lack complete owners. Only the compiler-bearing interior is bounded
+  `SUBSTITUTING`; overall 78%, strict beta 83%, and hard SoT
+  `CLOSED=49 BRIDGE=36 ACTIVE=1` remain unchanged. Commit/push/remote CI are
+  pending.
+
 ## Active self-host context - 2026-08-26 explicit-native isolation for unowned IR
 
 - The final implicit launcher dispatch to `driver_run_pipeline` is deleted for

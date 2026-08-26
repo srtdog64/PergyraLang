@@ -6,6 +6,6 @@
 #ifndef PGY_REPL_H
 #define PGY_REPL_H
 
-int repl_run(void);
+int repl_run(const char *launcher_path);
 
 #endif /* PGY_REPL_H */

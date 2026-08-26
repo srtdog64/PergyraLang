@@ -21,7 +21,7 @@
 #include <unistd.h>
 #endif
 
-#include "driver_app.h"
+#include "c_runner.h"
 
 static void
 repl_tmp_path(char *out, size_t out_size, const char *ext)
@@ -60,7 +60,7 @@ repl_line_is_decl(const char *line)
 }
 
 int
-repl_run(void)
+repl_run(const char *launcher_path)
 {
     printf("Pergyra REPL v0.1 — type 'exit' to quit\n");
 
@@ -146,7 +146,11 @@ repl_run(void)
         memset(&rf, 0, sizeof(rf));
         rf.source_path = tmp_pgy;
         rf.do_run = true;
-        driver_run_pipeline(&rf);
+        rf.backend = BACKEND_C;
+        rf.opt_profile = PGY_OPT_DEV;
+        rf.diag_format = DIAG_FORMAT_TEXT;
+        rf.runtime_mode = RUNTIME_DEFAULT;
+        c_runner_execute_installed_self_host_c(launcher_path, &rf, NULL);
 
         remove(tmp_pgy);
         remove(tmp_c);

@@ -6,6 +6,58 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease H — REPL compile/run native-bypass substitution
+
+- Base revision: `acdab822b7d1ce27c636f73392ebb1d7738bf08a`.
+- Editing and integration owner: the primary Codex task. Peer agents completed
+  three read-only readiness reports and own only their assigned files under
+  `docs/audits/`.
+- Objective: retain the native C REPL session UI and declaration accumulation,
+  but replace its per-evaluation `driver_run_pipeline` compiler call with the
+  existing installed Pergyra C compile/run boundary.
+- Priority order: one installed source-to-C fact owner; no native retry;
+  preserve the current REPL session observable; retire transient artifacts;
+  negative ratchet; then patch size and product-tool ownership.
+- Fact owner: the already production-reachable installed source-C path through
+  `c_runner_execute_installed_self_host_c` and the Pergyra compiler world. This
+  lease does not claim a Pergyra owner for prompts, multiline admission,
+  accumulated declarations, or REPL session transitions.
+- Last legitimate consumer: the C REPL evaluation loop after it publishes one
+  synthesized temporary source and before it compiles or runs that source.
+- Direct bypass to delete: `src/compiler/repl.c` calls
+  `driver_run_pipeline(&rf)` for every executable input without a native
+  opt-out.
+- Forbidden fallback: calling `driver_run_pipeline`, retrying native after a
+  missing or failed installed driver, reporting the entire REPL as Pergyra-
+  owned, leaking a produced binary/source artifact, or adding a second
+  self-host compiler build or CI job.
+- Falsifier and integration gate: public `pgy --repl` executes one Log input
+  through the installed sibling and preserves the prompt/program/Bye
+  transcript; a missing sibling emits its owned failure and no program line;
+  unsupported source emits no program line and does not retry; static source
+  rejects `driver_run_pipeline` in `repl.c`; the existing installed-driver CLI
+  Make target sources the focused gate and reuses its one compiler build.
+- Classification: only the REPL's compiler-bearing interior can become bounded
+  `SUBSTITUTING`. The C-owned REPL product/session remains native and
+  `NOT READY`; this lease does not change whole-product ownership or progress
+  percentages by itself.
+
+### Local result
+
+- RED with a nonexistent `PGY_SELF_DRIVER_BIN` still ran
+  `repl-native-bypass` through native compilation. The direct call is now
+  deleted; `repl_run` receives `argv[0]` and enters exactly one installed C
+  compile/run boundary using the REPL's existing dev profile.
+- The focused gate passed in 8 seconds and covers real installed evaluation,
+  one counting-driver invocation, missing-driver and invalid-source failures,
+  absence of native timing or rejected program publication, cleanup, and the
+  static old-call ban. Incremental `make pgy` passed.
+- `make self-host-installed-driver-cli-mode-test-smoke` passed with the new
+  gate sourced by its existing script. Its one seed/bootstrap preparation took
+  about five minutes; no new target, job, timeout, or second driver build was
+  introduced. Publication and remote CI are pending, so Lease H remains
+  `ACTIVE`.
+
 ## DONE lease G — explicit-native isolation for unowned IR diagnostics
 
 - Base revision: `8b8c78f0d6f5efd0eecaeaec7ee2b1796b6723dd`.

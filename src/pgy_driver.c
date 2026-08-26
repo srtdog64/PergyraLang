@@ -233,7 +233,7 @@ main(int argc, char *argv[])
 
     DriverFlags flags = parse_args(argc, argv);
     if (flags.repl)
-        return repl_run();
+        return repl_run(argv[0]);
     if (flags.test_native_mir_json_oracle) {
         if (flags.dump_mir_json) {
             fprintf(stderr,

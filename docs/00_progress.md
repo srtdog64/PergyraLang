@@ -2,6 +2,20 @@
 
 마지막 업데이트: 2026-08-26
 
+2026-08-26 로컬 REPL compiler-bypass 갱신: public `pgy --repl`의 C session
+UI와 선언 누적은 그대로 두되, 실행 입력마다 호출하던 implicit native
+`driver_run_pipeline`을 기존 installed Pergyra C compile/run owner로 바꿨다.
+존재하지 않는 `PGY_SELF_DRIVER_BIN`을 줘도 이전 구현이
+`repl-native-bypass`를 native로 실행한 RED를 관측했고, 이제 missing/failed
+driver는 native retry 없이 해당 입력만 실패한다.
+
+Focused gate는 실제 installed 실행, counting sibling 정확히 1회, missing driver,
+invalid source, native timing 부재, 임시 source/binary 회수, old-call static ban을
+8초에 통과했다. 증분 build와 기존 installed-driver integration target도 green이며
+새 Make target/CI job/timeout/두 번째 compiler build는 없다. 이는 REPL 내부
+compiler 경계만 bounded `SUBSTITUTING`이며 전체 REPL 제품은 여전히 native다.
+전체 78%, strict beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 바꾸지 않는다.
+
 2026-08-26 로컬 fallback 폐쇄 갱신: public `--rir*`, `--air*`, `--hir*`의
 마지막 implicit `driver_run_pipeline` dispatch를 삭제했다. 완전한 Pergyra producer가
 없는 bare 요청은 이제 launcher에서 mode별 missing-owner 진단과 함께 nonzero/empty

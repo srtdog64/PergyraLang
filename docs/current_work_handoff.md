@@ -17,7 +17,43 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - explicit-native isolation closed; no successor rung
+## Active self-host context - REPL compile bypass substitution local green
+
+- Base checkpoint is published `acdab822`; the current worktree contains the
+  Lease H source/test/docs delta plus the unrelated user-owned untracked
+  `pgy-80135c2c/` directory, which must not be inspected, staged, deleted, or
+  rewritten. Commit, push, and remote CI for Lease H remain pending.
+- Objective card: keep the C-owned REPL prompt, declaration accumulation,
+  multiline handling, and cleanup, but replace its per-evaluation direct
+  `driver_run_pipeline` call with the existing installed Pergyra C compile/run
+  owner. This does not claim a Pergyra REPL session owner.
+- Observed RED: with `PGY_SELF_DRIVER_BIN` set to a nonexistent executable,
+  public `pgy --repl` still compiled and ran `repl-native-bypass` through the
+  native pipeline, exited 0, and emitted no missing-driver diagnostic.
+- `repl_run` now receives the launcher identity and calls exactly one
+  `c_runner_execute_installed_self_host_c` boundary with the current REPL dev
+  profile. Missing or failed installed drivers do not retry native. The REPL
+  continues after a rejected evaluation as before and retires its synthesized
+  source and binary.
+- The new focused gate passed in 8 seconds. It observes a real installed-driver
+  evaluation, an exactly-once counting sibling, missing-driver failure without
+  a program/compile receipt, invalid-source failure without a binary, no native
+  timing, cleanup, and a static ban on `driver_run_pipeline` in `repl.c`.
+  Incremental `make pgy` is green. The existing installed-driver integration
+  target, which reuses the same build and sources the new gate, is green; its
+  seed/bootstrap preparation took about five minutes while the focused REPL
+  slice itself remained eight seconds.
+- Three reports under the completed nonnumbered agent directive independently
+  census launcher paths, package metadata, and native product tools. Package
+  manifest/lock is not a compiler substitution target and lacks a typed
+  Seashell admission graph; formatter, debugger, scaffold/new, package init,
+  and the complete REPL session remain `NOT READY` product boundaries.
+- Classification is bounded `SUBSTITUTING` only for the REPL's compiler-bearing
+  interior. Product-level REPL ownership, integrated 78%, strict beta 83%, and
+  hard SoT `CLOSED=49 BRIDGE=36 ACTIVE=1` remain unchanged. No second successor
+  rung is inferred from these audits.
+
+## Previous self-host context - explicit-native isolation closed
 
 - Published implementation checkpoint `4eef51ad` and repair checkpoint
   `45a2cfae` are on local and remote `main`. First run `32932076025` found the

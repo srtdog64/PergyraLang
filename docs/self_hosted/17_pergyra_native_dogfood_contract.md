@@ -1432,9 +1432,11 @@ SoT seam은 `selfhost.intent_declaration_rows`에 typed transition authority를 
   sibling driver, exactly-once counting shim, output execution, missing driver,
   unsupported option, partial artifact 부재를 검증한다.
 - Grade: 이 세 C target과 아래 admitted default-runtime LLVM target이
-  `SUBSTITUTING`이다. intent-observability, composite-intent LLVM, package,
-  dump/check/repl은 아직 open이다. 이 폐쇄는 `subject/action/intent`의
-  production-root 등급을 올리지 않는다.
+  `SUBSTITUTING`이다. Compiler-bearing package/check와 owned public dump는 이후
+  installed target으로 닫혔고, unowned RIR/AIR/HIR dump는 explicit native에서만
+  실행된다. REPL의 per-evaluation compiler call도 installed C runner로 대체됐지만
+  REPL session UI/state 자체와 intent-observability, composite-intent LLVM은 별도
+  경계다. 이 폐쇄는 `subject/action/intent`의 production-root 등급을 올리지 않는다.
 
 ## 완료된 installed default-runtime LLVM substitution
 

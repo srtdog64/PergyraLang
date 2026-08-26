@@ -6,6 +6,26 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-26 - REPL evaluation leaves the implicit native compiler
+
+- Three reports under a separate nonnumbered agent directive found exactly one
+  remaining implicit native compiler execution: the C-owned REPL session called
+  `driver_run_pipeline` for every executable input. Package compiler execution
+  was already installed-self-hosted; package metadata and the other native
+  tools are product boundaries without complete Pergyra owners.
+- A nonexistent `PGY_SELF_DRIVER_BIN` reproduced the bypass: the old REPL still
+  ran `repl-native-bypass` through native compilation. The REPL now passes its
+  launcher identity to the existing installed C compile/run owner and has no
+  direct native compiler call or failure retry.
+- The C prompt/session/declaration/multiline behavior remains native and is not
+  reported as Pergyra-owned. Only the compiler-bearing evaluation interior is
+  bounded `SUBSTITUTING`.
+- The focused eight-second gate covers real installed execution, an exactly-
+  once counting sibling, missing-driver and invalid-input failure, absence of
+  native timing/program publication, cleanup, and the old-call negative.
+  Incremental build and the existing installed-driver integration target are
+  green. Commit, push, and remote CI remain pending.
+
 ## 2026-08-26 - Unowned public IR diagnostics require explicit native opt-in
 
 - Deleted the launcher's final implicit native dispatch. Bare public RIR, AIR,

@@ -206,8 +206,11 @@ package commands are also bounded `SUBSTITUTING` targets. Package
 `build`/`run`/`test` consume the manifest-selected installed C or LLVM runner.
 The package manifest/lock parser, scaffolding, formatting, debug surfaces, and
 unsupported dependency/registry commands remain native or fail-closed product
-boundaries. A promoted target must keep its C/LLVM oracle gates; one promoted
-target never implies whole-product self-hosting.
+boundaries. The REPL session UI/state is also a native product boundary, while
+its per-evaluation compiler call is bounded `SUBSTITUTING` through the same
+installed C runner as plain public compile/run. A promoted target must keep its
+C/LLVM oracle gates; one promoted target never implies whole-product
+self-hosting.
 
 ## CI Owner
 

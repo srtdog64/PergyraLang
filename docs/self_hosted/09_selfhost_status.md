@@ -788,19 +788,26 @@ verification and backend artifact production no longer call the native
 compiler pipeline by default. A missing installed sibling fails before source
 processing, and failed package verification cannot publish a refreshed lock.
 
-This is still target-specific rather than whole-product self-hosting. Native
-debug/dump modes, REPL, package scaffolding/formatting, manifest/lock parsing,
-and the unsupported dependency/registry surface are not promoted by the
-installed compiler evidence above.
+This is still target-specific rather than whole-product self-hosting. The
+native formatter, debugger, REPL session UI/state, package scaffolding/init,
+manifest/lock parsing, and unsupported dependency/registry surface are not
+promoted by the installed compiler evidence above. Public owned dump modes are
+installed-self-hosted, while unowned RIR/AIR/HIR modes fail closed unless the
+caller selects the explicit native oracle. The REPL's per-evaluation compiler
+call now uses the installed C runner, but that narrow substitution does not
+promote the surrounding REPL product.
 
 ## Recommended next pass
 
-Keep the fixed point and installed package gate green, then select the first
-remaining user-facing request that reaches the launcher's final native
-`driver_run_pipeline` fallback. Name that request and its fact owner before
-editing. Do not count `init`, `new`, or `fmt` as compiler replacement merely
-because they share the package command namespace, and do not reopen the broad
-sentinel campaign by raising its ceiling.
+Keep the fixed point, installed package gate, and REPL evaluation gate green.
+No implicit native compiler call remains in the public launcher or REPL after
+the bounded REPL substitution; the two launcher calls are declared test/
+bootstrap opt-outs, and the package call requires the same explicit opt-out.
+Do not manufacture a successor from `init`, `new`, `fmt`, debugger, package
+metadata, or whole-REPL product work. A later rung must first name a fresh
+production compiler bypass, an existing complete Pergyra owner, and one
+executable falsifier. Do not reopen the broad sentinel campaign by raising its
+ceiling.
 
 ## How to reproduce
 
