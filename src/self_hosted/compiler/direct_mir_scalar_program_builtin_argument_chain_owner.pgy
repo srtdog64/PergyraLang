@@ -1,5 +1,5 @@
 // Structural recovery of one canonical call-argument chain from persisted DAG facts.
-import "direct_mir_scalar_program_call_callee_identity_owner.pgy";
+import "direct_mir_scalar_program_declared_call_callee_identity_owner.pgy";
 struct DirectMirScalarProgramBuiltinArgumentChain {
     let valid: Bool;
     let call_node: Int;

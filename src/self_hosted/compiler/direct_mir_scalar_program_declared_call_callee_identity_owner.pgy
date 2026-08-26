@@ -1,0 +1,23 @@
+// Declared-call admission sealed by carried callee and target SyntaxNodeIds.
+
+import "direct_mir_scalar_program_call_callee_identity_owner.pgy";
+
+func DirectMirScalarProgramDeclaredCallCalleeIdentityReady(
+    ref sequence: MirExpressionGraphSequence, node: Int
+) -> Bool {
+    if DirectMirScalarProgramNamespaceCallMarkerReady(sequence, node) {
+        return true;
+    }
+    if !DirectMirScalarProgramCallMarkerReady(sequence, node) ||
+        sequence.arena.identities.call_target_syntax_ids[node] <= 0 {
+        return false;
+    }
+    let callee: Int = sequence.arena.topology.left_children[node];
+    return callee >= 0 && callee < node &&
+        sequence.arena.topology.node_kinds[callee] == AstExpressionNodeLeaf() &&
+        sequence.arena.identities.binding_kinds[callee] ==
+            SemanticExpressionBindingDeclaredCallable() &&
+        sequence.arena.identities.binding_ordinals[callee] == -1 &&
+        sequence.arena.identities.binding_syntax_ids[callee] ==
+            sequence.arena.identities.call_target_syntax_ids[node];
+}

@@ -123,6 +123,8 @@ for forbidden_copy in \
         "$forbidden_copy"
 done
 require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
+    "SemanticExpressionGraphArenaFromTopologyWithIdentities("
+reject_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "SemanticExpressionGraphArenaFromTopology("
 reject_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "SemanticExpressionGraphArenaFromRows("

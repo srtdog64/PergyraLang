@@ -107,9 +107,10 @@ func SemanticExpressionCallTargetExpected(
                 true, SemanticCallTargetNone(), "", 0
             );
         }
+        let canonical_target_name: String = callable_names[UnwrapOption(direct)];
         let declared_callable: Bool =
             SemanticExpressionDeclaredCallableTargetExists(
-                signatures, UnwrapOption(source_name));
+                signatures, canonical_target_name);
         if require_carried && declared_callable {
             let carried_target_syntax_id: Int =
                 graph.arena.identities.call_target_syntax_ids[node_id];
@@ -119,7 +120,7 @@ func SemanticExpressionCallTargetExpected(
                 graph.arena.identities.binding_syntax_ids[call.callee_node] !=
                     carried_target_syntax_id ||
                 !SemanticExpressionDeclaredCallableCarriedIdentityReady(
-                    signatures, UnwrapOption(source_name),
+                    signatures, canonical_target_name,
                     carried_target_syntax_id) {
                 return SemanticExpressionCallTargetFact(
                     false, SemanticCallTargetDirect(), "", 0);
@@ -134,9 +135,7 @@ func SemanticExpressionCallTargetExpected(
                 false, SemanticCallTargetDirect(), "", 0);
         }
         return SemanticExpressionCallTargetFact(
-            true, SemanticCallTargetDirect(),
-            callable_names[UnwrapOption(direct)], 0
-        );
+            true, SemanticCallTargetDirect(), canonical_target_name, 0);
     }
     if UnwrapOption(callee_kind) != AstExpressionNodeMemberAccess() {
         return SemanticExpressionCallTargetFact(

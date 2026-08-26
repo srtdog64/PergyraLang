@@ -18,10 +18,18 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 MARKER_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy"
+DECLARED_IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_declared_call_callee_identity_owner.pgy"
 IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy"
+CALL_TARGET_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy"
+CALL_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy"
+EXPECTED_TYPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_argument_expected_type_owner.pgy"
+ZERO_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_zero_argument_call_admission_owner.pgy"
+IDENTITY_BOUND_C_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$MUTATIONS" "$MARKER_OWNER" "$IDENTITY_OWNER"; do
+for owner in "$MUTATIONS" "$MARKER_OWNER" "$DECLARED_IDENTITY_OWNER" \
+        "$IDENTITY_OWNER" "$CALL_TARGET_OWNER" "$CALL_ARGUMENT_OWNER" "$EXPECTED_TYPE_OWNER" \
+        "$ZERO_ARGUMENT_OWNER" "$IDENTITY_BOUND_C_OWNER"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
@@ -32,8 +40,22 @@ grep -Fq 'sequence.arena.identities.call_target_syntax_ids[node] > 0' \
     "$MARKER_OWNER" || fail "call marker ignores carried SyntaxNodeId"
 grep -Fq 'SemanticCallTargetNamespace()' "$MARKER_OWNER" ||
     fail "callee identity owner omits namespace-call topology"
+grep -Fq 'func DirectMirScalarProgramDeclaredCallCalleeIdentityReady(' \
+    "$DECLARED_IDENTITY_OWNER" || fail "declared-call callee identity owner is missing"
 grep -Fq 'SemanticCallTargetNamespace()' "$IDENTITY_OWNER" ||
     fail "semantic identity owner omits namespace-call SyntaxNodeId"
+grep -Fq 'graph.arena.topology.left_children[node + 1] ==' \
+    "$IDENTITY_OWNER" || fail "semantic identity owner lost exact call-callee edge"
+grep -Fq 'signatures, canonical_target_name' "$CALL_TARGET_OWNER" ||
+    fail "call-target admission lost canonical declared-callable identity"
+if grep -Fq 'signatures, UnwrapOption(source_name)' "$CALL_TARGET_OWNER"; then fail "call-target admission reopened namespace-local callee spelling"; fi
+for owner in "$CALL_ARGUMENT_OWNER" "$EXPECTED_TYPE_OWNER" \
+        "$ZERO_ARGUMENT_OWNER"; do
+    if grep -Fq 'node_texts[callee] != callables.names' "$owner"; then fail "declared-call admission reopened callee display-text identity"; fi
+done
+grep -Fq '(formal && UnwrapOption(callee_name) != source_name)' \
+    "$IDENTITY_BOUND_C_OWNER" ||
+    fail "identity-bound C emitter lost formal-only spelling validation"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
@@ -49,6 +71,40 @@ grep -Fq '"call_target_name":"InternalNames_Fact1"' "$MIR" ||
     fail "producer omitted the canonical namespace callable identity"
 grep -Fq '"call_target_kind":"namespace","call_target_name":"InternalNames_Fact2"' "$MIR" ||
     fail "producer omitted the qualified namespace callable identity"
+python - "$MIR" <<'PY'
+import json, pathlib, sys
+
+document = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+edges = []
+for routine in document.get("routines", []):
+    for block in routine.get("blocks", []):
+        for instruction in block.get("instructions", []):
+            for lane in ("expr0_graph", "expr1_graph"):
+                graph = instruction.get(lane)
+                if not isinstance(graph, dict):
+                    continue
+                nodes = graph.get("nodes", [])
+                for call in nodes:
+                    if (call.get("call_target_kind") != "direct" or
+                            call.get("call_target_name") !=
+                            "InternalNames_Fact1"):
+                        continue
+                    callee_index = call.get("left")
+                    if (not isinstance(callee_index, int) or
+                            callee_index < 0 or callee_index >= len(nodes)):
+                        raise SystemExit("namespace-internal call has no exact callee edge")
+                    edges.append((call, nodes[callee_index]))
+if len(edges) != 1:
+    raise SystemExit(f"expected one namespace-internal call edge, got {len(edges)}")
+call, callee = edges[0]
+target_id = call.get("call_target_syntax_id")
+if (not isinstance(target_id, int) or target_id <= 0 or
+        callee.get("kind") != "leaf" or callee.get("text") != "Fact1" or
+        callee.get("binding_syntax_id") != target_id or
+        callee.get("binding_kind") != "declared_callable" or
+        callee.get("binding_ordinal") is not None):
+    raise SystemExit("namespace-internal callee did not carry its call target identity")
+PY
 printf 'namespace:internal-ready\n' >"$WORK_DIR/expected.run"
 
 for backend in c llvm; do
@@ -83,7 +139,9 @@ for backend in c llvm; do
 done
 
 for mutation in namespace-internal-call-syntax-id \
-        namespace-qualified-call-syntax-id; do
+        namespace-qualified-call-syntax-id \
+        namespace-internal-callee-binding-missing \
+        namespace-internal-callee-binding-crossed; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do
@@ -99,5 +157,4 @@ for mutation in namespace-internal-call-syntax-id \
             fail "$backend published an artifact for $mutation"
     done
 done
-
 echo "[$LABEL] namespace-internal direct call C/LLVM parity + negative: PASS"

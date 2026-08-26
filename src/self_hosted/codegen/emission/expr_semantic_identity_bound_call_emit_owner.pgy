@@ -24,17 +24,17 @@ func RewriteSemanticIdentityBoundCall(
         graph, view.callee_node);
     let callee_name: Option<String> = SemanticExpressionGraphNodeText(
         graph, view.callee_node);
-    if !IsSome(target_id) || !IsSome(binding_id) ||
-        !IsSome(binding_ordinal) || !IsSome(callee_name) ||
-        UnwrapOption(target_id) <= 0 ||
-        UnwrapOption(binding_id) != UnwrapOption(target_id) ||
-        UnwrapOption(callee_name) != source_name {
-        Die("identity-bound C call carrier is missing or cross-wired");
-    }
     let formal: Bool =
         binding_kind == SemanticExpressionBindingFormalParameter();
     let declared: Bool =
         binding_kind == SemanticExpressionBindingDeclaredCallable();
+    if !IsSome(target_id) || !IsSome(binding_id) ||
+        !IsSome(binding_ordinal) || !IsSome(callee_name) ||
+        UnwrapOption(target_id) <= 0 ||
+        UnwrapOption(binding_id) != UnwrapOption(target_id) ||
+        (formal && UnwrapOption(callee_name) != source_name) {
+        Die("identity-bound C call carrier is missing or cross-wired");
+    }
     if (!formal && !declared) ||
         (formal && UnwrapOption(binding_ordinal) < 0) ||
         (declared && UnwrapOption(binding_ordinal) != -1) {

@@ -19,14 +19,14 @@
     "owner_set_sha256": "5B6DFCD460486EDB9B6AEDCCE0ACCE0F15BA73ACBD543B9EA01E1B926671AEA9"
   },
   "current_callable_owner_hashes": {
-    "measured_at": "2026-08-18",
-    "source_revision": "e8f8fa1d",
-    "note": "identity-resolution owner drifted at the c363a94a frontier landing; other two callable owners unchanged",
-    "owner_set_sha256": "9C47FFDAD9966D0604748CBD37615C76B1D935E664D1541A69BF2ECCE18B3B9F",
+    "measured_at": "2026-08-27",
+    "source_revision": "working-tree-namespace-callable-carriage",
+    "note": "identity-resolution owner now joins namespace-local leaf spelling to the canonical callable target; retained performance figures are not remeasured",
+    "owner_set_sha256": "DD49849B369548B4B0DFE418345A6A28825D276BF1CFFE73248A4C2D8F308778",
     "owner_files_sha256": {
       "src/self_hosted/semantic/callable_resolution_owner.pgy": "DE376EFA2860286C2B5778526B79B92325105C744B5561BCC23428666E746AA0",
       "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy": "6A4F529B4B2B4EBB6278CE6342EB4FCA82494EB2F7BCA18820A92421F78E8EFA",
-      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "01C52333038325690E12442BEE6F5BA5E1C9AB9FD97984FF3C2014B2ACAD3FA8"
+      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "BFE67E268984CD82475B0E84248D3B49E9E2DBEF9FA56BF65ECDB4105670ECB8"
     }
   },
   "current_scan_owner_closure": {

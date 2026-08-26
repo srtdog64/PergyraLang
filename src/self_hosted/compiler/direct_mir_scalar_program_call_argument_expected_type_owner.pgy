@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_identity_owner.pgy";
+import "direct_mir_scalar_program_declared_call_callee_identity_owner.pgy";
 
 func DirectMirScalarProgramDirectCallArgumentExpectedType(ref sequence:
     MirExpressionGraphSequence, argument_root: Int,
@@ -18,13 +19,20 @@ func DirectMirScalarProgramDirectCallArgumentExpectedType(ref sequence:
         if left < 0 || left >= cursor { return ""; }
         let left_kind: Int = sequence.arena.topology.node_kinds[left];
         if left_kind == AstExpressionNodeCall() {
-            if sequence.arena.call_target_kinds[left] != SemanticCallTargetDirect() { return ""; }
+            if sequence.arena.call_target_kinds[left] != SemanticCallTargetDirect() &&
+                sequence.arena.call_target_kinds[left] != SemanticCallTargetNamespace() { return ""; }
             let target_syntax_id: Int = sequence.arena.identities.call_target_syntax_ids[left];
             let callee: Int = sequence.arena.topology.left_children[left];
-            if target_syntax_id <= 0 || callee < 0 || callee >= left ||
-                sequence.arena.topology.node_kinds[callee] != AstExpressionNodeLeaf() { return ""; }
-            let binding_kind: Int = sequence.arena.identities.binding_kinds[callee];
+            if target_syntax_id <= 0 || callee < 0 || callee >= left { return ""; }
+            let callee_is_leaf: Bool =
+                sequence.arena.topology.node_kinds[callee] == AstExpressionNodeLeaf();
+            let binding_kind: Int = SemanticExpressionBindingNone();
+            if callee_is_leaf { binding_kind = sequence.arena.identities.binding_kinds[callee]; }
             if binding_kind == SemanticExpressionBindingFormalParameter() {
+                if sequence.arena.call_target_kinds[left] !=
+                        SemanticCallTargetDirect() || !callee_is_leaf {
+                    return "";
+                }
                 let parameter_ordinal: Int =
                     DirectMirScalarProgramCallableParameterOrdinalBySyntaxId(
                         signature, target_syntax_id);
@@ -42,15 +50,13 @@ func DirectMirScalarProgramDirectCallArgumentExpectedType(ref sequence:
                         ArrayLength(shape.parameter_types) { return ""; }
                 return shape.parameter_types[argument_ordinal];
             }
-            if binding_kind != SemanticExpressionBindingDeclaredCallable() ||
-                sequence.arena.identities.binding_ordinals[callee] != -1 ||
-                sequence.arena.identities.binding_syntax_ids[callee] != target_syntax_id { return ""; }
+            if !DirectMirScalarProgramDeclaredCallCalleeIdentityReady(
+                    sequence, left) { return ""; }
             let callable_ordinal: Int =
                 DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId(
                     callables, target_syntax_id);
             if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(
                     callables, callable_ordinal) ||
-                sequence.arena.node_texts[callee] != callables.names[callable_ordinal - 1] ||
                 sequence.arena.call_target_names[left] != callables.names[callable_ordinal - 1] {
                 return "";
             }

@@ -15,11 +15,15 @@ func DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
     if !DirectMirScalarProgramCallMarkerReady(sequence, node) { return missing; }
     let target_syntax_id: Int = sequence.arena.identities.call_target_syntax_ids[node];
     let callee: Int = sequence.arena.topology.left_children[node];
-    if callee < 0 || callee >= node ||
-        sequence.arena.topology.node_kinds[callee] != AstExpressionNodeLeaf() {
+    if callee < 0 || callee >= node {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
-    let binding_kind: Int = sequence.arena.identities.binding_kinds[callee];
+    let callee_is_leaf: Bool =
+        sequence.arena.topology.node_kinds[callee] == AstExpressionNodeLeaf();
+    let binding_kind: Int = SemanticExpressionBindingNone();
+    if callee_is_leaf {
+        binding_kind = sequence.arena.identities.binding_kinds[callee];
+    }
     if target_syntax_id <= 0 {
         if binding_kind == SemanticExpressionBindingFormalParameter() ||
             binding_kind == SemanticExpressionBindingDeclaredCallable() {
@@ -29,6 +33,10 @@ func DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
     }
     let rows: Array<Int> = [];
     if binding_kind == SemanticExpressionBindingFormalParameter() {
+        if sequence.arena.call_target_kinds[node] !=
+                SemanticCallTargetDirect() || !callee_is_leaf {
+            return DirectMirScalarProgramDirectCallFactInvalid(true);
+        }
         let parameter_ordinal: Int =
             DirectMirScalarProgramCallableParameterOrdinalBySyntaxId(signature, target_syntax_id);
         if parameter_ordinal < 0 ||
@@ -46,9 +54,7 @@ func DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
         return DirectMirScalarProgramDirectCallFact(
             true, true, true, rows, node, -1, parameter_ordinal, shape.return_type);
     }
-    if binding_kind != SemanticExpressionBindingDeclaredCallable() ||
-        sequence.arena.identities.binding_ordinals[callee] != -1 ||
-        sequence.arena.identities.binding_syntax_ids[callee] != target_syntax_id {
+    if !DirectMirScalarProgramDeclaredCallCalleeIdentityReady(sequence, node) {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
     let callable_ordinal: Int =
@@ -57,8 +63,7 @@ func DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
     let callable_row: Int = callable_ordinal - 1;
-    if sequence.arena.node_texts[callee] != callables.names[callable_row] ||
-        sequence.arena.call_target_names[node] != callables.names[callable_row] ||
+    if sequence.arena.call_target_names[node] != callables.names[callable_row] ||
         callables.parameter_counts[callable_row] != 0 {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }

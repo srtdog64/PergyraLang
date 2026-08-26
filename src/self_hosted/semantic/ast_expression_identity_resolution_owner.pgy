@@ -265,6 +265,39 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                     analysis.signatures,
                                     graph.arena.node_texts[node]
                                 );
+                            // Expression nodes are persisted in postorder, so
+                            // a direct leaf callee is followed by its call.
+                            // Consume that exact edge and the admitted target
+                            // identity; do not join the local leaf spelling to
+                            // a declaration name.
+                            let call_node: Int = -1;
+                            if node + 1 < count &&
+                                graph.arena.topology.node_kinds[node + 1] ==
+                                    AstExpressionNodeCall() &&
+                                graph.arena.topology.left_children[node + 1] ==
+                                    node &&
+                                (graph.arena.call_target_kinds[node + 1] ==
+                                    SemanticCallTargetDirect() ||
+                                 graph.arena.call_target_kinds[node + 1] ==
+                                    SemanticCallTargetNamespace()) {
+                                call_node = node + 1;
+                            }
+                            if callable_id == 0 && call_node >= 0 {
+                                let call_target_id: Int =
+                                    SemanticExpressionDirectTargetSyntaxId(
+                                        analysis.signatures,
+                                        graph.arena.call_target_names[call_node]
+                                    );
+                                if call_target_id < 0 ||
+                                    (require_carried_identities &&
+                                     graph.arena.identities
+                                         .call_target_syntax_ids[call_node] !=
+                                         call_target_id) {
+                                    valid = false;
+                                } else if call_target_id > 0 {
+                                    callable_id = call_target_id;
+                                }
+                            }
                             if callable_id <= 0 {
                                 if callable_id < 0 { valid = false; }
                             } else if valid {
