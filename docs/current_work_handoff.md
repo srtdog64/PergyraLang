@@ -20,6 +20,9 @@ percentage by themselves.
 
 ## Active self-host context - SoT map complete; fixed-MIR member rebind selected
 
+- Dependency-map checkpoint `41a01815` is on local `main` and is the active
+  implementation base. After publication, the only expected dirty paths are
+  unrelated user/concurrent work named below.
 - Implementation checkpoint `10055d0b` and SoT-gate repair checkpoint
   `464a907a` are on local and remote `main`. The unrelated user-owned untracked
   `pgy-80135c2c/` and concurrently created `docs/compiler_architectures/` paths

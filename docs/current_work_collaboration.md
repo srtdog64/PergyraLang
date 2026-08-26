@@ -8,8 +8,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE lease L — fixed-MIR value-result member-rebind consumer
 
-- Base revision: `464a907a010b745c3ec1bdaecf783bbf9e31c037` plus the
-  documentation-only closure-map checkpoint that publishes lease K.
+- Base revision: documentation-only closure-map checkpoint
+  `41a01815637f25922ac17e4af3cec9d6405d74e8`, which preserves implementation
+  base `464a907a010b745c3ec1bdaecf783bbf9e31c037`.
 - Objective: advance the current complete-source fixed-MIR/gen2 consumer past
   routine 1197/global row 18392 by admitting the existing value-result member
   rebind `analysis.expression_surfaces.expression_graph = graph`.
