@@ -6,7 +6,69 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease N — carried ABI CI repair and replacement run
+## DONE lease O — structured MatchCase carrier closure
+
+- Source base: exact published `3726f14c90ce93e0bf1fb07389b16d2138bc4140`;
+  replacement run `32961756130` is green 29/29 at that revision. The unrelated
+  untracked `docs/compiler_architectures/` and `pgy-80135c2c/` paths are outside
+  this lease and must remain untouched.
+- Objective: admit each typed MatchCase atom once through the existing HIR
+  `AstMatchCasePatternFact` owner, carry canonical pattern/variant/binding rows
+  in `SemanticAstStatementFacts`, and make semantic use sites, MIR lowering,
+  and self-C codegen consume that same SyntaxNodeId-keyed structure.
+- Priority: stable SyntaxNodeId join; one owner admission; fail-closed carrier
+  validation; semantic consumer migration; MIR consumer migration; self-C
+  consumer migration; delete old reads; negative ratchet; then patch size.
+- Fact owner: `AstMatchCasePatternFactFromArtifact` and its admitted
+  `AstMatchCasePatternFactFromReadyArtifact` boundary in
+  `ast_match_pattern_fact_owner.pgy`. `SemanticAstStatementFacts` is a carrier,
+  not a second syntax authority.
+- Production entrypoints: installed source-to-MIR/source-to-C through
+  `driver_bootstrap_main` and `CompileSourceToCVerified`, plus the bounded
+  self-host codegen `main --source` path. Last consumers are
+  `SemanticAstExpressionSeedMatchCaseBindings`,
+  `SelfMirMatchCaseFactForNode`, and the Option/tagged match emit/bind owners.
+- Forbidden: `AstMatchCasePatternFactFromText` outside its HIR owner;
+  `AstMatchCasePatternFactFromReadyArtifact` outside statement-fact admission;
+  MIR or codegen parsing `payload_texts`; ordinal-only joins; invalid offset,
+  count, variant, or binding rows succeeding; any String compatibility overload
+  or structured-invalid-to-text fallback.
+- Integration boundary: reverse stale component/lifetime assertions that
+  require consumer reparsing; run semantic selfcheck, focused Option/tagged
+  installed source-to-MIR parity, and bounded self-host source-C Option/tagged
+  execution. Missing/wrong-kind/cross-wired binding ranges must fail closed.
+- Only the primary task owns implementation and publication for this rung.
+  Parallel agents completed read-only consumer/gate audits; no parallel edit
+  scope is open.
+
+### Result
+
+- Implementation checkpoint `aafcadbd` admits the HIR pattern exactly once in
+  `SemanticAstStatementFacts` and carries canonical pattern, variant, flat
+  binding range/pool, and a mutation digest on the existing SyntaxNodeId row.
+  Semantic environments, MIR, and self-C Option/tagged consumers now borrow
+  that structure; `SelfMirMatchCaseFactFromText` and the raw codegen String
+  accessor are deleted.
+- Source inventory now finds `AstMatchCasePatternFactFromText` only inside its
+  HIR owner and `AstMatchCasePatternFactFromReadyArtifact` only in that owner
+  plus statement admission. The component ratchet scans every self-hosted Pergyra
+  source and rejects either old read outside those boundaries.
+- The statement contract compiled and executed with missing/wrong-kind plus
+  changed variant, binding, and crossed range negatives. Both semantic and MIR
+  lifetime gates pass. A freshly built self-C tool executes `enum_match`,
+  `enum_multi_payload`, and `option_enum_with_payload` exactly as expected; a
+  fresh isolated DRV-2 passes canonical source-MIR parity for those three plus
+  `option_match`.
+- The complete component inventory is not claimed green: after all modified
+  owner caps and task-local structural assertions passed, it entered the
+  broader source-MIR execution action and exceeded the local focused budget.
+  No timeout or cap was raised.
+- `selfhost.match_case_pattern` is now `CLOSED`; the registry census is
+  `CLOSED=50 BRIDGE=35 ACTIVE=1`. Integrated progress remains 83% (81-85%),
+  strict beta 83%, and hard replacement 75%. Publication and the replacement
+  push matrix are the next action; no successor implementation lease is open.
+
+## DONE lease N — carried ABI CI repair and replacement run
 
 - Source base: published implementation `301309f9`; focused repair checkpoint
   `0a6a69b1` is local and awaiting publication with this ledger refresh.
@@ -26,6 +88,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - The read-only successor audit is complete. If this lease closes green, the
   primary task may open one new lease for `selfhost.match_case_pattern`; no
   parallel implementation is authorized.
+
+### Result
+
+- Repair `0a6a69b1` and handoff checkpoint `3726f14c` are published on `main`.
+  The two direct backend arity negatives now carry their stable admitted ABI
+  IDs, while runtime/perf gates reject the retired backend source-name lookup.
+- Replacement run `32961756130` passed 29/29. Linux, Windows, and macOS all
+  passed the exact test surface that failed in `32960178361`; Rocq, sanitizers,
+  TSan, full self-host, codegen bootstrap, toolchain, and all 20 shards are
+  green. No fallback or product behavior changed.
 
 ## DONE lease M — native intent-observability ABI-ID consumption
 

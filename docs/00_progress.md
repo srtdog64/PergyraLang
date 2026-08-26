@@ -2,6 +2,22 @@
 
 마지막 업데이트: 2026-08-26
 
+2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
+`MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
+기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,
+mutation digest를 운반한다. Semantic use-site, MIR, self-C Option/tagged emission은
+같은 구조 fact를 읽는다. MIR의 `SelfMirMatchCaseFactFromText`와 codegen String
+accessor는 삭제됐고, 정적 ratchet은 HIR owner 밖 text parse 및 statement admission
+밖 ready-artifact read의 복귀를 거부한다.
+
+변조된 variant/binding/range 음성 contract, semantic/MIR lifetime, self-C 세
+fixture 실행, 설치형 source-MIR 네 fixture canonical parity, SoT edge가 local
+green이다. Full component inventory는 task-local assertions 뒤 broader source-MIR
+action에서 focused budget을 넘어 중단했으므로 green으로 주장하지 않는다.
+Implementation checkpoint는 `aafcadbd`다. `selfhost.match_case_pattern`은
+`CLOSED`가 되어 SoT census가 `50 CLOSED / 35 BRIDGE / 1 ACTIVE`로 바뀌지만,
+통합 **83% (81~85%)**, strict beta 83%, hard replacement 75%는 유지한다.
+
 2026-08-26 installed DeviceSlot 선언 운반 원격 폐쇄: public `pgy SOURCE
 --emit-c`의 C adapter가 설치된 sibling `.machine-layer-manifest.json` 경로를
 typed `SourceCManifestVerified` 요청으로 운반한다. 이전에는 artifact child가

@@ -1,5 +1,25 @@
 # Self-Host Progress
 
+## Active self-host context - 2026-08-26 structured MatchCase carrier
+
+- Checkpoint `aafcadbd` admits each typed MatchCase atom once through the HIR
+  `AstMatchCasePatternFact` owner and carries canonical pattern, variant, flat
+  binding range/pool, and digest in the existing SyntaxNodeId-keyed statement
+  facts. The carrier adds no syntax authority.
+- Semantic expression environments, MIR, and self-C Option/tagged consumers use
+  the same structured fact. Consumer text parsing, raw MIR payload reparsing,
+  and the codegen String accessor are deleted; whole-source static ratchets
+  reject their return.
+- Changed variant/binding/range negatives, both lifetime gates, three self-C
+  execution fixtures, four installed source-MIR canonical fixtures, and SoT
+  edge validation are green. Full component is not claimed green because its
+  broader execution tail exceeded the focused local budget after the relevant
+  structural assertions passed.
+- `selfhost.match_case_pattern` is now `CLOSED`, yielding
+  `CLOSED=50 BRIDGE=35 ACTIVE=1`. Overall remains 83% (81-85%), strict beta 83%,
+  and hard replacement 75%; no successor implementation lease is inferred
+  before publication and replacement CI.
+
 ## Active self-host context - 2026-08-26 REPL compile/run substitution
 
 - Public `pgy --repl` keeps its native C session UI, but each executable input

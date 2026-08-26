@@ -18,49 +18,43 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - carried ABI CI repair ready for replacement run
+## Active self-host context - structured MatchCase carrier closure
 
-- Source/test checkpoint `0a6a69b1` is based on published implementation
-  `301309f9`. The unrelated user-owned `pgy-80135c2c/` and concurrent
+- Implementation checkpoint `aafcadbd` is based on published green checkpoint
+  `3726f14c`; replacement run `32961756130` for that base passed 29/29. The
+  unrelated user-owned `pgy-80135c2c/` and concurrent
   `docs/compiler_architectures/` paths remain untracked and were not inspected,
   staged, deleted, or rewritten.
-- Objective card: semantic admission resolves intent-observability source
-  spelling once against `PGY_INTENT_OBSERVABILITY_ABI_ROWS_OWNER`, stamps its
-  stable RuntimeCallAbiId, and leaves C/LLVM as ID consumers only. The semantic
-  type checker is the fact owner and the two native emitters are the last
-  consumers. Backend source-name lookup, absent-carrier success, a second ABI
-  table, and native/installed retry are forbidden. `test-transpile`, the ABI
-  registry ratchet, runtime contract, and replacement push matrix are the
-  verification boundary.
-- Push run `32960178361` for `301309f9` exposed one test-contract regression on
-  Linux, Windows, and macOS: the two direct C-backend arity negatives constructed
-  calls without semantic admission, so the newly correct missing-carrier error
-  preceded their expected arity error. The three jobs reported the same
-  `IntentRecentName` and `IntentActiveStepName` failures; backend implementation
-  and all observed semantic tests remained green.
-- Repair `0a6a69b1` gives those two direct backend fixtures their stable admitted
-  ABI IDs before testing arity. It also reverses two stale static assertions
-  that still required the now-forbidden backend source-name lookup. No backend
-  lookup or compatibility fallback was restored.
-- Local focused evidence is green: `test-transpile` reports 925 passed/0 failed;
-  `intent_observability_abi_registry_smoke.sh`,
-  `runtime_intent_observability_contract_smoke.sh`, and
-  `perf_contract_smoke.sh` pass. The measured end-to-end C compile inside the
-  perf contract was 2.96 seconds against a 60-second ceiling.
-- A replacement remote run is still required before opening another executable
-  rung. The audited successor remains `selfhost.match_case_pattern`: its HIR
-  owner can project one structured pattern fact into the existing
-  SyntaxNodeId-keyed semantic statement carrier, after which MIR and four
-  self-C consumers can delete their text reparses. This is a candidate only,
-  not completed work.
+- `AstMatchCasePatternFact` remains the sole syntax owner. Its typed MatchCase
+  atom is parsed once during `SemanticAstStatementFacts` admission; the existing
+  SyntaxNodeId row carries canonical pattern, variant, flat binding range/pool,
+  and a digest. The statement bundle is a carrier, not a second authority.
+- Semantic match environments, MIR lowering, and self-C Option/tagged condition
+  and binding emission consume the same structured fact. The raw MIR
+  `SelfMirMatchCaseFactFromText` and codegen String accessor are deleted. Source
+  inventory finds text parsing only inside the HIR owner and ready-artifact
+  reading only there plus statement admission.
+- Missing/wrong-kind, changed variant, changed binding, and crossed binding
+  range negatives compile and execute fail closed. Both storage-lifetime gates
+  pass. A fresh self-C tool compiles and executes `enum_match`,
+  `enum_multi_payload`, and `option_enum_with_payload` with exact expected
+  output. A fresh isolated installed DRV-2 passes canonical source-MIR parity
+  for those fixtures plus `option_match`.
+- `sot-authority-edge-test-smoke`, documentation quality, source syntax, and
+  all 19 modified Pergyra source checks pass. The complete component inventory
+  is not claimed green: after all task-local structural assertions passed, it
+  entered the broader source-MIR execution action and exceeded the focused
+  local budget. No timeout or cap was raised.
 - Local variant folders are Git-closed by published ignore checkpoint
   `1e8b5531`: 23 root `bin-codex*`/`build-codex*`/`bin-dev*`/`build-dev*`
   directories contain only ignored rebuildable output. Physical deletion was
   attempted only after exact-path and reparse-point validation, but the current
   execution policy rejected recursive deletion before any file was removed.
-- Progress remains integrated 83% (81-85%), strict beta 83%, hard replacement
-  75%, and SoT `CLOSED=49 BRIDGE=36 ACTIVE=1`. CI repair, ignored artifacts,
-  audit prose, and a candidate design do not increment those counts.
+- `selfhost.match_case_pattern` is `CLOSED`, so the SoT census is now
+  `CLOSED=50 BRIDGE=35 ACTIVE=1`. Integrated progress remains 83% (81-85%),
+  strict beta 83%, and hard replacement 75%. Publish the implementation and
+  this handoff, then observe the replacement push matrix before opening any
+  successor implementation lease.
 
 ## Previous self-host context - readiness evidence reconciled; no successor inferred
 
