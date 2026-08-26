@@ -17,14 +17,14 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - installed public `--mir` diagnostic substitution
+## Active self-host context - no successor implementation rung
 
-- Code checkpoint `c2ff6548` is on local `main`; `origin/main` remains at
-  `9ca4a695` until publication. Before the documentation checkpoint, this
-  handoff, progress/dogfood/completion records, the separated agent directive,
-  and three audit reports are project-owned dirty state. The only unrelated
-  user-owned path is untracked `pgy-80135c2c/`; do not inspect, stage, delete,
-  or rewrite it.
+- Published closure checkpoint `b3da55a3` is on local and remote `main`; the
+  substitution implementation entered at `c2ff6548`. Remote CI run
+  `32926584459` completed 29/29 green. The unrelated user-owned path is
+  untracked `pgy-80135c2c/`; do not inspect, stage, delete, or rewrite it.
+  Recheck status for concurrent-session scratch before staging any result-only
+  documents.
 - Objective card: make public installed `pgy --mir SOURCE` use the existing
   Pergyra source-to-MIR world action, full borrowed-text MIR admission, and one
   stable human projection. Fact owners are the existing
@@ -59,17 +59,26 @@ gate count do not increment either percentage by themselves.
   world/action, explicit native IR probe, SoT edge, likeness, shell syntax, and
   diff checks are green. Make dry-run for the weekly public-MIR/default-C pair
   reports exactly one self-host build and one installed-driver gate, with no
-  undefined or standalone diagnostic target.
-- The complete component inventory is not claimed green: the primary scan was
-  stopped at the static-loop budget. Local MinGW also cannot compile the POSIX
-  branch, so Linux CI is the next platform falsifier. Publish the code and
-  documentation checkpoints, require the existing 29-job matrix—especially
-  `build-linux` and full self-host—to pass, then record the exact remote result.
+  undefined or standalone diagnostic target. The complete component inventory
+  is not claimed locally because its primary scan was stopped at the static-loop
+  budget; exact local predicates are 198 <= 200 lines, likeness 76/76, and
+  production-root native emission with 0 errors.
+- Remote run `32926584459` at exact HEAD `b3da55a3` completed 29/29 in 18m26.
+  Full self-host fixed point/policy corpus passed in 18m04, `build-linux` in
+  15m06, sanitizers in 10m34, Windows in 9m08, codegen bootstrap in 7m42, and
+  the shared backend toolchain in 7m31; all 20 backend shards passed in 39-76
+  seconds. This remotely closes the POSIX capture branch, complete structural
+  inventory, likeness, and bootstrap-subset falsifiers. Node 20 deprecation
+  annotations from artifact actions were warnings, not failed gates.
 - This is bounded `SUBSTITUTING`: a real native C-owned public `mir_dump` path
   was removed. No top-level SoT row or native-only lifecycle fact is promoted;
   integrated progress remains 78%, strict beta 83%, and hard SoT remains
   `CLOSED=49 BRIDGE=36 ACTIVE=1` (86 authorities / 180 derived carriers).
-- Parallel architecture audits are navigation evidence, not a new active rung.
+- Do not infer a successor implementation rung from this result-only handoff.
+  The next session must observe a production entrypoint and its direct bypass,
+  name the existing Pergyra fact owner and last orchestration consumer, and fix
+  one executable falsifier before opening edits. Parallel architecture audits
+  are navigation evidence, not a new active rung.
   They found no duplicated semantic decision in Lease F or the nested one-plan
   route, recommended deferring folder movement, and named only a lower-priority
   scalar GraphPlan parameter-indirection candidate. Do not implement it until

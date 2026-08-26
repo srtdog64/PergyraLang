@@ -6,12 +6,11 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease F — remote CI validation for installed `--mir`
+## DONE lease F — installed public `--mir` diagnostic substitution
 
 - Base revision: `9ca4a69517142a4c87eb47862afcd55a9a9f2011`.
-- Editing and integration owner: the primary Codex task. Peer Codex tasks are
-  read-only auditors and must not edit, stage, commit, push, or run a self-host
-  build while this lease is active.
+- During lease F, the primary Codex task owned editing and integration. Peer
+  tasks were read-only auditors and did not own this executable rung.
 - Objective: make the public installed `pgy --mir SOURCE` request execute the
   Pergyra source-to-MIR owner, admit that canonical MIR document once, and
   render one Pergyra-owned human diagnostic projection instead of entering the
@@ -53,21 +52,22 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `driver_run_pipeline`/`mir_dump`. Reuse the existing installed-driver build
   and CI target; add no workflow job and perform no second self-host build.
 
-### Parallel read-only assignments
+### Agent directive boundary
 
-1. Owner/schema auditor: map every field available from the admitted MIR
-   document/routine/block/instruction views, identify the minimum stable human
-   projection and any missing fact that would force guessing, and report the
-   smallest responsibility-named owner seam; make no edits or builds.
-2. Selector/gate auditor: map the public launcher and installed self-driver
-   dispatch, find the smallest existing gate/CI target to extend, and specify
-   missing-driver, malformed-input, no-payload, and old-bypass ratchets; make no
-   edits or builds.
+- Agent work directives are not numbered project architecture documents. They
+  live separately under `docs/agent_work_directives/`; read-only audit outputs
+  live under `docs/audits/` and are navigation evidence, not semantic authority.
+- The completed semantic-hop/direct-MIR/navigation directive is
+  `docs/agent_work_directives/semantic_hop_parallel_audit_2026-08-26.md`.
+  It opens no follow-up implementation rung by itself.
 
-### Local result
+### Result
 
-- Local code checkpoint: `c2ff6548`; remote publication and Linux/full-self-host
-  validation remain open.
+- Implementation checkpoint `c2ff6548` and closure checkpoint `b3da55a3` are
+  on local and remote `main`. The repair sequence removed a cross-function
+  `TextBuilder` lifetime violation, removed the added text-to-text helper,
+  kept the projection owner at 198 lines, restored its 200-line cap, and
+  preserved stable diagnostic bytes.
 - Public installed `pgy --mir SOURCE` now selects the self-host diagnostic
   relay after the explicit native opt-out and before final native dispatch.
   The relay invokes only `--emit-mir-diagnostic-verified`, captures one bounded
@@ -96,14 +96,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   second self-host build exists. SoT edge is unchanged at 86 authorities / 180
   derived carriers / `CLOSED=49 BRIDGE=36 ACTIVE=1`; likeness remains at its
   prior core text-munging ceiling of 76.
-- The complete component inventory is not claimed green: the primary task
-  stopped its scan at the static-loop budget. Focused structural/runtime gates
-  own this slice. The POSIX capture branch cannot be compiled by the local
-  MinGW target and remains a required Linux CI falsifier.
+- The complete component inventory is not claimed locally: its primary scan
+  exceeded the static-loop budget and was stopped. Remote run `32926584459`
+  at exact HEAD `b3da55a3` completed 29/29 in 18m26, including `build-linux`
+  in 15m06, full self-host in 18m04, sanitizers, Windows/macOS, proofs, and all
+  backend shards. The remote Linux aggregate owns complete component and POSIX
+  capture evidence for this closure.
 - This bounded public diagnostic is `SUBSTITUTING`: default public `--mir` no
   longer reaches the real native C `MIRProgram -> mir_dump` path. It does not
   close a top-level SoT row or claim native-only lifecycle facts, so integrated
-  78%, strict beta 83%, and hard SoT counts remain unchanged pending remote CI.
+  78%, strict beta 83%, and hard SoT counts remain unchanged.
 
 ## DONE lease E — nested priority/observability direct-C substitution
 
