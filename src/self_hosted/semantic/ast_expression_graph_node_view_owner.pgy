@@ -72,6 +72,16 @@ func SemanticExpressionGraphRuntimeCallAbiId(
     return Some(facts.arena.identities.runtime_call_abi_ids[node_id]);
 }
 
+func SemanticExpressionGraphBindingSyntaxId(
+    ref facts: SemanticExpressionGraphFacts, node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    return Some(facts.arena.identities.binding_syntax_ids[node_id]);
+}
+
 func SemanticExpressionGraphBindingKind(
     ref facts: SemanticExpressionGraphFacts, node_id: Int
 ) -> Option<Int> {

@@ -1,0 +1,43 @@
+// Exact numeric identity-field and cross-field schema for one persisted node.
+
+import "expression_graph_kind_code_owner.pgy";
+import "expression_graph_persisted_read_owner.pgy";
+
+func MirExpressionGraphPersistedNodeIdentityValueWithin(
+    json: String, start: Int, end: Int
+) -> Option<Int> {
+    if JsonValueKindAt(json, start, end) != "number" { return None; }
+    return MirExpressionGraphIndexWithin(json, start, end);
+}
+
+func MirExpressionGraphPersistedNodeIdentityReady(
+    kind: Int,
+    target_kind: Int,
+    call_target_syntax_id: Int,
+    runtime_call_abi_id: Int,
+    binding_syntax_id: Int,
+    binding_kind: Int,
+    has_binding_ordinal: Bool
+) -> Bool {
+    if (call_target_syntax_id > 0 &&
+            target_kind != SemanticCallTargetDirect() &&
+            target_kind != SemanticCallTargetNamespace()) ||
+        (target_kind == SemanticCallTargetNone() &&
+            (call_target_syntax_id != 0 || runtime_call_abi_id != 0)) ||
+        (runtime_call_abi_id > 0 &&
+            (target_kind != SemanticCallTargetDirect() ||
+             call_target_syntax_id != 0)) ||
+        (binding_syntax_id > 0 && kind != AstExpressionNodeLeaf()) ||
+        (binding_kind == SemanticExpressionBindingNone() &&
+            (has_binding_ordinal || binding_syntax_id != 0)) ||
+        (binding_kind == SemanticExpressionBindingFormalParameter() &&
+            (!has_binding_ordinal || binding_syntax_id <= 0)) ||
+        (binding_kind == SemanticExpressionBindingDeclaredCallable() &&
+            (has_binding_ordinal || binding_syntax_id <= 0)) ||
+        (binding_kind != SemanticExpressionBindingNone() &&
+            binding_kind != SemanticExpressionBindingFormalParameter() &&
+            binding_kind != SemanticExpressionBindingDeclaredCallable()) {
+        return false;
+    }
+    return true;
+}

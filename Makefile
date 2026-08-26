@@ -4083,6 +4083,13 @@ self-host-default-c-compile-replacement-test-smoke: $(PGY) self-host-installed-d
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh
 
+.PHONY: self-host-callable-parameter-identity-replacement-test-smoke
+self-host-callable-parameter-identity-replacement-test-smoke: $(PGY) self-host-compiler
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh
+
 self-host-package-command-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/package_commands_installed_self_host_owner.sh

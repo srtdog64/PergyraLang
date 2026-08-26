@@ -8,6 +8,7 @@ import "ast_expression_graph_scalar_shape_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
+import "ast_signature_type_expression_fact_owner.pgy";
 import "env_owner.pgy";
 import "expr_type_owner.pgy";
 import "diagnostic_owner.pgy";
@@ -273,6 +274,13 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
         return SemanticPolymorphicBuiltinReturnTypeOpt(
             target.name, clone_argument_types
         );
+    }
+    let local_callable: SemanticAstCallableTypeShape =
+        SemanticAstCallableTypeShapeFromName(
+            EnvLookup(names, types, target.name)
+        );
+    if local_callable.ok {
+        return Some(local_callable.return_type);
     }
     let target_index: Option<Int> = SemanticCallableIndex(
         function_names, target.name

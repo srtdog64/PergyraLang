@@ -40,6 +40,8 @@ case "${PGY_CI_SELF_HOST_MODE:-build}" in
 esac
 export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
 
+run 'make self-host-callable-parameter-identity-replacement-test-smoke'
+
 run 'make build-source-inventory-test-smoke'
 run 'make ci-step-runner-test-smoke'
 run 'make grammar-cheatsheet-contract-test-smoke'

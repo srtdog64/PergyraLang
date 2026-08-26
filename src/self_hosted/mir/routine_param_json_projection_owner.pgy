@@ -20,6 +20,9 @@ func SelfMirJsonRoutineParam(
     if abi_required { abi_wire = abi_layout; }
     return JsonEmitObject([
         JsonEmitFieldString("name", rows.param_names[row]),
+        JsonEmitFieldNumber(
+            "source_syntax_id", ToString(rows.param_node_ids[row])
+        ),
         JsonEmitFieldRaw(
             "type", SelfMirJsonOptionalString(
                 SelfMirOptionalString(param_type)

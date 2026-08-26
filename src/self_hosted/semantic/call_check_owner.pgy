@@ -7,6 +7,7 @@ import "expr_type_owner.pgy";
 import "expr_validation_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
+import "ast_signature_type_expression_fact_owner.pgy";
 
 func CompareCallArgs(
     ref argument_facts: SemanticDelimitedRangeFacts,
@@ -209,12 +210,20 @@ func CheckCallWithIdentifierOwner(
     if !SemanticCallableSourceNameValid(callee) {
         return "";
     }
-    let found_opt: Option<Int> = SemanticCallableIndex(func_names, callee);
-    if !IsSome(found_opt) {
-        return SemanticError1("undefined_function", "func", callee);
+    let local_callable: SemanticAstCallableTypeShape =
+        SemanticAstCallableTypeShapeFromName(
+            EnvLookup(names, types, callee)
+        );
+    let sig: String = "";
+    if local_callable.ok {
+        sig = SemanticAstCallableTypeParameterSignature(local_callable);
+    } else {
+        let found_opt: Option<Int> = SemanticCallableIndex(func_names, callee);
+        if !IsSome(found_opt) {
+            return SemanticError1("undefined_function", "func", callee);
+        }
+        sig = func_params[UnwrapOption(found_opt)];
     }
-    let found: Int = UnwrapOption(found_opt);
-    let sig: String = func_params[found];
     let signature_facts: SemanticDelimitedRangeFacts =
         SemanticSignatureRangeFactsFromSource(sig);
     let args_src: String = Substring(trimmed, paren + 1, tn - paren - 2);

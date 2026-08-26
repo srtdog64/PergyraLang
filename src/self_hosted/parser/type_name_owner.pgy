@@ -48,7 +48,47 @@ func ReadType(content: String, start: Int, inout cursor_out: Array<Int>) -> Stri
     }
     let type_text: String = base;
     let after_ws: Int = SkipWhitespaceAndComments(content, i);
-    if ParserCharAt(content, after_ws) == "<" {
+    if base == "func" && ParserCharAt(content, after_ws) == "(" {
+        i = after_ws + 1;
+        let params: String = "";
+        i = SkipWhitespaceAndComments(content, i);
+        if ParserCharAt(content, i) != ")" {
+            while true {
+                ArraySet(cursor_out, 0, i);
+                let param_type: String = ReadType(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(param_type) == 0 {
+                    Exit(1);
+                }
+                if StringLength(params) == 0 {
+                    params = param_type;
+                } else {
+                    params = Concat(params, Concat(", ", param_type));
+                }
+                i = SkipWhitespaceAndComments(content, i);
+                if ParserCharAt(content, i) == "," {
+                    i = SkipWhitespaceAndComments(content, i + 1);
+                    continue;
+                }
+                break;
+            }
+        }
+        if ParserCharAt(content, i) != ")" {
+            Exit(1);
+        }
+        i = SkipWhitespaceAndComments(content, i + 1);
+        if ParserCharAt(content, i) != "-" || ParserCharAt(content, i + 1) != ">" {
+            Exit(1);
+        }
+        i = i + 2;
+        ArraySet(cursor_out, 0, i);
+        let ret_type: String = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(ret_type) == 0 {
+            Exit(1);
+        }
+        type_text = Concat("func(", Concat(params, Concat(") -> ", ret_type)));
+    } else if ParserCharAt(content, after_ws) == "<" {
         i = after_ws + 1;
         let args: String = "";
         while true {

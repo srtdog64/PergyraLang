@@ -9,11 +9,43 @@ import "json_fact_read.pgy";
 struct MirRoutineHeaderFacts {
     let generic_names: Array<String>;
     let param_names: Array<String>;
+    let param_source_syntax_ids: Array<Int>;
     let param_types: Array<String>;
     let param_carriages: Array<String>;
     let param_resources: Array<String>;
     let param_pass_shapes: Array<String>;
     let return_type: String;
+}
+
+func MirRoutineHeaderParameterIdentityReady(
+    ref facts: MirRoutineHeaderFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.param_names);
+    if count != ArrayLength(facts.param_source_syntax_ids) ||
+        count != ArrayLength(facts.param_types) ||
+        count != ArrayLength(facts.param_carriages) ||
+        count != ArrayLength(facts.param_resources) ||
+        count != ArrayLength(facts.param_pass_shapes) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if facts.param_names[row] == "" ||
+            facts.param_source_syntax_ids[row] <= 0 {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if facts.param_names[prior] == facts.param_names[row] ||
+                facts.param_source_syntax_ids[prior] ==
+                    facts.param_source_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
 }
 
 func BuildMirRoutineHeaderFacts(
@@ -25,6 +57,7 @@ func BuildMirRoutineHeaderFacts(
         json, routine_start, routine_end, "generics"
     );
     let param_names: Array<String> = [];
+    let param_source_syntax_ids: Array<Int> = [];
     let param_types: Array<String> = [];
     let param_carriages: Array<String> = [];
     let param_resources: Array<String> = [];
@@ -40,6 +73,12 @@ func BuildMirRoutineHeaderFacts(
         ) {
             ArrayPush(param_names, MirObjectStringFactAtBounds(
                 json, param_bounds[0], param_bounds[1], "name"
+            ));
+            ArrayPush(param_source_syntax_ids, ToInt(
+                MirObjectNumberFactAtBounds(
+                    json, param_bounds[0], param_bounds[1],
+                    "source_syntax_id"
+                )
             ));
             ArrayPush(param_types, MirObjectStringFactAtBounds(
                 json, param_bounds[0], param_bounds[1], "type"
@@ -61,7 +100,8 @@ func BuildMirRoutineHeaderFacts(
     );
     if return_type == "" { return_type = "Void"; }
     return MirRoutineHeaderFacts(
-        generic_names, param_names, param_types, param_carriages,
+        generic_names, param_names, param_source_syntax_ids,
+        param_types, param_carriages,
         param_resources, param_pass_shapes, return_type
     );
 }

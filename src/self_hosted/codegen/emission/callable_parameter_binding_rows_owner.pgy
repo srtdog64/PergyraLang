@@ -1,0 +1,33 @@
+// Function-environment rows for one callable value parameter.
+
+import "../../semantic/ast_callable_type_shape_owner.pgy";
+
+func CodegenCallableParameterBindingRows(
+    source_name: String,
+    semantic_type_name: String,
+    c_name: String
+) -> String {
+    let callable: SemanticAstCallableTypeShape =
+        SemanticAstCallableTypeShapeFromName(semantic_type_name);
+    if !callable.ok { return ""; }
+    let rows: String = Concat(
+        "|", Concat(source_name, Concat("=call:", Concat(c_name, "|")))
+    );
+    rows = Concat(rows, Concat(c_name, "=pm:"));
+    let i: Int = 0;
+    while i < ArrayLength(callable.parameter_types) {
+        if i > 0 { rows = Concat(rows, ","); }
+        rows = Concat(rows, "default");
+        i = i + 1;
+    }
+    rows = Concat(rows, Concat("|", Concat(c_name, "=pt:")));
+    i = 0;
+    while i < ArrayLength(callable.parameter_types) {
+        if i > 0 { rows = Concat(rows, ","); }
+        rows = Concat(rows, callable.parameter_types[i]);
+        i = i + 1;
+    }
+    return Concat(rows, Concat("|", Concat(
+        c_name, Concat("=f:", Concat(callable.return_type, "|"))
+    )));
+}

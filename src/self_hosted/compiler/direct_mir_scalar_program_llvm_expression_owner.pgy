@@ -79,7 +79,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
         let argument_rows: Array<Int> =
             DirectMirScalarProgramNaryOperandRows(
                 expressions.nary_operands, node);
-        if kind == DirectMirScalarProgramExprDirectCall() {
+        if kind == DirectMirScalarProgramExprDirectCall() || kind == DirectMirScalarProgramExprCallableParameterCall() {
             argument_rows = DirectMirScalarProgramDirectCallArgumentRows(
                 expressions, node);
         } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
@@ -181,6 +181,8 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     node_instructions, array_parameter_read.instructions);
                 value = array_parameter_read.value;
             }
+        } else if kind == DirectMirScalarProgramExprDeclaredCallable() {
+            value = Concat("@pgy.scalar.routine.", ToString(expressions.node_callable_rows[node]));
         } else if kind == DirectMirScalarProgramExprIntLiteral() || kind ==
                 DirectMirScalarProgramExprLongLiteral() || kind == DirectMirScalarProgramExprBoolLiteral() {
             value = expressions.node_literals[node];
@@ -270,7 +272,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
                         expressions, node, routines, routine),
                     arguments, argument_types, argument_kinds,
                     argument_carriages,
-                    expressions.node_callable_rows[node], runtime,
+                    expressions.node_callable_rows[node], expressions.node_parameter_ordinals[node], runtime,
                     logical_record, payload_free_enum, referenced_enum);
             if string_expression.matched {
                 if !string_expression.valid {

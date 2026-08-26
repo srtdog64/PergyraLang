@@ -2,6 +2,7 @@
 
 import "delimited_range_fact_owner.pgy";
 import "expression_normalization_owner.pgy";
+import "ast_callable_type_shape_owner.pgy";
 
 struct SemanticAstSignatureTypeExpressionFacts {
     ok: Bool;
@@ -24,6 +25,68 @@ func SemanticAstSignatureTypeExpressionAppend(
     let n: Int = StringLength(text);
     if n == 0 {
         return None;
+    }
+    let function_close: Option<Int> =
+        SemanticAstSignatureFunctionTypeClose(text);
+    if IsSome(function_close) {
+        let close: Int = UnwrapOption(function_close);
+        let arrow: Int = close + 1;
+        while arrow < n && SourceByteIsWhitespace(
+            SourceByteAt(text, n, arrow)
+        ) {
+            arrow = arrow + 1;
+        }
+        if arrow + 2 > n || CharAt(text, arrow) != "-" ||
+            CharAt(text, arrow + 1) != ">" {
+            return None;
+        }
+        let return_text: String = SemanticTrimSourceRangeReuse(
+            text, arrow + 2, n
+        );
+        if return_text == "" {
+            return None;
+        }
+        let child_nodes: Array<Int> = [];
+        let parameter_text: String = Substring(text, 5, close - 5);
+        if SemanticTrimSourceReuse(parameter_text) != "" {
+            let parameter_ranges: SemanticDelimitedRangeFacts =
+                SemanticNestedCommaRangeFactsFromSource(parameter_text);
+            let parameter_index: Int = 0;
+            while parameter_index <
+                SemanticDelimitedRangeCount(parameter_ranges) {
+                let parameter: Option<Int> =
+                    SemanticAstSignatureTypeExpressionAppend(
+                        SemanticDelimitedRangeText(
+                            parameter_ranges, parameter_text, parameter_index
+                        ),
+                        node_names, child_starts, child_counts, children
+                    );
+                if !IsSome(parameter) {
+                    return None;
+                }
+                ArrayPush(child_nodes, UnwrapOption(parameter));
+                parameter_index = parameter_index + 1;
+            }
+        }
+        let return_node: Option<Int> =
+            SemanticAstSignatureTypeExpressionAppend(
+                return_text, node_names, child_starts, child_counts, children
+            );
+        if !IsSome(return_node) {
+            return None;
+        }
+        ArrayPush(child_nodes, UnwrapOption(return_node));
+        let function_root: Int = ArrayLength(node_names);
+        let function_child_start: Int = ArrayLength(children);
+        let child_index: Int = 0;
+        while child_index < ArrayLength(child_nodes) {
+            ArrayPush(children, child_nodes[child_index]);
+            child_index = child_index + 1;
+        }
+        ArrayPush(node_names, "func");
+        ArrayPush(child_starts, function_child_start);
+        ArrayPush(child_counts, ArrayLength(child_nodes));
+        return Some(function_root);
     }
     let open: Int = StringIndexOf(text, "<");
     if open < 0 {
@@ -167,6 +230,39 @@ func SemanticAstSignatureTypeExpressionRenderNode(
             return Some(bindings[binding_index]);
         }
         return Some(facts.node_names[node]);
+    }
+    if facts.node_names[node] == "func" {
+        let rendered_function: String = "func(";
+        let parameter_index: Int = 0;
+        while parameter_index + 1 < count {
+            let parameter: Option<String> =
+                SemanticAstSignatureTypeExpressionRenderNode(
+                    facts, facts.children[start + parameter_index],
+                    generic_start, generic_count, generic_names, bindings,
+                    remaining - 1
+                );
+            if !IsSome(parameter) {
+                return None;
+            }
+            if parameter_index > 0 {
+                rendered_function = Concat(rendered_function, ", ");
+            }
+            rendered_function = Concat(
+                rendered_function, UnwrapOption(parameter)
+            );
+            parameter_index = parameter_index + 1;
+        }
+        let return_type: Option<String> =
+            SemanticAstSignatureTypeExpressionRenderNode(
+                facts, facts.children[start + count - 1], generic_start,
+                generic_count, generic_names, bindings, remaining - 1
+            );
+        if !IsSome(return_type) {
+            return None;
+        }
+        return Some(Concat(
+            rendered_function, Concat(") -> ", UnwrapOption(return_type))
+        ));
     }
     let rendered: String = Concat(facts.node_names[node], "<");
     let i: Int = 0;
@@ -453,9 +549,29 @@ func SemanticAstSignatureTypeExpressionFactContractReady() -> Bool {
     let resolved: Option<String> = SemanticAstSignatureReturnTypeResolveAt(
         facts, 0, 0, 1, names, bindings
     );
+    let function_returns: Array<String> = ["func(Int) -> Int"];
+    let no_parameters: Array<String> = [];
+    let function_facts: SemanticAstSignatureTypeExpressionFacts =
+        SemanticAstSignatureTypeExpressionFactsFromRows(
+            function_returns, no_parameters
+        );
+    let no_names: Array<String> = [];
+    let no_bindings: Array<String> = [];
+    let resolved_function: Option<String> =
+        SemanticAstSignatureReturnTypeResolveAt(
+            function_facts, 0, 0, 0, no_names, no_bindings
+        );
+    let invalid_function_returns: Array<String> = ["func(Int)"];
+    let invalid_function_facts: SemanticAstSignatureTypeExpressionFacts =
+        SemanticAstSignatureTypeExpressionFactsFromRows(
+            invalid_function_returns, no_parameters
+        );
     return SemanticAstSignatureTypeExpressionFactsMatchRows(
         facts, returns, parameters
     ) &&
         IsSome(resolved) &&
-        UnwrapOption(resolved) == "Option<Int>";
+        UnwrapOption(resolved) == "Option<Int>" &&
+        function_facts.ok && IsSome(resolved_function) &&
+        UnwrapOption(resolved_function) == "func(Int) -> Int" &&
+        !invalid_function_facts.ok;
 }

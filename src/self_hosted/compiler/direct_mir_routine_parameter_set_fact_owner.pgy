@@ -6,6 +6,7 @@ struct DirectMirRoutineParameterSetFact {
     let valid: Bool;
     let digest: Int;
     let names: Array<String>;
+    let source_syntax_ids: Array<Int>;
     let type_names: Array<String>;
     let carriages: Array<String>;
     let resources: Array<String>;
@@ -22,7 +23,7 @@ func DirectMirRoutineParameterSetFactInvalid(
     let strings: Array<String> = [];
     let ints: Array<Int> = []; let bools: Array<Bool> = [];
     return DirectMirRoutineParameterSetFact(
-        false, 0, strings, strings, strings, strings, strings, strings,
+        false, 0, strings, ints, strings, strings, strings, strings, strings,
         ints, bools, ints, InvalidDirectMirRoutineParamFact());
 }
 
@@ -47,6 +48,7 @@ func DirectMirRoutineParameterSetFactReady(
     if !fact.valid || fact.digest == 0 ||
         fact.digest != DirectMirRoutineParameterSetFactDigest(fact) ||
         count != ArrayLength(fact.type_names) ||
+        count != ArrayLength(fact.source_syntax_ids) ||
         count != ArrayLength(fact.carriages) ||
         count != ArrayLength(fact.resources) ||
         count != ArrayLength(fact.pass_shapes) ||
@@ -59,7 +61,8 @@ func DirectMirRoutineParameterSetFactReady(
          fact.first.digest != fact.param_digests[0])) { return false; }
     let row: Int = 0;
     while row < count {
-        if fact.names[row] == "" || fact.type_names[row] == "" ||
+        if fact.names[row] == "" || fact.source_syntax_ids[row] <= 0 ||
+            fact.type_names[row] == "" ||
             fact.carriages[row] == "" || fact.resources[row] == "" ||
             fact.pass_shapes[row] == "" ||
             fact.abi_type_names[row] != fact.type_names[row] ||
@@ -67,7 +70,8 @@ func DirectMirRoutineParameterSetFactReady(
             (!fact.abi_required[row] && fact.abi_layout_ids[row] != 0) ||
             fact.param_digests[row] !=
                 DirectMirRoutineParamFactDigestFromFields(
-                    fact.names[row], fact.type_names[row],
+                    fact.names[row], fact.source_syntax_ids[row],
+                    fact.type_names[row],
                     fact.carriages[row], fact.resources[row],
                     fact.pass_shapes[row], fact.abi_type_names[row],
                     fact.abi_layout_ids[row], fact.abi_required[row]) {
@@ -75,7 +79,9 @@ func DirectMirRoutineParameterSetFactReady(
         }
         let prior: Int = 0;
         while prior < row {
-            if fact.names[prior] == fact.names[row] { return false; }
+            if fact.names[prior] == fact.names[row] ||
+                fact.source_syntax_ids[prior] ==
+                    fact.source_syntax_ids[row] { return false; }
             prior = prior + 1;
         }
         row = row + 1;

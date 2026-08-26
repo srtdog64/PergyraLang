@@ -18,6 +18,7 @@ import "direct_mir_scalar_program_expression_admission_failure_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_expression_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_expression_owner.pgy";
 import "direct_mir_scalar_program_leaf_identity_fact_owner.pgy";
+import "direct_mir_scalar_program_declared_callable_value_admission_owner.pgy";
 func DirectMirScalarProgramAppendExpression(
     facts: DirectMirScalarProgramExpressionSet,
     ref instruction: JsonObjectFactTable,
@@ -164,8 +165,7 @@ func DirectMirScalarProgramAppendExpression(
                 runtime_call_abi_id = builtin.runtime_call_abi_id;
             } else {
                 let direct: DirectMirScalarProgramDirectCallFact =
-                    DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
-                        sequence, node, callables);
+                    DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(sequence, node, callables, signature);
                 if !direct.valid || !direct.complete {
                     ArrayPush(source_rows, -1); node = node + 1; continue;
                 }
@@ -175,8 +175,11 @@ func DirectMirScalarProgramAppendExpression(
                 }
                 consumed_calls[direct.call_node] = true;
                 kind = DirectMirScalarProgramExprDirectCall();
+                if direct.callable_parameter_ordinal >= 0 {
+                    kind = DirectMirScalarProgramExprCallableParameterCall(); }
                 call_arguments = direct.argument_rows;
                 call_callable = direct.callable_ordinal;
+                param = direct.callable_parameter_ordinal;
                 type_name = direct.return_type;
             }
         } else if source_kind == AstExpressionNodeCallArgument() {
@@ -251,9 +254,8 @@ func DirectMirScalarProgramAppendExpression(
                     }
                 }
             } else {
-                let direct: DirectMirScalarProgramDirectCallFact =
-                    DirectMirScalarProgramDirectCallFactFromGraph(
-                        sequence, node, source_rows, types, callables);
+                let direct: DirectMirScalarProgramDirectCallFact = DirectMirScalarProgramDirectCallFactFromGraph(
+                    sequence, node, source_rows, types, callables, signature);
                 if !direct.recognized || !direct.valid {
                     return DirectMirScalarProgramExpressionAdmissionRejected(facts, "direct-call", node);
                 }
@@ -265,8 +267,11 @@ func DirectMirScalarProgramAppendExpression(
                 }
                 consumed_calls[direct.call_node] = true;
                 kind = DirectMirScalarProgramExprDirectCall();
+                if direct.callable_parameter_ordinal >= 0 {
+                    kind = DirectMirScalarProgramExprCallableParameterCall(); }
                 call_arguments = direct.argument_rows;
                 call_callable = direct.callable_ordinal;
+                param = direct.callable_parameter_ordinal;
                 type_name = direct.return_type;
             }
             }
@@ -278,7 +283,7 @@ func DirectMirScalarProgramAppendExpression(
             }
         } else if source_kind == AstExpressionNodeLeaf() {
             let absence_expected_type: String = DirectMirScalarProgramDirectCallArgumentExpectedType(
-                    sequence, node, callables);
+                sequence, node, callables, signature);
             if absence_expected_type == "" { absence_expected_type = expected_type; }
             let enum_leaf:
                 DirectMirScalarProgramPayloadFreeEnumExpressionFact =
@@ -289,7 +294,13 @@ func DirectMirScalarProgramAppendExpression(
                 DirectMirScalarProgramOptionAbsenceExpressionKind(
                     sequence.arena.node_texts[node], absence_expected_type,
                     logical_record);
-            if enum_leaf.valid {
+            let declared: DirectMirScalarProgramDeclaredCallableValueFact = DirectMirScalarProgramDeclaredCallableValueFromGraph(sequence, node, absence_expected_type, callables);
+            if declared.recognized {
+                if !declared.valid {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, declared.failure_stage, node);
+                }
+                kind = DirectMirScalarProgramExprDeclaredCallable(); type_name = declared.type_name; call_callable = declared.callable_ordinal;
+            } else if enum_leaf.valid {
                 kind = enum_leaf.kind;
                 type_name = enum_leaf.type_name;
                 member_ordinal = enum_leaf.variant_ordinal;

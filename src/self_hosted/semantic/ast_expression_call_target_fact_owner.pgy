@@ -7,6 +7,7 @@ import "ast_expression_graph_receiver_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_signature_fact_owner.pgy";
+import "ast_signature_type_expression_fact_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "env_owner.pgy";
@@ -81,13 +82,23 @@ func SemanticExpressionGraphResolvedCallTarget(
                 false, SemanticCallTargetNone(), "", 0
             );
         }
+        let callee_name: String = UnwrapOption(callee_text);
+        let local_callable: SemanticAstCallableTypeShape =
+            SemanticAstCallableTypeShapeFromName(
+                EnvLookup(names, types, callee_name)
+            );
+        if local_callable.ok {
+            return SemanticExpressionCallTargetFact(
+                true, SemanticCallTargetDirect(), callee_name, 0
+            );
+        }
         let direct: Option<Int> = SemanticCallableIndex(
-            function_names, UnwrapOption(callee_text)
+            function_names, callee_name
         );
         if !IsSome(direct) {
             let protocol: SemanticAstDomainQueryProtocol =
                 SemanticAstDomainQueryProtocolFromName(
-                    UnwrapOption(callee_text)
+                    callee_name
                 );
             if protocol.applies {
                 return SemanticExpressionCallTargetFact(

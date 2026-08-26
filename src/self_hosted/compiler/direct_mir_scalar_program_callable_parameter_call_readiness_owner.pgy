@@ -1,0 +1,35 @@
+// Local normalized shape for indirect calls through callable parameters.
+
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+
+func DirectMirScalarProgramCallableParameterCallNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    let arguments: Array<Int> =
+        DirectMirScalarProgramDirectCallArgumentRows(facts, node);
+    if facts.node_kinds[node] != DirectMirScalarProgramExprCallableParameterCall() ||
+        facts.node_types[node] == "" || facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] < 0 ||
+        facts.node_member_ordinals[node] != -1 || facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 { return false; }
+    let nary: Bool = ArrayLength(
+        DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node)) > 0;
+    if nary && (facts.node_lefts[node] != -1 || facts.node_rights[node] != -1) {
+        return false;
+    }
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(arguments) {
+        let argument: Int = arguments[ordinal];
+        if argument < 0 || argument >= node ||
+            (!DirectMirScalarProgramCallableValueTypeSupported(facts.node_types[argument]) &&
+             facts.node_kinds[argument] != DirectMirScalarProgramExprLocal() &&
+             facts.node_kinds[argument] != DirectMirScalarProgramExprParameter() &&
+             facts.node_kinds[argument] != DirectMirScalarProgramExprDirectCall() &&
+             facts.node_kinds[argument] != DirectMirScalarProgramExprCallableParameterCall()) {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}

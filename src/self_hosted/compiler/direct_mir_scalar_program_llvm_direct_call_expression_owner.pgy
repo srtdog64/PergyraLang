@@ -68,15 +68,12 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
 func DirectMirScalarProgramLlvmDirectCallExpressionAt(
     kind: Int, result: String, result_type: String,
     left: String, left_type: String, right: String, right_type: String,
-    arguments: Array<String>, argument_types: Array<String>,
-    argument_kinds: Array<Int>,
-    argument_carriages: Array<String>,
-    callable_ordinal: Int,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    arguments: Array<String>, argument_types: Array<String>, argument_kinds: Array<Int>,
+    argument_carriages: Array<String>, callable_ordinal: Int, callable_parameter_ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact, ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    if kind != DirectMirScalarProgramExprDirectCall() {
+    if kind != DirectMirScalarProgramExprDirectCall() && kind != DirectMirScalarProgramExprCallableParameterCall() {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
     let values: Array<String> = arguments;
@@ -91,7 +88,9 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
             ArrayPush(kinds, 0);
             ArrayPush(carriages, "value"); }
     }
-    if callable_ordinal < 0 ||
+    let direct: Bool = kind == DirectMirScalarProgramExprDirectCall() && callable_ordinal >= 0 && callable_parameter_ordinal == -1;
+    let indirect: Bool = kind == DirectMirScalarProgramExprCallableParameterCall() && callable_ordinal == -1 && callable_parameter_ordinal >= 0;
+    if (!direct && !indirect) ||
         ArrayLength(values) != ArrayLength(types) ||
         ArrayLength(values) != ArrayLength(kinds) ||
         ArrayLength(values) != ArrayLength(carriages) {
@@ -128,9 +127,12 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
     if result_type != "Void" {
         output = Concat(output, Concat(result, " = "));
     }
+    let callee: String = Concat("@pgy.scalar.routine.", ToString(callable_ordinal));
+    if indirect {
+        callee = Concat("%pgy.param.", ToString(callable_parameter_ordinal));
+    }
     output = Concat(output, Concat("call ", Concat(result_llvm_type,
-        Concat(" @pgy.scalar.routine.", Concat(
-        ToString(callable_ordinal), "(")))));
+        Concat(" ", Concat(callee, "(")))));
     let ordinal: Int = 0;
     while ordinal < ArrayLength(values) {
         if ordinal > 0 { output = Concat(output, ", "); }

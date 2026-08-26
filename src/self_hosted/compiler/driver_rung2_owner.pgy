@@ -32,9 +32,9 @@ struct DriverRung2MirProjection {
     facts: SelfMirProgramFacts;
     analysis: SemanticAstArtifactAnalysis;
 }
-func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
+func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact, semantic_analysis: SemanticAstArtifactAnalysis,
-    observe_pressure: Bool
+    observe_pressure: Bool, require_carried_expression_identities: Bool
 ) -> DriverRung2VerifiedFacts {
     if !semantic_analysis.verdict.ok {
         Log(semantic_analysis.verdict.diagnostic_message);
@@ -50,8 +50,9 @@ func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
     }
     DriverRung2PressureStage(observe_pressure, "body-types:start");
     let body_types: SemanticAstBodyTypeBundle =
-        SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
-            artifact, semantic_analysis, observe_pressure
+        SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
+            artifact, semantic_analysis, observe_pressure,
+            require_carried_expression_identities
         );
     DriverRung2PressureStage(observe_pressure, "body-types:done");
     let body_type_admission: SemanticAstBodyTypeBundleAdmissionReceipt =
@@ -69,7 +70,13 @@ func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
         semantic_analysis, body_types, body_type_admission
     );
 }
-
+func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
+    artifact: AstTreeArtifact, semantic_analysis: SemanticAstArtifactAnalysis,
+    observe_pressure: Bool
+) -> DriverRung2VerifiedFacts {
+    return VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
+        artifact, semantic_analysis, observe_pressure, false);
+}
 func VerifyArtifactAnalysisForDriverRung2Observed(
     artifact: AstTreeArtifact, semantic_analysis: SemanticAstArtifactAnalysis,
     observe_pressure: Bool
@@ -79,25 +86,21 @@ func VerifyArtifactAnalysisForDriverRung2Observed(
     }
     return VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(artifact, semantic_analysis, observe_pressure);
 }
-
 func VerifyArtifactAnalysisForDriverRung2(
     artifact: AstTreeArtifact, semantic_analysis: SemanticAstArtifactAnalysis
 ) -> DriverRung2VerifiedFacts {
     return VerifyArtifactAnalysisForDriverRung2Observed(artifact, semantic_analysis, false);
 }
-
 func VerifyArtifactForMirProduction(artifact: AstTreeArtifact) -> DriverRung2VerifiedFacts {
     return VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
         artifact, SemanticAstArtifactAnalyzeTyped(artifact, true), false
     );
 }
-
 func DriverRung2PressureStage(enabled: Bool, stage: String) -> Void {
     if enabled {
         Log(Concat("[driver-pressure-stage] ", stage));
     }
 }
-
 func DriverRung2MirProjectionFromVerifiedFactsObserved(
     own artifact: AstTreeArtifact,
     verified: DriverRung2VerifiedFacts,
@@ -296,8 +299,8 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         observe_pressure, "consumer:verify:start"
     );
     let verified: DriverRung2VerifiedFacts =
-        VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
-            artifact, analysis, observe_pressure
+        VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
+            artifact, analysis, observe_pressure, true
         );
     DriverRung2PressureStage(
         observe_pressure, "consumer:verify:done"

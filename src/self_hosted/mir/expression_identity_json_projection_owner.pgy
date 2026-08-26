@@ -7,6 +7,7 @@ struct SelfMirJsonExpressionIdentityProjection {
     ready: Bool;
     call_target_syntax_id: Int;
     runtime_call_abi_id: Int;
+    binding_syntax_id: Int;
     binding_kind: String;
     binding_ordinal: Int;
 }
@@ -17,24 +18,28 @@ func SelfMirJsonExpressionIdentityProjectionForNode(
         SemanticExpressionGraphCallTargetSyntaxId(graph, node);
     let runtime_id: Option<Int> =
         SemanticExpressionGraphRuntimeCallAbiId(graph, node);
+    let binding_id: Option<Int> =
+        SemanticExpressionGraphBindingSyntaxId(graph, node);
     let kind: Option<Int> = SemanticExpressionGraphBindingKind(graph, node);
     let ordinal: Option<Int> =
         SemanticExpressionGraphBindingOrdinal(graph, node);
-    if !IsSome(target) || !IsSome(runtime_id) || !IsSome(kind) ||
+    if !IsSome(target) || !IsSome(runtime_id) || !IsSome(binding_id) ||
+        !IsSome(kind) ||
         !IsSome(ordinal) {
         return SelfMirJsonExpressionIdentityProjection(
-            false, 0, 0, "", -1);
+            false, 0, 0, 0, "", -1);
     }
     let kind_name: String =
         SemanticExpressionBindingKindName(UnwrapOption(kind));
     if kind_name == "" {
         return SelfMirJsonExpressionIdentityProjection(
-            false, 0, 0, "", -1);
+            false, 0, 0, 0, "", -1);
     }
     return SelfMirJsonExpressionIdentityProjection(
         true,
         UnwrapOption(target),
         UnwrapOption(runtime_id),
+        UnwrapOption(binding_id),
         kind_name,
         UnwrapOption(ordinal)
     );
@@ -55,6 +60,10 @@ func SelfMirJsonExpressionIdentityFields(
         JsonEmitFieldNumber(
             "runtime_call_abi_id",
             ToString(projection.runtime_call_abi_id)
+        ),
+        JsonEmitFieldNumber(
+            "binding_syntax_id",
+            ToString(projection.binding_syntax_id)
         ),
         JsonEmitFieldString(
             "binding_kind",
@@ -83,6 +92,10 @@ func SelfMirJsonExpressionIdentityWriteFile(
     CompilerArtifactWrite(output, ",\"runtime_call_abi_id\":");
     JsonOwnedFragmentWriteFile(
         output, ToString(projection.runtime_call_abi_id)
+    );
+    CompilerArtifactWrite(output, ",\"binding_syntax_id\":");
+    JsonOwnedFragmentWriteFile(
+        output, ToString(projection.binding_syntax_id)
     );
     CompilerArtifactWrite(output, ",\"binding_kind\":");
     if !JsonStringLiteralWriteFile(output, projection.binding_kind) {

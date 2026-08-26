@@ -1,0 +1,36 @@
+// Canonical formal-parameter identity and ABI-row verification.
+
+import "program_fact_owner.pgy";
+
+func SelfMirRoutineParameterRowsReady(
+    ref rows: SelfMirRoutineRows
+) -> Bool {
+    let count: Int = ArrayLength(rows.param_names);
+    if count != ArrayLength(rows.param_node_ids) ||
+        count != ArrayLength(rows.param_types) ||
+        count != ArrayLength(rows.param_abi_kinds) ||
+        count != ArrayLength(rows.param_resource_kinds) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if rows.param_node_ids[row] <= 0 ||
+            rows.param_abi_kinds[row] < 0 ||
+            rows.param_abi_kinds[row] > 4 ||
+            rows.param_resource_kinds[row] < 0 ||
+            rows.param_resource_kinds[row] > 3 ||
+            rows.param_resource_kinds[row] !=
+                SelfMirParamResourceKindForType(rows.param_types[row]) {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if rows.param_node_ids[prior] == rows.param_node_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}

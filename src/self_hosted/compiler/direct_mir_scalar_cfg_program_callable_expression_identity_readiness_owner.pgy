@@ -1,0 +1,50 @@
+// Cross-seal declared callable values and callable-parameter calls to routine rows.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_program_callable_type_policy_owner.pgy";
+import "../semantic/ast_callable_type_shape_owner.pgy";
+
+func DirectMirScalarCfgProgramCallableExpressionIdentityReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, routine: Int, graph_start: Int
+) -> Bool {
+    let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprDeclaredCallable() {
+        let target: Int = facts.node_callable_rows[node];
+        if target <= plan.routines.entrypoint_ordinal ||
+            target >= ArrayLength(plan.routines.roles) ||
+            plan.routines.roles[target] != DirectMirScalarCfgRoutineRoleCallable() {
+            return false;
+        }
+        return DirectMirScalarProgramCallableTypeMatchesRows(
+            facts.node_types[node], plan.routines.return_types[target],
+            plan.routines.parameter_types, plan.routines.parameter_carriages,
+            plan.routines.parameter_starts[target],
+            plan.routines.parameter_counts[target]);
+    }
+    if kind != DirectMirScalarProgramExprCallableParameterCall() { return false; }
+    let parameter_ordinal: Int = facts.node_parameter_ordinals[node];
+    if parameter_ordinal < 0 ||
+        parameter_ordinal >= plan.routines.parameter_counts[routine] { return false; }
+    let parameter_row: Int =
+        plan.routines.parameter_starts[routine] + parameter_ordinal;
+    let callable_type: String = plan.routines.parameter_types[parameter_row];
+    let shape: SemanticAstCallableTypeShape =
+        SemanticAstCallableTypeShapeFromName(callable_type);
+    let arguments: Array<Int> =
+        DirectMirScalarProgramDirectCallArgumentRows(facts, node);
+    if !DirectMirScalarProgramFirstOrderCallableTypeSupported(callable_type) ||
+        plan.routines.parameter_carriages[parameter_row] != "value" ||
+        !shape.ok || facts.node_types[node] != shape.return_type ||
+        ArrayLength(arguments) != ArrayLength(shape.parameter_types) { return false; }
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(arguments) {
+        let argument: Int = arguments[ordinal];
+        if argument < graph_start || argument >= node ||
+            facts.node_types[argument] != shape.parameter_types[ordinal] { return false; }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}

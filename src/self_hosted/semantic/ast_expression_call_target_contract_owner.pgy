@@ -63,6 +63,67 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     ).ok {
         return false;
     }
+    let builtin_kinds: Array<Int> = [];
+    let builtin_texts: Array<String> = [];
+    let builtin_left: Array<Int> = [];
+    let builtin_right: Array<Int> = [];
+    let builtin_target_kinds: Array<Int> = [];
+    let builtin_target_names: Array<String> = [];
+    let builtin_build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            builtin_kinds, builtin_texts, builtin_left, builtin_right,
+            builtin_target_kinds, builtin_target_names, "StringLength(\"x\")");
+    let builtin_source: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            builtin_build.ok, [builtin_build.root_id], [builtin_build.ok],
+            SemanticExpressionGraphArenaUnclassified(
+                builtin_kinds, builtin_texts, builtin_left, builtin_right,
+                builtin_target_kinds, builtin_target_names));
+    let builtin_carried: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphCallTargetsFromSignatures(
+            builtin_source, signatures, constructors, enums, false,
+            function_tables);
+    let builtin_call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(
+            builtin_carried, builtin_build.root_id);
+    if !builtin_carried.ok || !builtin_call.ok ||
+        builtin_carried.arena.call_target_names[builtin_call.call_node] !=
+            "StringLength" ||
+        builtin_carried.arena.identities.call_target_syntax_ids[
+            builtin_call.call_node] != 0 ||
+        builtin_carried.arena.identities.binding_kinds[
+            builtin_call.callee_node] != SemanticExpressionBindingNone() ||
+        !SemanticExpressionGraphCallTargetsFromSignatures(
+            builtin_carried, signatures, constructors, enums, true,
+            function_tables).ok {
+        return false;
+    }
+    let declared_kinds: Array<Int> = [];
+    let declared_texts: Array<String> = [];
+    let declared_left: Array<Int> = [];
+    let declared_right: Array<Int> = [];
+    let declared_target_kinds: Array<Int> = [];
+    let declared_target_names: Array<String> = [];
+    let declared_build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            declared_kinds, declared_texts, declared_left, declared_right,
+            declared_target_kinds, declared_target_names, "Math_Add()");
+    let declared_source: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            declared_build.ok, [declared_build.root_id], [declared_build.ok],
+            SemanticExpressionGraphArenaUnclassified(
+                declared_kinds, declared_texts, declared_left, declared_right,
+                declared_target_kinds, declared_target_names));
+    let declared_carried: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphCallTargetsFromSignatures(
+            declared_source, signatures, constructors, enums, false,
+            function_tables);
+    if !declared_carried.ok ||
+        SemanticExpressionGraphCallTargetsFromSignatures(
+            declared_carried, signatures, constructors, enums, true,
+            function_tables).ok {
+        return false;
+    }
     let constructor_kinds: Array<Int> = [];
     let constructor_texts: Array<String> = [];
     let constructor_left: Array<Int> = [];

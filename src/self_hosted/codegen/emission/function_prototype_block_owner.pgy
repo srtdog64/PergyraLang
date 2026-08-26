@@ -11,6 +11,7 @@ import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/callable_receiver_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
+import "callable_parameter_prototype_owner.pgy";
 
 func CodegenFunctionPrototypeBlock(
     signatures: SemanticAstFunctionSignatureFacts,
@@ -90,37 +91,45 @@ func CodegenFunctionPrototypeBlock(
                     p_type = UnwrapOption(role_receiver_type);
                     role_receiver_param = true;
                 }
-                let cpt: String = AbiLayoutCParamType(p_type, struct_env);
-                if p_name == "self" && mutable_identity_receiver {
-                    if p_mode != 0 {
-                        Die("mutable-identity receiver prototype mode is invalid");
+                let c_binding_name: String =
+                    CompilerSymbolCBindingName(p_name);
+                let callable_parameter: Bool =
+                    CodegenAppendCallableParameterPrototypeIfPresent(
+                        output, p_type, c_binding_name, p_mode, struct_env
+                    );
+                if !callable_parameter {
+                    let cpt: String = AbiLayoutCParamType(p_type, struct_env);
+                    if p_name == "self" && mutable_identity_receiver {
+                        if p_mode != 0 {
+                            Die("mutable-identity receiver prototype mode is invalid");
+                        }
+                        TextBuilderAppend(output, cpt);
+                        TextBuilderAppend(output, " *");
+                        TextBuilderAppend(
+                            output, CompilerSymbolCBindingName(p_name)
+                        );
+                    } else if role_receiver_param {
+                        TextBuilderAppend(output, "void *_pgy_raw_self");
+                    } else if p_mode == 1 {
+                        TextBuilderAppend(output, cpt);
+                        TextBuilderAppend(output, " *");
+                        TextBuilderAppend(
+                            output, CompilerSymbolCInoutParamName(p_name)
+                        );
+                    } else if p_mode == 3 {
+                        TextBuilderAppend(output, "const ");
+                        TextBuilderAppend(output, cpt);
+                        TextBuilderAppend(output, " *");
+                        TextBuilderAppend(
+                            output, CompilerSymbolCReadonlyRefParamName(p_name)
+                        );
+                    } else {
+                        TextBuilderAppend(output, cpt);
+                        TextBuilderAppend(output, " ");
+                        TextBuilderAppend(
+                            output, CompilerSymbolCBindingName(p_name)
+                        );
                     }
-                    TextBuilderAppend(output, cpt);
-                    TextBuilderAppend(output, " *");
-                    TextBuilderAppend(
-                        output, CompilerSymbolCBindingName(p_name)
-                    );
-                } else if role_receiver_param {
-                    TextBuilderAppend(output, "void *_pgy_raw_self");
-                } else if p_mode == 1 {
-                    TextBuilderAppend(output, cpt);
-                    TextBuilderAppend(output, " *");
-                    TextBuilderAppend(
-                        output, CompilerSymbolCInoutParamName(p_name)
-                    );
-                } else if p_mode == 3 {
-                    TextBuilderAppend(output, "const ");
-                    TextBuilderAppend(output, cpt);
-                    TextBuilderAppend(output, " *");
-                    TextBuilderAppend(
-                        output, CompilerSymbolCReadonlyRefParamName(p_name)
-                    );
-                } else {
-                    TextBuilderAppend(output, cpt);
-                    TextBuilderAppend(output, " ");
-                    TextBuilderAppend(
-                        output, CompilerSymbolCBindingName(p_name)
-                    );
                 }
                 wrote_param = true;
                 pn = pn + 1;
@@ -171,38 +180,45 @@ func CodegenFunctionPrototypeBlock(
             let p_type: String = CodegenGenericResolvedParamTypeOrDie(
                 signatures, signature_index, pn, actuals
             );
-            let cpt: String = AbiLayoutCParamType(p_type, struct_env);
-            if p_name == "self" && specialized_role_erased {
-                TextBuilderAppend(output, "void *_pgy_raw_self");
-            } else if p_name == "self" && specialized_carriage ==
-                CallableReceiverCarriageMutableIdentity() {
-                if p_mode != 0 {
-                    Die("mutable-identity receiver prototype mode is invalid");
+            let c_binding_name: String = CompilerSymbolCBindingName(p_name);
+            let callable_parameter: Bool =
+                CodegenAppendCallableParameterPrototypeIfPresent(
+                    output, p_type, c_binding_name, p_mode, struct_env
+                );
+            if !callable_parameter {
+                let cpt: String = AbiLayoutCParamType(p_type, struct_env);
+                if p_name == "self" && specialized_role_erased {
+                    TextBuilderAppend(output, "void *_pgy_raw_self");
+                } else if p_name == "self" && specialized_carriage ==
+                    CallableReceiverCarriageMutableIdentity() {
+                    if p_mode != 0 {
+                        Die("mutable-identity receiver prototype mode is invalid");
+                    }
+                    TextBuilderAppend(output, cpt);
+                    TextBuilderAppend(output, " *");
+                    TextBuilderAppend(
+                        output, CompilerSymbolCBindingName(p_name)
+                    );
+                } else if p_mode == 1 {
+                    TextBuilderAppend(output, cpt);
+                    TextBuilderAppend(output, " *");
+                    TextBuilderAppend(
+                        output, CompilerSymbolCInoutParamName(p_name)
+                    );
+                } else if p_mode == 3 {
+                    TextBuilderAppend(output, "const ");
+                    TextBuilderAppend(output, cpt);
+                    TextBuilderAppend(output, " *");
+                    TextBuilderAppend(
+                        output, CompilerSymbolCReadonlyRefParamName(p_name)
+                    );
+                } else {
+                    TextBuilderAppend(output, cpt);
+                    TextBuilderAppend(output, " ");
+                    TextBuilderAppend(
+                        output, CompilerSymbolCBindingName(p_name)
+                    );
                 }
-                TextBuilderAppend(output, cpt);
-                TextBuilderAppend(output, " *");
-                TextBuilderAppend(
-                    output, CompilerSymbolCBindingName(p_name)
-                );
-            } else if p_mode == 1 {
-                TextBuilderAppend(output, cpt);
-                TextBuilderAppend(output, " *");
-                TextBuilderAppend(
-                    output, CompilerSymbolCInoutParamName(p_name)
-                );
-            } else if p_mode == 3 {
-                TextBuilderAppend(output, "const ");
-                TextBuilderAppend(output, cpt);
-                TextBuilderAppend(output, " *");
-                TextBuilderAppend(
-                    output, CompilerSymbolCReadonlyRefParamName(p_name)
-                );
-            } else {
-                TextBuilderAppend(output, cpt);
-                TextBuilderAppend(output, " ");
-                TextBuilderAppend(
-                    output, CompilerSymbolCBindingName(p_name)
-                );
             }
             pn = pn + 1;
         }

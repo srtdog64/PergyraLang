@@ -1,0 +1,14 @@
+func AddOne(value: Int) -> Int {
+    return value + 1;
+}
+
+func ApplyBuiltinShadow(
+    StringLength: func(Int) -> Int,
+    value: Int
+) -> Int {
+    return StringLength(value);
+}
+
+func Main() -> Void {
+    Log(ApplyBuiltinShadow(AddOne, 5));
+}

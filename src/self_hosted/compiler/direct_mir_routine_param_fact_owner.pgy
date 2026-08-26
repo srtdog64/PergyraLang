@@ -1,7 +1,6 @@
 // Exact formal-parameter facts for bounded direct-MIR plans. A composite
 // parameter carries its complete MIR-owned ABI receipt; consumers may not
 // rediscover physical layout from the source type.
-
 import "direct_mir_array_int_abi_fact_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
 
@@ -9,6 +8,7 @@ struct DirectMirRoutineParamFact {
     let valid: Bool;
     let digest: Int;
     let name: String;
+    let source_syntax_id: Int;
     let type_name: String;
     let carriage: String;
     let resource: String;
@@ -18,20 +18,20 @@ struct DirectMirRoutineParamFact {
     let abi_required: Bool;
     let abi: MirAbiLayoutRowCapture;
 }
-
 func InvalidDirectMirRoutineParamFact() -> DirectMirRoutineParamFact {
     return DirectMirRoutineParamFact(
-        false, 0, "", "", "", "", "", "", 0, false,
+        false, 0, "", 0, "", "", "", "", "", 0, false,
         InvalidMirAbiLayoutRowCapture()
     );
 }
-
 func DirectMirRoutineParamFactDigestFromFields(
-    name: String, type_name: String, carriage: String, resource: String,
+    name: String, source_syntax_id: Int, type_name: String, carriage: String,
+    resource: String,
     pass_shape: String, abi_type_name: String, abi_layout_id: Int,
     abi_required: Bool
 ) -> Int {
     let hash: Long = DirectMirCfgHashString(103L, name);
+    hash = DirectMirCfgHashInt(hash, source_syntax_id);
     hash = DirectMirCfgHashString(hash, type_name);
     hash = DirectMirCfgHashString(hash, carriage);
     hash = DirectMirCfgHashString(hash, resource);
@@ -51,7 +51,8 @@ func DirectMirRoutineParamFactDigest(
 ) -> Int {
     if !fact.valid { return 0; }
     return DirectMirRoutineParamFactDigestFromFields(
-        fact.name, fact.type_name, fact.carriage, fact.resource,
+        fact.name, fact.source_syntax_id, fact.type_name, fact.carriage,
+        fact.resource,
         fact.pass_shape, fact.abi_type_name, fact.abi_layout_id,
         fact.abi_required);
 }
@@ -60,7 +61,8 @@ func DirectMirRoutineParamFactWithDigest(
     fact: DirectMirRoutineParamFact, digest: Int
 ) -> DirectMirRoutineParamFact {
     return DirectMirRoutineParamFact(
-        fact.valid, digest, fact.name, fact.type_name, fact.carriage,
+        fact.valid, digest, fact.name, fact.source_syntax_id, fact.type_name,
+        fact.carriage,
         fact.resource, fact.pass_shape, fact.abi_type_name,
         fact.abi_layout_id, fact.abi_required, fact.abi
     );
@@ -71,7 +73,7 @@ func DirectMirRoutineParamFactReady(
 ) -> Bool {
     if !fact.valid || fact.digest == 0 ||
         fact.digest != DirectMirRoutineParamFactDigest(fact) ||
-        fact.name == "" || fact.type_name == "" ||
+        fact.name == "" || fact.source_syntax_id <= 0 || fact.type_name == "" ||
         fact.carriage == "" || fact.resource == "" ||
         fact.pass_shape == "" || fact.abi_type_name != fact.type_name {
         return false;
@@ -91,19 +93,19 @@ func DirectMirRoutineParamFactFromBounds(
         json, start, end
     );
     let keys: Array<String> = [
-        "name", "type", "carriage", "resource", "pass",
+        "name", "source_syntax_id", "type", "carriage", "resource", "pass",
         "abi_type_name", "abi_layout_id", "abi_layout_required",
         "abi_layout"
     ];
     let starts: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
-        0 - 1, 0 - 1, 0 - 1, 0 - 1
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
     let ends: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
-        0 - 1, 0 - 1, 0 - 1, 0 - 1
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
-    if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 9 ||
+    if !JsonObjectFactTableReady(object_table) || JsonObjectFactCount(object_table) != 10 ||
         !MirAbiSelectedObjectBoundsWithin(
             json, start, end, keys, starts, ends
         ) || !MirAbiAllBoundsPresent(starts, ends) {
@@ -112,33 +114,35 @@ func DirectMirRoutineParamFactFromBounds(
     let name: Option<String> = MirAbiStringValueAtBounds(
         json, starts[0], ends[0], false
     );
+    let source_syntax_id: Option<String> = MirAbiIntegerValueAtBounds(json, starts[1], ends[1]);
     let type_name: Option<String> = MirAbiStringValueAtBounds(
-        json, starts[1], ends[1], false
-    );
-    let carriage: Option<String> = MirAbiStringValueAtBounds(
         json, starts[2], ends[2], false
     );
-    let resource: Option<String> = MirAbiStringValueAtBounds(
+    let carriage: Option<String> = MirAbiStringValueAtBounds(
         json, starts[3], ends[3], false
     );
-    let pass_shape: Option<String> = MirAbiStringValueAtBounds(
+    let resource: Option<String> = MirAbiStringValueAtBounds(
         json, starts[4], ends[4], false
     );
-    let abi_type_name: Option<String> = MirAbiStringValueAtBounds(
+    let pass_shape: Option<String> = MirAbiStringValueAtBounds(
         json, starts[5], ends[5], false
     );
-    let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
-        json, starts[6], ends[6]
+    let abi_type_name: Option<String> = MirAbiStringValueAtBounds(
+        json, starts[6], ends[6], false
     );
-    if !IsSome(name) || !IsSome(type_name) || !IsSome(carriage) ||
+    let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
+        json, starts[7], ends[7]
+    );
+    if !IsSome(name) || !IsSome(source_syntax_id) || ToInt(UnwrapOption(source_syntax_id)) <= 0 ||
+        !IsSome(type_name) || !IsSome(carriage) ||
         !IsSome(resource) || !IsSome(pass_shape) ||
         !IsSome(abi_type_name) || !IsSome(abi_id) {
         return InvalidDirectMirRoutineParamFact();
     }
-    let required: Bool = starts[7] + 4 == ends[7] &&
-        SubEqualsWithLen(json, ends[7], starts[7], 4, "true");
-    let not_required: Bool = starts[7] + 5 == ends[7] &&
-        SubEqualsWithLen(json, ends[7], starts[7], 5, "false");
+    let required: Bool = starts[8] + 4 == ends[8] &&
+        SubEqualsWithLen(json, ends[8], starts[8], 4, "true");
+    let not_required: Bool = starts[8] + 5 == ends[8] &&
+        SubEqualsWithLen(json, ends[8], starts[8], 5, "false");
     if !required && !not_required {
         return InvalidDirectMirRoutineParamFact();
     }
@@ -147,20 +151,20 @@ func DirectMirRoutineParamFactFromBounds(
         let admitted: Option<MirAbiLayoutRowCapture> =
             MirCapturedRequiredAbiLayoutRowAdmission(
                 json, UnwrapOption(abi_type_name), true,
-                starts[5], ends[5], starts[6], ends[6],
-                starts[7], ends[7], starts[8], ends[8]
+                starts[6], ends[6], starts[7], ends[7],
+                starts[8], ends[8], starts[9], ends[9]
             );
         if !IsSome(admitted) {
             return InvalidDirectMirRoutineParamFact();
         }
         abi = UnwrapOption(admitted);
     } else if UnwrapOption(abi_id) != "0" ||
-        starts[8] + 4 != ends[8] ||
-        !SubEqualsWithLen(json, ends[8], starts[8], 4, "null") {
+        starts[9] + 4 != ends[9] ||
+        !SubEqualsWithLen(json, ends[9], starts[9], 4, "null") {
         return InvalidDirectMirRoutineParamFact();
     }
     let fact: DirectMirRoutineParamFact = DirectMirRoutineParamFact(
-        true, 0, UnwrapOption(name), UnwrapOption(type_name),
+        true, 0, UnwrapOption(name), ToInt(UnwrapOption(source_syntax_id)), UnwrapOption(type_name),
         UnwrapOption(carriage), UnwrapOption(resource),
         UnwrapOption(pass_shape), UnwrapOption(abi_type_name),
         ToInt(UnwrapOption(abi_id)), required, abi

@@ -1,0 +1,94 @@
+// Canonical first-order callable type shape parsed from a type-name fact.
+
+import "delimited_range_fact_owner.pgy";
+import "expression_normalization_owner.pgy";
+
+struct SemanticAstCallableTypeShape {
+    ok: Bool;
+    parameter_types: Array<String>;
+    return_type: String;
+}
+
+func SemanticAstSignatureFunctionTypeClose(
+    text: String
+) -> Option<Int> {
+    let n: Int = StringLength(text);
+    if n < 8 || Substring(text, 0, 5) != "func(" {
+        return None;
+    }
+    let depth: Int = 1;
+    let i: Int = 5;
+    while i < n {
+        if CharAt(text, i) == "(" {
+            depth = depth + 1;
+        } else if CharAt(text, i) == ")" {
+            depth = depth - 1;
+            if depth == 0 {
+                return Some(i);
+            }
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstCallableTypeShapeFromName(
+    type_name: String
+) -> SemanticAstCallableTypeShape {
+    let parameters: Array<String> = [];
+    let text: String = SemanticTrimSourceReuse(type_name);
+    let n: Int = StringLength(text);
+    let close_opt: Option<Int> =
+        SemanticAstSignatureFunctionTypeClose(text);
+    if !IsSome(close_opt) {
+        return SemanticAstCallableTypeShape(false, parameters, "");
+    }
+    let close: Int = UnwrapOption(close_opt);
+    let arrow: Int = close + 1;
+    while arrow < n && SourceByteIsWhitespace(
+        SourceByteAt(text, n, arrow)
+    ) {
+        arrow = arrow + 1;
+    }
+    if arrow + 2 > n || CharAt(text, arrow) != "-" ||
+        CharAt(text, arrow + 1) != ">" {
+        return SemanticAstCallableTypeShape(false, parameters, "");
+    }
+    let return_type: String = SemanticTrimSourceRangeReuse(
+        text, arrow + 2, n
+    );
+    if return_type == "" {
+        return SemanticAstCallableTypeShape(false, parameters, "");
+    }
+    let parameter_text: String = Substring(text, 5, close - 5);
+    if SemanticTrimSourceReuse(parameter_text) != "" {
+        let ranges: SemanticDelimitedRangeFacts =
+            SemanticNestedCommaRangeFactsFromSource(parameter_text);
+        let i: Int = 0;
+        while i < SemanticDelimitedRangeCount(ranges) {
+            let parameter_type: String = SemanticTrimSourceReuse(
+                SemanticDelimitedRangeText(ranges, parameter_text, i)
+            );
+            if parameter_type == "" {
+                return SemanticAstCallableTypeShape(false, parameters, "");
+            }
+            ArrayPush(parameters, parameter_type);
+            i = i + 1;
+        }
+    }
+    return SemanticAstCallableTypeShape(true, parameters, return_type);
+}
+
+func SemanticAstCallableTypeParameterSignature(
+    shape: SemanticAstCallableTypeShape
+) -> String {
+    if !shape.ok { return ""; }
+    let signature: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(shape.parameter_types) {
+        if i > 0 { signature = Concat(signature, "|"); }
+        signature = Concat(signature, shape.parameter_types[i]);
+        i = i + 1;
+    }
+    return signature;
+}

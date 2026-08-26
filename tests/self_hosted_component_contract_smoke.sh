@@ -5766,8 +5766,11 @@ reject_function_terms "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
     "SemanticAstBodyTypeBundleFromAnalysis(" \
     "SemanticAstBodyTypeBundleFromAnalysisObserved("
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(" \
+    "SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy("
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(" \
-    "SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved("
+    "VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy("
 reject_function_terms "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(" \
     "SemanticAstBodyTypeBundleFromAnalysis(" \
@@ -6199,6 +6202,10 @@ require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.
 require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
     '"Pair(1, 2)"'
 require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
+    '"StringLength(\"x\")"'
+require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
+    '"Math_Add()"'
+require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
     '"Box_Get"'
 require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
     '"Other_Get"'
@@ -6217,6 +6224,12 @@ require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "let low: Int = 
 reject_function_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumIndexForNode(" "let i: Int = 0;"
 require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "SemanticCallableIndex("
+require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
+    "SemanticExpressionDeclaredCallableTargetExists("
+require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
+    "SemanticExpressionBindingNone()"
+require_text "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy" \
+    "func SemanticExpressionDeclaredCallableTargetExists("
 require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
     "carried_kind != target.kind"
 require_text_count_at_least \
@@ -6232,6 +6245,30 @@ require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
     "require_carried_call_targets"
 require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
     "func SemanticExpressionCallTargetFactContractReady()"
+require_file "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh" 240
+require_file "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_mutations.py"
+require_file "tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh" 120
+require_file "tests/cases/backend_compare/callable_parameter_builtin_shadow/main.pgy"
+require_text "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh" \
+    'callable_parameter_builtin_shadow/main.pgy'
+require_text "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh" \
+    'formal-carriage-forged'
+require_text "tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh" \
+    '"$DRIVER" --mir-json "$mutated_rel" -o "$c_rel"'
+require_text "tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh" \
+    'compile_public c installed-c'
+require_text "tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh" \
+    'compile_public llvm installed-llvm'
+require_text "tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh" \
+    '--native-pipeline -o "$NATIVE_REL"'
+require_text "scripts/ci_push_linux_steps.sh" \
+    'self-host-callable-parameter-identity-replacement-test-smoke'
+require_text "scripts/ci_linux_steps.sh" \
+    'self-host-callable-parameter-identity-replacement-test-smoke'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionCallTargetFactContractReady()"
 reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
@@ -6753,7 +6790,10 @@ require_text \
     "member_count == 7"
 require_text \
     "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
-    "member_count == 10"
+    "member_count == 11"
+require_text \
+    "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+    '"binding_syntax_id"'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "ready_node_count: Int"
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
@@ -11388,9 +11428,24 @@ require_function_text \
     "func RewriteSemanticDirectCall(" \
     "CodegenCCallExpression(call_symbol, args)"
 require_function_text \
-    "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" \
     "func RewriteSemanticCallArguments(" \
     "CodegenCExpressionTextOwned(owned_fragments, args)"
+require_file \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" 100
+require_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
+    "func RewriteSemanticIdentityBoundCall(" \
+    "UnwrapOption(binding_id) != UnwrapOption(target_id)"
+reject_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
+    "func RewriteSemanticIdentityBoundCall(" "RuntimeCallCName("
+require_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticDirectCall(" \
+    "RewriteSemanticIdentityBoundCall("
 require_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCallTracked(" \
@@ -11602,7 +11657,7 @@ require_function_text \
     "func MirExpressionGraphKindCodeWithin(" '"struct_field_name"'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'if order_i != order_count || !sequence.ok ||'
-require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" \
     "func RewriteSemanticCallArguments("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberAccess("
@@ -18503,10 +18558,10 @@ reject_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy" \
     "terminal multi-routine graph is unsupported"
 require_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy" \
     'parameter_carriages[parameter_row] != "value"'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_call_argument_expected_type_owner.pgy" \
     "func DirectMirScalarProgramDirectCallArgumentExpectedType(" \
     "DirectMirScalarCfgProgramCallableParameterTypeBySyntaxId("
 require_function_text \
@@ -18522,8 +18577,156 @@ require_function_text \
     "func DirectMirScalarProgramAppendExpression(" \
     "DirectMirScalarProgramDirectCallArgumentExpectedType("
 reject_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_call_argument_expected_type_owner.pgy" \
     "func DirectMirScalarProgramDirectCallArgumentExpectedType(" \
+    "DirectMirScalarCfgProgramCallableInventoryOrdinalByName("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_type_policy_owner.pgy" \
+    "func DirectMirScalarProgramFirstOrderCallableTypeSupported(" \
+    "SemanticAstCallableTypeShapeFromName("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_type_policy_owner.pgy" \
+    "func DirectMirScalarProgramFirstOrderCallableTypeSupported(" \
+    "DirectMirScalarCfgScalarTypeSupported(shape.return_type)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_type_policy_owner.pgy" \
+    "func DirectMirScalarProgramCallableTypeMatchesRows(" \
+    'parameter_carriages[start + ordinal] != "value"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_type_policy_owner.pgy" \
+    "func DirectMirScalarProgramCallableFunctionParameterReady(" \
+    "signature.parameters.abi_layout_ids[ordinal] == 0"
+require_function_text \
+    "src/self_hosted/codegen/emission/callable_parameter_prototype_owner.pgy" \
+    "func CodegenAppendCallableParameterPrototypeIfPresent(" \
+    "inout output: TextBuilder"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramFirstOrderCallableTypeSupported("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramCallableTypeMatchesRows("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramCallableFunctionParameterReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_declared_callable_value_admission_owner.pgy" \
+    "func DirectMirScalarProgramDeclaredCallableValueFromGraph(" \
+    "DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_declared_callable_value_admission_owner.pgy" \
+    "func DirectMirScalarProgramDeclaredCallableValueFromGraph(" \
+    "DirectMirScalarProgramCallableTypeMatchesRows("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_declared_callable_value_admission_owner.pgy" \
+    "func DirectMirScalarProgramDeclaredCallableValueFromGraph(" \
+    "OrdinalByName("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy" \
+    "func DirectMirScalarProgramAppendExpression(" \
+    "DirectMirScalarProgramDeclaredCallableValueFromGraph("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramCallableExpressionIdentityReady(" \
+    "DirectMirScalarProgramExprDeclaredCallable("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramCallableExpressionIdentityReady(" \
+    "DirectMirScalarProgramExprCallableParameterCall("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramCallableExpressionIdentityReady(" \
+    "DirectMirScalarProgramCallableTypeMatchesRows("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramCallableExpressionIdentityReady(" \
+    'plan.routines.parameter_carriages[parameter_row] != "value"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramCallableExpressionIdentityReady(" \
+    "shape.parameter_types[ordinal]"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_expression_identity_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramExpressionIdentityReady(" \
+    "DirectMirScalarCfgProgramCallableExpressionIdentityReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_call_readiness_owner.pgy" \
+    "func DirectMirScalarProgramCallableParameterCallNodeReady(" \
+    "DirectMirScalarProgramExprCallableParameterCall("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_call_readiness_owner.pgy" \
+    "func DirectMirScalarProgramCallableParameterCallNodeReady(" \
+    "facts.node_callable_rows[node] != -1"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_call_readiness_owner.pgy" \
+    "func DirectMirScalarProgramCallableParameterCallNodeReady(" \
+    "DirectMirScalarProgramDirectCallArgumentRows("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy" \
+    "func DirectMirScalarProgramCallableParameterCallNodeReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy" \
+    "func DirectMirScalarProgramExpressionNodeReady(" \
+    "DirectMirScalarProgramCallableParameterCallNodeReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy" \
+    "func DirectMirScalarProgramExpressionNodeReady(" \
+    "DirectMirScalarProgramExprDeclaredCallable("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy" \
+    "func DirectMirScalarProgramExpressionNodeReady(" \
+    "DirectMirScalarProgramFirstOrderCallableTypeSupported("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
+    "func DirectMirScalarProgramCallableParameterRolePlanReady(" \
+    "callable_function_value_count"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
+    "DirectMirScalarProgramCallableFunctionParameterReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
+    "func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedEnum(" \
+    "claim_count != 1"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_type_owner.pgy" \
+    "func DirectMirScalarProgramLlvmType(" \
+    "DirectMirScalarProgramFirstOrderCallableTypeSupported(type_name)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_type_owner.pgy" \
+    "func DirectMirScalarProgramLlvmType(" \
+    'return "ptr"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmExpressionAt(" \
+    "DirectMirScalarProgramExprDeclaredCallable("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmExpressionAt(" \
+    "@pgy.scalar.routine."
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmExpressionAt(" \
+    "expressions.node_parameter_ordinals[node]"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "DirectMirScalarProgramExprCallableParameterCall("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "let indirect: Bool"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "%pgy.param."
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "node_texts["
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
     "call_target_names["
 require_text "Makefile" \
     "self-host-direct-mir-scalar-array-int-value-result-test-smoke"
@@ -18618,7 +18821,7 @@ require_function_text \
     'DirectMirScalarProgramNamespaceCallMarkerReady(sequence, call)'
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     'call_target_kind != SemanticCallTargetNamespace()'
-require_text "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_persisted_node_identity_owner.pgy" \
     'target_kind != SemanticCallTargetNamespace()'
 for executable_gate in \
     "tests/self_hosted/parity/direct_mir_scalar_array_string_readonly_ref_owner.sh" \
@@ -20497,7 +20700,7 @@ require_function_text \
     "func DirectMirScalarProgramLlvmLogicalRecordParameterRead(" \
     'carriage == "owner-handle"'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy" \
     "func DirectMirScalarProgramDirectCallFactFromGraph(" \
     'callables.parameter_carriages[parameter_row] != "owner-handle"'
 require_function_text \
@@ -21221,10 +21424,16 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExprNotEqualPayloadFreeEnum() -> Int { return 119; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    "func DirectMirScalarProgramExprDeclaredCallable() -> Int { return 120; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    "func DirectMirScalarProgramExprCallableParameterCall() -> Int { return 121; }"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExpressionKindLast(" \
-    "DirectMirScalarProgramExprNotEqualPayloadFreeEnum()"
+    "DirectMirScalarProgramExprCallableParameterCall()"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
 require_max_lines \

@@ -3,6 +3,7 @@ import "ast_artifact_verdict_owner.pgy";
 import "ast_body_expression_environment_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
+import "ast_signature_type_expression_fact_owner.pgy";
 import "../lib/intent_observability_abi_projection_owner.pgy";
 func SemanticExpressionDirectTargetSyntaxId(
     signatures: SemanticAstFunctionSignatureFacts,
@@ -67,7 +68,8 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     inout analysis: SemanticAstArtifactAnalysis,
     inferred_types: Array<String>,
     iteration_types: SemanticAstIterationTypeFacts,
-    function_tables: SemanticAstExpressionFunctionTableFacts
+    function_tables: SemanticAstExpressionFunctionTableFacts,
+    require_carried_identities: Bool
 ) -> Bool {
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
@@ -118,29 +120,84 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                 }
                 let node: Int = last_root + 1;
                 while node <= root_id && valid {
+                    let carried_call_target_syntax_id: Int =
+                        graph.arena.identities.call_target_syntax_ids[node];
+                    let carried_runtime_call_abi_id: Int =
+                        graph.arena.identities.runtime_call_abi_ids[node];
+                    let carried_binding_syntax_id: Int =
+                        graph.arena.identities.binding_syntax_ids[node];
+                    let carried_binding_kind: Int =
+                        graph.arena.identities.binding_kinds[node];
+                    let carried_binding_ordinal: Int =
+                        graph.arena.identities.binding_ordinals[node];
                     graph.arena.identities.call_target_syntax_ids[node] = 0;
                     graph.arena.identities.runtime_call_abi_ids[node] = 0;
+                    graph.arena.identities.binding_syntax_ids[node] = 0;
                     graph.arena.identities.binding_kinds[node] =
                         SemanticExpressionBindingNone();
                     graph.arena.identities.binding_ordinals[node] = -1;
                     if graph.arena.call_target_kinds[node] == SemanticCallTargetDirect() || graph.arena.call_target_kinds[node] == SemanticCallTargetNamespace() {
-                        let target_id: Int =
-                            SemanticExpressionDirectTargetSyntaxId(
-                                analysis.signatures,
-                                graph.arena.call_target_names[node]
+                        let target_name: String =
+                            graph.arena.call_target_names[node];
+                        let local_callable: SemanticAstCallableTypeShape =
+                            SemanticAstCallableTypeShapeFromName(
+                                EnvLookup(names, types, target_name)
                             );
-                        if target_id < 0 { valid = false; }
-                        if target_id > 0 {
-                            graph.arena.identities
-                                .call_target_syntax_ids[node] = target_id;
-                        } else {
-                            let observability: IntentObservabilityAbiRow =
-                                IntentObservabilityAbiRowForSource(
-                                    graph.arena.call_target_names[node]);
-                            if observability.valid {
+                        if local_callable.ok {
+                            if !IsSome(function_node) { valid = false; }
+                            let parameter_ordinal: Int = -1;
+                            if valid {
+                                parameter_ordinal =
+                                    SemanticExpressionFormalParameterOrdinal(
+                                        analysis.signatures,
+                                        UnwrapOption(function_node), target_name
+                                    );
+                                if parameter_ordinal < 0 { valid = false; }
+                            }
+                            let signature_index: Option<Int> = None;
+                            if valid {
+                                signature_index =
+                                    SemanticAstFunctionSignatureIndexForNode(
+                                        analysis.signatures,
+                                        UnwrapOption(function_node)
+                                    );
+                                if !IsSome(signature_index) { valid = false; }
+                            }
+                            let parameter_node: Option<Int> = None;
+                            if valid {
+                                parameter_node = SemanticAstFunctionParamNodeAt(
+                                    analysis.signatures,
+                                    UnwrapOption(signature_index),
+                                    parameter_ordinal
+                                );
+                                if !IsSome(parameter_node) ||
+                                    UnwrapOption(parameter_node) <= 0 {
+                                    valid = false;
+                                }
+                            }
+                            if valid {
                                 graph.arena.identities
-                                    .runtime_call_abi_ids[node] =
-                                        observability.runtime_call_abi_id;
+                                    .call_target_syntax_ids[node] =
+                                        UnwrapOption(parameter_node);
+                            }
+                        } else {
+                            let target_id: Int =
+                                SemanticExpressionDirectTargetSyntaxId(
+                                    analysis.signatures, target_name
+                                );
+                            if target_id < 0 { valid = false; }
+                            if target_id > 0 {
+                                graph.arena.identities
+                                    .call_target_syntax_ids[node] = target_id;
+                            } else {
+                                let observability: IntentObservabilityAbiRow =
+                                    IntentObservabilityAbiRowForSource(
+                                        target_name);
+                                if observability.valid {
+                                    graph.arena.identities
+                                        .runtime_call_abi_ids[node] =
+                                            observability.runtime_call_abi_id;
+                                }
                             }
                         }
                     }
@@ -163,8 +220,98 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                     SemanticExpressionBindingFormalParameter();
                                 graph.arena.identities.binding_ordinals[node] =
                                     ordinal;
+                                let signature_index: Option<Int> =
+                                    SemanticAstFunctionSignatureIndexForNode(
+                                        analysis.signatures,
+                                        UnwrapOption(function_node)
+                                    );
+                                if !IsSome(signature_index) {
+                                    valid = false;
+                                } else {
+                                    let parameter_type: Option<String> =
+                                        SemanticAstFunctionParamTypeAt(
+                                            analysis.signatures,
+                                            UnwrapOption(signature_index),
+                                            ordinal
+                                        );
+                                    let parameter_node: Option<Int> =
+                                        SemanticAstFunctionParamNodeAt(
+                                            analysis.signatures,
+                                            UnwrapOption(signature_index),
+                                            ordinal
+                                        );
+                                    if !IsSome(parameter_type) ||
+                                        !IsSome(parameter_node) ||
+                                        UnwrapOption(parameter_node) <= 0 {
+                                        valid = false;
+                                    } else {
+                                        graph.arena.identities
+                                            .binding_syntax_ids[node] =
+                                                UnwrapOption(parameter_node);
+                                    }
+                                }
                             }
                         }
+                        if valid && graph.arena.identities.binding_kinds[node] ==
+                                SemanticExpressionBindingNone() &&
+                            !EnvContainsName(
+                                names, graph.arena.node_texts[node]) {
+                            let callable_id: Int =
+                                SemanticExpressionDirectTargetSyntaxId(
+                                    analysis.signatures,
+                                    graph.arena.node_texts[node]
+                                );
+                            if callable_id <= 0 {
+                                if callable_id < 0 { valid = false; }
+                            } else if valid {
+                                graph.arena.identities
+                                    .binding_syntax_ids[node] = callable_id;
+                                graph.arena.identities.binding_kinds[node] =
+                                    SemanticExpressionBindingDeclaredCallable();
+                            }
+                        }
+                    }
+                    if require_carried_identities &&
+                        (graph.arena.identities.call_target_syntax_ids[node] !=
+                            carried_call_target_syntax_id ||
+                         graph.arena.identities.runtime_call_abi_ids[node] !=
+                            carried_runtime_call_abi_id ||
+                         graph.arena.identities.binding_syntax_ids[node] !=
+                            carried_binding_syntax_id ||
+                         graph.arena.identities.binding_kinds[node] !=
+                            carried_binding_kind ||
+                         graph.arena.identities.binding_ordinals[node] !=
+                            carried_binding_ordinal) {
+                        let detail: String = Concat(
+                            "semantic carried expression identity mismatch: node=",
+                            ToString(node));
+                        detail = Concat(detail, Concat(
+                            " call_target=", Concat(
+                            ToString(carried_call_target_syntax_id), Concat(
+                            "/", ToString(graph.arena.identities
+                                .call_target_syntax_ids[node])))));
+                        detail = Concat(detail, Concat(
+                            " runtime_abi=", Concat(
+                            ToString(carried_runtime_call_abi_id), Concat(
+                            "/", ToString(graph.arena.identities
+                                .runtime_call_abi_ids[node])))));
+                        detail = Concat(detail, Concat(
+                            " binding_id=", Concat(
+                            ToString(carried_binding_syntax_id), Concat(
+                            "/", ToString(graph.arena.identities
+                                .binding_syntax_ids[node])))));
+                        detail = Concat(detail, Concat(
+                            " binding_kind=", Concat(
+                            ToString(carried_binding_kind), Concat(
+                            "/", ToString(graph.arena.identities
+                                .binding_kinds[node])))));
+                        detail = Concat(detail, Concat(
+                            " binding_ordinal=", Concat(
+                            ToString(carried_binding_ordinal), Concat(
+                            "/", ToString(graph.arena.identities
+                                .binding_ordinals[node])))));
+                        Log(detail);
+                        valid = false;
                     }
                     node = node + 1;
                 }
@@ -192,8 +339,18 @@ func SemanticAstAnalysisResolveExpressionIdentities(
         if !synthetic_found {
             valid = false;
         } else {
+            if require_carried_identities &&
+                (graph.arena.identities.call_target_syntax_ids[tail] != 0 ||
+                 graph.arena.identities.runtime_call_abi_ids[tail] != 0 ||
+                 graph.arena.identities.binding_syntax_ids[tail] != 0 ||
+                 graph.arena.identities.binding_kinds[tail] !=
+                    SemanticExpressionBindingNone() ||
+                 graph.arena.identities.binding_ordinals[tail] != -1) {
+                valid = false;
+            }
             graph.arena.identities.call_target_syntax_ids[tail] = 0;
             graph.arena.identities.runtime_call_abi_ids[tail] = 0;
+            graph.arena.identities.binding_syntax_ids[tail] = 0;
             graph.arena.identities.binding_kinds[tail] =
                 SemanticExpressionBindingNone();
             graph.arena.identities.binding_ordinals[tail] = -1;

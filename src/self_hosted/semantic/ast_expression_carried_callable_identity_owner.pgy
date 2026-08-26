@@ -1,0 +1,97 @@
+// Exact carried identity checks for formal and declared callable lanes.
+
+import "ast_signature_fact_owner.pgy";
+import "ast_callable_type_shape_owner.pgy";
+import "callable_resolution_owner.pgy";
+
+func SemanticExpressionFormalParameterCarriedIdentityReady(
+    signatures: SemanticAstFunctionSignatureFacts,
+    parameter_node_id: Int, parameter_ordinal: Int,
+    parameter_name: String
+) -> Bool {
+    if parameter_node_id <= 0 || parameter_ordinal < 0 ||
+        parameter_name == "" {
+        return false;
+    }
+    let matches: Int = 0;
+    let signature: Int = 0;
+    while signature < SemanticAstFunctionSignatureCount(signatures) {
+        let count: Option<Int> = SemanticAstFunctionParamCountAt(
+            signatures, signature);
+        if !IsSome(count) { return false; }
+        let ordinal: Int = 0;
+        while ordinal < UnwrapOption(count) {
+            let node: Option<Int> = SemanticAstFunctionParamNodeAt(
+                signatures, signature, ordinal);
+            let name: Option<String> = SemanticAstFunctionParamNameAt(
+                signatures, signature, ordinal);
+            let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
+                signatures, signature, ordinal);
+            if !IsSome(node) || !IsSome(name) || !IsSome(type_name) {
+                return false;
+            }
+            if UnwrapOption(node) == parameter_node_id {
+                matches = matches + 1;
+                if matches > 1 || ordinal != parameter_ordinal ||
+                    UnwrapOption(name) != parameter_name ||
+                    !SemanticAstCallableTypeShapeFromName(
+                        UnwrapOption(type_name)).ok {
+                    return false;
+                }
+            }
+            ordinal = ordinal + 1;
+        }
+        signature = signature + 1;
+    }
+    return matches == 1;
+}
+
+func SemanticExpressionDeclaredCallableTargetExists(
+    signatures: SemanticAstFunctionSignatureFacts,
+    target_name: String
+) -> Bool {
+    if target_name == "" { return false; }
+    let signature: Int = 0;
+    while signature < SemanticAstFunctionSignatureCount(signatures) {
+        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+            signatures, signature);
+        let name: Option<String> = SemanticAstFunctionNameAt(
+            signatures, signature);
+        if !IsSome(owner) || !IsSome(name) { return false; }
+        if SemanticCallableCanonicalDeclaredNameEquals(
+                UnwrapOption(owner), UnwrapOption(name), target_name) {
+            return true;
+        }
+        signature = signature + 1;
+    }
+    return false;
+}
+
+func SemanticExpressionDeclaredCallableCarriedIdentityReady(
+    signatures: SemanticAstFunctionSignatureFacts,
+    target_name: String, target_node_id: Int
+) -> Bool {
+    if target_name == "" || target_node_id <= 0 { return false; }
+    let matches: Int = 0;
+    let signature: Int = 0;
+    while signature < SemanticAstFunctionSignatureCount(signatures) {
+        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+            signatures, signature);
+        let name: Option<String> = SemanticAstFunctionNameAt(
+            signatures, signature);
+        let node: Option<Int> = SemanticAstFunctionNodeAt(
+            signatures, signature);
+        if !IsSome(owner) || !IsSome(name) || !IsSome(node) {
+            return false;
+        }
+        if SemanticCallableCanonicalDeclaredNameEquals(
+                UnwrapOption(owner), UnwrapOption(name), target_name) {
+            matches = matches + 1;
+            if matches > 1 || UnwrapOption(node) != target_node_id {
+                return false;
+            }
+        }
+        signature = signature + 1;
+    }
+    return matches == 1;
+}

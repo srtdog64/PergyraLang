@@ -1,0 +1,54 @@
+// C emission for direct calls whose callee lane is fixed by carried syntax ID.
+
+import "expr_rewrite.pgy";
+import "expr_semantic_call_argument_owner.pgy";
+import "expression_c_text_materialization_owner.pgy";
+import "function_binding_env_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_node_view_owner.pgy";
+
+func RewriteSemanticIdentityBoundCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    source_name: String,
+    binding_kind: Int,
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
+) -> String {
+    let target_id: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+        graph, view.call_node);
+    let binding_id: Option<Int> = SemanticExpressionGraphBindingSyntaxId(
+        graph, view.callee_node);
+    let binding_ordinal: Option<Int> = SemanticExpressionGraphBindingOrdinal(
+        graph, view.callee_node);
+    let callee_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, view.callee_node);
+    if !IsSome(target_id) || !IsSome(binding_id) ||
+        !IsSome(binding_ordinal) || !IsSome(callee_name) ||
+        UnwrapOption(target_id) <= 0 ||
+        UnwrapOption(binding_id) != UnwrapOption(target_id) ||
+        UnwrapOption(callee_name) != source_name {
+        Die("identity-bound C call carrier is missing or cross-wired");
+    }
+    let formal: Bool =
+        binding_kind == SemanticExpressionBindingFormalParameter();
+    let declared: Bool =
+        binding_kind == SemanticExpressionBindingDeclaredCallable();
+    if (!formal && !declared) ||
+        (formal && UnwrapOption(binding_ordinal) < 0) ||
+        (declared && UnwrapOption(binding_ordinal) != -1) {
+        Die("identity-bound C call lane is invalid");
+    }
+    let call_symbol: String = source_name;
+    let alias: String = LookupKindType(env, source_name, "call");
+    if alias != "" { call_symbol = alias; }
+    if formal && alias == "" {
+        Die("callable formal C binding is missing");
+    }
+    let modes: String = LookupKindType(env, call_symbol, "pm");
+    let param_types: String = LookupKindType(env, call_symbol, "pt");
+    let args: String = RewriteSemanticCallArguments(
+        graph, view, modes, param_types, 0, "", env, owned_fragments);
+    return CodegenCCallExpression(call_symbol, args);
+}

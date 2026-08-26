@@ -1,5 +1,4 @@
 // Shared AstTreeArtifact -> self-host MIR fact graph producer.
-
 import "program_fact_owner.pgy";
 import "declaration_rows_owner.pgy";
 import "routine_entry_owner.pgy";
@@ -48,6 +47,7 @@ func SelfMirAppendRoutine(
     let param_starts: Array<Int> = rows.param_starts;
     let param_counts: Array<Int> = rows.param_counts;
     let param_names: Array<String> = rows.param_names;
+    let param_node_ids: Array<Int> = rows.param_node_ids;
     let param_types: Array<String> = rows.param_types;
     let param_abi_kinds: Array<Int> = rows.param_abi_kinds;
     let param_resource_kinds: Array<Int> = rows.param_resource_kinds;
@@ -114,6 +114,7 @@ func SelfMirAppendRoutine(
     while param_i < analysis.signatures.param_counts[signature_index] {
         let row: Int = param_start + param_i;
         ArrayPush(param_names, analysis.signatures.param_names[row]);
+        ArrayPush(param_node_ids, analysis.signatures.param_node_ids[row]);
         let param_type: String = analysis.signatures.param_types[row];
         if owner != "" && analysis.signatures.param_names[row] == "self" {
             ArrayPush(param_types, "");
@@ -218,7 +219,7 @@ func SelfMirAppendRoutine(
             node_ids, names, kinds, owners, source_module_paths,
             receiver_carriages, return_types,
             generic_starts, generic_counts, generic_names,
-            param_starts, param_counts, param_names, param_types,
+            param_starts, param_counts, param_names, param_node_ids, param_types,
             param_abi_kinds, param_resource_kinds,
             block_starts, block_counts, local_starts, local_counts,
             local_names, local_types,

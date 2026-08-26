@@ -1,5 +1,4 @@
 // One admitted Int operand identity for a populated Array<Int> literal.
-
 import "direct_mir_scalar_program_call_expression_admission_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_owner.pgy";
@@ -161,8 +160,9 @@ func DirectMirScalarProgramArrayIntLiteralOperandFromOwners(
     }
     let call: DirectMirScalarProgramDirectCallFact =
         DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
-            sequence, call_node, callables);
+            sequence, call_node, callables, signature);
     if !call.recognized || !call.valid || !call.complete ||
+        call.callable_ordinal < 0 || call.callable_parameter_ordinal != -1 ||
         call.return_type != CompilerAbiLayoutIntTypeName() { return invalid; }
     return DirectMirScalarProgramArrayIntLiteralOperandAdmission(
         true, DirectMirScalarProgramExprDirectCall(), "", -1, -1,

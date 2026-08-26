@@ -76,6 +76,16 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
     let target_kinds: Array<Int> = graph.arena.call_target_kinds;
     let target_names: Array<String> = graph.arena.call_target_names;
     let call_return_types: Array<String> = graph.arena.call_return_type_names;
+    let call_target_syntax_ids: Array<Int> =
+        graph.arena.identities.call_target_syntax_ids;
+    let runtime_call_abi_ids: Array<Int> =
+        graph.arena.identities.runtime_call_abi_ids;
+    let binding_syntax_ids: Array<Int> =
+        graph.arena.identities.binding_syntax_ids;
+    let binding_kinds: Array<Int> =
+        graph.arena.identities.binding_kinds;
+    let binding_ordinals: Array<Int> =
+        graph.arena.identities.binding_ordinals;
     let place_kinds: Array<Int> = graph.arena.place_kinds;
     let synthetic_names: Array<String> = facts.synthetic_names;
     let synthetic_roots: Array<Int> = facts.synthetic_graph_root_ids;
@@ -103,6 +113,11 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
             ArrayPush(target_kinds, SemanticCallTargetNone());
             ArrayPush(target_names, "");
             ArrayPush(call_return_types, "");
+            ArrayPush(call_target_syntax_ids, 0);
+            ArrayPush(runtime_call_abi_ids, 0);
+            ArrayPush(binding_syntax_ids, 0);
+            ArrayPush(binding_kinds, SemanticExpressionBindingNone());
+            ArrayPush(binding_ordinals, -1);
             ArrayPush(place_kinds, SemanticExpressionPlaceBinding());
             ArraySet(synthetic_names, i, name);
             ArraySet(synthetic_roots, i, appended.root_id);
@@ -112,9 +127,13 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
         i = i + 1;
     }
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromTopology(
+        SemanticExpressionGraphArenaFromTopologyWithIdentities(
             topology, node_texts, target_kinds, target_names,
-            call_return_types, place_kinds
+            call_return_types,
+            SemanticExpressionIdentityRows(
+                call_target_syntax_ids, runtime_call_abi_ids,
+                binding_syntax_ids, binding_kinds, binding_ordinals),
+            place_kinds
         );
     let attached: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(

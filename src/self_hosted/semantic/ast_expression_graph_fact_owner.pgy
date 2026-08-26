@@ -310,6 +310,8 @@ func SemanticExpressionGraphArenaReady(
             arena.identities.call_target_syntax_ids[i];
         let runtime_call_abi_id: Int =
             arena.identities.runtime_call_abi_ids[i];
+        let binding_syntax_id: Int =
+            arena.identities.binding_syntax_ids[i];
         let binding_kind: Int = arena.identities.binding_kinds[i];
         let place_kind: Int = arena.place_kinds[i];
         if place_kind < SemanticExpressionPlaceUnknown() ||
@@ -341,6 +343,9 @@ func SemanticExpressionGraphArenaReady(
              kind != AstExpressionNodeCall()) {
             return false;
         }
+        if binding_syntax_id > 0 && kind != AstExpressionNodeLeaf() {
+            return false;
+        }
         if runtime_call_abi_id > 0 &&
             (call_target_kind != SemanticCallTargetDirect() ||
              call_target_syntax_id != 0 || kind != AstExpressionNodeCall()) {
@@ -350,6 +355,10 @@ func SemanticExpressionGraphArenaReady(
             (kind != AstExpressionNodeLeaf() ||
              (place_kind != SemanticExpressionPlaceUnknown() &&
               !SemanticExpressionPlaceKindDirectBinding(place_kind))) {
+            return false;
+        }
+        if binding_kind == SemanticExpressionBindingDeclaredCallable() &&
+            (kind != AstExpressionNodeLeaf() || binding_syntax_id <= 0) {
             return false;
         }
         let arity: Int = AstExpressionNodeArity(kind);
@@ -537,6 +546,8 @@ func SemanticExpressionGraphFactsEqual(
                 right.arena.identities.call_target_syntax_ids[i] ||
             left.arena.identities.runtime_call_abi_ids[i] !=
                 right.arena.identities.runtime_call_abi_ids[i] ||
+            left.arena.identities.binding_syntax_ids[i] !=
+                right.arena.identities.binding_syntax_ids[i] ||
             left.arena.identities.binding_kinds[i] !=
                 right.arena.identities.binding_kinds[i] ||
             left.arena.identities.binding_ordinals[i] !=

@@ -40,10 +40,11 @@ func SemanticAstBodyTypeBundleAdmissionError(
     );
 }
 func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
-func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
+func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
-    observe_pressure: Bool
+    observe_pressure: Bool,
+    require_carried_expression_identities: Bool
 ) -> SemanticAstBodyTypeBundle {
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) {
         return SemanticAstBodyTypeBundleAdmissionError(
@@ -163,21 +164,23 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
             "iteration_graph_root_unresolved",
             "semantic foreach synthetic roots are incomplete", -1
         );
-    } else if verdict.ok && !SemanticAstAnalysisResolveCallReturnTypes(
+    }
+    if verdict.ok && !SemanticAstAnalysisResolveExpressionIdentities(
+        artifact, analysis, initializer_types.inferred_type_names,
+        iteration_types, function_tables,
+        require_carried_expression_identities
+    ) {
+        verdict = SemanticAstBodyVerdictError(
+            "expression_identity_unresolved",
+            "semantic expression identity rows are incomplete", -1
+        );
+    }
+    if verdict.ok && !SemanticAstAnalysisResolveCallReturnTypes(
         artifact, analysis, generic_specializations
     ) {
         verdict = SemanticAstBodyVerdictError(
             "call_return_type_unresolved",
             "semantic call return type rows are incomplete", -1
-        );
-    }
-    if verdict.ok && !SemanticAstAnalysisResolveExpressionIdentities(
-        artifact, analysis, initializer_types.inferred_type_names,
-        iteration_types, function_tables
-    ) {
-        verdict = SemanticAstBodyVerdictError(
-            "expression_identity_unresolved",
-            "semantic expression identity rows are incomplete", -1
         );
     }
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");
@@ -186,6 +189,14 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
         initializer_types, iteration_types, assignment_types, statement_types,
         generic_specializations
     );
+}
+func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    observe_pressure: Bool
+) -> SemanticAstBodyTypeBundle {
+    return SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
+        artifact, analysis, observe_pressure, false);
 }
 func SemanticAstBodyTypeBundleFromAnalysisObserved(
     artifact: AstTreeArtifact,

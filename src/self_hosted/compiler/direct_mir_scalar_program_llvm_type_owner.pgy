@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 func DirectMirScalarProgramLlvmSetStringTypeName() -> String {
     return "{ ptr, ptr, i64, i64 }";
@@ -14,6 +15,7 @@ func DirectMirScalarProgramLlvmType(type_name: String) -> String {
     let runtime_value: CompilerRuntimeValueRepresentation =
         CompilerRuntimeValueRepresentationFor(type_name);
     if runtime_value.valid { return runtime_value.llvm_type; }
+    if DirectMirScalarProgramFirstOrderCallableTypeSupported(type_name) { return "ptr"; }
     if type_name == "Void" { return "void"; }
     if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
     if type_name == CompilerAbiLayoutLongTypeName() { return "i64"; }
@@ -73,7 +75,6 @@ func DirectMirScalarProgramLlvmTypeForProgram(
     }
     return "";
 }
-
 func DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
     type_name: String,
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,

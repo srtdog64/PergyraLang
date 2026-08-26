@@ -4,6 +4,8 @@ import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_composite_literal_emit_owner.pgy";
+import "expression_c_text_materialization_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func RewriteSemanticCallArgument(
@@ -53,4 +55,38 @@ func RewriteSemanticCallArgument(
         return Concat("&", rendered);
     }
     return rendered;
+}
+
+func RewriteSemanticCallArguments(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    modes: String,
+    param_types: String,
+    param_offset: Int,
+    prefix_argument: String,
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
+) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(64);
+    let has_argument: Bool = prefix_argument != "";
+    if has_argument { TextBuilderAppend(output, prefix_argument); }
+    let i: Int = 0;
+    while i < ArrayLength(view.argument_nodes) {
+        let param_index: Int = i + param_offset;
+        let mode: String = "default";
+        if param_index < ParamModeCsvCount(modes) {
+            mode = ParamModeCsvAt(modes, param_index);
+        }
+        let expected_type: String = CsvAt(param_types, param_index);
+        let argument: String = RewriteSemanticCallArgument(
+            graph, view.argument_nodes[i], expected_type, mode, env);
+        if has_argument { TextBuilderAppend(output, ", "); }
+        TextBuilderAppend(output, argument);
+        has_argument = true;
+        i = i + 1;
+    }
+    let args: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return CodegenCExpressionTextOwned(owned_fragments, args).text;
 }

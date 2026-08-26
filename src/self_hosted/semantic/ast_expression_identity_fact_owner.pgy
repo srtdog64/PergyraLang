@@ -3,30 +3,34 @@
 struct SemanticExpressionIdentityRows {
     call_target_syntax_ids: Array<Int>;
     runtime_call_abi_ids: Array<Int>;
+    binding_syntax_ids: Array<Int>;
     binding_kinds: Array<Int>;
     binding_ordinals: Array<Int>;
 }
 
 func SemanticExpressionBindingNone() -> Int { return 0; }
 func SemanticExpressionBindingFormalParameter() -> Int { return 1; }
+func SemanticExpressionBindingDeclaredCallable() -> Int { return 2; }
 
 func SemanticExpressionIdentityRowsUnknown(
     count: Int
 ) -> SemanticExpressionIdentityRows {
     let targets: Array<Int> = [];
     let runtime_ids: Array<Int> = [];
+    let binding_ids: Array<Int> = [];
     let kinds: Array<Int> = [];
     let ordinals: Array<Int> = [];
     let row: Int = 0;
     while row < count {
         ArrayPush(targets, 0);
         ArrayPush(runtime_ids, 0);
+        ArrayPush(binding_ids, 0);
         ArrayPush(kinds, SemanticExpressionBindingNone());
         ArrayPush(ordinals, -1);
         row = row + 1;
     }
     return SemanticExpressionIdentityRows(
-        targets, runtime_ids, kinds, ordinals);
+        targets, runtime_ids, binding_ids, kinds, ordinals);
 }
 
 func SemanticExpressionIdentityRowsReady(
@@ -34,6 +38,7 @@ func SemanticExpressionIdentityRowsReady(
 ) -> Bool {
     if count < 0 || ArrayLength(rows.call_target_syntax_ids) != count ||
         ArrayLength(rows.runtime_call_abi_ids) != count ||
+        ArrayLength(rows.binding_syntax_ids) != count ||
         ArrayLength(rows.binding_kinds) != count ||
         ArrayLength(rows.binding_ordinals) != count {
         return false;
@@ -42,14 +47,22 @@ func SemanticExpressionIdentityRowsReady(
     while row < count {
         if rows.call_target_syntax_ids[row] < 0 ||
             rows.runtime_call_abi_ids[row] < 0 ||
+            rows.binding_syntax_ids[row] < 0 ||
             (rows.binding_kinds[row] == SemanticExpressionBindingNone() &&
              rows.binding_ordinals[row] != -1) ||
             (rows.binding_kinds[row] ==
                 SemanticExpressionBindingFormalParameter() &&
-             rows.binding_ordinals[row] < 0) ||
+             (rows.binding_ordinals[row] < 0 ||
+              rows.binding_syntax_ids[row] <= 0)) ||
+            (rows.binding_kinds[row] ==
+                SemanticExpressionBindingDeclaredCallable() &&
+             (rows.binding_ordinals[row] != -1 ||
+              rows.binding_syntax_ids[row] <= 0)) ||
             (rows.binding_kinds[row] != SemanticExpressionBindingNone() &&
              rows.binding_kinds[row] !=
-                SemanticExpressionBindingFormalParameter()) {
+                SemanticExpressionBindingFormalParameter() &&
+             rows.binding_kinds[row] !=
+                SemanticExpressionBindingDeclaredCallable()) {
             return false;
         }
         row = row + 1;
@@ -61,6 +74,9 @@ func SemanticExpressionBindingKindName(kind: Int) -> String {
     if kind == SemanticExpressionBindingNone() { return "none"; }
     if kind == SemanticExpressionBindingFormalParameter() {
         return "formal_parameter";
+    }
+    if kind == SemanticExpressionBindingDeclaredCallable() {
+        return "declared_callable";
     }
     return "";
 }

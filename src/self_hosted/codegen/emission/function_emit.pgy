@@ -12,6 +12,7 @@ import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../type_facts/type_env_state_lifetime_owner.pgy";
 import "function_binding_env_owner.pgy";
+import "callable_parameter_binding_rows_owner.pgy";
 import "function_global_env_owner.pgy";
 import "role_receiver_binding_owner.pgy";
 import "stmt_emit.pgy";
@@ -151,9 +152,23 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             );
         }
         let c_p_name: String = p_binding.c_name;
-        let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
-        let c_param: String = Concat(c_param_type, Concat(" ", c_p_name));
-        if p_name == "self" && mutable_identity_receiver {
+        let callable_declaration: Option<String> =
+            AbiLayoutCCallableParamDeclaration(
+                p_type, c_p_name, base_env
+            );
+        let c_param_type: String = "";
+        let c_param: String = "";
+        if IsSome(callable_declaration) {
+            if p_mode != 0 {
+                Die("callable C parameters support only value carriage");
+            }
+            c_param = UnwrapOption(callable_declaration);
+        } else {
+            c_param_type = AbiLayoutCParamType(p_type, base_env);
+            c_param = Concat(c_param_type, Concat(" ", c_p_name));
+        }
+        if IsSome(callable_declaration) {
+        } else if p_name == "self" && mutable_identity_receiver {
             if p_mode != 0 {
                 Die("mutable-identity receiver cannot use a parameter carriage mode");
             }
@@ -187,6 +202,15 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             ));
         } else {
             ArrayPush(function_env_rows, p_env_binding.env_rows);
+            let callable_rows: String =
+                CodegenCallableParameterBindingRows(
+                    p_env_binding.source_name,
+                    p_env_binding.semantic_type_name,
+                    p_env_binding.c_name
+                );
+            if callable_rows != "" {
+                ArrayPush(function_env_rows, callable_rows);
+            }
         }
         param_n = param_n + 1;
         ArraySet(cur, 0, cur[0] + 1);

@@ -67,5 +67,6 @@ func MirExpressionBindingKindCodeWithin(
 ) -> Option<Int> {
     if JsonStringValueEqualsWithin(json, start, end, "none") { return Some(SemanticExpressionBindingNone()); }
     if JsonStringValueEqualsWithin(json, start, end, "formal_parameter") { return Some(SemanticExpressionBindingFormalParameter()); }
+    if JsonStringValueEqualsWithin(json, start, end, "declared_callable") { return Some(SemanticExpressionBindingDeclaredCallable()); }
     return None;
 }

@@ -16,6 +16,7 @@ func DirectMirRoutineParameterSetFactFromBounds(
         count != ArrayLength(resources) || count != ArrayLength(pass_shapes) {
         return invalid;
     }
+    let source_syntax_ids: Array<Int> = [];
     let abi_types: Array<String> = []; let abi_ids: Array<Int> = [];
     let abi_required: Array<Bool> = []; let digests: Array<Int> = [];
     let first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
@@ -32,6 +33,7 @@ func DirectMirRoutineParameterSetFactFromBounds(
             param.carriage != carriages[row] ||
             param.resource != resources[row] ||
             param.pass_shape != pass_shapes[row] { return invalid; }
+        ArrayPush(source_syntax_ids, param.source_syntax_id);
         ArrayPush(abi_types, param.abi_type_name);
         ArrayPush(abi_ids, param.abi_layout_id);
         ArrayPush(abi_required, param.abi_required);
@@ -43,12 +45,14 @@ func DirectMirRoutineParameterSetFactFromBounds(
     if !DirectMirExactJsonArrayCursorAtEnd(json, cursor, end) { return invalid; }
     let source: DirectMirRoutineParameterSetFact =
         DirectMirRoutineParameterSetFact(
-            true, 0, names, types, carriages, resources, pass_shapes,
+            true, 0, names, source_syntax_ids, types, carriages, resources,
+            pass_shapes,
             abi_types, abi_ids, abi_required, digests, first);
     let fact: DirectMirRoutineParameterSetFact =
         DirectMirRoutineParameterSetFact(
             true, DirectMirRoutineParameterSetFactDigest(source),
-            names, types, carriages, resources, pass_shapes, abi_types,
+            names, source_syntax_ids, types, carriages, resources,
+            pass_shapes, abi_types,
             abi_ids, abi_required, digests, first);
     if !DirectMirRoutineParameterSetFactReady(fact) { return invalid; }
     return fact;

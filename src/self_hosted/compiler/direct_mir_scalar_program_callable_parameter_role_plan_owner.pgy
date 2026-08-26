@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 struct DirectMirScalarProgramCallableParameterRolePlan {
     let valid: Bool;
     let direct_scalar_count: Int;
+    let callable_function_value_count: Int;
     let logical_record_input_count: Int;
     let logical_record_value_result_count: Int;
     let logical_record_array_value_result_count: Int;
@@ -19,7 +20,7 @@ struct DirectMirScalarProgramCallableParameterRolePlan {
 }
 func DirectMirScalarProgramCallableParameterRolePlanInvalid() -> DirectMirScalarProgramCallableParameterRolePlan {
     return DirectMirScalarProgramCallableParameterRolePlan(
-        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 func DirectMirScalarProgramCallableParameterRolePlanReady(
     ref plan: DirectMirScalarProgramCallableParameterRolePlan,
@@ -27,6 +28,7 @@ func DirectMirScalarProgramCallableParameterRolePlanReady(
 ) -> Bool {
     return plan.valid && parameter_count >= 0 &&
         plan.direct_scalar_count >= 0 &&
+        plan.callable_function_value_count >= 0 &&
         plan.logical_record_input_count >= 0 &&
         plan.logical_record_value_result_count >= 0 &&
         plan.logical_record_array_value_result_count >= 0 &&
@@ -37,7 +39,7 @@ func DirectMirScalarProgramCallableParameterRolePlanReady(
         plan.array_string_value_result_count >= 0 &&
         plan.set_string_value_result_count >= 0 &&
         plan.array_string_readonly_ref_count >= 0 &&
-        plan.direct_scalar_count + plan.logical_record_input_count +
+        plan.direct_scalar_count + plan.callable_function_value_count + plan.logical_record_input_count +
             plan.logical_record_value_result_count +
             plan.logical_record_array_value_result_count +
             plan.abi_value_count +
@@ -106,6 +108,7 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedE
         return DirectMirScalarProgramCallableParameterRolePlanInvalid();
     }
     let direct_scalar_count: Int = 0;
+    let callable_function_value_count: Int = 0;
     let logical_record_input_count: Int = 0;
     let logical_record_value_result_count: Int = 0;
     let logical_record_array_value_result_count: Int = 0;
@@ -121,6 +124,7 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedE
         let direct_scalar: Bool =
             DirectMirScalarProgramDirectScalarParameterReady(
                 signature, ordinal);
+        let callable_function_value: Bool = DirectMirScalarProgramCallableFunctionParameterReady(signature, ordinal);
         let logical_record_input: Bool =
             DirectMirScalarProgramLogicalRecordParameterReady(
                 signature, ordinal, logical_record);
@@ -151,6 +155,7 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedE
                 signature, ordinal);
         let claim_count: Int = 0;
         if direct_scalar { claim_count = claim_count + 1; }
+        if callable_function_value { claim_count = claim_count + 1; }
         if logical_record_input { claim_count = claim_count + 1; }
         if logical_record_value_result { claim_count = claim_count + 1; }
         if logical_record_array_value_result {
@@ -167,6 +172,7 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedE
             return DirectMirScalarProgramCallableParameterRolePlanInvalid();
         }
         if direct_scalar { direct_scalar_count = direct_scalar_count + 1; }
+        if callable_function_value { callable_function_value_count = callable_function_value_count + 1; }
         if logical_record_input {
             logical_record_input_count = logical_record_input_count + 1;
         }
@@ -203,7 +209,7 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedE
         ordinal = ordinal + 1;
     }
     let plan: DirectMirScalarProgramCallableParameterRolePlan = DirectMirScalarProgramCallableParameterRolePlan(
-            true, direct_scalar_count, logical_record_input_count,
+            true, direct_scalar_count, callable_function_value_count, logical_record_input_count,
             logical_record_value_result_count,
             logical_record_array_value_result_count,
             abi_value_count, payload_free_enum_value_count,

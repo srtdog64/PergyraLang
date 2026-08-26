@@ -5,7 +5,7 @@ import "direct_mir_scalar_program_bool_readiness_owner.pgy";
 import "direct_mir_scalar_program_nary_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_collection_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_case_math_expression_readiness_owner.pgy";
-import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_call_readiness_owner.pgy";
 import "direct_mir_scalar_program_string_search_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_string_transform_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_option_int_expression_readiness_owner.pgy";
@@ -140,6 +140,14 @@ func DirectMirScalarProgramExpressionNodeReady(
     }
     if kind == DirectMirScalarProgramExprDirectCall() {
         return DirectMirScalarProgramDirectCallNodeReady(facts, node);
+    }
+    if kind == DirectMirScalarProgramExprCallableParameterCall() {
+        return DirectMirScalarProgramCallableParameterCallNodeReady(facts, node);
+    }
+    if kind == DirectMirScalarProgramExprDeclaredCallable() {
+        return DirectMirScalarProgramFirstOrderCallableTypeSupported(type_name) && left == -1 && right == -1 &&
+            local_binding == -1 && param == -1 && member == -1 && literal == "" && callable > 0 &&
+            ArrayLength(DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node)) == 0;
     }
     let to_string_ready: Option<Bool> =
         DirectMirScalarProgramToStringExpressionNodeReady(facts, node);

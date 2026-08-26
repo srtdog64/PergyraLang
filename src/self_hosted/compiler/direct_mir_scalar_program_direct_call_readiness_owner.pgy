@@ -10,7 +10,6 @@ func DirectMirScalarProgramDirectCallArgumentRows(ref facts: DirectMirScalarProg
     if facts.node_rights[node] >= 0 { ArrayPush(rows, facts.node_rights[node]); }
     return rows;
 }
-
 func DirectMirScalarProgramDirectCallNodeReady(ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Bool {
     let arguments: Array<Int> =
         DirectMirScalarProgramDirectCallArgumentRows(facts, node);
@@ -36,6 +35,10 @@ func DirectMirScalarProgramDirectCallNodeReady(ref facts: DirectMirScalarProgram
                 DirectMirScalarProgramExprParameter() &&
              facts.node_kinds[argument] !=
                 DirectMirScalarProgramExprDirectCall() &&
+             facts.node_kinds[argument] !=
+                DirectMirScalarProgramExprCallableParameterCall() &&
+             facts.node_kinds[argument] !=
+                DirectMirScalarProgramExprDeclaredCallable() &&
              facts.node_kinds[argument] != DirectMirScalarProgramExprLogicalRecordConstructor() &&
              facts.node_kinds[argument] != DirectMirScalarProgramExprLogicalRecordArrayIndex() &&
              facts.node_kinds[argument] !=

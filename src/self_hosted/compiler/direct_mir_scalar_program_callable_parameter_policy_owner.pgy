@@ -23,6 +23,7 @@ import "direct_mir_scalar_program_set_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_callable_type_policy_owner.pgy";
 func DirectMirScalarProgramCallableValueTypeSupported(
     type_name: String
 ) -> Bool {
@@ -97,6 +98,8 @@ func DirectMirScalarProgramCallableParameterSupported(
     if DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal) {
         return true;
     }
+    if DirectMirScalarProgramCallableFunctionParameterReady(
+            signature, ordinal) { return true; }
     let type_name: String = signature.parameters.type_names[ordinal];
     if DirectMirScalarProgramCallableRuntimeValueParameterReady(
             signature, ordinal) { return true; }

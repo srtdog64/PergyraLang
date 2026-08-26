@@ -83,6 +83,7 @@ struct SelfMirRoutineRows {
     param_starts: Array<Int>;
     param_counts: Array<Int>;
     param_names: Array<String>;
+    param_node_ids: Array<Int>;
     param_types: Array<String>;
     param_abi_kinds: Array<Int>;
     param_resource_kinds: Array<Int>;
@@ -179,7 +180,7 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
     return SelfMirRoutineRows(
         ints, strings, strings, strings, strings, strings, strings,
         ints, ints, strings, ints, ints, strings,
-        strings, ints, ints, ints, ints, ints, ints, strings, strings,
+        ints, strings, ints, ints, ints, ints, ints, ints, strings, strings,
         ints, ints, ints, strings, strings, ints,
         SelfMirDestructureTypeFactRowsEmpty(),
         SelfMirLoopFlowRowsEmpty()

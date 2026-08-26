@@ -1,0 +1,68 @@
+// Admission for zero-argument direct calls.
+
+import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
+import "direct_mir_scalar_program_callable_inventory_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_identity_owner.pgy";
+import "direct_mir_scalar_program_direct_call_fact_owner.pgy";
+
+func DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref signature: DirectMirRoutineSignatureFact
+) -> DirectMirScalarProgramDirectCallFact {
+    let missing: DirectMirScalarProgramDirectCallFact =
+        DirectMirScalarProgramDirectCallFactInvalid(false);
+    if !DirectMirScalarProgramCallMarkerReady(sequence, node) { return missing; }
+    let target_syntax_id: Int = sequence.arena.identities.call_target_syntax_ids[node];
+    let callee: Int = sequence.arena.topology.left_children[node];
+    if callee < 0 || callee >= node ||
+        sequence.arena.topology.node_kinds[callee] != AstExpressionNodeLeaf() {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
+    }
+    let binding_kind: Int = sequence.arena.identities.binding_kinds[callee];
+    if target_syntax_id <= 0 {
+        if binding_kind == SemanticExpressionBindingFormalParameter() ||
+            binding_kind == SemanticExpressionBindingDeclaredCallable() {
+            return DirectMirScalarProgramDirectCallFactInvalid(true);
+        }
+        return missing;
+    }
+    let rows: Array<Int> = [];
+    if binding_kind == SemanticExpressionBindingFormalParameter() {
+        let parameter_ordinal: Int =
+            DirectMirScalarProgramCallableParameterOrdinalBySyntaxId(signature, target_syntax_id);
+        if parameter_ordinal < 0 ||
+            sequence.arena.identities.binding_ordinals[callee] != parameter_ordinal ||
+            sequence.arena.identities.binding_syntax_ids[callee] != target_syntax_id ||
+            sequence.arena.node_texts[callee] != signature.parameters.names[parameter_ordinal] ||
+            sequence.arena.call_target_names[node] != signature.parameters.names[parameter_ordinal] {
+            return DirectMirScalarProgramDirectCallFactInvalid(true);
+        }
+        let shape: SemanticAstCallableTypeShape = SemanticAstCallableTypeShapeFromName(
+            signature.parameters.type_names[parameter_ordinal]);
+        if !shape.ok || ArrayLength(shape.parameter_types) != 0 {
+            return DirectMirScalarProgramDirectCallFactInvalid(true);
+        }
+        return DirectMirScalarProgramDirectCallFact(
+            true, true, true, rows, node, -1, parameter_ordinal, shape.return_type);
+    }
+    if binding_kind != SemanticExpressionBindingDeclaredCallable() ||
+        sequence.arena.identities.binding_ordinals[callee] != -1 ||
+        sequence.arena.identities.binding_syntax_ids[callee] != target_syntax_id {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
+    }
+    let callable_ordinal: Int =
+        DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId(callables, target_syntax_id);
+    if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(callables, callable_ordinal) {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
+    }
+    let callable_row: Int = callable_ordinal - 1;
+    if sequence.arena.node_texts[callee] != callables.names[callable_row] ||
+        sequence.arena.call_target_names[node] != callables.names[callable_row] ||
+        callables.parameter_counts[callable_row] != 0 {
+        return DirectMirScalarProgramDirectCallFactInvalid(true);
+    }
+    return DirectMirScalarProgramDirectCallFact(
+        true, true, true, rows, node, callable_ordinal, -1,
+        callables.return_types[callable_row]);
+}

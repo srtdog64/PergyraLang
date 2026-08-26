@@ -1,0 +1,20 @@
+// Immutable direct-call admission receipt shared by argument-shape owners.
+
+struct DirectMirScalarProgramDirectCallFact {
+    let recognized: Bool;
+    let valid: Bool;
+    let complete: Bool;
+    let argument_rows: Array<Int>;
+    let call_node: Int;
+    let callable_ordinal: Int;
+    let callable_parameter_ordinal: Int;
+    let return_type: String;
+}
+
+func DirectMirScalarProgramDirectCallFactInvalid(
+    recognized: Bool
+) -> DirectMirScalarProgramDirectCallFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramDirectCallFact(
+        recognized, false, false, rows, -1, -1, -1, "");
+}

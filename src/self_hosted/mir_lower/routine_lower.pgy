@@ -470,6 +470,12 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
         json, routine_start, routine_end
     );
+    if !MirRoutineHeaderParameterIdentityReady(header) {
+        MirLowerFailClosed(Concat(
+            "routine parameter identity facts are missing or invalid: ",
+            routine
+        ));
+    }
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:header:done"); }
     if callable_kind != "function" && callable_kind != "action" {
         MirLowerFailClosed(Concat(

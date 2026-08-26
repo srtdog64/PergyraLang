@@ -7,9 +7,11 @@ import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "role_operator_vocabulary_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_carried_callable_identity_owner.pgy";
 
 func SemanticExpressionCallTargetExpected(
     ref graph: SemanticExpressionGraphFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     callable_names: Array<String>,
     member_names: Array<String>,
     require_carried: Bool,
@@ -61,6 +63,30 @@ func SemanticExpressionCallTargetExpected(
                 false, SemanticCallTargetNone(), "", 0
             );
         }
+        if require_carried &&
+            graph.arena.identities.binding_kinds[call.callee_node] ==
+                SemanticExpressionBindingFormalParameter() {
+            let carried_target_syntax_id: Int =
+                graph.arena.identities.call_target_syntax_ids[node_id];
+            if graph.arena.call_target_kinds[node_id] !=
+                    SemanticCallTargetDirect() ||
+                graph.arena.call_target_names[node_id] !=
+                    UnwrapOption(source_name) ||
+                carried_target_syntax_id <= 0 ||
+                graph.arena.identities.binding_ordinals[call.callee_node] < 0 ||
+                graph.arena.identities.binding_syntax_ids[call.callee_node] !=
+                    carried_target_syntax_id ||
+                !SemanticExpressionFormalParameterCarriedIdentityReady(
+                    signatures, carried_target_syntax_id,
+                    graph.arena.identities.binding_ordinals[call.callee_node],
+                    UnwrapOption(source_name)) {
+                return SemanticExpressionCallTargetFact(
+                    false, SemanticCallTargetDirect(), "", 0);
+            }
+            return SemanticExpressionCallTargetFact(
+                true, SemanticCallTargetDirect(),
+                UnwrapOption(source_name), 0);
+        }
         let direct: Option<Int> = SemanticCallableIndex(
             callable_names, UnwrapOption(source_name)
         );
@@ -77,6 +103,32 @@ func SemanticExpressionCallTargetExpected(
             return SemanticExpressionCallTargetFact(
                 true, SemanticCallTargetNone(), "", 0
             );
+        }
+        let declared_callable: Bool =
+            SemanticExpressionDeclaredCallableTargetExists(
+                signatures, UnwrapOption(source_name));
+        if require_carried && declared_callable {
+            let carried_target_syntax_id: Int =
+                graph.arena.identities.call_target_syntax_ids[node_id];
+            if graph.arena.identities.binding_kinds[call.callee_node] !=
+                    SemanticExpressionBindingDeclaredCallable() ||
+                graph.arena.identities.binding_ordinals[call.callee_node] != -1 ||
+                graph.arena.identities.binding_syntax_ids[call.callee_node] !=
+                    carried_target_syntax_id ||
+                !SemanticExpressionDeclaredCallableCarriedIdentityReady(
+                    signatures, UnwrapOption(source_name),
+                    carried_target_syntax_id) {
+                return SemanticExpressionCallTargetFact(
+                    false, SemanticCallTargetDirect(), "", 0);
+            }
+        } else if require_carried &&
+            (graph.arena.identities.call_target_syntax_ids[node_id] != 0 ||
+             graph.arena.identities.binding_kinds[call.callee_node] !=
+                SemanticExpressionBindingNone() ||
+             graph.arena.identities.binding_ordinals[call.callee_node] != -1 ||
+             graph.arena.identities.binding_syntax_ids[call.callee_node] != 0) {
+            return SemanticExpressionCallTargetFact(
+                false, SemanticCallTargetDirect(), "", 0);
         }
         return SemanticExpressionCallTargetFact(
             true, SemanticCallTargetDirect(),
@@ -175,7 +227,7 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) && valid {
         let expected: SemanticExpressionCallTargetFact =
             SemanticExpressionCallTargetExpected(
-                graph, function_tables.names, member_names,
+                graph, signatures, function_tables.names, member_names,
                 require_carried, node_id
             );
         if !expected.ok {
@@ -192,9 +244,10 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
         node_id = node_id + 1;
     }
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromTopology(
+        SemanticExpressionGraphArenaFromTopologyWithIdentities(
         graph.arena.topology, graph.arena.node_texts,
         target_kinds, target_names, graph.arena.call_return_type_names,
+        graph.arena.identities,
         graph.arena.place_kinds
     );
     return SemanticExpressionGraphFacts(

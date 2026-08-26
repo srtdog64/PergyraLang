@@ -1,0 +1,25 @@
+// Exact parameter-type lookup in the canonical signature identity epoch.
+
+import "ast_signature_fact_owner.pgy";
+
+func SemanticAstFunctionParamTypeForNode(
+    facts: SemanticAstFunctionSignatureFacts,
+    parameter_node_id: Int
+) -> Option<String> {
+    if parameter_node_id <= 0 ||
+        ArrayLength(facts.param_node_ids) !=
+            ArrayLength(facts.param_types) {
+        return None;
+    }
+    let found: Int = -1;
+    let i: Int = 0;
+    while i < ArrayLength(facts.param_node_ids) {
+        if facts.param_node_ids[i] == parameter_node_id {
+            if found >= 0 { return None; }
+            found = i;
+        }
+        i = i + 1;
+    }
+    if found < 0 { return None; }
+    return Some(facts.param_types[found]);
+}

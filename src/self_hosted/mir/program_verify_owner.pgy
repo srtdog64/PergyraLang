@@ -6,6 +6,7 @@ import "instruction_validation_owner.pgy";
 import "instruction_abi_receipt_verify_owner.pgy";
 import "enum_declaration_verify_owner.pgy";
 import "routine_receiver_carriage_owner.pgy";
+import "routine_parameter_identity_verify_owner.pgy";
 import "../semantic/assignment_binding_mode_owner.pgy";
 import "../semantic/ast_expression_graph_node_view_owner.pgy";
 func SelfMirParallelCount(count: Int, rows: Array<Int>) -> Bool {
@@ -432,10 +433,7 @@ func SelfMirRoutineRowsReady(
         !SelfMirParallelCount(count, rows.block_counts) ||
         !SelfMirParallelCount(count, rows.local_starts) ||
         !SelfMirParallelCount(count, rows.local_counts) ||
-        ArrayLength(rows.param_names) != ArrayLength(rows.param_types) ||
-        ArrayLength(rows.param_names) != ArrayLength(rows.param_abi_kinds) ||
-        ArrayLength(rows.param_names) !=
-            ArrayLength(rows.param_resource_kinds) ||
+        !SelfMirRoutineParameterRowsReady(rows) ||
         ArrayLength(rows.local_names) != ArrayLength(rows.local_types) ||
         !SelfMirDestructureTypeFactRowsReady(
             rows.destructure_type_facts, count
@@ -511,18 +509,6 @@ func SelfMirRoutineRowsReady(
         block_cursor = block_cursor + rows.block_counts[i];
         local_cursor = local_cursor + rows.local_counts[i];
         i = i + 1;
-    }
-    let param_i: Int = 0;
-    while param_i < ArrayLength(rows.param_abi_kinds) {
-        if rows.param_abi_kinds[param_i] < 0 ||
-            rows.param_abi_kinds[param_i] > 4 ||
-            rows.param_resource_kinds[param_i] < 0 ||
-            rows.param_resource_kinds[param_i] > 3 ||
-            rows.param_resource_kinds[param_i] !=
-                SelfMirParamResourceKindForType(rows.param_types[param_i]) {
-            return false;
-        }
-        param_i = param_i + 1;
     }
     return generic_cursor == ArrayLength(rows.generic_names) &&
         param_cursor == ArrayLength(rows.param_names) &&

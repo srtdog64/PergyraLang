@@ -1,0 +1,25 @@
+// Exact routine-parameter identity lookup for callable parameter calls.
+
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+
+func DirectMirScalarProgramCallableParameterOrdinalBySyntaxId(
+    ref signature: DirectMirRoutineSignatureFact, syntax_id: Int
+) -> Int {
+    if !DirectMirRoutineSignatureFactReady(signature) || syntax_id <= 0 {
+        return -1;
+    }
+    let found: Int = -1;
+    let ordinal: Int = 0;
+    while ordinal < signature.param_count {
+        if signature.parameters.source_syntax_ids[ordinal] == syntax_id {
+            if found >= 0 ||
+                !DirectMirScalarProgramCallableFunctionParameterReady(
+                    signature, ordinal) {
+                return -1;
+            }
+            found = ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    return found;
+}

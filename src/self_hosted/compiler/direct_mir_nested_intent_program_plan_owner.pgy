@@ -57,11 +57,12 @@ func DirectMirNestedIntentEmptyParameterSetFact(
     let ints: Array<Int> = []; let bools: Array<Bool> = [];
     let source: DirectMirRoutineParameterSetFact =
         DirectMirRoutineParameterSetFact(
-            true, 0, strings, strings, strings, strings, strings, strings,
+            true, 0, strings, ints, strings, strings, strings, strings, strings,
             ints, bools, ints, InvalidDirectMirRoutineParamFact());
     return DirectMirRoutineParameterSetFact(
         source.valid, DirectMirRoutineParameterSetFactDigest(source),
-        source.names, source.type_names, source.carriages,
+        source.names, source.source_syntax_ids, source.type_names,
+        source.carriages,
         source.resources, source.pass_shapes, source.abi_type_names,
         source.abi_layout_ids, source.abi_required, source.param_digests,
         source.first);

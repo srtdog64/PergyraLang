@@ -20,6 +20,7 @@ func MirExpressionGraphSequenceAppendParserBridge(
     let call_target_syntax_ids: Array<Int> =
         sequence.arena.identities.call_target_syntax_ids;
     let runtime_call_abi_ids: Array<Int> = sequence.arena.identities.runtime_call_abi_ids;
+    let binding_syntax_ids: Array<Int> = sequence.arena.identities.binding_syntax_ids;
     let binding_kinds: Array<Int> = sequence.arena.identities.binding_kinds;
     let binding_ordinals: Array<Int> =
         sequence.arena.identities.binding_ordinals;
@@ -31,7 +32,7 @@ func MirExpressionGraphSequenceAppendParserBridge(
         ArrayLength(call_target_names) != offset ||
         ArrayLength(call_return_type_names) != offset ||
         ArrayLength(call_target_syntax_ids) != offset ||
-        ArrayLength(runtime_call_abi_ids) != offset ||
+        ArrayLength(runtime_call_abi_ids) != offset || ArrayLength(binding_syntax_ids) != offset ||
         ArrayLength(binding_kinds) != offset ||
         ArrayLength(binding_ordinals) != offset ||
         ArrayLength(place_kinds) != offset {
@@ -49,7 +50,7 @@ func MirExpressionGraphSequenceAppendParserBridge(
     while i < ArrayLength(kinds) {
         ArrayPush(call_return_type_names, "");
         ArrayPush(call_target_syntax_ids, 0);
-        ArrayPush(runtime_call_abi_ids, 0);
+        ArrayPush(runtime_call_abi_ids, 0); ArrayPush(binding_syntax_ids, 0);
         ArrayPush(binding_kinds, SemanticExpressionBindingNone());
         ArrayPush(binding_ordinals, -1);
         ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
@@ -65,8 +66,7 @@ func MirExpressionGraphSequenceAppendParserBridge(
             texts, call_target_kinds, call_target_names,
             call_return_type_names,
             SemanticExpressionIdentityRows(
-                call_target_syntax_ids, runtime_call_abi_ids,
-                binding_kinds, binding_ordinals
+                call_target_syntax_ids, runtime_call_abi_ids, binding_syntax_ids, binding_kinds, binding_ordinals
             ), place_kinds
         );
     if !MirExpressionGraphRangeReachable(

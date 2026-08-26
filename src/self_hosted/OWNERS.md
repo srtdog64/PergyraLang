@@ -183,6 +183,9 @@ inventory must not become a second fact-family owner registry.
   function owner, name, formal-generic, parameter, mode, and return signature
   facts, including ordered function node/name identity for entrypoint
   cardinality, selection, and top-level function declaration routing.
+- `src/self_hosted/semantic/ast_signature_param_node_query_owner.pgy` -- exact
+  parameter-type lookup by canonical formal-parameter SyntaxNodeId; missing or
+  duplicate identities fail closed instead of falling back to a name.
 - `src/self_hosted/semantic/ast_action_contract_fact_owner.pgy` -- callable-
   identity-bound `func`/`action` variant, subject ownership, body handle,
   action-only `requires`/`within`/`causes`/`authorized by`, and callable
@@ -199,6 +202,9 @@ inventory must not become a second fact-family owner registry.
   generic-list node to ordered formal-parameter/default-type rows; nested type
   defaults are partitioned once by the delimited-range owner, and provenance
   parsing by expression consumers is forbidden.
+- `src/self_hosted/semantic/ast_callable_type_shape_owner.pgy` -- canonical
+  callable parameter/return shape parsed once from a type-name fact; semantic,
+  codegen, and direct-MIR consumers share this exact first-order view.
 - `src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy` --
   one flat parameter/return type-expression arena captured with signature
   rows; generic call consumers unify and materialize nodes without reparsing
@@ -571,6 +577,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy` --
   signature-only initial capture of direct and namespace call-target rows;
   body fixpoint resolution remains with the canonical target fact owner.
+- `src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy`
+  -- exact formal-parameter and declared-callable identity cross-seals used by
+  MIR semantic re-entry; names confirm an ID-selected lane and never route it.
 - `src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy` --
   executable positive and missing-target contract kept outside the production
   call-target owner.
@@ -864,6 +873,9 @@ inventory must not become a second fact-family owner registry.
   phase wire without a source or AST reread.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
   required-fact verification.
+- `src/self_hosted/mir/routine_parameter_identity_verify_owner.pgy` -- exact
+  flattened formal-parameter SyntaxNodeId uniqueness and aligned ABI/resource
+  row verification consumed by the program verifier.
 - `src/self_hosted/mir/local_ref_fact_owner.pgy` -- canonical lexical binding
   identity and aligned instruction/direct-expression LocalRef rows. It owns
   `(role, owner_syntax_id, binding_index)` carriage, not display spelling.
@@ -976,6 +988,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy` --
   the same one-pass discipline for the persisted graph-NODE record. Two records
   with two shapes, so two owners.
+- `src/self_hosted/mir_lower/expression_graph_persisted_node_identity_owner.pgy`
+  -- exact numeric identity-field decoding and target/runtime/binding
+  cross-field admission for one persisted node row.
 - `src/self_hosted/mir_lower/expression_graph_persisted_shape_owner.pgy` --
   exact legacy/sealed persisted graph object shape and canonical digest-presence
   validation without consumer-side graph re-hashing.
@@ -1513,8 +1528,12 @@ inventory must not become a second fact-family owner registry.
   call-spine return-type projection, including explicit Result error payloads,
   from semantic graph facts.
 - `src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy` --
-  shared call-argument value projection and graph-owned `ref`/`inout`
+  shared ordered call-argument value projection and graph-owned `ref`/`inout`
   addressability consumption; family emitters must not rebuild this policy.
+- `src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy`
+  -- direct C call emission for formal-parameter and declared-callable lanes;
+  carried target/binding SyntaxNodeIds select the lane before any builtin-name
+  dispatch, and the local C binding environment is only its final projection.
 - `src/self_hosted/codegen/emission/list_call_emit_owner.pgy` -- canonical
   `List<T>` operation lowering from semantic receiver type and List runtime ABI
   facts; source callee spelling is not an ABI fallback.
@@ -1577,6 +1596,9 @@ inventory must not become a second fact-family owner registry.
   one function-value binding fact for source identity, semantic type, runtime
   kind, C name, and environment rows, plus implicit owner-field C binding rows
   derived from semantic locals and MIR-carried nominal declaration facts.
+- `src/self_hosted/codegen/emission/callable_parameter_binding_rows_owner.pgy`
+  -- exact call target, parameter mode/type, and return-type environment rows
+  derived from one canonical callable type shape.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function definition
   emission and function-local environment lifetime.
 - `src/self_hosted/codegen/emission/function_prototype_block_owner.pgy` --
@@ -1584,6 +1606,9 @@ inventory must not become a second fact-family owner registry.
   It consumes symbol and ABI owners directly; recursive parameter-prefix
   concatenation and construction of unused function binding-environment rows
   are forbidden.
+- `src/self_hosted/codegen/emission/callable_parameter_prototype_owner.pgy` --
+  exact C function-pointer parameter declaration and value-carriage admission
+  shared by ordinary and specialized prototype rows.
 - `src/self_hosted/codegen/emission/extern_prototype_block_owner.pgy` --
   host-ABI prototypes for extern "C" members: bare non-static declarations
   under the declared name, definition left to the linker. Distinct from the
@@ -2117,11 +2142,13 @@ inventory must not become a second fact-family owner registry.
   LLVM materialization. It owns one sibling-driver invocation, output
   existence, and fail-closed diagnostics; it cannot re-enter native semantics.
 - `src/compiler/self_host_llvm_driver.c` -- installed self-host LLVM materializer
-  boundary. It invokes exactly one verified source-to-MIR producer and one
-  direct-MIR LLVM projector. It does not inspect LLVM text to infer runtime
-  policy or attach a runtime object. The final compiler boundary consumes the
-  canonical default-runtime object independently of artifact spelling, while
-  unsupported runtime profiles still fail closed.
+  boundary. It invokes the canonical source-LLVM intent child exactly once;
+  that Pergyra intent owns its source-to-MIR action followed by the direct-MIR
+  LLVM projection action. The native boundary does not separately invoke or
+  reconstruct either stage, inspect LLVM text to infer runtime policy, or
+  attach a runtime object. The final compiler boundary consumes the canonical
+  default-runtime object independently of artifact spelling, while unsupported
+  runtime profiles still fail closed.
 - `src/compiler/compiler_self_host_artifact.c` -- final host compiler boundary
   for admitted self-host C and textual LLVM artifacts. It accepts no AST, MIR,
   AIR, libLLVM, or artifact-derived runtime policy. The LLVM leg consumes the
@@ -2677,16 +2704,41 @@ inventory must not become a second fact-family owner registry.
   parameters bind only through persisted syntax IDs/ordinals, never display
   text. Rejected def/Log/branch/return rows use the shared expression
   diagnostic owner rather than a silent `None` at the routine boundary.
+- `src/self_hosted/compiler/direct_mir_scalar_program_declared_callable_value_admission_owner.pgy`
+  -- declared-routine leaf admission by persisted syntax ID, followed by
+  display-name and canonical callable-signature cross-seals; it never searches
+  the callable inventory by text.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_failure_owner.pgy`
   -- immutable first-failure receipt for expression normalization. It carries
   the exact rejecting admission stage and source-graph node to the terminal
   routine diagnostic without reopening the MIR graph or entering GraphPlan.
 - `src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy`
-  -- typed ordered-argument direct-call admission. User routines join the
-  canonical routine partition by persisted call-target syntax ID and ordered
-  signature types, including contextual `None` arguments whose Option type is
-  owned by the exact target parameter rather than the enclosing expression;
-  builtin identity remains owned by the builtin registry.
+  -- stable import seam for direct-call admission consumers. It owns no call
+  policy; the responsibility-named owners below own the fact, identity lookup,
+  contextual argument type, argument-bearing call, and zero-argument call.
+- `src/self_hosted/compiler/direct_mir_scalar_program_direct_call_fact_owner.pgy`
+  -- immutable recognized/valid/complete direct-call admission receipt.
+- `src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_identity_owner.pgy`
+  -- unique routine-parameter lookup by persisted positive syntax ID; display
+  names never select a parameter row.
+- `src/self_hosted/compiler/direct_mir_scalar_program_callable_type_policy_owner.pgy`
+  -- canonical first-order callable shape, scalar element support, exact
+  signature-row equality, and the direct value-carriage parameter ABI.
+- `src/self_hosted/compiler/direct_mir_scalar_program_call_argument_expected_type_owner.pgy`
+  -- contextual argument type selected by the carried call-target identity and
+  cross-sealed against the admitted callee and owner name.
+- `src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy`
+  -- typed ordered-argument direct-call admission. Declared routines and
+  callable parameters join their exact ID-owned signature and carriage rows.
+- `src/self_hosted/compiler/direct_mir_scalar_program_zero_argument_call_admission_owner.pgy`
+  -- zero-argument direct-call admission with the same ID/name cross-seal and
+  exact empty-parameter signature requirement.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy`
+  -- GraphPlan identity cross-seal for declared callable values and indirect
+  callable-parameter calls, including exact result and argument type rows.
+- `src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_call_readiness_owner.pgy`
+  -- local normalized node-shape and ordered operand readiness for indirect
+  calls through admitted callable parameters.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_mutation_owner.pgy`
   -- small persistent append primitives for expression rows. It owns no
   semantic selection policy and prevents callers from aliasing growable arena

@@ -13,6 +13,8 @@ import "ast_type_name_canonical_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "role_operator_resolution_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "ast_signature_type_expression_fact_owner.pgy";
+import "ast_signature_param_node_query_owner.pgy";
 
 struct SemanticExpressionCallReturnProjection {
     ok: Bool;
@@ -37,6 +39,29 @@ func SemanticExpressionCallReturnProjectionAt(
         SemanticAstDomainQueryProtocolFromName(target_name);
     if domain_query.applies {
         return SemanticExpressionCallReturnProjection(true, true, "Bool");
+    }
+    let target_syntax_id: Int =
+        graph.arena.identities.call_target_syntax_ids[node_id];
+    let parameter_type: Option<String> =
+        SemanticAstFunctionParamTypeForNode(
+            signatures, target_syntax_id
+        );
+    if IsSome(parameter_type) {
+        let callable: SemanticAstCallableTypeShape =
+            SemanticAstCallableTypeShapeFromName(
+                UnwrapOption(parameter_type)
+            );
+        if !callable.ok || callable.return_type == "" ||
+            SemanticTypeNameContainsUnresolvedUnknown(
+                callable.return_type
+            ) {
+            return SemanticExpressionCallReturnProjection(
+                false, false, ""
+            );
+        }
+        return SemanticExpressionCallReturnProjection(
+            true, true, callable.return_type
+        );
     }
     let specialization: Option<Int> =
         SemanticAstGenericSpecializationIndexForCall(
@@ -163,10 +188,11 @@ func SemanticAstAnalysisResolveCallReturnTypes(
         node_id = node_id + 1;
     }
     let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromTopology(
+        SemanticExpressionGraphArenaFromTopologyWithIdentities(
             graph.arena.topology, graph.arena.node_texts,
             graph.arena.call_target_kinds, graph.arena.call_target_names,
-            call_return_types, graph.arena.place_kinds
+            call_return_types, graph.arena.identities,
+            graph.arena.place_kinds
         );
     let published: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(

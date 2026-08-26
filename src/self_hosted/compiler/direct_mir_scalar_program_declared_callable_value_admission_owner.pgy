@@ -1,0 +1,49 @@
+// Admission of a declared routine as a first-order callable value.
+
+import "direct_mir_scalar_program_callable_inventory_owner.pgy";
+import "direct_mir_scalar_program_callable_type_policy_owner.pgy";
+import "../mir_lower/expression_graph_sequence_owner.pgy";
+import "../semantic/ast_expression_identity_fact_owner.pgy";
+
+struct DirectMirScalarProgramDeclaredCallableValueFact {
+    let recognized: Bool;
+    let valid: Bool;
+    let callable_ordinal: Int;
+    let type_name: String;
+    let failure_stage: String;
+}
+
+func DirectMirScalarProgramDeclaredCallableValueFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int, expected_type: String,
+    ref callables: DirectMirScalarCfgProgramCallableInventory
+) -> DirectMirScalarProgramDeclaredCallableValueFact {
+    if sequence.arena.identities.binding_kinds[node] !=
+            SemanticExpressionBindingDeclaredCallable() ||
+        sequence.arena.identities.binding_syntax_ids[node] <= 0 {
+        return DirectMirScalarProgramDeclaredCallableValueFact(
+            false, false, -1, "", "");
+    }
+    let callable_ordinal: Int =
+        DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId(
+            callables, sequence.arena.identities.binding_syntax_ids[node]);
+    if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(
+            callables, callable_ordinal) ||
+        !DirectMirScalarProgramFirstOrderCallableTypeSupported(expected_type) {
+        return DirectMirScalarProgramDeclaredCallableValueFact(
+            true, false, -1, "", "declared-callable");
+    }
+    let row: Int = callable_ordinal - 1;
+    if sequence.arena.node_texts[node] != callables.names[row] {
+        return DirectMirScalarProgramDeclaredCallableValueFact(
+            true, false, -1, "", "declared-callable-identity");
+    }
+    if !DirectMirScalarProgramCallableTypeMatchesRows(
+            expected_type, callables.return_types[row], callables.parameter_types,
+            callables.parameter_carriages, callables.parameter_starts[row],
+            callables.parameter_counts[row]) {
+        return DirectMirScalarProgramDeclaredCallableValueFact(
+            true, false, -1, "", "declared-callable-signature");
+    }
+    return DirectMirScalarProgramDeclaredCallableValueFact(
+        true, true, callable_ordinal, expected_type, "");
+}

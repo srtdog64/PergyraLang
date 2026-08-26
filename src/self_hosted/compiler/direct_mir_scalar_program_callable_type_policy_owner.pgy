@@ -1,0 +1,57 @@
+// First-order callable type and value-parameter ABI policy.
+
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "../semantic/ast_callable_type_shape_owner.pgy";
+
+func DirectMirScalarProgramFirstOrderCallableTypeSupported(
+    type_name: String
+) -> Bool {
+    let shape: SemanticAstCallableTypeShape =
+        SemanticAstCallableTypeShapeFromName(type_name);
+    if !shape.ok || !DirectMirScalarCfgScalarTypeSupported(shape.return_type) {
+        return false;
+    }
+    let ordinal: Int = 0;
+    while ordinal < ArrayLength(shape.parameter_types) {
+        if !DirectMirScalarCfgScalarTypeSupported(shape.parameter_types[ordinal]) {
+            return false;
+        }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramCallableTypeMatchesRows(
+    type_name: String, return_type: String,
+    parameter_types: Array<String>, parameter_carriages: Array<String>,
+    start: Int, count: Int
+) -> Bool {
+    let shape: SemanticAstCallableTypeShape =
+        SemanticAstCallableTypeShapeFromName(type_name);
+    if !DirectMirScalarProgramFirstOrderCallableTypeSupported(type_name) ||
+        shape.return_type != return_type || count < 0 || start < 0 ||
+        count != ArrayLength(shape.parameter_types) ||
+        start + count > ArrayLength(parameter_types) ||
+        start + count > ArrayLength(parameter_carriages) { return false; }
+    let ordinal: Int = 0;
+    while ordinal < count {
+        if shape.parameter_types[ordinal] != parameter_types[start + ordinal] ||
+            parameter_carriages[start + ordinal] != "value" { return false; }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramCallableFunctionParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    if ordinal < 0 || ordinal >= signature.param_count ||
+        !DirectMirScalarProgramFirstOrderCallableTypeSupported(
+            signature.parameters.type_names[ordinal]) { return false; }
+    return signature.parameters.carriages[ordinal] == "value" &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0;
+}

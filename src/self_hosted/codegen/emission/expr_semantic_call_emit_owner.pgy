@@ -13,6 +13,7 @@ import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_call_argument_owner.pgy";
+import "expr_semantic_identity_bound_call_emit_owner.pgy";
 import "list_call_emit_owner.pgy";
 import "queue_call_emit_owner.pgy";
 import "set_call_emit_owner.pgy";
@@ -25,40 +26,6 @@ import "member_call_receiver_carriage_owner.pgy";
 import "expression_c_text_materialization_owner.pgy";
 import "expr_semantic_struct_call_emit_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
-func RewriteSemanticCallArguments(
-    graph: SemanticExpressionGraphFacts,
-    view: SemanticCallSpineView,
-    modes: String,
-    param_types: String,
-    param_offset: Int,
-    prefix_argument: String,
-    env: CodegenTypeEnv,
-    inout owned_fragments: Array<String>
-) -> String {
-    let result_allocator: Allocator = AllocatorResult();
-    let output: TextBuilder = TextBuilderNew(64);
-    let has_argument: Bool = prefix_argument != "";
-    if has_argument { TextBuilderAppend(output, prefix_argument); }
-    let i: Int = 0;
-    while i < ArrayLength(view.argument_nodes) {
-        let param_index: Int = i + param_offset;
-        let mode: String = "default";
-        if param_index < ParamModeCsvCount(modes) {
-            mode = ParamModeCsvAt(modes, param_index);
-        }
-        let expected_type: String = CsvAt(param_types, param_index);
-        let argument: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[i], expected_type, mode, env
-        );
-        if has_argument { TextBuilderAppend(output, ", "); }
-        TextBuilderAppend(output, argument);
-        has_argument = true;
-        i = i + 1;
-    }
-    let args: String = TextBuilderFinish(output, result_allocator);
-    AllocatorDestroy(result_allocator);
-    return CodegenCExpressionTextOwned(owned_fragments, args).text;
-}
 func RewriteSemanticMemberAccessTracked(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -374,6 +341,19 @@ func RewriteSemanticDirectCall(
         Die("semantic direct-call target fact is missing");
     }
     let source_name: String = UnwrapOption(target_name);
+    let callee_binding_kind: Option<Int> =
+        SemanticExpressionGraphBindingKind(graph, view.callee_node);
+    if !IsSome(callee_binding_kind) {
+        Die("semantic direct-call callee identity fact is missing");
+    }
+    if UnwrapOption(callee_binding_kind) ==
+            SemanticExpressionBindingFormalParameter() ||
+        UnwrapOption(callee_binding_kind) ==
+            SemanticExpressionBindingDeclaredCallable() {
+        return RewriteSemanticIdentityBoundCall(
+            graph, view, source_name, UnwrapOption(callee_binding_kind),
+            env, owned_fragments);
+    }
     let domain_query: SemanticAstDomainQueryProtocol =
         SemanticAstDomainQueryProtocolFromName(source_name);
     if domain_query.applies {
