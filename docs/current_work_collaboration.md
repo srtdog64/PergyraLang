@@ -59,14 +59,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `enum_multi_payload`, and `option_enum_with_payload` exactly as expected; a
   fresh isolated DRV-2 passes canonical source-MIR parity for those three plus
   `option_match`.
-- The complete component inventory is not claimed green: after all modified
-  owner caps and task-local structural assertions passed, it entered the
-  broader source-MIR execution action and exceeded the local focused budget.
-  No timeout or cap was raised.
+- The complete component inventory exceeded the local focused budget after all
+  modified owner caps and task-local structural assertions passed, so local
+  completion is not claimed. Replacement `build-linux` later ran that
+  component and the complete fast push target green. No timeout or cap was
+  raised.
 - `selfhost.match_case_pattern` is now `CLOSED`; the registry census is
   `CLOSED=50 BRIDGE=35 ACTIVE=1`. Integrated progress remains 83% (81-85%),
-  strict beta 83%, and hard replacement 75%. Publication and the replacement
-  push matrix are the next action; no successor implementation lease is open.
+  strict beta 83%, and hard replacement 75%. Implementation `aafcadbd` and
+  CI-ratchet repair `5ce4b384` are published; replacement run `32969362909`
+  passed 29/29 at exact repair HEAD. No successor implementation lease is
+  open.
 
 ## DONE lease N — carried ABI CI repair and replacement run
 

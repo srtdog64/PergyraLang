@@ -12,13 +12,15 @@
   reject their return.
 - Changed variant/binding/range negatives, both lifetime gates, three self-C
   execution fixtures, four installed source-MIR canonical fixtures, and SoT
-  edge validation are green. Full component is not claimed green because its
-  broader execution tail exceeded the focused local budget after the relevant
-  structural assertions passed.
+  edge validation are green. Full component exceeded the focused local budget
+  after the relevant structural assertions, so local completion is not
+  claimed; replacement `build-linux` ran it and the complete fast push target
+  green.
 - `selfhost.match_case_pattern` is now `CLOSED`, yielding
   `CLOSED=50 BRIDGE=35 ACTIVE=1`. Overall remains 83% (81-85%), strict beta 83%,
-  and hard replacement 75%; no successor implementation lease is inferred
-  before publication and replacement CI.
+  and hard replacement 75%. Implementation `aafcadbd` and CI-ratchet repair
+  `5ce4b384` are published; replacement run `32969362909` passed 29/29 at the
+  exact repair HEAD. No successor implementation lease is inferred.
 
 ## Active self-host context - 2026-08-26 REPL compile/run substitution
 

@@ -20,8 +20,9 @@ percentage by themselves.
 
 ## Active self-host context - structured MatchCase carrier closure
 
-- Implementation checkpoint `aafcadbd` is based on published green checkpoint
-  `3726f14c`; replacement run `32961756130` for that base passed 29/29. The
+- Implementation checkpoint `aafcadbd` and CI-ratchet repair `5ce4b384` are
+  published. Replacement run `32969362909` passed 29/29 at exact repair HEAD
+  `5ce4b384e45f63f68dff4605b8065eb68143b861` in about 30m26. The
   unrelated user-owned `pgy-80135c2c/` and concurrent
   `docs/compiler_architectures/` paths remain untracked and were not inspected,
   staged, deleted, or rewritten.
@@ -42,9 +43,10 @@ percentage by themselves.
   for those fixtures plus `option_match`.
 - `sot-authority-edge-test-smoke`, documentation quality, source syntax, and
   all 19 modified Pergyra source checks pass. The complete component inventory
-  is not claimed green: after all task-local structural assertions passed, it
-  entered the broader source-MIR execution action and exceeded the focused
-  local budget. No timeout or cap was raised.
+  exceeded the focused local budget after its task-local assertions, so local
+  completion is not claimed; replacement `build-linux` ran that component and
+  the complete fast push target green in about 16m03. No timeout or cap was
+  raised.
 - Local variant folders are Git-closed by published ignore checkpoint
   `1e8b5531`: 23 root `bin-codex*`/`build-codex*`/`bin-dev*`/`build-dev*`
   directories contain only ignored rebuildable output. Physical deletion was
@@ -52,9 +54,9 @@ percentage by themselves.
   execution policy rejected recursive deletion before any file was removed.
 - `selfhost.match_case_pattern` is `CLOSED`, so the SoT census is now
   `CLOSED=50 BRIDGE=35 ACTIVE=1`. Integrated progress remains 83% (81-85%),
-  strict beta 83%, and hard replacement 75%. Publish the implementation and
-  this handoff, then observe the replacement push matrix before opening any
-  successor implementation lease.
+  strict beta 83%, and hard replacement 75%. Publication and the 29/29
+  replacement matrix are closed; no successor implementation lease is
+  inferred by this handoff.
 
 ## Previous self-host context - readiness evidence reconciled; no successor inferred
 
