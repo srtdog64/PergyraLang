@@ -6,14 +6,13 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — callable-parameter installed-path substitution (publication pending)
+## ACTIVE lease — callable-parameter installed-path substitution (replacement CI pending)
 
-- Implementation `30b84f80aaf13a8479b533a931ef115dfcea5905`, first repair
-  `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, and handoff checkpoint
-  `a6bd44c453fa2867b8e897745bf9d1147a35517e` are published. Exact local
-  native-MIR repair `024d1ba7f858b09802d97bc0372c29deaa440745` and fixture
-  scope checkpoint `dc7be82f6cc8da0e6d2427c405101cbf262591bd` are pending
-  publication.
+- Implementation `30b84f80aaf13a8479b533a931ef115dfcea5905`, lifetime repair
+  `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, native-MIR repair
+  `024d1ba7f858b09802d97bc0372c29deaa440745`, fixture-scope repair
+  `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, and Linux mutation repair
+  `5f73970168b45252b8c6637691e7ef363e8304b3` are published.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -86,7 +85,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Full codegen bootstrap, including `role_operator_dispatch`, is green locally.
   Checkpoint `dc7be82f` moves the intentionally self-host-only shadow fixture to
   `tests/self_hosted/fixtures`; backend inventory and the focused/public callable
-  gates are green. A new replacement run remains required.
+  gates are green.
+- Run `33005863688` proved the fixture-scope repair across all 20 backend shards,
+  then its new partial-identity negative edited only the first declaration-shaped
+  JSON occurrence on Linux instead of the later routine parameter row. The
+  compiler correctly accepted the still-wholly-absent routine identity, so the
+  gate reported a false failure. Repair `5f739701` mutates every matching row;
+  the exact global mutation is rejected by both self-built and oracle mir_lower
+  with the partial-identity diagnostic, and shell syntax is green. That run was
+  superseded after the codegen failure; replacement run `33006827756` is the
+  next remote falsifier. No percentage or registry state is promoted yet.
 
 ## DONE lease O — structured MatchCase carrier closure
 

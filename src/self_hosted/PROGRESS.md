@@ -27,9 +27,13 @@
   deletes the false field, admits only complete/unique or wholly absent breadth
   identity, and full codegen bootstrap plus partial-identity negatives are
   green. Checkpoint `dc7be82f` moves the shadow fixture under self-host fixtures;
-  backend inventory and focused/public callable gates are green. Publication
-  and a new replacement run are pending; percentages and registry census do not
-  change.
+  backend inventory and focused/public callable gates are green.
+- Run `33005863688` proved all 20 backend shards, but its partial-identity
+  negative changed only the first declaration-shaped JSON row on Linux and left
+  routine identity wholly absent. Repair `5f739701` mutates all matching rows;
+  both self-built and oracle mir_lower now reject the exact global mutation.
+  Replacement `33006827756` owns remote closure; percentages and registry census
+  do not change.
 
 ## Historical self-host context - 2026-08-26 structured MatchCase carrier
 

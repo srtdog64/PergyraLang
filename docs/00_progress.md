@@ -35,6 +35,14 @@ green이다. Checkpoint `dc7be82f`는 shadow fixture를 self-host fixtures로 �
 backend inventory와 focused/public callable gate가 green이다. 새 replacement run
 전이므로 원격 폐쇄나 수치 상승은 주장하지 않는다.
 
+Run `33005863688`에서는 fixture 이동이 20개 backend shard 모두를 통과했다. 다만
+새 partial-identity 부정 테스트가 Linux JSON의 첫 declaration-shaped 행만 바꾸고
+routine parameter 행은 wholly absent로 남겨, 컴파일러의 정상 수용을 실패로
+오판했다. Repair `5f739701`은 모든 일치 행을 바꾼다. 같은 global mutation은
+self-built/oracle mir_lower 양쪽에서 `identity carriage is partial`로 거부되고 shell
+syntax도 green이다. 이전 run은 이 실패 뒤 새 push로 supersede되었고 replacement
+`33006827756`이 원격 폐쇄를 맡는다. 수치와 registry 상태는 그대로다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,

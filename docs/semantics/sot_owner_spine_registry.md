@@ -1355,6 +1355,9 @@ the separate installed gate executes exact C/LLVM outputs. This closes the
 bounded callable-parameter consumer path but does not promote
 `mir.execution_graph`, `selfhost.expression_surface`, or
 `selfhost.semantic_artifact_admission` beyond their existing states.
+The full-bootstrap partial-identity falsifier must mutate routine parameter rows,
+not merely an earlier declaration-shaped JSON row; checkpoint `5f739701` makes
+that mutation global and both self-built and oracle mir_lower reject it.
 
 GraphPlan v71 does not add a registry row or change a top-level fact identity.
 It tightens the existing declaration-keyed logical-record signature consumer:

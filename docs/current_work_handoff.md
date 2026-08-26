@@ -20,12 +20,12 @@ percentage by themselves.
 
 ## Active self-host context - callable-parameter public substitution
 
-- Callable implementation `30b84f80aaf13a8479b533a931ef115dfcea5905`, first
-  repair `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, and handoff
-  `a6bd44c453fa2867b8e897745bf9d1147a35517e` are published. Exact local
-  native-MIR repair `024d1ba7f858b09802d97bc0372c29deaa440745`, fixture
-  scope checkpoint `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, and this
-  updated handoff are pending publication. The unrelated user-owned
+- Callable implementation `30b84f80aaf13a8479b533a931ef115dfcea5905`, lifetime
+  repair `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, native-MIR repair
+  `024d1ba7f858b09802d97bc0372c29deaa440745`, fixture-scope checkpoint
+  `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, and Linux mutation repair
+  `5f73970168b45252b8c6637691e7ef363e8304b3` are published. This updated
+  handoff is pending publication. The unrelated user-owned
   `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
@@ -65,8 +65,15 @@ percentage by themselves.
   identity negative to full codegen bootstrap. That full bootstrap is local
   GREEN through `role_operator_dispatch`. Checkpoint `dc7be82f` moves the
   shadow fixture under `tests/self_hosted/fixtures`; backend inventory and both
-  callable gates are GREEN. The next falsifier is exact push and a new
-  replacement matrix.
+  callable gates are GREEN.
+- Run `33005863688` passed Windows, macOS, toolchain, TSAN, Rocq, and all 20
+  backend shards before the push superseded its three still-running long jobs.
+  Its sole failure was the new codegen negative: first-occurrence `sed` changed
+  a declaration row on Linux but left routine parameter identity wholly absent,
+  so the compiler correctly admitted it. Repair `5f739701` changes all matching
+  rows. The exact three-row global mutation makes both self-built and oracle
+  mir_lower fail with `identity carriage is partial`; script syntax is GREEN.
+  Replacement run `33006827756` is queued/running and owns remote closure.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
   Physical cleanup was rejected by execution policy before any deletion; do not
