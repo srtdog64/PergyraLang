@@ -129,6 +129,12 @@ cosmetic reshuffling.
   independent edit scopes, and one integration gate. Do not use agent count,
   token volume, fixture count, or generated files as progress evidence, and do
   not open parallel implementation tracks on the active executable rung.
+- Agent work directives are temporary coordination artifacts, not numbered
+  architecture documents. Store them under `docs/agent_work_directives/` with
+  descriptive filenames without a leading document number, and follow that
+  directory's `README.md`.
+  Put read-only findings under `docs/audits/`; neither location owns compiler
+  semantics, progress, registry status, or a successor implementation rung.
 - If wall time, memory, or artifact count grows faster than the semantic input,
   stop expansion and identify the repeated owned operation before adding a
   cache, shard, worker, timeout, or memory allowance.
