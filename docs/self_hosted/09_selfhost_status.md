@@ -16,6 +16,27 @@ For work after this snapshot, follow `docs/152_validation_isolation_policy.md`:
 rerun only the owner gate for the touched self-host rung unless a broader
 compiler-world owner changed or broad parity is explicitly requested.
 
+Focused evidence on 2026-08-26 closes installed DeviceSlot source-C machine
+declaration carriage at checkpoints `10055d0b` and `464a907a`. Public source-C
+now derives the installed sibling companion path and carries its admitted
+declaration through the existing typed request and `PgyCompilerWorld` action.
+The C adapter owns no physical facts and has no native retry.
+
+The reached DeviceSlot program emits the machine binding block and startup call,
+compiles, and runs exact `0` equal to the explicit-native oracle. Non-machine
+source and MIR programs emit neither block nor call because both now consume
+the same `usage.uses_machine_layer` fact. Missing or corrupt companions publish
+no artifact. A current typed-source DRV-2 install and the installed-driver
+parent gate are locally green. Replacement run `32949495441` passed 29/29,
+including full self-host fixed point and every platform/proof/backend axis.
+This is bounded `SUBSTITUTING`; the top-level registry remains 49/36/1.
+
+The subsequent all-nonclosed-row audit covers the registry exactly once:
+37 expected, 37 observed, no missing, extra, or duplicate owner. It selects
+only the existing `ACTIVE` semantic-artifact admission seam. The next
+executable falsifier is the fixed-MIR routine-1197/global-row-18392
+value-result member rebind; the audit itself changes no status or percentage.
+
 Focused evidence on 2026-08-05 closes
 `string_array_index_return.pgy` at checkpoint `52715894`. The 5,048,145-byte
 current-source Pergyra-built driver

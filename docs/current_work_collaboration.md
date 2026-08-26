@@ -6,7 +6,69 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease J — installed source-C machine declaration carriage
+## ACTIVE lease L — fixed-MIR value-result member-rebind consumer
+
+- Base revision: `464a907a010b745c3ec1bdaecf783bbf9e31c037` plus the
+  documentation-only closure-map checkpoint that publishes lease K.
+- Objective: advance the current complete-source fixed-MIR/gen2 consumer past
+  routine 1197/global row 18392 by admitting the existing value-result member
+  rebind `analysis.expression_surfaces.expression_graph = graph`.
+- Priority order: preserve the stable instruction/local/value identities;
+  consume the existing member-rebind member type and use prefix; fail closed on
+  mismatched carriage/type/use; add the exact negative ratchet; then patch
+  size.
+- Fact owners: the admitted MIR instruction/use/local/value-type plans and
+  `DirectMirScalarProgramLogicalRecordMemberRebindFactSetFromOwners`. This
+  lease may join those facts at the existing typed-expression consumer; it may
+  not create another expression, record-layout, or semantic-artifact owner.
+- Last live consumer: `DirectMirScalarCfgProgramAppendTypedExpressionField`
+  rejects the rebind target/value at `stage=admitted-type` while processing
+  `SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody`.
+- Forbidden: text/type-name inference, parameter-entry fallback after the
+  observed `graph.21` SSA definition, a new opcode/V/GraphPlan/cache/shard,
+  native retry, or a second semantic-artifact analysis path.
+- Integration gate: first reproduce the fixed-MIR RED. Then extend the existing
+  value-result member-rebind focused fixture with the exact expression-graph
+  member shape and damaged type/use/carriage mutations. The fixed consumer must
+  advance past row 18392 without increasing a timeout or memory allowance.
+- Classification: this can be executable substitution inside the one active
+  semantic-artifact admission rung. It does not close the top-level row or
+  change a percentage until the old consumer path is removed and negative-
+  gated.
+
+## DONE lease K — nonclosed SoT dependency census
+
+- Base revision: `464a907a010b745c3ec1bdaecf783bbf9e31c037`.
+- Objective: account for all 37 current `BRIDGE|ACTIVE` registry rows and
+  produce one dependency-ordered closure map before selecting another
+  executable implementation rung.
+- Fact owners remain the registry rows and current source. Three agents own
+  disjoint read-only report files under `docs/audits/`; the primary task alone
+  owns set-equality integration and successor selection.
+- Forbidden: parallel implementation, registry/status/progress edits by audit
+  agents, closure inferred from tests or filenames, duplicate row assignment,
+  or selecting a successor before all dependency edges are reconciled.
+- Integration gate: the exact union of report owner IDs must equal the current
+  registry `BRIDGE|ACTIVE` set with no duplicates. The nonnumbered directive is
+  `docs/agent_work_directives/sot_closure_dependency_map_2026-08-26.md`.
+
+### Result
+
+- All three disjoint reports are complete. Their table union is exactly the
+  current 37-row registry set: 37 expected, 37 observed, 37 unique, with no
+  missing, extra, or duplicate owner ID.
+- The dependency map classifies three rows `READY_NEXT`, 24
+  `DEPENDENCY_BLOCKED`, and ten `EVIDENCE_GAP`; no row is yet only a
+  `PRODUCT_BOUNDARY`.
+- Primary source review selected only the registry's existing `ACTIVE` row,
+  `selfhost.semantic_artifact_admission`. Its current production falsifier is
+  the already reached routine-1197/global-row-18392 value-result member rebind.
+  The other two ready candidates remain inactive.
+- This audit changed no compiler source, owner status, or progress percentage.
+  It prevents parallel SoT implementation from turning dependencies into dual
+  authority.
+
+## DONE lease J — installed source-C machine declaration carriage
 
 - Base revision: `5e946a5a2165c784f7028f967f08ae3a1b2aaa1c`.
 - Editing and integration owner: the primary Codex task. No parallel
@@ -43,7 +105,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   child request that omits `--machine-manifest-json`. Reuse the existing
   installed-driver Make target and CI job.
 
-### Local result — remote validation pending
+### Result
 
 - The C adapter now derives the installed sibling manifest path and passes it
   through the typed three-field source-C artifact request. The installed
@@ -61,6 +123,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   artifact or native timing. The full component inventory is not claimed: its
   earlier run reached the static 60-second budget and found only the then-fixed
   script line cap; exact owner/cap ratchets are covered by the focused gates.
+- Implementation checkpoint `10055d0b` and SoT-gate repair `464a907a` are on
+  local and remote `main`. Replacement run `32949495441` passed 29/29; it
+  includes Linux structural/SoT edge, full self-host, Windows, sanitizers,
+  Rocq, codegen bootstrap, macOS, TSan, and all 20 backend shards.
 
 ## DONE lease I — readiness and progress evidence reconciliation
 

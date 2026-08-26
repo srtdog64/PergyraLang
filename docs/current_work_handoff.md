@@ -18,7 +18,67 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - readiness evidence reconciled; no successor inferred
+## Active self-host context - SoT map complete; fixed-MIR member rebind selected
+
+- Implementation checkpoint `10055d0b` and SoT-gate repair checkpoint
+  `464a907a` are on local and remote `main`. The unrelated user-owned untracked
+  `pgy-80135c2c/` and concurrently created `docs/compiler_architectures/` paths
+  must not be inspected, staged, deleted, or rewritten by this task.
+- Objective card: public installed source-to-C must carry the installed sibling
+  machine declaration through the typed `SourceCManifestVerified` request into
+  the existing Pergyra source-MIR machine projection. The companion is the fact
+  owner; C owns only path carriage. Duplicate grant facts, DeviceSlot source
+  scans, empty-declaration success for nonempty contacts, and native retry are
+  forbidden.
+- Observed RED was exact: explicit native DeviceSlot C emission succeeded while
+  installed emission exited 1 at instruction 0 with an invalid machine-layer
+  projection because artifact mode selected `SourceCDefault`. The installed
+  child now receives `--machine-manifest-json`, and the typed request reaches
+  the existing compiler-world source-C action without another semantic owner.
+- Declaration carriage exposed and closed an older mismatch: startup calls had
+  been declaration-gated while their definitions were machine-usage-gated.
+  Both now consume `usage.uses_machine_layer`. A non-machine source/MIR emits
+  neither call nor block; DeviceSlot source/MIR emits both, compiles, and runs
+  exact `0` equal to the explicit-native oracle.
+- Missing or corrupt installed companions exit nonzero, publish no C artifact,
+  show no native timing, and do not retry. The focused DeviceSlot, default
+  source-C, source-C world/action, and full installed-driver parent gates are
+  local green. A fresh typed-source DRV-2 install is green. Local proof-spine
+  was not claimed because Rocq was unavailable; remote Rocq supplied that
+  evidence.
+- First run `32948170716` found one exact SoT-edge documentation failure: the
+  new CLOSED-row enforcement description was not byte-present in its primary
+  gate. Repair `464a907a` binds both new forbidden-fallback tokens and canonical
+  gate text. Replacement run `32949495441` passed 29/29 in 1h00m10 including
+  15m00 Linux, 23m28 full self-host, 7m15 Windows, 7m54 sanitizers, 7m43
+  codegen bootstrap, 9m10 backend toolchain, 6m08 Rocq, macOS, TSan, and all 20
+  backend shards. Queue delay, not shard execution, dominated wall time.
+- This is bounded `SUBSTITUTING` for a real installed DeviceSlot source-C
+  failure, but it closes no additional top-level registry row. Integrated
+  progress remains 83% (81-85%), strict beta 83%, hard replacement 75%, and SoT
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- The read-only dependency census under
+  `docs/agent_work_directives/sot_closure_dependency_map_2026-08-26.md` is
+  complete. Three disjoint reports cover all 37 nonclosed rows exactly once;
+  the integration gate observed 37 expected/37 actual/37 unique and no
+  missing, extra, or duplicate ID. Classification is three `READY_NEXT`, 24
+  `DEPENDENCY_BLOCKED`, ten `EVIDENCE_GAP`, and zero `PRODUCT_BOUNDARY`.
+- The sole selected successor is the registry's existing `ACTIVE`
+  `selfhost.semantic_artifact_admission` seam. The current 48,531,749-byte
+  fixed MIR already reaches routine 1197/global row 18392 and fails at
+  `stage=admitted-type` while assigning local SSA `graph.21` into value-result
+  member `analysis.expression_surfaces.expression_graph`.
+- Objective card: join the existing instruction-use, LocalRef, value type,
+  value-result carriage, member ordinal/type, and dominance prefix facts at the
+  current typed-expression consumer. The last consumer is
+  `DirectMirScalarCfgProgramAppendTypedExpressionField`; type-name/text
+  inference, parameter-entry fallback after the SSA definition, a new opcode
+  or plan family, native retry, and a second artifact analysis are forbidden.
+  The existing value-result member-rebind gate must gain the exact compiler
+  shape and damaged-fact negatives before the fixed consumer advances past row
+  18392. No timeout or memory allowance may be raised.
+
+## Previous self-host context - readiness evidence reconciled; no successor inferred
 
 - Reconciliation starts from published checkpoint
   `ab816bc923df2a7d0121a8d74134b2af2fa05a3e`. The unrelated user-owned

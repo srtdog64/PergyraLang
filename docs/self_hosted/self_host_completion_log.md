@@ -6,6 +6,48 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-26 - Nonclosed SoT dependency map is exact
+
+- Three read-only agent reports divide the semantic/syntax/verification,
+  execution/projection/resource, and ABI/target/compatibility owner families.
+  Their tables match the current registry's 37 `BRIDGE|ACTIVE` rows exactly,
+  with no missing, extra, or duplicate owner ID.
+- The map records three `READY_NEXT`, 24 `DEPENDENCY_BLOCKED`, and ten
+  `EVIDENCE_GAP` rows. These classifications do not alter registry status or
+  progress.
+- Only the existing `ACTIVE` semantic-artifact admission rung was selected.
+  The fixed MIR reaches routine 1197/global row 18392 and rejects local SSA
+  `graph.21` assigned to the value-result expression-graph member at
+  `stage=admitted-type`. Existing member-rebind type/use facts must close that
+  exact consumer before any other ready candidate opens.
+
+## 2026-08-26 - Installed DeviceSlot source-C receives its machine declaration
+
+- Public installed source-C previously invoked artifact mode with
+  `SourceCDefault`. A real `DeviceSlot<Int>` source reached the Pergyra machine
+  instruction projection but failed at instruction 0 because its installed
+  physical declaration never crossed the launcher boundary.
+- The C adapter now derives the installed sibling companion and the typed
+  three-field request admits it as `SourceCManifestVerified` through the
+  existing compiler-world source-C action. No grant table, source scan, or
+  native retry was added.
+- A valid declaration exposed an old usage mismatch: non-machine programs got
+  a startup call without its definition. Both are now gated by the same
+  `usage.uses_machine_layer` fact. Non-machine source/MIR has neither; DeviceSlot
+  source/MIR has both, compiles, and runs exact `0` equal to native.
+- Missing and corrupt companion fixtures publish no C and show no native timing.
+  Focused DeviceSlot/default/action gates, a fresh typed-source DRV-2 install,
+  and the full installed-driver parent are local green.
+- First run `32948170716` found that the CLOSED-row enforcement gate did not
+  literally name its two new forbidden fallbacks. Repair `464a907a` closes that
+  ratchet. Replacement run `32949495441` passed 29/29 in 1h00m10, including
+  Linux structural/SoT edge, full self-host, all platform/proof/sanitizer axes,
+  and 20 backend shards.
+- This is bounded `SUBSTITUTING`; overall 83%, strict beta 83%, hard replacement
+  75%, and registry `49/36/1` remain unchanged. A nonnumbered read-only audit
+  now maps dependencies across all 37 nonclosed registry rows before one next
+  executable rung can be selected.
+
 ## 2026-08-26 - REPL evaluation leaves the implicit native compiler
 
 - Three reports under a separate nonnumbered agent directive found exactly one

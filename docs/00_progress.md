@@ -2,6 +2,40 @@
 
 마지막 업데이트: 2026-08-26
 
+2026-08-26 installed DeviceSlot 선언 운반 원격 폐쇄: public `pgy SOURCE
+--emit-c`의 C adapter가 설치된 sibling `.machine-layer-manifest.json` 경로를
+typed `SourceCManifestVerified` 요청으로 운반한다. 이전에는 artifact child가
+`SourceCDefault`를 선택해 `ClaimDeviceSlot` instruction 0에서 machine-layer
+projection이 fail closed했다. 이제 기존 Pergyra source-C world/action과 MIR
+machine projection owner가 같은 companion을 소비하며, C나 Pergyra에 grant fact를
+복제하지 않는다.
+
+선언 확장으로 발견된 기존 startup 불일치도 닫았다. Machine operation이 없는
+source/MIR은 mapping block/call을 내지 않고, DeviceSlot source/MIR만 둘 다 낸다.
+Missing/corrupt companion은 artifact와 native timing 없이 nonzero다. Implementation
+`10055d0b`, SoT-gate repair `464a907a`가 published이고 replacement run
+`32949495441`은 1시간 10초에 29/29 green이다. 첫 run은 CLOSED registry row의 새
+fallback 이름이 primary gate에 literal로 없음을 잡았고 repair 뒤 Linux structural/
+SoT edge, full self-host, Windows, sanitizer, Rocq, bootstrap, macOS, TSan, 20개
+backend shard가 모두 green이다. 이는 bounded `SUBSTITUTING`이지만 새 top-level row를
+닫지는 않으므로 통합 **83% (81~85%)**, strict beta 83%, hard replacement 75%, SoT
+`49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 유지한다.
+
+37개 미폐쇄 SoT 행의 dependency census도 완료했다. 번호 없는
+`docs/agent_work_directives/sot_closure_dependency_map_2026-08-26.md` 아래 세
+보고서의 owner-ID 합집합은 registry와 정확히 37/37이고 누락·추가·중복은 0이다.
+분류는 `READY_NEXT=3`, `DEPENDENCY_BLOCKED=24`, `EVIDENCE_GAP=10`이며 product만
+남은 행은 아직 0이다. 이 감사 자체는 구현이나 폐쇄 수가 아니다.
+
+다음 실행 rung은 세 후보를 병렬로 열지 않고 기존 유일한 `ACTIVE`
+`selfhost.semantic_artifact_admission` 하나만 선택했다. 현재 48,531,749-byte fixed
+MIR은 routine 1197/global row 18392의 value-result member rebind
+`analysis.expression_surfaces.expression_graph = graph`에서 `stage=admitted-type`로
+멈춘다. 기존 LocalRef/value type/member type/use-prefix facts를 소비해 이 정확한
+consumer를 통과시키고, text/type 추론·SSA 이후 parameter-entry fallback·새
+opcode/V/plan·timeout 증가는 금지한다. 이 단계가 실행으로 전진하기 전까지 통합
+83%, strict beta 83%, hard replacement 75%, SoT 49/36/1은 그대로다.
+
 2026-08-26 증거 분모 재대조: 실행 가능한 readiness scorecard는 capability 4를
 이미 `READY`로 판정하고, scorecard 본문도 allocator/TextBuilder Phase 1을 hard
 self-host substrate closure로 기록한다. 따라서 오래 남아 있던 `9/10` 표기는

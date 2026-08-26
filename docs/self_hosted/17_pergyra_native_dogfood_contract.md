@@ -2,6 +2,35 @@
 
 Status: `BRIDGE`
 
+## 2026-08-26 installed DeviceSlot declaration carriage
+
+Public installed source-C now carries the installed sibling machine declaration
+through the typed `SourceCManifestVerified` request. Before this change the
+artifact child selected `SourceCDefault`, so a real `DeviceSlot<Int>` program
+reached the existing Pergyra MIR machine instruction owner without its physical
+declaration and failed closed at instruction 0. The launcher now owns only the
+companion path; the existing declaration consumer remains the sole fact owner.
+
+The declaration is not itself permission to emit a startup call. Both the
+machine binding definition and main startup statement now consume the same
+`usage.uses_machine_layer` fact. Non-machine source/MIR output contains neither;
+DeviceSlot source/MIR contains both and executes exact `0`. Missing and corrupt
+companions return the typed source-C diagnostic with no artifact or native
+retry. No source scan, grant reconstruction, new compiler world, or second
+machine owner was added.
+
+Implementation `10055d0b` and SoT-gate repair `464a907a` are published.
+Replacement run `32949495441` passed 29/29. This is production
+`SUBSTITUTING` dogfood for the previously failing installed DeviceSlot source-C
+path, not whole machine-layer or compiler-root ownership; SoT status counts and
+published progress remain unchanged.
+
+The follow-up dependency audit accounts for all 37 nonclosed registry rows
+exactly once and opens no parallel implementation tracks. Its sole selected
+successor is the already-reached fixed-MIR semantic-artifact consumer at
+routine 1197/global row 18392. That row is still RED and therefore remains an
+implementation target, not `SUBSTITUTING` evidence.
+
 ## 2026-08-26 explicit-native isolation for unowned IR diagnostics
 
 The public launcher no longer interprets the absence of an installed Pergyra
