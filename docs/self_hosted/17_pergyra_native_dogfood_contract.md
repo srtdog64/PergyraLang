@@ -29,7 +29,9 @@ Checkpoint `4eef51ad` first failed remote `build-linux` because the launcher
 grew to 359 lines over its unchanged 340-line cap. The repair does not relax
 that cap: request identity is owned by `driver_self_host_selection_owner`, the
 failure text by `driver_diag`, and the launcher returns one owned rejection.
-Local line caps, build, and installed CLI are green; replacement CI is pending.
+Local line caps, build, and installed CLI are green. Repair checkpoint
+`45a2cfae` replacement run `32933640461` passed 29/29 in 30m09, including
+Linux component/installed-driver coverage and full self-host fixed point.
 
 ## 2026-08-26 public MIR diagnostic substitution evidence
 

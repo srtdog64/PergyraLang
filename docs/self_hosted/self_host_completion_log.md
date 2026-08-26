@@ -24,14 +24,17 @@ rewrite history.
   drift; three current-owner observations agreed and only that field changed.
   The standalone MIR machine-layer smoke was stopped after its five-minute
   focused budget during DRV-2 recompilation, and no timeout was increased.
-- Implementation checkpoint `4eef51ad` is published; remote closure is
-  pending. This is fallback closure, not `SUBSTITUTING`, so
+- Implementation checkpoint `4eef51ad` and repair checkpoint `45a2cfae` are
+  published with remote closure. This is fallback closure, not `SUBSTITUTING`, so
   integrated 78%, strict beta 83%, and hard SoT `49/36/1` remain unchanged.
 - Its first run `32932076025` rejected a 359-line
   launcher against its existing 340-line component cap. The cap stays fixed.
   Mode identity and missing-owner emission now live behind the selection and
   diagnostic owners, restoring launcher/selection sizes to 340/140. Local
-  build and parent CLI are green; the repair and replacement run are pending.
+  build and parent CLI are green. Replacement run `32933640461` passed 29/29
+  in 30m09. `build-linux` took 14m41, full self-host 29m49, sanitizers 12m35,
+  Windows 8m37, codegen bootstrap 7m48, backend toolchain 9m13, and all 20
+  shards 40-59 seconds.
 
 ## 2026-08-26 - Public MIR diagnostic replaces the native dump default
 

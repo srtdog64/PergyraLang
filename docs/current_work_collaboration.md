@@ -66,8 +66,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   its unchanged 340-line cap. The repair keeps that cap, moves mode identity to
   `driver_self_host_selection_owner` and diagnostic emission to `driver_diag`,
   and leaves the launcher at 340 lines and selection owner at its 140-line cap.
-  A replacement run is pending. This closes an implicit fallback only; it is
-  not `SUBSTITUTING`, changes no percentage, and closes no registry row.
+  Repair checkpoint `45a2cfae` is published and replacement run `32933640461`
+  passed 29/29 in 30m09. `build-linux` passed in 14m41, full self-host in
+  29m49, and all 20 backend shards in 40-59 seconds. This closes an implicit
+  fallback only; it is not `SUBSTITUTING`, changes no percentage, and closes no
+  registry row.
 
 ## DONE lease F — installed public `--mir` diagnostic substitution
 

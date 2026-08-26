@@ -17,16 +17,19 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - explicit-native isolation for unowned public IR
+## Active self-host context - explicit-native isolation closed; no successor rung
 
-- Published implementation checkpoint `4eef51ad` is on local and remote
-  `main`. Its first run `32932076025` found that the launcher reached 359 lines
-  over its unchanged 340-line component cap. The current dirty repair moves
-  mode identity to `driver_self_host_selection_owner` and diagnostic emission
-  to `driver_diag`; launcher/selection owner are now exactly 340/140 lines and
-  local build plus parent CLI are green. Repair publication and replacement CI
-  are pending. The unrelated user-owned `pgy-80135c2c/` path remains untracked
-  and must not be inspected, staged, deleted, or rewritten.
+- Published implementation checkpoint `4eef51ad` and repair checkpoint
+  `45a2cfae` are on local and remote `main`. First run `32932076025` found the
+  359/340 launcher-cap violation and was superseded after recording 27 green
+  jobs and that exact Linux failure. The repair moves mode identity to
+  `driver_self_host_selection_owner` and diagnostic emission to `driver_diag`;
+  launcher/selection owner are exactly 340/140 lines. Replacement run
+  `32933640461` passed 29/29 in 30m09: `build-linux` 14m41, full self-host
+  29m49, sanitizers 12m35, Windows 8m37, codegen bootstrap 7m48, backend
+  toolchain 9m13, and 20 shards in 40-59 seconds. The unrelated user-owned
+  `pgy-80135c2c/` path remains untracked and must not be inspected, staged,
+  deleted, or rewritten.
 - Objective card: delete the launcher's final implicit native fallback for
   bare `--rir`, `--rir-json`, `--air`, `--air-json`, `--hir`, `--hir-cfg`,
   `--hir-dom`, and `--hir-ssa`. No complete installed Pergyra producer owns
