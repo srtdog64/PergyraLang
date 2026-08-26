@@ -941,7 +941,14 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/error_owner.pgy` -- MIR-lower-specific
   `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
 - `src/self_hosted/mir_lower/expression_graph_fact_owner.pgy` -- schema-aware
-  MIR instruction graph decoding and reconstructed-artifact NodeId binding.
+  MIR instruction graph decoding, canonical identity-epoch consumption, and
+  reconstructed-artifact NodeId binding.
+- `src/self_hosted/mir_lower/expression_identity_epoch_owner.pgy` -- one exact
+  producer-routine/parameter SyntaxNodeId to reconstructed canonical
+  SyntaxNodeId join by routine kind, module, owner, name, parameter ordinal,
+  and parameter name. Persisted call-target and callee-binding rows consume
+  this map atomically; numeric equality, offset inference, and dual-epoch reads
+  are forbidden.
 - `src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy` --
   persisted MIR expression-graph slot requirements by instruction shape; this
   policy does not own or duplicate the program graph.

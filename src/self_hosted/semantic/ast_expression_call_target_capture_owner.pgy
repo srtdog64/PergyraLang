@@ -1,5 +1,4 @@
 // Signature-only initial capture of canonical callable target rows.
-
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_signature_fact_owner.pgy";
@@ -8,7 +7,11 @@ import "ast_expression_environment_owner.pgy";
 import "role_operator_vocabulary_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "ast_expression_carried_callable_identity_owner.pgy";
-
+struct SemanticExpressionCallTargetCapture {
+    graph: SemanticExpressionGraphFacts;
+    failure_node_id: Int;
+    failure_lane: String;
+}
 func SemanticExpressionCallTargetExpected(
     ref graph: SemanticExpressionGraphFacts,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -179,21 +182,22 @@ func SemanticExpressionCallTargetExpected(
         true, SemanticCallTargetNone(), "", 0
     );
 }
-
-func SemanticExpressionGraphCallTargetsFromSignatures(
+func SemanticExpressionGraphCallTargetCaptureFromSignatures(
     graph: SemanticExpressionGraphFacts,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts,
     require_carried: Bool,
     function_tables: SemanticAstExpressionFunctionTableFacts
-) -> SemanticExpressionGraphFacts {
+) -> SemanticExpressionCallTargetCapture {
     if !graph.ok || !signatures.ok || !constructors.ok ||
         !enums.ok ||
         !SemanticExpressionGraphArenaReady(graph.arena) ||
         !SemanticAstExpressionFunctionTableFactsReady(function_tables) {
-        return SemanticExpressionGraphFacts(
-            false, graph.roots, graph.has_roots, graph.arena
+        return SemanticExpressionCallTargetCapture(
+            SemanticExpressionGraphFacts(
+                false, graph.roots, graph.has_roots, graph.arena),
+            -1, "call_target_input"
         );
     }
     let target_names: Array<String> = graph.arena.call_target_names;
@@ -209,8 +213,10 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
             signatures, signature_index
         );
         if !IsSome(owner) || !IsSome(name) {
-            return SemanticExpressionGraphFacts(
-                false, graph.roots, graph.has_roots, graph.arena
+            return SemanticExpressionCallTargetCapture(
+                SemanticExpressionGraphFacts(
+                    false, graph.roots, graph.has_roots, graph.arena),
+                -1, "call_target_signature"
             );
         }
         if UnwrapOption(owner) != "" {
@@ -224,6 +230,8 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
         signature_index = signature_index + 1;
     }
     let node_id: Int = 0;
+    let failure_node_id: Int = -1;
+    let failure_lane: String = "";
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) && valid {
         let expected: SemanticExpressionCallTargetFact =
             SemanticExpressionCallTargetExpected(
@@ -232,10 +240,14 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
             );
         if !expected.ok {
             valid = false;
+            failure_node_id = node_id;
+            failure_lane = "call_target_expected";
         } else if require_carried {
             if target_kinds[node_id] != expected.kind ||
                 target_names[node_id] != expected.name {
                 valid = false;
+                failure_node_id = node_id;
+                failure_lane = "call_target_carried";
             }
         } else {
             ArraySet(target_kinds, node_id, expected.kind);
@@ -250,8 +262,39 @@ func SemanticExpressionGraphCallTargetsFromSignatures(
         graph.arena.identities,
         graph.arena.place_kinds
     );
-    return SemanticExpressionGraphFacts(
-        valid && SemanticExpressionGraphArenaReady(arena),
-        graph.roots, graph.has_roots, arena
+    if failure_node_id >= 0 {
+        let failure_callee_id: Int = graph.arena.topology.left_children[failure_node_id];
+        failure_lane = Concat(failure_lane, Concat(
+            "|text=", graph.arena.node_texts[failure_node_id]));
+        failure_lane = Concat(failure_lane, Concat(
+            "|target=", graph.arena.call_target_names[failure_node_id]));
+        failure_lane = Concat(failure_lane, Concat(
+            "|target_id=", ToString(graph.arena.identities
+                .call_target_syntax_ids[failure_node_id])));
+        failure_lane = Concat(failure_lane, Concat(
+            "|callee=", ToString(failure_callee_id)));
+        failure_lane = Concat(failure_lane, Concat("|callee_text=",
+            graph.arena.node_texts[failure_callee_id]));
+        failure_lane = Concat(failure_lane, Concat("|callee_binding=", ToString(graph.arena.identities.binding_syntax_ids[failure_callee_id])));
+        failure_lane = Concat(failure_lane, Concat("|callee_kind=",
+            ToString(graph.arena.identities.binding_kinds[failure_callee_id])));
+    }
+    return SemanticExpressionCallTargetCapture(
+        SemanticExpressionGraphFacts(
+            valid && SemanticExpressionGraphArenaReady(arena),
+            graph.roots, graph.has_roots, arena),
+        failure_node_id, failure_lane
     );
+}
+func SemanticExpressionGraphCallTargetsFromSignatures(
+    graph: SemanticExpressionGraphFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    enums: SemanticAstEnumFacts,
+    require_carried: Bool,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticExpressionGraphFacts {
+    return SemanticExpressionGraphCallTargetCaptureFromSignatures(
+        graph, signatures, constructors, enums, require_carried,
+        function_tables).graph;
 }

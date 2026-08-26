@@ -41,6 +41,8 @@ grep -Fq '"binding_kind":"formal_parameter","binding_ordinal":1' "$MIR" ||
     fail "producer omitted the formal callable identity"
 grep -Fq '"binding_kind":"declared_callable"' "$MIR" ||
     fail "producer omitted the declared callable value identity"
+grep -Fq 'enum CallableEpochMarker' "$ROOT_DIR/$SOURCE_REL" ||
+    fail "callable fixture no longer forces a producer/canonical identity epoch drift"
 
 # The production/default C route deliberately re-enters the semantic graph;
 # it must preserve and validate carried identities instead of rebuilding them.
@@ -149,6 +151,7 @@ mutations=(
     formal-unsupported-shape
     declared-missing-binding-id
     declared-binding-id-swap
+    declared-target-id-swap
     declared-binding-kind
     declared-binding-ordinal
     declared-name-mismatch

@@ -1,0 +1,255 @@
+// Canonical identity-epoch rebinding for persisted MIR expression rows.
+//
+// MIR carries producer-AST SyntaxNodeIds. MIR-to-AST reconstruction creates a
+// different canonical arena, so semantic consumers must receive one exact
+// producer-to-canonical join rather than compare the two numeric epochs or
+// recover identity from expression spelling.
+
+import "program_routine_index_owner.pgy";
+import "routine_inventory_owner.pgy";
+import "../semantic/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_signature_fact_owner.pgy";
+import "../semantic/ast_intent_signature_fact_owner.pgy";
+
+struct MirExpressionIdentityEpoch {
+    ok: Bool;
+    routine_canonical_ids: Array<Int>;
+    source_ids: Array<Int>;
+    canonical_ids: Array<Int>;
+}
+
+func MirExpressionIdentityEpochAppend(
+    source_id: Int,
+    canonical_id: Int,
+    inout source_ids: Array<Int>,
+    inout canonical_ids: Array<Int>
+) -> Bool {
+    if source_id <= 0 || canonical_id <= 0 ||
+        ArrayLength(source_ids) != ArrayLength(canonical_ids) {
+        return false;
+    }
+    let count: Int = ArrayLength(source_ids);
+    if count > 0 &&
+        (source_ids[count - 1] >= source_id ||
+         canonical_ids[count - 1] >= canonical_id) {
+        return false;
+    }
+    ArrayPush(source_ids, source_id);
+    ArrayPush(canonical_ids, canonical_id);
+    return true;
+}
+
+func MirExpressionIdentityEpochLookup(
+    ref epoch: MirExpressionIdentityEpoch,
+    source_id: Int
+) -> Option<Int> {
+    if !epoch.ok || source_id <= 0 ||
+        ArrayLength(epoch.source_ids) != ArrayLength(epoch.canonical_ids) {
+        return None;
+    }
+    let low: Int = 0;
+    let high: Int = ArrayLength(epoch.source_ids);
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if epoch.source_ids[middle] < source_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if low >= ArrayLength(epoch.source_ids) ||
+        epoch.source_ids[low] != source_id {
+        return None;
+    }
+    return Some(epoch.canonical_ids[low]);
+}
+
+func MirExpressionIdentityEpochFromArtifactWithSignatures(
+    ref routines: MirProgramRoutineIndex,
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> MirExpressionIdentityEpoch {
+    let routine_canonical_ids: Array<Int> = [];
+    let source_ids: Array<Int> = [];
+    let canonical_ids: Array<Int> = [];
+    let intents: SemanticAstIntentSignatureFacts =
+        SemanticAstIntentSignatureFactsFromArtifact(artifact);
+    let ok: Bool = MirProgramRoutineIndexStructureReady(routines) &&
+        SemanticAstFunctionSignatureFactsMatchArtifact(
+            artifact, signatures
+        ) && SemanticAstIntentSignatureFactsReady(artifact, intents);
+    let routine: Int = 0;
+    while routine < MirProgramRoutineIndexCount(routines) && ok {
+        let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+            routines.source_json, routines.starts[routine],
+            routines.ends[routine]
+        );
+        let source_routine_id: Int = ToInt(
+            routines.source_syntax_ids[routine]
+        );
+        let canonical_routine_id: Int = -1;
+        let canonical_param_start: Int = -1;
+        let canonical_param_count: Int = -1;
+        let matches: Int = 0;
+        if routines.kinds[routine] == "intent" {
+            let intent_index: Int = 0;
+            while intent_index < ArrayLength(intents.intent_node_ids) {
+                if intents.names[intent_index] == routines.names[routine] {
+                    canonical_routine_id =
+                        intents.intent_node_ids[intent_index];
+                    canonical_param_start =
+                        intents.param_starts[intent_index];
+                    canonical_param_count =
+                        intents.param_counts[intent_index];
+                    matches = matches + 1;
+                }
+                intent_index = intent_index + 1;
+            }
+        } else if routines.kinds[routine] == "function" ||
+            routines.kinds[routine] == "method" {
+            let signature: Int = 0;
+            while signature <
+                SemanticAstFunctionSignatureCount(signatures) {
+                if signatures.owner_names[signature] ==
+                        routines.owners[routine] &&
+                    signatures.names[signature] == routines.names[routine] &&
+                    signatures.module_paths[signature] ==
+                        routines.source_module_paths[routine] {
+                    canonical_routine_id =
+                        signatures.function_node_ids[signature];
+                    canonical_param_start =
+                        signatures.param_starts[signature];
+                    canonical_param_count =
+                        signatures.param_counts[signature];
+                    matches = matches + 1;
+                }
+                signature = signature + 1;
+            }
+        }
+        if matches != 1 || source_routine_id <= 0 ||
+            !MirRoutineHeaderParameterRowsReady(header) ||
+            canonical_param_count != ArrayLength(header.param_names) ||
+            !MirExpressionIdentityEpochAppend(
+                source_routine_id, canonical_routine_id,
+                source_ids, canonical_ids
+            ) {
+            ok = false;
+        } else {
+            ArrayPush(routine_canonical_ids, canonical_routine_id);
+        }
+        let param: Int = 0;
+        while param < ArrayLength(header.param_names) && ok {
+            let canonical_param: Int = canonical_param_start + param;
+            let canonical_param_id: Int = -1;
+            let canonical_param_name: String = "";
+            let canonical_param_type: String = "";
+            if routines.kinds[routine] == "intent" {
+                canonical_param_id = intents.param_node_ids[canonical_param];
+                canonical_param_name = intents.param_names[canonical_param];
+                canonical_param_type = intents.param_types[canonical_param];
+            } else {
+                canonical_param_id =
+                    signatures.param_node_ids[canonical_param];
+                canonical_param_name = signatures.param_names[canonical_param];
+                canonical_param_type = signatures.param_types[canonical_param];
+            }
+            let source_param_id: Int =
+                header.param_source_syntax_ids[param];
+            let implicit_receiver: Bool =
+                routines.owners[routine] != "" &&
+                header.param_names[param] == "self" &&
+                header.param_types[param] == "";
+            if canonical_param_name != header.param_names[param] ||
+                (!implicit_receiver &&
+                 canonical_param_type != header.param_types[param]) {
+                ok = false;
+            } else if source_param_id > 0 &&
+                !MirExpressionIdentityEpochAppend(
+                    source_param_id, canonical_param_id,
+                    source_ids, canonical_ids
+                ) {
+                ok = false;
+            }
+            param = param + 1;
+        }
+        routine = routine + 1;
+    }
+    return MirExpressionIdentityEpoch(
+        ok && ArrayLength(routine_canonical_ids) ==
+            MirProgramRoutineIndexCount(routines),
+        routine_canonical_ids, source_ids, canonical_ids
+    );
+}
+
+func MirExpressionIdentityEpochFromArtifact(
+    ref routines: MirProgramRoutineIndex,
+    artifact: AstTreeArtifact
+) -> MirExpressionIdentityEpoch {
+    return MirExpressionIdentityEpochFromArtifactWithSignatures(
+        routines, artifact,
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact)
+    );
+}
+
+func MirExpressionIdentityEpochRebindGraph(
+    graph: SemanticExpressionGraphFacts,
+    ref epoch: MirExpressionIdentityEpoch
+) -> SemanticExpressionGraphFacts {
+    let targets: Array<Int> =
+        graph.arena.identities.call_target_syntax_ids;
+    let bindings: Array<Int> = graph.arena.identities.binding_syntax_ids;
+    let node_count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    let valid: Bool = graph.ok && epoch.ok &&
+        SemanticExpressionIdentityRowsReady(
+            graph.arena.identities, node_count
+        );
+    let node: Int = 0;
+    while node < node_count && valid {
+        if targets[node] > 0 {
+            let target: Option<Int> =
+                MirExpressionIdentityEpochLookup(epoch, targets[node]);
+            if !IsSome(target) {
+                valid = false;
+            } else {
+                ArraySet(targets, node, UnwrapOption(target));
+            }
+        }
+        if bindings[node] > 0 {
+            let binding: Option<Int> =
+                MirExpressionIdentityEpochLookup(epoch, bindings[node]);
+            if !IsSome(binding) {
+                valid = false;
+            } else {
+                ArraySet(bindings, node, UnwrapOption(binding));
+            }
+        }
+        node = node + 1;
+    }
+    let rebound: SemanticExpressionIdentityRows =
+        SemanticExpressionIdentityRows(
+            targets, graph.arena.identities.runtime_call_abi_ids,
+            bindings, graph.arena.identities.binding_kinds,
+            graph.arena.identities.binding_ordinals
+        );
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopologyWithIdentities(
+            graph.arena.topology, graph.arena.node_texts,
+            graph.arena.call_target_kinds, graph.arena.call_target_names,
+            graph.arena.call_return_type_names, rebound,
+            graph.arena.place_kinds
+        );
+    return SemanticExpressionGraphFacts(
+        valid && SemanticExpressionGraphArenaReady(arena),
+        graph.roots, graph.has_roots, arena
+    );
+}
+
+func MirExpressionIdentityEpochRebindGraphForArtifact(
+    graph: SemanticExpressionGraphFacts,
+    ref routines: MirProgramRoutineIndex,
+    artifact: AstTreeArtifact
+) -> SemanticExpressionGraphFacts {
+    let epoch: MirExpressionIdentityEpoch =
+        MirExpressionIdentityEpochFromArtifact(routines, artifact);
+    return MirExpressionIdentityEpochRebindGraph(graph, epoch);
+}

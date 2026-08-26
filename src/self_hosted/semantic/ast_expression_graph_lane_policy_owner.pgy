@@ -58,6 +58,15 @@ func SemanticAstExpressionGraphAtomLaneProducerOnly(
     );
 }
 
+func SemanticAstExpressionGraphLaneCarriesPersistedIdentity(
+    artifact: AstTreeArtifact,
+    node_id: Int,
+    lane: Int
+) -> Bool {
+    return lane != AstExpressionLaneAtom() ||
+        !SemanticAstExpressionGraphAtomLaneProducerOnly(artifact, node_id);
+}
+
 func SemanticAstExpressionGraphValueLaneRequired(
     artifact: AstTreeArtifact,
     node_id: Int

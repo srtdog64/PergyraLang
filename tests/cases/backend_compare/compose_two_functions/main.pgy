@@ -2,6 +2,8 @@ func Plus3(x: Int) -> Int {
     return x + 3;
 }
 
+enum CallableEpochMarker { Stable }
+
 func Times2(x: Int) -> Int {
     return x * 2;
 }

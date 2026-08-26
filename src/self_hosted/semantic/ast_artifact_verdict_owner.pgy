@@ -188,15 +188,19 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     let expression_surfaces: SemanticAstExpressionSurfaceFacts =
         input_expression_surfaces;
     if signatures.ok && constructors.ok && input_expression_surfaces.ok {
-        let target_graph: SemanticExpressionGraphFacts =
-            SemanticExpressionGraphCallTargetsFromSignatures(
+        let target_capture: SemanticExpressionCallTargetCapture =
+            SemanticExpressionGraphCallTargetCaptureFromSignatures(
                 input_expression_surfaces.expression_graph,
                 signatures, constructors, enums,
                 require_carried_call_targets, function_tables
             );
         expression_surfaces = SemanticAstExpressionSurfaceFactsWithGraph(
-            artifact, input_expression_surfaces, target_graph
+            artifact, input_expression_surfaces, target_capture.graph
         );
+        if !target_capture.graph.ok {
+            expression_surfaces.failure_node_id = target_capture.failure_node_id;
+            expression_surfaces.failure_lane = target_capture.failure_lane;
+        }
     }
     let ability_generic_bounds: SemanticAstAbilityGenericBoundVerdict =
         SemanticAstAbilityGenericBoundsVerdict(roles);

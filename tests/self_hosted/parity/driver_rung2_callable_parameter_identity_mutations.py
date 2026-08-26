@@ -64,6 +64,12 @@ def main():
         and node.get("binding_kind") == "declared_callable",
         "Main Plus3 callable value",
     )
+    apply_two_call = first_node(
+        main_routine,
+        lambda node: node.get("kind") == "call"
+        and node.get("call_target_name") == "ApplyTwo",
+        "Main ApplyTwo direct call",
+    )
 
     if kind == "formal-missing-binding-id":
         leaf_b["binding_syntax_id"] = 0
@@ -99,6 +105,8 @@ def main():
         plus_three_value["binding_syntax_id"] = 0
     elif kind == "declared-binding-id-swap":
         plus_three_value["binding_syntax_id"] = routine(document, "Times2")["source_syntax_id"]
+    elif kind == "declared-target-id-swap":
+        apply_two_call["call_target_syntax_id"] = plus_three["source_syntax_id"]
     elif kind == "declared-binding-kind":
         plus_three_value["binding_kind"] = "formal_parameter"
         plus_three_value["binding_ordinal"] = 0

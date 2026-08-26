@@ -96,6 +96,10 @@ func SemanticAstAnalysisResolveExpressionIdentities(
             } else {
                 let use_node_id: Int =
                     analysis.expression_surfaces.node_ids[surface_index];
+                let surface_carries_identity: Bool =
+                    SemanticAstExpressionGraphLaneCarriesPersistedIdentity(
+                        artifact, use_node_id, root_slot % 3
+                    );
                 let function_node: Option<Int> =
                     SemanticAstExpressionFunctionNodeAt(
                         analysis.expression_surfaces,
@@ -271,20 +275,30 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             }
                         }
                     }
-                    if require_carried_identities &&
-                        (graph.arena.identities.call_target_syntax_ids[node] !=
-                            carried_call_target_syntax_id ||
-                         graph.arena.identities.runtime_call_abi_ids[node] !=
-                            carried_runtime_call_abi_id ||
-                         graph.arena.identities.binding_syntax_ids[node] !=
-                            carried_binding_syntax_id ||
-                         graph.arena.identities.binding_kinds[node] !=
-                            carried_binding_kind ||
-                         graph.arena.identities.binding_ordinals[node] !=
-                            carried_binding_ordinal) {
-                        let detail: String = Concat(
-                            "semantic carried expression identity mismatch: node=",
-                            ToString(node));
+                    let carried_identity_mismatch: Bool = false;
+                    if require_carried_identities && surface_carries_identity {
+                        carried_identity_mismatch =
+                            graph.arena.identities.call_target_syntax_ids[node] !=
+                                carried_call_target_syntax_id ||
+                            graph.arena.identities.runtime_call_abi_ids[node] !=
+                                carried_runtime_call_abi_id ||
+                            graph.arena.identities.binding_syntax_ids[node] !=
+                                carried_binding_syntax_id ||
+                            graph.arena.identities.binding_kinds[node] !=
+                                carried_binding_kind ||
+                            graph.arena.identities.binding_ordinals[node] !=
+                                carried_binding_ordinal;
+                    } else if require_carried_identities {
+                        carried_identity_mismatch =
+                            carried_call_target_syntax_id != 0 ||
+                            carried_runtime_call_abi_id != 0 ||
+                            carried_binding_syntax_id != 0 ||
+                            carried_binding_kind !=
+                                SemanticExpressionBindingNone() ||
+                            carried_binding_ordinal != -1;
+                    }
+                    if carried_identity_mismatch {
+                        let detail: String = Concat("semantic carried expression identity mismatch: node=", Concat(ToString(node), Concat(" text=", graph.arena.node_texts[node])));
                         detail = Concat(detail, Concat(
                             " call_target=", Concat(
                             ToString(carried_call_target_syntax_id), Concat(

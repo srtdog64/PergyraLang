@@ -33,6 +33,10 @@ fi
 
 IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy"
 FIELD_IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_field_identity_epoch_owner.pgy"
+EXPRESSION_IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_identity_epoch_owner.pgy"
+EXPRESSION_GRAPH_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
+LANE_POLICY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy"
+IDENTITY_RESOLUTION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy"
 EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/canonical_mir_execution_owner.pgy"
 DRIVER_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 CARRIER_OWNER="$ROOT_DIR/src/self_hosted/mir/domain_topology_fact_owner.pgy"
@@ -104,9 +108,28 @@ for term in \
         || fail "exact owner/name/field-kind join closure is missing: $term"
 done
 if grep -Eq 'source_syntax_id[[:space:]]*[+-]|canonical_id[[:space:]]*==[[:space:]]*source_syntax_id' \
-    "$IDENTITY_OWNER" "$FIELD_IDENTITY_OWNER"; then
+    "$IDENTITY_OWNER" "$FIELD_IDENTITY_OWNER" \
+    "$EXPRESSION_IDENTITY_OWNER"; then
     fail "canonical identity owner reopened numeric equality/offset remapping"
 fi
+for term in \
+    'MirExpressionIdentityEpochFromArtifactWithSignatures' \
+    'header.param_source_syntax_ids[param]' \
+    'canonical_param_id' \
+    'MirExpressionIdentityEpochLookup'; do
+    grep -Fq -- "$term" "$EXPRESSION_IDENTITY_OWNER" \
+        || fail "expression identity epoch lost exact routine/parameter join: $term"
+done
+for term in \
+    'MirExpressionIdentityEpochRebindGraphForArtifact('; do
+    grep -Fq -- "$term" "$EXPRESSION_GRAPH_OWNER" \
+        || fail "MIR expression graph bypassed canonical identity rebinding: $term"
+done
+grep -Fq -- 'SemanticAstExpressionGraphLaneCarriesPersistedIdentity' \
+    "$LANE_POLICY_OWNER" \
+    || fail "producer-only identity carriage policy is missing"
+grep -Fq -- 'surface_carries_identity' "$IDENTITY_RESOLUTION_OWNER" \
+    || fail "semantic identity admission bypassed lane carriage policy"
 grep -Fq -- 'graph.topology_row_count != ArrayLength(graph.topology.kinds)' \
     "$CARRIER_OWNER" \
     || fail "DIR-to-MIR topology carrier does not consume the typed row arrays"
@@ -450,4 +473,4 @@ for mutation in \
         || fail "identity mutation missed the topology boundary: $(basename "$mutation")"
 done
 
-echo "[self-host-parity:canonical-identity-epoch] exact hosted-method tree ID, apply/link epoch remap, and stale/wrong-kind field-ID negatives ok"
+echo "[self-host-parity:canonical-identity-epoch] exact routine/parameter expression, hosted-method, apply/link epoch remap, and stale/wrong-kind negatives ok"

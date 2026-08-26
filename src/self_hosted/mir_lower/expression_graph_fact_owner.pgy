@@ -1,5 +1,4 @@
 // MIR graph facts bound to structured AST expression occurrence identity.
-
 import "../semantic/ast_expression_surface_fact_owner.pgy";
 import "../semantic/ast_expression_call_target_fact_owner.pgy";
 import "program_routine_index_owner.pgy";
@@ -8,7 +7,7 @@ import "structured_expression_emission_order_owner.pgy";
 import "expression_graph_occurrence_owner.pgy";
 import "expression_graph_parser_bridge_owner.pgy";
 import "intent_execution_graph_target_owner.pgy";
-
+import "expression_identity_epoch_owner.pgy";
 func MirExpressionGraphFactPressureStage(
     enabled: Bool,
     stage: String
@@ -17,7 +16,6 @@ func MirExpressionGraphFactPressureStage(
         Log(Concat("[driver-pressure-stage] ", stage));
     }
 }
-
 func MirExpressionGraphFactsForArtifactObserved(
     ref routines: MirProgramRoutineIndex,
     artifact: AstTreeArtifact,
@@ -257,12 +255,14 @@ func MirExpressionGraphFactsForArtifactObserved(
     }
     MirExpressionGraphFactPressureStage(observe_pressure, Concat(
         "consumer:expression-graph:coverage:done:valid:", ToString(valid)));
-    let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
-        valid, roots, has_roots, sequence.arena
-    );
-    if !valid || !SemanticExpressionGraphCarriedCallTargetsReady(facts) {
+    let source_facts: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(valid, roots, has_roots, sequence.arena);
+    let facts: SemanticExpressionGraphFacts =
+        MirExpressionIdentityEpochRebindGraphForArtifact(
+            source_facts, routines, artifact);
+    if !facts.ok || !SemanticExpressionGraphCarriedCallTargetsReady(facts) {
         return SemanticExpressionGraphFacts(
-            false, roots, has_roots, sequence.arena
+            false, roots, has_roots, facts.arena
         );
     }
     return facts;
