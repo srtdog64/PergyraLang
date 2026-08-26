@@ -1,6 +1,23 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-26
+마지막 업데이트: 2026-08-27
+
+2026-08-27 callable-parameter public substitution 로컬 갱신: canonical recursive
+`func(T...) -> R`와 callable value의 target/binding SyntaxNodeId가 parser,
+semantic admission, MIR carriage를 지나 설치형 public backend까지 유지된다. C는
+source-MIR 뒤 semantic re-entry/self-C identity-bound emitter를 소비하고, LLVM은
+같은 source-MIR 뒤 direct-MIR GraphPlan을 소비한다. 둘 다 implicit native retry가
+없으며 explicit native는 runtime-output oracle로만 남는다.
+
+`compose_two_functions`는 C/LLVM 모두 정확히 `16\n13\n6`, builtin 이름과 같은
+formal을 둔 falsifier는 정확히 `6`을 출력한다. 19개 missing/forged/cross-wired
+mutation은 artifact publication 전에 실패한다. Fresh release DRV-2 설치, focused
+gate, 별도 installed-public gate, full component/source-MIR inventory는 local
+green이고 구현 checkpoint는 `30b84f80`이다. 아직 push와 replacement CI 전이므로
+publication 완료나 원격 green은 주장하지 않는다. Registry census는 그대로 `50
+CLOSED / 35 BRIDGE / 1 ACTIVE`; hard closure와 migration 산술만 현재 census에
+맞춰 각각 58.1%, 78.8%로 바로잡고 통합 83% (81~85%), strict beta 83%, hard
+replacement 75%는 유지한다.
 
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
@@ -407,7 +424,7 @@ world members 3, zone-bound actions 38을 exact로 확인했다. 이 최종 결�
 checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure까지
 진행했다. 퍼센트와 SoT state는 그대로다.
 
-## 2026-08-26 프로젝트 퍼센테이지 기준선
+## 2026-08-27 프로젝트 퍼센테이지 기준선
 
 한 숫자가 필요할 때의 현재 작업 예측은 **83%**다. 오차 범위는
 **81~85%**로 둔다. 이것은 릴리스 판정이나 테스트 통과율이 아니라,
@@ -424,8 +441,8 @@ checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure�
 | 축 | 현재치 | 분모와 근거 | 다음 상승 조건 |
 | --- | ---: | --- | --- |
 | 언어 strict beta | 83% | `docs/100_beta_readiness_checklist.md`의 현재 공식선 | current full suite와 남은 beta-critical fallback 폐쇄 |
-| SoT hard closure | 49/86 = 57.0% CLOSED | owner registry의 `CLOSED 49 / BRIDGE 36 / ACTIVE 1` | consumer migration, old read 삭제, negative gate까지 갖춰 `CLOSED` 승격 |
-| SoT migration index | 78.2% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | BRIDGE를 늘리는 문서/owner 추가가 아니라 실제 hard substitution |
+| SoT hard closure | 50/86 = 58.1% CLOSED | owner registry의 `CLOSED 50 / BRIDGE 35 / ACTIVE 1` | consumer migration, old read 삭제, negative gate까지 갖춰 `CLOSED` 승격 |
+| SoT migration index | 78.8% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | BRIDGE를 늘리는 문서/owner 추가가 아니라 실제 hard substitution |
 | self-host substrate | 10/10 READY | executable scorecard의 capability 4는 allocator lanes, `BoxArray`, explicit destroy, TextBuilder/result assembly를 포함해 이미 READY이고 본문의 measured closure도 Phase 1 closure를 선언한다. | remaining compiler-scale String scope reclamation은 효율 전선이며 새 native fallback의 근거가 아님 |
 | 일반 GraphPlan 연속 전선 | complete-source Pergyra producer/gen2/gen3 fixed point + installed public C/LLVM/package/MIR/REPL-compile boundaries | canonical O3 gen2/gen3 byte equality, repository-installed sibling, fail-closed public gates가 누적됐고 latest implementation source의 remote full self-host job도 green이다. routine·row·V·owner 수는 진행률 분자가 아니다. | 기존 fixed point를 유지하고 fresh production compiler bypass가 실제 Pergyra owner에 닿을 때만 후속 rung을 연다. |
 | hard self-host replacement 예측 | 75% | complete-source producer/fixed point와 public compiler-bearing C/LLVM/package/MIR/REPL 내부는 bounded `SUBSTITUTING`이지만 whole product와 unsupported RIR/AIR/HIR에는 완전한 Pergyra owner가 없다. 기존 추정 분모를 새 숫자 없이 유지한다. | fresh production bypass, complete Pergyra owner, executable falsifier가 함께 존재하는 다음 target-specific substitution |
@@ -448,8 +465,8 @@ ordinal이나 통과 routine 수는 프로그램 구조가 바뀔 때 함께 변
 분수로 환산하지 않는다. 75%는 현재 실제 hard-substitution 범위와 완전한
 Pergyra owner가 없는 native product shell 및 unsupported IR producer를 함께 본
 target-specific 작업 예측이며 산술 통과율이 아니다.
-통합 계산은 `83×0.30 + 78.2×0.25 + 75×0.25 + 100×0.10 +
-100×0.10 = 83.20`이며 표시값은 83%다.
+통합 계산은 `83×0.30 + 78.8×0.25 + 75×0.25 + 100×0.10 +
+100×0.10 = 83.35`이며 표시값은 83%다.
 
 2026-08-18 control-flow 실행 갱신: 다음 compiler-scale RED는 SoT 행이
 아니라 direct `else if` tail을 source 깊이만큼 재귀 호출하던 MIR lowering이었다.

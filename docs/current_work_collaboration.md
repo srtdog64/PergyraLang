@@ -1,10 +1,70 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-08-26 (Asia/Seoul)
+Updated: 2026-08-27 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
+
+## ACTIVE lease — callable-parameter installed-path substitution (publication pending)
+
+- Implementation checkpoint: exact local
+  `30b84f80aaf13a8479b533a931ef115dfcea5905`; publication and replacement CI
+  are pending from published base `57d9c3704fb8654b28994aa2f35bb8d9373a9214`.
+  The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
+  paths are outside this lease and must remain untouched.
+- Objective: carry canonical `func(T...) -> R` parameter and return types plus
+  named callable values through the Pergyra-owned source pipeline, then make
+  the installed default C and LLVM paths execute
+  `tests/cases/backend_compare/compose_two_functions/main.pgy` with exact output
+  `16\n13\n6`. This rung counts only when those public paths substitute without
+  an implicit native retry; explicit native execution remains an output oracle.
+- Priority: canonical function-type syntax identity; callable-value semantic
+  admission; target-neutral call carriage; C/LLVM consumption; missing or
+  forged fact rejection; old-path ratchet; then patch size.
+- Fact owners: `ReadType` owns the self-host parser's canonical written type
+  projection. Existing semantic callable-signature and expression facts own
+  callable identity after admission; MIR expression-graph call rows carry its
+  target and binding SyntaxNodeIds. No parser or backend may become a second
+  callable-signature authority.
+- Production entrypoint and last consumers: installed `bin/pgy.exe SOURCE
+  --backend=c -o EXE` reaches Pergyra source-to-MIR, semantic re-entry, and the
+  self-C semantic identity-bound emitter. Installed `--backend=llvm -o EXE`
+  reaches the same source-to-MIR owner and the direct-MIR GraphPlan LLVM
+  consumer. The native launcher only selects the admitted route and performs
+  host compile/link/run.
+- Direct bypass retired locally: neither public backend requires
+  `--native-pipeline` for canonical `func(T...) -> R` or a callable-valued
+  parameter, and missing/failed installed ownership cannot retry native.
+- Forbidden: fixture-name dispatch; backend parsing of source or expression
+  text; recovering callable identity from a function spelling after semantic
+  admission; rewriting a callable parameter as a fixed direct callee; native
+  retry/fallback; C/LLVM policy divergence; or success with a missing callable
+  type, target, or carriage fact.
+- Falsifying gate: the installed C and LLVM artifacts must both execute with
+  byte-identical `16\n13\n6` output and match the explicit-native oracle.
+  Removing a callable type/target fact or cross-wiring the two callable
+  parameters must fail before an artifact is published. Parser-only or static
+  readiness checks do not close this lease.
+- Only the primary task owns implementation and publication. No parallel edit
+  scope is open on this executable rung.
+
+### Local result
+
+- A fresh release DRV-2 was built and installed from the current source. The
+  focused owner gate and the separate installed-public gate both execute C and
+  LLVM artifacts for `compose_two_functions` with exact `16\n13\n6` output.
+  The builtin-shadow fixture proves a formal named `StringLength` calls its
+  carried value and prints exact `6`, rather than dispatching to the builtin.
+- Nineteen mutations reject missing/forged callable type, target, binding, and
+  carriage facts before either backend publishes an artifact. Builtins keep
+  canonical zero/none identity, while declared and formal callable targets
+  require their exact source SyntaxNodeId cross-seal.
+- The full component/source-MIR inventory, the official self-host compiler
+  build, and the post-build installed public gate are locally green at the
+  implementation source now committed as `30b84f80`. Remote CI and publication
+  have not run yet, so this lease remains `ACTIVE` and no percentage or registry
+  status is promoted by the local result alone.
 
 ## DONE lease O — structured MatchCase carrier closure
 

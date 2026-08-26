@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-26 (Asia/Seoul)
+Updated: 2026-08-27 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -12,13 +12,53 @@ two Codex tasks from editing or publishing the same executable rung; it is a
 coordination aid, not completion evidence.
 
 Project-wide progress is tracked separately in `docs/00_progress.md`. The
-2026-08-26 evidence-reconciled working forecast is 83% (81-85% range) for
+2026-08-27 evidence-reconciled working forecast is 83% (81-85% range) for
 language beta plus SoT, self-host, bootstrap, and CI/release together; strict
 language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - structured MatchCase carrier closure
+## Active self-host context - callable-parameter public substitution
+
+- Callable implementation checkpoint is exact local
+  `30b84f80aaf13a8479b533a931ef115dfcea5905`; origin remains exact
+  `57d9c3704fb8654b28994aa2f35bb8d9373a9214`, and this handoff/documentation
+  checkpoint plus publication are pending. The unrelated user-owned
+  `pgy-80135c2c/` and
+  concurrent `docs/compiler_architectures/` paths remain untracked and must not
+  be inspected, staged, deleted, or rewritten.
+- Objective card: let canonical `func(T...) -> R` declarations and values retain
+  one syntax/semantic identity through source-to-MIR, then make installed public
+  C and LLVM execute the same callable program without native retry. `ReadType`,
+  semantic callable signature/expression facts, and MIR target/binding
+  SyntaxNodeIds own the chain; spelling-based backend recovery is forbidden.
+- Installed `bin/pgy.exe SOURCE --backend=c -o EXE` now reaches Pergyra
+  source-to-MIR, semantic re-entry, and the self-C identity-bound call emitter.
+  Installed `--backend=llvm -o EXE` reaches source-to-MIR and the direct-MIR
+  GraphPlan LLVM consumer. Explicit native C is used only as a runtime-output
+  oracle; native/self MIR byte identity is not claimed because their parameter
+  source-identity projections intentionally differ today.
+- `compose_two_functions` executes exact `16\n13\n6` through both public
+  backends. `callable_parameter_builtin_shadow` executes exact `6`, proving a
+  formal named `StringLength` does not fall into builtin name dispatch. The
+  focused gate's 19 missing/forged/cross-wired mutations fail before artifact
+  publication.
+- A fresh release self-host compiler was built and installed. The focused
+  callable gate, separate installed-public gate, full component/source-MIR
+  inventory, and the post-build installed gate are local GREEN. Remote CI has
+  not run for implementation checkpoint `30b84f80`, so the next falsifier is
+  the documentation checkpoint, exact push, and the replacement matrix at the
+  published revision.
+- Root variant output remains Git-closed by published checkpoint `1e8b5531`:
+  `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
+  Physical cleanup was rejected by execution policy before any deletion; do not
+  retry that destructive operation as part of this compiler rung.
+- The SoT census remains `CLOSED=50 BRIDGE=35 ACTIVE=1`. Reconciled hard SoT is
+  `50/86 = 58.1%` and the migration index is 78.8%; integrated progress remains
+  83% (81-85%), strict beta 83%, and hard replacement 75%. These are evidence
+  corrections, not a callable-rung percentage increase.
+
+## Previous self-host context - structured MatchCase carrier closure
 
 - Implementation checkpoint `aafcadbd` and CI-ratchet repair `5ce4b384` are
   published. Replacement run `32969362909` passed 29/29 at exact repair HEAD

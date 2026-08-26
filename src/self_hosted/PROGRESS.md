@@ -1,6 +1,24 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-26 structured MatchCase carrier
+## Active self-host context - 2026-08-27 callable-parameter public substitution
+
+- Canonical recursive `func(T...) -> R` shapes now survive parser, semantic
+  admission, MIR parameter/target carriage, and both installed public backend
+  routes. C consumes the admitted identity after semantic re-entry; LLVM
+  consumes it through the direct-MIR GraphPlan. Neither route retries native.
+- `compose_two_functions` executes exact `16\n13\n6` through installed C and
+  LLVM. A formal callable deliberately named `StringLength` executes exact `6`,
+  proving that source identity wins over builtin spelling dispatch.
+- The focused gate rejects 19 missing, forged, or cross-wired callable type,
+  target, binding, and carriage mutations without publishing an artifact. A
+  fresh release DRV-2 build/install, the separate public-installed gate, and the
+  full component/source-MIR inventory are local GREEN.
+- Implementation checkpoint `30b84f80` is local; publication and remote
+  replacement CI are still pending. SoT stays
+  `CLOSED=50 BRIDGE=35 ACTIVE=1`; hard closure is 58.1%, migration is 78.8%,
+  overall remains 83% (81-85%), strict beta 83%, and hard replacement 75%.
+
+## Historical self-host context - 2026-08-26 structured MatchCase carrier
 
 - Checkpoint `aafcadbd` admits each typed MatchCase atom once through the HIR
   `AstMatchCasePatternFact` owner and carries canonical pattern, variant, flat
