@@ -81,9 +81,9 @@ gate count do not increment either percentage by themselves.
   are navigation evidence, not a new active rung.
   They found no duplicated semantic decision in Lease F or the nested one-plan
   route, recommended deferring folder movement, and named only a lower-priority
-  scalar GraphPlan parameter-indirection candidate. Do not implement it until
-  this remote falsifier closes and a fresh production bypass/objective card is
-  selected.
+  scalar GraphPlan parameter-indirection candidate. The remote falsifier is
+  closed; do not implement that candidate unless a fresh production bypass and
+  objective card select it.
 
 ### Historical archive boundary
 

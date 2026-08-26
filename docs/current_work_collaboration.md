@@ -28,11 +28,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   the installed self-driver child and its stdout payload consumer. The child
   must compile, admit, and render exactly once; the native launcher may only
   relay its exit status and bytes.
-- Direct bypass to delete: default `--mir` currently skips the installed driver
-  and falls through to `driver_run_pipeline(&flags)`, which calls native
-  `mir_dump`. An explicit `--native-pipeline --mir` remains the bounded oracle
-  and escape hatch; it must not be an automatic retry or missing-driver
-  fallback.
+- Deleted pre-change bypass: default `--mir` skipped the installed driver and
+  fell through to `driver_run_pipeline(&flags)`, which called native
+  `mir_dump`. Explicit `--native-pipeline --mir` remains the bounded oracle and
+  escape hatch; it is not an automatic retry or missing-driver fallback.
 - Forbidden fallback: guessed SSA/liveness/lifecycle counts absent from the
   admitted MIR contract; JSON substring formatting without typed admission;
   reparsing source or AST in the diagnostic owner; native retry after a
