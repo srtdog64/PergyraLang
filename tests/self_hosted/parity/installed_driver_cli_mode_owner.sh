@@ -15,7 +15,9 @@
 # public_capability_manifest_oracle_self_compare,
 # missing_capability_driver_native_retry,
 # public_dir_native_fallback, public_dir_oracle_self_compare,
-# missing_dir_driver_native_retry.
+# missing_dir_driver_native_retry,
+# source_c_artifact_machine_manifest_omission,
+# source_c_machine_manifest_missing_or_corrupt_native_retry.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

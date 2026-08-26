@@ -2,6 +2,9 @@
 # Public source-C carries the installed machine declaration into the existing
 # Pergyra MIR machine-layer projection. Missing or malformed physical evidence
 # must fail before publication and must never retry the native compiler.
+# Registry forbidden-fallback inventory:
+# source_c_artifact_machine_manifest_omission,
+# source_c_machine_manifest_missing_or_corrupt_native_retry.
 
 set -euo pipefail
 
@@ -129,4 +132,4 @@ grep -Fq 'SourceCManifestVerified(' \
 ! grep -Fq 'driver_run_pipeline(' "$ROOT_DIR/src/compiler/self_host_driver.c" ||
     device_manifest_fail "source-C adapter regained a native fallback"
 
-echo "[self-host-public-device-manifest] installed companion owns DeviceSlot source-C projection; missing/corrupt evidence fails closed"
+echo "[self-host-public-device-manifest] installed companion owns DeviceSlot source-C projection and missing or corrupt evidence fails closed"
