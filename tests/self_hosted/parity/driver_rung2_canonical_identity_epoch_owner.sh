@@ -473,4 +473,4 @@ for mutation in \
         || fail "identity mutation missed the topology boundary: $(basename "$mutation")"
 done
 
-echo "[self-host-parity:canonical-identity-epoch] exact routine/parameter expression, hosted-method, apply/link epoch remap, and stale/wrong-kind negatives ok"
+echo "[self-host-parity:canonical-identity-epoch] exact hosted-method tree ID, apply/link epoch remap, and stale/wrong-kind field-ID negatives ok"
