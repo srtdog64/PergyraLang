@@ -1349,7 +1349,7 @@ both `call_target_syntax_id` and
 IDs with the admitted semantic signature, while builtin and constructor rows
 must retain canonical zero/none identity. Installed C consumes the admitted
 identity after semantic re-entry and installed LLVM consumes it through the
-direct-MIR GraphPlan. The focused gate rejects 19 missing, forged, and
+direct-MIR GraphPlan. The focused gate rejects 20 missing, forged, and
 cross-wired type/target/binding/carriage mutations before artifact publication;
 the separate installed gate executes exact C/LLVM outputs. This closes the
 bounded callable-parameter consumer path but does not promote
@@ -1358,6 +1358,19 @@ bounded callable-parameter consumer path but does not promote
 The full-bootstrap partial-identity falsifier must mutate routine parameter rows,
 not merely an earlier declaration-shaped JSON row; checkpoint `5f739701` makes
 that mutation global and both self-built and oracle mir_lower reject it.
+
+Repair `1d459036` keeps the same registry row and closes the producer/canonical
+identity-epoch seam reached by that bounded consumer. `MirExpressionIdentityEpoch`
+is the single exact routine/parameter join; MIR expression call targets and
+declared/formal callee bindings are rebound to reconstructed canonical IDs
+before semantic admission. Numeric offsets, source/canonical dual reads, and
+name-only semantic acceptance are forbidden. Collection receiver atom rows
+that MIR v1 deliberately does not persist remain an explicit producer-only
+lane: they must carry neutral identity and the canonical semantic owner fills
+them once. This adds executable negative evidence but does not promote a
+top-level row or change the `CLOSED/BRIDGE/ACTIVE` census. Gate-identity ratchet
+`e070fcec` preserves the stable canonical-epoch pass marker; the SoT edge gate
+observes `CLOSED=50 BRIDGE=35 ACTIVE=1`.
 
 GraphPlan v71 does not add a registry row or change a top-level fact identity.
 It tightens the existing declaration-keyed logical-record signature consumer:

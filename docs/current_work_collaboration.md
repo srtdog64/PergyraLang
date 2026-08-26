@@ -12,7 +12,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, native-MIR repair
   `024d1ba7f858b09802d97bc0372c29deaa440745`, fixture-scope repair
   `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, and Linux mutation repair
-  `5f73970168b45252b8c6637691e7ef363e8304b3` are published.
+  `5f73970168b45252b8c6637691e7ef363e8304b3` are published. Canonical
+  expression-identity epoch candidate repair
+  `1d4590364e32bb4708659e609cc6a96e6b23b318` is the current exact
+  implementation checkpoint and `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2`
+  restores the stable canonical-epoch gate identity. Both are local until the
+  pending replacement push/CI.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -58,7 +63,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   LLVM artifacts for `compose_two_functions` with exact `16\n13\n6` output.
   The builtin-shadow fixture proves a formal named `StringLength` calls its
   carried value and prints exact `6`, rather than dispatching to the builtin.
-- Nineteen mutations reject missing/forged callable type, target, binding, and
+- Twenty mutations reject missing/forged callable type, target, binding, and
   carriage facts before either backend publishes an artifact. Builtins keep
   canonical zero/none identity, while declared and formal callable targets
   require their exact source SyntaxNodeId cross-seal.
@@ -92,9 +97,39 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   compiler correctly accepted the still-wholly-absent routine identity, so the
   gate reported a false failure. Repair `5f739701` mutates every matching row;
   the exact global mutation is rejected by both self-built and oracle mir_lower
-  with the partial-identity diagnostic, and shell syntax is green. That run was
-  superseded after the codegen failure; replacement run `33006827756` is the
-  next remote falsifier. No percentage or registry state is promoted yet.
+  with the partial-identity diagnostic, and shell syntax is green. That run and
+  replacement run `33006827756` were superseded. No percentage or registry
+  state is promoted yet.
+- Final-head run `33007078796` passed 27/29 jobs, including all 20 backend
+  shards and `self-host-codegen-bootstrap-linux`. `build-linux` and the full
+  `self-host-bootstrap-linux` stopped when the MIR-to-C semantic re-entry
+  compared producer-epoch callable SyntaxNodeIds with reconstructed canonical
+  AST SyntaxNodeIds. The first exact row is `JsonCharCodeAt`: the call and
+  callee both carry producer ID `17`, but the canonical signature owner has a
+  different node identity.
+- Current objective card: rebind persisted declared-callable and formal-
+  parameter identities exactly once at the MIR expression-graph boundary.
+  `MirProgramRoutineIndex` plus routine parameter rows own producer identity;
+  the reconstructed `SemanticAstFunctionSignatureFacts` own the canonical
+  identity. `SemanticAstArtifactAnalyzeWithExpressionGraph` is the last
+  consumer. Name-only semantic admission, numeric-offset inference, accepting
+  either epoch, and a native fallback are forbidden. The falsifier is the
+  full `mir_lower/main.pgy` MIR-to-C re-entry plus a partial target/binding
+  mutation that must fail before artifact publication.
+- Local repair result: `MirExpressionIdentityEpoch` joins producer routines and
+  parameters to reconstructed canonical signatures by exact kind/module/owner/
+  name/ordinal/name identity, then atomically rebinds call target and callee
+  binding IDs before semantic admission. The callable fixture now places an
+  enum between functions so source and canonical epochs cannot match by
+  accident. Its C/LLVM execution and all 20 mutations are GREEN on fresh v7.
+- The existing collection receiver parser bridge is explicitly producer-only,
+  not a compatibility fallback. Those rows must arrive with neutral identity;
+  only the canonical semantic owner fills them. Persisted lanes retain exact
+  carriage equality. Full `mir_lower` C emission, canonical method/topology
+  epoch positives and negatives, and the complete component contract are local
+  GREEN. The stable canonical-epoch pass marker and SoT edge census are also
+  GREEN at `e070fcec`. Replacement CI is still required before this lease can
+  close.
 
 ## DONE lease O — structured MatchCase carrier closure
 

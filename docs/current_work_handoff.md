@@ -24,9 +24,11 @@ percentage by themselves.
   repair `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, native-MIR repair
   `024d1ba7f858b09802d97bc0372c29deaa440745`, fixture-scope checkpoint
   `dc7be82f6cc8da0e6d2427c405101cbf262591bd`, and Linux mutation repair
-  `5f73970168b45252b8c6637691e7ef363e8304b3` are published. This updated
-  handoff is pending publication. The unrelated user-owned
-  `pgy-80135c2c/` and
+  `5f73970168b45252b8c6637691e7ef363e8304b3` are published. Canonical expression-
+  identity epoch candidate repair `1d4590364e32bb4708659e609cc6a96e6b23b318`
+  and stable gate-identity ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2`
+  are the exact local checkpoints. Replacement push/CI remains
+  pending. The unrelated user-owned `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
 - Objective card: let canonical `func(T...) -> R` declarations and values retain
@@ -43,7 +45,7 @@ percentage by themselves.
 - `compose_two_functions` executes exact `16\n13\n6` through both public
   backends. `callable_parameter_builtin_shadow` executes exact `6`, proving a
   formal named `StringLength` does not fall into builtin name dispatch. The
-  focused gate's 19 missing/forged/cross-wired mutations fail before artifact
+  focused gate's 20 missing/forged/cross-wired mutations fail before artifact
   publication.
 - A fresh release self-host compiler was built and installed. The focused
   callable gate, separate installed-public gate, full component/source-MIR
@@ -73,7 +75,24 @@ percentage by themselves.
   so the compiler correctly admitted it. Repair `5f739701` changes all matching
   rows. The exact three-row global mutation makes both self-built and oracle
   mir_lower fail with `identity carriage is partial`; script syntax is GREEN.
-  Replacement run `33006827756` is queued/running and owns remote closure.
+  Run `33006827756` was superseded. Final-head run `33007078796` passed 27/29,
+  including all 20 backend shards and the full codegen bootstrap, then exposed
+  producer-vs-canonical callable identity epoch drift in `build-linux` and the
+  full driver bootstrap. The first exact row was `JsonCharCodeAt()` with source
+  call/callee ID `17` compared against a different reconstructed signature ID.
+- Repair `1d459036` moves the exact routine/parameter identity join behind
+  `MirExpressionIdentityEpoch` and makes the MIR expression graph consume only
+  canonical IDs before semantic admission. It also distinguishes persisted
+  lanes from the existing producer-only collection receiver bridge: persisted
+  facts remain exact, while producer-only rows must carry neutral identity and
+  are filled once by the canonical semantic owner. Numeric offsets, dual-epoch
+  reads, name-only admission, and native fallback remain forbidden.
+- Fresh v7 local evidence is GREEN: the callable C/LLVM gate executes exact
+  `16\n13\n6` and rejects 20 mutations; the canonical method/topology epoch
+  gate passes; full `src/self_hosted/mir_lower/main.pgy` semantic re-entry emits
+  a 1,975,383-byte C artifact; and the complete component contract gate passes.
+  The canonical-epoch stable pass marker and SoT edge census are GREEN at
+  `e070fcec`; a new remote replacement run remains the next falsifier.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
   Physical cleanup was rejected by execution policy before any deletion; do not

@@ -10,7 +10,7 @@ source-MIR 뒤 semantic re-entry/self-C identity-bound emitter를 소비하고, 
 없으며 explicit native는 runtime-output oracle로만 남는다.
 
 `compose_two_functions`는 C/LLVM 모두 정확히 `16\n13\n6`, builtin 이름과 같은
-formal을 둔 falsifier는 정확히 `6`을 출력한다. 19개 missing/forged/cross-wired
+formal을 둔 falsifier는 정확히 `6`을 출력한다. 20개 missing/forged/cross-wired
 mutation은 artifact publication 전에 실패한다. Fresh release DRV-2 설치, focused
 gate, 별도 installed-public gate, full component/source-MIR inventory는 local
 green이고 구현 checkpoint는 `30b84f80`이다. 첫 published run `33000341546`은 새
@@ -41,7 +41,25 @@ routine parameter 행은 wholly absent로 남겨, 컴파일러의 정상 수용�
 오판했다. Repair `5f739701`은 모든 일치 행을 바꾼다. 같은 global mutation은
 self-built/oracle mir_lower 양쪽에서 `identity carriage is partial`로 거부되고 shell
 syntax도 green이다. 이전 run은 이 실패 뒤 새 push로 supersede되었고 replacement
-`33006827756`이 원격 폐쇄를 맡는다. 수치와 registry 상태는 그대로다.
+`33006827756`도 후속 문서 push로 supersede되었다. Final-head run `33007078796`은
+20개 backend shard, Windows/macOS, sanitizer, TSAN, Rocq, toolchain, codegen
+bootstrap을 포함해 27/29를 통과했다. `build-linux`와 full
+`self-host-bootstrap-linux`는 producer AST의 callable SyntaxNodeId를 reconstructed
+canonical AST ID와 직접 비교하던 MIR-to-C semantic re-entry에서 멈췄다.
+
+Repair `1d459036`은 `(kind, module, owner, routine name, parameter ordinal/name)`
+조인을 소유하는 `MirExpressionIdentityEpoch`을 추가해 declared/formal target과
+callee binding을 semantic admission 전에 canonical epoch로 원자적으로 바꾼다.
+숫자 offset, source/canonical dual read, name-only semantic admission은 없다.
+MIR v1이 의도적으로 저장하지 않는 collection receiver atom은 별도
+producer-only lane으로 고정해 carried identity가 비어 있어야 하고 canonical
+semantic owner만 채운다. Enum을 함수 사이에 둬 두 epoch가 실제로 달라지는 callable
+fixture, 20개 negative, canonical topology/method epoch gate, full `mir_lower` C
+emission, component inventory가 fresh v7 driver에서 local green이다. 새 replacement
+CI 전이므로 원격 폐쇄와 수치 상승은 주장하지 않는다. Gate identity
+ratchet `e070fcec`는 기존 stable pass marker를 복구했고 SoT edge는
+`CLOSED=50 BRIDGE=35 ACTIVE=1`로 다시 green이다. 수치와 registry 상태는
+그대로다.
 
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
