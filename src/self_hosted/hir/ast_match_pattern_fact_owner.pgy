@@ -14,6 +14,30 @@ func AstMatchCasePatternFactInvalid() -> AstMatchCasePatternFact {
     return AstMatchCasePatternFact(false, "", "", bindings);
 }
 
+func AstMatchCasePatternFactDigest(
+    ref fact: AstMatchCasePatternFact
+) -> Int {
+    if !fact.ok { return 0; }
+    let modulus: Long = 268435456L;
+    let hash: Long = AstTreeArtifactIdentityHashString(
+        53L, fact.pattern, modulus
+    );
+    hash = AstTreeArtifactIdentityHashString(hash, fact.variant, modulus);
+    hash = AstTreeArtifactIdentityHashInt(
+        hash, ArrayLength(fact.bindings), modulus
+    );
+    let i: Int = 0;
+    while i < ArrayLength(fact.bindings) {
+        hash = AstTreeArtifactIdentityHashString(
+            hash, fact.bindings[i], modulus
+        );
+        i = i + 1;
+    }
+    let digest: Int = hash as Int;
+    if digest == 0 { return 1; }
+    return digest;
+}
+
 func AstMatchCasePatternFactFromText(pattern: String) -> AstMatchCasePatternFact {
     let text: String = StringTrim(pattern);
     let open: Int = StringIndexOf(text, "(");
@@ -66,10 +90,16 @@ func AstMatchCasePatternFactContractReady() -> Bool {
         AstMatchCasePatternFactFromText("Ready");
     let payload: AstMatchCasePatternFact =
         AstMatchCasePatternFactFromText("Pair(left, right)");
+    let changed: AstMatchCasePatternFact = AstMatchCasePatternFact(
+        true, payload.pattern, "Other", payload.bindings
+    );
     return scalar.ok && scalar.variant == "" &&
+        AstMatchCasePatternFactDigest(scalar) != 0 &&
         ArrayLength(scalar.bindings) == 0 &&
         leaf.ok && leaf.pattern == "Ready" &&
         payload.ok && payload.variant == "Pair" &&
+        AstMatchCasePatternFactDigest(payload) !=
+            AstMatchCasePatternFactDigest(changed) &&
         ArrayLength(payload.bindings) == 2 &&
         payload.bindings[0] == "left" && payload.bindings[1] == "right" &&
         !AstMatchCasePatternFactFromText("").ok &&

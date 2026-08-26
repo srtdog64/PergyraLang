@@ -73,12 +73,12 @@ func SemanticAstInitializerTypePressureRow(
         ));
     }
 }
-
 func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
+    ref statements: SemanticAstStatementFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     enum_facts: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
@@ -100,6 +100,8 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
         !constructors.ok ||
         constructors.artifact_node_count != artifact.count ||
         !locals.ok || locals.artifact_node_count != artifact.count ||
+        !statements.ok ||
+        statements.artifact_node_count != artifact.count ||
         !expression_surfaces.ok ||
         expression_surfaces.artifact_node_count != artifact.count ||
         !SemanticAstEnumRowsReady(enum_facts) ||
@@ -199,7 +201,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             continue;
         }
         if !SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
-            artifact, expression_surfaces, constructors, enum_facts,
+            artifact, statements, expression_surfaces, constructors, enum_facts,
             function_scopes,
             locals.function_node_ids[i],
             locals.node_ids[i], names, types, modes, function_tables
@@ -364,7 +366,6 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
         diagnostic_messages, binding_kinds, binding_indices
     );
 }
-
 func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFunctionTables(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -400,12 +401,15 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
         SemanticAstEnumFactsFromArtifact(artifact);
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    if !enum_facts.ok || !function_scopes.ok {
+    let statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    if !enum_facts.ok || !function_scopes.ok || !statements.ok {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
     SemanticAstInitializerTypePressureStage(observe_pressure, "ready:done");
     return SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(
-        artifact, signatures, constructors, locals, expression_surfaces,
+        artifact, signatures, constructors, locals, statements,
+        expression_surfaces,
         enum_facts, function_scopes,
         iteration_node_ids, iteration_function_node_ids,
         iteration_binding_names, iteration_binding_types,
@@ -413,7 +417,6 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObservedWithFun
         observe_pressure, function_tables
     );
 }
-
 func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -446,7 +449,6 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRowsObserved(
     SemanticAstExpressionFunctionTableFactsRelease(function_tables);
     return result;
 }
-
 func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -468,7 +470,6 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         base_facts, reuse_unaffected, false
     );
 }
-
 func SemanticAstInitializerTypeFactsFromArtifactObserved(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -486,7 +487,6 @@ func SemanticAstInitializerTypeFactsFromArtifactObserved(
         observe_pressure
     );
 }
-
 func SemanticAstInitializerTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,

@@ -56,7 +56,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
     let base_initializer_types: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromAdmittedArtifactObservedWithFunctionTables(
             artifact, analysis.signatures, analysis.constructors,
-            analysis.local_bindings, analysis.expression_surfaces,
+            analysis.local_bindings, analysis.statements,
+            analysis.expression_surfaces,
             analysis.enums, analysis.function_scopes,
             observe_pressure, function_tables
         );
@@ -122,8 +123,9 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
         SemanticAstGenericSpecializationFactsFromAdmittedBody(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types,
-            analysis.expression_surfaces, function_tables, analysis.enums,
-            analysis.intent_signatures, analysis.intent_transitions,
+            analysis.statements, analysis.expression_surfaces,
+            function_tables, analysis.enums, analysis.intent_signatures,
+            analysis.intent_transitions,
             analysis.function_scopes
         );
     SemanticAstBodyTypeStage(observe_pressure, "generic:done");

@@ -349,13 +349,16 @@ routine_match = (
 ).read_text(encoding="utf-8")
 match_fact_body = function_body(routine_match, "SelfMirMatchCaseFactForNode")
 for required in (
-    "SemanticAstStatementIndexForNode(",
-    "input.analysis.statements.payload_texts[index]",
-    "SelfMirMatchCaseFactFromText(",
+    "SemanticAstMatchCasePatternFactForNode(",
+    "input.analysis.statements",
 ):
     if required not in match_fact_body:
         raise SystemExit(f"match pattern statement-fact projection misses {required}")
-for forbidden in ("input.artifact", "SelfMirMatchCaseFactFromArtifact("):
+for forbidden in (
+    "input.artifact", "input.analysis.statements.payload_texts[",
+    "SelfMirMatchCaseFactFromArtifact(", "SelfMirMatchCaseFactFromText(",
+    "AstMatchCasePatternFactFromText(",
+):
     if forbidden in match_fact_body:
         raise SystemExit(f"match pattern regained typed-AST atom read: {forbidden}")
 

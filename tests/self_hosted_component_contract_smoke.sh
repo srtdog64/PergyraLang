@@ -8537,15 +8537,15 @@ require_text "src/self_hosted/mir/routine_match_merge_owner.pgy" \
     'while arm_i < ArrayLength(arm_exits)'
 require_text "src/self_hosted/mir/routine_match_merge_owner.pgy" \
     'build, "phi", build.local_names[local_i]'
-require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
-    'func SelfMirMatchCaseFactFromText('
-require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
-    'AstMatchCasePatternFactFromText(pattern)'
 require_function_text "src/self_hosted/mir/routine_match_owner.pgy" \
     'func SelfMirMatchCaseFactForNode(' \
-    'input.analysis.statements.payload_texts[index]'
+    'SemanticAstMatchCasePatternFactForNode('
 reject_function_text "src/self_hosted/mir/routine_match_owner.pgy" \
     'func SelfMirMatchCaseFactForNode(' 'input.artifact'
+reject_function_text "src/self_hosted/mir/routine_match_owner.pgy" \
+    'func SelfMirMatchCaseFactForNode(' 'payload_texts['
+reject_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
+    'SelfMirMatchCaseFactFromText('
 # typed MatchCase atom owner; parallel pattern graph and semantic local parse forbidden
 require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactFromArtifact('
@@ -8570,6 +8570,8 @@ require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
 require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactContractReady()'
 require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'func AstMatchCasePatternFactDigest('
+require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'AstMatchCasePatternFactFromText("0 | 1")'
 reject_function_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactFromArtifact(' 'expression_graphs'
@@ -8584,15 +8586,58 @@ require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" 
 require_function_text \
     "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'func SemanticAstExpressionSeedMatchCaseBindings(' \
-    'AstMatchCasePatternFactFromReadyArtifact('
+    'SemanticAstMatchCasePatternFactForNode('
 reject_function_terms \
     "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'func SemanticAstExpressionSeedMatchCaseBindings(' \
+    'AstMatchCasePatternFactFromReadyArtifact(' \
+    'AstMatchCasePatternFactFromText(' \
     'AstMatchCasePatternFactFromArtifact(' \
     'AstTreeArtifactReady(' \
     'AstExpressionGraphRowsReady('
 require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
     'while binding_index < ArrayLength(pattern.bindings)'
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    'match_pattern_variants: Array<String>;'
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    'match_pattern_binding_starts: Array<Int>;'
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    'match_pattern_binding_counts: Array<Int>;'
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    'match_pattern_fact_digests: Array<Int>;'
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    'match_pattern_bindings: Array<String>;'
+require_function_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    'func SemanticAstStatementFactsFromArtifact(' \
+    'AstMatchCasePatternFactFromReadyArtifact(artifact, node_id)'
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    'func SemanticAstMatchCasePatternFactForNode('
+require_function_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    'func SemanticAstMatchCasePatternFactForNode(' \
+    'AstMatchCasePatternFactDigest(fact)'
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
+    'crossed_range.match_pattern_binding_starts'
+# Closed fallback ratchet: match_pattern_graphs, match_case_ordinal_join,
+# semantic_consumer_atom_parse, mir_match_pattern_text_parse,
+# codegen_match_pattern_text_parse, and consumer_local_pattern_parse.
+while IFS= read -r match_pattern_source; do
+    case "$match_pattern_source" in
+        "$SELF_HOST_DIR/hir/ast_match_pattern_fact_owner.pgy") continue ;;
+    esac
+    if grep -Fq 'AstMatchCasePatternFactFromText(' "$match_pattern_source"; then
+        fail "match-case text parse escaped its HIR owner: $match_pattern_source"
+    fi
+done < <(find "$SELF_HOST_DIR" -type f -name '*.pgy' -print)
+while IFS= read -r match_pattern_source; do
+    case "$match_pattern_source" in
+        "$SELF_HOST_DIR/hir/ast_match_pattern_fact_owner.pgy"|\
+        "$SELF_HOST_DIR/semantic/ast_statement_fact_owner.pgy") continue ;;
+    esac
+    if grep -Fq 'AstMatchCasePatternFactFromReadyArtifact(' \
+        "$match_pattern_source"; then
+        fail "match-case artifact read escaped statement admission: $match_pattern_source"
+    fi
+done < <(find "$SELF_HOST_DIR" -type f -name '*.pgy' -print)
 match_binding_fast_path_order="$(awk '
     /func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts\(/ { active = 1 }
     active && /if ArrayLength\(case_nodes\) == 0/ && !fast { fast = NR }
@@ -11117,7 +11162,8 @@ reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticWhileConditionOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticIfConditionOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchSubjectOrDie"
-require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchCasePatternOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchCasePatternFactOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchCasePatternOrDie"
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticBareCallExprOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticStatementIs"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/semantic_statement_codegen_view_owner.pgy";'
@@ -11765,7 +11811,16 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "let match_subject_type: String ="
 reject_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" "ExprKind(match_subject, env)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let case_pattern: String = CodegenSemanticMatchCasePatternOrDie(statements, cur[0])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "let case_fact: AstMatchCasePatternFact ="
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "CodegenSemanticMatchCasePatternFactOrDie("
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "CodegenSemanticMatchCasePatternOrDie("
+reject_text "src/self_hosted/codegen/emission/option_match_owner.pgy" \
+    "AstMatchCasePatternFactFromText("
+reject_text "src/self_hosted/codegen/emission/tagged_enum_match_owner.pgy" \
+    "AstMatchCasePatternFactFromText("
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let q_arr: String = CodegenAstArenaAtomOrDie(arena, idx)"

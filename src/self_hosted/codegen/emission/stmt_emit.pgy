@@ -567,16 +567,19 @@ func EmitStmtList(count: Int, arena: AstArena,
             let match_case_count: Int = 0;
             while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {
                 if CodegenSemanticStatementIs(statements, cur[0], TypedAstKindMatchCaseStmtTag()) {
-                    let case_pattern: String = CodegenSemanticMatchCasePatternOrDie(statements, cur[0]);
+                    let case_fact: AstMatchCasePatternFact =
+                        CodegenSemanticMatchCasePatternFactOrDie(
+                            statements, cur[0]
+                        );
                     let case_line: String = "";
                     if option_match {
                         case_line = EmitOptionMatchCaseLine(
-                            case_pattern, match_subject_type, match_subject,
+                            case_fact, match_subject_type, match_subject,
                             match_case_count, env
                         );
                     } else {
                         case_line = EmitMatchCaseLine(
-                            tagged_match, case_pattern, match_subject_type,
+                            tagged_match, case_fact, match_subject_type,
                             match_tmp, match_case_count, match_subject, env
                         );
                     }
@@ -587,12 +590,12 @@ func EmitStmtList(count: Int, arena: AstArena,
                         CodegenTypeEnvStateBorrow(env_state);
                     if option_match {
                         BindOptionMatchPayload(
-                            case_pattern, match_subject, match_subject_type,
+                            case_fact, match_subject, match_subject_type,
                             case_env, env
                         );
                     } else if tagged_match {
                         BindTaggedEnumMatchPayload(
-                            case_pattern, match_subject, match_subject_type,
+                            case_fact, match_subject, match_subject_type,
                             case_env, env
                         );
                     }

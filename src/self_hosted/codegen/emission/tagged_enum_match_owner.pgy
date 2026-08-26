@@ -19,12 +19,13 @@ func EmitMatchCaseValue(pattern: String, subject_type: String, env: CodegenTypeE
 func EmitTaggedEnumMatchCondition(
     match_value: String,
     subject_type: String,
-    pattern: String,
+    ref fact: AstMatchCasePatternFact,
     env: CodegenTypeEnv
 ) -> String {
-    let fact: AstMatchCasePatternFact = AstMatchCasePatternFactFromText(pattern);
     if !fact.ok {
-        Die(Concat("tagged enum match pattern fact is invalid: ", pattern));
+        Die(Concat(
+            "tagged enum match pattern fact is invalid: ", fact.pattern
+        ));
     }
     let variant: String = fact.variant;
     if variant == "" { variant = fact.pattern; }
@@ -41,13 +42,12 @@ func EmitTaggedEnumMatchCondition(
 }
 
 func BindTaggedEnumMatchPayload(
-    pattern: String,
+    ref fact: AstMatchCasePatternFact,
     match_value: String,
     subject_type: String,
     inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv
 ) -> Void {
-    let fact: AstMatchCasePatternFact = AstMatchCasePatternFactFromText(pattern);
     if !fact.ok || fact.variant == "" ||
         ArrayLength(fact.bindings) == 0 { return; }
     let variant_key: String = Concat(subject_type, Concat(".", fact.variant));
@@ -88,7 +88,7 @@ func BindTaggedEnumMatchPayload(
 
 func EmitMatchCaseLine(
     tagged_match: Bool,
-    pattern: String,
+    ref fact: AstMatchCasePatternFact,
     subject_type: String,
     match_tmp: String,
     match_case_count: Int,
@@ -99,13 +99,13 @@ func EmitMatchCaseLine(
     if match_case_count != 0 { prefix = "} else if ("; }
     if tagged_match {
         let condition: String = EmitTaggedEnumMatchCondition(
-            match_value, subject_type, pattern, env
+            match_value, subject_type, fact, env
         );
         if match_case_count == 0 { return Concat("if ", Concat(condition, " {\n")); }
         return Concat("} else if ", Concat(condition, " {\n"));
     }
     let line: String = Concat(prefix, Concat(match_tmp, " == "));
     return Concat(line, Concat(
-        EmitMatchCaseValue(pattern, subject_type, env), ") {\n"
+        EmitMatchCaseValue(fact.pattern, subject_type, env), ") {\n"
     ));
 }

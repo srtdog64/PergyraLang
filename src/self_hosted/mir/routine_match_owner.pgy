@@ -11,23 +11,21 @@ import "routine_match_merge_owner.pgy";
 import "routine_match_pattern_owner.pgy";
 import "expression_fact_owner.pgy";
 import "routine_local_predecessor_snapshot_owner.pgy";
+import "../hir/ast_match_pattern_fact_owner.pgy";
 import "../semantic/wrapper_type_owner.pgy";
 
 func SelfMirMatchCaseFactForNode(
     ref input: SelfMirRoutineInput,
     case_node_id: Int
 ) -> SelfMirMatchCaseFact {
-    let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
-        input.analysis.statements, case_node_id
-    );
-    if !IsSome(index_opt) { return SelfMirMatchCaseFactInvalid(); }
-    let index: Int = UnwrapOption(index_opt);
-    if input.analysis.statements.kind_tags[index] !=
-        TypedAstKindMatchCaseStmtTag() {
-        return SelfMirMatchCaseFactInvalid();
-    }
-    return SelfMirMatchCaseFactFromText(
-        input.analysis.statements.payload_texts[index]
+    let fact: AstMatchCasePatternFact =
+        SemanticAstMatchCasePatternFactForNode(
+            input.analysis.statements, case_node_id
+        );
+    if !fact.ok { return SelfMirMatchCaseFactInvalid(); }
+    let binding_types: Array<String> = [];
+    return SelfMirMatchCaseFact(
+        true, fact.pattern, fact.variant, fact.bindings, binding_types
     );
 }
 

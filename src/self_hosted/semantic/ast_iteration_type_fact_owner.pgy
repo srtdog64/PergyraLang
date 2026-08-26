@@ -215,7 +215,7 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
         ) || !SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
-            artifact, expression_surfaces, constructors, enum_facts,
+            artifact, statements, expression_surfaces, constructors, enum_facts,
             function_scopes,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes, function_tables

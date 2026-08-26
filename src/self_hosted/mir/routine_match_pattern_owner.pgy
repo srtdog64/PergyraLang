@@ -1,7 +1,5 @@
 // MIR view of the canonical HIR-owned bounded match-pattern fact.
 
-import "../hir/ast_match_pattern_fact_owner.pgy";
-
 struct SelfMirMatchCaseFact {
     ok: Bool;
     pattern: String;
@@ -13,18 +11,4 @@ struct SelfMirMatchCaseFact {
 func SelfMirMatchCaseFactInvalid() -> SelfMirMatchCaseFact {
     let strings: Array<String> = [];
     return SelfMirMatchCaseFact(false, "", "", strings, strings);
-}
-
-func SelfMirMatchCaseFactFromText(
-    pattern: String
-) -> SelfMirMatchCaseFact {
-    let fact: AstMatchCasePatternFact =
-        AstMatchCasePatternFactFromText(pattern);
-    if !fact.ok {
-        return SelfMirMatchCaseFactInvalid();
-    }
-    let binding_types: Array<String> = [];
-    return SelfMirMatchCaseFact(
-        true, fact.pattern, fact.variant, fact.bindings, binding_types
-    );
 }

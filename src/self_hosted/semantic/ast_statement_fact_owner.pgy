@@ -5,11 +5,11 @@
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
+import "../hir/ast_match_pattern_fact_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
 import "diagnostic_owner.pgy";
-
 struct SemanticAstStatementFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -21,10 +21,14 @@ struct SemanticAstStatementFacts {
     scope_node_ids: Array<Int>;
     body_scope_node_ids: Array<Int>;
     payload_texts: Array<String>;
+    match_pattern_variants: Array<String>;
+    match_pattern_binding_starts: Array<Int>;
+    match_pattern_binding_counts: Array<Int>;
+    match_pattern_fact_digests: Array<Int>;
+    match_pattern_bindings: Array<String>;
     value_texts: Array<String>;
     auxiliary_texts: Array<String>;
 }
-
 func SemanticAstStatementKindTracked(kind: Int) -> Bool {
     return kind == TypedAstKindLogStmtTag() ||
         kind == TypedAstKindBareReturnStmtTag() ||
@@ -45,7 +49,6 @@ func SemanticAstStatementKindTracked(kind: Int) -> Bool {
         kind == TypedAstKindBareCallStmtTag() ||
         kind == TypedAstKindBindStmtTag();
 }
-
 func SemanticAstStatementKindCarriesPayload(kind: Int) -> Bool {
     return kind != TypedAstKindBareReturnStmtTag() &&
         kind != TypedAstKindDeferStmtTag() &&
@@ -53,7 +56,6 @@ func SemanticAstStatementKindCarriesPayload(kind: Int) -> Bool {
         kind != TypedAstKindContinueStmtTag() &&
         kind != TypedAstKindMatchDefaultStmtTag();
 }
-
 func SemanticAstStatementStructuralError(
     artifact: AstTreeArtifact,
     node_id: Int,
@@ -71,10 +73,11 @@ func SemanticAstStatementStructuralError(
         ),
         artifact.count,
         empty_ints, empty_ints, empty_ints, empty_ints, empty_ints,
+        empty_strings, empty_strings,
+        empty_ints, empty_ints, empty_ints,
         empty_strings, empty_strings, empty_strings
     );
 }
-
 func SemanticAstStatementFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts
@@ -93,6 +96,11 @@ func SemanticAstStatementFactsFromArtifact(
     let scope_node_ids: Array<Int> = [];
     let body_scope_node_ids: Array<Int> = [];
     let payload_texts: Array<String> = [];
+    let match_pattern_variants: Array<String> = [];
+    let match_pattern_binding_starts: Array<Int> = [];
+    let match_pattern_binding_counts: Array<Int> = [];
+    let match_pattern_fact_digests: Array<Int> = [];
+    let match_pattern_bindings: Array<String> = [];
     let value_texts: Array<String> = [];
     let auxiliary_texts: Array<String> = [];
     let node_id: Int = 0;
@@ -133,7 +141,36 @@ func SemanticAstStatementFactsFromArtifact(
             );
         }
         let payload: String = "";
-        if SemanticAstStatementKindCarriesPayload(kind) {
+        let match_pattern_variant: String = "";
+        let match_pattern_binding_start: Int =
+            ArrayLength(match_pattern_bindings);
+        let match_pattern_binding_count: Int = 0;
+        let match_pattern_fact_digest: Int = 0;
+        if kind == TypedAstKindMatchCaseStmtTag() {
+            let match_pattern: AstMatchCasePatternFact =
+                AstMatchCasePatternFactFromReadyArtifact(artifact, node_id);
+            if !match_pattern.ok {
+                return SemanticAstStatementStructuralError(
+                    artifact, node_id, "match_pattern"
+                );
+            }
+            payload = match_pattern.pattern;
+            match_pattern_variant = match_pattern.variant;
+            match_pattern_binding_count = ArrayLength(
+                match_pattern.bindings
+            );
+            match_pattern_fact_digest = AstMatchCasePatternFactDigest(
+                match_pattern
+            );
+            let binding_index: Int = 0;
+            while binding_index < match_pattern_binding_count {
+                ArrayPush(
+                    match_pattern_bindings,
+                    match_pattern.bindings[binding_index]
+                );
+                binding_index = binding_index + 1;
+            }
+        } else if SemanticAstStatementKindCarriesPayload(kind) {
             let payload_opt: Option<String> = TypedAstArenaAtomText(
                 artifact.arena, node_id
             );
@@ -179,6 +216,14 @@ func SemanticAstStatementFactsFromArtifact(
         ArrayPush(scope_node_ids, UnwrapOption(scope_opt));
         ArrayPush(body_scope_node_ids, body_scope_node_id);
         ArrayPush(payload_texts, payload);
+        ArrayPush(match_pattern_variants, match_pattern_variant);
+        ArrayPush(
+            match_pattern_binding_starts, match_pattern_binding_start
+        );
+        ArrayPush(
+            match_pattern_binding_counts, match_pattern_binding_count
+        );
+        ArrayPush(match_pattern_fact_digests, match_pattern_fact_digest);
         ArrayPush(value_texts, value);
         ArrayPush(auxiliary_texts, auxiliary);
         node_id = node_id + 1;
@@ -186,14 +231,15 @@ func SemanticAstStatementFactsFromArtifact(
     return SemanticAstStatementFacts(
         true, "", "", artifact.count, node_ids, kind_tags,
         function_node_ids, scope_node_ids, body_scope_node_ids,
-        payload_texts, value_texts, auxiliary_texts
+        payload_texts, match_pattern_variants,
+        match_pattern_binding_starts, match_pattern_binding_counts,
+        match_pattern_fact_digests, match_pattern_bindings,
+        value_texts, auxiliary_texts
     );
 }
-
 func SemanticAstStatementCount(facts: SemanticAstStatementFacts) -> Int {
     return ArrayLength(facts.node_ids);
 }
-
 func SemanticAstStatementIndexForNode(
     facts: SemanticAstStatementFacts,
     node_id: Int
@@ -216,7 +262,122 @@ func SemanticAstStatementIndexForNode(
     if low < count && facts.node_ids[low] == node_id { return Some(low); }
     return None;
 }
-
+func SemanticAstMatchCasePatternFactForNode(
+    ref facts: SemanticAstStatementFacts,
+    node_id: Int
+) -> AstMatchCasePatternFact {
+    let count: Int = ArrayLength(facts.node_ids);
+    if !facts.ok ||
+        ArrayLength(facts.kind_tags) != count ||
+        ArrayLength(facts.payload_texts) != count ||
+        ArrayLength(facts.match_pattern_variants) != count ||
+        ArrayLength(facts.match_pattern_binding_starts) != count ||
+        ArrayLength(facts.match_pattern_binding_counts) != count ||
+        ArrayLength(facts.match_pattern_fact_digests) != count {
+        return AstMatchCasePatternFactInvalid();
+    }
+    if node_id < 0 || node_id >= facts.artifact_node_count {
+        return AstMatchCasePatternFactInvalid();
+    }
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.node_ids[middle] < node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if low >= count || facts.node_ids[low] != node_id {
+        return AstMatchCasePatternFactInvalid();
+    }
+    let index: Int = low;
+    if facts.kind_tags[index] != TypedAstKindMatchCaseStmtTag() {
+        return AstMatchCasePatternFactInvalid();
+    }
+    let start: Int = facts.match_pattern_binding_starts[index];
+    let binding_count: Int = facts.match_pattern_binding_counts[index];
+    let pool_count: Int = ArrayLength(facts.match_pattern_bindings);
+    if start < 0 || binding_count < 0 || start > pool_count ||
+        binding_count > pool_count - start ||
+        facts.match_pattern_fact_digests[index] == 0 {
+        return AstMatchCasePatternFactInvalid();
+    }
+    if index == 0 {
+        if start != 0 { return AstMatchCasePatternFactInvalid(); }
+    } else if facts.match_pattern_binding_starts[index - 1] +
+        facts.match_pattern_binding_counts[index - 1] != start {
+        return AstMatchCasePatternFactInvalid();
+    }
+    if index + 1 < count {
+        if start + binding_count !=
+            facts.match_pattern_binding_starts[index + 1] {
+            return AstMatchCasePatternFactInvalid();
+        }
+    } else if start + binding_count != pool_count {
+        return AstMatchCasePatternFactInvalid();
+    }
+    let bindings: Array<String> = [];
+    let binding_index: Int = 0;
+    while binding_index < binding_count {
+        ArrayPush(
+            bindings,
+            facts.match_pattern_bindings[start + binding_index]
+        );
+        binding_index = binding_index + 1;
+    }
+    let fact: AstMatchCasePatternFact = AstMatchCasePatternFact(
+        true,
+        facts.payload_texts[index],
+        facts.match_pattern_variants[index],
+        bindings
+    );
+    if AstMatchCasePatternFactDigest(fact) !=
+        facts.match_pattern_fact_digests[index] {
+        return AstMatchCasePatternFactInvalid();
+    }
+    return fact;
+}
+func SemanticAstStatementMatchPatternRowsReady(
+    ref facts: SemanticAstStatementFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.node_ids);
+    if !facts.ok ||
+        ArrayLength(facts.kind_tags) != count ||
+        ArrayLength(facts.match_pattern_variants) != count ||
+        ArrayLength(facts.match_pattern_binding_starts) != count ||
+        ArrayLength(facts.match_pattern_binding_counts) != count ||
+        ArrayLength(facts.match_pattern_fact_digests) != count {
+        return false;
+    }
+    let binding_cursor: Int = 0;
+    let index: Int = 0;
+    while index < count {
+        if facts.match_pattern_binding_starts[index] != binding_cursor {
+            return false;
+        }
+        if facts.kind_tags[index] == TypedAstKindMatchCaseStmtTag() {
+            let fact: AstMatchCasePatternFact =
+                SemanticAstMatchCasePatternFactForNode(
+                    facts, facts.node_ids[index]
+                );
+            if !fact.ok || ArrayLength(fact.bindings) !=
+                facts.match_pattern_binding_counts[index] {
+                return false;
+            }
+            binding_cursor = binding_cursor + ArrayLength(fact.bindings);
+        } else {
+            if facts.match_pattern_variants[index] != "" ||
+                facts.match_pattern_binding_counts[index] != 0 ||
+                facts.match_pattern_fact_digests[index] != 0 {
+                return false;
+            }
+        }
+        index = index + 1;
+    }
+    return binding_cursor == ArrayLength(facts.match_pattern_bindings);
+}
 func SemanticAstStatementRangeForFunction(
     facts: SemanticAstStatementFacts,
     function_node_id: Int
@@ -248,7 +409,6 @@ func SemanticAstStatementRangeForFunction(
     }
     return SemanticAstLocalBindingFunctionRange(true, start, low);
 }
-
 func SemanticAstStatementFactsMatchArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -265,8 +425,16 @@ func SemanticAstStatementFactsMatchArtifact(
         ArrayLength(facts.scope_node_ids) != n ||
         ArrayLength(facts.body_scope_node_ids) != n ||
         ArrayLength(facts.payload_texts) != n ||
+        ArrayLength(facts.match_pattern_variants) != n ||
+        ArrayLength(facts.match_pattern_binding_starts) != n ||
+        ArrayLength(facts.match_pattern_binding_counts) != n ||
+        ArrayLength(facts.match_pattern_fact_digests) != n ||
         ArrayLength(facts.value_texts) != n ||
-        ArrayLength(facts.auxiliary_texts) != n {
+        ArrayLength(facts.auxiliary_texts) != n ||
+        !SemanticAstStatementMatchPatternRowsReady(facts) ||
+        !SemanticAstStatementMatchPatternRowsReady(rebuilt) ||
+        ArrayLength(facts.match_pattern_bindings) !=
+            ArrayLength(rebuilt.match_pattern_bindings) {
         return false;
     }
     let i: Int = 0;
@@ -277,15 +445,30 @@ func SemanticAstStatementFactsMatchArtifact(
             rebuilt.scope_node_ids[i] != facts.scope_node_ids[i] ||
             rebuilt.body_scope_node_ids[i] != facts.body_scope_node_ids[i] ||
             rebuilt.payload_texts[i] != facts.payload_texts[i] ||
+            rebuilt.match_pattern_variants[i] !=
+                facts.match_pattern_variants[i] ||
+            rebuilt.match_pattern_binding_starts[i] !=
+                facts.match_pattern_binding_starts[i] ||
+            rebuilt.match_pattern_binding_counts[i] !=
+                facts.match_pattern_binding_counts[i] ||
+            rebuilt.match_pattern_fact_digests[i] !=
+                facts.match_pattern_fact_digests[i] ||
             rebuilt.value_texts[i] != facts.value_texts[i] ||
             rebuilt.auxiliary_texts[i] != facts.auxiliary_texts[i] {
             return false;
         }
         i = i + 1;
     }
+    i = 0;
+    while i < ArrayLength(facts.match_pattern_bindings) {
+        if rebuilt.match_pattern_bindings[i] !=
+            facts.match_pattern_bindings[i] {
+            return false;
+        }
+        i = i + 1;
+    }
     return true;
 }
-
 func SemanticAstStatementFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        For: i in 0..3\n          Block:\n            Log(i)\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        ArrayPush(xs, x)\n        ArraySet(xs, 0, x)\n        Return: x\n"
@@ -308,6 +491,61 @@ func SemanticAstStatementFactsContractReady() -> Bool {
         SemanticAstStatementRangeForFunction(
             facts, signatures.function_node_ids[0]
         );
+    let match_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: value : Int = 1\n        Match: value\n          Case: Pair(left, right)\n            Block:\n              Log(left)\n        Return: value\n"
+    );
+    let match_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(match_artifact);
+    let match_facts: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(
+            match_artifact, match_signatures
+        );
+    let match_node_id: Int = -1;
+    let match_row: Int = -1;
+    let match_index: Int = 0;
+    while match_index < SemanticAstStatementCount(match_facts) {
+        if match_facts.kind_tags[match_index] ==
+            TypedAstKindMatchCaseStmtTag() {
+            match_node_id = match_facts.node_ids[match_index];
+            match_row = match_index;
+        }
+        match_index = match_index + 1;
+    }
+    let match_pattern: AstMatchCasePatternFact =
+        SemanticAstMatchCasePatternFactForNode(
+            match_facts, match_node_id
+        );
+    let changed_variant: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(
+            match_artifact, match_signatures
+        );
+    if match_row >= 0 {
+        let changed_variants: Array<String> =
+            changed_variant.match_pattern_variants;
+        ArraySet(changed_variants, match_row, "Other");
+    }
+    let changed_binding: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(
+            match_artifact, match_signatures
+        );
+    if ArrayLength(changed_binding.match_pattern_bindings) > 0 {
+        let changed_bindings: Array<String> =
+            changed_binding.match_pattern_bindings;
+        ArraySet(changed_bindings, 0, "changed");
+    }
+    let crossed_range: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(
+            match_artifact, match_signatures
+        );
+    if match_row >= 0 {
+        let crossed_starts: Array<Int> =
+            crossed_range.match_pattern_binding_starts;
+        ArraySet(
+            crossed_starts,
+            match_row,
+            crossed_starts[match_row] + 1
+        );
+    }
     return SemanticAstStatementFactsMatchArtifact(
         artifact, signatures, facts
     ) &&
@@ -334,5 +572,29 @@ func SemanticAstStatementFactsContractReady() -> Bool {
         facts.payload_texts[5] == "xs" && facts.value_texts[5] == "0" &&
         facts.auxiliary_texts[5] == "x" &&
         facts.kind_tags[6] == TypedAstKindValueReturnStmtTag() &&
-        facts.payload_texts[6] == "x";
+        facts.payload_texts[6] == "x" &&
+        match_facts.ok && match_row >= 0 && match_pattern.ok &&
+        match_pattern.pattern == "Pair(left, right)" &&
+        match_pattern.variant == "Pair" &&
+        ArrayLength(match_pattern.bindings) == 2 &&
+        match_pattern.bindings[0] == "left" &&
+        match_pattern.bindings[1] == "right" &&
+        SemanticAstStatementFactsMatchArtifact(
+            match_artifact, match_signatures, match_facts
+        ) &&
+        !SemanticAstMatchCasePatternFactForNode(
+            match_facts, match_facts.node_ids[0]
+        ).ok &&
+        !SemanticAstMatchCasePatternFactForNode(
+            match_facts, -1
+        ).ok &&
+        !SemanticAstMatchCasePatternFactForNode(
+            changed_variant, match_node_id
+        ).ok &&
+        !SemanticAstMatchCasePatternFactForNode(
+            changed_binding, match_node_id
+        ).ok &&
+        !SemanticAstMatchCasePatternFactForNode(
+            crossed_range, match_node_id
+        ).ok;
 }

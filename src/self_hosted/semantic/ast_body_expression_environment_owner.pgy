@@ -40,7 +40,8 @@ func SemanticAstBodyExpressionEnvironmentSeed(
             artifact, analysis.statements, iteration_types,
             UnwrapOption(function_node_id), use_node_id, names, types, modes
         ) && SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
-            artifact, analysis.expression_surfaces, analysis.constructors,
+            artifact, analysis.statements,
+            analysis.expression_surfaces, analysis.constructors,
             analysis.enums, analysis.function_scopes,
             UnwrapOption(function_node_id), use_node_id, names, types, modes,
             function_tables

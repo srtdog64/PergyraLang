@@ -31,15 +31,14 @@ func CodegenOptionMatchInnerTypeOrDie(
 }
 
 func EmitOptionMatchCaseLine(
-    pattern: String,
+    ref fact: AstMatchCasePatternFact,
     subject_type: String,
     match_value: String,
     match_case_count: Int,
     env: CodegenTypeEnv
 ) -> String {
-    let fact: AstMatchCasePatternFact = AstMatchCasePatternFactFromText(pattern);
     if !fact.ok {
-        Die(Concat("Option match pattern fact is invalid: ", pattern));
+        Die(Concat("Option match pattern fact is invalid: ", fact.pattern));
     }
     let inner_type: String =
         CodegenOptionMatchInnerTypeOrDie(subject_type, env);
@@ -55,7 +54,7 @@ func EmitOptionMatchCaseLine(
             Concat("(", Concat(RewriteExpr(match_value, env), ")"))
         );
     } else {
-        Die(Concat("Option match case shape is invalid: ", pattern));
+        Die(Concat("Option match case shape is invalid: ", fact.pattern));
     }
     let prefix: String = "if (";
     if match_case_count != 0 { prefix = "} else if ("; }
@@ -63,13 +62,12 @@ func EmitOptionMatchCaseLine(
 }
 
 func BindOptionMatchPayload(
-    pattern: String,
+    ref fact: AstMatchCasePatternFact,
     match_value: String,
     subject_type: String,
     inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv
 ) -> Void {
-    let fact: AstMatchCasePatternFact = AstMatchCasePatternFactFromText(pattern);
     if !fact.ok || fact.variant != "Some" {
         return;
     }

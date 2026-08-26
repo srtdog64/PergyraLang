@@ -9,6 +9,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsUsingFu
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
+    ref statements: SemanticAstStatementFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     enum_facts: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
@@ -22,7 +23,8 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsUsingFu
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticAstInitializerTypeFacts {
     return SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(
-        artifact, signatures, constructors, locals, expression_surfaces,
+        artifact, signatures, constructors, locals, statements,
+        expression_surfaces,
         enum_facts, function_scopes,
         iteration_node_ids, iteration_function_node_ids,
         iteration_binding_names, iteration_binding_types, iteration_verified,
@@ -58,6 +60,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactObservedWithFunctionTabl
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
+    ref statements: SemanticAstStatementFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     enum_facts: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
@@ -67,7 +70,8 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactObservedWithFunctionTabl
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
     return SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables(
-        artifact, signatures, constructors, locals, expression_surfaces,
+        artifact, signatures, constructors, locals, statements,
+        expression_surfaces,
         enum_facts, function_scopes,
         empty_ints, empty_ints, empty_strings, empty_strings, empty_ints,
         SemanticAstInitializerTypeStructuralError(artifact), false,

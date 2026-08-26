@@ -48,7 +48,8 @@ func SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunc
         i = i + 1;
     }
     return SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsUsingFunctionTables(
-        artifact, signatures, constructors, locals, expression_surfaces,
+        artifact, signatures, constructors, locals, statements,
+        expression_surfaces,
         enum_facts, function_scopes,
         iterations.node_ids, function_node_ids, binding_names,
         iterations.binding_type_names, iterations.verified,

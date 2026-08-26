@@ -10,7 +10,6 @@ import "ast_match_binding_environment_owner.pgy";
 import "ast_expression_call_identity_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "ast_intent_expression_environment_owner.pgy";
-
 struct SemanticAstGenericSpecializationFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -99,13 +98,13 @@ func SemanticAstGenericSpecializationAppend(
     }
     return true;
 }
-
 func SemanticAstGenericSpecializationFactsFromAdmittedBody(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
+    ref statements: SemanticAstStatementFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     function_tables: SemanticAstExpressionFunctionTableFacts,
     enum_facts: SemanticAstEnumFacts,
@@ -334,7 +333,8 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                 artifact, locals, UnwrapOption(function_node), use_node_id,
                 modes
             ) && SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
-                artifact, expression_surfaces, constructors, enum_facts,
+                artifact, statements, expression_surfaces, constructors,
+                enum_facts,
                 function_scopes,
                 UnwrapOption(function_node), use_node_id,
                 names, types, modes, function_tables
@@ -522,7 +522,6 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
         actual_starts, actual_counts, actual_type_names
     );
 }
-
 func SemanticAstGenericSpecializationFactsFromBody(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -542,6 +541,8 @@ func SemanticAstGenericSpecializationFactsFromBody(
         );
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    let statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
     if !SemanticAstNominalConstructorRowsReady(constructors) ||
         constructors.artifact_node_count != artifact.count ||
         !SemanticAstExpressionSurfaceBorrowReady(
@@ -550,7 +551,7 @@ func SemanticAstGenericSpecializationFactsFromBody(
         artifact, intent_signatures
     ) || !SemanticAstIntentTransitionFactsReady(
         artifact, intent_transitions
-    ) || !function_scopes.ok {
+    ) || !function_scopes.ok || !statements.ok {
         let empty_ints: Array<Int> = [];
         let empty_strings: Array<String> = [];
         return SemanticAstGenericSpecializationError(
@@ -563,7 +564,7 @@ func SemanticAstGenericSpecializationFactsFromBody(
     }
     return SemanticAstGenericSpecializationFactsFromAdmittedBody(
         artifact, signatures, constructors, locals, initializer_types,
-        expression_surfaces, function_tables, enum_facts, intent_signatures,
-        intent_transitions, function_scopes
+        statements, expression_surfaces, function_tables, enum_facts,
+        intent_signatures, intent_transitions, function_scopes
     );
 }

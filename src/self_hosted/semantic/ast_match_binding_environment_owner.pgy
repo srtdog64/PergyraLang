@@ -6,12 +6,14 @@ import "ast_expression_graph_receiver_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
+import "ast_statement_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "env_owner.pgy";
 import "wrapper_type_owner.pgy";
 
 func SemanticAstExpressionSeedMatchCaseBindings(
     artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts,
@@ -24,7 +26,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     inout modes: Array<String>
 ) -> Bool {
     let pattern: AstMatchCasePatternFact =
-        AstMatchCasePatternFactFromReadyArtifact(artifact, case_node_id);
+        SemanticAstMatchCasePatternFactForNode(statements, case_node_id);
     let case_function: Option<Int> = SemanticAstFunctionScopeNodeId(
         function_scopes, case_node_id
     );
@@ -138,6 +140,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
 // it must not rebuild enum or function-scope inventories per use site.
 func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
     artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts,
@@ -150,6 +153,8 @@ func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> Bool {
     if use_node_id < 0 || use_node_id >= artifact.count ||
+        !statements.ok ||
+        statements.artifact_node_count != artifact.count ||
         !expression_surfaces.ok ||
         expression_surfaces.artifact_node_count != artifact.count {
         return false;
@@ -179,7 +184,7 @@ func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
     let i: Int = ArrayLength(case_nodes) - 1;
     while i >= 0 {
         if !SemanticAstExpressionSeedMatchCaseBindings(
-            artifact, expression_surfaces, constructors, enums,
+            artifact, statements, expression_surfaces, constructors, enums,
             function_scopes, function_tables,
             function_node_id, case_nodes[i], names, types, modes
         ) {
@@ -209,12 +214,15 @@ func SemanticAstExpressionSeedVisibleMatchBindingsFromReadyArtifact(
         SemanticAstEnumFactsFromArtifact(artifact);
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    if !enums.ok || !function_scopes.ok {
+    let statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    if !enums.ok || !function_scopes.ok || !statements.ok {
         return false;
     }
     return SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
-        artifact, expression_surfaces, constructors, enums, function_scopes,
-        function_node_id, use_node_id, names, types, modes, function_tables
+        artifact, statements, expression_surfaces, constructors, enums,
+        function_scopes, function_node_id, use_node_id,
+        names, types, modes, function_tables
     );
 }
 

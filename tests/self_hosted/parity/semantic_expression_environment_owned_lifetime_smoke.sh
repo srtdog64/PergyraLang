@@ -220,12 +220,14 @@ require_borrowed_environment_push "$ITERATION_FACTS" 'SemanticAstIterationSeedVi
 
 match_case_binding_body="$(function_body "$MATCH_BINDINGS" \
     'SemanticAstExpressionSeedMatchCaseBindings')"
-grep -Fq 'AstMatchCasePatternFactFromReadyArtifact(' \
+grep -Fq 'SemanticAstMatchCasePatternFactForNode(' \
     <<<"$match_case_binding_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] admitted match-case binding bypasses the ready-artifact pattern owner" >&2
+    echo "[self-host-parity:semantic-environment-lifetime] admitted match-case binding bypasses the statement-carried pattern fact" >&2
     exit 1
 }
 for forbidden in \
+    'AstMatchCasePatternFactFromReadyArtifact(' \
+    'AstMatchCasePatternFactFromText(' \
     'AstMatchCasePatternFactFromArtifact(' \
     'AstTreeArtifactReady(' \
     'AstExpressionGraphRowsReady('; do
@@ -254,6 +256,7 @@ admitted_match_body="$(function_body "$MATCH_BINDINGS" \
     exit 1
 }
 for carried in \
+    'statements: SemanticAstStatementFacts' \
     'enums: SemanticAstEnumFacts' \
     'function_scopes: SemanticAstFunctionScopeFacts' \
     'SemanticAstExpressionSeedMatchCaseBindings('; do

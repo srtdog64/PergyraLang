@@ -186,8 +186,19 @@ func CodegenSemanticMatchSubjectOrDie(facts: SemanticAstStatementFacts, node_id:
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindMatchStmtTag());
 }
 
-func CodegenSemanticMatchCasePatternOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
-    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindMatchCaseStmtTag());
+func CodegenSemanticMatchCasePatternFactOrDie(
+    ref facts: SemanticAstStatementFacts,
+    node_id: Int
+) -> AstMatchCasePatternFact {
+    let fact: AstMatchCasePatternFact =
+        SemanticAstMatchCasePatternFactForNode(facts, node_id);
+    if !fact.ok {
+        Die(Concat(
+            "missing semantic match-case pattern fact: ",
+            ToString(node_id)
+        ));
+    }
+    return fact;
 }
 
 func CodegenSemanticForLoopVarOrDie(
