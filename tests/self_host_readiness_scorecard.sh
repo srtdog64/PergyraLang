@@ -42,7 +42,7 @@ echo
 check_gates READY  "1 module/package resolver"    module_smoke.sh package_module_resolver_smoke.sh type_resolution_resolver_inventory_smoke.sh
 check_gates READY  "2 collections + iteration"     stdlib_surface_smoke.sh stage4_determinism_smoke.sh
 check_gates READY  "3 string/path/unicode policy"  unicode_policy_smoke.sh source_utf8_smoke.sh memory_string_safety_smoke.sh filesystem_directory_walk_smoke.sh
-check_gates READY  "4 arena/ownership ergonomics"  verify_arena_closure.sh runtime_abi_lifetime_smoke.sh abi_ownership_shape_smoke.sh
+check_gates READY  "4 arena/ownership ergonomics"  verify_arena_closure.sh runtime_abi_lifetime_smoke.sh abi_ownership_shape_smoke.sh self_host_text_builder_emission_smoke.sh
 check_gates READY  "5 CFG/MIR body as SoT"         cfg_body_dataflow_smoke.sh ast_read_surface_smoke.sh mir_or_abort_invariant_smoke.sh tests/self_hosted/parity/ast_read_surface_checker_parity.sh tests/self_hosted/parity/mir_json_parity.sh
 check_gates READY  "6 AIR as verifier"             air_json_schema_smoke.sh air_drift_smoke.sh air_backend_nonimpact_smoke.sh
 check_gates READY  "7 DAG type resolution SoT"     type_resolution_dag_smoke.sh type_resolution_resolver_inventory_smoke.sh
@@ -67,12 +67,17 @@ forbid_current_doc_text "docs/self_hosted/07_hard_self_host_scorecard.md" \
     "Capability 5 (CFG/MIR SoT, task 74). ACTIVE"
 forbid_current_doc_text "docs/self_hosted/07_hard_self_host_scorecard.md" \
     "remaining ACTIVE tail"
+forbid_current_doc_text "docs/self_hosted/07_hard_self_host_scorecard.md" \
+    "| 4 | Arena/ownership ergonomics | SUBSET |"
+forbid_current_doc_text "docs/00_progress.md" \
+    "| self-host substrate | 9/10 READY |"
 forbid_current_doc_text "docs/self_hosted/08_domain_mobility_rationale.md" \
     "finish the source_ast retirement"
 
 echo
 echo "[scorecard] critical path: CFG/MIR body SoT is READY for the measured frontier; keep the self-hosted MIR-lowering fact-only ratchet green while broadening the supported subset"
 echo "[scorecard] CFG/MIR SoT is closed for source_ast/source_decl, residual STMT payload emit, raw source-statement re-dispatch, public-surface provenance, lifecycle dump source-text emission, and C preserved-statement helper surface"
+echo "[scorecard] arena/ownership Phase 1 is READY; remaining compiler-scale String lifetime work is an efficiency frontier, not a missing substrate capability"
 if [ "$missing" -ne 0 ]; then
     echo "[scorecard] FAIL: one or more capability gates are missing" >&2
     exit 1

@@ -27,7 +27,10 @@ only the Pergyra artifact to emit byte-identical gen2/gen3 C. This closes the
 complete-source producer/fixed-point rung. Focused 2026-08-01 evidence also
 promotes public pure-C artifact emit: default `pgy --emit-c` selects the sibling
 Pergyra-built driver and fails closed when it is missing or the option envelope
-is unsupported. Plain compile/link, run, package, and LLVM remain open.
+is unsupported. Subsequent installed gates closed plain C/LLVM compile/run,
+compiler-bearing package commands, public MIR diagnostics, and the REPL's
+per-evaluation compiler call without a native retry. Native product shells and
+unsupported RIR/AIR/HIR producers remain outside that bounded substitution.
 Compiler-scale direct source-to-C is also not a green shortcut: it crossed the
 3 GiB hard stop while the separately owned source-to-MIR and MIR-to-C processes
 completed below the cap. The fixed point therefore uses the bounded artifact
@@ -141,7 +144,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 1 | Module/package resolver | READY | module_smoke, package_module_resolver_smoke, type_resolution_resolver_inventory_smoke | deterministic imports and cycle diagnostics gated; a resolver tool is already self-hosted |
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
-| 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke, self_host_text_builder_emission_smoke | `Allocator` constructors/destruction and allocator-aware `BoxArray` are C/LLVM-backed. Program C-unit assembly and selected hot rewrites now use a typed TextBuilder/result lane, but most compiler-scale `String` transforms still lack scope reclamation and scratch reset. |
+| 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke, self_host_text_builder_emission_smoke | Phase 1 is build-gated: `Allocator` constructors/destruction, allocator-aware `BoxArray`, explicit scratch/result/persistent lanes, and typed TextBuilder/result assembly work through C and LLVM. Scope reclamation for remaining compiler-scale `Concat`/`Substring` transforms is a bounded efficiency frontier, not a missing Phase-1 substrate capability. |
 | 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity, self-host-mir-json-parity-test-smoke | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, LLVM source-local resource LET emission, C source-local LET/DEF/receive paths, MIR surface validation, public-surface scalar provenance seeding, and lifecycle MIR JSON source-text emission consume MIR/source-shape facts; self-hosted `mir_lower` consumes explicit MIR JSON facts for the supported CFG plus selected codegen fixture subset, rejects unsupported declaration facts cleanly, and is ratcheted against transitional `"ast"` compatibility reads |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
@@ -208,8 +211,8 @@ projection/identity semantics beyond field-only nominal declarations still
 require later facts and fixtures; payload enum variants reject from their
 variant facts; `self-host-mir-json-parity-test-smoke` rejects
 reintroducing transitional `"ast"` reads.
-Capability 4 is closed for the allocator-aware container subset and partially
-landed for compiler text assembly. Named lanes can be constructed and
+Capability 4 Phase 1 is closed for the allocator-aware container and compiler
+text-assembly substrate. Named lanes can be constructed and
 explicitly destroyed through the same C/LLVM value surface. The first typed
 `TextBuilder` consumers cover program assembly and binding-reference scans.
 Runtime builtin call projection consumes one identifier scan rather than a
@@ -230,10 +233,12 @@ integrated `mir_lower` run from 37.915-38.071 seconds to 36.891-37.131 seconds,
 with parser 188/188, semantic 111/111, and integrated C/LLVM artifact parity.
 This remains a bounded scan slice, not whole compiler text-lifetime closure.
 
-## Next substrate work
+## Next substrate efficiency work
 
-After capability 5, pass-lane allocator cleanup remains active for ordinary
-compiler `String` temporaries outside the landed TextBuilder owners.
+All ten Phase-1 substrate capabilities are READY. Pass-lane allocator cleanup
+remains a bounded efficiency frontier for ordinary compiler `String`
+temporaries outside the landed TextBuilder owners; it is not a reason to route
+an installed compiler request back to the native pipeline.
 Capability 2 now has stable `MapKeys` and
 `SetValues` order for the stable scalar subset, and
 `stage4_determinism_smoke` proves stable output across insertion orders for
@@ -268,10 +273,11 @@ domain-oriented surface the language is already strong on.
 
 ## Sequencing
 
-The order that keeps each step verifiable is: keep capability 5 and the
-explicit complete-source Pergyra producer/gen2/gen3 fixed point green; then
-promote the Pergyra-owned driver through the normal build/install/default path
-without a second MIR owner or compatibility read.
+The order that keeps each step verifiable is: keep all ten readiness gates and
+the explicit complete-source Pergyra producer/gen2/gen3 fixed point green;
+preserve the installed build/default path without a second MIR owner or
+compatibility read; and open another implementation rung only when a fresh
+production compiler bypass reaches an existing complete Pergyra owner.
 
 ## Measured closures
 
@@ -419,9 +425,10 @@ distinct runtime kinds, `BoxArray(capacity, allocator)` consumes named allocator
 locals, and `AllocatorDestroy(namedAllocator)` gives pass authors an explicit
 cleanup operation. Build-gated.
 
-The honest summary is that deterministic collection, allocator substrate, the
-measured CFG/MIR body SoT frontier, and the explicit complete-source Pergyra
-MIR producer/gen2/gen3 fixed point are closed. Public pure-C artifact emit is
-also `SUBSTITUTING`; the remaining critical path is plain compile/link, run,
-package, LLVM, and any bounded/bridge owner reached by those targets. No single
-percentage replaces this target-specific score.
+The honest summary is that all ten Phase-1 substrate capabilities, the measured
+CFG/MIR body SoT frontier, and the explicit complete-source Pergyra MIR
+producer/gen2/gen3 fixed point are closed. Public C/LLVM compile/run,
+compiler-bearing package commands, public MIR diagnostics, and the REPL's
+compiler-bearing interior are bounded `SUBSTITUTING` targets. Native product
+shells and unsupported RIR/AIR/HIR producers are not promoted by that evidence.
+No single percentage replaces this target-specific score.

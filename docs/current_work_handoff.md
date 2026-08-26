@@ -11,13 +11,42 @@ Concurrent work must first read
 two Codex tasks from editing or publishing the same executable rung; it is a
 coordination aid, not completion evidence.
 
-Project-wide progress is tracked separately in `docs/00_progress.md`. The last
-published 2026-08-18 working forecast is 78% (75-81% range) for language beta
-plus SoT, self-host, bootstrap, and CI/release together; strict language beta
-remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
-gate count do not increment either percentage by themselves.
+Project-wide progress is tracked separately in `docs/00_progress.md`. The
+2026-08-26 evidence-reconciled working forecast is 83% (81-85% range) for
+language beta plus SoT, self-host, bootstrap, and CI/release together; strict
+language beta remains at the separately owned official 83% line. V numbers,
+`.tmp` artifacts, owner count, and gate count do not increment either
+percentage by themselves.
 
-## Active self-host context - REPL compile bypass substitution closed
+## Active self-host context - readiness evidence reconciled; no successor inferred
+
+- Reconciliation starts from published checkpoint
+  `ab816bc923df2a7d0121a8d74134b2af2fa05a3e`. The unrelated user-owned
+  untracked `pgy-80135c2c/` directory must not be inspected, staged, deleted,
+  or rewritten.
+- Objective card: make the published readiness/progress consumers agree with
+  the executable scorecard, completed installed fixed point, and latest remote
+  evidence without promoting native product tools or unsupported IR producers.
+  The scorecard/fixed-point/remote gates own those facts; the readiness table,
+  progress baseline, and this handoff are their last documentation consumers.
+- The executable scorecard already classified arena/ownership Phase 1 as
+  `READY`, and its owner document's measured closure said the same while the
+  summary table still said `SUBSET`. Capability 4 now names all four gates and
+  the table is `10/10 READY`; a negative ratchet rejects the old row and old
+  `9/10` progress line.
+- The same implementation source has installed fixed-point reproduction and
+  remote run `32938125698` green 29/29. Bootstrap and CI/release evidence are
+  therefore `4/4`; the fixed weighting recalculates the integrated forecast to
+  83.20%, displayed as 83% with an 81-85% range. Strict beta stays 83%, hard
+  replacement stays 75%, and SoT stays `CLOSED=49 BRIDGE=36 ACTIVE=1`.
+- Local static scorecard, documentation quality, and source UTF-8 gates are
+  green. This correction is not a new compiler substitution, closes no SoT
+  registry row, and does not justify a formatter/debugger/scaffold/package-
+  metadata/whole-REPL implementation track. A later rung still needs a fresh
+  production compiler bypass, an existing complete Pergyra owner, and one
+  executable falsifier.
+
+## Previous self-host context - REPL compile bypass substitution closed
 
 - Directive/audit checkpoint `36af9496` and implementation checkpoint
   `48aeccca` are on local and remote `main`. The worktree is clean except for

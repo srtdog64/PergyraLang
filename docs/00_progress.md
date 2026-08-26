@@ -2,6 +2,17 @@
 
 마지막 업데이트: 2026-08-26
 
+2026-08-26 증거 분모 재대조: 실행 가능한 readiness scorecard는 capability 4를
+이미 `READY`로 판정하고, scorecard 본문도 allocator/TextBuilder Phase 1을 hard
+self-host substrate closure로 기록한다. 따라서 오래 남아 있던 `9/10` 표기는
+`10/10 READY`로 정정한다. 같은 source revision의 installed fixed-point 및
+installed-driver gate와 remote run `32938125698`의 29/29 green이 bootstrap과
+CI/release의 마지막 로컬 전용 칸을 닫았으므로 두 축은 각각 `4/4`다. 이 증거를
+고정 가중치에 다시 넣은 현재 통합 작업 예측은 **83% (81~85%)**다. Strict beta
+83%와 SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 변하지 않는다. Native product
+shell이나 unsupported RIR/AIR/HIR producer를 Pergyra-owned로 세지 않았고,
+hard-self-host replacement 예측도 새 분모 없이 올리지 않았다.
+
 2026-08-26 로컬 REPL compiler-bypass 갱신: public `pgy --repl`의 C session
 UI와 선언 누적은 그대로 두되, 실행 입력마다 호출하던 implicit native
 `driver_run_pipeline`을 기존 installed Pergyra C compile/run owner로 바꿨다.
@@ -14,7 +25,8 @@ invalid source, native timing 부재, 임시 source/binary 회수, old-call stat
 8초에 통과했다. 증분 build와 기존 installed-driver integration target도 green이며
 새 Make target/CI job/timeout/두 번째 compiler build는 없다. 이는 REPL 내부
 compiler 경계만 bounded `SUBSTITUTING`이며 전체 REPL 제품은 여전히 native다.
-전체 78%, strict beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`는 바꾸지 않는다.
+이 REPL lease 자체는 strict beta나 SoT를 바꾸지 않았고, 통합 예측의 83% 정정은
+위의 별도 증거 분모 재대조에서만 나온다.
 Directive/audit checkpoint `36af9496`과 implementation checkpoint `48aeccca`는
 published다. Run `32938125698`은 30분 31초에 29/29 green이며 Linux aggregate
 15분 39초, full self-host 30분 27초, Windows/sanitizers 8분 50초, codegen
@@ -339,31 +351,32 @@ world members 3, zone-bound actions 38을 exact로 확인했다. 이 최종 결�
 checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure까지
 진행했다. 퍼센트와 SoT state는 그대로다.
 
-## 2026-08-17 프로젝트 퍼센테이지 기준선
+## 2026-08-26 프로젝트 퍼센테이지 기준선
 
-한 숫자가 필요할 때의 현재 작업 예측은 **78%**다. 오차 범위는
-**75~81%**로 둔다. 이것은 릴리스 판정이나 테스트 통과율이 아니라,
+한 숫자가 필요할 때의 현재 작업 예측은 **83%**다. 오차 범위는
+**81~85%**로 둔다. 이것은 릴리스 판정이나 테스트 통과율이 아니라,
 `언어 베타 + SoT 폐쇄 + hard self-host 대체 + bootstrap + CI/release`를
 함께 끝내는 데 필요한 남은 작업을 추정하는 통합 진행 지수다.
 
 언어 자체의 공식 **strict beta readiness는 83%로 유지**한다. 6월의
-83%보다 코드가 진전됐지만, 현재 dirty revision의 full suite와 remote CI,
-모든 beta-critical fallback 폐쇄가 아직 없으므로 그 수치를 올리지 않는다.
-즉 `83%`와 `78%`는 모순이 아니다. 전자는 언어 베타 기준이고, 후자는
-셀프호스트와 배포까지 포함한 프로젝트 전체 기준이다.
+83%보다 코드가 진전됐고 latest implementation source의 remote CI도 green이지만,
+모든 beta-critical fallback 폐쇄와 공식 checklist 승격은 아직 없으므로 그
+수치를 올리지 않는다.
+현재 두 표시값은 모두 83%지만 의미는 다르다. 전자는 언어 베타의 공식선이고,
+후자는 셀프호스트와 배포를 포함해 가중한 작업 예측이다.
 
 | 축 | 현재치 | 분모와 근거 | 다음 상승 조건 |
 | --- | ---: | --- | --- |
 | 언어 strict beta | 83% | `docs/100_beta_readiness_checklist.md`의 현재 공식선 | current full suite와 남은 beta-critical fallback 폐쇄 |
 | SoT hard closure | 49/86 = 57.0% CLOSED | owner registry의 `CLOSED 49 / BRIDGE 36 / ACTIVE 1` | consumer migration, old read 삭제, negative gate까지 갖춰 `CLOSED` 승격 |
 | SoT migration index | 78.2% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | BRIDGE를 늘리는 문서/owner 추가가 아니라 실제 hard substitution |
-| self-host substrate | 9/10 READY | hard self-host scorecard 10개 capability 중 9 READY, arena/ownership 1 SUBSET | compiler-scale String/scratch lifetime과 일반 route closure |
-| 일반 GraphPlan 연속 전선 | current-source 232,242,252-byte MIR -> canonical O3 byte-stable gen2/gen3 C | direct `else if` source-depth 재귀를 explicit frame descent/reverse merge로 교체한 current source를 Pergyra seed와 native oracle이 동일 MIR로 게시했다. release-profile O3 gen2가 같은 MIR을 다시 소비해 10,265,701-byte gen3 C를 만들었고 gen2/gen3 SHA-256이 일치한다. 같은 리비전의 격리 public launcher/sibling도 source→MIR, `--emit-c`, plain C compile/run을 통과한다. routine·row·V·owner 수는 진행률 분자가 아니다. | 격리 증거를 repository-installed sibling과 current remote CI에서 재현하고 release promotion을 닫는다. |
-| hard self-host replacement 예측 | 75% | 아래 8개 milestone 중 5개 완료와 현재 hard-substitution 범위 및 남은 native/release surface를 함께 본 작업 예측 | canonical compiler-purpose intent와 released whole-product fallback 삭제 |
-| bootstrap fixed point | 3/4 = 75% | current-source MIR producer, DRV-2/gen2 consumers, gen2==gen3 byte equality를 canonical O3 full-bootstrap script로 완료 | installed release promotion과 committed/remote reproduction |
-| 마지막 완료 baseline CI/release 증거 | 3/4 = 75% | fixed MIR consumer/C/host verify와 기존 CI profile/step 증거가 있다. Published checkpoint `ccbed622`의 remote run `32781856770`은 Linux/Windows/macOS, sanitizer, formal proof, backend compare 20 shards, full self-host bootstrap를 29/29 green으로 24m51에 닫았다. | installed release promotion과 남은 released whole-product replacement를 동일 revision의 release evidence로 닫기 |
+| self-host substrate | 10/10 READY | executable scorecard의 capability 4는 allocator lanes, `BoxArray`, explicit destroy, TextBuilder/result assembly를 포함해 이미 READY이고 본문의 measured closure도 Phase 1 closure를 선언한다. | remaining compiler-scale String scope reclamation은 효율 전선이며 새 native fallback의 근거가 아님 |
+| 일반 GraphPlan 연속 전선 | complete-source Pergyra producer/gen2/gen3 fixed point + installed public C/LLVM/package/MIR/REPL-compile boundaries | canonical O3 gen2/gen3 byte equality, repository-installed sibling, fail-closed public gates가 누적됐고 latest implementation source의 remote full self-host job도 green이다. routine·row·V·owner 수는 진행률 분자가 아니다. | 기존 fixed point를 유지하고 fresh production compiler bypass가 실제 Pergyra owner에 닿을 때만 후속 rung을 연다. |
+| hard self-host replacement 예측 | 75% | complete-source producer/fixed point와 public compiler-bearing C/LLVM/package/MIR/REPL 내부는 bounded `SUBSTITUTING`이지만 whole product와 unsupported RIR/AIR/HIR에는 완전한 Pergyra owner가 없다. 기존 추정 분모를 새 숫자 없이 유지한다. | fresh production bypass, complete Pergyra owner, executable falsifier가 함께 존재하는 다음 target-specific substitution |
+| bootstrap fixed point | 4/4 = 100% | current-source MIR producer, DRV-2/gen2 consumers, gen2==gen3 equality, installed reproduction과 같은 implementation source의 remote full-bootstrap green을 모두 관측했다. | current-source fixed point를 계속 green으로 유지; 100%는 이 축의 acceptance evidence이지 whole product 완료가 아님 |
+| 마지막 완료 baseline CI/release 증거 | 4/4 = 100% | implementation checkpoint `48aeccca`의 remote run `32938125698`이 Linux/Windows/macOS, sanitizer, Rocq, backend compare 20 shards, codegen bootstrap, full self-host와 installed public gates를 29/29 green으로 닫았다. | 다음 compiler implementation delta에서 같은 merge/push matrix를 재검증 |
 
-통합 78%의 계산 가중치는 다음과 같이 고정한다. 이 가중치는 완료를
+통합 83%의 계산 가중치는 다음과 같이 고정한다. 이 가중치는 완료를
 예쁘게 보이게 하려고 바꾸지 않는다.
 
 - 언어 strict beta 30%
@@ -373,15 +386,14 @@ checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure�
 - CI/release evidence 10%
 
 hard self-host replacement는 lexer/parser parity, complete-source MIR producer,
-Pergyra MIR consumer, gen2/gen3 fixed point, bounded public C/LLVM/package
-substitution까지를 완료 milestone으로 센다. 일반 GraphPlan canary의 routine
+Pergyra MIR consumer, gen2/gen3 fixed point, bounded public C/LLVM/package/MIR/
+REPL-compile substitution을 완료 증거로 센다. 일반 GraphPlan canary의 routine
 ordinal이나 통과 routine 수는 프로그램 구조가 바뀔 때 함께 변하므로 완료
-분수로 환산하지 않는다. 75%는 완료된 다섯 milestone, 현재 실제
-hard-substitution 범위, 남은 native debug/dump/REPL/package orchestration과
-released whole-product replacement를 함께 본 작업 예측이며 산술 통과율이
-아니다.
-통합 계산은 `83×0.30 + 78.2×0.25 + 75×0.25 + 75×0.10 +
-75×0.10 = 78.20`이며 표시값은 78%다.
+분수로 환산하지 않는다. 75%는 현재 실제 hard-substitution 범위와 완전한
+Pergyra owner가 없는 native product shell 및 unsupported IR producer를 함께 본
+target-specific 작업 예측이며 산술 통과율이 아니다.
+통합 계산은 `83×0.30 + 78.2×0.25 + 75×0.25 + 100×0.10 +
+100×0.10 = 83.20`이며 표시값은 83%다.
 
 2026-08-18 control-flow 실행 갱신: 다음 compiler-scale RED는 SoT 행이
 아니라 direct `else if` tail을 source 깊이만큼 재귀 호출하던 MIR lowering이었다.

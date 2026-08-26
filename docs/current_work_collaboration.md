@@ -6,6 +6,50 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## DONE lease I — readiness and progress evidence reconciliation
+
+- Base revision: `ab816bc923df2a7d0121a8d74134b2af2fa05a3e`.
+- Editing and integration owner: the primary Codex task. No parallel
+  implementation track is open.
+- Objective: reconcile the hard-self-host readiness table and the published
+  progress denominator with the executable scorecard, completed installed
+  fixed point, and latest same-source remote CI evidence.
+- Priority order: evidence-owner consistency; no completion inflation; keep
+  compiler substitution separate from native product-tool ownership; negative
+  stale-wording ratchet; then compact documentation.
+- Fact owners: `tests/self_host_readiness_scorecard.sh` for the ten Phase-1
+  substrate capabilities, the canonical full bootstrap and installed-driver
+  gates for the installed fixed point, and remote run `32938125698` for the
+  current implementation checkpoint's 29-job platform/release matrix.
+- Last legitimate consumers: the current table in
+  `docs/self_hosted/07_hard_self_host_scorecard.md`, the percentage baseline in
+  `docs/00_progress.md`, and the top progress summary in
+  `docs/current_work_handoff.md`.
+- Forbidden fallback: retaining `9/10 READY`, bootstrap or CI `3/4`, reviving
+  already deleted public native compiler bypasses as open work, or calling the
+  native formatter/debugger/scaffold/package-metadata/REPL-session products
+  Pergyra-owned.
+- Verification and falsifier: the static scorecard must reject the old
+  capability-4 `SUBSET` row and the old `9/10` progress row; documentation
+  quality and source UTF-8 gates must pass. This lease changes no SoT registry
+  row and opens no new compiler implementation rung.
+
+### Result
+
+- The scorecard table now agrees with its executable owner and measured
+  closure: all ten Phase-1 capabilities are `READY`. Remaining compiler-scale
+  String scope reclamation is recorded as an efficiency frontier, not as a
+  missing substrate capability or permission for a native fallback.
+- Installed fixed-point and latest same-source remote evidence close the
+  bootstrap and CI/release evidence axes at `4/4`. With hard replacement kept
+  at 75%, strict beta at 83%, and SoT migration at 78.2%, the unchanged
+  weighting yields 83.20%, displayed as 83% (81-85%).
+- The static scorecard passed with all ten READY rows and now rejects both stale
+  capability-4 `SUBSET` and `9/10` progress text. Documentation quality and
+  source UTF-8 gates also passed. No source compiler path, SoT registry row, or
+  product-tool ownership changed, so no successor implementation lease is
+  inferred.
+
 ## DONE lease H — REPL compile/run native-bypass substitution
 
 - Base revision: `acdab822b7d1ce27c636f73392ebb1d7738bf08a`.
