@@ -6,6 +6,33 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-26 - Public MIR diagnostic replaces the native dump default
+
+- Published local code checkpoint `c2ff6548`. Default public
+  `pgy --mir SOURCE` now delegates to the installed Pergyra child and no longer
+  enters native `driver_run_pipeline -> mir_dump`. Explicit
+  `--native-pipeline --mir` remains the independent legacy lifecycle oracle.
+- The child reuses the existing source-MIR world action and payload receipt,
+  applies full borrowed canonical-MIR admission once, and renders a stable
+  human view from typed routine/block/instruction facts. It does not reconstruct
+  source/AST/JSON, guess native-only lifecycle facts, create a temporary
+  artifact, or introduce a new world/zone/protocol family.
+- The relay admits at most 128 MiB over 300 seconds, buffers before publication,
+  and distinguishes timeout, overflow, crash, capture failure, child failure,
+  and empty success. Windows Job/process polling and POSIX process-group/poll
+  ownership close descendant-held stdout and stdout-close-before-exit races.
+- A fresh Pergyra-built DRV-2 passes the full installed CLI gate, simple and
+  four-block/phi diagnostics, malformed/missing/silent/descendant negatives,
+  public MIR-JSON, source-MIR world/action, explicit native IR, SoT edge,
+  likeness, syntax, and diff checks. Make dry-run contains one self-host build
+  and one installed gate. Full component and the POSIX branch are not claimed
+  locally; Linux and the existing 29-job remote matrix remain the falsifier.
+- This is bounded `SUBSTITUTING`, while integrated 78%, strict beta 83%, and
+  hard SoT `49/36/1` remain unchanged. Three separate architecture audits found
+  no repeated semantic decision in this route, deferred namespace movement,
+  and kept a scalar GraphPlan indirection candidate below the active remote
+  validation rung.
+
 ## 2026-08-26 - Source-C stdout enters the existing compiler world
 
 - Removed the two direct `CompileSourceToCVerified` calls from the installed

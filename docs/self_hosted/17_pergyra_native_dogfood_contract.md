@@ -2,6 +2,37 @@
 
 Status: `BRIDGE`
 
+## 2026-08-26 public MIR diagnostic substitution evidence
+
+Checkpoint `c2ff6548` makes default public installed `pgy --mir SOURCE` enter
+the sibling Pergyra-built driver's exact `--emit-mir-diagnostic-verified`
+request. The native launcher no longer falls through to C-owned
+`driver_run_pipeline -> mir_dump`; only explicit `--native-pipeline --mir`
+retains that lifecycle oracle.
+
+The Pergyra child reuses `PgyCompilerWorld.source_mir` through
+`ProduceSourceMirThroughPgyCompilerWorld` and the existing
+`DriverSourceMirPayloadReceipt`. Canonical MIR text enters the complete schema,
+parallel-capture, declaration/topology, machine, and intent admission once.
+The human projection consumes admitted routine/block/instruction views only
+and omits native-only lifecycle, liveness, cleanup, speculation, and source
+location facts. No new world, zone, payload protocol, source/AST/JSON rescan,
+temporary artifact, or native fallback exists.
+
+The native boundary relays a successful bounded payload only. Its 128 MiB and
+300-second policy, Windows Job Object, POSIX process group, and explicit
+timeout/overflow/crash/empty-success receipts keep child and descendant failure
+from becoming partial diagnostic output. The focused installed gate covers a
+simple routine, meaningful four-block/phi CFG, adjacency resolution, malformed
+shared admission, invalid source, missing driver, unsupported options, silent
+success, descendant-held stdout, and stdout-close-before-exit.
+
+This is production `SUBSTITUTING` dogfood: a real native C-owned public path is
+replaced by Pergyra source-to-MIR/admission/projection execution. It does not
+claim the native lifecycle fact family, arbitrary diagnostic views, or a
+top-level SoT row. Local DRV-2 and focused gates are green; Linux capture and
+the existing remote matrix remain the next falsifier.
+
 ## 2026-08-26 MIR-to-C stdout world/action evidence
 
 Installed `--mir-json INPUT` stdout and its explicit machine-manifest form now

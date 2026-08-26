@@ -17,7 +17,70 @@ plus SoT, self-host, bootstrap, and CI/release together; strict language beta
 remains at the official 83% line. V numbers, `.tmp` artifacts, owner count, and
 gate count do not increment either percentage by themselves.
 
-## Active self-host context - exact nested priority/observability C target-pair substitution
+## Active self-host context - installed public `--mir` diagnostic substitution
+
+- Code checkpoint `c2ff6548` is on local `main`; `origin/main` remains at
+  `9ca4a695` until publication. Before the documentation checkpoint, this
+  handoff, progress/dogfood/completion records, the separated agent directive,
+  and three audit reports are project-owned dirty state. The only unrelated
+  user-owned path is untracked `pgy-80135c2c/`; do not inspect, stage, delete,
+  or rewrite it.
+- Objective card: make public installed `pgy --mir SOURCE` use the existing
+  Pergyra source-to-MIR world action, full borrowed-text MIR admission, and one
+  stable human projection. Fact owners are the existing
+  `DriverSourceMirPayloadReceipt`, admitted MIR indexes, and their schema/
+  topology/machine/intent validators. Last consumer is installed child stdout;
+  the native launcher may relay only a bounded status/payload. Forbidden paths
+  are default `driver_run_pipeline -> mir_dump`, native retry, source/AST/JSON
+  reconstruction in the projection, guessed lifecycle facts, a temporary
+  artifact, or a new mode-specific world/protocol species.
+- Observed RED was exact: with `PGY_SELF_DRIVER_BIN` missing, default public
+  `--mir` exited 0 and produced the same native `MIRProgram` lifecycle dump as
+  explicit `--native-pipeline --mir`. The canonical `pgy.mir.v1` owner does not
+  carry several native lifecycle/liveness/source fields, so copying the legacy
+  shape would have invented a second fact authority.
+- The launcher now delegates default `--mir` to
+  `--emit-mir-diagnostic-verified` after the explicit native opt-out and before
+  final native dispatch. The Pergyra child reuses
+  `ProduceSourceMirThroughPgyCompilerWorld`, admits its canonical payload once,
+  and renders only typed routine/block/instruction facts. Internal and public
+  hello diagnostics are byte-identical; the four-block/phi CFG fixture retains
+  exact successor and instruction inventory. Explicit native lifecycle output
+  remains independently observable and byte-distinct.
+- The C relay buffers at most 128 MiB for at most 300 seconds and never relays
+  a child-failure prefix. Windows uses a kill-on-close Job Object plus process
+  polling; POSIX uses a process group and nonblocking poll. Invalid source,
+  missing driver, malformed admitted schema, unsupported options, silent
+  success, descendant-held stdout, and stdout-close-before-exit all fail with
+  no diagnostic payload. Timeout, overflow, crash, execution/capture failure,
+  and ordinary child exit remain distinguishable at the relay boundary.
+- A final current-source Pergyra-built DRV-2 is installed. The full installed
+  CLI gate is green; the focused diagnostic gate, public MIR-JSON, source-MIR
+  world/action, explicit native IR probe, SoT edge, likeness, shell syntax, and
+  diff checks are green. Make dry-run for the weekly public-MIR/default-C pair
+  reports exactly one self-host build and one installed-driver gate, with no
+  undefined or standalone diagnostic target.
+- The complete component inventory is not claimed green: the primary scan was
+  stopped at the static-loop budget. Local MinGW also cannot compile the POSIX
+  branch, so Linux CI is the next platform falsifier. Publish the code and
+  documentation checkpoints, require the existing 29-job matrix—especially
+  `build-linux` and full self-host—to pass, then record the exact remote result.
+- This is bounded `SUBSTITUTING`: a real native C-owned public `mir_dump` path
+  was removed. No top-level SoT row or native-only lifecycle fact is promoted;
+  integrated progress remains 78%, strict beta 83%, and hard SoT remains
+  `CLOSED=49 BRIDGE=36 ACTIVE=1` (86 authorities / 180 derived carriers).
+- Parallel architecture audits are navigation evidence, not a new active rung.
+  They found no duplicated semantic decision in Lease F or the nested one-plan
+  route, recommended deferring folder movement, and named only a lower-priority
+  scalar GraphPlan parameter-indirection candidate. Do not implement it until
+  this remote falsifier closes and a fresh production bypass/objective card is
+  selected.
+
+### Historical archive boundary
+
+Everything below this line is inactive lookup evidence, not an active queue.
+
+## Previous self-host context - exact nested priority/observability C target-pair substitution (inactive)
 
 - Code checkpoint `60e9fb8a2d3ed32535c6ceee7d67246f6c32ddba` is on local
   and remote `main`. Before the result-only handoff commit, the handoff,
@@ -84,10 +147,6 @@ gate count do not increment either percentage by themselves.
 - Lease E is DONE. Do not infer another implementation from this handoff;
   observe the next production bypass, write a new objective card, and name its
   falsifying fixture before opening the next executable rung.
-
-### Historical archive boundary
-
-Everything below this line is inactive lookup evidence, not an active queue.
 
 ## Previous self-host context - DRV-1 scalar routine emission memory closure (inactive)
 

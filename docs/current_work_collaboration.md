@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease F — installed `--mir` diagnostic substitution
+## ACTIVE lease F — remote CI validation for installed `--mir`
 
 - Base revision: `9ca4a69517142a4c87eb47862afcd55a9a9f2011`.
 - Editing and integration owner: the primary Codex task. Peer Codex tasks are
@@ -66,6 +66,8 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ### Local result
 
+- Local code checkpoint: `c2ff6548`; remote publication and Linux/full-self-host
+  validation remain open.
 - Public installed `pgy --mir SOURCE` now selects the self-host diagnostic
   relay after the explicit native opt-out and before final native dispatch.
   The relay invokes only `--emit-mir-diagnostic-verified`, captures one bounded

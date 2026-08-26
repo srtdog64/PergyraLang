@@ -1,6 +1,35 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-26 nested priority/observability C substitution
+## Active self-host context - 2026-08-26 public MIR diagnostic substitution
+
+- Checkpoint `c2ff6548` removes default public `pgy --mir SOURCE` reachability
+  to native `driver_run_pipeline -> mir_dump`. Explicit
+  `--native-pipeline --mir` remains a bounded oracle; missing or failed
+  installed drivers do not retry it.
+- The installed child reuses the existing source-MIR world action and
+  `DriverSourceMirPayloadReceipt`, applies the complete borrowed-text MIR
+  admission once, and projects only typed routine/block/instruction facts. No
+  source/AST/JSON rescan, guessed native lifecycle fact, temporary artifact,
+  mode-specific world/zone, or second payload protocol was added.
+- The native relay owns bounded capture: 128 MiB and 300 seconds, no child-error
+  partial payload, Windows Job Object/process polling, and POSIX process-group/
+  nonblocking polling. Invalid source, malformed schema, missing driver,
+  unsupported options, empty success, descendant-held stdout, and stdout close
+  before child exit fail closed.
+- A fresh current-source Pergyra-built DRV-2 is installed. Full installed CLI,
+  four-block/phi diagnostic, public MIR-JSON, source-MIR world/action, explicit
+  native IR, SoT edge, likeness, syntax, and diff gates are local GREEN. Make
+  dry-run shows one self-host build and one installed gate. Full component is
+  not claimed green because the primary scan exceeded the static-loop budget;
+  the POSIX capture branch requires Linux CI.
+- This is bounded `SUBSTITUTING` because the public native C MIR dump is
+  replaced, but no top-level SoT row or native-only lifecycle family closes.
+  Overall remains 78%, strict beta 83%, and hard SoT remains
+  `CLOSED=49 BRIDGE=36 ACTIVE=1`. The existing 29-job push matrix is the next
+  falsifier. Parallel architecture audits are separate navigation evidence and
+  open no implementation rung.
+
+## Historical self-host context - 2026-08-26 nested priority/observability C substitution
 
 - Checkpoints `9ad47dd7`, CFG repair `2f4dfe28`, and Linux harness repair
   `60e9fb8a` make the exact

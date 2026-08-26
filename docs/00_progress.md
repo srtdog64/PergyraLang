@@ -2,6 +2,40 @@
 
 마지막 업데이트: 2026-08-26
 
+2026-08-26 로컬 실행 갱신: checkpoint `c2ff6548`은 public installed
+`pgy --mir SOURCE`의 기본 native `driver_run_pipeline -> mir_dump` 우회를
+삭제했다. 명시적 `--native-pipeline --mir`만 기존 lifecycle/liveness/source
+오라클을 유지하며, 기본 요청은 sibling Pergyra-built driver의
+`--emit-mir-diagnostic-verified`로 들어간다. Child는 기존
+`ProduceSourceMirThroughPgyCompilerWorld`와 `DriverSourceMirPayloadReceipt`를
+재사용하고 canonical `pgy.mir.v1` payload를 full borrowed-text admission에 한 번
+통과시킨 뒤 typed routine/block/instruction view만 안정 진단문으로 투영한다. 새
+world/zone/protocol, JSON/source/AST rescan, native retry, 임시 artifact는 없다.
+
+Native relay는 stdout 128 MiB/300초 경계를 소유한다. Windows Job Object와 process
+polling, POSIX process group과 nonblocking poll로 child/descendant를 묶고, child
+failure의 partial stdout은 공개하지 않는다. Missing driver, invalid source,
+malformed schema, unsupported option, zero-byte success, descendant-held stdout,
+stdout-close-before-exit는 모두 payload 없이 실패한다. Timeout/overflow/crash와 일반
+child exit도 서로 다른 receipt로 남는다.
+
+최종 current-source Pergyra-built DRV-2가 설치됐고 full installed CLI gate,
+four-block/phi diagnostic, public MIR-JSON, source-MIR world/action, explicit native IR,
+SoT edge, likeness, shell syntax, diff gate가 local green이다. Make dry-run은 weekly
+public-MIR/default-C target pair에서 self-host build 1회와 installed gate 1회만
+보여주며 새 job/standalone target/두 번째 bootstrap은 없다. Full component inventory는
+static-loop budget에서 중단되어 green으로 주장하지 않으며, MinGW로 검증할 수 없는
+POSIX capture branch와 기존 29-job matrix가 다음 remote falsifier다.
+
+이는 실제 C-owned public `mir_dump` 경로를 Pergyra implementation으로 바꾼 bounded
+`SUBSTITUTING`이다. Native-only lifecycle facts나 top-level registry row는 닫지
+않으므로 전체 78%, strict beta 83%, SoT `49 CLOSED / 36 BRIDGE / 1 ACTIVE`
+(86 authorities / 180 derived carriers)는 유지한다. 별도 agent-work directive 아래의
+semantic-hop/direct-MIR/navigation 감사도 완료됐다. Lease F와 nested one-plan route에는
+중복 semantic decision이 없었고, folder move는 최소 후보도 경로 참조 84곳이라
+`DEFER`다. Scalar GraphPlan parameter-indirection 중복 후보는 이 remote rung보다
+우선하지 않으며 후속 objective card 없이는 구현하지 않는다.
+
 2026-08-26 로컬 실행 갱신: checkpoint `9ad47dd7`, CFG repair `2f4dfe28`, Linux harness repair
 `60e9fb8a`는 exact nested
 priority/observability family의 source-C와 direct-MIR C를 기존 sealed
