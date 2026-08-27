@@ -49,6 +49,17 @@ percentage by themselves.
   negative must reject formal lookup by `source_name` or callee node text.
   LLVM already consumes the sealed direct-MIR identity and is a parity guard,
   not a second implementation scope. No parallel edit lease is open.
+- Local implementation `e4a14e7b` emits the callable `call` row under internal
+  key `@binding_syntax:<canonical parameter SyntaxNodeId>`, deletes the
+  name-keyed formal row, and makes the final C emitter consume that key. The
+  emitter no longer reads callee node text; a missing identity-keyed row fails
+  before C call publication. Fresh v19 compiled a 6,459,372-byte Pergyra seed
+  and a 7,111,994-byte oracle. Callable C/LLVM plus all 20 mutations,
+  namespace-internal C/LLVM plus negatives, canonical epoch, likeness
+  sentinel `23/23`, and Result/Option `4374/4374` are green. The complete
+  component inventory and remote CI are not yet claimed green. Do not pass a
+  drive-letter or repo-relative build directory to the focused bootstrap
+  wrapper; use its default or a Git-Bash absolute `/d/...` path.
 
 ## Completed self-host context - callable-parameter public substitution
 
@@ -230,8 +241,9 @@ percentage by themselves.
 - The focused bootstrap wrapper itself is not claimed green: after both v18
   executables compiled, its artifact comparator rejected the drive-letter
   build-dir spelling `D:/PergyraLang/...` as escaping the repository. Future
-  invocations must use the script default, a repo-relative build directory, or
-  Git-Bash `/d/PergyraLang/...`; do not repeat the drive-letter form. This was
+  invocations must use the script default or Git-Bash absolute
+  `/d/PergyraLang/...`. Both drive-letter `D:/...` and repo-relative build-dir
+  arguments are rejected; do not repeat either form. This was
   a harness-path failure after compilation, not compiler semantic evidence.
   Replacement run `33032356735` is the observed exact-head 29/29 GREEN
   falsifier. This predecessor lease is closed; the active card above owns the

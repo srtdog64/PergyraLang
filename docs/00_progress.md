@@ -140,6 +140,14 @@ O(n^2) epoch 교체, 270-MB profiling은 여전히 이 실행선의 blocker가 �
 않는다. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
 (81~85%), strict beta 83%, hard replacement 75%는 그대로다.
 
+다음 local implementation `e4a14e7b`은 이 display-text seam을 좁게 닫는다.
+Function-local callable `call` row는 source name 대신 canonical parameter
+SyntaxNodeId로 만든 내부 키를 쓰고, final C emitter는 callee node text를 읽지 않는다.
+Fresh v19 Pergyra seed/oracle가 컴파일됐고 callable C/LLVM 20 negatives,
+namespace C/LLVM negatives, canonical epoch와 likeness `23/23`, Result/Option
+`4374/4374`가 green이다. Complete component와 remote exact-head CI 전이므로
+퍼센트와 registry 상태는 올리지 않는다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,

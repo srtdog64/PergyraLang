@@ -25,6 +25,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   runtime, all 20 identity mutations, and a structural negative rejecting the
   old formal name read. Only the primary task owns implementation/publication;
   no parallel scope is open.
+- Local implementation `e4a14e7b` replaces the formal name-keyed `call` row
+  with internal `@binding_syntax:<SyntaxNodeId>` carriage and removes callee
+  text from the C emitter. Fresh v19 callable C/LLVM plus 20 negatives,
+  namespace C/LLVM plus negatives, canonical epoch, and likeness are green.
+  Complete component and remote exact-head CI remain the falsifiers.
 
 ## DONE lease P — callable-parameter installed-path substitution
 
@@ -225,8 +230,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Fresh v18 compiled both the Pergyra seed and native oracle. Callable C/LLVM
   plus 20 negatives, namespace C/LLVM plus negatives, and canonical epoch are
   green. The bootstrap wrapper later rejected the drive-letter `D:/...` build
-  directory at its repository-containment guard; use its default, a relative
-  path, or Git-Bash `/d/...` in future. The full component inventory exceeded
+  directory at its repository-containment guard. A later relative-path attempt
+  was also rejected. Use only the script default or Git-Bash absolute `/d/...`
+  in future. The full component inventory exceeded
   the 60-second budget and is not claimed green. One replacement exact-head
   Replacement run `33032356735` completed GREEN 29/29, including both Linux
   long jobs. This lease is closed; the active lease above owns the next
