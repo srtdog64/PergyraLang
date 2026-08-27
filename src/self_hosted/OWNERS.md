@@ -446,10 +446,10 @@ inventory must not become a second fact-family owner registry.
   lowering; codegen consumes the carried node fact without binding lookup.
 - `src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy` and
   `src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy`
-  -- final source-syntax call
-  target IDs and formal-parameter ordinals over semantic graph handles. They
-  run after place/call-return closure; persisted MIR consumers may not recover
-  either identity from node display text.
+  -- final source-syntax call target IDs, exact declared-callee binding IDs on
+  function- and intent-owned surfaces, and function formal-parameter ordinals
+  over semantic graph handles. They run after place/call-return closure;
+  persisted MIR consumers may not recover any identity from node display text.
 - `src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy` --
   semantic-owned direct generic call bindings keyed by expression call node;
   explicit calls and bounded inferred initializer calls share these rows.

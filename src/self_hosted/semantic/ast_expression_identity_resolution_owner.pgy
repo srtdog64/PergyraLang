@@ -203,14 +203,16 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             }
                         }
                     }
-                    if valid && IsSome(function_node) &&
+                    if valid &&
+                        (IsSome(function_node) || IsSome(intent_node)) &&
                         graph.arena.topology.node_kinds[node] ==
                             AstExpressionNodeLeaf() {
                         let binding_name: String = graph.arena.node_texts[node];
                         let mode: String = EnvMode(names, modes, binding_name);
-                        if mode == "default_param" ||
-                            mode == "inout_param" ||
-                            mode == "own_param" || mode == "ref_param" {
+                        if IsSome(function_node) &&
+                            (mode == "default_param" ||
+                             mode == "inout_param" ||
+                             mode == "own_param" || mode == "ref_param") {
                             let ordinal: Int =
                                 SemanticExpressionFormalParameterOrdinal(
                                     analysis.signatures,
