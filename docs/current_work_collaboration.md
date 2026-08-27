@@ -6,7 +6,29 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — declared callable C alias identity
+## ACTIVE lease — intent-phase declared callee binding identity
+
+- Published base `5be3a3ee` is exact-head GREEN 29/29 in run `33041466890`.
+  The declared-callable alias lease below is closed. The protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` paths remain out of scope.
+- Objective: carry exact declared-callee binding identity on intent-owned phase
+  expression graphs before self MIR serialization. Function signatures own the
+  declaration SyntaxNodeId; semantic expression identity resolution owns the
+  leaf binding; MIR JSON is only carriage; semantic re-entry is the verifier.
+- Observed RED: `intent_typed_outcome_execution.pgy` self MIR gives the
+  `IntentRunAccepted` call target ID `56` but its exact callee leaf remains
+  `binding_syntax_id:0` / `binding_kind:none`. The current resolver restricts
+  leaf binding resolution to `IsSome(function_node)`, excluding intent-owned
+  surfaces even though they have an admitted `intent_node`.
+- Forbidden: reconstructing the binding in MIR lower, accepting target-only
+  identity, joining by source spelling after resolution, copying any nearby
+  numeric ID, native graft/retry, or opening query/cache/performance work.
+- Integration gate: the mixed intent/generic specialization fixture must run
+  exact success/failure output and reject invalid generic ordinal plus missing
+  or crossed callee binding without a partial C artifact. Only the primary task
+  owns implementation and publication; no parallel edit scope is open.
+
+## DONE lease — declared callable C alias identity
 
 - Published base `e7c27b68` is exact-head GREEN 29/29 in run `33038171342`.
   The formal callable binding lease below is closed. The protected untracked
@@ -34,8 +56,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   the emitter and a missing row fails closed. Fresh v20 fixpoint/driver,
   callable and namespace C/LLVM parity plus identity mutations, canonical
   epoch, and public-launcher C/LLVM execution are green. Source scan and
-  likeness are green; the complete component scan exceeded 60 seconds and is
-  not claimed green. Exact-head remote CI remains the closure decision.
+  likeness are green; the complete component scan exceeded 60 seconds locally.
+  Exact-head run `33041466890` at `5be3a3ee` then completed GREEN 29/29,
+  including `build-linux`, full self-host fixed point, codegen bootstrap, all
+  20 backend shards, Windows/macOS, sanitizers, TSan, and Rocq. This lease is
+  closed; the active intent-phase identity lease above is the sole
+  implementation scope.
 
 ## DONE lease — formal callable codegen binding identity
 

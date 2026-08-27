@@ -18,7 +18,41 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - declared callable C alias identity
+## Active self-host context - intent-phase declared callee binding identity
+
+- Published base: declared-callable C alias implementation `c72ba209` and
+  documentation checkpoint `5be3a3ee` are published. Exact-head run
+  `33041466890` at `5be3a3eee67e2d7f1f85579bc0f30f3034e7aa95` is GREEN
+  29/29. The declared callable alias lease below is closed.
+- Objective card: make intent-owned phase expression graphs carry the same
+  resolved declared-callee SyntaxNodeId on the leaf and call target before MIR
+  publication. Priority is exact semantic identity, producer-side carriage,
+  missing/crossed failure, negative ratchet, then patch size.
+- Production entrypoint and observed RED: installed
+  `pgy-self-driver --emit-mir-json-verified
+  tests/self_hosted/parity/fixture/intent_typed_outcome_execution.pgy`, followed
+  by installed `--mir-json`, currently exits 1. The persisted
+  `IntentRunAccepted` call carries target ID `56`, while its callee leaf carries
+  `binding_syntax_id:0` and `binding_kind:none`; semantic re-entry reports the
+  exact `0/56` binding mismatch before C publication.
+- Missing fact, owner, and last consumer: function signatures own declaration
+  SyntaxNodeId. `SemanticAstAnalysisResolveExpressionIdentities` resolves a
+  declared leaf only inside its `IsSome(function_node)` branch, so an
+  intent-owned surface with an `intent_node` but no function owner never gets
+  `SemanticExpressionBindingDeclaredCallable` carriage. The semantic
+  expression graph is the producer; MIR JSON projection is only a carrier, and
+  semantic re-entry is the last verifier. Name-based MIR repair, raw target-ID
+  copying without an exact callee edge, native graft, and a dual read are
+  forbidden.
+- Falsifier: `generic_specialization_identity_epoch_owner.sh` must execute exact
+  `accepted=true`, `calls=1`, `rejected=false`, `calls=2`, retain its invalid
+  generic ordinal no-artifact rejection, and add a declared-callee binding
+  missing/crossed rejection before C publication. The same RED is observed on
+  pre-change v19, v20, and the currently installed driver, so it is a real
+  baseline producer gap rather than a regression from `c72ba209`. No query,
+  cache, O(n^2), profiling, or unrelated SoT track is open.
+
+## Completed self-host context - declared callable C alias identity
 
 - Published base: formal callable SyntaxNodeId implementation `e4a14e7b`,
   failure-owner import repair `0fb875bc`, namespace gate cap repair `8e8cd8cb`,
@@ -67,9 +101,12 @@ percentage by themselves.
   `IntentRunAccepted` at semantic admission before reaching this C alias
   consumer; the same diagnostic occurs with the pre-change v19 driver, so it
   is recorded as baseline evidence rather than a passing or regressing gate.
-  Exact-head remote CI remains the closure falsifier. Census and progress stay
-  `50/35/1`, 58.1%, 78.8%, integrated 83% (81-85%), strict beta 83%, and hard
-  replacement 75% until that evidence changes.
+  Exact-head run `33041466890` at `5be3a3ee` completed GREEN 29/29:
+  `build-linux`, full self-host fixed point, codegen bootstrap, all 20 backend
+  shards, Windows/macOS, sanitizers, TSan, and Rocq succeeded. This lease is
+  closed. Census and progress stay `50/35/1`, 58.1%, 78.8%, integrated 83%
+  (81-85%), strict beta 83%, and hard replacement 75%; the active card above
+  owns the next executable identity gap.
 
 ## Completed self-host context - formal callable codegen binding identity
 

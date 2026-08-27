@@ -190,6 +190,24 @@ source-to-C는 `save=9\nbox=7`이다. Source scan, likeness `23/23`와 Result/Op
 분리했다. Exact-head 원격 CI 전까지 SoT `50/35/1`, hard closure 58.1%, migration
 78.8%, 통합 83% (81~85%), strict beta 83%, hard replacement 75%는 그대로다.
 
+Exact-head run `33041466890` at `5be3a3ee`은 29/29 GREEN이다. `build-linux`, full
+self-host fixed point, codegen bootstrap, 20 backend shard, Windows/macOS,
+sanitizers, TSan, Rocq가 모두 성공했다. 따라서 declared callable C alias lease는
+닫힌다. 이 closure는 identity owner와 consumer를 바로잡은 것이며 registry census나
+진행률 분자를 올리지는 않는다.
+
+다음 singular executable rung은 같은 검증 중 실제로 관측된 intent-phase callee
+binding gap이다. `intent_typed_outcome_execution.pgy`의 self MIR은
+`IntentRunAccepted` call target ID `56`을 저장하지만 exact callee leaf에는
+`binding_syntax_id:0`, `binding_kind:none`을 저장한다. 현재 semantic identity
+resolver가 declared leaf resolution을 `IsSome(function_node)` 안에 묶어 intent-owned
+surface를 제외한 것이 원인이다. MIR lower의 name 복원이나 target-only 수용 없이
+producer semantic graph가 exact declared binding을 운반하고, mixed intent/generic
+gate의 runtime과 missing/crossed identity negative로 닫는다. 이 RED는 v19, v20,
+현재 installed driver에서 같고 29/29 matrix에는 포함되지 않았다. SoT `50/35/1`,
+hard closure 58.1%, migration 78.8%, 통합 83% (81~85%), strict beta 83%, hard
+replacement 75%는 그대로다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,
