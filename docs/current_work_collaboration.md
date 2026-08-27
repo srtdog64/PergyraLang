@@ -6,30 +6,36 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE audit lease — successor admission blocked on a complete owner
+## ACTIVE lease — public live LSP takeover publication
 
-- Coordination owner: the primary task. Audit base `d492aeb3` is a
-  documentation closure ahead of exact-green `origin/main` `08c1d229`; this
-  card is its direct audit checkpoint. No implementation edit scope or
-  parallel successor track is open.
-- Audit result: public compiler-bearing C/LLVM/package/MIR/REPL paths already
-  use installed self-host owners; remaining native compiler execution is an
-  explicit opt-out/test oracle, and unsupported RIR/AIR/HIR modes fail closed.
-  Formatter/debugger/scaffold do not have complete Pergyra counterparts.
-- Nearest bypass is no-argument `pgy-lsp` at
-  `pgy_lsp.c::main -> lsp_read_message`, but the existing Pergyra session owner
-  is buffered replay only. Missing owner `G-LSP-STREAM` must provide repeated
-  read-exact/partial-frame buffering, live typed document mutation, semantic
-  feature content, and one live session-script parity boundary before the C
-  loop can be deleted.
-- Forbidden: presenting buffered EOF replay as a live loop, wrapping the native
-  C loop around Pergyra payloads, dual execution, C-output inference, or using
-  fixture/probe count as substitution evidence.
-- Integration admission fixture: one public process consumes initialize,
-  didOpen v1, hover, a didChange v2 frame split across writes, updated hover,
-  shutdown, and exit; stale/same-version revision plus incomplete body fail
-  closed. Until a Pergyra owner can pass that focused gate, the audit is
-  `BLOCKED`, LSP-2/LSP-3 stay planned, and no implementation lease is admitted.
+- Coordination owner: the primary task. Local implementation `d78a4040`
+  replaces the no-argument public C live loop; exact-green `origin/main` is
+  still `08c1d229` until publication. The primary task alone owns this lease's
+  runtime substrate, Pergyra session/index owners, launcher, gates, checkpoint,
+  and push. No parallel implementation track is open.
+- Owner boundaries: `ReadStdin` runtime definitions own one blocking OS read;
+  `live_session_owner.pgy` owns partial frames, lifecycle, one document
+  revision, and response emission; `document_feature_index_owner.pgy` owns a
+  bounded revision-scoped tooling index but no compiler semantic proof;
+  `pgy_lsp.c::main` is the public last consumer.
+- Default substitution: no-argument `pgy-lsp` executes installed
+  `pgy-self-lsp`. The C loop remains only under explicit `--native-pipeline`;
+  missing sibling fails closed and never retries natively. Buffered replay,
+  dual execution, C-output inference, and semantic-index overclaim remain
+  forbidden.
+- Integration evidence: source/public and installed/public fragmented sessions
+  pass initialize, open, hover, split change, updated hover, shutdown, and exit;
+  stale/same-version and incomplete EOF fail closed. Tooling conformance,
+  ReadStdin C/no-EOF, hover/completion registries, C diagnostics parity,
+  build-source inventory, compiler-world, and full component structural gates
+  are green after installed driver/sibling rebuild. Installed self-host LLVM is
+  unavailable and explicitly skipped, not claimed green.
+- Publication boundary: push implementation plus exact documentation
+  checkpoint, then require exact-head CI. This local path is `SUBSTITUTING` for
+  one production default loop, but LSP-2/LSP-3, multi-document ownership,
+  compiler semantic-artifact admission, SoT counts, and published progress stay
+  open/unchanged. Protected untracked `docs/compiler_architectures/` and
+  `pgy-80135c2c/` remain untouched.
 
 ## DONE lease — public LSP diagnostics dump takeover
 

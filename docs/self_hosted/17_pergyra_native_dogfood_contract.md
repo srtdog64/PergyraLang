@@ -2,6 +2,45 @@
 
 Status: `BRIDGE`
 
+## 2026-08-28 public live LSP takeover
+
+Implementation `d78a4040` makes the no-argument public `pgy-lsp` entrypoint
+resolve and argv-execute the installed Pergyra-built `pgy-self-lsp`. The former
+default C message loop is reachable only through explicit
+`pgy-lsp --native-pipeline`; missing sibling resolution fails closed before
+spawn and never retries natively. Diagnostics and live-session handoff share
+one sibling identity/resolution owner.
+
+`ReadStdin(n)` now performs one EINTR-bounded OS read and returns up to `n`
+bytes without waiting for EOF. EOF remains the sole empty-stream outcome;
+allocation, binary-mode, and read failures cross a fatal boundary. LLVM Print
+lowering consumes canonical `pgy_print`, preserving byte-exact JSON-RPC frames
+on Windows. `live_session_owner.pgy` owns partial-frame retention, lifecycle,
+one current document revision, advancing changes, diagnostics, and exact frame
+emission.
+
+`document_feature_index_owner.pgy` is a bounded revision-scoped tooling index,
+not the compiler semantic-artifact owner. It serves document symbols,
+definition, references, and rename without per-request root scans, while hover
+uses the admitted revision and completion remains registry-directed. This
+distinction is negative-gated so a lexical tooling index cannot be reported as
+semantic proof or whole LSP-3 completion.
+
+Current local evidence includes rebuilt installed driver/LSP artifacts,
+fragmented source/public and installed/public live sessions, stale/same-version
+and incomplete-EOF failures, missing-sibling failure, tooling conformance,
+ReadStdin C/no-EOF, hover/completion registries, C diagnostics public/native
+parity, build-source inventory, compiler-world, and the full component
+structural/removed-path contract. Runtime bitcode was regenerated. Installed
+self-host LLVM is unavailable and explicitly skipped rather than claimed
+green.
+
+This is local production `SUBSTITUTING` dogfood for one real default C-owned
+live LSP path. Exact-head CI and publication remain open. It does not claim
+multi-document live ownership, incremental semantic analysis, whole LSP-2/3,
+or closure of `selfhost.semantic_artifact_admission`; published progress and
+SoT counts remain unchanged.
+
 ## 2026-08-28 public LSP diagnostics dump takeover
 
 Default public `pgy-lsp --dump-diagnostics SOURCE` now resolves and argv-executes

@@ -2,6 +2,43 @@
 
 마지막 업데이트: 2026-08-28
 
+2026-08-28 public live LSP 로컬 치환(`d78a4040`): no-argument
+`pgy-lsp`의 기본 C `lsp_read_message`/dispatch 경로를 설치된 Pergyra-built
+`pgy-self-lsp` handoff로 바꿨다. 기존 C live loop는 명시적
+`pgy-lsp --native-pipeline` oracle에서만 실행되며 sibling 누락 시 nonzero/빈 stdout으로
+fail closed한다. Diagnostics와 live session은 하나의 argv-safe sibling resolver를
+공유하고 native retry나 dual execution은 없다.
+
+`ReadStdin(n)`은 EOF까지 채우는 `fread(max_bytes)` 대신 한 번의 EINTR-bounded OS
+read에서 최대 `n` byte를 반환한다. EOF만 빈 문자열이고 mode/read/allocation 오류는
+fatal boundary다. LLVM `Print`도 direct `printf` lowering을 제거하고 canonical
+`pgy_print` runtime entry를 호출해 JSON-RPC wire에 CRLF를 추가하지 않는다.
+`live_session_owner.pgy`는 partial Content-Length buffer, lifecycle, 한 개의 현재
+URI/version/text revision, strictly advancing didChange, diagnostics와 exact response
+frame emission을 소유한다.
+
+`document_feature_index_owner.pgy`는 admitted revision마다 한 번 만드는 bounded
+tooling declaration/occurrence index다. Document symbol/definition/references/rename이
+이를 재사용하지만 compiler semantic artifact의 증명 owner는 아니다. 이 구분을
+코드 이름, OWNERS, README, intent, component ratchet에 고정했다. 따라서 이 작업은
+semantic SoT나 LSP-3 semantic index를 닫았다고 세지 않는다. 함께 관측된
+`let x: Int = ;` 진단은 `PGY_PARSE_SYNTAX`/syntax layer를 보존하도록 고쳤고,
+registry에서 이미 HOVER-exposed였던 `binding`의 presentation 원본과 생성 projection도
+동기화했다.
+
+설치 `pgy-self-driver.exe`/`pgy-self-lsp.exe`를 현재 소스로 재생성한 뒤 focused
+fragmented source/public 및 installed/public live session, stale/same-version,
+incomplete EOF, missing sibling, tooling conformance, ReadStdin C/no-EOF, hover/completion
+registry, C diagnostics public/native parity, build-source inventory, compiler-world,
+full component structural/removed-path ratchet가 local green이다. Runtime bitcode도 현재
+owner에서 재생성했다. 설치 self-host LLVM compiler는 unavailable이라 명시적으로
+skip했고 통과로 기록하지 않는다.
+
+이는 실제 기본 C-owned live LSP path 하나의 로컬 `SUBSTITUTING` 증거다. 아직
+exact-head CI와 publication은 열려 있고, multi-document live ownership, incremental
+semantic analysis, whole LSP-2/LSP-3, `selfhost.semantic_artifact_admission`은 닫지
+않는다. 공개 SoT/진행률 수치도 그대로다.
+
 2026-08-28 public LSP diagnostics dump 로컬 치환: 기존
 `pgy-lsp --dump-diagnostics SOURCE -> dump_diagnostics_file` 기본 C 경로를
 삭제하고, 같은 요청이 설치된 Pergyra-built `pgy-self-lsp`를 argv-safe하게

@@ -18,52 +18,59 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - successor admission blocked on a complete owner
+## Active self-host context - public live LSP takeover awaiting exact-head CI
 
-- Audit base `d492aeb3` is one documentation-only closure commit ahead of
-  exact-green `origin/main` `08c1d229`; this card is its direct audit
-  checkpoint. Protected untracked `docs/compiler_architectures/` and
-  `pgy-80135c2c/` remain untouched. This is a read-only admission audit, not an
-  executable implementation rung.
-- Observed closed/default paths: public `pgy` compile, emit, MIR, package, and
-  REPL compiler-bearing requests already consume installed self-host owners.
-  The remaining `driver_run_pipeline` calls are the explicit
-  `--native-pipeline`/test oracle and the package command's explicitly passed
-  native opt-out. Unsupported RIR/AIR/HIR requests fail closed instead of
-  falling back. Formatter, debugger, and scaffold have no corresponding
-  complete Pergyra owner; scaffold is not a compiler substitution target.
-- Nearest production bypass: no-argument `pgy-lsp` still runs
-  `src/lsp/pgy_lsp.c::main -> lsp_read_message` and the C-owned live dispatch,
-  document mutation, diagnostics scheduling, and semantic feature responses.
-  `src/self_hosted/lsp/session_owner.pgy::LspSessionReplayJson` explicitly owns
-  only one buffered replay artifact, and `main.pgy` exposes probe modes rather
-  than a default live session. The declared missing owner is
-  `G-LSP-STREAM`: repeated read-exact stdin consumption, partial-frame
-  buffering, live session-state/document-store mutation, semantic feature
-  content, and session-script parity. LSP-2/LSP-3 therefore correctly remain
-  `planned` with no artifact or gate row.
-- Forbidden false closure: do not call buffered replay a live server, read all
-  stdin until EOF and claim read-exact streaming, retain the C message loop as
-  hidden orchestration, run C and Pergyra paths in parallel, infer feature
-  content from C output, or count another probe/fixture/keyword as
-  `SUBSTITUTING`.
-- Exact admission requirement: before implementation, a Pergyra owner must be
-  able to keep one public process alive while it consumes fragmented frames,
-  mutates typed document revisions, and emits exact response frames. The first
-  falsifying session is initialize -> didOpen v1 -> symbol hover -> a didChange
-  v2 frame split across two writes -> updated hover -> shutdown -> exit. It
-  must match the explicit native oracle while stale/same-version mutation and
-  incomplete-body cases fail closed. `tests/tooling_conformance_smoke.sh` is
-  the existing live last-consumer gate; a focused fragmented-write parity
-  fixture must precede public takeover.
-- BLOCKED decision: there is currently no fresh default C compiler path with
-  an existing complete Pergyra owner, so no successor hard-substitution rung
-  is admitted. The sole ACTIVE SoT row
-  `selfhost.semantic_artifact_admission` stays open; closing an unrelated seam,
-  adding query/cache work, or implementing only another buffered LSP probe
-  would violate the hard progress guard. Reopen implementation only by
-  explicitly choosing the non-counting `G-LSP-STREAM` owner prerequisite or by
-  observing another complete-owner production bypass.
+- Implementation `d78a4040` is local on top of documentation checkpoints
+  `d492aeb3`/`77785e88`; exact-green `origin/main` remains `08c1d229` until the
+  implementation and this checkpoint are pushed. Protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
+- Objective card: replace the no-argument public
+  `pgy-lsp -> C lsp_read_message/live dispatch` default path with one
+  Pergyra-owned stream/session path. Priority is blocking byte-stream identity,
+  fragmented-frame correctness, typed document revision ownership, public
+  default substitution, negative ratchets, then packaging. Native/runtime and
+  self-emitted host-I/O definitions own `ReadStdin`; `live_session_owner.pgy`
+  owns orchestration; `pgy_lsp.c::main` is the last public consumer. EOF replay,
+  hidden C orchestration, native retry, dual execution, C-output inference, and
+  treating a tooling index as compiler semantic proof are forbidden.
+- Substrate closure: `ReadStdin(n)` now returns after one EINTR-bounded OS read
+  of up to `n` bytes. EOF alone returns an empty string; allocation, binary-mode,
+  and read failures cross an explicit fatal boundary instead of impersonating
+  EOF. LLVM `Print` calls the canonical `pgy_print` runtime entry rather than
+  lowering directly to `printf`, so exact JSON-RPC frames do not acquire CRLF.
+- Pergyra owner: `live_session_owner.pgy` retains partial Content-Length frames,
+  caps its buffer, owns initialize/shutdown/exit, admits one current URI/version/
+  text revision, rejects non-advancing changes, emits diagnostics, and prints
+  exact response frames. `document_feature_index_owner.pgy` builds one bounded
+  revision-scoped tooling declaration/occurrence index on open/change for
+  document-symbol/definition/references/rename. It is deliberately not the
+  compiler semantic-artifact owner and gives no LSP-3 semantic-proof claim.
+- Public substitution: no-argument `pgy-lsp` resolves and argv-executes the
+  installed `pgy-self-lsp`; the C live loop is reachable only through explicit
+  `--native-pipeline`. The diagnostics handoff and live handoff share one
+  sibling resolver. Missing sibling exits nonzero with empty stdout and no
+  native fallback. The retired diagnostics-only C boundary is deleted and
+  negative-gated.
+- Reached product gaps fixed within this rung: incomplete `let x: Int = ;` now
+  retains `PGY_PARSE_SYNTAX`/syntax-layer identity through self-host diagnostics,
+  and the long-standing registry/presentation drift for HOVER-exposed
+  `binding` is closed through `lsp_hover_content.def` plus its generated
+  projection. Neither repair creates a second diagnostic or keyword owner.
+- Observed local evidence after rebuilding `bin/pgy-self-driver.exe` and
+  `bin/pgy-self-lsp.exe`: diff/shell/generator checks; ReadStdin C plus no-EOF
+  chunk; focused live source/public and installed/public sessions; tooling
+  conformance; hover/completion registries; C diagnostics public/native parity;
+  build-source inventory; compiler-world contract; and the full component
+  structural/removed-path ratchet all exit 0. Runtime bitcode was regenerated
+  from the current runtime owner. The installed self-host LLVM compiler is
+  unavailable and is explicitly skipped; this is not reported as a passing
+  LLVM installed leg.
+- Grade and next falsifier: this is local production `SUBSTITUTING` for the real
+  default C-owned live LSP path, not whole LSP-2/LSP-3 completion and not a
+  top-level SoT closure. `selfhost.semantic_artifact_admission` remains ACTIVE;
+  published progress values stay unchanged. Push the implementation/checkpoint
+  and require exact-head CI. Do not infer a query/cache, multi-document, or
+  semantic-index successor from this local closure.
 
 ## Completed self-host context - public LSP diagnostics dump takeover
 

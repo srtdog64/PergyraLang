@@ -349,7 +349,10 @@ SENTINEL_MAX=23
 # carries invalid facts as Err, a legitimate miss as Ok(0), and an exact
 # declaration identity as Ok(SyntaxNodeId). Runtime ABI fallback is reached only
 # from the explicit successful miss, never from an invalid fact set.
-RESULT_USE_MIN=4393
+# 4393 -> 4453 (2026-08-28): the live LSP session carries revision, frame,
+# request, and document-index absence through typed Option facts. Missing or
+# stale state fails closed instead of reopening empty-string/sentinel control.
+RESULT_USE_MIN=4453
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world
