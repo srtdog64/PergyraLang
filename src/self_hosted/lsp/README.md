@@ -1,8 +1,11 @@
 # LSP Substitution Track
 
-LSP-0 and LSP-1 are active as payload-only substitution rungs. They do not own
-the JSON-RPC transport loop, stdin framing, indexed hover/completion content,
-or C LSP session replacement.
+LSP-0 and LSP-1 own payload-only substitution rungs. The default public
+`pgy-lsp --dump-diagnostics SOURCE` entrypoint now executes the installed
+Pergyra-built `pgy-self-lsp`; the C dump remains only under explicit
+`--native-pipeline`. This bounded public takeover does not own the JSON-RPC
+transport loop, stdin framing, indexed hover/completion content, or C LSP
+session replacement.
 
 - `diagnostics_owner.pgy` projects self-host semantic diagnostic blocks into a
   `textDocument/publishDiagnostics`-shaped JSON artifact.
@@ -41,5 +44,7 @@ rename response shapes consumed by response/session replay (LSP-2g).
 into one buffered session-state artifact (LSP-2h). `hover_content_owner.pgy`
 adds bounded hover content over the buffered document snapshot (LSP-2i). Full
 LSP-2 still needs a live read-exact loop and indexed semantic feature content.
-`O-LSP` has live diagnostic-dump plumbing, but full vocabulary/session parity
-remains a later LSP-3 concern.
+`O-LSP` now has installed public diagnostic-dump substitution with
+public/sibling byte parity, explicit-native canonical-event parity, and a
+missing-sibling fail-closed negative. Full vocabulary and live session parity
+remain LSP-2/LSP-3 concerns.

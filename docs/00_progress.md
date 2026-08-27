@@ -2,6 +2,31 @@
 
 마지막 업데이트: 2026-08-28
 
+2026-08-28 public LSP diagnostics dump 로컬 치환: 기존
+`pgy-lsp --dump-diagnostics SOURCE -> dump_diagnostics_file` 기본 C 경로를
+삭제하고, 같은 요청이 설치된 Pergyra-built `pgy-self-lsp`를 argv-safe하게
+실행하도록 바꿨다. C 구현은
+`--native-pipeline --dump-diagnostics`에서만 canonical-event oracle로 남는다.
+Sibling이 없으면 spawn 전에 nonzero, 빈 stdout, owned diagnostic으로 fail closed하며
+native retry는 없다.
+
+Pergyra fixed-point codegen seed가 `src/self_hosted/lsp/main.pgy` import graph를
+C로 내고, source/runtime-header/compiler-profile fingerprint와 clean payload smoke를
+통과한 `bin/pgy-self-lsp`를 설치한다. `all`, `release`, `lsp`는 public launcher와
+sibling을 함께 만든다. Bash syntax, diff, CI profile, build-source inventory, fresh
+native LSP compile/link, sibling build/smoke, direct/public clean byte identity가 local
+green이다. C-only focused parity는 모든 fixture에서 installed/public byte identity,
+explicit-native canonical diagnostic event, missing sibling negative를 통과했다. Full
+Make 경로의 `self-host-lsp`와 C-only focused diagnostics target도 exit 0이다. Broad
+component contract는 90초 동안 출력 없이 실행되어 중단했으므로 green으로 세지
+않는다. Dual-backend integration, publication, exact-head CI도 아직 열려 있다.
+
+이는 실제 C-owned public debug/diagnostics entrypoint 하나를 교체한 bounded
+`SUBSTITUTING`이다. Live JSON-RPC read-exact/session, indexed semantic features,
+LSP-2/LSP-3 전체 제품 치환은 열지 않았고 top-level SoT 행도 닫지 않는다. 따라서
+현재 공개 수치인 SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
+(81~85%), strict beta 83%, hard replacement 75%는 원격 폐쇄 전 그대로 유지한다.
+
 2026-08-27 Markdown-only push matrix isolation 로컬 구현: exact Git diff를
 `scripts/ci_change_scope_owner.sh` 하나가 분류하고 `build-linux`는 모든 push/PR에서
 계속 실행한다. 따라서 Markdown 계약도 기존 compiler build, `test-all`, self-host

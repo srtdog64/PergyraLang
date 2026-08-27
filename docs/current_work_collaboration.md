@@ -6,6 +6,35 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — public LSP diagnostics dump takeover
+
+- Editing/integration owner: the primary task. Base is local `d2890c64`, one
+  documentation closure commit ahead of `origin/main` `17e05c9f`. No parallel
+  implementation track is open.
+- Objective: make default public `pgy-lsp --dump-diagnostics SOURCE` execute
+  the installed Pergyra-built `pgy-self-lsp`; keep the native C dump only as
+  the explicit `--native-pipeline` oracle. The Pergyra diagnostics owner owns
+  payload semantics and `pgy_lsp.c::main` is the last dispatch consumer.
+- Forbidden: automatic native fallback, whole-session/LSP-3 claims, shell
+  command construction, C-payload-to-Pergyra field inference, a sibling that
+  is not installed with the public launcher, or success/partial payload when
+  the sibling is missing.
+- Integration gate: installed sibling and public launcher must be byte-equal
+  for every focused fixture; explicit native output must retain canonical
+  diagnostic-event parity; a missing sibling must exit nonzero with empty
+  stdout and the owned diagnostic. Build/source/component ratchets must keep
+  the default C bypass deleted.
+- Local evidence: syntax/diff, CI profile, build-source inventory, fresh native
+  LSP compile/link, Pergyra sibling build/smoke, direct/public clean output,
+  and the C-only focused parity/negative gate are green. The Make-owned
+  `self-host-lsp` build and C-only focused diagnostics target also exit 0. The
+  broad component contract was stopped after 90 seconds without output and is
+  not claimed green; dual-backend integration, publication, and exact-head CI
+  remain open. This bounded path is `SUBSTITUTING`; whole LSP product state,
+  registry `50/35/1`, and published progress values remain unchanged.
+- Protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
+  remain untouched.
+
 ## DONE lease — Markdown-only push matrix isolation
 
 - Objective: keep Linux `ci-push-linux` mandatory while skipping the other 28

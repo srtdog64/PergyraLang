@@ -122,7 +122,7 @@ if ! grep -Fq 'ifneq ($(ENABLE_ASM_FASTPATH),1)' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] runtime asm objects must stay disabled by default" >&2
     missing=1
 fi
-if ! grep -Fxq 'all: $(PGY) $(PGY_LSP) self-host-compiler' "$ROOT_DIR/Makefile"; then
+if ! grep -Fxq 'all: $(PGY) $(PGY_LSP) self-host-compiler self-host-lsp' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] default all target must build one coherent public/self-host installation" >&2
     missing=1
 fi

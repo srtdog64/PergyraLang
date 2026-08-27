@@ -22,6 +22,7 @@
 #include "../compiler/path_utils.h"
 #include "../runtime/pgy_runtime_observability_schema.h"
 #include "pgy_lsp_internal.h"
+#include "pgy_lsp_self_host_diagnostics.h"
 
 /*
  * 256KB message cap. Load-bearing survivability invariant (docs/189 C9):
@@ -252,16 +253,24 @@ main(int argc, char **argv)
 {
     char doc_uri[2048] = "";
     char *doc_content = NULL;
-    char *msg_buf = malloc(PGY_LSP_MESSAGE_BUFFER_SIZE);
+    char *msg_buf;
     bool diagnostics_deferred = false;
 
+    if (argc == 4 && strcmp(argv[1], "--native-pipeline") == 0
+        && strcmp(argv[2], "--dump-diagnostics") == 0) {
+        return dump_diagnostics_file(argv[3]);
+    }
     if (argc == 3 && strcmp(argv[1], "--dump-diagnostics") == 0)
-        return dump_diagnostics_file(argv[2]);
+        return pgy_lsp_run_self_host_diagnostics(argv[0], argv[2]);
     if (argc > 1) {
-        fprintf(stderr, "usage: pgy-lsp [--dump-diagnostics <source.pgy>]\n");
+        fprintf(stderr,
+                "usage: pgy-lsp [--dump-diagnostics <source.pgy>]\n"
+                "       pgy-lsp --native-pipeline --dump-diagnostics "
+                "<source.pgy>\n");
         return 1;
     }
 
+    msg_buf = malloc(PGY_LSP_MESSAGE_BUFFER_SIZE);
     if (msg_buf == NULL)
         return 1;
 

@@ -25513,10 +25513,42 @@ require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func C
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "if index == 8"
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "if index == 4"
 require_text "Makefile" "self-host-lsp-diagnostics-parity-test-smoke"
-require_text "Makefile" 'self-host-lsp-diagnostics-parity-test-smoke: $(PGY) $(PGY_LSP)'
-require_text "Makefile" 'self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP)'
+require_text "Makefile" 'self-host-lsp-diagnostics-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-lsp'
+require_text "Makefile" 'self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-lsp'
 require_text "Makefile" 'PGY_LSP_BIN="$(abspath $(PGY_LSP))"'
+require_text "Makefile" 'PGY_SELF_LSP_BIN="$(abspath $(SELF_HOST_LSP))"'
+require_text "Makefile" 'SELF_HOST_LSP       = $(BIN_DIR)/pgy-self-lsp$(EXEEXT)'
+require_text "Makefile" 'self-host-lsp: self-host-codegen-bootstrap-seed-test-smoke'
+require_file "tests/self_hosted/parity/self_host_lsp_build.sh"
+require_text "tests/self_hosted/parity/self_host_lsp_build.sh" \
+    'LSP_SOURCE="src/self_hosted/lsp/main.pgy"'
+require_text "tests/self_hosted/parity/self_host_lsp_build.sh" \
+    '"$CODEGEN_BIN" --source "$LSP_SOURCE" >"$C_RAW"'
+require_text "tests/self_hosted/parity/self_host_lsp_build.sh" \
+    'schema=pgy.selfhost.lsp-build.v1-source-artifact'
+require_text "tests/self_hosted/parity/self_host_lsp_build.sh" \
+    'verify_installed_lsp_artifact "$OUTPUT"'
+require_text "tests/self_hosted/parity/self_host_lsp_build.sh" \
+    'verify_installed_lsp_artifact "$tmp_output"'
 require_text "src/lsp/pgy_lsp.c" "--dump-diagnostics"
+require_text "src/lsp/pgy_lsp.c" \
+    'return pgy_lsp_run_self_host_diagnostics(argv[0], argv[2]);'
+require_text "src/lsp/pgy_lsp.c" \
+    'strcmp(argv[1], "--native-pipeline") == 0'
+reject_text "src/lsp/pgy_lsp.c" \
+    'return dump_diagnostics_file(argv[2]);'
+require_file "src/lsp/pgy_lsp_self_host_diagnostics.c"
+require_file "src/lsp/pgy_lsp_self_host_diagnostics.h"
+require_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
+    'candidate = path_join_dup(directory, "pgy-self-lsp");'
+require_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
+    'const char *override = getenv("PGY_SELF_LSP_BIN");'
+require_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
+    'binary == NULL || !path_file_exists(binary)'
+require_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
+    'rc = pgy_exec_argv(child_argv, false);'
+reject_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
+    'dump_diagnostics_file('
 require_text "src/lsp/pgy_lsp_diagnostics.c" "lsp_build_diagnostics_params"
 require_text "src/lsp/pgy_lsp_internal.h" "lsp_build_diagnostics_params"
 require_text "Makefile" "tests/self_hosted/parity/lsp_diagnostics_parity.sh"
@@ -25525,7 +25557,15 @@ require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"lsp-diagnost
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" '"lsp_diagnostics"'
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_LSP_BIN"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_SELF_LSP_BIN"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "--dump-diagnostics"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "--native-pipeline --dump-diagnostics"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" \
+    "check_public_lsp_replacement"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" \
+    "check_public_lsp_missing_binary_fails_closed"
+require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" \
+    "self-host diagnostics is unavailable"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_SEM_BINOP_TYPE_MISMATCH"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "semantic:binop:operand_types"
 require_text "tests/self_hosted/parity/lsp_diagnostics_parity.sh" "PGY_SEM_UNDEFINED_SYMBOL"

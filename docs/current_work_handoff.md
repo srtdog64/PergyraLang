@@ -18,7 +18,49 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - no executable successor; Markdown-only CI isolation closed
+## Active self-host context - public LSP diagnostics dump takeover
+
+- Resume checkpoint: local HEAD `d2890c64` is one documentation-only closure
+  commit ahead of `origin/main` `17e05c9f`; the LSP implementation is dirty and
+  uncommitted. Protected untracked `docs/compiler_architectures/` and
+  `pgy-80135c2c/` remain untouched.
+- Objective card: replace default public
+  `pgy-lsp --dump-diagnostics SOURCE` execution with the existing Pergyra
+  diagnostics owner. Priority is one Pergyra payload owner, installed/public
+  byte identity, explicit native canonical-event oracle, missing-sibling
+  failure, then packaging cost. `diagnostics_owner.pgy` and
+  `LspPublishDiagnosticsJson` own the payload; `src/lsp/pgy_lsp.c::main` is the
+  last public orchestration consumer. The direct default
+  `main -> dump_diagnostics_file(argv[2])` bypass is forbidden, as are native
+  retry, shell command strings, inferring Pergyra fields from C JSON, and
+  partial stdout when the sibling is absent.
+- Local implementation: `self-host-lsp` builds `bin/pgy-self-lsp` from the
+  Pergyra fixed-point codegen seed and fingerprints source C, runtime headers,
+  compiler profile, and output identity. `all`, `release`, and `lsp` install
+  the public launcher and sibling coherently. The default public flag resolves
+  and argv-executes that sibling; only
+  `--native-pipeline --dump-diagnostics` reaches the retained C oracle. A
+  missing sibling fails before spawn with one owned diagnostic and no payload.
+- Observed evidence: Bash syntax and `git diff --check` pass; CI profile and
+  build-source inventory pass. A fresh LLVM-disabled native LSP build compiled
+  and linked the new owner. The Pergyra seed emitted, compiled, smoke-admitted,
+  and installed `pgy-self-lsp.exe`; direct and public clean payloads are
+  byte-equal. The C-only focused diagnostics gate is green for all fixtures,
+  public/installed byte parity, explicit-native canonical-event parity, and
+  missing-sibling failure. The Make-owned `self-host-lsp` build and its C-only
+  focused diagnostics target both exit 0 against the current tree. A broad
+  component-contract attempt was stopped after 90 seconds without output, so
+  it is not claimed green. Dual-backend integration, publication, and
+  exact-head CI remain open.
+- Grade and next falsifier: this is bounded production `SUBSTITUTING` for one
+  real C-owned debug/diagnostics CLI path. It does not replace the live
+  JSON-RPC session, LSP-2 read-exact loop, semantic feature index, or LSP-3
+  product, and it closes no top-level SoT row or published percentage. Review
+  the exact diff, refresh the documents, publish one non-Markdown
+  implementation commit, and require the full exact-head CI matrix to own the
+  broad component and dual-backend evidence.
+
+## Completed supporting context - Markdown-only CI isolation closed
 
 - Executable-rung status: source-C compiler-purpose intent takeover is closed
   by implementation/repair `fb4acef4`/`cb53b879`, checkpoint `c0632e4f`, and

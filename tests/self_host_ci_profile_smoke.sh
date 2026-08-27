@@ -138,8 +138,8 @@ assert_scope 0000000000000000000000000000000000000000 "$scope_rename" true false
 assert_scope "$scope_rename" "$scope_rename" true false empty-diff
 
 for required in \
-    'all: $(PGY) $(PGY_LSP) self-host-compiler' \
-    'release: $(PGY) self-host-compiler' \
+    'all: $(PGY) $(PGY_LSP) self-host-compiler self-host-lsp' \
+    'release: $(PGY) $(PGY_LSP) self-host-compiler self-host-lsp' \
     'self-host-preparation-platform-test-smoke:' \
     'self-host-preparation-platform-parser-parity-test-smoke:' \
     'self-host-preparation-platform-semantic-parity-test-smoke:' \

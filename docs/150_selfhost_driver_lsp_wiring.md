@@ -8,11 +8,12 @@ rung 표를 문다** — landed 주장에는 실존 artifact+gate와 green parit
 하며, planned rung은 artifact를 주장할 수 없다. 가짜 진척 차단이 이 문서의
 절반이다.
 
-주의: 여기서 DRV/LSP rung의 `landed`는 **released compiler driver/LSP
-replacement가 0%를 벗어났다는 뜻이 아니다**. 뜻은 더 좁다: self-host
-parser/codegen/LSP payload를 Pergyra owner boundary에서 조립·투영하는
-artifact와 그 artifact를 검증할 gate가 등록됐다는 뜻이다. 실제 driver/LSP
-교체율은 DRV-3/LSP-3 플래그 뒤 parity 전까지 PROGRESS.md에서 0%로 남긴다.
+주의: 여기서 DRV/LSP rung의 `landed`는 whole-product replacement가 아니다.
+Self-host parser/codegen/LSP payload를 Pergyra owner boundary에서 조립·투영하는
+artifact와 그 artifact를 검증할 gate가 등록됐다는 뜻이다. 실제 public 하위
+entrypoint가 C 우회를 삭제한 경우에는 그 exact slice만 bounded `SUBSTITUTING`으로
+기록할 수 있다. 전체 compiler driver와 live LSP session/product 치환은 각각
+DRV-3/LSP-3 parity 전까지 주장하지 않는다.
 
 ## 0. 두 트랙의 위상 (왜 이 순서인가)
 
@@ -100,18 +101,22 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
   제공하고, `tests/self_hosted/parity/lsp_diagnostics_parity.sh`가 clean/error
   source fixture를 C/LLVM-built self-host tool로 실행해 committed JSON
   artifact와 비교한다. C LSP transport와의 세션 parity는 아직 아니다.
-  **O-LSP 배관 landed**: C LSP 바이너리의
-  `pgy-lsp --dump-diagnostics <src>`가 live `publishDiagnostics` payload를
-  덤프하고, 같은 gate가 clean/error fixture의 JSON-RPC shape, URI
+  **O-LSP public takeover landed**: 기본
+  `pgy-lsp --dump-diagnostics <src>`는 설치된 Pergyra-built
+  `pgy-self-lsp`를 실행하고 그 `publishDiagnostics` payload를 그대로
+  전달한다. 기존 C dump는
+  `pgy-lsp --native-pipeline --dump-diagnostics <src>`에서만 oracle로 남는다.
+  같은 gate가 public/installed byte identity와 clean/error fixture의 JSON-RPC shape, URI
   normalization, C-side diagnostic code/cause, red squiggle class를 확인한 뒤
   C/self-host payload를 canonical diagnostic event로 투영해 Pergyra artifact
   comparator로 비교한다. 현재 clean + logical/undefined/type/condition/unary
   error fixtures가 live C oracle과 canonical event parity를 갖는다.
   self-host payload는 semantic diagnostic owner의 oracle code fact
   (`oracleCode`)를 `data`에 싣고, parity gate는 이 fact를 요구하므로
-  canonical event 매핑이 셸 스크립트 단독 SoT로 남지 않는다. 아직 전체
-  diagnostic vocabulary와 LSP session parity는 남아 있으므로 LSP-3 전 후속
-  작업은 vocabulary coverage 확장이다.
+  canonical event 매핑이 셸 스크립트 단독 SoT로 남지 않는다. 설치 sibling이
+  없으면 default flag는 native retry나 partial payload 없이 fail closed한다. 이는
+  LSP-0 debug/diagnostics entrypoint만 bounded `SUBSTITUTING`이며, 전체 diagnostic
+  vocabulary와 live LSP session parity는 LSP-2/LSP-3에 남는다.
 - **LSP-1 — squiggle 4색 분류기 (landed)**: RED/AMBER/BLUE/VIOLET
   판정(docs/140의 색 결정 로직)을 `lsp/squiggle_owner.pgy`가 소유한다.
   입력 = 진단 상태/severity/stage/code/fact. Payload owner는 더 이상
@@ -191,7 +196,7 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
 | **G-EXEC** | subprocess builtin + process capability. `SubprocessRunnerZone`의 env allowlist, timeout, cwd, exit facts를 runtime에 강제 | 표면 결정 + 양 백엔드 lowering + capability gate | DRV-3 |
 | **G-STDIN** | `ReadStdin(n) -> String` byte-count stdin substrate, caps: `io_read`; C/LLVM/runtime/self-host codegen symbol owner landed and consumed by LSP-2a single-frame transport | `tests/read_stdin_builtin_smoke.sh` | LSP-2a |
 | **G-LSP-STREAM** | live JSON-RPC session loop: repeated read-exact body consumption from stdin, document-store mutation consumed by session state, semantic feature content, session-script parity | planned surface/runtime owner | LSP-2 |
-| **O-LSP** | C LSP 진단 페이로드 덤프 플래그 `pgy-lsp --dump-diagnostics <src>` + canonical event compare | C-측 landed 배관 | LSP-0 live oracle 보강; full vocabulary/session parity는 LSP-3 전 후속 |
+| **O-LSP** | 기본 `pgy-lsp --dump-diagnostics <src>`는 installed `pgy-self-lsp`; explicit `--native-pipeline`만 C canonical-event oracle | bounded public takeover landed | LSP-0 `SUBSTITUTING`; full vocabulary/live session parity는 LSP-2/LSP-3 후속 |
 
 ## 4. Rung 표 (selfhost-driver-lsp-wiring-test-smoke가 잠금)
 

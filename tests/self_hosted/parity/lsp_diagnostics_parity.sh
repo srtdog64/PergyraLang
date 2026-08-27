@@ -29,6 +29,8 @@ PGY_LSP="${PGY_LSP_BIN:-$ROOT_DIR/bin/pgy-lsp}"
 if [[ "$PGY_LSP" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY_LSP}.exe"; then
     PGY_LSP="${PGY_LSP}.exe"
 fi
+PGY_SELF_LSP="${PGY_SELF_LSP_BIN:-$ROOT_DIR/bin/pgy-self-lsp}"
+PGY_SELF_LSP="$(pgy_select_optional_exe_binary "$PGY_SELF_LSP")"
 
 if [[ ! -x "$PGY" ]]; then
     if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
@@ -401,7 +403,8 @@ check_c_lsp_oracle() {
 
     arg="$(c_lsp_runtime_arg_for_binary "$PGY_LSP" "$fixture_rel")"
     set +e
-    (cd "$ROOT_DIR" && "$PGY_LSP" --dump-diagnostics "$arg" >"$out_file.raw" 2>"$err_file")
+    (cd "$ROOT_DIR" && "$PGY_LSP" --native-pipeline --dump-diagnostics \
+        "$arg" >"$out_file.raw" 2>"$err_file")
     rc=$?
     set -e
     tr -d '\r' < "$out_file.raw" > "$out_file"
@@ -532,6 +535,88 @@ check_c_lsp_oracle() {
     done
 }
 
+check_public_lsp_replacement() {
+    local fixture_base="$1"
+    local fixture_rel="$2"
+    local public_out="$BUILD_DIR/${fixture_base}_public_lsp.json"
+    local public_err="$BUILD_DIR/${fixture_base}_public_lsp.err"
+    local installed_out="$BUILD_DIR/${fixture_base}_installed_self_lsp.json"
+    local installed_err="$BUILD_DIR/${fixture_base}_installed_self_lsp.err"
+    local public_arg
+    local installed_arg
+    local rc
+
+    if [[ ! -x "$PGY_SELF_LSP" ]]; then
+        echo "[self-host-parity:lsp-diagnostics] missing installed Pergyra LSP: $PGY_SELF_LSP" >&2
+        exit 1
+    fi
+
+    public_arg="$(c_lsp_runtime_arg_for_binary "$PGY_LSP" "$fixture_rel")"
+    installed_arg="$(lsp_runtime_arg_for_binary "$PGY_SELF_LSP" "$fixture_rel")"
+    set +e
+    (cd "$ROOT_DIR" && "$PGY_SELF_LSP" "$installed_arg" \
+        >"$installed_out.raw" 2>"$installed_err")
+    rc=$?
+    set -e
+    if [[ "$rc" -ne 0 ]]; then
+        echo "[self-host-parity:lsp-diagnostics] installed Pergyra LSP fixture=$fixture_base failed rc=$rc" >&2
+        cat "$installed_err" >&2
+        exit 1
+    fi
+    tr -d '\r' <"$installed_out.raw" >"$installed_out"
+    rm -f "$installed_out.raw"
+
+    set +e
+    (cd "$ROOT_DIR" && PGY_SELF_LSP_BIN="$PGY_SELF_LSP" \
+        "$PGY_LSP" --dump-diagnostics "$public_arg" \
+        >"$public_out.raw" 2>"$public_err")
+    rc=$?
+    set -e
+    if [[ "$rc" -ne 0 ]]; then
+        echo "[self-host-parity:lsp-diagnostics] public Pergyra LSP fixture=$fixture_base failed rc=$rc" >&2
+        cat "$public_err" >&2
+        exit 1
+    fi
+    tr -d '\r' <"$public_out.raw" >"$public_out"
+    rm -f "$public_out.raw"
+
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "lsp-diagnostics:public-installed:$fixture_base" \
+        "$BUILD_DIR" "$installed_out" "$public_out" "lsp_diagnostics"
+}
+
+check_public_lsp_missing_binary_fails_closed() {
+    local fixture_rel="$1"
+    local missing="$BUILD_DIR/missing-pgy-self-lsp"
+    local out_file="$BUILD_DIR/missing_self_lsp.out"
+    local err_file="$BUILD_DIR/missing_self_lsp.err"
+    local public_arg
+    local rc
+
+    rm -f "$missing" "${missing}.exe" "$out_file" "$err_file"
+    public_arg="$(c_lsp_runtime_arg_for_binary "$PGY_LSP" "$fixture_rel")"
+    set +e
+    (cd "$ROOT_DIR" && PGY_SELF_LSP_BIN="$missing" \
+        "$PGY_LSP" --dump-diagnostics "$public_arg" \
+        >"$out_file" 2>"$err_file")
+    rc=$?
+    set -e
+    if [[ "$rc" -eq 0 ]]; then
+        echo "[self-host-parity:lsp-diagnostics] missing installed LSP fell back to native diagnostics" >&2
+        exit 1
+    fi
+    if [[ -s "$out_file" ]]; then
+        echo "[self-host-parity:lsp-diagnostics] missing installed LSP emitted a partial payload" >&2
+        cat "$out_file" >&2
+        exit 1
+    fi
+    if ! grep -Fq "self-host diagnostics is unavailable" "$err_file"; then
+        echo "[self-host-parity:lsp-diagnostics] missing installed LSP lost its fail-closed diagnostic" >&2
+        cat "$err_file" >&2
+        exit 1
+    fi
+}
+
 BACKENDS="${PGY_SELFHOST_LSP_BACKENDS:-c llvm}"
 RAN_BACKENDS=()
 SKIPPED_BACKENDS=()
@@ -581,6 +666,8 @@ fi
 
 for ((i = 0; i < ${#FIXTURES[@]}; i++)); do
     check_c_lsp_oracle "${FIXTURES[$i]}" "${FIXTURE_RELS[$i]}"
+    check_public_lsp_replacement "${FIXTURES[$i]}" "${FIXTURE_RELS[$i]}"
 done
+check_public_lsp_missing_binary_fails_closed "${FIXTURE_RELS[0]}"
 
-echo "[self-host-parity:lsp-diagnostics] payload parity ok (backends=${RAN_BACKENDS[*]}; skipped=${SKIPPED_BACKENDS[*]:-none})"
+echo "[self-host-parity:lsp-diagnostics] installed public replacement and native-oracle parity ok (backends=${RAN_BACKENDS[*]}; skipped=${SKIPPED_BACKENDS[*]:-none})"

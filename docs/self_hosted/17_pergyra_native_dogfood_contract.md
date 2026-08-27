@@ -2,6 +2,38 @@
 
 Status: `BRIDGE`
 
+## 2026-08-28 public LSP diagnostics dump takeover
+
+Default public `pgy-lsp --dump-diagnostics SOURCE` now resolves and argv-executes
+the installed Pergyra-built `pgy-self-lsp`. `diagnostics_owner.pgy` and
+`LspPublishDiagnosticsJson` remain the single payload owner. The former direct
+`pgy_lsp.c::main -> dump_diagnostics_file(argv[2])` default bypass is deleted;
+the C implementation survives only as the explicit
+`--native-pipeline --dump-diagnostics` canonical-event oracle.
+
+`self-host-lsp` consumes the Pergyra fixed-point codegen seed, fingerprints the
+exact emitted source artifact, runtime headers, compiler profile, and output
+identity, and smoke-admits both newly compiled and reused binaries. `all`,
+`release`, and `lsp` install the public launcher and sibling together. Missing
+sibling resolution fails before spawn with nonzero status, empty stdout, and
+the owned diagnostic; there is no native retry or shell command string.
+
+Local evidence includes a fresh native LSP compile/link, Pergyra sibling
+emission/compile/smoke, direct/public clean byte identity, and a C-only focused
+gate covering all diagnostics fixtures, public/installed byte parity,
+explicit-native canonical-event parity, and the missing-sibling negative. The
+Make-owned `self-host-lsp` build and C-only focused diagnostics target both exit
+0. A broad component-contract attempt was stopped after 90 seconds without
+output and is not claimed green. Dual-backend integration, publication, and
+exact-head CI remain open.
+
+This is production `SUBSTITUTING` dogfood for one real C-owned public
+debug/diagnostics entrypoint. It does not replace the live JSON-RPC session,
+read-exact loop, semantic feature index, or the LSP-2/LSP-3 product, and it does
+not close `selfhost.semantic_artifact_admission` or another top-level registry
+row. Published progress values remain unchanged until their executable owner
+admits new evidence.
+
 ## 2026-08-27 source-C compiler-purpose intent takeover
 
 Public installed `pgy SOURCE --emit-c -o OUTPUT` now reaches one

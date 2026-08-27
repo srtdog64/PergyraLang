@@ -113,8 +113,11 @@ markdown/null hover results over the buffered document snapshot.
 ## Oracle
 
 The LSP-0 parity gate compares committed clean/error JSON fixtures, compiles the
-tool through C and LLVM, and compares each fixture against the live C LSP
-`--dump-diagnostics` oracle through canonical diagnostic events. C-side LSP
+tool through C and LLVM, and requires the default public C launcher
+`--dump-diagnostics` output to be byte-equal to the installed Pergyra tool.
+The retained C implementation is reached only through
+`--native-pipeline --dump-diagnostics` and is compared through canonical
+diagnostic events. A missing installed tool must fail with no payload. C-side LSP
 transport parity remains blocked on the full `G-LSP-STREAM` session gap
 documented in `docs/150_selfhost_driver_lsp_wiring.md`. LSP-2a single-frame
 transport parity is checked by
