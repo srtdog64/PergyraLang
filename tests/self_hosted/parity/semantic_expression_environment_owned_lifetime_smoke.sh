@@ -687,13 +687,15 @@ assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysis(' \
     'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
 assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(' \
     'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
-    'src/self_hosted/compiler/driver_rung2_owner.pgy' \
     'src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy' \
+    'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
+assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(' \
+    'src/self_hosted/compiler/driver_rung2_owner.pgy' \
     'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
 
 for production_body in \
     "$ADMITTED_ENTRY|GenerateCUnitFromAdmittedSemanticArtifactObserved|SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(" \
-    "$DRIVER|VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved|SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved("; do
+    "$DRIVER|VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy|SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy("; do
     production_path="${production_body%%|*}"
     production_rest="${production_body#*|}"
     production_function="${production_rest%%|*}"
