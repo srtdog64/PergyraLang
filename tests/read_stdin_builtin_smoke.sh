@@ -49,6 +49,8 @@ require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
     'source_name == "ReadStdin"'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "HostIORuntimeCFileIOBlock()"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "#include <errno.h>"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "ReadStdin("
 
 if command -v python3 >/dev/null 2>&1; then

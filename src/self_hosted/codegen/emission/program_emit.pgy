@@ -464,7 +464,7 @@ func GenerateCUnitFromReadySemanticFacts(
     }
     if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability)); }
     if uses_io || uses_fhandle {
-        TextBuilderAppend(output, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
+        TextBuilderAppend(output, "#include <errno.h>\n#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }
     if uses_float { TextBuilderAppend(output, "#include <math.h>\n"); }
     if uses_dirwalk {
