@@ -18,7 +18,66 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - intent-phase declared callee binding identity
+## Active self-host context - native formal and intent callable identity carriage
+
+- Published base: implementation `d437e9e8`, documentation checkpoint
+  `b2f9a5ca`, and exact-head run `33045433992` are GREEN 29/29. Current local
+  implementation is `e1ad082f`; this handoff is its documentation checkpoint
+  and publication/exact-head CI are not yet claimed. Protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
+- Objective card: make formal-parameter identity and declared-callable identity
+  distinct, owner-directed facts all the way from native parser production to
+  installed self-C consumption. Priority is exact identity domains, complete
+  carriage, intent/function join, missing/crossed failure, negative ratchet,
+  then patch size. Parser `FuncParam.stable_id` owns the formal declaration;
+  admitted function/intent signature facts own declared callable identity;
+  `RewriteSemanticIdentityBoundCall` is the last consumer.
+- Production entrypoint and observed RED chain: native
+  `pgy --test-native-mir-json-oracle
+  tests/self_hosted/parity/fixture/intent_typed_outcome_compensation.pgy`, then
+  installed `pgy-self-driver --mir-json`. Exact declared call carriage first
+  reached a missing formal `self` identity, positive formal rows then exposed
+  the final resolver's function-only `RunWorkflow` lookup, and the corrected
+  resolver finally exposed a missing intent declaration-ID C environment row.
+  These are consecutive falsifiers on one executable rung.
+- Owner/carrier/consumer: `ast_assign_stable_ids` appends parameter declaration
+  IDs without renumbering existing AST nodes; semantic symbols retain that ID;
+  MIR routine params and 11-field expression nodes carry it; canonical semantic
+  re-entry joins function and intent declarations exactly; `BuildFunctionEnv`
+  publishes the admitted intent ID under
+  `@declared_callable_syntax:<SyntaxNodeId>`. `TypeId` substitution, source-name
+  MIR repair, target-only acceptance, copied IDs, dual reads, and native retry
+  are forbidden.
+- Fresh v23 evidence: clean LLVM-disabled native build is green and a same-path
+  `make -q` is up to date. The 207,321-byte oracle has 12 positive unique
+  routine parameters, 451 expression nodes, and 39 exact formal leaf
+  ID/kind/ordinal matches. `Observe` and `RunWorkflow` call/leaf declaration
+  IDs match. Installed driver SHA-256
+  `B7BAE50CDD5992CB290D84EE36D4A2CF2940920D0DA998FD3ED264C64A58B305`
+  emits 23,779-byte C; compiled execution matches the exact 32-line v3 oracle.
+  Twelve digest/function/intent/formal mutations fail before partial C output.
+  Stable-identity and source-scan gates are green.
+- Local omissions are explicit: the complete v3 script reaches its native LLVM
+  leg and stops because v23 was built with `LLVM_ENABLED=0`; all preceding self
+  admission/runtime and native C compilation pass. The parameter-carriage gate
+  passes the new positive/unique identity assertion but its unrelated diagnostic
+  JSON tail is not green under that isolated binary. Complete component
+  inventory exceeded the 60-second budget and is not claimed green. Exact-head
+  CI is the next falsifier.
+- Build reliability note: the earlier segfault came from reusing one build
+  directory with relative and `/d/...` absolute spellings, so included `.d`
+  targets did not name the same object target. It is not recorded as a general
+  CI dependency failure. v23 uses one absolute spelling throughout.
+- No query/cache, O(n^2) epoch replacement, broad identity algebra rewrite, or
+  performance track is open before exact-head CI. Registry and progress remain
+  `50 CLOSED / 35 BRIDGE / 1 ACTIVE`, hard closure 58.1%, migration 78.8%,
+  integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
+- Resume checkpoint after this documentation commit: tracked state should be
+  clean and only the two protected untracked paths should remain. Re-run the
+  focused installed-driver v3 base plus identity mutations only if source has
+  changed; otherwise publish and inspect every exact-head CI conclusion.
+
+## Completed self-host context - intent-phase declared callee binding identity
 
 - Published base: declared-callable C alias implementation `c72ba209`,
   documentation checkpoint `5be3a3ee`, and closure checkpoint `d9849204` are

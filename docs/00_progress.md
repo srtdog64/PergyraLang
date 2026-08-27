@@ -2,6 +2,31 @@
 
 마지막 업데이트: 2026-08-27
 
+2026-08-27 native formal/intent callable identity 구현 `e1ad082f`: native
+`FuncParam`은 이제 AST node와 별개의 parser-owned stable declaration ID를 갖고,
+semantic parameter symbol, MIR routine `source_syntax_id`, persisted expression
+leaf의 `binding_syntax_id/kind/ordinal`까지 같은 ID를 운반한다. 기존 AST node
+번호는 유지하기 위해 parameter ID는 한 identity epoch의 node walk 뒤에 배정한다.
+Native serializer는 이름 기반 observability ABI 재탐색 대신 admitted semantic
+callee/runtime ABI ID를 기록한다.
+
+같은 실행 rung에서 self semantic final resolver의 function-only 조회를
+function+intent exact declaration join으로 바꾸고, C global environment도 admitted
+intent node ID를 `@declared_callable_syntax:<SyntaxNodeId>` 키로 실제 C symbol에
+연결했다. `TypeId` 대용, name-based MIR repair, call-target-only 수용, native retry는
+없다. Fresh v23 oracle은 12개 positive/unique formal ID와 39개 exact formal leaf를
+검증했고, 설치 self-driver가 낸 C는 typed compensation/history의 32줄 출력을
+정확히 실행했다. Formal/function/intent ID 및 digest 12개 mutation은 partial C 전에
+모두 실패한다. Stable-identity와 source-scan은 green이다.
+
+로컬 전체 v3 gate는 LLVM-disabled v23의 native LLVM leg에서만 중지됐고, 그 전
+self runtime과 native C compile은 통과했다. Complete component inventory는 60초
+예산을 넘겨 green으로 세지 않는다. Published base `b2f9a5ca`의 exact-head run
+`33045433992`는 29/29 GREEN이며, `e1ad082f`의 exact-head CI가 다음 falsifier다.
+리뷰가 제안한 query/cache와 O(n^2) epoch 교체는 이 실행 rung의 blocker가 아니므로
+열지 않는다. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
+(81~85%), strict beta 83%, hard replacement 75%는 유지한다.
+
 2026-08-27 intent-phase declared-callee identity 로컬 구현: `d437e9e8`은
 semantic expression identity resolver가 function뿐 아니라 admitted intent surface의
 declared leaf에도 정확한 declaration SyntaxNodeId를 기록하게 한다. Formal parameter

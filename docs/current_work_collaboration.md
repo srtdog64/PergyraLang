@@ -6,7 +6,44 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — intent-phase declared callee binding identity
+## ACTIVE lease — native formal and intent callable identity carriage
+
+- Published base `b2f9a5ca` is exact-head GREEN 29/29 in run `33045433992`.
+  Implementation `e1ad082f` is committed; verify its remote publication before
+  resuming exact-head CI inspection. The
+  protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
+  paths remain out of scope.
+- Objective: preserve distinct formal-parameter and declared-callable identity
+  from the native parser through semantic symbols, MIR routine/graph carriage,
+  reconstructed canonical identity, and the installed self-C binding. Parser
+  `FuncParam.stable_id` owns formal declaration identity; admitted function and
+  intent signature facts jointly own declared-callable identity; the installed
+  identity-bound C emitter is the last consumer.
+- Observed RED sequence: exact declared `Observe`/`RunWorkflow` call IDs first
+  exposed missing formal `self` identity; adding positive formal rows then
+  reached the final self semantic resolver's function-only intent lookup; after
+  that join was fixed, `BuildFunctionEnv` lacked the intent declaration-ID to C
+  symbol row. Each gap was reached by the same v3 installed-driver re-entry,
+  not by opening an unrelated SoT track.
+- Forbidden: substituting `TypeId` for parameter identity, name-based MIR
+  repair, target-only acceptance, copying a nearby numeric ID, function/intent
+  dual reads, implicit native retry, or opening query/cache/performance work.
+- Integration gate: native v3 MIR must carry positive unique routine parameter
+  IDs and exact formal leaf ID/ordinal rows; installed `--mir-json` must emit C
+  whose execution matches the 32-line compensation/history oracle; missing or
+  crossed formal, function, and intent IDs must fail before a partial artifact.
+  Only the primary task owns implementation and publication.
+- Fresh v23 evidence: 12 routine parameters and 39 formal leaves are exact;
+  installed driver SHA-256
+  `B7BAE50CDD5992CB290D84EE36D4A2CF2940920D0DA998FD3ED264C64A58B305`
+  emits and executes the expected result; 12 identity/digest mutations fail
+  closed; stable-identity and source-scan gates are green. The full v3 local
+  script reaches only the expected LLVM-disabled boundary, and the complete
+  component inventory exceeded 60 seconds, so exact-head CI remains the
+  falsifier. Registry and progress remain `50/35/1`, 58.1%, 78.8%, integrated
+  83% (81-85%), strict beta 83%, and hard replacement 75%.
+
+## DONE lease — intent-phase declared callee binding identity
 
 - Published base `5be3a3ee` is exact-head GREEN 29/29 in run `33041466890`;
   closure checkpoint `d9849204` is published. Local implementation `d437e9e8`

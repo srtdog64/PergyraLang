@@ -134,12 +134,15 @@ abi.mir_array_string_layout_projection | abi | ArrayStringLayoutProjectionId | S
 ## Active callable-carriage evidence — 2026-08-27
 
 `selfhost.semantic_artifact_admission` remains `ACTIVE`; no census or progress
-promotion is implied. Namespace-internal declared calls now consume canonical
-callable-index target names plus exact call/callee SyntaxNodeIds, while direct
-declared leaves and namespace member-access topology fail closed on missing or
-crossed carriage. The focused executable ratchet is
-`tests/self_hosted/parity/direct_mir_scalar_namespace_internal_call_owner.sh`.
-Remote replacement CI is still required before any status change.
+promotion is implied. Native formal parameters now own a parser declaration
+SyntaxNodeId distinct from `TypeId`; semantic symbols, MIR routine rows, and
+persisted expression leaves carry that exact ID and ordinal. Declared callable
+identity joins admitted function and intent signature facts once, and the final
+self-C environment publishes the corresponding declaration-ID key without a
+name fallback. Missing/crossed formal, function, or intent identity fails before
+artifact publication. The focused executable ratchet is
+`tests/self_hosted/parity/intent_typed_outcome_compensation_owner.sh`; remote
+replacement CI is still required before any status change.
 
 ## Derived Fact Carriers
 

@@ -3193,6 +3193,24 @@ rm build/semantic/type_checker.o
 mingw32-make bin/pgy.exe
 ```
 
+### 같은 물리 디렉터리를 상대/절대 `BUILD_DIR`로 번갈아 쓰지 않는다
+
+`-MMD -MT`가 기록한 `.d` target은 호출 당시의 경로 spelling을 보존한다. 예를
+들어 첫 빌드가 `.tmp/native/run/build/foo.o`를 기록하고 다음 빌드가 같은 파일을
+`/d/PergyraLang/.tmp/native/run/build/foo.o`로 요구하면, GNU make에는 서로 다른
+target이다. 헤더 mtime이 더 새로워도 절대경로 object에 상대경로 dependency가
+붙지 않아 ABI가 다른 stale object가 링크될 수 있다.
+
+- 한 build directory를 재사용할 때는 `BUILD_DIR`/`BIN_DIR` spelling까지 동일하게
+  유지한다.
+- 상대경로에서 `/d/...` 절대경로로 바꿔야 하면 새 격리 디렉터리를 사용하거나
+  그 build directory를 clean rebuild한다.
+- 완료 뒤 같은 인자로 `make -q ... compiler`가 0인지 확인한다.
+
+2026-08-27의 `FuncParam` layout 변경 뒤 관측된 segfault는 이 혼용으로 설명됐고,
+일관된 `/d/...` 새 디렉터리의 clean build와 후속 `make -q`는 green이었다. 이
+관측만으로 CI 전체의 dependency generation 결함을 주장하지 않는다.
+
 ---
 
 ## 2. PowerShell vs bash vs cmd.exe 차이

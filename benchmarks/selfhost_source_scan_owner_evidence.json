@@ -20,13 +20,14 @@
   },
   "current_callable_owner_hashes": {
     "measured_at": "2026-08-27",
-    "source_revision": "d437e9e8",
-    "note": "identity-resolution owner now carries exact declared-callee syntax bindings on intent-owned surfaces; retained performance figures are not remeasured",
-    "owner_set_sha256": "A85101A5B1D003D266D52BCC9364CC3A8A701DBC87946145E92E3C69DF95EFF0",
+    "source_revision": "e1ad082f",
+    "note": "declared-callable identity now joins function and intent signatures exactly, and formal parameter identity is carried separately from TypeId; retained performance figures are not remeasured",
+    "owner_set_sha256": "ACB9352F2BA8E8200C39FBAA5CC78C51144F345B6F4714E59E9858E2E06A43D4",
     "owner_files_sha256": {
       "src/self_hosted/semantic/callable_resolution_owner.pgy": "DE376EFA2860286C2B5778526B79B92325105C744B5561BCC23428666E746AA0",
       "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy": "6A4F529B4B2B4EBB6278CE6342EB4FCA82494EB2F7BCA18820A92421F78E8EFA",
-      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "3991BBAA4FC41A0823116BB2976B262246F33C9DB5EAF7CE68D9E6602907F831"
+      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "2DE52EB4387C7A8C7AF317B0C347965EA4A73062FF867F48D28C087B1307A5AA",
+      "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy": "1A89A190366941A09E2749997522F021504FBACC2E34D658930D825D61BEA7DC"
     }
   },
   "current_scan_owner_closure": {
