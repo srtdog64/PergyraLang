@@ -236,7 +236,7 @@ require_job_timeout "self-host-parity-linux" 180 "$PARITY_WORKFLOW"
 require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "backend-compare-toolchain-linux" 30
-require_job_timeout "build-linux" 25
+require_job_timeout "build-linux" 30
 require_job_timeout "build-macos-c-only" 20
 require_job_timeout "build-windows" 35
 require_job_timeout "platform-full-linux-toolchain" 20 "$PLATFORM_WORKFLOW"
@@ -466,7 +466,6 @@ for required in \
     'run: CC=gcc make ci-push-windows' \
     'CC=cc make ci-push-macos' \
     'timeout-minutes: 35' \
-    'timeout-minutes: 25' \
     'timeout-minutes: 20' \
     'timeout-minutes: 60' \
     'timeout-minutes: 30' \

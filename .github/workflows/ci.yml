@@ -35,8 +35,12 @@ jobs:
     needs: classify-changes
     runs-on: ubuntu-latest
     # Push feedback owns build, core runtime, and platform-independent contract
-    # evidence. The 117-step platform ladder remains in Platform full.
-    timeout-minutes: 25
+    # evidence. The 117-step platform ladder remains in Platform full. Run
+    # 33075990101 spent 4m35 in the 290 MB Coq/LLVM install, then reached the
+    # final ABI/self-host-contract tail after 20m33 of green execution; the
+    # repository's 30-minute integration-shard budget covers that measured
+    # mirror/runner variance without deleting or sharding the contract.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
 

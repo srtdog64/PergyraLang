@@ -26,7 +26,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   implemented. The synthetic profile, build-source inventory, documentation,
   progress/SoT, shell syntax, and `actionlint` gates are green;
   `c0632e4f..132a29d4` classifies six Markdown paths as
-  `run_full=false/markdown_only=true`. Exact-head push CI remains the falsifier.
+  `run_full=false/markdown_only=true`.
+- Publication `1b0482b9` run `33075990101` admitted the full lane and completed
+  29/30: full self-host, codegen bootstrap, backend 20/20, every other platform,
+  sanitizer, TSan, and Rocq job passed. `build-linux` alone was cancelled by
+  its 25-minute cap after a 4m35 290 MB Coq/LLVM install and 20m38 of green
+  target execution; it had reached ABI pipeline and emitted no failed gate.
+  The prior green run measured a 2m17 tail from that point. Local repair uses
+  the repository's 30-minute integration-shard budget without deleting or
+  splitting evidence. CI profile, build-source inventory, and `actionlint` are
+  repair green; replacement exact-head CI remains the falsifier.
   Protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   remain untouched.
 

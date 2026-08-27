@@ -44,7 +44,19 @@ percentage by themselves.
   diff outcomes. `actionlint`, shell syntax, the synthetic profile,
   build-source inventory, documentation quality, progress metric, SoT edge,
   and the observed `c0632e4f..132a29d4` six-path Markdown classification are
-  local green. Exact-head push CI is the next falsifier. This work does not
+  local green.
+- Publication `1b0482b9` exact-head run `33075990101` proved the full lane:
+  the classifier passed in 12s and admitted all existing jobs; full self-host
+  fixed point/policy corpus, codegen bootstrap, backend 20/20, Windows/macOS,
+  sanitizers, TSan, and Rocq passed. The run ended 29/30 only because
+  `build-linux` hit its 25-minute job cap. Its Coq/LLVM dependency download
+  consumed 4m35 (290 MB at about 1.1 MB/s); the fast target then ran 20m38 with
+  zero failed assertions and was cancelled during the C half of ABI pipeline.
+  The preceding green run reached the same ABI point with a 2m17 tail. Local
+  repair raises only `build-linux` to the repository's existing 30-minute
+  integration-shard budget; it adds no cache, shard, test deletion, or semantic
+  fallback. CI profile, `actionlint`, and build-source inventory are repair
+  green. Replacement exact-head CI is the next falsifier. This work does not
   change SoT or self-host percentages.
 
 ## Completed self-host context - source-C closure reconciled; successor not inferred

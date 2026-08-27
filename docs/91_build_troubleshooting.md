@@ -1310,6 +1310,17 @@ message. This first bounded split targets roughly the Linux push duration for
 documentation-only feedback; it does not claim that every documentation check
 is safe to reduce to a smaller custom list.
 
+The `build-linux` job uses the repository's 30-minute integration-shard budget.
+Run `33075990101` showed why the former 25-minute cap was too narrow without
+showing a compiler regression: the hosted mirror delivered the required 290 MB
+Coq/OCaml/LLVM archive set in 4m17 and the whole install took 4m35, then the
+unchanged push target ran green for 20m38 before cancellation in the C half of
+ABI pipeline. The preceding green run needed another 2m17 from that same point
+to finish the ABI tail and self-host preparation contract. Do not respond to
+this case by removing Coq evidence, deleting tests, or adding a cache/shard; a
+30-minute bound covers the measured mirror/runner variance and remains the hard
+integration ceiling.
+
 ## 0. Resource pressure first
 
 If the desktop hangs during local builds, check disk and scratch pressure before

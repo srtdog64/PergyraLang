@@ -14,6 +14,17 @@ full matrix로 fail closed한다. Synthetic Git history, CI profile, shell synta
 다음 falsifier다. 이는 검증 피드백 개선이지 hard substitution 분자가 아니므로
 SoT와 진행률은 변하지 않는다.
 
+Publication `1b0482b9` exact-head run `33075990101`은 classifier 12초 뒤 full
+lane을 정확히 열었고 29/30으로 끝났다. Full self-host fixed point/policy corpus,
+codegen bootstrap, backend 20/20, Windows/macOS, sanitizer, TSan, Rocq는 모두
+green이다. 유일한 비-green `build-linux`는 Coq/LLVM 290MB 설치에 4분 35초,
+green target 실행에 20분 38초를 쓴 뒤 25분 job cap으로 ABI pipeline C leg에서
+취소됐다. 실패 assertion은 없고 직전 green run의 같은 지점 이후 tail은 2분
+17초였다. Repair는 test 삭제·cache·shard 없이 기존 integration-shard 예산
+30분으로 `build-linux` cap만 맞춘다. CI profile, build-source inventory,
+`actionlint`는 repair local green이며 replacement exact-head CI가 다음 falsifier다.
+진행률과 SoT 수치는 변하지 않는다.
+
 2026-08-27 source-C compiler-purpose intent 구현 `fb4acef4`: public installed
 `pgy SOURCE --emit-c -o OUTPUT`가 이제 한 `CompilePergyraCArtifact` intent를
 실행한다. `DriverSourceCExecution`은 기존 compile/transaction 권위를 유지하면서
