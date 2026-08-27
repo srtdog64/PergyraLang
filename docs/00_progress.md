@@ -123,6 +123,23 @@ policy boundary를 driver/body owner 두 파일의 exact set으로 추가하며 
 그 호출을 해야 한다고 고정한다. Focused lifetime gate는 local green이고 다음
 exact-head 29/29가 마지막 원격 falsifier다. 수치와 registry 상태는 바뀌지 않는다.
 
+후속 run `33029460672`는 `9bf511d5`에서 28/29였다. Full self-host fixed point는
+다시 green이고 lifetime ratchet도 통과했지만, `build-linux`가 callable identity
+경로에서 늘어난 실제 `return/compare -1` 여섯 건을 likeness gate로 잡았다.
+Repair `b80bc803`은 binding ordinal presence를 scalar fact로 소유하고 마지막
+semantic/C 소비자에 `Option<Int>`로 제공한다. Cap이나 예외 목록은 올리지 않았고
+likeness는 sentinel `23/23`, Result/Option `4375/4375`로 강화됐다.
+
+Closure checkpoint `ae8b1341`의 exact-head run `33032356735`는 29/29 GREEN이다.
+`build-linux`, codegen bootstrap, full self-host fixed point, 20 backend shard,
+Windows/macOS, sanitizers, TSan, Rocq가 모두 성공했다. 이 결과로 callable-parameter
+installed-path substitution lease는 닫힌다. 다음 singular rung은 이미 resolved된
+formal callable을 C 환경에서 다시 source spelling으로 찾는 마지막 display-text
+권위를 canonical parameter SyntaxNodeId lookup으로 치환하는 것이다. Query/cache,
+O(n^2) epoch 교체, 270-MB profiling은 여전히 이 실행선의 blocker가 아니므로 열지
+않는다. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
+(81~85%), strict beta 83%, hard replacement 75%는 그대로다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,
@@ -551,7 +568,7 @@ checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure�
 | 일반 GraphPlan 연속 전선 | complete-source Pergyra producer/gen2/gen3 fixed point + installed public C/LLVM/package/MIR/REPL-compile boundaries | canonical O3 gen2/gen3 byte equality, repository-installed sibling, fail-closed public gates가 누적됐고 latest implementation source의 remote full self-host job도 green이다. routine·row·V·owner 수는 진행률 분자가 아니다. | 기존 fixed point를 유지하고 fresh production compiler bypass가 실제 Pergyra owner에 닿을 때만 후속 rung을 연다. |
 | hard self-host replacement 예측 | 75% | complete-source producer/fixed point와 public compiler-bearing C/LLVM/package/MIR/REPL 내부는 bounded `SUBSTITUTING`이지만 whole product와 unsupported RIR/AIR/HIR에는 완전한 Pergyra owner가 없다. 기존 추정 분모를 새 숫자 없이 유지한다. | fresh production bypass, complete Pergyra owner, executable falsifier가 함께 존재하는 다음 target-specific substitution |
 | bootstrap fixed point | 4/4 = 100% | current-source MIR producer, DRV-2/gen2 consumers, gen2==gen3 equality, installed reproduction과 같은 implementation source의 remote full-bootstrap green을 모두 관측했다. | current-source fixed point를 계속 green으로 유지; 100%는 이 축의 acceptance evidence이지 whole product 완료가 아님 |
-| 마지막 완료 baseline CI/release 증거 | 4/4 = 100% | implementation checkpoint `48aeccca`의 remote run `32938125698`이 Linux/Windows/macOS, sanitizer, Rocq, backend compare 20 shards, codegen bootstrap, full self-host와 installed public gates를 29/29 green으로 닫았다. | 다음 compiler implementation delta에서 같은 merge/push matrix를 재검증 |
+| 마지막 완료 baseline CI/release 증거 | 4/4 = 100% | implementation `b80bc803`과 checkpoint `ae8b1341`의 remote run `33032356735`가 Linux/Windows/macOS, sanitizer, TSan, Rocq, backend compare 20 shards, codegen bootstrap, full self-host와 installed public gates를 29/29 green으로 닫았다. | 다음 compiler implementation delta에서 같은 merge/push matrix를 재검증 |
 
 통합 83%의 계산 가중치는 다음과 같이 고정한다. 이 가중치는 완료를
 예쁘게 보이게 하려고 바꾸지 않는다.

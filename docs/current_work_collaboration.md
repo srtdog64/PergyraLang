@@ -6,7 +6,27 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — callable-parameter installed-path substitution (replacement CI pending)
+## ACTIVE lease — formal callable codegen binding identity
+
+- Published base: implementation `b80bc803`, checkpoint `ae8b1341`, and exact
+  run `33032356735` are GREEN 29/29. The unrelated untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` paths remain outside this
+  lease and must not be inspected, staged, deleted, or rewritten.
+- Objective: after semantic resolution, bind a formal callable's C value by its
+  canonical parameter SyntaxNodeId rather than callee display spelling.
+  `SemanticAstFunctionParamNodeAt` owns the ID,
+  `SemanticExpressionBindingIdentityFact` carries it, and the function-local
+  codegen environment is the carrier to the final C call emitter.
+- Direct bypass to delete: formal `LookupKindType(env, source_name, "call")`
+  and callee text equality in `RewriteSemanticIdentityBoundCall`. A name/ID
+  dual read, binding-ordinal-only lookup, global name precedence, native retry,
+  and LLVM divergence are forbidden.
+- Integration gate: existing callable C/LLVM runtime parity, builtin-shadow
+  runtime, all 20 identity mutations, and a structural negative rejecting the
+  old formal name read. Only the primary task owns implementation/publication;
+  no parallel scope is open.
+
+## DONE lease P — callable-parameter installed-path substitution
 
 - Implementation `30b84f80aaf13a8479b533a931ef115dfcea5905`, lifetime repair
   `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, native-MIR repair
@@ -20,9 +40,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   canonical callable carriage checkpoint `9ab03311` and documentation
   checkpoint `c31da1d2`, Linux cap repair `6fa362c5`, nested receiver repair
   `af91687d`, docs checkpoint `3e8a3567`, identity-policy caller ratchet
-  `a5ecff34`, and checkpoint `9bf511d5` are published. Typed binding-ordinal
-  repair `b80bc803` is the current implementation base; replacement exact-head
-  CI remains pending.
+  `a5ecff34`, checkpoint `9bf511d5`, typed binding-ordinal repair `b80bc803`,
+  and closure checkpoint `ae8b1341` are published. Exact-head run
+  `33032356735` is GREEN 29/29.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -208,7 +228,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   directory at its repository-containment guard; use its default, a relative
   path, or Git-Bash `/d/...` in future. The full component inventory exceeded
   the 60-second budget and is not claimed green. One replacement exact-head
-  29/29 remains before lease close; no parallel implementation scope is open.
+  Replacement run `33032356735` completed GREEN 29/29, including both Linux
+  long jobs. This lease is closed; the active lease above owns the next
+  display-text seam.
 
 ## DONE lease O — structured MatchCase carrier closure
 

@@ -18,7 +18,39 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - callable-parameter public substitution
+## Active self-host context - formal callable codegen binding identity
+
+- Closed predecessor: implementation `b80bc803` and checkpoint `ae8b1341` are
+  published. Exact-head run `33032356735` at
+  `ae8b13413647be1693ea442523d07f2698ae104f` is GREEN 29/29, including
+  `build-linux`, self-host codegen bootstrap, full fixed point, all 20 backend
+  shards, Windows/macOS, sanitizers, TSan, and Rocq. The callable-parameter
+  installed-path substitution lease is closed.
+- Objective card: remove display spelling as the final C binding authority for
+  an already resolved formal callable. Canonical parameter SyntaxNodeId owns
+  the binding; `SemanticExpressionBindingIdentityFact` carries it, and the
+  function-local codegen environment may serialize an internal SyntaxNodeId key
+  only as a lookup carrier. Priority is exact identity, delete the name read,
+  fail closed on missing/crossed identity, negative ratchet, then patch size.
+- Production entrypoint: installed `bin/pgy.exe SOURCE --backend=c -o EXE` for
+  `compose_two_functions` and `callable_parameter_builtin_shadow`. The direct
+  bypass to delete is formal-call lookup through
+  `LookupKindType(env, source_name, "call")` plus the callee display-text
+  equality in `RewriteSemanticIdentityBoundCall`.
+- Fact owner and last consumer: `SemanticAstFunctionParamNodeAt` owns the
+  canonical formal parameter SyntaxNodeId; `CodegenCallableParameterBindingRows`
+  may carry its C binding into the function-local environment; the last
+  legitimate consumer is `RewriteSemanticIdentityBoundCall`. Source spelling,
+  binding ordinal alone, global-name precedence, and a dual name/ID lookup are
+  forbidden fallbacks.
+- Falsifier: the v18 callable C/LLVM gate must retain exact `16\n13\n6`, the
+  builtin-shadow program must retain exact `6`, and all 20 missing/forged/
+  cross-wired identity mutations must fail before publication. A static
+  negative must reject formal lookup by `source_name` or callee node text.
+  LLVM already consumes the sealed direct-MIR identity and is a parity guard,
+  not a second implementation scope. No parallel edit lease is open.
+
+## Completed self-host context - callable-parameter public substitution
 
 - Callable implementation `30b84f80aaf13a8479b533a931ef115dfcea5905`, lifetime
   repair `f6d6fb4b90445d788c90e546482742e18cf5c2fa`, native-MIR repair
@@ -32,9 +64,9 @@ percentage by themselves.
   canonical callable carriage checkpoint `9ab03311` and documentation
   checkpoint `c31da1d2`, Linux cap repair `6fa362c5`, nested receiver-identity
   repair `af91687d`, and checkpoint `3e8a3567` are published. Identity-policy
-  caller ratchet `a5ecff34` and checkpoint `9bf511d5` are published. Typed
-  binding-ordinal repair `b80bc803` is the current implementation base;
-  replacement exact-head CI remains pending. The unrelated user-owned
+  caller ratchet `a5ecff34`, checkpoint `9bf511d5`, typed binding-ordinal repair
+  `b80bc803`, and closure checkpoint `ae8b1341` are published. Exact-head run
+  `33032356735` is GREEN 29/29. The unrelated user-owned
   `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
@@ -201,7 +233,9 @@ percentage by themselves.
   invocations must use the script default, a repo-relative build directory, or
   Git-Bash `/d/PergyraLang/...`; do not repeat the drive-letter form. This was
   a harness-path failure after compilation, not compiler semantic evidence.
-  The next falsifier is a replacement exact-head 29/29 run.
+  Replacement run `33032356735` is the observed exact-head 29/29 GREEN
+  falsifier. This predecessor lease is closed; the active card above owns the
+  next formal-callable display-text seam.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
   The current root census is 11 `bin*` and 14 `build*` directories, all ignored,
