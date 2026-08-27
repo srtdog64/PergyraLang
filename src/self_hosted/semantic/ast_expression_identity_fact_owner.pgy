@@ -8,9 +8,57 @@ struct SemanticExpressionIdentityRows {
     binding_ordinals: Array<Int>;
 }
 
+struct SemanticExpressionBindingIdentityFact {
+    ok: Bool;
+    syntax_id: Int;
+    kind: Int;
+    has_ordinal: Bool;
+    ordinal: Int;
+}
+
 func SemanticExpressionBindingNone() -> Int { return 0; }
 func SemanticExpressionBindingFormalParameter() -> Int { return 1; }
 func SemanticExpressionBindingDeclaredCallable() -> Int { return 2; }
+func SemanticExpressionBindingOrdinalAbsent() -> Int { return 0 - 1; }
+
+func SemanticExpressionBindingIdentityAt(
+    ref rows: SemanticExpressionIdentityRows, row: Int
+) -> SemanticExpressionBindingIdentityFact {
+    if row < 0 || row >= ArrayLength(rows.binding_syntax_ids) ||
+        row >= ArrayLength(rows.binding_kinds) ||
+        row >= ArrayLength(rows.binding_ordinals) {
+        return SemanticExpressionBindingIdentityFact(
+            false, 0, SemanticExpressionBindingNone(), false, 0);
+    }
+    let syntax_id: Int = rows.binding_syntax_ids[row];
+    let kind: Int = rows.binding_kinds[row];
+    let ordinal: Int = rows.binding_ordinals[row];
+    if kind == SemanticExpressionBindingFormalParameter() {
+        return SemanticExpressionBindingIdentityFact(
+            syntax_id > 0 && ordinal >= 0,
+            syntax_id, kind, true, ordinal);
+    }
+    if kind == SemanticExpressionBindingDeclaredCallable() {
+        return SemanticExpressionBindingIdentityFact(
+            syntax_id > 0 &&
+                ordinal == SemanticExpressionBindingOrdinalAbsent(),
+            syntax_id, kind, false, 0);
+    }
+    if kind == SemanticExpressionBindingNone() {
+        return SemanticExpressionBindingIdentityFact(
+            ordinal == SemanticExpressionBindingOrdinalAbsent(),
+            syntax_id, kind, false, 0);
+    }
+    return SemanticExpressionBindingIdentityFact(
+        false, syntax_id, kind, false, 0);
+}
+
+func SemanticExpressionBindingIdentityOrdinal(
+    ref binding: SemanticExpressionBindingIdentityFact
+) -> Option<Int> {
+    if !binding.ok || !binding.has_ordinal { return None; }
+    return Some(binding.ordinal);
+}
 
 func SemanticExpressionIdentityRowsUnknown(
     count: Int
@@ -26,7 +74,7 @@ func SemanticExpressionIdentityRowsUnknown(
         ArrayPush(runtime_ids, 0);
         ArrayPush(binding_ids, 0);
         ArrayPush(kinds, SemanticExpressionBindingNone());
-        ArrayPush(ordinals, -1);
+        ArrayPush(ordinals, SemanticExpressionBindingOrdinalAbsent());
         row = row + 1;
     }
     return SemanticExpressionIdentityRows(
@@ -45,24 +93,12 @@ func SemanticExpressionIdentityRowsReady(
     }
     let row: Int = 0;
     while row < count {
+        let binding: SemanticExpressionBindingIdentityFact =
+            SemanticExpressionBindingIdentityAt(rows, row);
         if rows.call_target_syntax_ids[row] < 0 ||
             rows.runtime_call_abi_ids[row] < 0 ||
             rows.binding_syntax_ids[row] < 0 ||
-            (rows.binding_kinds[row] == SemanticExpressionBindingNone() &&
-             rows.binding_ordinals[row] != -1) ||
-            (rows.binding_kinds[row] ==
-                SemanticExpressionBindingFormalParameter() &&
-             (rows.binding_ordinals[row] < 0 ||
-              rows.binding_syntax_ids[row] <= 0)) ||
-            (rows.binding_kinds[row] ==
-                SemanticExpressionBindingDeclaredCallable() &&
-             (rows.binding_ordinals[row] != -1 ||
-              rows.binding_syntax_ids[row] <= 0)) ||
-            (rows.binding_kinds[row] != SemanticExpressionBindingNone() &&
-             rows.binding_kinds[row] !=
-                SemanticExpressionBindingFormalParameter() &&
-             rows.binding_kinds[row] !=
-                SemanticExpressionBindingDeclaredCallable()) {
+            !binding.ok {
             return false;
         }
         row = row + 1;

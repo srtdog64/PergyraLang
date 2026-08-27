@@ -50,8 +50,7 @@ func SemanticExpressionCallTargetExpected(
         );
     }
     let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, call.callee_node
-    );
+        graph, call.callee_node);
     if !IsSome(callee_kind) {
         return SemanticExpressionCallTargetFact(
             false, SemanticCallTargetNone(), "", 0
@@ -59,16 +58,22 @@ func SemanticExpressionCallTargetExpected(
     }
     if UnwrapOption(callee_kind) == AstExpressionNodeLeaf() {
         let source_name: Option<String> = SemanticExpressionGraphNodeText(
-            graph, call.callee_node
-        );
+            graph, call.callee_node);
         if !IsSome(source_name) {
             return SemanticExpressionCallTargetFact(
                 false, SemanticCallTargetNone(), "", 0
             );
         }
-        if require_carried &&
-            graph.arena.identities.binding_kinds[call.callee_node] ==
-                SemanticExpressionBindingFormalParameter() {
+        let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+            graph, call.callee_node);
+        if !binding.ok {
+            return SemanticExpressionCallTargetFact(
+                false, SemanticCallTargetNone(), "", 0
+            );
+        }
+        let binding_ordinal: Option<Int> = SemanticExpressionBindingIdentityOrdinal(binding);
+        if require_carried && binding.kind ==
+            SemanticExpressionBindingFormalParameter() {
             let carried_target_syntax_id: Int =
                 graph.arena.identities.call_target_syntax_ids[node_id];
             if graph.arena.call_target_kinds[node_id] !=
@@ -76,12 +81,11 @@ func SemanticExpressionCallTargetExpected(
                 graph.arena.call_target_names[node_id] !=
                     UnwrapOption(source_name) ||
                 carried_target_syntax_id <= 0 ||
-                graph.arena.identities.binding_ordinals[call.callee_node] < 0 ||
-                graph.arena.identities.binding_syntax_ids[call.callee_node] !=
-                    carried_target_syntax_id ||
+                !IsSome(binding_ordinal) ||
+                binding.syntax_id != carried_target_syntax_id ||
                 !SemanticExpressionFormalParameterCarriedIdentityReady(
                     signatures, carried_target_syntax_id,
-                    graph.arena.identities.binding_ordinals[call.callee_node],
+                    UnwrapOption(binding_ordinal),
                     UnwrapOption(source_name)) {
                 return SemanticExpressionCallTargetFact(
                     false, SemanticCallTargetDirect(), "", 0);
@@ -114,11 +118,10 @@ func SemanticExpressionCallTargetExpected(
         if require_carried && declared_callable {
             let carried_target_syntax_id: Int =
                 graph.arena.identities.call_target_syntax_ids[node_id];
-            if graph.arena.identities.binding_kinds[call.callee_node] !=
+            if binding.kind !=
                     SemanticExpressionBindingDeclaredCallable() ||
-                graph.arena.identities.binding_ordinals[call.callee_node] != -1 ||
-                graph.arena.identities.binding_syntax_ids[call.callee_node] !=
-                    carried_target_syntax_id ||
+                IsSome(binding_ordinal) ||
+                binding.syntax_id != carried_target_syntax_id ||
                 !SemanticExpressionDeclaredCallableCarriedIdentityReady(
                     signatures, canonical_target_name,
                     carried_target_syntax_id) {
@@ -127,10 +130,8 @@ func SemanticExpressionCallTargetExpected(
             }
         } else if require_carried &&
             (graph.arena.identities.call_target_syntax_ids[node_id] != 0 ||
-             graph.arena.identities.binding_kinds[call.callee_node] !=
-                SemanticExpressionBindingNone() ||
-             graph.arena.identities.binding_ordinals[call.callee_node] != -1 ||
-             graph.arena.identities.binding_syntax_ids[call.callee_node] != 0) {
+             binding.kind != SemanticExpressionBindingNone() ||
+             IsSome(binding_ordinal) || binding.syntax_id != 0) {
             return SemanticExpressionCallTargetFact(
                 false, SemanticCallTargetDirect(), "", 0);
         }

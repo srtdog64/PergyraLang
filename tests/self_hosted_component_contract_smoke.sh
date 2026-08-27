@@ -6772,6 +6772,8 @@ require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "call_return_type_names"
 require_text "src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy" \
     "runtime_call_abi_ids: Array<Int>"
+require_text "src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy" \
+    "func SemanticExpressionBindingIdentityAt("
 require_function_text \
     "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy" \
     "func SemanticAstAnalysisResolveExpressionIdentities(" \
@@ -11438,7 +11440,11 @@ require_max_lines \
 require_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" \
-    "UnwrapOption(binding_id) != UnwrapOption(target_id)"
+    "binding.syntax_id != UnwrapOption(target_id)"
+reject_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
+    "func RewriteSemanticIdentityBoundCall(" \
+    "SemanticExpressionGraphBindingOrdinal("
 reject_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" "RuntimeCallCName("

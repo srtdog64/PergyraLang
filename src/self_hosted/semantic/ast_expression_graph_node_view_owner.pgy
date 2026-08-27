@@ -92,6 +92,18 @@ func SemanticExpressionGraphBindingKind(
     return Some(facts.arena.identities.binding_kinds[node_id]);
 }
 
+func SemanticExpressionGraphBindingIdentity(
+    ref facts: SemanticExpressionGraphFacts, node_id: Int
+) -> SemanticExpressionBindingIdentityFact {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return SemanticExpressionBindingIdentityFact(
+            false, 0, SemanticExpressionBindingNone(), false, 0);
+    }
+    return SemanticExpressionBindingIdentityAt(
+        facts.arena.identities, node_id);
+}
+
 func SemanticExpressionGraphBindingOrdinal(
     ref facts: SemanticExpressionGraphFacts, node_id: Int
 ) -> Option<Int> {

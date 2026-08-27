@@ -114,7 +114,10 @@ AST_STRING_SURFACE_MAX=0
 # MIR fact owners listed below have the same bounded contract.  After removing
 # those schema/vocabulary rows, both HEAD and this pending tree measure 24 real
 # out-of-band control-flow sites.  Keep those 24 visible as Option/Result debt.
-SENTINEL_MAX=24
+# 24 -> 23 (2026-08-27): callable expression binding identity now exposes its
+# optional formal ordinal through one typed fact. Semantic capture, resolution,
+# and C emission no longer reopen the raw absent-ordinal wire value.
+SENTINEL_MAX=23
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
 # IsSome/UnwrapOption rituals to try-propagation; pattern gained `\)\?` in the
 # same commit. Re-base per the result_use comment below -- not a loosening.
@@ -337,7 +340,9 @@ SENTINEL_MAX=24
 # absence and atom-text reads through the DIR owner instead of sentinels.
 # 4246 -> 4257 (2026-08-25): source-C world/action admission carries executed,
 # request-rejected, and artifact-rejected outcomes to the final CLI consumer.
-RESULT_USE_MIN=4287
+# 4257 -> 4375 (2026-08-27): measured callable-identity closure plus the typed
+# binding-ordinal fact keeps absence explicit through semantic and C consumers.
+RESULT_USE_MIN=4375
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world
