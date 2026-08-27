@@ -93,6 +93,25 @@ green으로 세지 않는다. 원격 29/29가 다음 falsifier이며, SoT `50/35
 58.1%, migration 78.8%, 통합 83% (81~85%), strict beta 83%, hard replacement 75%는
 그대로다.
 
+Exact-head run `33025012263`은 `c31da1d2`에서 다시 27/29였다. 나머지 27개 job은
+모두 green이고 `build-linux`는 namespace mutation 파일이 기존 750줄 상한을 28줄
+넘은 것만 실패했다. Split `6fa362c5`는 책임 이름을 가진 mutation owner로 해당
+범위를 옮겨 741/750으로 복구했으며 상한은 올리지 않았다. Full bootstrap은
+gen2==gen3 169,347줄, installed DRV-2, legacy/composite intent LLVM까지 통과한 뒤
+callable parameter에 `source_syntax_id`가 추가되기 전의 9-field implicit receiver
+가정을 가진 nested-intent owner에서만 멈췄다.
+
+Repair `af91687d`는 receiver object를 정확한 10-field schema로 받고, 양수 canonical
+decimal receiver SyntaxNodeId와 indexed routine owner를 함께 검증한다. Zero receiver
+ID는 artifact publication 전에 같은 owner에서 실패한다. Fresh v17은 nested-intent
+public/native C/LLVM, namespace C/LLVM과 identity negatives, callable C/LLVM 20
+negatives, canonical epoch, program-graph unification을 모두 통과했다. Full component는
+정적 owner 예산을 넘겨 중단했으므로 local green으로 세지 않으며, exact-head 원격
+29/29가 다음 falsifier다. Architecture review의 typed identity algebra와 display-text
+감사는 이 실행 rung 뒤의 유효한 후보지만 query/cache, O(n^2) epoch 교체, 270-MB
+profiling은 현재 rung을 닫기 전에는 열지 않는다. SoT `50/35/1`, hard 58.1%,
+migration 78.8%, 통합 83% (81~85%), strict beta 83%, hard replacement 75%는 그대로다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,

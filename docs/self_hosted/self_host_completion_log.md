@@ -6,6 +6,26 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-08-27 - Nested intent consumes callable receiver identity
+
+- Exact-head run `33025012263` completed 27/29. All platform, proof,
+  sanitizer, codegen-bootstrap, toolchain, and 20 backend shards were green.
+  `build-linux` found one 778/750 mutation-file cap; responsibility split
+  `6fa362c5` restores 741/750 without changing the cap.
+- Full self-host reached byte-equal 169,347-line gen2/gen3, installed DRV-2,
+  and legacy/composite intent LLVM. It then found one stale consumer: nested
+  intent required a nine-field implicit receiver after callable parameter
+  identity made `source_syntax_id` a required tenth field.
+- Repair `af91687d` validates the positive receiver SyntaxNodeId and exact
+  routine owner instead of merely widening the object count. A zero-ID
+  mutation fails before artifact publication. Fresh v17 passes nested intent
+  C/LLVM, namespace/callable identity, canonical epoch, and program-graph
+  gates. Remote replacement 29/29 remains pending.
+- This repairs the reached callable substitution rung; it does not close a new
+  registry row or start the review's proposed query/cache phase. Integrated
+  83%, strict beta 83%, hard replacement 75%, and registry 50/35/1 remain
+  unchanged.
+
 ## 2026-08-26 - Native observability emitters consume semantic ABI identity
 
 - Semantic admission now stamps the append-only observability registry row's

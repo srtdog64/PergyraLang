@@ -17,8 +17,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2`, non-monotonic epoch repair
   `dfbe9b0a1dc224db0ba95193520c264a9c80933f`, and CI preparation checkpoint
   `5d23fdda1be2cf7cf87720eed31f73416bd5dbcc` are published. Namespace-internal
-  canonical callable carriage checkpoint `9ab03311` is committed locally until
-  replacement push/CI.
+  canonical callable carriage checkpoint `9ab03311` and documentation
+  checkpoint `c31da1d2` are published. Linux cap repair `6fa362c5` and nested
+  receiver repair `af91687d` are committed locally until replacement push/CI.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -168,6 +169,19 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   the repaired consumer emitted 11,180,254-byte C with exit 0. Full bootstrap
   and component are not claimed green. Only the primary task may publish and
   monitor the replacement 29/29 run; no parallel edit scope is open.
+- Run `33025012263` at `c31da1d2` completed 27/29. Its `build-linux` failure is
+  only the 778/750 namespace mutation file; split `6fa362c5` restores 741/750
+  with the existing cap. The full bootstrap itself reached byte-equal
+  gen2/gen3, installed DRV-2, and legacy/composite intent LLVM before the
+  nested-intent consumer rejected a valid ten-field implicit receiver as the
+  obsolete nine-field schema.
+- Repair `af91687d` makes that dedicated owner consume the carried positive
+  receiver SyntaxNodeId and exact indexed owner. Fresh v17 passes the nested
+  public/native C/LLVM gate plus the new zero-ID negative, namespace and
+  callable identity gates, canonical epoch, and program-graph unification.
+  Publication and an exact-head 29/29 run remain the only active integration
+  boundary. Review proposals for a query/cache spine are explicitly deferred;
+  no parallel implementation scope is opened on them.
 
 ## DONE lease O — structured MatchCase carrier closure
 

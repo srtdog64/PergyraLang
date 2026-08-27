@@ -29,8 +29,10 @@ percentage by themselves.
   ratchet `e070fcec17da1f4dd3f6ea33014e5e5cca5955f2`, non-monotonic epoch repair
   `dfbe9b0a1dc224db0ba95193520c264a9c80933f`, and CI preparation checkpoint
   `5d23fdda1be2cf7cf87720eed31f73416bd5dbcc` are published. Namespace-internal
-  canonical callable carriage checkpoint `9ab03311` is committed locally;
-  replacement push/CI remains pending. The unrelated user-owned
+  canonical callable carriage checkpoint `9ab03311` and documentation
+  checkpoint `c31da1d2` are published. Linux cap repair `6fa362c5` and nested
+  receiver-identity repair `af91687d` are committed locally; replacement
+  push/CI remains pending. The unrelated user-owned
   `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
@@ -133,6 +135,32 @@ percentage by themselves.
   11,180,254-byte C artifact with exit 0. The split preserves that function and
   is newly compiled in v16. Full bootstrap/component are not claimed green;
   the replacement 29/29 run remains the next falsifier.
+- Exact-head run `33025012263` at `c31da1d2` completed 27/29. All 20 backend
+  shards, Windows, macOS, sanitizers, TSan, Rocq, toolchain, and codegen
+  bootstrap were green. `build-linux` failed only because
+  `direct_mir_multi_routine_mutations.py` had grown to 778 lines against its
+  fixed 750-line cap. Responsibility-named split `6fa362c5` restores 741/750
+  without raising the cap and keeps the namespace mutation behavior.
+- The full bootstrap reached seed/oracle/bounded construction, gen2==gen3 at
+  169,347 lines, installed DRV-2, and legacy/composite intent LLVM execution.
+  It then rejected the nested-intent program because the dedicated implicit
+  receiver owner still required the old nine-field parameter object after
+  callable identity added `source_syntax_id` as the tenth field. Repair
+  `af91687d` admits exactly ten fields, requires a positive canonical decimal
+  receiver SyntaxNodeId, and cross-seals the routine owner. A zero receiver ID
+  now fails at that owner before publication.
+- Fresh v17 is local green for nested-intent public/native C/LLVM runtime and
+  its no-artifact negatives, namespace-internal C/LLVM and four identity
+  negatives, callable C/LLVM and all 20 negatives, canonical identity epoch,
+  and unified program-graph ownership. The nested LLVM shell remains 160/160;
+  the plan owner remains 639/700. The full component gate was stopped after
+  exceeding the 60-second static-owner budget and is not claimed green.
+- Architecture review `2026-08-27` correctly identifies identity-domain
+  separation and post-resolution display-text erasure as the next design
+  frontier. Its O(n^2) epoch replacement, keyed query spine, Scope Graph,
+  270-MB profiling, compact MIR, and runtime research items remain proposals,
+  not active work. The hard self-host guard keeps this callable executable/CI
+  rung singular until a replacement exact-head run is 29/29.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
   The current root census is 11 `bin*` and 14 `build*` directories, all ignored,
