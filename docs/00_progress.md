@@ -35,6 +35,20 @@ topology, native world, source scan, likeness 15/15, hard contract는 local gree
 Full component inventory는 실행하지 않았고 replacement exact-head CI가 다음
 falsifier다. 진행률과 SoT 수치는 그대로다.
 
+Repair와 문서 checkpoint `c0632e4f`의 exact-head run `33071044311`은
+34분 32초에 29/29 GREEN으로 끝났다. `build-linux`, full self-host fixed point와
+policy corpus, codegen bootstrap, backend 20/20, Windows/macOS, sanitizer, TSan,
+Rocq가 모두 통과했으므로 source-C intent takeover와 bootstrap repair는 같은
+published revision에서 폐쇄됐다. 공개 launcher, REPL compiler call, package compiler
+path에는 암묵적 `driver_run_pipeline` 호출이 남지 않았다. 남은 호출은 explicit
+native oracle/opt-out이고, package manifest parsing과 unsupported RIR/AIR/HIR에는
+완전한 Pergyra owner가 아직 없다. 따라서 source-MIR를 모양만 intent로 바꾸거나
+query/cache, O(n^2) epoch rewrite, 별도 SoT 정리를 후속 rung으로 만들지 않는다.
+fresh production compiler bypass, 기존 complete Pergyra owner, last consumer,
+executable falsifier가 함께 관측될 때만 다음 hard-substitution rung을 연다. 수치는
+SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83% (81~85%), strict
+beta 83%, hard replacement 75%로 유지한다.
+
 2026-08-27 native formal/intent callable identity 구현 `e1ad082f`: native
 `FuncParam`은 이제 AST node와 별개의 parser-owned stable declaration ID를 갖고,
 semantic parameter symbol, MIR routine `source_syntax_id`, persisted expression
@@ -744,7 +758,7 @@ checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure�
 | 일반 GraphPlan 연속 전선 | complete-source Pergyra producer/gen2/gen3 fixed point + installed public C/LLVM/package/MIR/REPL-compile boundaries | canonical O3 gen2/gen3 byte equality, repository-installed sibling, fail-closed public gates가 누적됐고 latest implementation source의 remote full self-host job도 green이다. routine·row·V·owner 수는 진행률 분자가 아니다. | 기존 fixed point를 유지하고 fresh production compiler bypass가 실제 Pergyra owner에 닿을 때만 후속 rung을 연다. |
 | hard self-host replacement 예측 | 75% | complete-source producer/fixed point와 public compiler-bearing C/LLVM/package/MIR/REPL 내부는 bounded `SUBSTITUTING`이지만 whole product와 unsupported RIR/AIR/HIR에는 완전한 Pergyra owner가 없다. 기존 추정 분모를 새 숫자 없이 유지한다. | fresh production bypass, complete Pergyra owner, executable falsifier가 함께 존재하는 다음 target-specific substitution |
 | bootstrap fixed point | 4/4 = 100% | current-source MIR producer, DRV-2/gen2 consumers, gen2==gen3 equality, installed reproduction과 같은 implementation source의 remote full-bootstrap green을 모두 관측했다. | current-source fixed point를 계속 green으로 유지; 100%는 이 축의 acceptance evidence이지 whole product 완료가 아님 |
-| 마지막 완료 baseline CI/release 증거 | 4/4 = 100% | implementation `b80bc803`과 checkpoint `ae8b1341`의 remote run `33032356735`가 Linux/Windows/macOS, sanitizer, TSan, Rocq, backend compare 20 shards, codegen bootstrap, full self-host와 installed public gates를 29/29 green으로 닫았다. | 다음 compiler implementation delta에서 같은 merge/push matrix를 재검증 |
+| 마지막 완료 baseline CI/release 증거 | 4/4 = 100% | source-C intent repair/checkpoint `cb53b879`/`c0632e4f`의 exact-head remote run `33071044311`이 34m32에 Linux/Windows/macOS, sanitizer, TSan, Rocq, backend compare 20 shards, codegen bootstrap, full self-host와 installed public gates를 29/29 green으로 닫았다. | 다음 compiler implementation delta에서 같은 merge/push matrix를 재검증 |
 
 통합 83%의 계산 가중치는 다음과 같이 고정한다. 이 가중치는 완료를
 예쁘게 보이게 하려고 바꾸지 않는다.

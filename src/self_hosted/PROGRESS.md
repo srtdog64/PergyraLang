@@ -1,6 +1,6 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-27 source-C compiler-purpose intent takeover
+## Completed self-host context - 2026-08-27 source-C compiler-purpose intent takeover
 
 - Implementation `fb4acef4`: public installed `pgy SOURCE --emit-c -o OUTPUT` now reaches one
   `CompilePergyraCArtifact` intent. `DriverSourceCExecution` keeps the existing
@@ -23,11 +23,17 @@
   integrated-driver C; the generated driver publishes `hello.pgy`, which
   compiles and runs exact `Hello, Pergyra!`. Public/export-aware world and
   likeness gates plus focused parity, topology, source scan, and hard contract
-  are green. Replacement exact-head CI remains pending.
+  are green. Documentation checkpoint `c0632e4f` exact-head run `33071044311`
+  completed GREEN 29/29 in 34m32, including `build-linux`, full self-host,
+  codegen bootstrap, all 20 backend shards, Windows/macOS, sanitizers, TSan,
+  and Rocq. This executable lease is closed at the published revision.
 - This is production `REACHABLE` intent dogfood, not a new hard replacement
   numerator because source-C was already Pergyra-backed. SoT remains
   `CLOSED=50 BRIDGE=35 ACTIVE=1`; hard closure 58.1%, migration 78.8%, overall
-  83% (81-85%), strict beta 83%, and hard replacement 75% remain unchanged.
+  83% (81-85%), strict beta 83%, and hard replacement 75% remain unchanged. No
+  successor is admitted until a fresh production compiler bypass, an existing
+  complete Pergyra owner, its last consumer, and one executable falsifier are
+  named.
 
 ## Active self-host context - 2026-08-27 callable-parameter public substitution
 

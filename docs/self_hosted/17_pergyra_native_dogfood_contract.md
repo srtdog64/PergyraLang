@@ -36,7 +36,11 @@ owner so MIR-only callable inference cannot reinterpret those constructors as
 subject methods. The world and likeness gates now recognize exported/public
 intent syntax without lowering their floors. The formerly failing native
 oracle emission, emitted C compile, generated-driver source-C publication, and
-published C compile/run are local green; replacement exact-head CI is pending.
+published C compile/run are local green. Documentation checkpoint `c0632e4f`
+exact-head run `33071044311` then completed GREEN 29/29 in 34m32, including
+`build-linux`, full self-host, codegen bootstrap, all 20 backend shards,
+Windows/macOS, sanitizers, TSan, and Rocq. The takeover and repair are closed at
+that published revision.
 
 This is production `REACHABLE` Pergyra-native intent dogfood, not a new hard
 `SUBSTITUTING` numerator: the public source-C compiler was already

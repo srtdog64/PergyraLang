@@ -811,6 +811,12 @@ Substrate progress.
 
 ## Current installed boundary
 
+Exact-head checkpoint `c0632e4f` run `33071044311` completed GREEN 29/29 in
+34m32. It includes `build-linux`, the full self-host fixed point and policy
+corpus, codegen bootstrap, all 20 backend shards, Windows/macOS, sanitizers,
+TSan, and Rocq. The public source-C compiler-purpose intent and its native
+bootstrap visibility repair are therefore closed at the published revision.
+
 The complete-source Pergyra MIR-producer/bootstrap fixed point, public MIR/C/
 runtime-free LLVM artifact modes, plain default C/LLVM compile/run, and the
 compiler-bearing package commands are bounded `SUBSTITUTING` targets. Package

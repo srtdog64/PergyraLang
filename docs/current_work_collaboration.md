@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — source-C compiler-purpose intent takeover
+## DONE lease — source-C compiler-purpose intent takeover
 
 - The preceding formal/intent callable identity lease is closed by published
   implementation/checkpoint `9454f9fe`/`5d7740ce` and exact-head run
@@ -47,8 +47,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   and likeness gates now count exported/public intents. Exact failing native C
   emission, emitted-driver C compilation, generated-driver source-C execution,
   focused parity/negatives, topology, source scan, likeness, world, and hard
-  contract are local green. Replacement exact-head CI remains the integration
-  gate; no parallel implementation lease is open.
+  contract are local green.
+- Documentation checkpoint `c0632e4f` exact-head run `33071044311` completed
+  GREEN 29/29 in 34m32, including `build-linux`, full self-host, codegen
+  bootstrap, all 20 backend shards, Windows/macOS, sanitizers, TSan, and Rocq.
+  This lease is closed. No implementation lease is open: admit a successor only
+  after naming a fresh production compiler bypass, an existing complete
+  Pergyra owner, its last consumer, and one executable falsifier.
 
 ## DONE lease — native formal and intent callable identity carriage
 

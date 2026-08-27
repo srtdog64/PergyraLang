@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - source-C compiler-purpose intent takeover
+## Active self-host context - source-C closure reconciled; successor not inferred
 
 - Closed predecessor: formal/intent callable identity implementation
   `9454f9fe`, closure checkpoint `5d7740ce`, and exact-head run
@@ -77,10 +77,32 @@ percentage by themselves.
   source scan, likeness (`4393/4393`, intent `15/15`, zone-bound `37/37`), and
   hard contract are green. Compiler-world and hard-contract exceeded the
   60-second static budget but completed green; full component inventory did
-  not run and is not claimed green. Replacement exact-head CI is the next
-  falsifier. Registry and progress remain
-  `50 CLOSED / 35 BRIDGE / 1 ACTIVE`, hard closure 58.1%, migration 78.8%,
-  integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
+  not run locally and is not claimed from that local run.
+- Exact-head closure: documentation checkpoint `c0632e4f` run `33071044311`
+  completed GREEN 29/29 in 34m32. `build-linux`, the full self-host fixed point
+  and policy corpus, codegen bootstrap, all 20 backend shards, Windows/macOS,
+  sanitizers, TSan, and Rocq passed. This closes the source-C intent takeover
+  and its bootstrap repair at the published revision.
+- Successor admission: the public launcher, REPL compiler call, and package
+  compiler path have no remaining implicit `driver_run_pipeline` call. The
+  remaining native calls are explicit oracle/opt-out paths, while package
+  manifest parsing and unsupported RIR/AIR/HIR surfaces do not yet have a
+  complete Pergyra owner. Do not manufacture a source-MIR intent conversion,
+  query/cache layer, epoch rewrite, or unrelated SoT cleanup as the successor.
+  A new rung may open only after a fresh production compiler bypass, its
+  existing complete Pergyra owner, last consumer, and executable falsifier are
+  all named. Registry and progress remain `50 CLOSED / 35 BRIDGE / 1 ACTIVE`,
+  hard closure 58.1%, migration 78.8%, integrated 83% (81-85%), strict beta
+  83%, and hard replacement 75%.
+- Local artifact structure: the 23 root `bin-codex*`/`build-codex*`/
+  `bin-dev*`/`build-dev*` directories remain Git-ignored, untracked,
+  rebuildable output (about 126 MiB total), and ignore checkpoint `1e8b5531`
+  already closes their Git status. Exact-path, workspace-parent, reparse-point,
+  and ignore validation passed, but the current execution policy rejected the
+  recursive deletion before the process started; zero directories were
+  removed. A user-run `mingw32-make clean-local-variant-artifacts` removes only
+  those top-level variants. The heavier `clean-local-artifacts` also removes
+  active `build/`, `bin/`, and `.tmp/` and is not implied by this handoff.
 
 ## Completed self-host context - native formal and intent callable identity carriage
 
