@@ -53,8 +53,8 @@ for owner in "$CALL_ARGUMENT_OWNER" "$EXPECTED_TYPE_OWNER" \
         "$ZERO_ARGUMENT_OWNER"; do
     if grep -Fq 'node_texts[callee] != callables.names' "$owner"; then fail "declared-call admission reopened callee display-text identity"; fi
 done
-grep -Fq 'CodegenCallableBindingSyntaxKey(binding.syntax_id)' "$IDENTITY_BOUND_C_OWNER" || fail "identity-bound C emitter lost formal SyntaxNodeId lookup"
-if grep -Fq 'SemanticExpressionGraphNodeText(' "$IDENTITY_BOUND_C_OWNER" || grep -Fq 'LookupKindType(env, source_name, "call")' "$IDENTITY_BOUND_C_OWNER"; then
+for key in 'CodegenCallableBindingSyntaxKey(binding.syntax_id)' 'CodegenDeclaredCallableSyntaxKey(binding.syntax_id)'; do grep -Fq "$key" "$IDENTITY_BOUND_C_OWNER" || fail "identity-bound C emitter lost SyntaxNodeId lookup: $key"; done
+if grep -Fq 'SemanticExpressionGraphNodeText(' "$IDENTITY_BOUND_C_OWNER" || grep -Fq 'source_name' "$IDENTITY_BOUND_C_OWNER"; then
     fail "identity-bound C emitter reopened formal display-text authority"
 fi
 mkdir -p "$WORK_DIR"

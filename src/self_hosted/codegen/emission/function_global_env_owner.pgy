@@ -7,6 +7,7 @@ import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../input/callable_receiver_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../runtime_abi/text_builder_runtime_owner.pgy";
+import "function_binding_env_owner.pgy";
 import "../../semantic/builtin_signature_owner.pgy";
 import "../../semantic/ast_intent_signature_fact_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
@@ -99,6 +100,13 @@ func BuildFunctionEnv(
         if CodegenSemanticFunctionGenericCountOrDie(signatures, i) == 0 {
             let name: String = receiver_facts.names[i];
             let c_name: String = c_names[i];
+            let declaration_key: String = CodegenDeclaredCallableSyntaxKey(
+                CodegenSemanticFunctionNodeOrDie(signatures, i)
+            );
+            TextBuilderAppend(output, declaration_key);
+            TextBuilderAppend(output, "=call:");
+            TextBuilderAppend(output, c_name);
+            TextBuilderAppend(output, "|");
             TextBuilderAppend(output, c_name);
             TextBuilderAppend(output, "=pm:");
             let p: Int = 0;

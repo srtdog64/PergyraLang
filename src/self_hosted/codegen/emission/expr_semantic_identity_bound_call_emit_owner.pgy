@@ -11,7 +11,6 @@ import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 func RewriteSemanticIdentityBoundCall(
     graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
-    source_name: String,
     binding_kind: Int,
     env: CodegenTypeEnv,
     inout owned_fragments: Array<String>
@@ -36,15 +35,23 @@ func RewriteSemanticIdentityBoundCall(
         (declared && IsSome(binding_ordinal)) {
         Die("identity-bound C call lane is invalid");
     }
-    let call_symbol: String = source_name;
-    let binding_key: String = source_name;
+    let call_symbol: String = "";
     if formal {
-        binding_key = CodegenCallableBindingSyntaxKey(binding.syntax_id);
+        call_symbol = LookupKindType(
+            env, CodegenCallableBindingSyntaxKey(binding.syntax_id), "call"
+        );
+    } else {
+        call_symbol = LookupKindType(
+            env, CodegenGenericCallNodeKey(view.call_node), "call"
+        );
+        if call_symbol == "" {
+            call_symbol = LookupKindType(
+                env, CodegenDeclaredCallableSyntaxKey(binding.syntax_id), "call"
+            );
+        }
     }
-    let alias: String = LookupKindType(env, binding_key, "call");
-    if alias != "" { call_symbol = alias; }
-    if formal && alias == "" {
-        Die("callable formal C binding is missing");
+    if call_symbol == "" {
+        Die("identity-bound callable C binding is missing");
     }
     let modes: String = LookupKindType(env, call_symbol, "pm");
     let param_types: String = LookupKindType(env, call_symbol, "pt");

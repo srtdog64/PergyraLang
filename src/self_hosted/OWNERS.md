@@ -1543,8 +1543,9 @@ inventory must not become a second fact-family owner registry.
   addressability consumption; family emitters must not rebuild this policy.
 - `src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy`
   -- direct C call emission for formal-parameter and declared-callable lanes;
-  carried target/binding SyntaxNodeIds select the lane before any builtin-name
-  dispatch, and the local C binding environment is only its final projection.
+  carried target/binding SyntaxNodeIds select the exact C binding before any
+  builtin-name dispatch. Generic declarations use their admitted call-node
+  specialization key; source/canonical spelling is not a fallback.
 - `src/self_hosted/codegen/emission/list_call_emit_owner.pgy` -- canonical
   `List<T>` operation lowering from semantic receiver type and List runtime ABI
   facts; source callee spelling is not an ABI fallback.
@@ -1606,7 +1607,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/function_binding_env_owner.pgy` --
   one function-value binding fact for source identity, semantic type, runtime
   kind, C name, and environment rows, plus implicit owner-field C binding rows
-  derived from semantic locals and MIR-carried nominal declaration facts.
+  derived from semantic locals and MIR-carried nominal declaration facts. It
+  also owns the distinct formal-binding and declared-callable SyntaxNodeId key
+  encodings consumed by exact identity-bound C calls.
 - `src/self_hosted/codegen/emission/callable_parameter_binding_rows_owner.pgy`
   -- SyntaxNodeId-keyed call target plus parameter mode/type and return-type
   environment rows derived from one canonical callable type shape. Resolved
@@ -1630,8 +1633,8 @@ inventory must not become a second fact-family owner registry.
   ability members stay excluded by their ability owner.
 - `src/self_hosted/codegen/emission/function_global_env_owner.pgy` -- one-pass
   serialization of admitted builtin, runtime, source, specialization, and
-  callable-receiver and intent rows into the immutable global codegen
-  environment.
+  callable-receiver, declaration-SyntaxNodeId, and intent rows into the
+  immutable global codegen environment.
 - `src/self_hosted/codegen/emission/program_function_definition_block_owner.pgy`
   -- program-scale function-definition traversal and bounded materialization;
   each completed function string is released after transfer to the block

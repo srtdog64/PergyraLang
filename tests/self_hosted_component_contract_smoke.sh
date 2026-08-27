@@ -11445,6 +11445,14 @@ require_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" \
     "CodegenCallableBindingSyntaxKey(binding.syntax_id)"
+require_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
+    "func RewriteSemanticIdentityBoundCall(" \
+    "CodegenDeclaredCallableSyntaxKey(binding.syntax_id)"
+require_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
+    "func RewriteSemanticIdentityBoundCall(" \
+    "CodegenGenericCallNodeKey(view.call_node)"
 reject_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" \
@@ -11457,10 +11465,28 @@ reject_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" \
     'LookupKindType(env, source_name, "call")'
+reject_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
+    "func RewriteSemanticIdentityBoundCall(" "source_name"
 require_function_text \
     "src/self_hosted/codegen/emission/callable_parameter_binding_rows_owner.pgy" \
     "func CodegenCallableParameterBindingRows(" \
     "CodegenCallableBindingSyntaxKey(parameter_syntax_id)"
+reject_text \
+    "src/self_hosted/codegen/emission/callable_parameter_binding_rows_owner.pgy" \
+    "func CodegenCallableBindingSyntaxKey("
+require_function_text \
+    "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenCallableBindingSyntaxKey(" '"@binding_syntax:"'
+require_function_text \
+    "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+    "func CodegenDeclaredCallableSyntaxKey(" '"@declared_callable_syntax:"'
+require_function_text \
+    "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
+    "func BuildFunctionEnv(" "CodegenDeclaredCallableSyntaxKey("
+require_function_text \
+    "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
+    "func BuildFunctionEnv(" "CodegenSemanticFunctionNodeOrDie(signatures, i)"
 reject_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" "RuntimeCallCName("

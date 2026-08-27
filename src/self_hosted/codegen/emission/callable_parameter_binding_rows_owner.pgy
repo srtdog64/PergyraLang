@@ -1,14 +1,7 @@
 // Function-environment rows for one callable value parameter.
 
 import "../../semantic/ast_callable_type_shape_owner.pgy";
-import "../text/text_owner.pgy";
-
-func CodegenCallableBindingSyntaxKey(parameter_syntax_id: Int) -> String {
-    if parameter_syntax_id <= 0 {
-        Die("callable parameter SyntaxNodeId is missing");
-    }
-    return Concat("@binding_syntax:", ToString(parameter_syntax_id));
-}
+import "function_binding_env_owner.pgy";
 
 func CodegenCallableParameterBindingRows(
     parameter_syntax_id: Int,

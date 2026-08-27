@@ -16,6 +16,20 @@ struct CodegenFunctionValueBindingFact {
     let env_rows: String;
 }
 
+func CodegenCallableBindingSyntaxKey(binding_syntax_id: Int) -> String {
+    if binding_syntax_id <= 0 {
+        Die("callable parameter SyntaxNodeId is missing");
+    }
+    return Concat("@binding_syntax:", ToString(binding_syntax_id));
+}
+
+func CodegenDeclaredCallableSyntaxKey(declaration_syntax_id: Int) -> String {
+    if declaration_syntax_id <= 0 {
+        Die("declared callable SyntaxNodeId is missing");
+    }
+    return Concat("@declared_callable_syntax:", ToString(declaration_syntax_id));
+}
+
 func CodegenBindingEnvKind(
     type_name: String, env: CodegenTypeEnv
 ) -> String {
