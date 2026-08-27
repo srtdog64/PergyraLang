@@ -6,7 +6,26 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — native formal and intent callable identity carriage
+## ACTIVE lease — select the next semantic-artifact-admission executable rung
+
+- The preceding formal/intent callable identity lease is closed by published
+  implementation/checkpoint `9454f9fe`/`4a1261ec` and exact-head run
+  `33061911002`, which completed GREEN 29/29. The protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` paths remain out of scope.
+- Objective: inspect the current `selfhost.semantic_artifact_admission` ACTIVE
+  family and name one production entrypoint, direct C-owned bypass, existing
+  Pergyra fact owner, last orchestration consumer, and falsifying fixture before
+  implementation. The primary task owns this selection and publication.
+- Forbidden: opening a general identity algebra rewrite, query/cache layer,
+  O(n^2) epoch replacement, performance track, or parallel implementation lane
+  before that exact executable tuple is recorded. Review recommendations are
+  evidence to test, not semantic authority.
+- Integration gate: `Unknown` until inspection names the reached production
+  path and its focused parity/negative gate. No implementation progress is
+  claimed by this lease. Registry/progress stay `50/35/1`, 58.1%, 78.8%,
+  integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
+
+## DONE lease — native formal and intent callable identity carriage
 
 - Published base `b2f9a5ca` is exact-head GREEN 29/29 in run `33045433992`.
   Implementation/documentation `e1ad082f`/`deac496a` are published, but their
@@ -57,8 +76,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Local repair `9454f9fe` returns `Result<Int>` as
   `Err`/`Ok(0)`/`Ok(SyntaxNodeId)` and permits runtime ABI fallback only for the
   successful miss. Likeness is 4385/4385 with sentinel 23; gen0 parse,
-  gen2==gen3 73,172 lines, and full codegen bootstrap are green. Publication
-  and replacement exact-head CI remain the falsifiers. Registry
+  gen2==gen3 73,172 lines, and full codegen bootstrap are green. Published
+  implementation/checkpoint `9454f9fe`/`4a1261ec` then completed exact-head run
+  `33061911002` GREEN 29/29, including `build-linux` and the full self-host fixed
+  point. This lease is closed. Registry
   and progress remain `50/35/1`, 58.1%, 78.8%, integrated
   83% (81-85%), strict beta 83%, and hard replacement 75%.
 

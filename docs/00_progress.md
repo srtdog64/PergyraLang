@@ -52,7 +52,12 @@ runtime ABI fallback을 합법적 `Ok(0)`에서만 허용한다. Likeness는 sen
 result-use 4385/4385로 green이며 최소치를 함께 올렸다. Native gen0 parse 0/0,
 gen2==gen3 73,172 lines, full codegen bootstrap `SELF-HOSTING OK`도 통과했다. Complete
 component inventory는 다시 60초 예산을 넘어 중단했으므로 green으로 세지 않는다.
-Replacement exact-head CI 전에는 여전히 29/29를 주장하지 않는다.
+Implementation/checkpoint `9454f9fe`/`4a1261ec`의 exact-head run
+`33061911002`는 29/29 GREEN으로 완료됐다. `build-linux`, full self-host fixed point,
+codegen bootstrap, backend 20/20, Windows/macOS, sanitizer, TSan, Rocq가 모두
+통과했으므로 gen0 예약어, routine-aware hard-contract, typed lookup/likeness 수리는
+정확한 published revision에서 폐쇄됐다. 이 원격 폐쇄는 이미 계산된 실행 rung의
+증거 완성이며 새 hard substitution 분자가 아니므로 수치는 올리지 않는다.
 
 리뷰가 제안한 query/cache와 O(n^2) epoch 교체는 이 실행 rung의 blocker가 아니므로
 열지 않는다. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%

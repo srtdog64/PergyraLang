@@ -18,7 +18,34 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - native formal and intent callable identity carriage
+## Active self-host context - select the next semantic-artifact-admission executable rung
+
+- Closed predecessor: formal/intent callable identity implementation
+  `9454f9fe`, documentation checkpoint `4a1261ec`, and exact-head run
+  `33061911002` are published and GREEN 29/29. The run includes `build-linux`,
+  full self-host fixed point, codegen bootstrap, 20 backend shards,
+  Windows/macOS, sanitizers, TSan, and Rocq. The prior gen0, hard-contract, and
+  likeness failures are therefore closed at the exact published revision.
+- Objective card: select one production path inside the still-`ACTIVE`
+  `selfhost.semantic_artifact_admission` family where a Pergyra-owned fact can
+  replace a real C-owned compiler bypass. Priority is semantic identity and one
+  SoT, owner-directed facts, fallback deletion, a negative ratchet, then patch
+  size. The registry row is the family owner; the exact production entrypoint,
+  direct bypass, last orchestration consumer, and falsifying fixture are
+  `Unknown` until current-source inspection names all four. No structural
+  implementation or completion is inferred from this selection card.
+- Scope guard: the attached identity-algebra review is an audit lens, not
+  authority to open a general query engine, cache, O(n^2) epoch rewrite, or
+  performance track. Those remain unopened unless the selected executable rung
+  reaches them as its exact blocker. Protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
+- Next action: inspect the current production entrypoints, the ACTIVE owner row,
+  and its existing negative gates; then record one exact entrypoint/bypass/
+  consumer/fixture tuple before editing. Registry and progress remain
+  `50 CLOSED / 35 BRIDGE / 1 ACTIVE`, hard closure 58.1%, migration 78.8%,
+  integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
+
+## Completed self-host context - native formal and intent callable identity carriage
 
 - Published base: implementation `d437e9e8`, documentation checkpoint
   `b2f9a5ca`, and exact-head run `33045433992` are GREEN 29/29. Formal/intent
@@ -88,20 +115,23 @@ percentage by themselves.
   valid miss. Likeness is 4385/4385 with sentinel 23, native gen0 parse is 0/0,
   gen2==gen3 is 73,172 lines, and full codegen bootstrap reaches
   `SELF-HOSTING OK`. Complete component inventory again exceeded 60 seconds and
-  is not claimed green. Publication and replacement exact-head CI remain the
-  next falsifiers.
+  is not claimed green. Implementation/checkpoint `9454f9fe`/`4a1261ec` are
+  published, and exact-head run `33061911002` completed GREEN 29/29. Its
+  `build-linux` and full self-host jobs both passed, so the typed lookup,
+  routine-aware hard-contract, and native gen0 compatibility repairs are
+  remotely closed at the exact published revision.
 - Build reliability note: the earlier segfault came from reusing one build
   directory with relative and `/d/...` absolute spellings, so included `.d`
   targets did not name the same object target. It is not recorded as a general
   CI dependency failure. v23 uses one absolute spelling throughout.
 - No query/cache, O(n^2) epoch replacement, broad identity algebra rewrite, or
-  performance track is open before exact-head CI. Registry and progress remain
+  performance track was opened by this rung. Registry and progress remain
   `50 CLOSED / 35 BRIDGE / 1 ACTIVE`, hard closure 58.1%, migration 78.8%,
   integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
-- Resume checkpoint after this documentation commit: tracked state should be
-  clean and only the two protected untracked paths should remain. Publish the
-  ratchet evidence checkpoint, then inspect every replacement exact-head CI
-  conclusion.
+- Closure checkpoint: tracked state was clean at `4a1261ec` and only the two
+  protected untracked paths remained. Exact-head run `33061911002` verified all
+  29 jobs. Resume from the active selection card above rather than reopening
+  this completed identity-carriage rung.
 
 ## Completed self-host context - intent-phase declared callee binding identity
 
