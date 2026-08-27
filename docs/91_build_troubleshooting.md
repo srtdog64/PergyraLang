@@ -1321,6 +1321,15 @@ this case by removing Coq evidence, deleting tests, or adding a cache/shard; a
 30-minute bound covers the measured mirror/runner variance and remains the hard
 integration ceiling.
 
+Repair `1f8560c1` exact-head run `33079291442` closed that hypothesis: the
+whole workflow finished GREEN 30/30 in 34m39. `build-linux` finished in 21m04,
+with 1m01 dependency installation and 19m53 in the fast target, while full
+self-host completed in about 34m21. The classifier admitted the full matrix in
+10s, and codegen bootstrap, all 20 backend shards, every platform, sanitizer,
+TSan, and Rocq jobs passed. The remaining falsifier is not another full run but
+an exact Markdown-only push proving that classifier plus mandatory
+`build-linux` run and every full-only logical job skips.
+
 ## 0. Resource pressure first
 
 If the desktop hangs during local builds, check disk and scratch pressure before

@@ -56,8 +56,17 @@ percentage by themselves.
   repair raises only `build-linux` to the repository's existing 30-minute
   integration-shard budget; it adds no cache, shard, test deletion, or semantic
   fallback. CI profile, `actionlint`, and build-source inventory are repair
-  green. Replacement exact-head CI is the next falsifier. This work does not
-  change SoT or self-host percentages.
+  green.
+- Full-lane closure: timeout repair `1f8560c1` exact-head run `33079291442`
+  completed GREEN 30/30 in 34m39. The classifier passed in 10s and admitted the
+  full matrix. `build-linux` completed in 21m04, including 1m01 dependency
+  installation and 19m53 for the unchanged fast target; full self-host completed
+  in about 34m21. Codegen bootstrap, backend 20/20, Windows/macOS, sanitizers,
+  TSan, and Rocq also passed. This closes the full-lane wiring and 30-minute
+  Linux timeout repair. The next falsifier is an exact Markdown-only push: it
+  must run only the classifier plus mandatory `build-linux`, skip every
+  full-only logical job, and finish `build-linux` below its 30-minute bound.
+  This supporting work does not change SoT or self-host percentages.
 
 ## Completed self-host context - source-C closure reconciled; successor not inferred
 

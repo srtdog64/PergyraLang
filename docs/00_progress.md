@@ -25,6 +25,17 @@ green target 실행에 20분 38초를 쓴 뒤 25분 job cap으로 ABI pipeline C
 `actionlint`는 repair local green이며 replacement exact-head CI가 다음 falsifier다.
 진행률과 SoT 수치는 변하지 않는다.
 
+Timeout repair `1f8560c1`의 exact-head run `33079291442`는 34분 39초에
+30/30 GREEN으로 끝났다. Classifier는 10초에 full lane을 열었고 `build-linux`는
+21분 04초에 완료됐다. 그 안에서 dependency install은 1분 01초, unchanged fast
+target은 19분 53초였다. Full self-host는 약 34분 21초였고 codegen bootstrap,
+backend 20/20, Windows/macOS, sanitizer, TSan, Rocq도 모두 통과했다. 따라서 full
+lane wiring과 30분 Linux timeout repair는 폐쇄됐다. 다음 falsifier는 exact
+Markdown-only push가 classifier와 mandatory `build-linux`만 실행하고 모든 full-only
+logical job을 skip하는지 확인하는 것이다. 이 CI supporting evidence는 compiler
+semantic source나 hard substitution 분자를 바꾸지 않으므로 진행률과 SoT 수치는
+그대로다.
+
 2026-08-27 source-C compiler-purpose intent 구현 `fb4acef4`: public installed
 `pgy SOURCE --emit-c -o OUTPUT`가 이제 한 `CompilePergyraCArtifact` intent를
 실행한다. `DriverSourceCExecution`은 기존 compile/transaction 권위를 유지하면서
@@ -781,7 +792,7 @@ checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure�
 | 일반 GraphPlan 연속 전선 | complete-source Pergyra producer/gen2/gen3 fixed point + installed public C/LLVM/package/MIR/REPL-compile boundaries | canonical O3 gen2/gen3 byte equality, repository-installed sibling, fail-closed public gates가 누적됐고 latest implementation source의 remote full self-host job도 green이다. routine·row·V·owner 수는 진행률 분자가 아니다. | 기존 fixed point를 유지하고 fresh production compiler bypass가 실제 Pergyra owner에 닿을 때만 후속 rung을 연다. |
 | hard self-host replacement 예측 | 75% | complete-source producer/fixed point와 public compiler-bearing C/LLVM/package/MIR/REPL 내부는 bounded `SUBSTITUTING`이지만 whole product와 unsupported RIR/AIR/HIR에는 완전한 Pergyra owner가 없다. 기존 추정 분모를 새 숫자 없이 유지한다. | fresh production bypass, complete Pergyra owner, executable falsifier가 함께 존재하는 다음 target-specific substitution |
 | bootstrap fixed point | 4/4 = 100% | current-source MIR producer, DRV-2/gen2 consumers, gen2==gen3 equality, installed reproduction과 같은 implementation source의 remote full-bootstrap green을 모두 관측했다. | current-source fixed point를 계속 green으로 유지; 100%는 이 축의 acceptance evidence이지 whole product 완료가 아님 |
-| 마지막 완료 baseline CI/release 증거 | 4/4 = 100% | source-C intent repair/checkpoint `cb53b879`/`c0632e4f`의 exact-head remote run `33071044311`이 34m32에 Linux/Windows/macOS, sanitizer, TSan, Rocq, backend compare 20 shards, codegen bootstrap, full self-host와 installed public gates를 29/29 green으로 닫았다. | 다음 compiler implementation delta에서 같은 merge/push matrix를 재검증 |
+| 마지막 완료 baseline CI/release 증거 | 4/4 = 100% | 같은 source-C semantic checkpoint 위의 CI support repair `1f8560c1` exact-head run `33079291442`가 34m39에 classifier와 Linux/Windows/macOS, sanitizer, TSan, Rocq, backend compare 20 shards, codegen bootstrap, full self-host를 30/30 green으로 닫았다. `build-linux`는 21m04였다. | exact Markdown-only push에서 classifier와 mandatory `build-linux`만 실행되고 full-only jobs가 skip되는지 검증 |
 
 통합 83%의 계산 가중치는 다음과 같이 고정한다. 이 가중치는 완료를
 예쁘게 보이게 하려고 바꾸지 않는다.

@@ -35,7 +35,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   The prior green run measured a 2m17 tail from that point. Local repair uses
   the repository's 30-minute integration-shard budget without deleting or
   splitting evidence. CI profile, build-source inventory, and `actionlint` are
-  repair green; replacement exact-head CI remains the falsifier.
+  repair green. Repair `1f8560c1` exact-head run `33079291442` then completed
+  GREEN 30/30 in 34m39: classifier 10s, `build-linux` 21m04 with a 19m53 fast
+  target, full self-host about 34m21, and all 20 backend shards plus every
+  platform/proof/sanitizer job passed. The full lane and timeout repair are
+  closed. This lease remains `ACTIVE` only until one exact Markdown-only push
+  proves that classifier plus mandatory `build-linux` run while all full-only
+  logical jobs skip.
   Protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   remain untouched.
 
