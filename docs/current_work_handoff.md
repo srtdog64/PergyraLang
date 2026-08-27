@@ -54,7 +54,7 @@ percentage by themselves.
   performance track. Those remain unopened unless the selected executable rung
   reaches them as its exact blocker. Protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
-- Local implementation: `DriverSourceCExecution` now stores one typed outcome
+- Local implementation `fb4acef4`: `DriverSourceCExecution` now stores one typed outcome
   and its `Compile` action is the single step of `CompilePergyraCArtifact`.
   `PgyCompilerWorld.CompileSourceToC` cross-checks Bool completion against that
   outcome; the old world/composition publish methods are deleted. The installed

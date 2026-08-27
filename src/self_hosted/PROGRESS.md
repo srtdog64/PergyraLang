@@ -2,7 +2,7 @@
 
 ## Active self-host context - 2026-08-27 source-C compiler-purpose intent takeover
 
-- Public installed `pgy SOURCE --emit-c -o OUTPUT` now reaches one
+- Implementation `fb4acef4`: public installed `pgy SOURCE --emit-c -o OUTPUT` now reaches one
   `CompilePergyraCArtifact` intent. `DriverSourceCExecution` keeps the existing
   compile/transaction authority, stores the typed outcome, and returns the Bool
   observed by the intent; the world rejects missing or crossed completion.

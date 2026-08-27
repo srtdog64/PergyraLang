@@ -20,7 +20,7 @@ consumer additionally requires exactly one successful
 the retired path; no duplicate compiler/commit owner, target-name inference,
 native retry, second world, query/cache, or performance track was added.
 
-Fresh local evidence uses an isolated Pergyra-built DRV-2 from the current
+Implementation `fb4acef4` fresh local evidence uses an isolated Pergyra-built DRV-2 from the current
 typed source graph. The new driver passes installed/public source-C byte
 parity, C compile/run, machine-manifest validation, missing-parent no-artifact
 rejection, and the atomic transaction contract. Native compiler-world AST,

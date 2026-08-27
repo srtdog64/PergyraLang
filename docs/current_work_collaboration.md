@@ -30,7 +30,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - General identity algebra, query/cache, O(n^2) epoch, and performance work stay
   closed. Registry/progress remain `50/35/1`, 58.1%, 78.8%, integrated 83%
   (81-85%), strict beta 83%, and hard replacement 75% until executable evidence.
-- Local implementation has deleted the direct world/composition publish path.
+- Local implementation `fb4acef4` has deleted the direct world/composition publish path.
   `DriverSourceCExecution.Compile` stores the typed outcome, one
   `CompilePergyraCArtifact` step observes its Bool completion, and the world and
   installed consumer cross-check outcome plus intent history. An isolated

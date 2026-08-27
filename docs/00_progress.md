@@ -2,7 +2,7 @@
 
 마지막 업데이트: 2026-08-27
 
-2026-08-27 source-C compiler-purpose intent 로컬 구현: public installed
+2026-08-27 source-C compiler-purpose intent 구현 `fb4acef4`: public installed
 `pgy SOURCE --emit-c -o OUTPUT`가 이제 한 `CompilePergyraCArtifact` intent를
 실행한다. `DriverSourceCExecution`은 기존 compile/transaction 권위를 유지하면서
 typed outcome을 저장하고, intent는 Bool completion만 관측한다. World는 outcome 부재나
