@@ -13,16 +13,29 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `docs/compiler_architectures/` and `pgy-80135c2c/` paths remain out of scope.
 - Objective: key final declared-callable C alias selection by the resolved
   declaration SyntaxNodeId already carried on the semantic call node.
-  `SemanticExpressionGraphCallTargetSyntaxId` owns the ID, the function-global
-  C environment may carry one internal ID key, and `RewriteSemanticCall` is the
-  last consumer for this slice.
-- Direct bypass: `LookupKindType(env, source_name, "call")` inside
-  `RewriteSemanticCall`. Canonical/display name fallback, name/ID dual reads,
-  native retry, and a parallel query/cache track are forbidden.
+  The semantic signature fact owns the declaration ID,
+  `SemanticExpressionGraphCalleeBindingFact` carries it, the function-global C
+  environment may expose one internal ID key, and
+  `RewriteSemanticIdentityBoundCall` is the last consumer for this slice.
+- Corrected direct bypass: the declared lane initialized both `call_symbol` and
+  `binding_key` from `source_name` inside
+  `RewriteSemanticIdentityBoundCall`, then performed the final alias lookup.
+  The general `RewriteSemanticCall` alias path is not this rung. Canonical or
+  display-name fallback, name/ID dual reads, native retry, and a parallel
+  query/cache track are forbidden.
 - Integration gate: installed/direct-driver C/LLVM direct-call and namespace
   runtime parity, missing/forged/cross-wired declaration-ID negatives, and a
   structural ratchet rejecting the old string-key alias lookup. Only the
   primary task owns implementation/publication; no parallel scope is open.
+- Implementation `c72ba209` emits
+  `@declared_callable_syntax:<declaration SyntaxNodeId>` rows for non-generic
+  functions and makes the final emitter consume either the generic call-node
+  specialization key or that declaration key. `source_name` is removed from
+  the emitter and a missing row fails closed. Fresh v20 fixpoint/driver,
+  callable and namespace C/LLVM parity plus identity mutations, canonical
+  epoch, and public-launcher C/LLVM execution are green. Source scan and
+  likeness are green; the complete component scan exceeded 60 seconds and is
+  not claimed green. Exact-head remote CI remains the closure decision.
 
 ## DONE lease — formal callable codegen binding identity
 

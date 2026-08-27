@@ -30,20 +30,46 @@ percentage by themselves.
   identity, one internal declaration-ID key, fail closed on missing/crossed
   identity, old name-read deletion, negative ratchet, then patch size.
 - Production entrypoint: installed `bin/pgy.exe SOURCE --backend=c -o EXE` for
-  the bounded direct-call/namespace fixtures. The direct bypass is
-  `LookupKindType(env, source_name, "call")` in `RewriteSemanticCall`; the
-  carried `source_name` is canonical today, but it is still a string-keyed
-  backend re-resolution after semantic identity has already been sealed.
-- Fact owner and last consumer: `SemanticExpressionGraphCallTargetSyntaxId`
-  owns the resolved declaration identity; the function-global C environment
-  may carry an internal declaration-SyntaxNodeId key; the last legitimate
-  consumer is `RewriteSemanticCall`. Display spelling, canonical-name lookup,
-  name/ID dual reads, and native retry are forbidden fallbacks for this slice.
+  the bounded direct-call/namespace fixtures. Inspection corrected the direct
+  bypass: declared calls branch from `RewriteSemanticDirectCall` into
+  `RewriteSemanticIdentityBoundCall`, where `call_symbol` and `binding_key`
+  were initialized from `source_name` before the final `LookupKindType` read.
+  The general `RewriteSemanticCall` alias path is not this rung's consumer.
+- Fact owner and last consumer: the semantic signature fact owns declaration
+  SyntaxNodeId and `SemanticExpressionGraphCalleeBindingFact` carries it on the
+  resolved callee. `BuildFunctionEnv` may publish one internal declaration-ID
+  key; `RewriteSemanticIdentityBoundCall` is the last legitimate consumer.
+  Display spelling, canonical-name lookup, name/ID dual reads, and native retry
+  are forbidden fallbacks for this slice.
 - Falsifier: installed/direct-driver C and LLVM direct-call plus namespace
   runtime parity must stay exact; missing, forged, and cross-wired declaration
   IDs must fail before artifact publication; a static negative must reject the
-  old `LookupKindType(env, source_name, "call")` read in the direct call
-  emitter. No query/cache, O(n^2) epoch, or performance track is open.
+  old `source_name` carrier in the identity-bound emitter. No query/cache,
+  O(n^2) epoch, or performance track is open.
+- Local implementation `c72ba209` publishes non-generic callable C aliases
+  under `@declared_callable_syntax:<declaration SyntaxNodeId>`. The final
+  identity-bound emitter now reads the formal parameter key, then for declared
+  calls the admitted generic call-node specialization key or the declaration
+  key; missing rows fail closed. It has no `source_name` parameter or name
+  fallback. The key encodings are co-owned by the function-binding environment
+  instead of the callable-parameter row owner.
+- Fresh v20 evidence is GREEN: codegen gen2==gen3 at 73,145 lines, integrated
+  driver seed/oracle and bounded MIR/C parity, callable identity C/LLVM with all
+  20 mutations, namespace-internal C/LLVM with four identity mutations, and
+  canonical identity epoch positives/negatives. The native manifest owner
+  generated the required sibling for the isolated v20 driver; public launcher
+  C/LLVM then executed exact `16\n13\n6` and `namespace:internal-ready`.
+  Generic-default source-to-C executed exact `save=9\nbox=7`. Source scan,
+  likeness (`23/23`, Result/Option `4374/4374`), shell syntax, and diff checks
+  are green. The complete component inventory exceeded its 60-second local
+  budget and is not claimed green.
+- `generic_specialization_identity_epoch_owner.sh` still rejects
+  `IntentRunAccepted` at semantic admission before reaching this C alias
+  consumer; the same diagnostic occurs with the pre-change v19 driver, so it
+  is recorded as baseline evidence rather than a passing or regressing gate.
+  Exact-head remote CI remains the closure falsifier. Census and progress stay
+  `50/35/1`, 58.1%, 78.8%, integrated 83% (81-85%), strict beta 83%, and hard
+  replacement 75% until that evidence changes.
 
 ## Completed self-host context - formal callable codegen binding identity
 

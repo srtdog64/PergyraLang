@@ -170,6 +170,26 @@ consumer를 declaration SyntaxNodeId key로 치환한다. Query/cache, O(n^2) ep
 performance track은 열지 않는다. SoT `50/35/1`, hard closure 58.1%, migration
 78.8%, 통합 83% (81~85%), strict beta 83%, hard replacement 75%는 그대로다.
 
+Local implementation `c72ba209`은 실제 마지막 소비자를 다시 추적해 바로잡았다.
+Declared call은 일반 `RewriteSemanticCall`이 아니라
+`RewriteSemanticIdentityBoundCall`로 먼저 분기했고, 그 안에서 `call_symbol`과
+`binding_key`를 `source_name`으로 초기화하던 것이 실제 우회였다. 이제 non-generic
+function-global row는 `@declared_callable_syntax:<declaration SyntaxNodeId>`로 C alias를
+운반한다. Final emitter는 formal binding SyntaxNodeId, generic call-node specialization,
+또는 declared SyntaxNodeId key만 읽고, 누락 시 fail closed한다. `source_name` 인자와
+name fallback은 삭제됐다.
+
+Fresh v20은 codegen gen2==gen3 73,145줄, integrated driver seed/oracle, bounded MIR/C,
+callable C/LLVM 20 mutations, namespace C/LLVM 4 mutations, canonical epoch gate를
+통과했다. Native manifest owner가 isolated v20 sibling을 생성한 뒤 public launcher
+C/LLVM도 정확히 `16\n13\n6`과 `namespace:internal-ready`를 실행했다. Generic-default
+source-to-C는 `save=9\nbox=7`이다. Source scan, likeness `23/23`와 Result/Option
+`4374/4374`, shell/diff check는 green이다. Full component inventory는 60초 예산을
+넘겨 green으로 세지 않는다. Generic-specialization epoch gate의
+`IntentRunAccepted` admission 실패는 v19에서도 같은 진단이므로 baseline으로
+분리했다. Exact-head 원격 CI 전까지 SoT `50/35/1`, hard closure 58.1%, migration
+78.8%, 통합 83% (81~85%), strict beta 83%, hard replacement 75%는 그대로다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,
