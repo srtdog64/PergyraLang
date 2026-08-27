@@ -18,6 +18,53 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context - successor admission blocked on a complete owner
+
+- Audit base `d492aeb3` is one documentation-only closure commit ahead of
+  exact-green `origin/main` `08c1d229`; this card is its direct audit
+  checkpoint. Protected untracked `docs/compiler_architectures/` and
+  `pgy-80135c2c/` remain untouched. This is a read-only admission audit, not an
+  executable implementation rung.
+- Observed closed/default paths: public `pgy` compile, emit, MIR, package, and
+  REPL compiler-bearing requests already consume installed self-host owners.
+  The remaining `driver_run_pipeline` calls are the explicit
+  `--native-pipeline`/test oracle and the package command's explicitly passed
+  native opt-out. Unsupported RIR/AIR/HIR requests fail closed instead of
+  falling back. Formatter, debugger, and scaffold have no corresponding
+  complete Pergyra owner; scaffold is not a compiler substitution target.
+- Nearest production bypass: no-argument `pgy-lsp` still runs
+  `src/lsp/pgy_lsp.c::main -> lsp_read_message` and the C-owned live dispatch,
+  document mutation, diagnostics scheduling, and semantic feature responses.
+  `src/self_hosted/lsp/session_owner.pgy::LspSessionReplayJson` explicitly owns
+  only one buffered replay artifact, and `main.pgy` exposes probe modes rather
+  than a default live session. The declared missing owner is
+  `G-LSP-STREAM`: repeated read-exact stdin consumption, partial-frame
+  buffering, live session-state/document-store mutation, semantic feature
+  content, and session-script parity. LSP-2/LSP-3 therefore correctly remain
+  `planned` with no artifact or gate row.
+- Forbidden false closure: do not call buffered replay a live server, read all
+  stdin until EOF and claim read-exact streaming, retain the C message loop as
+  hidden orchestration, run C and Pergyra paths in parallel, infer feature
+  content from C output, or count another probe/fixture/keyword as
+  `SUBSTITUTING`.
+- Exact admission requirement: before implementation, a Pergyra owner must be
+  able to keep one public process alive while it consumes fragmented frames,
+  mutates typed document revisions, and emits exact response frames. The first
+  falsifying session is initialize -> didOpen v1 -> symbol hover -> a didChange
+  v2 frame split across two writes -> updated hover -> shutdown -> exit. It
+  must match the explicit native oracle while stale/same-version mutation and
+  incomplete-body cases fail closed. `tests/tooling_conformance_smoke.sh` is
+  the existing live last-consumer gate; a focused fragmented-write parity
+  fixture must precede public takeover.
+- BLOCKED decision: there is currently no fresh default C compiler path with
+  an existing complete Pergyra owner, so no successor hard-substitution rung
+  is admitted. The sole ACTIVE SoT row
+  `selfhost.semantic_artifact_admission` stays open; closing an unrelated seam,
+  adding query/cache work, or implementing only another buffered LSP probe
+  would violate the hard progress guard. Reopen implementation only by
+  explicitly choosing the non-counting `G-LSP-STREAM` owner prerequisite or by
+  observing another complete-owner production bypass.
+
 ## Completed self-host context - public LSP diagnostics dump takeover
 
 - Published closure: implementation `26e8f9c2` and documentation checkpoint

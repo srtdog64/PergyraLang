@@ -6,6 +6,31 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE audit lease — successor admission blocked on a complete owner
+
+- Coordination owner: the primary task. Audit base `d492aeb3` is a
+  documentation closure ahead of exact-green `origin/main` `08c1d229`; this
+  card is its direct audit checkpoint. No implementation edit scope or
+  parallel successor track is open.
+- Audit result: public compiler-bearing C/LLVM/package/MIR/REPL paths already
+  use installed self-host owners; remaining native compiler execution is an
+  explicit opt-out/test oracle, and unsupported RIR/AIR/HIR modes fail closed.
+  Formatter/debugger/scaffold do not have complete Pergyra counterparts.
+- Nearest bypass is no-argument `pgy-lsp` at
+  `pgy_lsp.c::main -> lsp_read_message`, but the existing Pergyra session owner
+  is buffered replay only. Missing owner `G-LSP-STREAM` must provide repeated
+  read-exact/partial-frame buffering, live typed document mutation, semantic
+  feature content, and one live session-script parity boundary before the C
+  loop can be deleted.
+- Forbidden: presenting buffered EOF replay as a live loop, wrapping the native
+  C loop around Pergyra payloads, dual execution, C-output inference, or using
+  fixture/probe count as substitution evidence.
+- Integration admission fixture: one public process consumes initialize,
+  didOpen v1, hover, a didChange v2 frame split across writes, updated hover,
+  shutdown, and exit; stale/same-version revision plus incomplete body fail
+  closed. Until a Pergyra owner can pass that focused gate, the audit is
+  `BLOCKED`, LSP-2/LSP-3 stay planned, and no implementation lease is admitted.
+
 ## DONE lease — public LSP diagnostics dump takeover
 
 - Published implementation `26e8f9c2` and documentation checkpoint `08c1d229`
