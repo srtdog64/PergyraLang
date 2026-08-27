@@ -135,6 +135,9 @@ func SemanticReason(code: String) -> String {
     if code == "intent_signature_invalid" {
         return "intent signature facts are incomplete or ambiguous";
     }
+    if code == "parse_syntax" {
+        return "source syntax is incomplete or malformed";
+    }
     if code == "unregistered_diagnostic_code" {
         return "semantic diagnostic code is not registered in the code owner";
     }
@@ -232,6 +235,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "intent_signature_invalid" {
         return "repair the parser-owned intent name, parameters, or result signature";
+    }
+    if code == "parse_syntax" {
+        return "complete the missing syntax before semantic analysis";
     }
     if code == "unregistered_diagnostic_code" {
         return "add the code to diagnostic_code_owner before emitting it";
@@ -619,9 +625,13 @@ func SemanticErrorWithFacts(code: String, facts: String) -> String {
         stable_code = "unregistered_diagnostic_code";
         stable_facts = SelfHostDiagnostic_Fact2("code", code, "owner", "diagnostic_code_owner");
     }
+    let stage: String = "semantic";
+    if stable_code == "parse_syntax" {
+        stage = "syntax";
+    }
     return SelfHostDiagnostic_RenderError(
         "pgy.selfhost.semantic.v1",
-        "semantic",
+        stage,
         "error",
         stable_code,
         SemanticReason(stable_code),

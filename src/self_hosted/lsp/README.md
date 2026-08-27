@@ -1,50 +1,40 @@
 # LSP Substitution Track
 
-LSP-0 and LSP-1 own payload-only substitution rungs. The default public
-`pgy-lsp --dump-diagnostics SOURCE` entrypoint now executes the installed
-Pergyra-built `pgy-self-lsp`; the C dump remains only under explicit
-`--native-pipeline`. This bounded public takeover does not own the JSON-RPC
-transport loop, stdin framing, indexed hover/completion content, or C LSP
-session replacement.
+The default public `pgy-lsp` process now hands a no-argument invocation to the
+installed Pergyra-built `pgy-self-lsp`. The old C live loop remains reachable
+only through explicit `pgy-lsp --native-pipeline`; it is an oracle, never a
+retry or fallback. `pgy-lsp --dump-diagnostics SOURCE` uses the same installed
+sibling, with the C diagnostic path likewise explicit-native only. A missing
+sibling fails closed at the public boundary.
 
-- `diagnostics_owner.pgy` projects self-host semantic diagnostic blocks into a
-  `textDocument/publishDiagnostics`-shaped JSON artifact.
-- `document_store_owner.pgy` projects buffered `didOpen`/`didChange` request
-  bodies into deterministic multi-document state.
-- `feature_owner.pgy` owns no-index response shapes for advertised
-  `textDocument/*` features.
-- `squiggle_owner.pgy` owns the RED/AMBER/BLUE/VIOLET classification policy
-  from diagnostic status/severity/stage/code/facts.
-- `request_owner.pgy` classifies buffered JSON-RPC request bodies through the
-  shared JSON fact-table owner.
-- `response_owner.pgy` projects response-required request bodies into response
-  body/frame plans.
-- `session_owner.pgy` replays one buffered request stream into response frames
-  for the subset already owned by `response_owner.pgy`.
-- `session_state_owner.pgy` combines buffered response replay and
-  multi-document store state into one session-state artifact.
-- `hover_content_owner.pgy` projects bounded hover content from a buffered
-  document snapshot and hover requests.
-- `main.pgy` is the runnable boundary for parity fixtures.
-- `fixture/` and `expected/` are the committed clean/error payload and
-  squiggle-policy contracts. Error payloads carry both the self-host lower-case
-  code and the C-oracle root code in `data.oracleCode`.
+`main.pgy` routes no arguments to `live_session_owner.pgy`. That owner performs
+repeated byte-stream reads, retains partial `Content-Length` frames, owns the
+initialize/shutdown/exit lifecycle, admits `didOpen` and strictly advancing
+`didChange` revisions, and emits exact JSON-RPC frames without newline
+translation. Malformed framing, incomplete EOF, stale/same-version changes,
+and buffer overflow are fatal at this boundary. Buffered request/session/store
+owners remain parity artifacts and are not execution fallbacks.
 
-The `ReadStdin(n)` substrate for transport framing is present, and
-`transport_owner.pgy` consumes it for one JSON-RPC Content-Length frame
-(LSP-2a) and ordered multi-frame consumption from one stdin buffer (LSP-2b).
-`request_owner.pgy` consumes those buffered bodies for request dispatch planning
-(LSP-2c), `response_owner.pgy` emits basic response plans (LSP-2d),
-`session_owner.pgy` replays emitted response frames from one buffered request
-stream (LSP-2e), and `document_store_owner.pgy` projects buffered
-`didOpen`/`didChange` into deterministic multi-document state (LSP-2f). `feature_owner.pgy`
-provides valid no-index hover/completion/document-symbol/definition/references/
-rename response shapes consumed by response/session replay (LSP-2g).
-`session_state_owner.pgy` consumes response replay plus multi-document state
-into one buffered session-state artifact (LSP-2h). `hover_content_owner.pgy`
-adds bounded hover content over the buffered document snapshot (LSP-2i). Full
-LSP-2 still needs a live read-exact loop and indexed semantic feature content.
-`O-LSP` now has installed public diagnostic-dump substitution with
-public/sibling byte parity, explicit-native canonical-event parity, and a
-missing-sibling fail-closed negative. Full vocabulary and live session parity
-remain LSP-2/LSP-3 concerns.
+The live state deliberately owns one current document, matching the native
+production loop being replaced. `document_revision_owner.pgy` owns its URI,
+version, and exact text. `document_feature_index_owner.pgy` builds one typed
+revision-scoped declaration index on open/change; document symbol, definition,
+references, and rename consume that index without re-reading the program root.
+Hover consumes the admitted revision, completion remains registry-directed,
+and diagnostics are projected from the semantic diagnostic owner. The tooling
+index is not the compiler semantic-artifact owner and supplies no semantic
+proof; that distinction is why this rung does not claim LSP-3 completion.
+
+The focused executable gate is
+`tests/self_hosted/parity/lsp_live_session_owner.sh`. It keeps one process
+alive across initialize, open, hover, a fragmented change, updated hover,
+shutdown, and exit. It also rejects stale/same-version changes, incomplete EOF,
+and a public launcher with no sibling. `tests/tooling_conformance_smoke.sh`
+guards the wider editor-facing contract.
+
+This rung does not claim multi-document live ownership, incremental semantic
+analysis, or whole-compiler LSP completion. `document_store_owner.pgy` still
+owns buffered multi-document projection fixtures; `request_owner.pgy`,
+`response_owner.pgy`, `session_owner.pgy`, and `session_state_owner.pgy` remain
+bounded replay/probe owners. `fixture/` and `expected/` are committed parity
+contracts, not live semantic authority.

@@ -2898,7 +2898,7 @@ require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manif
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 33"
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 34"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
@@ -25245,6 +25245,8 @@ require_file "src/self_hosted/lsp/session_owner.pgy"
 require_file "src/self_hosted/lsp/session_state_owner.pgy"
 require_file "src/self_hosted/lsp/hover_content_owner.pgy"
 require_file "src/self_hosted/lsp/hover_content_projection_owner.pgy"
+require_file "src/self_hosted/lsp/live_session_owner.pgy"
+require_file "src/self_hosted/lsp/document_feature_index_owner.pgy"
 require_file "src/self_hosted/lsp/squiggle_owner.pgy"
 require_file "src/self_hosted/lsp/transport_owner.pgy"
 require_max_lines "src/self_hosted/lsp/diagnostics_owner.pgy" 600
@@ -25256,6 +25258,8 @@ require_max_lines "src/self_hosted/lsp/session_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/session_state_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/hover_content_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/hover_content_projection_owner.pgy" 300
+require_max_lines "src/self_hosted/lsp/live_session_owner.pgy" 500
+require_max_lines "src/self_hosted/lsp/document_feature_index_owner.pgy" 500
 require_max_lines "src/self_hosted/lsp/squiggle_owner.pgy" 600
 require_max_lines "src/self_hosted/lsp/transport_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/main.pgy"
@@ -25268,6 +25272,8 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/session_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/session_state_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/hover_content_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/hover_content_projection_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/live_session_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/document_feature_index_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/squiggle_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/lsp/transport_owner.pgy"
 require_text "src/self_hosted/lsp/main.pgy" 'import "diagnostics_owner.pgy";'
@@ -25277,7 +25283,10 @@ require_text "src/self_hosted/lsp/main.pgy" 'import "response_owner.pgy";'
 require_text "src/self_hosted/lsp/main.pgy" 'import "session_owner.pgy";'
 require_text "src/self_hosted/lsp/main.pgy" 'import "session_state_owner.pgy";'
 require_text "src/self_hosted/lsp/main.pgy" 'import "hover_content_owner.pgy";'
+require_text "src/self_hosted/lsp/main.pgy" 'import "live_session_owner.pgy";'
 require_text "src/self_hosted/lsp/main.pgy" 'import "transport_owner.pgy";'
+require_text "src/self_hosted/lsp/main.pgy" "if ArrayLength(args) == 0"
+require_text "src/self_hosted/lsp/main.pgy" "RunLspLiveSession();"
 require_text "src/self_hosted/lsp/main.pgy" "LspTransportProbeRequested(args)"
 require_text "src/self_hosted/lsp/main.pgy" "RunLspTransportFrameProbeFromArgs(args)"
 require_text "src/self_hosted/lsp/main.pgy" "LspTransportStreamProbeRequested(args)"
@@ -25348,6 +25357,27 @@ require_text "src/self_hosted/lsp/hover_content_projection_owner.pgy" "func LspH
 reject_text "src/self_hosted/lsp/hover_content_owner.pgy" "if word =="
 require_text "src/self_hosted/lsp/hover_content_owner.pgy" "LspDocumentStoreApplyText(body)"
 require_text "src/self_hosted/lsp/hover_content_owner.pgy" "LspTransportCompleteFrameLength(tail)"
+require_text "src/self_hosted/lsp/live_session_owner.pgy" 'import "document_revision_owner.pgy";'
+require_text "src/self_hosted/lsp/live_session_owner.pgy" 'import "document_feature_index_owner.pgy";'
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "func RunLspLiveSession()"
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "ReadStdin(65536)"
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "LspTransportCompleteFrameLength(buffer)"
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "LspDocumentRevisionOpen("
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "LspDocumentRevisionChange("
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "LspDocumentFeatureIndexBuild("
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "LspLiveSessionDocumentIndex("
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "Print(UnwrapOption(response_opt));"
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "StringLength(buffer) > 262144"
+reject_text "src/self_hosted/lsp/live_session_owner.pgy" "LspSessionReplayJson("
+require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "class LspDocumentFeatureIndex"
+require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "func LspDocumentFeatureIndexBuild"
+require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "func LspDocumentFeatureIndexReady"
+require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "func LspDocumentFeatureDocumentSymbolsJson"
+require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "func LspDocumentFeatureDefinitionJson"
+require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "func LspDocumentFeatureReferencesJson"
+require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "func LspDocumentFeatureRenameJson"
+require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "func LspDocumentFeatureContractReady"
+require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "does not claim semantic proof"
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "squiggle_owner.pgy";'
 require_text "src/self_hosted/lsp/transport_owner.pgy" 'import "../lib/json_emit.pgy";'
 require_text "src/self_hosted/lsp/transport_owner.pgy" "func LspTransportFrameContractReady"
@@ -25513,6 +25543,14 @@ require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func C
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "if index == 8"
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "if index == 4"
 require_text "Makefile" "self-host-lsp-diagnostics-parity-test-smoke"
+require_text "Makefile" "self-host-lsp-live-session-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/lsp_live_session_owner.sh"
+require_file "tests/self_hosted/parity/lsp_live_session_owner.sh"
+require_text "tests/self_hosted/parity/lsp_live_session_owner.sh" "partial didChange body produced output before completion"
+require_text "tests/self_hosted/parity/lsp_live_session_owner.sh" "stale-version"
+require_text "tests/self_hosted/parity/lsp_live_session_owner.sh" "same-version"
+require_text "tests/self_hosted/parity/lsp_live_session_owner.sh" "incomplete body at EOF did not fail closed"
+require_text "tests/self_hosted/parity/lsp_live_session_owner.sh" "missing installed sibling silently entered the native loop"
 require_text "Makefile" 'self-host-lsp-diagnostics-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-lsp'
 require_text "Makefile" 'self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-lsp'
 require_text "Makefile" 'PGY_LSP_BIN="$(abspath $(PGY_LSP))"'
@@ -25535,20 +25573,29 @@ require_text "src/lsp/pgy_lsp.c" \
     'return pgy_lsp_run_self_host_diagnostics(argv[0], argv[2]);'
 require_text "src/lsp/pgy_lsp.c" \
     'strcmp(argv[1], "--native-pipeline") == 0'
+require_text "src/lsp/pgy_lsp.c" 'if (argc == 1)'
+require_text "src/lsp/pgy_lsp.c" \
+    'return pgy_lsp_run_self_host_session(argv[0]);'
 reject_text "src/lsp/pgy_lsp.c" \
     'return dump_diagnostics_file(argv[2]);'
-require_file "src/lsp/pgy_lsp_self_host_diagnostics.c"
-require_file "src/lsp/pgy_lsp_self_host_diagnostics.h"
-require_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
+require_file "src/lsp/pgy_lsp_self_host.c"
+require_file "src/lsp/pgy_lsp_self_host.h"
+reject_file "src/lsp/pgy_lsp_self_host_diagnostics.c"
+reject_file "src/lsp/pgy_lsp_self_host_diagnostics.h"
+require_text "src/lsp/pgy_lsp_self_host.c" \
     'candidate = path_join_dup(directory, "pgy-self-lsp");'
-require_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
+require_text "src/lsp/pgy_lsp_self_host.c" \
     'const char *override = getenv("PGY_SELF_LSP_BIN");'
-require_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
-    'binary == NULL || !path_file_exists(binary)'
-require_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
+require_text "src/lsp/pgy_lsp_self_host.c" \
+    'binary != NULL && path_file_exists(binary)'
+require_text "src/lsp/pgy_lsp_self_host.c" \
     'rc = pgy_exec_argv(child_argv, false);'
-reject_text "src/lsp/pgy_lsp_self_host_diagnostics.c" \
+require_text "src/lsp/pgy_lsp_self_host.c" \
+    'pgy_lsp_run_self_host_session(const char *launcher_path)'
+reject_text "src/lsp/pgy_lsp_self_host.c" \
     'dump_diagnostics_file('
+require_text "Makefile" '$(SRC_DIR)/lsp/pgy_lsp_self_host.c'
+reject_text "Makefile" '$(SRC_DIR)/lsp/pgy_lsp_self_host_diagnostics.c'
 require_text "src/lsp/pgy_lsp_diagnostics.c" "lsp_build_diagnostics_params"
 require_text "src/lsp/pgy_lsp_internal.h" "lsp_build_diagnostics_params"
 require_text "Makefile" "tests/self_hosted/parity/lsp_diagnostics_parity.sh"

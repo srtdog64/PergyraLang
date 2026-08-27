@@ -105,7 +105,7 @@ builtin_rows = [row for row in rows if not row.language_word]
 exposed = hover.load_hover_exposure(language_registry)
 hover.require_language_exposure(rows, exposed)
 
-if len(language_rows) != 25 or len(builtin_rows) != 7 or len(rows) != 32:
+if len(language_rows) != 26 or len(builtin_rows) != 7 or len(rows) != 33:
     fail(
         f"row count drift: language={len(language_rows)} "
         f"builtin={len(builtin_rows)} total={len(rows)}"

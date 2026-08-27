@@ -1,0 +1,374 @@
+// Typed tooling feature index for one admitted live document revision.
+//
+// Declaration identity is captured once when a revision is admitted. Query
+// handlers consume this index instead of re-reading the program root. This is
+// not the compiler semantic-artifact owner and does not claim semantic proof.
+
+import "../lib/json_emit.pgy";
+import "../lib/json_fact_table.pgy";
+import "hover_content_owner.pgy";
+
+class LspDocumentDeclarationCandidate
+{
+    let valid: Bool;
+    let name: String;
+    let kind: Int;
+}
+
+class LspDocumentFeatureIndex
+{
+    let uri: String;
+    let text: String;
+    let names: Array<String>;
+    let kinds: Array<Int>;
+    let lines: Array<Int>;
+}
+
+func LspDocumentFeatureStartsWith(text: String, prefix: String) -> Bool {
+    return StringLength(text) >= StringLength(prefix) &&
+        Substring(text, 0, StringLength(prefix)) == prefix;
+}
+
+func LspDocumentFeatureIdentifierFrom(line: String, start: Int) -> String {
+    let cursor: Int = start;
+    while cursor < StringLength(line) &&
+        (CharAt(line, cursor) == " " || CharAt(line, cursor) == "\t") {
+        cursor = cursor + 1;
+    }
+    let end: Int = cursor;
+    while end < StringLength(line) && LspHoverIsWordChar(CharAt(line, end)) {
+        end = end + 1;
+    }
+    if end == cursor {
+        return "";
+    }
+    return Substring(line, cursor, end - cursor);
+}
+
+func LspDocumentFeatureDeclarationCandidate(
+    source_line: String
+) -> LspDocumentDeclarationCandidate {
+    let line: String = StringTrim(source_line);
+    if LspDocumentFeatureStartsWith(line, "export ") {
+        line = StringTrim(
+            Substring(line, 7, StringLength(line) - 7)
+        );
+    }
+    let keyword: String = "";
+    let kind: Int = 0;
+    if LspDocumentFeatureStartsWith(line, "func ") {
+        keyword = "func";
+        kind = 12;
+    } else if LspDocumentFeatureStartsWith(line, "class ") {
+        keyword = "class";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "subject ") {
+        keyword = "subject";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "object ") {
+        keyword = "object";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "tobject ") {
+        keyword = "tobject";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "party ") {
+        keyword = "party";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "roster ") {
+        keyword = "roster";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "world ") {
+        keyword = "world";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "relation ") {
+        keyword = "relation";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "effect ") {
+        keyword = "effect";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "zone ") {
+        keyword = "zone";
+        kind = 5;
+    } else if LspDocumentFeatureStartsWith(line, "ability ") {
+        keyword = "ability";
+        kind = 11;
+    } else if LspDocumentFeatureStartsWith(line, "role ") {
+        keyword = "role";
+        kind = 11;
+    } else if LspDocumentFeatureStartsWith(line, "enum ") {
+        keyword = "enum";
+        kind = 10;
+    } else if LspDocumentFeatureStartsWith(line, "type ") {
+        keyword = "type";
+        kind = 13;
+    }
+    if kind == 0 {
+        return LspDocumentDeclarationCandidate(false, "", 0);
+    }
+    let name: String = LspDocumentFeatureIdentifierFrom(
+        line,
+        StringLength(keyword)
+    );
+    return LspDocumentDeclarationCandidate(name != "", name, kind);
+}
+
+func LspDocumentFeatureIndexBuild(
+    uri: String,
+    text: String
+) -> LspDocumentFeatureIndex {
+    let names: Array<String> = [];
+    let kinds: Array<Int> = [];
+    let declaration_lines: Array<Int> = [];
+    let source_lines: Array<String> = Split(text, "\n");
+    let line: Int = 0;
+    while line < ArrayLength(source_lines) {
+        let candidate: LspDocumentDeclarationCandidate =
+            LspDocumentFeatureDeclarationCandidate(source_lines[line]);
+        if candidate.valid {
+            ArrayPush(names, candidate.name);
+            ArrayPush(kinds, candidate.kind);
+            ArrayPush(declaration_lines, line);
+        }
+        line = line + 1;
+    }
+    return LspDocumentFeatureIndex(
+        uri,
+        text,
+        names,
+        kinds,
+        declaration_lines
+    );
+}
+
+func LspDocumentFeatureIndexReady(
+    index: LspDocumentFeatureIndex
+) -> Bool {
+    return index.uri != "" &&
+        ArrayLength(index.names) == ArrayLength(index.kinds) &&
+        ArrayLength(index.names) == ArrayLength(index.lines);
+}
+
+func LspDocumentFeaturePositionJson(line: Int, character: Int) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldNumber("line", ToString(line)));
+    ArrayPush(fields, JsonEmitFieldNumber("character", ToString(character)));
+    return JsonEmitObject(fields);
+}
+
+func LspDocumentFeatureRangeJson(
+    line: Int,
+    start: Int,
+    end: Int
+) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(
+        fields,
+        JsonEmitFieldRaw("start", LspDocumentFeaturePositionJson(line, start))
+    );
+    ArrayPush(
+        fields,
+        JsonEmitFieldRaw("end", LspDocumentFeaturePositionJson(line, end))
+    );
+    return JsonEmitObject(fields);
+}
+
+func LspDocumentFeatureDocumentSymbolJson(
+    name: String,
+    kind: Int,
+    line: Int
+) -> String {
+    let fields: Array<String> = [];
+    ArrayPush(fields, JsonEmitFieldString("name", name));
+    ArrayPush(fields, JsonEmitFieldNumber("kind", ToString(kind)));
+    ArrayPush(
+        fields,
+        JsonEmitFieldRaw("range", LspDocumentFeatureRangeJson(line, 0, 0))
+    );
+    ArrayPush(
+        fields,
+        JsonEmitFieldRaw(
+            "selectionRange",
+            LspDocumentFeatureRangeJson(line, 0, 0)
+        )
+    );
+    return JsonEmitObject(fields);
+}
+
+func LspDocumentFeatureDocumentSymbolsJson(
+    index: LspDocumentFeatureIndex
+) -> String {
+    let symbols: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(index.names) {
+        ArrayPush(
+            symbols,
+            LspDocumentFeatureDocumentSymbolJson(
+                index.names[row],
+                index.kinds[row],
+                index.lines[row]
+            )
+        );
+        row = row + 1;
+    }
+    return JsonEmitArray(symbols);
+}
+
+func LspDocumentFeatureRequestWord(
+    index: LspDocumentFeatureIndex,
+    body: String
+) -> Option<String> {
+    let line_opt: Option<Int> = LspHoverPositionLine(body);
+    let character_opt: Option<Int> = LspHoverPositionCharacter(body);
+    if !IsSome(line_opt) || !IsSome(character_opt) {
+        return None;
+    }
+    return LspHoverWordAt(
+        index.text,
+        UnwrapOption(line_opt),
+        UnwrapOption(character_opt)
+    );
+}
+
+func LspDocumentFeatureDefinitionJson(
+    index: LspDocumentFeatureIndex,
+    body: String
+) -> String {
+    let word_opt: Option<String> = LspDocumentFeatureRequestWord(index, body);
+    if !IsSome(word_opt) {
+        return "null";
+    }
+    let word: String = UnwrapOption(word_opt);
+    let row: Int = 0;
+    while row < ArrayLength(index.names) {
+        if index.names[row] == word {
+            let fields: Array<String> = [];
+            ArrayPush(fields, JsonEmitFieldString("uri", index.uri));
+            ArrayPush(
+                fields,
+                JsonEmitFieldRaw(
+                    "range",
+                    LspDocumentFeatureRangeJson(index.lines[row], 0, 0)
+                )
+            );
+            return JsonEmitObject(fields);
+        }
+        row = row + 1;
+    }
+    return "null";
+}
+
+func LspDocumentFeatureWordMatchesAt(
+    text: String,
+    cursor: Int,
+    word: String
+) -> Bool {
+    if word == "" || cursor < 0 ||
+        cursor + StringLength(word) > StringLength(text) {
+        return false;
+    }
+    if Substring(text, cursor, StringLength(word)) != word {
+        return false;
+    }
+    if cursor > 0 && LspHoverIsWordChar(CharAt(text, cursor - 1)) {
+        return false;
+    }
+    let after: Int = cursor + StringLength(word);
+    return after == StringLength(text) ||
+        !LspHoverIsWordChar(CharAt(text, after));
+}
+
+func LspDocumentFeatureOccurrencesJson(
+    index: LspDocumentFeatureIndex,
+    body: String,
+    new_name: Option<String>
+) -> String {
+    let word_opt: Option<String> = LspDocumentFeatureRequestWord(index, body);
+    if !IsSome(word_opt) {
+        return "[]";
+    }
+    let word: String = UnwrapOption(word_opt);
+    let rows: Array<String> = [];
+    let cursor: Int = 0;
+    let line: Int = 0;
+    let character: Int = 0;
+    while cursor < StringLength(index.text) {
+        if LspDocumentFeatureWordMatchesAt(index.text, cursor, word) {
+            let range: String = LspDocumentFeatureRangeJson(
+                line,
+                character,
+                character + StringLength(word)
+            );
+            let fields: Array<String> = [];
+            if IsSome(new_name) {
+                ArrayPush(fields, JsonEmitFieldRaw("range", range));
+                ArrayPush(
+                    fields,
+                    JsonEmitFieldString("newText", UnwrapOption(new_name))
+                );
+            } else {
+                ArrayPush(fields, JsonEmitFieldString("uri", index.uri));
+                ArrayPush(fields, JsonEmitFieldRaw("range", range));
+            }
+            ArrayPush(rows, JsonEmitObject(fields));
+        }
+        if CharAt(index.text, cursor) == "\n" {
+            line = line + 1;
+            character = 0;
+        } else {
+            character = character + 1;
+        }
+        cursor = cursor + 1;
+    }
+    return JsonEmitArray(rows);
+}
+
+func LspDocumentFeatureReferencesJson(
+    index: LspDocumentFeatureIndex,
+    body: String
+) -> String {
+    let no_name: Option<String> = None;
+    return LspDocumentFeatureOccurrencesJson(index, body, no_name);
+}
+
+func LspDocumentFeatureRenameJson(
+    index: LspDocumentFeatureIndex,
+    body: String
+) -> String {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
+    let params: JsonObjectFactTable =
+        JsonObjectFactObjectTable(root, "params");
+    let new_name: Option<String> =
+        JsonObjectFactStringFieldOpt(params, "newName");
+    if !IsSome(new_name) || UnwrapOption(new_name) == "" {
+        return "null";
+    }
+    let edits: String = LspDocumentFeatureOccurrencesJson(
+        index,
+        body,
+        new_name
+    );
+    return Concat(
+        "{\"changes\":{",
+        Concat(
+            JsonStringLiteral(index.uri),
+            Concat(":", Concat(edits, "}}"))
+        )
+    );
+}
+
+func LspDocumentFeatureContractReady() -> Bool {
+    let index: LspDocumentFeatureIndex = LspDocumentFeatureIndexBuild(
+        "file:///main.pgy",
+        "func Main() -> Void {}"
+    );
+    if !LspDocumentFeatureIndexReady(index) ||
+        ArrayLength(index.names) != 1 || index.names[0] != "Main" ||
+        index.kinds[0] != 12 || index.lines[0] != 0 {
+        return false;
+    }
+    let body: String = "{\"params\":{\"position\":{\"line\":0,\"character\":6}}}";
+    return StringIndexOf(
+        LspDocumentFeatureDefinitionJson(index, body),
+        "\"uri\":\"file:///main.pgy\""
+    ) >= 0;
+}

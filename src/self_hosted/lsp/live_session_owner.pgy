@@ -1,0 +1,349 @@
+// Pergyra-native live LSP session owner.
+//
+// This owner consumes repeated byte-stream reads, retains partial frames,
+// mutates typed document revisions, and emits exact JSON-RPC frames. Buffered
+// replay owners remain test artifacts; they are not a fallback for this loop.
+
+import "../lib/json_fact_table.pgy";
+import "diagnostics_owner.pgy";
+import "document_feature_index_owner.pgy";
+import "document_revision_owner.pgy";
+import "hover_content_owner.pgy";
+import "response_owner.pgy";
+import "transport_owner.pgy";
+
+class LspLiveSessionState
+{
+    let mut revision: Option<LspDocumentRevision>;
+    let mut document_index: Option<LspDocumentFeatureIndex>;
+    let mut initialized: Bool;
+    let mut shutdown: Bool;
+    let mut exit_requested: Bool;
+}
+
+func NewLspLiveSessionState() -> LspLiveSessionState {
+    let revision: Option<LspDocumentRevision> = None;
+    let document_index: Option<LspDocumentFeatureIndex> = None;
+    return LspLiveSessionState(
+        revision,
+        document_index,
+        false,
+        false,
+        false
+    );
+}
+
+func LspLiveSessionFail() -> Void {
+    Exit(1);
+}
+
+func LspLiveSessionRequestUri(root: JsonObjectFactTable) -> Option<String> {
+    let params: JsonObjectFactTable =
+        JsonObjectFactObjectTable(root, "params");
+    let text_document: JsonObjectFactTable =
+        JsonObjectFactObjectTable(params, "textDocument");
+    return JsonObjectFactStringFieldOpt(text_document, "uri");
+}
+
+func LspLiveSessionDocument(
+    state: LspLiveSessionState,
+    root: JsonObjectFactTable
+) -> Option<LspDocumentRevision> {
+    let uri_opt: Option<String> = LspLiveSessionRequestUri(root);
+    if !IsSome(uri_opt) || !IsSome(state.revision) {
+        return None;
+    }
+    let revision: LspDocumentRevision = UnwrapOption(state.revision);
+    if revision.uri != UnwrapOption(uri_opt) {
+        return None;
+    }
+    return Some(revision);
+}
+
+func LspLiveSessionResponseFrame(id: String, result: String) -> String {
+    let body: String = UnwrapOption(LspResponseBodyJson(id, result));
+    return UnwrapOption(LspResponseFrameForBody(body));
+}
+
+func LspLiveSessionDiagnosticsFrame(
+    uri: String,
+    text: String
+) -> String {
+    let error: String = CheckProgram(uri, text);
+    let block: String = SemanticOk();
+    if StringLength(error) > 0 {
+        block = error;
+    }
+    return UnwrapOption(
+        LspResponseFrameForBody(LspPublishDiagnosticsJson(uri, block))
+    );
+}
+
+func LspLiveSessionApplyOpen(
+    body: String,
+    root: JsonObjectFactTable,
+    inout state: LspLiveSessionState
+) -> String {
+    let uri_opt: Option<String> = LspLiveSessionRequestUri(root);
+    let text_document: JsonObjectFactTable =
+        LspDocumentStoreTextDocument(root);
+    let version_opt: Option<String> =
+        JsonObjectFactNumberFieldOpt(text_document, "version");
+    let text_opt: Option<String> = LspDocumentStoreOpenText(root);
+    if !IsSome(uri_opt) || !IsSome(version_opt) || !IsSome(text_opt) {
+        LspLiveSessionFail();
+    }
+    let uri: String = UnwrapOption(uri_opt);
+    if IsSome(state.revision) {
+        LspLiveSessionFail();
+    }
+    let text: String = UnwrapOption(text_opt);
+    let admission: LspDocumentRevisionAdmission = LspDocumentRevisionOpen(
+        uri,
+        UnwrapOption(version_opt),
+        text
+    );
+    if !admission.applied || !IsSome(admission.revision) {
+        LspLiveSessionFail();
+    }
+    state.revision = admission.revision;
+    state.document_index = Some(LspDocumentFeatureIndexBuild(uri, text));
+    return LspLiveSessionDiagnosticsFrame(uri, text);
+}
+
+func LspLiveSessionApplyChange(
+    body: String,
+    root: JsonObjectFactTable,
+    inout state: LspLiveSessionState
+) -> String {
+    let current_opt: Option<LspDocumentRevision> =
+        LspLiveSessionDocument(state, root);
+    let text_document: JsonObjectFactTable =
+        LspDocumentStoreTextDocument(root);
+    let version_opt: Option<String> =
+        JsonObjectFactNumberFieldOpt(text_document, "version");
+    let text_opt: Option<String> = LspDocumentStoreChangeText(root);
+    if !IsSome(current_opt) || !IsSome(version_opt) || !IsSome(text_opt) {
+        LspLiveSessionFail();
+    }
+    let text: String = UnwrapOption(text_opt);
+    let admission: LspDocumentRevisionAdmission = LspDocumentRevisionChange(
+        UnwrapOption(current_opt),
+        UnwrapOption(version_opt),
+        text
+    );
+    // A live didChange must advance the revision. Buffered replay may classify
+    // an identical version as a duplicate artifact, but it cannot mutate the
+    // live store or silently succeed here.
+    if !admission.applied || !IsSome(admission.revision) {
+        LspLiveSessionFail();
+    }
+    let revision: LspDocumentRevision = UnwrapOption(admission.revision);
+    state.revision = admission.revision;
+    state.document_index = Some(
+        LspDocumentFeatureIndexBuild(revision.uri, text)
+    );
+    return LspLiveSessionDiagnosticsFrame(revision.uri, text);
+}
+
+func LspLiveSessionHoverResult(
+    body: String,
+    root: JsonObjectFactTable,
+    state: LspLiveSessionState
+) -> String {
+    let revision_opt: Option<LspDocumentRevision> =
+        LspLiveSessionDocument(state, root);
+    if !IsSome(revision_opt) {
+        return "null";
+    }
+    let revision: LspDocumentRevision = UnwrapOption(revision_opt);
+    let result_opt: Option<String> =
+        LspHoverResultForRequest(revision.text, body);
+    if !IsSome(result_opt) {
+        return "null";
+    }
+    return UnwrapOption(result_opt);
+}
+
+func LspLiveSessionDocumentIndex(
+    state: LspLiveSessionState,
+    root: JsonObjectFactTable
+) -> Option<LspDocumentFeatureIndex> {
+    let revision_opt: Option<LspDocumentRevision> =
+        LspLiveSessionDocument(state, root);
+    if !IsSome(revision_opt) || !IsSome(state.document_index) {
+        return None;
+    }
+    let revision: LspDocumentRevision = UnwrapOption(revision_opt);
+    let index: LspDocumentFeatureIndex =
+        UnwrapOption(state.document_index);
+    if index.uri != revision.uri || index.text != revision.text ||
+        !LspDocumentFeatureIndexReady(index) {
+        LspLiveSessionFail();
+    }
+    return Some(index);
+}
+
+func LspLiveSessionDispatch(
+    body: String,
+    inout state: LspLiveSessionState
+) -> Option<String> {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(body);
+    if !JsonObjectFactTableReady(root) ||
+        !JsonObjectFactStringFieldEquals(root, "jsonrpc", "2.0") {
+        LspLiveSessionFail();
+    }
+    let method_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(root, "method");
+    if !IsSome(method_opt) {
+        LspLiveSessionFail();
+    }
+    let method: String = UnwrapOption(method_opt);
+    let id: String = LspRequestIdText(root);
+
+    if method == "initialize" {
+        if state.initialized || state.shutdown || StringLength(id) == 0 {
+            LspLiveSessionFail();
+        }
+        state.initialized = true;
+        return Some(LspLiveSessionResponseFrame(
+            id,
+            LspResponseInitializeResultJson()
+        ));
+    }
+    if !state.initialized {
+        LspLiveSessionFail();
+    }
+    if method == "exit" {
+        if !state.shutdown {
+            LspLiveSessionFail();
+        }
+        state.exit_requested = true;
+        return None;
+    }
+    if state.shutdown {
+        LspLiveSessionFail();
+    }
+    if method == "initialized" {
+        return None;
+    }
+    if method == "shutdown" {
+        if StringLength(id) == 0 {
+            LspLiveSessionFail();
+        }
+        state.shutdown = true;
+        return Some(LspLiveSessionResponseFrame(id, "null"));
+    }
+    if method == "textDocument/didOpen" {
+        return Some(LspLiveSessionApplyOpen(body, root, state));
+    }
+    if method == "textDocument/didChange" {
+        return Some(LspLiveSessionApplyChange(body, root, state));
+    }
+    if method == "textDocument/hover" {
+        if StringLength(id) == 0 {
+            return None;
+        }
+        return Some(LspLiveSessionResponseFrame(
+            id,
+            LspLiveSessionHoverResult(body, root, state)
+        ));
+    }
+    if method == "textDocument/documentSymbol" ||
+        method == "textDocument/definition" ||
+        method == "textDocument/references" ||
+        method == "textDocument/rename" {
+        if StringLength(id) == 0 {
+            return None;
+        }
+        let index_opt: Option<LspDocumentFeatureIndex> =
+            LspLiveSessionDocumentIndex(state, root);
+        if !IsSome(index_opt) {
+            let missing_result: String = "null";
+            let missing_result_opt: Option<String> =
+                LspFeatureResultForMethod(method);
+            if IsSome(missing_result_opt) {
+                missing_result = UnwrapOption(missing_result_opt);
+            }
+            return Some(LspLiveSessionResponseFrame(id, missing_result));
+        }
+        let index: LspDocumentFeatureIndex = UnwrapOption(index_opt);
+        let result: String = "null";
+        if method == "textDocument/documentSymbol" {
+            result = LspDocumentFeatureDocumentSymbolsJson(index);
+        } else if method == "textDocument/definition" {
+            result = LspDocumentFeatureDefinitionJson(index, body);
+        } else if method == "textDocument/references" {
+            result = LspDocumentFeatureReferencesJson(index, body);
+        } else {
+            result = LspDocumentFeatureRenameJson(index, body);
+        }
+        return Some(LspLiveSessionResponseFrame(id, result));
+    }
+
+    if StringLength(id) == 0 {
+        return None;
+    }
+    let result_opt: Option<String> = LspResponseResultForMethod(method);
+    if IsSome(result_opt) {
+        return Some(LspLiveSessionResponseFrame(id, UnwrapOption(result_opt)));
+    }
+    return Some(LspLiveSessionResponseFrame(id, "null"));
+}
+
+func LspLiveSessionConsumeBuffer(
+    inout buffer: String,
+    inout state: LspLiveSessionState
+) -> Void {
+    let keep_consuming: Bool = true;
+    while keep_consuming && !state.exit_requested {
+        let complete_opt: Option<Int> =
+            LspTransportCompleteFrameLength(buffer);
+        if !IsSome(complete_opt) {
+            let partial_reason: Option<String> =
+                LspTransportPartialReason(buffer);
+            if IsSome(partial_reason) &&
+                UnwrapOption(partial_reason) == "missing_content_length" {
+                LspLiveSessionFail();
+            }
+            keep_consuming = false;
+        } else {
+            let complete: Int = UnwrapOption(complete_opt);
+            let body_opt: Option<String> = LspTransportFrameBody(buffer);
+            if !IsSome(body_opt) {
+                LspLiveSessionFail();
+            }
+            let response_opt: Option<String> = LspLiveSessionDispatch(
+                UnwrapOption(body_opt),
+                state
+            );
+            if IsSome(response_opt) {
+                Print(UnwrapOption(response_opt));
+            }
+            buffer = Substring(
+                buffer,
+                complete,
+                StringLength(buffer) - complete
+            );
+        }
+    }
+}
+
+func RunLspLiveSession() -> Void with caps io_read {
+    let state: LspLiveSessionState = NewLspLiveSessionState();
+    let buffer: String = "";
+    while !state.exit_requested {
+        let chunk: String = ReadStdin(65536);
+        if StringLength(chunk) == 0 {
+            if StringLength(buffer) > 0 {
+                LspLiveSessionFail();
+            }
+            return;
+        }
+        buffer = Concat(buffer, chunk);
+        if StringLength(buffer) > 262144 {
+            LspLiveSessionFail();
+        }
+        LspLiveSessionConsumeBuffer(buffer, state);
+    }
+}

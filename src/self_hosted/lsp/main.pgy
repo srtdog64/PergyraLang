@@ -1,8 +1,10 @@
-// Self-host LSP diagnostic payload entrypoint.
+// Self-host LSP runnable entrypoint. No arguments owns the live JSON-RPC
+// session; positional and probe arguments remain bounded parity surfaces.
 
 import "diagnostics_owner.pgy";
 import "document_store_owner.pgy";
 import "hover_content_owner.pgy";
+import "live_session_owner.pgy";
 import "request_owner.pgy";
 import "response_owner.pgy";
 import "session_owner.pgy";
@@ -11,6 +13,10 @@ import "transport_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
+    if ArrayLength(args) == 0 {
+        RunLspLiveSession();
+        return;
+    }
     if LspTransportProbeRequested(args) {
         RunLspTransportFrameProbeFromArgs(args);
         return;

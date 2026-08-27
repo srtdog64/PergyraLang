@@ -55,6 +55,11 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 return let_call_error;
             }
             let let_expr: String = Substring(content, i, semi - i);
+            if StringLength(Trim(let_expr)) == 0 {
+                return SemanticError1(
+                    "parse_syntax", "missing", "let_initializer"
+                );
+            }
             let let_undefined_error: String =
                 CheckUndefinedIdentifiers(let_expr, names, func_names);
             if StringLength(let_undefined_error) > 0 {

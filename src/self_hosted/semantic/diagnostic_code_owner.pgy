@@ -37,6 +37,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "destructure_binding_invalid",
         "destructure_initializer_not_array",
         "intent_signature_invalid",
+        "parse_syntax",
         "unregistered_diagnostic_code"
     ];
     return codes;
@@ -120,6 +121,9 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     }
     if code == "intent_signature_invalid" {
         return "PGY_SEM_INTENT_STEP_INVALID";
+    }
+    if code == "parse_syntax" {
+        return "PGY_PARSE_SYNTAX";
     }
     return "";
 }

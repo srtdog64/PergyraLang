@@ -68,7 +68,6 @@ typedef struct LLVMStdlibStringSpecialSpec {
 typedef enum LLVMStdlibIoSpecialOp {
     LLVM_STDLIB_IO_SPECIAL_NONE = 0,
     LLVM_STDLIB_IO_SPECIAL_NOW,
-    LLVM_STDLIB_IO_SPECIAL_PRINT,
     LLVM_STDLIB_IO_SPECIAL_READ_LINE,
     LLVM_STDLIB_IO_SPECIAL_SLEEP,
 } LLVMStdlibIoSpecialOp;
@@ -135,6 +134,7 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
         { "Lower", "stdlib string", "ToLower", 1 },
         { "MathLog", "stdlib scalar", "MathLog", 1 },
         { "Pow", "stdlib scalar", "Pow", 2 },
+        { "Print", "stdlib io", "pgy_print", 1 },
         { "Random", "stdlib scalar", "Random", 1 },
         { "ReadFile", "stdlib io", "pgy_read_file", 1 },
         { "ReadStdin", "stdlib io", "pgy_read_stdin", 1 },
@@ -234,7 +234,6 @@ llvm_stdlib_io_special_lookup(const char *callee_name, size_t argc)
 {
     static const LLVMStdlibIoSpecialSpec kLLVMStdlibIoSpecialSpecs[] = {
         { "Now", 0, LLVM_STDLIB_IO_SPECIAL_NOW },
-        { "Print", 1, LLVM_STDLIB_IO_SPECIAL_PRINT },
         { "ReadLine", 0, LLVM_STDLIB_IO_SPECIAL_READ_LINE },
         { "Sleep", 1, LLVM_STDLIB_IO_SPECIAL_SLEEP },
     };
@@ -390,37 +389,6 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     op = llvm_stdlib_io_special_lookup(callee_name, ast_call_arg_count(node));
-
-    if (op == LLVM_STDLIB_IO_SPECIAL_PRINT) {
-        LLVMValueRef val = llvm_emit_expression(ast_call_argument(node, 0), ctx);
-        LLVMTypeRef vt;
-        LLVMFuncEntry *pf = llvm_required_runtime_function(ctx, node,
-            "stdlib io", callee_name, "printf");
-        if (val == NULL) {
-            *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
-                "could not lower print argument");
-            return true;
-        }
-        vt = LLVMTypeOf(val);
-        if (pf == NULL) {
-            *out_result = NULL;
-            return true;
-        }
-        if (vt == ctx->type_i8ptr) {
-            LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
-                "%s", ".fmt_s");
-            LLVMValueRef args[] = { fmt, val };
-            LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
-        } else {
-            LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
-                "%d", ".fmt_d");
-            LLVMValueRef args[] = { fmt, val };
-            LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
-        }
-        *out_result = llvm_void_expression_placeholder(ctx, node,
-            callee_name);
-        return true;
-    }
 
     if (op == LLVM_STDLIB_IO_SPECIAL_READ_LINE) {
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,

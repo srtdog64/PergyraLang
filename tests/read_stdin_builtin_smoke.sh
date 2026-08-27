@@ -21,10 +21,42 @@ require_text() {
         fail "$file lost required ReadStdin substrate text: $text"
 }
 
+forbid_text() {
+    local file="$1"
+    local text="$2"
+    if grep -Fq "$text" "$ROOT_DIR/$file"; then
+        fail "$file retained forbidden ReadStdin substrate text: $text"
+    fi
+}
+
 require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "HostIORuntimeCReadStdinFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ReadStdin("
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "pgy_readstdin"
+require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "read(STDIN_FILENO"
+require_text "src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy" "if (rd < 0) { free(buf); abort(); }"
+require_text "src/runtime/pgy_runtime_lib_io_string_exports.h" "if (result.tag != PGY_RUNTIME_IO_RESULT_OK)"
+require_text "src/runtime/pgy_runtime_io_qubit_inline.h" "if (result.tag != PGY_RUNTIME_IO_RESULT_OK)"
+require_text "src/runtime/pgy_runtime_io_qubit_inline.h" \
+    "_setmode(_fileno(stdout), _O_BINARY)"
+require_text "src/runtime/pgy_runtime_lib_io_string_exports.h" \
+    "void pgy_print(const char *msg)"
+require_text "src/runtime/pgy_runtime_lib_io_string_exports.h" \
+    "_setmode(_fileno(stdout), _O_BINARY)"
+require_text "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" \
+    "_setmode(_fileno(stdout), _O_BINARY)"
+require_text "src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
+    '{ "Print", "stdlib io", "pgy_print", 1 }'
+forbid_text "src/codegen/llvm_expr_stdlib_scalar_io_calls.c" '"printf"'
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
+    'source_name == "ReadStdin"'
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "HostIORuntimeCFileIOBlock()"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "ReadStdin("
+
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3)"
+else
+    PYTHON_BIN="$(command -v python)"
+fi
+[[ -n "$PYTHON_BIN" ]] || fail "python is required for the no-EOF chunk falsifier"
 
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_read_stdin.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -42,6 +74,13 @@ cat > "$WORK_DIR/read_stdin_bad_type.pgy" <<'EOF'
 func Main() -> Void with caps io_read {
     let s: String = ReadStdin("wrong");
     Log(s);
+}
+EOF
+
+cat > "$WORK_DIR/read_stdin_chunk.pgy" <<'EOF'
+func Main() -> Void with caps io_read {
+    let chunk: String = ReadStdin(4096);
+    Print(Concat("chunk:", Concat(chunk, "\n")));
 }
 EOF
 
@@ -80,6 +119,60 @@ run_backend() {
     if [[ "$output" != $'hello\n-world' ]]; then
         fail "backend=$backend expected byte-count stdin output, got: $output"
     fi
+
+    local chunk_source_arg
+    local chunk_out_base
+    local chunk_out_arg
+    local chunk_exe
+    chunk_source_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/read_stdin_chunk.pgy")"
+    chunk_out_base="$WORK_DIR/read_stdin_chunk_${backend}"
+    chunk_out_arg="$(pgy_path_for_compiler "$PGY" "$chunk_out_base")"
+    if ! (cd "$ROOT_DIR" && "$PGY" "$chunk_source_arg" --backend="$backend" \
+        -o "$chunk_out_arg" >"$WORK_DIR/chunk_compile_${backend}.log" 2>&1); then
+        cat "$WORK_DIR/chunk_compile_${backend}.log" >&2
+        fail "backend=$backend no-EOF chunk fixture failed to compile"
+    fi
+    chunk_exe="$(pgy_select_optional_exe_binary "$chunk_out_base")"
+    [[ -x "$chunk_exe" ]] || fail "backend=$backend missing no-EOF chunk binary"
+    "$PYTHON_BIN" - "$chunk_exe" "$backend" <<'PY'
+import queue
+import subprocess
+import sys
+import threading
+
+binary, backend = sys.argv[1:]
+process = subprocess.Popen(
+    [binary],
+    stdin=subprocess.PIPE,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+)
+lines = queue.Queue()
+threading.Thread(
+    target=lambda: lines.put(process.stdout.readline()), daemon=True
+).start()
+process.stdin.write(b"hello")
+process.stdin.flush()
+try:
+    line = lines.get(timeout=3.0)
+except queue.Empty:
+    process.kill()
+    process.wait(timeout=5.0)
+    raise SystemExit(
+        f"[read-stdin] FAIL: backend={backend} blocked until EOF"
+    )
+if line != b"chunk:hello\n":
+    process.kill()
+    process.wait(timeout=5.0)
+    raise SystemExit(
+        f"[read-stdin] FAIL: backend={backend} wrong chunk {line!r}"
+    )
+process.stdin.close()
+if process.wait(timeout=5.0) != 0:
+    raise SystemExit(
+        f"[read-stdin] FAIL: backend={backend} chunk process failed"
+    )
+PY
     echo "[read-stdin] backend=$backend ok"
 }
 

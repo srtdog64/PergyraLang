@@ -75,6 +75,9 @@ func LspZeroRangeJson() -> String {
 func LspDiagnosticDataJson(block: String, squiggle: String) -> String {
     let fields: Array<String> = [];
     let code: String = LspDiagnosticField(block, "Code");
+    if code == "parse_syntax" {
+        ArrayPush(fields, JsonEmitFieldString("layer", "syntax"));
+    }
     ArrayPush(fields, JsonEmitFieldString("stage", LspDiagnosticField(block, "Stage")));
     ArrayPush(fields, JsonEmitFieldString("squiggleClass", squiggle));
     ArrayPush(fields, JsonEmitFieldString("oracleCode", SemanticDiagnosticOracleCode(code)));
@@ -89,12 +92,16 @@ func LspDiagnosticJson(block: String) -> String {
     let severity: String = LspDiagnosticField(block, "Severity");
     let stage: String = LspDiagnosticField(block, "Stage");
     let code: String = LspDiagnosticField(block, "Code");
+    let wire_code: String = code;
+    if code == "parse_syntax" {
+        wire_code = SemanticDiagnosticOracleCode(code);
+    }
     let facts: String = LspDiagnosticFacts(block);
     let squiggle: String = LspSquiggleClassForDiagnostic(status, severity, stage, code, facts);
     let fields: Array<String> = [];
     ArrayPush(fields, JsonEmitFieldRaw("range", LspZeroRangeJson()));
     ArrayPush(fields, JsonEmitFieldNumber("severity", LspDiagnosticSeverityNumber(severity)));
-    ArrayPush(fields, JsonEmitFieldString("code", code));
+    ArrayPush(fields, JsonEmitFieldString("code", wire_code));
     ArrayPush(fields, JsonEmitFieldString("source", LspDiagnosticsSource()));
     ArrayPush(fields, JsonEmitFieldString("message", LspDiagnosticField(block, "Reason")));
     ArrayPush(fields, JsonEmitFieldRaw("data", LspDiagnosticDataJson(block, squiggle)));

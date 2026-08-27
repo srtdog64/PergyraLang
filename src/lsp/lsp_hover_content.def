@@ -16,6 +16,9 @@ LANGUAGE_WORD_HOVER(
     "authorized",
     "**authorized by** - Authority contract clause\n- required when a step/action mutates authority-bearing zone state or runs secure/effectful work inside an authority boundary\n- matching intent steps may reuse this from the action contract")
 LANGUAGE_WORD_HOVER(
+    "binding",
+    "**binding** - Zone-owned object endpoint declaration\n- `binding slot name: Type` admits an object-valued endpoint into zone construction\n- relation and effect topology may refer to the stable binding by name")
+LANGUAGE_WORD_HOVER(
     "by",
     "**by** - Authority clause tail\n- used in `authorized by` and domain lifecycle commands to name the approving participant")
 LANGUAGE_WORD_HOVER(

@@ -4067,7 +4067,9 @@ inventory must not become a second fact-family owner registry.
 
 ## LSP
 
-- `src/self_hosted/lsp/main.pgy` -- LSP-0 runnable artifact boundary.
+- `src/self_hosted/lsp/main.pgy` -- public self-host LSP runnable boundary. A
+  no-argument invocation enters the Pergyra-owned live session; positional and
+  named probe arguments remain bounded diagnostic/parity surfaces.
 - `src/self_hosted/lsp/completion_owner.pgy` -- registry-directed LSP completion
   projection over all 146 language-word identities; exposure remains owned by
   the language keyword registry flags.
@@ -4098,3 +4100,13 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/lsp/hover_content_projection_owner.pgy` -- generated
   presentation projection from `src/lsp/lsp_hover_content.def`; lowercase
   exposure remains owned by the language keyword registry HOVER flags.
+- `src/self_hosted/lsp/live_session_owner.pgy` -- G-LSP-STREAM repeated-read,
+  partial-frame, lifecycle, one-current-document revision, and exact response
+  emission owner reached by the public no-argument `pgy-lsp` entrypoint. It
+  fails closed on malformed/incomplete frames and non-advancing revisions;
+  buffered replay owners are not a fallback.
+- `src/self_hosted/lsp/document_feature_index_owner.pgy` -- revision-scoped
+  typed tooling declaration/occurrence index and document-symbol/definition/
+  references/rename projections for the live session. It is rebuilt only when
+  the admitted document revision changes and is consumed without per-request
+  root scans. It owns no compiler semantic-artifact proof.

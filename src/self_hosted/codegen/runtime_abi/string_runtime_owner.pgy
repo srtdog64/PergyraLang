@@ -39,8 +39,11 @@ func StringRuntimeCLogMaterializationBlock(
 
 func StringRuntimeCPrintBlock() -> String {
     let block: String = "";
+    block = Concat(block, "#include <stdlib.h>\n#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#endif\n\n");
     block = Concat(block, Concat("static void ", Concat(StringRuntimeCPrintFn(), "(const char *s)\n{\n")));
-    block = Concat(block, "    fputs(s, stdout);\n}\n\n");
+    block = Concat(block, "#ifdef _WIN32\n    if (_setmode(_fileno(stdout), _O_BINARY) == -1) { abort(); }\n#endif\n");
+    block = Concat(block, "    if (s != NULL && fputs(s, stdout) == EOF) { abort(); }\n");
+    block = Concat(block, "    if (fflush(stdout) == EOF) { abort(); }\n}\n\n");
     return block;
 }
 

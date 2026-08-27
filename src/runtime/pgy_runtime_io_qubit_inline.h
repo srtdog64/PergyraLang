@@ -226,24 +226,38 @@ pgy_try_read_stdin_result(int32_t max_bytes)
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_ALLOC_FAILED, "io-boundary", "read-stdin"));
 #ifdef _WIN32
-    (void)_setmode(_fileno(stdin), _O_BINARY);
-#endif
-    size_t read_len = fread(buf, 1, (size_t)max_bytes, stdin);
-    if (read_len == 0 && ferror(stdin)) {
+    if (_setmode(_fileno(stdin), _O_BINARY) == -1) {
         free(buf);
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
             PGY_RUNTIME_IO_STATUS_READ_FAILED, "io-boundary", "read-stdin"));
     }
-    buf[read_len] = '\0';
+#endif
+#ifdef _WIN32
+    int read_len;
+    do {
+        read_len = _read(_fileno(stdin), buf, (unsigned int)max_bytes);
+    } while (read_len < 0 && errno == EINTR);
+#else
+    ssize_t read_len;
+    do {
+        read_len = read(STDIN_FILENO, buf, (size_t)max_bytes);
+    } while (read_len < 0 && errno == EINTR);
+#endif
+    if (read_len < 0) {
+        free(buf);
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_READ_FAILED, "io-boundary", "read-stdin"));
+    }
+    buf[(size_t)read_len] = '\0';
     return pgy_runtime_io_string_ok(buf);
 }
 static inline char *
 pgy_read_stdin(int32_t max_bytes)
 {
     PgyRuntimeIoStringResult result = pgy_try_read_stdin_result(max_bytes);
-    return result.tag == PGY_RUNTIME_IO_RESULT_OK
-        ? result.ok
-        : pgy_runtime_strdup("");
+    if (result.tag != PGY_RUNTIME_IO_RESULT_OK)
+        abort();
+    return result.ok;
 }
 static inline PgyRuntimeIoIntResult
 pgy_try_file_exists_result(const char *path)
@@ -339,8 +353,16 @@ pgy_input(const char *prompt)
 static inline void
 pgy_print(const char *msg)
 {
-    if (msg != NULL) printf("%s", msg);
-    fflush(stdout);
+#ifdef _WIN32
+    /* Print owns byte-exact output. Text mode would rewrite LF to CRLF and
+     * corrupt framed protocols such as JSON-RPC/LSP. */
+    if (_setmode(_fileno(stdout), _O_BINARY) == -1)
+        abort();
+#endif
+    if (msg != NULL && fputs(msg, stdout) == EOF)
+        abort();
+    if (fflush(stdout) == EOF)
+        abort();
 }
 static inline int32_t
 pgy_now_ms(void)

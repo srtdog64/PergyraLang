@@ -127,13 +127,6 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
     }
 
     {
-        LLVMTypeRef params[] = { ctx->type_i8ptr };
-        LLVMTypeRef ft = LLVMFunctionType(ctx->type_i32, params, 1, 1);
-        LLVMValueRef fn = LLVMAddFunction(ctx->module, "printf", ft);
-        llvm_register_function(ctx, "printf", fn, ft, ctx->type_i32);
-    }
-
-    {
         struct {
             const char *name;
             LLVMTypeRef ret;
@@ -335,6 +328,8 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { ctx->type_i8ptr }, 1 },
             { "pgy_read_stdin", ctx->type_i8ptr,
               { ctx->type_i32 }, 1 },
+            { "pgy_print", ctx->type_void,
+              { ctx->type_i8ptr }, 1 },
             { "pgy_dir_walk", ctx->array_type_String,
               { ctx->type_i8ptr }, 1 },
             { "pgy_file_exists", ctx->type_i1,

@@ -2,8 +2,9 @@
 
 LSP-0 projects the self-host semantic diagnostic block into a
 `textDocument/publishDiagnostics` JSON payload. LSP-1 owns the four-color
-squiggle classification policy consumed by that payload. This directory is a
-payload owner, not an LSP transport loop.
+squiggle classification policy consumed by that payload. The no-argument
+production entrypoint now reaches the Pergyra-owned live transport/session
+loop; the named probe modes remain bounded artifacts, not fallbacks.
 
 ## Compiler World Binding
 
@@ -18,16 +19,20 @@ payload owner, not an LSP transport loop.
 - **session_replay_owner**: `src/self_hosted/lsp/session_owner.pgy`
 - **session_state_owner**: `src/self_hosted/lsp/session_state_owner.pgy`
 - **hover_content_owner**: `src/self_hosted/lsp/hover_content_owner.pgy`
+- **live_session_owner**: `src/self_hosted/lsp/live_session_owner.pgy`
+- **document_feature_index_owner**: `src/self_hosted/lsp/document_feature_index_owner.pgy`
 - **stage_intent**: `ProjectSemanticDiagnostics`
 - **payload_contract**: `LspDiagnosticPayloadContractReady`
 - **policy_contract**: `LspSquigglePolicyContractReady`
 
 ## Input Contract
 
-The default entrypoint reads one source path from `Args()[0]`, loads it through
-the semantic source-bundle owner, and consumes `CheckProgram` plus the semantic
-diagnostic renderer. Missing input reports a diagnostic payload and exits
-non-zero.
+The no-argument default entrypoint repeatedly reads JSON-RPC frames, retains
+partial input, owns one current document revision and tooling index, and emits
+exact response frames. A positional source path remains the bounded diagnostic
+payload mode: it loads the source through the semantic source-bundle owner and
+consumes `CheckProgram` plus the semantic diagnostic renderer. Missing or
+malformed live facts fail closed.
 
 The `--transport-frame-probe <max-bytes>` mode is the LSP-2a input boundary:
 it reads stdin through `ReadStdin(max_bytes)` and parses one JSON-RPC
