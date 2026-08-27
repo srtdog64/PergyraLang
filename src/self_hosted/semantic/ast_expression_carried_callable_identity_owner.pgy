@@ -78,18 +78,18 @@ func SemanticExpressionDeclaredCallableSyntaxId(
         }
         signature = signature + 1;
     }
-    let intent: Int = 0;
-    while intent < SemanticAstIntentSignatureCount(intents) {
-        if intents.names[intent] == "" ||
-            intents.intent_node_ids[intent] <= 0 {
+    let intent_index: Int = 0;
+    while intent_index < SemanticAstIntentSignatureCount(intents) {
+        if intents.names[intent_index] == "" ||
+            intents.intent_node_ids[intent_index] <= 0 {
             return 0 - 1;
         }
-        if intents.names[intent] == target_name {
+        if intents.names[intent_index] == target_name {
             matches = matches + 1;
-            found = intents.intent_node_ids[intent];
+            found = intents.intent_node_ids[intent_index];
             if matches > 1 { return 0 - 1; }
         }
-        intent = intent + 1;
+        intent_index = intent_index + 1;
     }
     if matches == 0 { return 0; }
     return found;

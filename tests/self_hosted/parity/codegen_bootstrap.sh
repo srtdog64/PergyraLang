@@ -519,12 +519,20 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
         if [[ "$mir_base" == "role_operator_dispatch" ]]; then
             partial_rel="$B_REL/mir_${mir_base}_partial_identity.json"
             partial="$ROOT_DIR/$partial_rel"
-            sed 's/{"name":"self","type":null/{"name":"self","source_syntax_id":1,"type":null/g' \
+            identity_count_before="$(
+                grep -o '"source_syntax_id":[0-9]*' \
+                    "$ROOT_DIR/$mir_json_rel" | wc -l | tr -d ' '
+            )"
+            sed -E '0,/\{"name":"self","source_syntax_id":[0-9]+,"type":null/s//{"name":"self","type":null/' \
                 "$ROOT_DIR/$mir_json_rel" >"$partial"
-            grep -Fq '"source_syntax_id":1' "$partial" || {
+            identity_count_after="$(
+                grep -o '"source_syntax_id":[0-9]*' "$partial" |
+                    wc -l | tr -d ' '
+            )"
+            if [[ "$identity_count_after" -ne $((identity_count_before - 1)) ]]; then
                 echo "[self-host-bootstrap] role partial-identity mutation was not applied" >&2
                 exit 1
-            }
+            fi
             for lower_kind in self oracle; do
                 lower_bin="$B/mir_lower_${lower_kind}.exe"
                 lower_out="$B/mir_${mir_base}_${lower_kind}_partial.out"
