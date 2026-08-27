@@ -1,12 +1,12 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-08-27 (Asia/Seoul)
+Updated: 2026-08-28 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — Markdown-only push matrix isolation
+## DONE lease — Markdown-only push matrix isolation
 
 - Objective: keep Linux `ci-push-linux` mandatory while skipping the other 28
   push jobs only when every exact changed path is case-insensitive `.md`.
@@ -44,6 +44,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   logical jobs skip.
   Protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   remain untouched.
+- Documentation checkpoint `17e05c9f` exact-head run `33082938908` completed
+  GREEN in 24m36 overall. The classifier passed in 11s and mandatory
+  `build-linux` passed in 24m17; its dependency install was 25s and fast target
+  23m46. Backend toolchain/matrix, full/codegen bootstrap, Windows/macOS,
+  sanitizers, TSan, and Rocq were explicit zero-second skips. This closes the
+  lease without changing compiler semantic ownership or progress. No
+  implementation lease is open.
 
 ## DONE lease — source-C compiler-purpose intent takeover
 

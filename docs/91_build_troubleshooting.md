@@ -1330,6 +1330,15 @@ TSan, and Rocq jobs passed. The remaining falsifier is not another full run but
 an exact Markdown-only push proving that classifier plus mandatory
 `build-linux` run and every full-only logical job skips.
 
+Documentation checkpoint `17e05c9f` exact-head run `33082938908` supplied that
+proof. It completed GREEN in 24m36 overall: classifier 11s, mandatory
+`build-linux` 24m17, dependency installation 25s, and the fast target 23m46.
+Backend toolchain/matrix, full/codegen bootstrap, Windows/macOS, sanitizers,
+TSan, and Rocq were explicit zero-second skips. A Markdown-only push therefore
+retains the existing Linux compiler/test/self-host-preparation contract without
+paying for the full matrix. This is CI feedback closure, not self-host
+substitution progress.
+
 ## 0. Resource pressure first
 
 If the desktop hangs during local builds, check disk and scratch pressure before

@@ -1,6 +1,6 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-27
+마지막 업데이트: 2026-08-28
 
 2026-08-27 Markdown-only push matrix isolation 로컬 구현: exact Git diff를
 `scripts/ci_change_scope_owner.sh` 하나가 분류하고 `build-linux`는 모든 push/PR에서
@@ -35,6 +35,15 @@ Markdown-only push가 classifier와 mandatory `build-linux`만 실행하고 모�
 logical job을 skip하는지 확인하는 것이다. 이 CI supporting evidence는 compiler
 semantic source나 hard substitution 분자를 바꾸지 않으므로 진행률과 SoT 수치는
 그대로다.
+
+Documentation checkpoint `17e05c9f`의 exact-head run `33082938908`은
+24분 36초 overall GREEN으로 Markdown-only lane을 실제로 닫았다. Classifier는
+11초, mandatory `build-linux`는 24분 17초였고 그 안의 dependency install은 25초,
+fast target은 23분 46초였다. Backend toolchain/matrix, full/codegen bootstrap,
+Windows/macOS, sanitizer, TSan, Rocq는 모두 명시적인 0초 skip이었다. 따라서 exact
+Markdown-only push는 Linux compiler build, `test-all`, self-host preparation
+contract를 유지하면서 full matrix wall time을 제거한다. 이 supporting lease는
+폐쇄됐고 새 executable successor는 열지 않는다. 진행률과 SoT 수치는 그대로다.
 
 2026-08-27 source-C compiler-purpose intent 구현 `fb4acef4`: public installed
 `pgy SOURCE --emit-c -o OUTPUT`가 이제 한 `CompilePergyraCArtifact` intent를
@@ -792,7 +801,7 @@ checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure�
 | 일반 GraphPlan 연속 전선 | complete-source Pergyra producer/gen2/gen3 fixed point + installed public C/LLVM/package/MIR/REPL-compile boundaries | canonical O3 gen2/gen3 byte equality, repository-installed sibling, fail-closed public gates가 누적됐고 latest implementation source의 remote full self-host job도 green이다. routine·row·V·owner 수는 진행률 분자가 아니다. | 기존 fixed point를 유지하고 fresh production compiler bypass가 실제 Pergyra owner에 닿을 때만 후속 rung을 연다. |
 | hard self-host replacement 예측 | 75% | complete-source producer/fixed point와 public compiler-bearing C/LLVM/package/MIR/REPL 내부는 bounded `SUBSTITUTING`이지만 whole product와 unsupported RIR/AIR/HIR에는 완전한 Pergyra owner가 없다. 기존 추정 분모를 새 숫자 없이 유지한다. | fresh production bypass, complete Pergyra owner, executable falsifier가 함께 존재하는 다음 target-specific substitution |
 | bootstrap fixed point | 4/4 = 100% | current-source MIR producer, DRV-2/gen2 consumers, gen2==gen3 equality, installed reproduction과 같은 implementation source의 remote full-bootstrap green을 모두 관측했다. | current-source fixed point를 계속 green으로 유지; 100%는 이 축의 acceptance evidence이지 whole product 완료가 아님 |
-| 마지막 완료 baseline CI/release 증거 | 4/4 = 100% | 같은 source-C semantic checkpoint 위의 CI support repair `1f8560c1` exact-head run `33079291442`가 34m39에 classifier와 Linux/Windows/macOS, sanitizer, TSan, Rocq, backend compare 20 shards, codegen bootstrap, full self-host를 30/30 green으로 닫았다. `build-linux`는 21m04였다. | exact Markdown-only push에서 classifier와 mandatory `build-linux`만 실행되고 full-only jobs가 skip되는지 검증 |
+| 마지막 완료 baseline CI/release 증거 | 4/4 = 100% | 같은 source-C semantic checkpoint 위의 CI support repair `1f8560c1` exact-head run `33079291442`가 full lane 30/30을 닫았고, docs checkpoint `17e05c9f` run `33082938908`은 classifier 11s와 mandatory `build-linux` 24m17만 통과하고 full-only jobs를 모두 skip해 축소 lane까지 닫았다. | fresh production bypass와 complete Pergyra owner가 함께 관측되면 다음 compiler implementation delta에서 full matrix 재검증 |
 
 통합 83%의 계산 가중치는 다음과 같이 고정한다. 이 가중치는 완료를
 예쁘게 보이게 하려고 바꾸지 않는다.

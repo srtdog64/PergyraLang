@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-27 (Asia/Seoul)
+Updated: 2026-08-28 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - no executable successor; Markdown-only CI isolation
+## Active self-host context - no executable successor; Markdown-only CI isolation closed
 
 - Executable-rung status: source-C compiler-purpose intent takeover is closed
   by implementation/repair `fb4acef4`/`cb53b879`, checkpoint `c0632e4f`, and
@@ -67,6 +67,16 @@ percentage by themselves.
   must run only the classifier plus mandatory `build-linux`, skip every
   full-only logical job, and finish `build-linux` below its 30-minute bound.
   This supporting work does not change SoT or self-host percentages.
+- Markdown-only closure: documentation checkpoint `17e05c9f` exact-head run
+  `33082938908` completed GREEN in 24m36 overall. `classify-changes` passed in
+  11s; mandatory `build-linux` passed in 24m17, with a 25s dependency install
+  and 23m46 fast target. Backend toolchain/matrix, full/codegen bootstrap,
+  Windows/macOS, sanitizers, TSan, and Rocq were all explicit zero-second
+  skips. The classifier therefore preserves the Linux contract while removing
+  full-matrix wall time for an exact Markdown-only push. The CI supporting
+  lease is closed. No executable successor is inferred; the next compiler rung
+  still requires a fresh production bypass, an existing complete Pergyra
+  owner, its last consumer, and one executable falsifier.
 
 ## Completed self-host context - source-C closure reconciled; successor not inferred
 
