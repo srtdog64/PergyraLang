@@ -18,15 +18,14 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - public live LSP takeover CI repair
+## Active self-host context - no successor admitted after public live LSP closure
 
-- Implementation `d78a4040` and checkpoint `4b18fb9f` are published on
-  `origin/main`. Exact-head run `33103008506` admitted the full matrix, but
-  `self-host-codegen-bootstrap-linux` and `build-linux` both failed because the
-  self-host C emitter used `errno`/`EINTR` in `pgy_readstdin` without emitting
-  `<errno.h>`. Local repair `f9537320` adds the owned include plus a negative
-  source ratchet. Protected untracked `docs/compiler_architectures/` and
-  `pgy-80135c2c/` remain untouched.
+- Published closure: implementation `d78a4040`, initial checkpoint `4b18fb9f`,
+  Linux repair `f9537320`, and repair checkpoint `943a0abe` are on
+  `origin/main`. Exact-head run `33105228322` completed GREEN 30/30. The repair
+  emits `<errno.h>` with self-host host-I/O C so `errno`/`EINTR` cannot depend
+  on an incidental transitive include. Protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
 - Objective card: replace the no-argument public
   `pgy-lsp -> C lsp_read_message/live dispatch` default path with one
   Pergyra-owned stream/session path. Priority is blocking byte-stream identity,
@@ -68,7 +67,7 @@ percentage by themselves.
   from the current runtime owner. The installed self-host LLVM compiler is
   unavailable and is explicitly skipped; this is not reported as a passing
   LLVM installed leg.
-- CI repair evidence: `read-stdin-builtin-test-smoke` passes its C and no-EOF
+- Local CI repair evidence: `read-stdin-builtin-test-smoke` passes its C and no-EOF
   paths; installed LLVM remains an explicit unavailable skip. The full local
   `self-host-codegen-bootstrap-test-smoke` reaches `gen2 == gen3` at 73,198
   lines, compiles lexer/parser/semantic/MIR breadth, and ends `SELF-HOSTING OK`.
@@ -76,12 +75,19 @@ percentage by themselves.
   Its self/oracle size-check tools both observed the pre-existing 617-line
   runtime header and 725-line C file over their 600/699 advisory caps while
   retaining byte parity; those findings are not hidden as green size gates.
+- Remote closure: run `33105228322` passed the repaired codegen bootstrap in
+  8m18s, full self-host in 34m05s, `build-linux` in 28m22s, Windows in 8m40s,
+  sanitizers in 11m35s, and backend shards 20/20. The long overall wall time
+  includes substantial hosted-runner queueing; it is not all compiler/test
+  execution time.
 - Grade and next falsifier: this is production `SUBSTITUTING` for the real
   default C-owned live LSP path, not whole LSP-2/LSP-3 completion and not a
   top-level SoT closure. `selfhost.semantic_artifact_admission` remains ACTIVE;
-  published progress values stay unchanged. Publish `f9537320` plus this
-  checkpoint and require a fresh exact-head full matrix. Do not infer a
-  query/cache, multi-document, or semantic-index successor from this closure.
+  published progress values stay unchanged. No executable successor is
+  admitted. The attached identity review remains an audit lens: do not open a
+  query/cache, epoch-performance, multi-document, or semantic-index track until
+  one fresh production bypass, complete Pergyra owner, last consumer, and
+  executable falsifier are named together.
 
 ## Completed self-host context - public LSP diagnostics dump takeover
 

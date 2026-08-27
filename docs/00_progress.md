@@ -34,10 +34,19 @@ full component structural/removed-path ratchet가 local green이다. Runtime bit
 owner에서 재생성했다. 설치 self-host LLVM compiler는 unavailable이라 명시적으로
 skip했고 통과로 기록하지 않는다.
 
-이는 실제 기본 C-owned live LSP path 하나의 로컬 `SUBSTITUTING` 증거다. 아직
-exact-head CI와 publication은 열려 있고, multi-document live ownership, incremental
-semantic analysis, whole LSP-2/LSP-3, `selfhost.semantic_artifact_admission`은 닫지
-않는다. 공개 SoT/진행률 수치도 그대로다.
+이는 실제 기본 C-owned live LSP path 하나의 production `SUBSTITUTING` 증거다.
+Implementation `d78a4040`, Linux repair `f9537320`, checkpoint `943a0abe`가
+publication됐고 exact-head run `33105228322`는 GREEN 30/30이다. 최초 full-matrix
+run이 self-host 생성 C의 `<errno.h>` 누락을 codegen bootstrap과 `build-linux`에서
+동시에 적발했고, repair 뒤 codegen bootstrap 8분 18초, full self-host 34분 05초,
+`build-linux` 28분 22초, Windows 8분 40초, sanitizer 11분 35초, backend 20/20이
+통과했다. Overall wall time에는 hosted-runner queue가 상당 부분 포함됐다.
+
+Multi-document live ownership, incremental semantic analysis, whole LSP-2/LSP-3,
+`selfhost.semantic_artifact_admission`은 닫지 않는다. 공개 SoT/진행률 수치도
+그대로다. 첨부 identity/query review는 audit lens이지 successor 지시가 아니다.
+Fresh production bypass, complete Pergyra owner, last consumer, executable falsifier가
+함께 관측되기 전에는 query/cache, epoch performance, semantic-index 작업을 열지 않는다.
 
 2026-08-28 public LSP diagnostics dump 로컬 치환: 기존
 `pgy-lsp --dump-diagnostics SOURCE -> dump_diagnostics_file` 기본 C 경로를

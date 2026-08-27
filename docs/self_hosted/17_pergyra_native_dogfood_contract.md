@@ -35,11 +35,15 @@ structural/removed-path contract. Runtime bitcode was regenerated. Installed
 self-host LLVM is unavailable and explicitly skipped rather than claimed
 green.
 
-This is local production `SUBSTITUTING` dogfood for one real default C-owned
-live LSP path. Exact-head CI and publication remain open. It does not claim
-multi-document live ownership, incremental semantic analysis, whole LSP-2/3,
-or closure of `selfhost.semantic_artifact_admission`; published progress and
-SoT counts remain unchanged.
+This is production `SUBSTITUTING` dogfood for one real default C-owned live LSP
+path. Implementation `d78a4040`, host-I/O include repair `f9537320`, and
+checkpoint `943a0abe` are published. Exact-head run `33105228322` completed
+GREEN 30/30, including repaired codegen bootstrap, full self-host,
+`build-linux`, backend 20/20, every platform, sanitizers, TSan, and Rocq. It
+does not claim multi-document live ownership, incremental semantic analysis,
+whole LSP-2/3, or closure of `selfhost.semantic_artifact_admission`; published
+progress and SoT counts remain unchanged. No successor is admitted without a
+fresh production bypass and executable falsifier.
 
 ## 2026-08-28 public LSP diagnostics dump takeover
 

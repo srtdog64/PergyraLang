@@ -6,14 +6,14 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — public live LSP takeover CI repair
+## DONE lease — public live LSP takeover and CI repair
 
-- Coordination owner: the primary task. Published implementation `d78a4040`
-  replaces the no-argument public C live loop and checkpoint `4b18fb9f` is on
-  `origin/main`. Run `33103008506` exposed one missing self-host C runtime
-  include through two Linux jobs; local repair `f9537320` emits `<errno.h>`
-  whenever host I/O is emitted. The primary task alone owns this lease's CI
-  repair, checkpoint, and push. No parallel implementation track is open.
+- Published implementation `d78a4040` replaces the no-argument public C live
+  loop. Run `33103008506` exposed one missing self-host C runtime include
+  through two Linux jobs; repair `f9537320` emits `<errno.h>` whenever host I/O
+  is emitted, and checkpoint `943a0abe` records the repair boundary. Exact-head
+  run `33105228322` completed GREEN 30/30. The lease is released and no
+  parallel implementation track is open.
 - Owner boundaries: `ReadStdin` runtime definitions own one blocking OS read;
   `live_session_owner.pgy` owns partial frames, lifecycle, one document
   revision, and response emission; `document_feature_index_owner.pgy` owns a
@@ -31,14 +31,18 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   build-source inventory, compiler-world, and full component structural gates
   are green after installed driver/sibling rebuild. Installed self-host LLVM is
   unavailable and explicitly skipped, not claimed green.
-- Repair evidence and publication boundary: the focused ReadStdin C/no-EOF gate
+- Repair and remote evidence: the focused ReadStdin C/no-EOF gate
   passes and the full local codegen bootstrap reaches its 73,198-line fixed
-  point, recompiles the generated lexer, and ends `SELF-HOSTING OK`. Publish
-  `f9537320` plus this checkpoint, then require fresh exact-head CI. This path is
+  point, recompiles the generated lexer, and ends `SELF-HOSTING OK`. The remote
+  codegen bootstrap, full self-host, `build-linux`, backend 20/20, every
+  platform, sanitizer, TSan, and Rocq job all passed. This path is
   `SUBSTITUTING` for one production default loop, but LSP-2/LSP-3,
   multi-document ownership, compiler semantic-artifact admission, SoT counts,
   and published progress stay open/unchanged. Protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
+- No successor lease is admitted. The attached identity/query review is not an
+  implementation queue; a fresh production bypass, complete Pergyra owner,
+  last consumer, and executable falsifier must be named together first.
 
 ## DONE lease — public LSP diagnostics dump takeover
 
