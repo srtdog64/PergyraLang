@@ -21,9 +21,12 @@ percentage by themselves.
 ## Active self-host context - native formal and intent callable identity carriage
 
 - Published base: implementation `d437e9e8`, documentation checkpoint
-  `b2f9a5ca`, and exact-head run `33045433992` are GREEN 29/29. Current local
-  implementation is `e1ad082f`; this handoff is its documentation checkpoint
-  and publication/exact-head CI are not yet claimed. Protected untracked
+  `b2f9a5ca`, and exact-head run `33045433992` are GREEN 29/29. Formal/intent
+  identity implementation `e1ad082f` and checkpoint `deac496a` are published,
+  but exact-head run `33053920579` failed in four common self-host jobs. Native
+  gen0 rejected reserved local name `intent` in the carried-callable identity
+  owner. Local repair `2c052d42` uses `intent_index` and updates the bootstrap
+  partial-parameter mutation for the complete routine-ID schema. Protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
 - Objective card: make formal-parameter identity and declared-callable identity
   distinct, owner-directed facts all the way from native parser production to
@@ -62,8 +65,15 @@ percentage by themselves.
   admission/runtime and native C compilation pass. The parameter-carriage gate
   passes the new positive/unique identity assertion but its unrelated diagnostic
   JSON tail is not green under that isolated binary. Complete component
-  inventory exceeded the 60-second budget and is not claimed green. Exact-head
-  CI is the next falsifier.
+  inventory exceeded the 60-second budget and is not claimed green. After
+  `2c052d42`, native gen0 parse reports `0 error(s), 0 warning(s)` and
+  gen2==gen3 at 73,161 lines. The first repaired bootstrap run then exposed its
+  stale partial-ID mutation; the corrected mutation removes one real routine
+  parameter ID and both self/oracle MIR lower reject it with exit 1 and the
+  owned partial-carriage diagnostic. Full codegen bootstrap then completes
+  lexer/parser/semantic/MIR lower/tool/fuzz oracle parity with
+  `SELF-HOSTING OK`; source-scan and documentation gates are green. Publication
+  and replacement exact-head CI are the next falsifiers.
 - Build reliability note: the earlier segfault came from reusing one build
   directory with relative and `/d/...` absolute spellings, so included `.d`
   targets did not name the same object target. It is not recorded as a general
@@ -73,9 +83,8 @@ percentage by themselves.
   `50 CLOSED / 35 BRIDGE / 1 ACTIVE`, hard closure 58.1%, migration 78.8%,
   integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
 - Resume checkpoint after this documentation commit: tracked state should be
-  clean and only the two protected untracked paths should remain. Re-run the
-  focused installed-driver v3 base plus identity mutations only if source has
-  changed; otherwise publish and inspect every exact-head CI conclusion.
+  clean and only the two protected untracked paths should remain. Publish the
+  evidence checkpoint, then inspect every replacement exact-head CI conclusion.
 
 ## Completed self-host context - intent-phase declared callee binding identity
 

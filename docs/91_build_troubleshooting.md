@@ -1,6 +1,6 @@
 # Build Troubleshooting
 
-마지막 업데이트: 2026-08-16
+마지막 업데이트: 2026-08-27
 
 빌드/회귀 도중 자주 마주치는 문제와 대응. **항상 `mingw32-make rebuild`를 먼저 시도**하면 절반은 풀린다.
 
@@ -3210,6 +3210,24 @@ target이다. 헤더 mtime이 더 새로워도 절대경로 object에 상대경�
 2026-08-27의 `FuncParam` layout 변경 뒤 관측된 segfault는 이 혼용으로 설명됐고,
 일관된 `/d/...` 새 디렉터리의 clean build와 후속 `make -q`는 green이었다. 이
 관측만으로 CI 전체의 dependency generation 결함을 주장하지 않는다.
+
+### installed self seed가 받는 문법만으로 gen0 호환을 주장하지 않는다
+
+Self-host compiler source를 바꾼 뒤 installed driver만 재생성하면 구형 self codegen
+seed가 native gen0보다 넓거나 다른 문법을 받아들일 수 있다. 2026-08-27에는 지역 변수
+`let intent`를 구형 seed 경로가 받아들였지만 CI의 native gen0 parser는 `intent`를
+예약어로 해석해 `Expected variable name`으로 중지했다. 이 경우 runtime parity나
+generated C equality는 gen0 부트스트랩 가능성을 증명하지 않는다.
+
+- Self-host source 변경은 현재 native compiler를 `PGY_BIN`으로 둔
+  `tests/self_hosted/parity/codegen_bootstrap.sh`의 gen0 parse와 fixpoint를 확인한다.
+- 키워드는 declaration/local 이름으로 쓰지 않는다. parser 세대 차이를 fallback이나
+  별도 허용 목록으로 덮지 않는다.
+- JSON negative mutation은 marker가 존재하는지만 보지 말고 현재 schema의 실제 owner
+  row가 정확히 한 번 변했는지 확인한다. Routine parameter ID가 complete가 된 뒤에는
+  declaration-shaped `self`에 ID를 추가하는 옛 mutation이 routine을 전혀 바꾸지 않았다.
+  현재 gate는 routine ID 하나를 제거하고 self/oracle lower가 같은 partial-carriage
+  진단으로 실패하는지 검증한다.
 
 ---
 

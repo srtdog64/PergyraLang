@@ -9,8 +9,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 ## ACTIVE lease — native formal and intent callable identity carriage
 
 - Published base `b2f9a5ca` is exact-head GREEN 29/29 in run `33045433992`.
-  Implementation `e1ad082f` is committed; verify its remote publication before
-  resuming exact-head CI inspection. The
+  Implementation/documentation `e1ad082f`/`deac496a` are published, but their
+  exact-head run `33053920579` failed in four common self-host jobs because
+  native gen0 rejected reserved local name `intent`. Local repair `2c052d42`
+  uses `intent_index` and updates the partial-parameter-identity mutation for
+  the new complete routine schema. The
   protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths remain out of scope.
 - Objective: preserve distinct formal-parameter and declared-callable identity
@@ -39,8 +42,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   emits and executes the expected result; 12 identity/digest mutations fail
   closed; stable-identity and source-scan gates are green. The full v3 local
   script reaches only the expected LLVM-disabled boundary, and the complete
-  component inventory exceeded 60 seconds, so exact-head CI remains the
-  falsifier. Registry and progress remain `50/35/1`, 58.1%, 78.8%, integrated
+  component inventory exceeded 60 seconds. After `2c052d42`, native gen0 parse
+  is clean and gen2==gen3 at 73,161 lines; the repaired partial-ID mutation is
+  rejected by both self/oracle MIR lower. Full codegen bootstrap reaches
+  `SELF-HOSTING OK`, and source-scan/documentation gates are green. Publication
+  and replacement exact-head CI remain the falsifiers. Registry
+  and progress remain `50/35/1`, 58.1%, 78.8%, integrated
   83% (81-85%), strict beta 83%, and hard replacement 75%.
 
 ## DONE lease — intent-phase declared callee binding identity

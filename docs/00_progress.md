@@ -20,9 +20,19 @@ intent node ID를 `@declared_callable_syntax:<SyntaxNodeId>` 키로 실제 C sym
 모두 실패한다. Stable-identity와 source-scan은 green이다.
 
 로컬 전체 v3 gate는 LLVM-disabled v23의 native LLVM leg에서만 중지됐고, 그 전
-self runtime과 native C compile은 통과했다. Complete component inventory는 60초
-예산을 넘겨 green으로 세지 않는다. Published base `b2f9a5ca`의 exact-head run
-`33045433992`는 29/29 GREEN이며, `e1ad082f`의 exact-head CI가 다음 falsifier다.
+self runtime과 native C compile은 통과했다. 그러나 exact-head run `33053920579`는
+네 개 공통 self-host job에서 native gen0가 self source의 예약어 지역 변수
+`let intent`를 거부했다. 구형 self codegen seed가 이 문법 차이를 받아들여 로컬
+installed-driver 증거만으로는 잡히지 않았던 결함이다. Repair `2c052d42`는 변수명을
+`intent_index`로 바꾸고, 새 complete routine parameter ID schema에서 실제 routine
+ID 하나를 제거하도록 bootstrap negative를 갱신했다. Repair source는 native gen0
+parse `0 error(s), 0 warning(s)`와 gen2==gen3 73,161-line fixpoint를 통과했다. 갱신된
+partial-ID artifact는 self/oracle MIR lower 양쪽에서 exit 1과 동일한 fail-closed
+진단을 냈고, full codegen bootstrap은 lexer/parser/semantic/MIR lower/tool/fuzz
+oracle parity를 모두 마쳐 `SELF-HOSTING OK`로 종료했다. Replacement exact-head CI
+전이므로 원격 green은 아직 주장하지 않는다. Published base `b2f9a5ca`의 run
+`33045433992`가 마지막 29/29
+GREEN이다. Complete component inventory는 60초 예산을 넘어 green으로 세지 않는다.
 리뷰가 제안한 query/cache와 O(n^2) epoch 교체는 이 실행 rung의 blocker가 아니므로
 열지 않는다. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
 (81~85%), strict beta 83%, hard replacement 75%는 유지한다.
