@@ -81,9 +81,18 @@ func DirectMirNestedIntentImplicitReceiverParamReady(
     let receiver: JsonObjectFactTable = JsonArrayObjectFactAt(params, 0);
     let name: Option<String> = MirObjectUniqueStringFactAtBounds(
         receiver.json, receiver.start, receiver.end, "name");
+    let source_syntax_id: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        receiver.json, receiver.start, receiver.end, "source_syntax_id");
+    let owner: Option<String> = MirObjectUniqueStringFactAtBounds(
+        routine.json, routine.start, routine.end, "owner");
     return JsonObjectFactTableReady(receiver) &&
-        JsonObjectFactCount(receiver) == 9 && IsSome(name) &&
+        JsonObjectFactCount(receiver) == 10 && IsSome(name) &&
+        IsSome(source_syntax_id) && IsSome(owner) &&
         UnwrapOption(name) == "self" &&
+        ToInt(UnwrapOption(source_syntax_id)) > 0 &&
+        ToString(ToInt(UnwrapOption(source_syntax_id))) ==
+            UnwrapOption(source_syntax_id) &&
+        UnwrapOption(owner) == expected_owner &&
         DirectMirObjectFieldKindEquals(receiver, "type", "null") &&
         JsonObjectFactStringFieldEquals(receiver, "carriage", "value") &&
         JsonObjectFactStringFieldEquals(receiver, "resource", "none") &&

@@ -86,13 +86,11 @@ captures=1
 EXPECTED
 cmp -s "$WORK_DIR/public.run" "$WORK_DIR/expected.run" || fail "public nested intent output differs from the exact contract"
 cmp -s "$WORK_DIR/native.run" "$WORK_DIR/expected.run" || fail "native nested intent output differs from the exact contract"
-
 "$PYTHON_BIN" - "$WORK_DIR/success.mir.json" "$WORK_DIR" <<'PY'
 from copy import deepcopy
 import json
 from pathlib import Path
 import sys
-
 source = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8-sig"))
 out = Path(sys.argv[2])
 def routine(doc, name):
@@ -116,6 +114,8 @@ def duplicate_source_identity(doc):
         doc, "OuterPriority")["source_syntax_id"]
 def crosswire_method_owner(doc):
     routine(doc, "Capture")["owner"] = "WrongProbe"
+def zero_receiver_source_identity(doc):
+    routine(doc, "Capture")["params"][0]["source_syntax_id"] = 0
 def crosswire_action_name(doc):
     block = routine(doc, "OuterPriority")["blocks"][0]["instructions"]
     row = next(row for row in block if
@@ -129,13 +129,13 @@ for name, mutation in (
     ("priority-graph-drift", drift_priority_graph),
     ("duplicate-source-identity", duplicate_source_identity),
     ("method-owner-crosswire", crosswire_method_owner),
+    ("receiver-source-identity-zero", zero_receiver_source_identity),
     ("action-name-crosswire", crosswire_action_name),
 ):
     write(name, mutation)
 PY
-
 for negative in missing-inner-priority priority-graph-drift duplicate-source-identity \
-    method-owner-crosswire action-name-crosswire; do
+    method-owner-crosswire receiver-source-identity-zero action-name-crosswire; do
     artifact="$WORK_DIR/$negative.ll"
     rm -f "$artifact"
     if (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm \
@@ -149,6 +149,7 @@ for negative in missing-inner-priority priority-graph-drift duplicate-source-ide
         priority-graph-drift) receipt="direct MIR nested intent priority binding is missing" ;;
         duplicate-source-identity) receipt="MIR machine-layer facts are missing or invalid" ;;
         method-owner-crosswire) receipt="MIR machine-layer facts are missing or invalid" ;;
+        receiver-source-identity-zero) receipt="direct MIR nested intent implicit receiver is invalid" ;;
         action-name-crosswire) receipt="direct MIR nested intent callable identity is stale" ;;
     esac
     grep -Fq "$receipt" "$WORK_DIR/$negative.out" "$WORK_DIR/$negative.err" ||
@@ -156,5 +157,4 @@ for negative in missing-inner-priority priority-graph-drift duplicate-source-ide
     ! grep -Fq 'scalar-program-route' "$WORK_DIR/$negative.out" \
         "$WORK_DIR/$negative.err" || fail "$negative fell through to scalar"
 done
-
 source "$ROOT_DIR/tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh"
