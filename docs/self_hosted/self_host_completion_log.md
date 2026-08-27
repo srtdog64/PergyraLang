@@ -25,6 +25,13 @@ rewrite history.
   registry row or start the review's proposed query/cache phase. Integrated
   83%, strict beta 83%, hard replacement 75%, and registry 50/35/1 remain
   unchanged.
+- Replacement run `33027933374` then completed 28/29. Full bootstrap is green
+  and crossed the repaired nested-intent route. `build-linux` passed the cap
+  and component inventory before finding only a stale exact caller set: the
+  driver moved to the carried-identity-policy body entrypoint in `30b84f80`.
+- Ratchet `a5ecff34` records the three legacy callers separately from the exact
+  two identity-policy callers and checks the production driver body against
+  the latter. The focused lifetime gate is green; replacement 29/29 is pending.
 
 ## 2026-08-26 - Native observability emitters consume semantic ABI identity
 

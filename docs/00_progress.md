@@ -112,6 +112,17 @@ negatives, canonical epoch, program-graph unification을 모두 통과했다. Fu
 profiling은 현재 rung을 닫기 전에는 열지 않는다. SoT `50/35/1`, hard 58.1%,
 migration 78.8%, 통합 83% (81~85%), strict beta 83%, hard replacement 75%는 그대로다.
 
+Replacement run `33027933374`은 `3e8a3567`에서 28/29였다. Full
+`self-host-bootstrap-linux`는 green이라 fixed point와 installed driver가 이전의
+nested-intent 실패 지점을 실제로 넘었다. `build-linux`도 750줄 cap과 full component
+inventory를 통과한 뒤 semantic lifetime gate의 낡은 exact caller 목록 한 건만
+실패했다. Driver는 `30b84f80`부터 carried-expression identity를 강제하는
+`...ObservedWithIdentityPolicy`를 소비하지만 목록은 legacy observed wrapper를 계속
+기대하고 있었다. Ratchet `a5ecff34`는 legacy caller set에서 driver만 제거하고 새
+policy boundary를 driver/body owner 두 파일의 exact set으로 추가하며 production body도
+그 호출을 해야 한다고 고정한다. Focused lifetime gate는 local green이고 다음
+exact-head 29/29가 마지막 원격 falsifier다. 수치와 registry 상태는 바뀌지 않는다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,

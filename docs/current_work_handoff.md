@@ -30,9 +30,10 @@ percentage by themselves.
   `dfbe9b0a1dc224db0ba95193520c264a9c80933f`, and CI preparation checkpoint
   `5d23fdda1be2cf7cf87720eed31f73416bd5dbcc` are published. Namespace-internal
   canonical callable carriage checkpoint `9ab03311` and documentation
-  checkpoint `c31da1d2` are published. Linux cap repair `6fa362c5` and nested
-  receiver-identity repair `af91687d` are committed locally; replacement
-  push/CI remains pending. The unrelated user-owned
+  checkpoint `c31da1d2`, Linux cap repair `6fa362c5`, nested receiver-identity
+  repair `af91687d`, and checkpoint `3e8a3567` are published. Identity-policy
+  caller ratchet `a5ecff34` is committed locally; replacement push/CI remains
+  pending. The unrelated user-owned
   `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
@@ -161,6 +162,19 @@ percentage by themselves.
   270-MB profiling, compact MIR, and runtime research items remain proposals,
   not active work. The hard self-host guard keeps this callable executable/CI
   rung singular until a replacement exact-head run is 29/29.
+- Replacement run `33027933374` at `3e8a3567` completed 28/29. Full
+  `self-host-bootstrap-linux` is green: the fixed point and installed driver
+  crossed the previously failing nested-intent LLVM program. `build-linux`
+  also crossed the 750-line cap and complete component inventory, then failed
+  only the semantic lifetime gate's stale exact caller list. Callable work had
+  moved the driver from the legacy observed body-bundle entrypoint to the
+  carried-identity-policy entrypoint in `30b84f80`, but that list still named
+  the old call.
+- Ratchet repair `a5ecff34` removes the driver only from the legacy caller set,
+  adds an exact two-file set for the identity-policy boundary, and requires the
+  production driver body to call that policy boundary. The focused lifetime
+  gate is local green. The next falsifier is a replacement exact-head 29/29;
+  the full bootstrap result itself does not need semantic repair.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
   The current root census is 11 `bin*` and 14 `build*` directories, all ignored,

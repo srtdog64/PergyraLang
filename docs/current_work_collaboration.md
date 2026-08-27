@@ -18,8 +18,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `dfbe9b0a1dc224db0ba95193520c264a9c80933f`, and CI preparation checkpoint
   `5d23fdda1be2cf7cf87720eed31f73416bd5dbcc` are published. Namespace-internal
   canonical callable carriage checkpoint `9ab03311` and documentation
-  checkpoint `c31da1d2` are published. Linux cap repair `6fa362c5` and nested
-  receiver repair `af91687d` are committed locally until replacement push/CI.
+  checkpoint `c31da1d2`, Linux cap repair `6fa362c5`, nested receiver repair
+  `af91687d`, and docs checkpoint `3e8a3567` are published. Identity-policy
+  caller ratchet `a5ecff34` is committed locally until replacement push/CI.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -182,6 +183,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Publication and an exact-head 29/29 run remain the only active integration
   boundary. Review proposals for a query/cache spine are explicitly deferred;
   no parallel implementation scope is opened on them.
+- Replacement run `33027933374` completed 28/29. Full bootstrap is green and
+  therefore remotely proves the nested-intent repair across the installed
+  fixed point. `build-linux` crossed the file cap and component inventory, then
+  found only a stale lifetime caller set: the driver has consumed
+  `SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy`
+  since `30b84f80`, not the legacy observed wrapper.
+- Ratchet `a5ecff34` now fixes both exact sets: the legacy wrapper has its three
+  real callers and the identity-policy boundary has exactly the driver and
+  body owner. The production-body assertion follows the same policy call and
+  the focused gate is green. One replacement 29/29 remains before lease close.
 
 ## DONE lease O — structured MatchCase carrier closure
 
