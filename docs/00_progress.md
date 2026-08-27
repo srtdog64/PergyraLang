@@ -33,6 +33,14 @@ oracle parity를 모두 마쳐 `SELF-HOSTING OK`로 종료했다. Replacement ex
 전이므로 원격 green은 아직 주장하지 않는다. Published base `b2f9a5ca`의 run
 `33045433992`가 마지막 29/29
 GREEN이다. Complete component inventory는 60초 예산을 넘어 green으로 세지 않는다.
+Replacement run `33055970238`은 backend 20/20, Windows/macOS, sanitizer, TSan,
+Rocq, toolchain, codegen bootstrap을 포함한 27개 job이 green이다. `build-linux`는
+실행 테스트를 모두 통과한 뒤 hard-contract가 routine-aware expression graph emission
+이전의 정확한 C 호출 문자열 세 건을 요구해 실패했고, full self-host job은 그 시점에도
+진행 중이었다가 최종 green으로 끝났다. 따라서 이 run은 28/29이며 build-linux만
+실패했다. Repair `5c722a6f`는 호출/graph builder ratchet을 현재 routine identity
+carrier에 맞춘다. Focused hard-contract 전체는 local exit 0이다. Replacement CI
+전에는 29/29를 주장하지 않는다.
 리뷰가 제안한 query/cache와 O(n^2) epoch 교체는 이 실행 rung의 blocker가 아니므로
 열지 않는다. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
 (81~85%), strict beta 83%, hard replacement 75%는 유지한다.

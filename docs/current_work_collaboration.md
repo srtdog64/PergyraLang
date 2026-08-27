@@ -46,7 +46,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   is clean and gen2==gen3 at 73,161 lines; the repaired partial-ID mutation is
   rejected by both self/oracle MIR lower. Full codegen bootstrap reaches
   `SELF-HOSTING OK`, and source-scan/documentation gates are green. Publication
-  and replacement exact-head CI remain the falsifiers. Registry
+  run `33055970238` made 27 jobs green; `build-linux` then found three stale
+  routine-unaware hard-contract call strings after all earlier execution gates
+  passed. Full self-host then completed green, making the run 28/29 with only
+  `build-linux` red. Local ratchet repair `5c722a6f` makes the hard-contract
+  track routine-aware emission and is focused green. Publication and replacement
+  exact-head CI remain the falsifiers. Registry
   and progress remain `50/35/1`, 58.1%, 78.8%, integrated
   83% (81-85%), strict beta 83%, and hard replacement 75%.
 

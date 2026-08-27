@@ -73,7 +73,13 @@ percentage by themselves.
   owned partial-carriage diagnostic. Full codegen bootstrap then completes
   lexer/parser/semantic/MIR lower/tool/fuzz oracle parity with
   `SELF-HOSTING OK`; source-scan and documentation gates are green. Publication
-  and replacement exact-head CI are the next falsifiers.
+  run `33055970238` made 27 jobs green. `build-linux` passed all earlier
+  execution gates and failed only because hard-contract still required three
+  pre-routine-identity expression graph call strings. Full self-host then
+  completed green, making the run 28/29 with only `build-linux` red. Local
+  repair `5c722a6f` updates those ratchets, and the complete focused
+  hard-contract exits 0. Publication and replacement exact-head CI are the next
+  falsifiers.
 - Build reliability note: the earlier segfault came from reusing one build
   directory with relative and `/d/...` absolute spellings, so included `.d`
   targets did not name the same object target. It is not recorded as a general
@@ -84,7 +90,8 @@ percentage by themselves.
   integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
 - Resume checkpoint after this documentation commit: tracked state should be
   clean and only the two protected untracked paths should remain. Publish the
-  evidence checkpoint, then inspect every replacement exact-head CI conclusion.
+  ratchet evidence checkpoint, then inspect every replacement exact-head CI
+  conclusion.
 
 ## Completed self-host context - intent-phase declared callee binding identity
 

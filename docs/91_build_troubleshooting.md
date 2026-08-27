@@ -3229,6 +3229,20 @@ generated C equality는 gen0 부트스트랩 가능성을 증명하지 않는다
   현재 gate는 routine ID 하나를 제거하고 self/oracle lower가 같은 partial-carriage
   진단으로 실패하는지 검증한다.
 
+### 정적 hard-contract의 exact 호출 문자열도 API migration의 consumer다
+
+Producer API에 새 identity carrier를 추가하면서 source call을 바꿨다면 exact 문자열을
+요구하는 구조 gate도 같은 migration의 consumer다. 2026-08-27에는 expression graph
+emitter와 builder가 `routine`을 받도록 바뀌었지만 hard-contract는 옛
+`(out, inst, lane)` 호출과 routine-unaware builder를 계속 요구했다. 실행 테스트가 모두
+green이어도 마지막 정적 gate가 실패했다.
+
+- 새 호출을 추가하고 옛 호출도 허용하는 dual ratchet으로 고치지 않는다.
+- 실제 last consumer가 routine-aware entry를 호출하는지 요구하고, 옛 exact 호출은
+  제거된 상태를 유지한다.
+- 변경한 단일 `require_text`만 확인하지 말고 hard-contract 스크립트 전체의 exit 0을
+  관측한다. 앞 조건을 고치면 뒤에 있던 두 번째 stale 문자열이 드러날 수 있다.
+
 ---
 
 ## 2. PowerShell vs bash vs cmd.exe 차이
