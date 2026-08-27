@@ -345,7 +345,11 @@ SENTINEL_MAX=23
 # 4375 -> 4374 (2026-08-27): deleting the post-resolution callee-display read
 # removes its now-unneeded Option<String>. Canonical SyntaxNodeId plus typed
 # binding-ordinal presence still fail closed; no absence became a sentinel.
-RESULT_USE_MIN=4374
+# 4374 -> 4385 (2026-08-27): the unified function/intent declaration lookup
+# carries invalid facts as Err, a legitimate miss as Ok(0), and an exact
+# declaration identity as Ok(SyntaxNodeId). Runtime ABI fallback is reached only
+# from the explicit successful miss, never from an invalid fact set.
+RESULT_USE_MIN=4385
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

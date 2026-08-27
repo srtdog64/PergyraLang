@@ -51,11 +51,11 @@ func SemanticExpressionDeclaredCallableSyntaxId(
     signatures: SemanticAstFunctionSignatureFacts,
     intents: SemanticAstIntentSignatureFacts,
     target_name: String
-) -> Int {
+) -> Result<Int> {
     if target_name == "" || !intents.ok ||
         ArrayLength(intents.names) !=
             SemanticAstIntentSignatureCount(intents) {
-        return 0 - 1;
+        return Err("declared callable identity facts are invalid");
     }
     let found: Int = 0;
     let matches: Int = 0;
@@ -68,13 +68,15 @@ func SemanticExpressionDeclaredCallableSyntaxId(
         let node: Option<Int> = SemanticAstFunctionNodeAt(
             signatures, signature);
         if !IsSome(owner) || !IsSome(name) || !IsSome(node) {
-            return 0 - 1;
+            return Err("declared callable identity facts are invalid");
         }
         if SemanticCallableCanonicalDeclaredNameEquals(
                 UnwrapOption(owner), UnwrapOption(name), target_name) {
             matches = matches + 1;
             found = UnwrapOption(node);
-            if matches > 1 || found <= 0 { return 0 - 1; }
+            if matches > 1 || found <= 0 {
+                return Err("declared callable identity facts are invalid");
+            }
         }
         signature = signature + 1;
     }
@@ -82,17 +84,19 @@ func SemanticExpressionDeclaredCallableSyntaxId(
     while intent_index < SemanticAstIntentSignatureCount(intents) {
         if intents.names[intent_index] == "" ||
             intents.intent_node_ids[intent_index] <= 0 {
-            return 0 - 1;
+            return Err("declared callable identity facts are invalid");
         }
         if intents.names[intent_index] == target_name {
             matches = matches + 1;
             found = intents.intent_node_ids[intent_index];
-            if matches > 1 { return 0 - 1; }
+            if matches > 1 {
+                return Err("declared callable identity facts are invalid");
+            }
         }
         intent_index = intent_index + 1;
     }
-    if matches == 0 { return 0; }
-    return found;
+    if matches == 0 { return Ok(0); }
+    return Ok(found);
 }
 
 func SemanticExpressionDeclaredCallableTargetExists(
@@ -100,8 +104,9 @@ func SemanticExpressionDeclaredCallableTargetExists(
     intents: SemanticAstIntentSignatureFacts,
     target_name: String
 ) -> Bool {
-    return SemanticExpressionDeclaredCallableSyntaxId(
-        signatures, intents, target_name) > 0;
+    let syntax_id: Result<Int> = SemanticExpressionDeclaredCallableSyntaxId(
+        signatures, intents, target_name);
+    return IsOk(syntax_id) && Unwrap(syntax_id) > 0;
 }
 
 func SemanticExpressionDeclaredCallableCarriedIdentityReady(
@@ -109,7 +114,8 @@ func SemanticExpressionDeclaredCallableCarriedIdentityReady(
     intents: SemanticAstIntentSignatureFacts,
     target_name: String, target_node_id: Int
 ) -> Bool {
-    return target_node_id > 0 &&
-        SemanticExpressionDeclaredCallableSyntaxId(
-            signatures, intents, target_name) == target_node_id;
+    let syntax_id: Result<Int> = SemanticExpressionDeclaredCallableSyntaxId(
+        signatures, intents, target_name);
+    return target_node_id > 0 && IsOk(syntax_id) &&
+        Unwrap(syntax_id) == target_node_id;
 }

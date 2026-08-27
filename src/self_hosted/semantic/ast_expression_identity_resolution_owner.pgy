@@ -184,23 +184,28 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                         UnwrapOption(parameter_node);
                             }
                         } else {
-                            let target_id: Int =
+                            let target_id_fact: Result<Int> =
                                 SemanticExpressionDeclaredCallableSyntaxId(
                                     analysis.signatures,
                                     analysis.intent_signatures, target_name
                                 );
-                            if target_id < 0 { valid = false; }
-                            if target_id > 0 {
-                                graph.arena.identities
-                                    .call_target_syntax_ids[node] = target_id;
+                            if IsErr(target_id_fact) {
+                                valid = false;
                             } else {
-                                let observability: IntentObservabilityAbiRow =
-                                    IntentObservabilityAbiRowForSource(
-                                        target_name);
-                                if observability.valid {
+                                let target_id: Int = Unwrap(target_id_fact);
+                                if target_id > 0 {
                                     graph.arena.identities
-                                        .runtime_call_abi_ids[node] =
-                                            observability.runtime_call_abi_id;
+                                        .call_target_syntax_ids[node] = target_id;
+                                } else {
+                                    let observability: IntentObservabilityAbiRow =
+                                        IntentObservabilityAbiRowForSource(
+                                            target_name);
+                                    if observability.valid {
+                                        graph.arena.identities
+                                            .runtime_call_abi_ids[node] =
+                                                observability
+                                                    .runtime_call_abi_id;
+                                    }
                                 }
                             }
                         }
@@ -262,12 +267,18 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                 SemanticExpressionBindingNone() &&
                             !EnvContainsName(
                                 names, graph.arena.node_texts[node]) {
-                            let callable_id: Int =
+                            let callable_id_fact: Result<Int> =
                                 SemanticExpressionDeclaredCallableSyntaxId(
                                     analysis.signatures,
                                     analysis.intent_signatures,
                                     graph.arena.node_texts[node]
                                 );
+                            let callable_id: Int = 0;
+                            if IsErr(callable_id_fact) {
+                                valid = false;
+                            } else {
+                                callable_id = Unwrap(callable_id_fact);
+                            }
                             // Expression nodes are persisted in postorder, so
                             // a direct leaf callee is followed by its call.
                             // Consume that exact edge and the admitted target
@@ -285,26 +296,29 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                                     SemanticCallTargetNamespace()) {
                                 call_node = node + 1;
                             }
-                            if callable_id == 0 && call_node >= 0 {
-                                let call_target_id: Int =
+                            if valid && callable_id == 0 && call_node >= 0 {
+                                let call_target_id_fact: Result<Int> =
                                     SemanticExpressionDeclaredCallableSyntaxId(
                                         analysis.signatures,
                                         analysis.intent_signatures,
                                         graph.arena.call_target_names[call_node]
                                     );
-                                if call_target_id < 0 ||
-                                    (require_carried_identities &&
-                                     graph.arena.identities
-                                         .call_target_syntax_ids[call_node] !=
-                                         call_target_id) {
+                                if IsErr(call_target_id_fact) {
                                     valid = false;
-                                } else if call_target_id > 0 {
-                                    callable_id = call_target_id;
+                                } else {
+                                    let call_target_id: Int =
+                                        Unwrap(call_target_id_fact);
+                                    if require_carried_identities &&
+                                        graph.arena.identities
+                                            .call_target_syntax_ids[call_node] !=
+                                            call_target_id {
+                                        valid = false;
+                                    } else if call_target_id > 0 {
+                                        callable_id = call_target_id;
+                                    }
                                 }
                             }
-                            if callable_id <= 0 {
-                                if callable_id < 0 { valid = false; }
-                            } else if valid {
+                            if valid && callable_id > 0 {
                                 graph.arena.identities
                                     .binding_syntax_ids[node] = callable_id;
                                 graph.arena.identities.binding_kinds[node] =
