@@ -20,15 +20,16 @@ percentage by themselves.
 
 ## Active self-host context - intent-phase declared callee binding identity
 
-- Published base: declared-callable C alias implementation `c72ba209` and
-  documentation checkpoint `5be3a3ee` are published. Exact-head run
-  `33041466890` at `5be3a3eee67e2d7f1f85579bc0f30f3034e7aa95` is GREEN
-  29/29. The declared callable alias lease below is closed.
+- Published base: declared-callable C alias implementation `c72ba209`,
+  documentation checkpoint `5be3a3ee`, and closure checkpoint `d9849204` are
+  published. Exact-head run `33041466890` at
+  `5be3a3eee67e2d7f1f85579bc0f30f3034e7aa95` is GREEN 29/29. Intent callee
+  implementation `d437e9e8` is local and exact-head CI is not yet claimed.
 - Objective card: make intent-owned phase expression graphs carry the same
   resolved declared-callee SyntaxNodeId on the leaf and call target before MIR
   publication. Priority is exact semantic identity, producer-side carriage,
   missing/crossed failure, negative ratchet, then patch size.
-- Production entrypoint and observed RED: installed
+- Production entrypoint and baseline RED: installed
   `pgy-self-driver --emit-mir-json-verified
   tests/self_hosted/parity/fixture/intent_typed_outcome_execution.pgy`, followed
   by installed `--mir-json`, currently exits 1. The persisted
@@ -51,6 +52,23 @@ percentage by themselves.
   pre-change v19, v20, and the currently installed driver, so it is a real
   baseline producer gap rather than a regression from `c72ba209`. No query,
   cache, O(n^2), profiling, or unrelated SoT track is open.
+- Local implementation `d437e9e8` lets declared-leaf identity resolution run
+  on either a function- or intent-owned semantic surface, while keeping formal
+  parameter ordinal resolution function-only. The exact declared callee
+  SyntaxNodeId therefore reaches the intent phase graph before MIR publication;
+  no MIR/name repair or target-only acceptance was added. `OWNERS.md` records
+  the function/intent surface boundary.
+- Fresh v21 evidence is GREEN: codegen gen2==gen3 at 73,145 lines; integrated
+  driver seed/oracle, bounded MIR/C, and consumer parity; mixed intent/generic
+  runtime exact `accepted=true`, `calls=1`, `rejected=false`, `calls=2`; invalid
+  generic ordinal plus missing/crossed callee binding no-artifact negatives;
+  callable, namespace, canonical-epoch, typed-intent, and phase-carrier
+  regressions. Source scan, likeness (`23/23`, Result/Option `4374/4374`), Bash
+  syntax, gate cap `100/100`, and diff checks are green. The complete component
+  inventory exceeded its 60-second local budget and is not claimed green.
+  Registry census and progress remain `50/35/1`, 58.1%, 78.8%, integrated 83%
+  (81-85%), strict beta 83%, and hard replacement 75%. The next falsifier is
+  exact-head CI after the documentation checkpoint is published.
 
 ## Completed self-host context - declared callable C alias identity
 

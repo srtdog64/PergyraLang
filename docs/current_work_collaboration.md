@@ -8,8 +8,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE lease — intent-phase declared callee binding identity
 
-- Published base `5be3a3ee` is exact-head GREEN 29/29 in run `33041466890`.
-  The declared-callable alias lease below is closed. The protected untracked
+- Published base `5be3a3ee` is exact-head GREEN 29/29 in run `33041466890`;
+  closure checkpoint `d9849204` is published. Local implementation `d437e9e8`
+  awaits an exact-head CI checkpoint. The protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/` paths remain out of scope.
 - Objective: carry exact declared-callee binding identity on intent-owned phase
   expression graphs before self MIR serialization. Function signatures own the
@@ -27,6 +28,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   exact success/failure output and reject invalid generic ordinal plus missing
   or crossed callee binding without a partial C artifact. Only the primary task
   owns implementation and publication; no parallel edit scope is open.
+- Implementation `d437e9e8` extends declared-leaf identity resolution to
+  admitted intent-owned surfaces and keeps formal-parameter resolution scoped
+  to function owners. Fresh v21 fixpoint/driver evidence, mixed intent/generic
+  execution and three negative families, callable/namespace/canonical/typed-
+  intent/phase-carrier regressions, source scan, likeness, shell syntax, and
+  the fixed `100/100` gate cap are green. The complete component inventory
+  exceeded the 60-second local budget and is not claimed green. No registry or
+  percentage state changes before exact-head CI.
 
 ## DONE lease — declared callable C alias identity
 

@@ -2,6 +2,20 @@
 
 마지막 업데이트: 2026-08-27
 
+2026-08-27 intent-phase declared-callee identity 로컬 구현: `d437e9e8`은
+semantic expression identity resolver가 function뿐 아니라 admitted intent surface의
+declared leaf에도 정확한 declaration SyntaxNodeId를 기록하게 한다. Formal parameter
+ordinal은 기존대로 function owner에서만 해석한다. MIR lower의 이름 복원,
+call-target-only 수용, native fallback은 추가하지 않았다. Mixed intent/generic
+fixture는 정확히 `accepted=true`, `calls=1`, `rejected=false`, `calls=2`를 실행하고,
+invalid generic ordinal과 missing/crossed callee binding은 C artifact 전에 실패한다.
+Fresh v21 codegen fixpoint, integrated driver, callable/namespace/canonical/typed-intent/
+phase-carrier 회귀, source scan, likeness, Bash syntax와 `100/100` gate cap은 local
+green이다. Complete component inventory는 60초 local 예산을 넘어 green으로 세지
+않으며 exact-head CI가 다음 falsifier다. Registry와 진행률은 `50/35/1`, hard
+closure 58.1%, migration 78.8%, 통합 83% (81~85%), strict beta 83%, hard
+replacement 75%로 유지한다.
+
 2026-08-27 callable-parameter public substitution 로컬 갱신: canonical recursive
 `func(T...) -> R`와 callable value의 target/binding SyntaxNodeId가 parser,
 semantic admission, MIR carriage를 지나 설치형 public backend까지 유지된다. C는
