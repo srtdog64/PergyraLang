@@ -19,8 +19,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `5d23fdda1be2cf7cf87720eed31f73416bd5dbcc` are published. Namespace-internal
   canonical callable carriage checkpoint `9ab03311` and documentation
   checkpoint `c31da1d2`, Linux cap repair `6fa362c5`, nested receiver repair
-  `af91687d`, and docs checkpoint `3e8a3567` are published. Identity-policy
-  caller ratchet `a5ecff34` is committed locally until replacement push/CI.
+  `af91687d`, docs checkpoint `3e8a3567`, identity-policy caller ratchet
+  `a5ecff34`, and checkpoint `9bf511d5` are published. Typed binding-ordinal
+  repair `b80bc803` is the current implementation base; replacement exact-head
+  CI remains pending.
   The unrelated untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   paths are outside this lease and must remain untouched.
 - Objective: carry canonical `func(T...) -> R` parameter and return types plus
@@ -192,7 +194,21 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Ratchet `a5ecff34` now fixes both exact sets: the legacy wrapper has its three
   real callers and the identity-policy boundary has exactly the driver and
   body owner. The production-body assertion follows the same policy call and
-  the focused gate is green. One replacement 29/29 remains before lease close.
+  the focused gate is green.
+- Exact-head run `33029460672` completed 28/29. Full bootstrap is green and
+  `build-linux` crossed the lifetime repair, then stopped only because the
+  self-host likeness sentinel count had risen from 24 to 30 in the callable
+  identity chain. Repair `b80bc803` moves ordinal presence behind the semantic
+  binding fact and an `Option<Int>` consumer boundary; no cap or exclusion was
+  raised. Likeness is exact green at sentinel `23/23` and Result/Option
+  `4375/4375`.
+- Fresh v18 compiled both the Pergyra seed and native oracle. Callable C/LLVM
+  plus 20 negatives, namespace C/LLVM plus negatives, and canonical epoch are
+  green. The bootstrap wrapper later rejected the drive-letter `D:/...` build
+  directory at its repository-containment guard; use its default, a relative
+  path, or Git-Bash `/d/...` in future. The full component inventory exceeded
+  the 60-second budget and is not claimed green. One replacement exact-head
+  29/29 remains before lease close; no parallel implementation scope is open.
 
 ## DONE lease O — structured MatchCase carrier closure
 

@@ -32,8 +32,9 @@ percentage by themselves.
   canonical callable carriage checkpoint `9ab03311` and documentation
   checkpoint `c31da1d2`, Linux cap repair `6fa362c5`, nested receiver-identity
   repair `af91687d`, and checkpoint `3e8a3567` are published. Identity-policy
-  caller ratchet `a5ecff34` is committed locally; replacement push/CI remains
-  pending. The unrelated user-owned
+  caller ratchet `a5ecff34` and checkpoint `9bf511d5` are published. Typed
+  binding-ordinal repair `b80bc803` is the current implementation base;
+  replacement exact-head CI remains pending. The unrelated user-owned
   `pgy-80135c2c/` and
   concurrent `docs/compiler_architectures/` paths remain untracked and must not
   be inspected, staged, deleted, or rewritten.
@@ -173,8 +174,34 @@ percentage by themselves.
 - Ratchet repair `a5ecff34` removes the driver only from the legacy caller set,
   adds an exact two-file set for the identity-policy boundary, and requires the
   production driver body to call that policy boundary. The focused lifetime
-  gate is local green. The next falsifier is a replacement exact-head 29/29;
-  the full bootstrap result itself does not need semantic repair.
+  gate is local green.
+- Exact-head run `33029460672` at `9bf511d5` completed 28/29. Full
+  `self-host-bootstrap-linux` is green again, and `build-linux` crossed the
+  lifetime caller ratchet before stopping only at
+  `tests/self_host_pergyra_likeness_smoke.sh`: six callable-identity additions
+  had raised real `return/compare -1` sites from 24 to 30. Five were introduced
+  by `30b84f80` and one by `1d459036`; no unrelated historical sentinel row is
+  part of this repair.
+- Repair `b80bc803` makes the semantic expression-binding owner publish one
+  scalar `has_ordinal` fact and an `Option<Int>` read boundary. Call-target
+  capture, identity resolution, and C emission no longer reopen the raw absent
+  ordinal. A direct `Option<Int>` struct field was rejected by the current
+  self-host codegen subset, so the carrier remains flat while absence becomes
+  typed at its last consumers. Raising the likeness cap or adding an exclusion
+  is forbidden. The ratchets are exact green at sentinel `23/23` and typed
+  Result/Option surface `4375/4375`.
+- Fresh v18 generated and compiled a 6,457,768-byte Pergyra-built driver seed
+  and a 7,112,438-byte native oracle. The v18 callable C/LLVM gate plus all 20
+  identity mutations, namespace-internal C/LLVM parity plus its negatives, and
+  the canonical identity epoch gate are green. The complete component scan
+  exceeded its 60-second static-owner budget and is not claimed green.
+- The focused bootstrap wrapper itself is not claimed green: after both v18
+  executables compiled, its artifact comparator rejected the drive-letter
+  build-dir spelling `D:/PergyraLang/...` as escaping the repository. Future
+  invocations must use the script default, a repo-relative build directory, or
+  Git-Bash `/d/PergyraLang/...`; do not repeat the drive-letter form. This was
+  a harness-path failure after compilation, not compiler semantic evidence.
+  The next falsifier is a replacement exact-head 29/29 run.
 - Root variant output remains Git-closed by published checkpoint `1e8b5531`:
   `/bin/`, `/bin-*`, and `/build*/` are ignored and no such folder is tracked.
   The current root census is 11 `bin*` and 14 `build*` directories, all ignored,

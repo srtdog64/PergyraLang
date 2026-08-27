@@ -20,13 +20,13 @@
   },
   "current_callable_owner_hashes": {
     "measured_at": "2026-08-27",
-    "source_revision": "9ab03311",
-    "note": "identity-resolution owner now joins namespace-local leaf spelling to the canonical callable target; retained performance figures are not remeasured",
-    "owner_set_sha256": "DD49849B369548B4B0DFE418345A6A28825D276BF1CFFE73248A4C2D8F308778",
+    "source_revision": "b80bc803",
+    "note": "identity-resolution owner now consumes typed binding-ordinal presence instead of reopening the absent raw value; retained performance figures are not remeasured",
+    "owner_set_sha256": "4446474366CFFBE3282AF361D587571A8DADA547851B1B00C4AE485769CD54C1",
     "owner_files_sha256": {
       "src/self_hosted/semantic/callable_resolution_owner.pgy": "DE376EFA2860286C2B5778526B79B92325105C744B5561BCC23428666E746AA0",
       "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy": "6A4F529B4B2B4EBB6278CE6342EB4FCA82494EB2F7BCA18820A92421F78E8EFA",
-      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "BFE67E268984CD82475B0E84248D3B49E9E2DBEF9FA56BF65ECDB4105670ECB8"
+      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "D4D555C7E1DD4A26B7E6A8FE7AD71E9953F432D20A24740201C35A58AACD20FA"
     }
   },
   "current_scan_owner_closure": {
