@@ -161,6 +161,15 @@ SyntaxNodeId lookup과 display-text 음성 검증을 유지한 채 layout 다섯
 정확히 `160/160`으로 복구했고, 해당 C/LLVM parity와 negatives가 local green이다.
 Cap은 올리지 않았으며 다음 exact-head CI 전까지 수치는 올리지 않는다.
 
+Exact-head run `33038171342` at `e7c27b68`은 29/29 GREEN이다. `build-linux`,
+full self-host fixed point, codegen bootstrap, 20 backend shard,
+Windows/macOS, sanitizers, TSan, Rocq가 모두 성공했다. Formal callable의 마지막
+C display-text binding lease는 닫혔다. 다음 singular executable rung은 이미
+resolved된 declared callable alias를 `source_name` string key로 다시 찾는 direct C
+consumer를 declaration SyntaxNodeId key로 치환한다. Query/cache, O(n^2) epoch,
+performance track은 열지 않는다. SoT `50/35/1`, hard closure 58.1%, migration
+78.8%, 통합 83% (81~85%), strict beta 83%, hard replacement 75%는 그대로다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,

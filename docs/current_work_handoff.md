@@ -18,7 +18,34 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - formal callable codegen binding identity
+## Active self-host context - declared callable C alias identity
+
+- Published base: formal callable SyntaxNodeId implementation `e4a14e7b`,
+  failure-owner import repair `0fb875bc`, namespace gate cap repair `8e8cd8cb`,
+  and checkpoint `e7c27b68` are published. Exact-head run `33038171342` at
+  `e7c27b6835d0313d5625c712ce8c1fe3a6107333` is GREEN 29/29. The formal
+  callable display-text lease below is closed.
+- Objective card: make an already resolved declared callable's canonical
+  declaration SyntaxNodeId own its final C alias selection. Priority is exact
+  identity, one internal declaration-ID key, fail closed on missing/crossed
+  identity, old name-read deletion, negative ratchet, then patch size.
+- Production entrypoint: installed `bin/pgy.exe SOURCE --backend=c -o EXE` for
+  the bounded direct-call/namespace fixtures. The direct bypass is
+  `LookupKindType(env, source_name, "call")` in `RewriteSemanticCall`; the
+  carried `source_name` is canonical today, but it is still a string-keyed
+  backend re-resolution after semantic identity has already been sealed.
+- Fact owner and last consumer: `SemanticExpressionGraphCallTargetSyntaxId`
+  owns the resolved declaration identity; the function-global C environment
+  may carry an internal declaration-SyntaxNodeId key; the last legitimate
+  consumer is `RewriteSemanticCall`. Display spelling, canonical-name lookup,
+  name/ID dual reads, and native retry are forbidden fallbacks for this slice.
+- Falsifier: installed/direct-driver C and LLVM direct-call plus namespace
+  runtime parity must stay exact; missing, forged, and cross-wired declaration
+  IDs must fail before artifact publication; a static negative must reject the
+  old `LookupKindType(env, source_name, "call")` read in the direct call
+  emitter. No query/cache, O(n^2) epoch, or performance track is open.
+
+## Completed self-host context - formal callable codegen binding identity
 
 - Closed predecessor: implementation `b80bc803` and checkpoint `ae8b1341` are
   published. Exact-head run `33032356735` at
@@ -79,7 +106,13 @@ percentage by themselves.
   `8e8cd8cb` keeps the SyntaxNodeId lookup and display-text negatives intact
   while removing five layout-only lines; the file is exactly `160/160`, Bash
   syntax is green, and its namespace C/LLVM parity plus negative execution is
-  green. Do not raise the cap. Another exact-head run remains required.
+  green. Do not raise the cap. At that checkpoint another exact-head run
+  remained required.
+- Exact-head run `33038171342` at
+  `e7c27b6835d0313d5625c712ce8c1fe3a6107333` completed GREEN 29/29:
+  `build-linux`, full self-host fixed point, codegen bootstrap, all 20 backend
+  shards, Windows/macOS, sanitizers, TSan, and Rocq succeeded. This lease is
+  closed; the active card above owns the next executable identity seam.
 
 ## Completed self-host context - callable-parameter public substitution
 

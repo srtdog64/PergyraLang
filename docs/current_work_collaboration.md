@@ -6,7 +6,25 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — formal callable codegen binding identity
+## ACTIVE lease — declared callable C alias identity
+
+- Published base `e7c27b68` is exact-head GREEN 29/29 in run `33038171342`.
+  The formal callable binding lease below is closed. The protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` paths remain out of scope.
+- Objective: key final declared-callable C alias selection by the resolved
+  declaration SyntaxNodeId already carried on the semantic call node.
+  `SemanticExpressionGraphCallTargetSyntaxId` owns the ID, the function-global
+  C environment may carry one internal ID key, and `RewriteSemanticCall` is the
+  last consumer for this slice.
+- Direct bypass: `LookupKindType(env, source_name, "call")` inside
+  `RewriteSemanticCall`. Canonical/display name fallback, name/ID dual reads,
+  native retry, and a parallel query/cache track are forbidden.
+- Integration gate: installed/direct-driver C/LLVM direct-call and namespace
+  runtime parity, missing/forged/cross-wired declaration-ID negatives, and a
+  structural ratchet rejecting the old string-key alias lookup. Only the
+  primary task owns implementation/publication; no parallel scope is open.
+
+## DONE lease — formal callable codegen binding identity
 
 - Published base: implementation `b80bc803`, checkpoint `ae8b1341`, and exact
   run `33032356735` are GREEN 29/29. The unrelated untracked
@@ -41,7 +59,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   because the modified namespace parity gate had 165 lines against its 160
   cap. Repair `8e8cd8cb` compresses only the gate layout, keeps both identity
   assertions, restores exact `160/160`, and passes namespace C/LLVM parity plus
-  negatives. The cap stays fixed; replacement exact-head CI is pending.
+  negatives. The cap stayed fixed; replacement exact-head CI was pending at
+  that checkpoint.
+- Exact-head run `33038171342` at `e7c27b68` completed GREEN 29/29, including
+  both Linux long jobs and all 20 backend shards. This lease is closed; the
+  active declared-callable alias lease above is the only implementation scope.
 
 ## DONE lease P — callable-parameter installed-path substitution
 
