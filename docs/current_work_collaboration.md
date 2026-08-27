@@ -37,6 +37,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   60-second complete-component budget expired, so replacement CI must judge it.
 - Never infer success because a job vanished from an unfinished-job filter.
   Query the completed job's explicit `conclusion` before reporting its result.
+- Replacement run `33037083062` advanced past the import check and then failed
+  because the modified namespace parity gate had 165 lines against its 160
+  cap. Repair `8e8cd8cb` compresses only the gate layout, keeps both identity
+  assertions, restores exact `160/160`, and passes namespace C/LLVM parity plus
+  negatives. The cap stays fixed; replacement exact-head CI is pending.
 
 ## DONE lease P — callable-parameter installed-path substitution
 

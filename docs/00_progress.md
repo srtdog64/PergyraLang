@@ -155,6 +155,12 @@ repair는 import를 명시했고 direct-consumer/source-scan/likeness/shell synt
 green이다. Complete component는 60초 local budget을 소진해 green으로 주장하지
 않으며 replacement CI를 기다린다. 진행 수치와 registry 상태는 변하지 않는다.
 
+Replacement run `33037083062`는 import check를 통과한 뒤 namespace parity gate가
+165줄로 기존 160줄 cap을 넘은 다음 정적 ratchet을 찾았다. Repair `8e8cd8cb`은
+SyntaxNodeId lookup과 display-text 음성 검증을 유지한 채 layout 다섯 줄만 줄여
+정확히 `160/160`으로 복구했고, 해당 C/LLVM parity와 negatives가 local green이다.
+Cap은 올리지 않았으며 다음 exact-head CI 전까지 수치는 올리지 않는다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,

@@ -73,6 +73,13 @@ percentage by themselves.
   before reporting green. This session briefly misreported `build-linux` as
   successful from omission, then corrected it from the explicit conclusion and
   job log; do not repeat that inference.
+- Replacement run `33037083062` proved the missing import repair by advancing
+  past that check, then found the next static ratchet: the updated namespace
+  parity gate was 165 lines against its existing 160-line cap. Repair
+  `8e8cd8cb` keeps the SyntaxNodeId lookup and display-text negatives intact
+  while removing five layout-only lines; the file is exactly `160/160`, Bash
+  syntax is green, and its namespace C/LLVM parity plus negative execution is
+  green. Do not raise the cap. Another exact-head run remains required.
 
 ## Completed self-host context - callable-parameter public substitution
 
