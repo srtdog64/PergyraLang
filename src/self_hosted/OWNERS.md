@@ -1608,8 +1608,9 @@ inventory must not become a second fact-family owner registry.
   kind, C name, and environment rows, plus implicit owner-field C binding rows
   derived from semantic locals and MIR-carried nominal declaration facts.
 - `src/self_hosted/codegen/emission/callable_parameter_binding_rows_owner.pgy`
-  -- exact call target, parameter mode/type, and return-type environment rows
-  derived from one canonical callable type shape.
+  -- SyntaxNodeId-keyed call target plus parameter mode/type and return-type
+  environment rows derived from one canonical callable type shape. Resolved
+  formal calls may not recover this binding from source display spelling.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function definition
   emission and function-local environment lifetime.
 - `src/self_hosted/codegen/emission/function_prototype_block_owner.pgy` --

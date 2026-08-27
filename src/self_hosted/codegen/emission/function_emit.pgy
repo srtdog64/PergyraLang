@@ -204,7 +204,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             ArrayPush(function_env_rows, p_env_binding.env_rows);
             let callable_rows: String =
                 CodegenCallableParameterBindingRows(
-                    p_env_binding.source_name,
+                    cur[0],
                     p_env_binding.semantic_type_name,
                     p_env_binding.c_name
                 );

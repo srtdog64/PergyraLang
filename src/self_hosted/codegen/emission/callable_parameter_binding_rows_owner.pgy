@@ -2,16 +2,25 @@
 
 import "../../semantic/ast_callable_type_shape_owner.pgy";
 
+func CodegenCallableBindingSyntaxKey(parameter_syntax_id: Int) -> String {
+    if parameter_syntax_id <= 0 {
+        Die("callable parameter SyntaxNodeId is missing");
+    }
+    return Concat("@binding_syntax:", ToString(parameter_syntax_id));
+}
+
 func CodegenCallableParameterBindingRows(
-    source_name: String,
+    parameter_syntax_id: Int,
     semantic_type_name: String,
     c_name: String
 ) -> String {
     let callable: SemanticAstCallableTypeShape =
         SemanticAstCallableTypeShapeFromName(semantic_type_name);
     if !callable.ok { return ""; }
+    let binding_key: String =
+        CodegenCallableBindingSyntaxKey(parameter_syntax_id);
     let rows: String = Concat(
-        "|", Concat(source_name, Concat("=call:", Concat(c_name, "|")))
+        "|", Concat(binding_key, Concat("=call:", Concat(c_name, "|")))
     );
     rows = Concat(rows, Concat(c_name, "=pm:"));
     let i: Int = 0;

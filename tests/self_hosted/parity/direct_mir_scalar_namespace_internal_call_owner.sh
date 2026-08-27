@@ -53,9 +53,14 @@ for owner in "$CALL_ARGUMENT_OWNER" "$EXPECTED_TYPE_OWNER" \
         "$ZERO_ARGUMENT_OWNER"; do
     if grep -Fq 'node_texts[callee] != callables.names' "$owner"; then fail "declared-call admission reopened callee display-text identity"; fi
 done
-grep -Fq '(formal && UnwrapOption(callee_name) != source_name)' \
+grep -Fq 'CodegenCallableBindingSyntaxKey(binding.syntax_id)' \
     "$IDENTITY_BOUND_C_OWNER" ||
-    fail "identity-bound C emitter lost formal-only spelling validation"
+    fail "identity-bound C emitter lost formal SyntaxNodeId lookup"
+if grep -Fq 'SemanticExpressionGraphNodeText(' "$IDENTITY_BOUND_C_OWNER" ||
+    grep -Fq 'LookupKindType(env, source_name, "call")' \
+        "$IDENTITY_BOUND_C_OWNER"; then
+    fail "identity-bound C emitter reopened formal display-text authority"
+fi
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

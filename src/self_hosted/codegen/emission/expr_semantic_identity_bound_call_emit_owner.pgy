@@ -22,16 +22,13 @@ func RewriteSemanticIdentityBoundCall(
         SemanticExpressionGraphBindingIdentity(graph, view.callee_node);
     let binding_ordinal: Option<Int> =
         SemanticExpressionBindingIdentityOrdinal(binding);
-    let callee_name: Option<String> = SemanticExpressionGraphNodeText(
-        graph, view.callee_node);
     let formal: Bool =
         binding_kind == SemanticExpressionBindingFormalParameter();
     let declared: Bool =
         binding_kind == SemanticExpressionBindingDeclaredCallable();
-    if !IsSome(target_id) || !binding.ok || !IsSome(callee_name) ||
+    if !IsSome(target_id) || !binding.ok ||
         UnwrapOption(target_id) <= 0 ||
-        binding.syntax_id != UnwrapOption(target_id) ||
-        (formal && UnwrapOption(callee_name) != source_name) {
+        binding.syntax_id != UnwrapOption(target_id) {
         Die("identity-bound C call carrier is missing or cross-wired");
     }
     if binding.kind != binding_kind || (!formal && !declared) ||
@@ -40,7 +37,11 @@ func RewriteSemanticIdentityBoundCall(
         Die("identity-bound C call lane is invalid");
     }
     let call_symbol: String = source_name;
-    let alias: String = LookupKindType(env, source_name, "call");
+    let binding_key: String = source_name;
+    if formal {
+        binding_key = CodegenCallableBindingSyntaxKey(binding.syntax_id);
+    }
+    let alias: String = LookupKindType(env, binding_key, "call");
     if alias != "" { call_symbol = alias; }
     if formal && alias == "" {
         Die("callable formal C binding is missing");

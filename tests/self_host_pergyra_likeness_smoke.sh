@@ -342,7 +342,10 @@ SENTINEL_MAX=23
 # request-rejected, and artifact-rejected outcomes to the final CLI consumer.
 # 4257 -> 4375 (2026-08-27): measured callable-identity closure plus the typed
 # binding-ordinal fact keeps absence explicit through semantic and C consumers.
-RESULT_USE_MIN=4375
+# 4375 -> 4374 (2026-08-27): deleting the post-resolution callee-display read
+# removes its now-unneeded Option<String>. Canonical SyntaxNodeId plus typed
+# binding-ordinal presence still fail closed; no absence became a sentinel.
+RESULT_USE_MIN=4374
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

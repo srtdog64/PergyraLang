@@ -11441,10 +11441,26 @@ require_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" \
     "binding.syntax_id != UnwrapOption(target_id)"
+require_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
+    "func RewriteSemanticIdentityBoundCall(" \
+    "CodegenCallableBindingSyntaxKey(binding.syntax_id)"
 reject_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" \
     "SemanticExpressionGraphBindingOrdinal("
+reject_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
+    "func RewriteSemanticIdentityBoundCall(" \
+    "SemanticExpressionGraphNodeText("
+reject_function_text \
+    "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
+    "func RewriteSemanticIdentityBoundCall(" \
+    'LookupKindType(env, source_name, "call")'
+require_function_text \
+    "src/self_hosted/codegen/emission/callable_parameter_binding_rows_owner.pgy" \
+    "func CodegenCallableParameterBindingRows(" \
+    "CodegenCallableBindingSyntaxKey(parameter_syntax_id)"
 reject_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" "RuntimeCallCName("
