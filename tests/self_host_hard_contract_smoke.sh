@@ -168,13 +168,13 @@ require_file "src/compiler/mir_json_expression_graph.h"
 require_file "src/compiler/mir_json_expression_graph_materialize.c"
 require_file "src/compiler/mir_json_expression_graph_materialize.h"
 require_text "src/compiler/mir_json_dump.c" \
-    "mir_json_emit_instruction_expression_graph(out, inst, 0);"
+    "mir_json_emit_instruction_expression_graph(out, routine, inst, 0);"
 require_text "src/compiler/mir_json_dump.c" \
-    "mir_json_emit_instruction_expression_graph(out, inst, 1);"
+    "mir_json_emit_instruction_expression_graph(out, routine, inst, 1);"
 require_text "src/compiler/mir_json_expression_graph.c" \
     "mir_json_instruction_expression(const MIRInstruction *inst, int lane)"
 require_text "src/compiler/mir_json_expression_graph.c" \
-    "mir_json_expression_graph_build(&graph, expr)"
+    "mir_json_expression_graph_build_for_routine("
 require_text "src/compiler/mir_json_expression_graph_materialize.c" \
     "case AST_ARRAY_LITERAL:"
 require_text "src/compiler/mir_json_expression_graph_materialize.c" \
