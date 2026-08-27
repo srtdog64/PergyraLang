@@ -267,6 +267,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 slot_sym->param_mode = param != NULL
                     ? param->mode
                     : PARAM_MODE_DEFAULT;
+                symbol_mark_declaration(
+                    slot_sym, ast_func_param_stable_id(param), false);
             }
             scope_declare(ctx->scope, slot_sym);
             scope_register_slot(ctx->scope, slot_sym);
@@ -289,6 +291,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (p != NULL) {
             p->is_parameter = true;
             p->param_mode = param != NULL ? param->mode : PARAM_MODE_DEFAULT;
+            symbol_mark_declaration(
+                p, ast_func_param_stable_id(param), false);
         }
         scope_declare(ctx->scope, p);
     }

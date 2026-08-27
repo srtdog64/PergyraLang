@@ -1,6 +1,7 @@
 // Exact carried identity checks for formal and declared callable lanes.
 
 import "ast_signature_fact_owner.pgy";
+import "ast_intent_signature_fact_owner.pgy";
 import "ast_callable_type_shape_owner.pgy";
 import "callable_resolution_owner.pgy";
 
@@ -46,32 +47,17 @@ func SemanticExpressionFormalParameterCarriedIdentityReady(
     return matches == 1;
 }
 
-func SemanticExpressionDeclaredCallableTargetExists(
+func SemanticExpressionDeclaredCallableSyntaxId(
     signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
     target_name: String
-) -> Bool {
-    if target_name == "" { return false; }
-    let signature: Int = 0;
-    while signature < SemanticAstFunctionSignatureCount(signatures) {
-        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
-            signatures, signature);
-        let name: Option<String> = SemanticAstFunctionNameAt(
-            signatures, signature);
-        if !IsSome(owner) || !IsSome(name) { return false; }
-        if SemanticCallableCanonicalDeclaredNameEquals(
-                UnwrapOption(owner), UnwrapOption(name), target_name) {
-            return true;
-        }
-        signature = signature + 1;
+) -> Int {
+    if target_name == "" || !intents.ok ||
+        ArrayLength(intents.names) !=
+            SemanticAstIntentSignatureCount(intents) {
+        return 0 - 1;
     }
-    return false;
-}
-
-func SemanticExpressionDeclaredCallableCarriedIdentityReady(
-    signatures: SemanticAstFunctionSignatureFacts,
-    target_name: String, target_node_id: Int
-) -> Bool {
-    if target_name == "" || target_node_id <= 0 { return false; }
+    let found: Int = 0;
     let matches: Int = 0;
     let signature: Int = 0;
     while signature < SemanticAstFunctionSignatureCount(signatures) {
@@ -82,16 +68,48 @@ func SemanticExpressionDeclaredCallableCarriedIdentityReady(
         let node: Option<Int> = SemanticAstFunctionNodeAt(
             signatures, signature);
         if !IsSome(owner) || !IsSome(name) || !IsSome(node) {
-            return false;
+            return 0 - 1;
         }
         if SemanticCallableCanonicalDeclaredNameEquals(
                 UnwrapOption(owner), UnwrapOption(name), target_name) {
             matches = matches + 1;
-            if matches > 1 || UnwrapOption(node) != target_node_id {
-                return false;
-            }
+            found = UnwrapOption(node);
+            if matches > 1 || found <= 0 { return 0 - 1; }
         }
         signature = signature + 1;
     }
-    return matches == 1;
+    let intent: Int = 0;
+    while intent < SemanticAstIntentSignatureCount(intents) {
+        if intents.names[intent] == "" ||
+            intents.intent_node_ids[intent] <= 0 {
+            return 0 - 1;
+        }
+        if intents.names[intent] == target_name {
+            matches = matches + 1;
+            found = intents.intent_node_ids[intent];
+            if matches > 1 { return 0 - 1; }
+        }
+        intent = intent + 1;
+    }
+    if matches == 0 { return 0; }
+    return found;
+}
+
+func SemanticExpressionDeclaredCallableTargetExists(
+    signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
+    target_name: String
+) -> Bool {
+    return SemanticExpressionDeclaredCallableSyntaxId(
+        signatures, intents, target_name) > 0;
+}
+
+func SemanticExpressionDeclaredCallableCarriedIdentityReady(
+    signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
+    target_name: String, target_node_id: Int
+) -> Bool {
+    return target_node_id > 0 &&
+        SemanticExpressionDeclaredCallableSyntaxId(
+            signatures, intents, target_name) == target_node_id;
 }

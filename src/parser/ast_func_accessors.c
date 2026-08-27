@@ -50,6 +50,12 @@ ast_func_param(const ASTNode *node, size_t index)
         : NULL;
 }
 
+uint32_t
+ast_func_param_stable_id(const FuncParam *param)
+{
+    return param != NULL ? param->stable_id : 0;
+}
+
 GenericParams *
 ast_func_generic_params(const ASTNode *node)
 {

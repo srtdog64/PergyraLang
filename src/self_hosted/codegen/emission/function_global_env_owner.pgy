@@ -231,6 +231,14 @@ func BuildFunctionEnv(
     i = 0;
     while i < SemanticAstIntentSignatureCount(intents) {
         let name: String = intents.names[i];
+        let c_name: String = CompilerSymbolCIdentifier(name);
+        let declaration_key: String = CodegenDeclaredCallableSyntaxKey(
+            intents.intent_node_ids[i]
+        );
+        TextBuilderAppend(output, declaration_key);
+        TextBuilderAppend(output, "=call:");
+        TextBuilderAppend(output, c_name);
+        TextBuilderAppend(output, "|");
         TextBuilderAppend(output, name);
         TextBuilderAppend(output, "=f:");
         TextBuilderAppend(output, intents.return_type_names[i]);

@@ -13,8 +13,8 @@ struct SemanticExpressionCallTargetCapture {
     failure_lane: String;
 }
 func SemanticExpressionCallTargetExpected(
-    ref graph: SemanticExpressionGraphFacts,
-    signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts, signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
     callable_names: Array<String>,
     member_names: Array<String>,
     require_carried: Bool,
@@ -114,7 +114,7 @@ func SemanticExpressionCallTargetExpected(
         let canonical_target_name: String = callable_names[UnwrapOption(direct)];
         let declared_callable: Bool =
             SemanticExpressionDeclaredCallableTargetExists(
-                signatures, canonical_target_name);
+                signatures, intents, canonical_target_name);
         if require_carried && declared_callable {
             let carried_target_syntax_id: Int =
                 graph.arena.identities.call_target_syntax_ids[node_id];
@@ -123,7 +123,7 @@ func SemanticExpressionCallTargetExpected(
                 IsSome(binding_ordinal) ||
                 binding.syntax_id != carried_target_syntax_id ||
                 !SemanticExpressionDeclaredCallableCarriedIdentityReady(
-                    signatures, canonical_target_name,
+                    signatures, intents, canonical_target_name,
                     carried_target_syntax_id) {
                 return SemanticExpressionCallTargetFact(
                     false, SemanticCallTargetDirect(), "", 0);
@@ -183,8 +183,8 @@ func SemanticExpressionCallTargetExpected(
     );
 }
 func SemanticExpressionGraphCallTargetCaptureFromSignatures(
-    graph: SemanticExpressionGraphFacts,
-    signatures: SemanticAstFunctionSignatureFacts,
+    graph: SemanticExpressionGraphFacts, signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts,
     require_carried: Bool,
@@ -235,7 +235,7 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) && valid {
         let expected: SemanticExpressionCallTargetFact =
             SemanticExpressionCallTargetExpected(
-                graph, signatures, function_tables.names, member_names,
+                graph, signatures, intents, function_tables.names, member_names,
                 require_carried, node_id
             );
         if !expected.ok {
@@ -287,14 +287,14 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
     );
 }
 func SemanticExpressionGraphCallTargetsFromSignatures(
-    graph: SemanticExpressionGraphFacts,
-    signatures: SemanticAstFunctionSignatureFacts,
+    graph: SemanticExpressionGraphFacts, signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts,
     require_carried: Bool,
     function_tables: SemanticAstExpressionFunctionTableFacts
 ) -> SemanticExpressionGraphFacts {
     return SemanticExpressionGraphCallTargetCaptureFromSignatures(
-        graph, signatures, constructors, enums, require_carried,
+        graph, signatures, intents, constructors, enums, require_carried,
         function_tables).graph;
 }

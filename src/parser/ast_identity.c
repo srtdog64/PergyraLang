@@ -6,10 +6,14 @@
 #include "ast.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 
 typedef struct {
     uint64_t next_id;
     bool exhausted;
+    FuncParam **params;
+    size_t param_count;
+    size_t param_capacity;
 } AstIdentityState;
 
 static void ast_assign_node(ASTNode *node, AstIdentityState *next_id);
@@ -68,6 +72,33 @@ ast_assign_params(FuncParam **params, size_t count, AstIdentityState *next_id)
         FuncParam *param = params != NULL ? params[i] : NULL;
         if (param == NULL)
             continue;
+        if (next_id == NULL || next_id->exhausted)
+            return;
+        if (next_id->param_count == next_id->param_capacity) {
+            size_t capacity = next_id->param_capacity == 0
+                ? 16 : next_id->param_capacity;
+            FuncParam **grown;
+
+            if (next_id->param_capacity != 0
+                && capacity > SIZE_MAX / 2) {
+                next_id->exhausted = true;
+                return;
+            }
+            if (next_id->param_capacity != 0)
+                capacity *= 2;
+            if (capacity > SIZE_MAX / sizeof(*grown)) {
+                next_id->exhausted = true;
+                return;
+            }
+            grown = realloc(next_id->params, capacity * sizeof(*grown));
+            if (grown == NULL) {
+                next_id->exhausted = true;
+                return;
+            }
+            next_id->params = grown;
+            next_id->param_capacity = capacity;
+        }
+        next_id->params[next_id->param_count++] = param;
         ast_assign_node(param->type, next_id);
         ast_assign_node(param->default_value, next_id);
     }
@@ -581,6 +612,9 @@ ast_assign_stable_ids(ASTNode *root)
     };
 
     ast_assign_node(root, &next_id);
+    for (size_t i = 0; i < next_id.param_count && !next_id.exhausted; i++)
+        next_id.params[i]->stable_id = ast_take_stable_id(&next_id);
+    free(next_id.params);
     return !next_id.exhausted;
 }
 

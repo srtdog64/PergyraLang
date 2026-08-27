@@ -284,6 +284,7 @@ typedef enum {
 } ParamMode;
 
 struct FuncParam {
+    uint32_t   stable_id;    /* declaration identity assigned with the AST */
     char*      name;
     ASTNode*   type;
     ASTNode*   default_value;  /* Optional */

@@ -44,6 +44,7 @@ expected = {
     "ReadAggregate": ("readonly-ref", "indirect"),
 }
 routines = {row.get("name"): row for row in payload.get("routines", [])}
+syntax_ids = []
 for name, (carriage, pass_shape) in expected.items():
     params = routines.get(name, {}).get("params", [])
     actual = (
@@ -54,6 +55,12 @@ for name, (carriage, pass_shape) in expected.items():
         raise SystemExit(
             f"{name}: expected {(carriage, pass_shape)!r}, got {actual!r}"
         )
+    syntax_id = params[0].get("source_syntax_id")
+    if not isinstance(syntax_id, int) or syntax_id <= 0:
+        raise SystemExit(f"{name}: missing formal parameter syntax identity")
+    syntax_ids.append(syntax_id)
+if len(syntax_ids) != len(set(syntax_ids)):
+    raise SystemExit(f"formal parameter syntax identities are reused: {syntax_ids}")
 PY
 
 BAD_JSON="$WORK_DIR/ref-write.json"

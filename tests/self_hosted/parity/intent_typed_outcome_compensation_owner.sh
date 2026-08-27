@@ -156,10 +156,8 @@ emit_and_run_self zero-compensation "$BUILD_DIR/zero-compensation.pgy"
 
 "$PYTHON_BIN" - "$BUILD_DIR/base.mir.json" \
     "$BUILD_DIR" <<'PY'
-import copy
-import json
+import copy, json, sys
 from pathlib import Path
-import sys
 
 base = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 out = Path(sys.argv[2])
@@ -198,6 +196,20 @@ call_node = next(
 )
 call_node["call_target_name"] = ""
 mutations["named-call-target-missing"] = document
+document = copy.deepcopy(base); named_call = main_named_call(document)
+call_node = next(node for node in named_call["expr0_graph"]["nodes"] if node.get("kind") == "call" and node.get("call_target_name") == "Observe")
+call_node["call_target_syntax_id"] = 0
+mutations["named-call-syntax-id-missing"] = document
+document = copy.deepcopy(base); named_call = main_named_call(document)
+call_node = next(node for node in named_call["expr0_graph"]["nodes"] if node.get("kind") == "call" and node.get("call_target_name") == "Observe")
+callee_node = named_call["expr0_graph"]["nodes"][call_node["left"]]
+callee_node["binding_syntax_id"] = call_node["call_target_syntax_id"] + 1
+mutations["named-callee-binding-crossed"] = document
+def first_formal_leaf(document): return next(node for routine in document["routines"] for block in routine["blocks"] for row in block["instructions"] for graph in (row.get("expr0_graph"), row.get("expr1_graph")) if graph for node in graph["nodes"] if node.get("binding_kind") == "formal_parameter")
+document = copy.deepcopy(base); formal = first_formal_leaf(document); formal["binding_syntax_id"] = 0; mutations["formal-binding-missing"] = document
+document = copy.deepcopy(base); formal = first_formal_leaf(document); formal["binding_ordinal"] += 1; mutations["formal-binding-ordinal-crossed"] = document
+document = copy.deepcopy(base); named_call = main_named_call(document); call_node = next(node for node in named_call["expr0_graph"]["nodes"] if node.get("kind") == "call" and node.get("call_target_name") == "RunWorkflow"); call_node["call_target_syntax_id"] = 0; mutations["intent-call-syntax-id-missing"] = document
+document = copy.deepcopy(base); named_call = main_named_call(document); call_node = next(node for node in named_call["expr0_graph"]["nodes"] if node.get("kind") == "call" and node.get("call_target_name") == "RunWorkflow"); named_call["expr0_graph"]["nodes"][call_node["left"]]["binding_syntax_id"] += 1; mutations["intent-callee-binding-crossed"] = document
 for name, document in mutations.items():
     (out / f"negative-{name}.mir.json").write_text(json.dumps(
         document, separators=(",", ":")), encoding="utf-8")

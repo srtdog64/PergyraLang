@@ -6,8 +6,48 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/intent_observability_abi.h"
+#include "mir.h"
 #include "../parser/ast_api.h"
+
+static bool
+mir_json_expression_graph_formal_binding(
+    const MIRJsonExpressionGraph *graph,
+    const char *name,
+    uint32_t *syntax_id_out,
+    int *ordinal_out)
+{
+    const MIRRoutine *routine = graph != NULL ? graph->binding_routine : NULL;
+    size_t matches = 0;
+    uint32_t syntax_id = 0;
+    int ordinal = -1;
+
+    if (syntax_id_out != NULL)
+        *syntax_id_out = 0;
+    if (ordinal_out != NULL)
+        *ordinal_out = -1;
+    if (routine == NULL || name == NULL)
+        return true;
+    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+        FuncParam *param = mir_routine_param(routine, i);
+
+        if (param == NULL || param->name == NULL
+            || strcmp(param->name, name) != 0) {
+            continue;
+        }
+        matches++;
+        syntax_id = ast_func_param_stable_id(param);
+        ordinal = i <= (size_t)INT_MAX ? (int)i : -1;
+    }
+    if (matches == 0)
+        return true;
+    if (matches != 1 || syntax_id == 0 || ordinal < 0)
+        return false;
+    if (syntax_id_out != NULL)
+        *syntax_id_out = syntax_id;
+    if (ordinal_out != NULL)
+        *ordinal_out = ordinal;
+    return true;
+}
 
 void
 mir_json_expression_graph_dispose(MIRJsonExpressionGraph *graph)
@@ -30,7 +70,6 @@ mir_json_expression_graph_append(MIRJsonExpressionGraph *graph,
                                  const char *target_name)
 {
     MIRJsonExpressionGraphNode *grown;
-    const PgyIntentObservabilityAbiRow *observability = NULL;
     size_t capacity;
 
     if (graph == NULL || kind == NULL || text == NULL)
@@ -49,16 +88,18 @@ mir_json_expression_graph_append(MIRJsonExpressionGraph *graph,
         graph->nodes = grown;
         graph->capacity = capacity;
     }
-    if (target_kind != NULL && strcmp(target_kind, "direct") == 0)
-        observability = pgy_intent_observability_abi_row_by_source(target_name);
     graph->nodes[graph->count] = (MIRJsonExpressionGraphNode){
-        kind,
-        text,
-        target_kind != NULL ? target_kind : "none",
-        target_name != NULL ? target_name : "",
-        observability != NULL ? observability->runtime_call_abi_id : 0,
-        left,
-        right
+        .kind = kind,
+        .text = text,
+        .call_target_kind = target_kind != NULL ? target_kind : "none",
+        .call_target_name = target_name != NULL ? target_name : "",
+        .call_target_syntax_id = 0,
+        .runtime_call_abi_id = 0,
+        .binding_syntax_id = 0,
+        .binding_kind = "none",
+        .binding_ordinal = -1,
+        .left = left,
+        .right = right
     };
     return (int)graph->count++;
 }
@@ -295,7 +336,10 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
     size_t argument_count = 0;
     const char *target_kind = "none";
     const char *target_name = "";
+    uint32_t target_syntax_id = 0;
+    uint32_t runtime_call_abi_id = 0;
     int call_root;
+    int callee_binding_root;
     int callee_root;
     char *text;
 
@@ -304,6 +348,7 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
     callee_root = mir_json_expression_graph_build(graph, callee);
     if (callee_root < 0)
         return -1;
+    callee_binding_root = callee_root;
     callee_root = mir_json_expression_graph_build_generic_callee(
         graph, expr, callee_root);
     if (callee_root < 0)
@@ -311,6 +356,26 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
     if (callee->type == AST_IDENTIFIER) {
         target_kind = "direct";
         target_name = ast_identifier_name(callee);
+        target_syntax_id = ast_call_semantic_callee_decl_id(expr);
+        if (graph->nodes[callee_binding_root].binding_kind != NULL
+            && strcmp(graph->nodes[callee_binding_root].binding_kind,
+                      "formal_parameter") == 0) {
+            if (target_syntax_id != 0
+                && target_syntax_id
+                    != graph->nodes[callee_binding_root].binding_syntax_id) {
+                return -1;
+            }
+            target_syntax_id =
+                graph->nodes[callee_binding_root].binding_syntax_id;
+        } else if (target_syntax_id != 0) {
+            graph->nodes[callee_binding_root].binding_syntax_id =
+                target_syntax_id;
+            graph->nodes[callee_binding_root].binding_kind =
+                "declared_callable";
+        } else {
+            (void)ast_call_semantic_runtime_call_abi_id(
+                expr, &runtime_call_abi_id);
+        }
     } else if (callee->type == AST_MEMBER_ACCESS) {
         target_kind = "member";
         target_name = ast_member_name(callee);
@@ -324,6 +389,8 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
         free(text);
         return -1;
     }
+    graph->nodes[call_root].call_target_syntax_id = target_syntax_id;
+    graph->nodes[call_root].runtime_call_abi_id = runtime_call_abi_id;
 
     arguments = ast_call_arguments(expr, &argument_count);
     for (size_t i = 0; i < argument_count; i++) {
@@ -597,5 +664,31 @@ mir_json_expression_graph_build(MIRJsonExpressionGraph *graph, ASTNode *expr)
         graph, kind, text, left, right, "none", "");
     if (left < 0)
         free(text);
+    if (left >= 0 && expr->type == AST_IDENTIFIER) {
+        uint32_t syntax_id = 0;
+        int ordinal = -1;
+
+        if (!mir_json_expression_graph_formal_binding(
+                graph, ast_identifier_name(expr), &syntax_id, &ordinal)) {
+            return -1;
+        }
+        if (syntax_id != 0) {
+            graph->nodes[left].binding_syntax_id = syntax_id;
+            graph->nodes[left].binding_kind = "formal_parameter";
+            graph->nodes[left].binding_ordinal = ordinal;
+        }
+    }
     return left;
+}
+
+int
+mir_json_expression_graph_build_for_routine(
+    MIRJsonExpressionGraph *graph,
+    ASTNode *expr,
+    const MIRRoutine *routine)
+{
+    if (graph == NULL)
+        return -1;
+    graph->binding_routine = routine;
+    return mir_json_expression_graph_build(graph, expr);
 }

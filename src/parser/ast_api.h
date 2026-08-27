@@ -34,6 +34,7 @@ ASTNode* ast_create_function(const char* name);
 size_t ast_func_param_count(const ASTNode* node);
 FuncParam** ast_func_params(const ASTNode* node, size_t* count_out);
 FuncParam* ast_func_param(const ASTNode* node, size_t index);
+uint32_t ast_func_param_stable_id(const FuncParam* param);
 GenericParams* ast_func_generic_params(const ASTNode* node);
 WhereClause* ast_func_where_clause(const ASTNode* node);
 ASTNode* ast_func_return_type(const ASTNode* node);

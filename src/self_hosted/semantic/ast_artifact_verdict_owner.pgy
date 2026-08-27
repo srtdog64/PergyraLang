@@ -191,7 +191,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         let target_capture: SemanticExpressionCallTargetCapture =
             SemanticExpressionGraphCallTargetCaptureFromSignatures(
                 input_expression_surfaces.expression_graph,
-                signatures, constructors, enums,
+                signatures, intent_signatures, constructors, enums,
                 require_carried_call_targets, function_tables
             );
         expression_surfaces = SemanticAstExpressionSurfaceFactsWithGraph(

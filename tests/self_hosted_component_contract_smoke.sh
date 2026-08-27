@@ -6507,7 +6507,8 @@ require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" \
     '"SelfHostPath.JoinRelativePath"'
 for canonical_compare_consumer in \
     "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy|func SemanticGenericCallSignatureIndex(" \
-    "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy|func SemanticExpressionDirectTargetSyntaxId("
+    "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy|func SemanticExpressionDirectTargetSyntaxId(" \
+    "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy|func SemanticExpressionDeclaredCallableSyntaxId("
 do
     canonical_compare_path="${canonical_compare_consumer%%|*}"
     canonical_compare_function="${canonical_compare_consumer#*|}"
@@ -6518,6 +6519,10 @@ do
         "$canonical_compare_function" \
         "SemanticCallableCanonicalDeclaredName("
 done
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy" \
+    "func SemanticAstAnalysisResolveExpressionIdentities(" \
+    "SemanticExpressionDeclaredCallableSyntaxId("
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "func SemanticAstExpressionFunctionRowIndex"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
@@ -11487,6 +11492,9 @@ require_function_text \
 require_function_text \
     "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
     "func BuildFunctionEnv(" "CodegenSemanticFunctionNodeOrDie(signatures, i)"
+require_function_text \
+    "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
+    "func BuildFunctionEnv(" "intents.intent_node_ids[i]"
 reject_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy" \
     "func RewriteSemanticIdentityBoundCall(" "RuntimeCallCName("

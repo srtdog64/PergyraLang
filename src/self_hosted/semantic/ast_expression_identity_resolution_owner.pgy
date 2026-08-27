@@ -4,6 +4,7 @@ import "ast_body_expression_environment_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "ast_signature_type_expression_fact_owner.pgy";
+import "ast_expression_carried_callable_identity_owner.pgy";
 import "../lib/intent_observability_abi_projection_owner.pgy";
 func SemanticExpressionDirectTargetSyntaxId(
     signatures: SemanticAstFunctionSignatureFacts,
@@ -184,8 +185,9 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             }
                         } else {
                             let target_id: Int =
-                                SemanticExpressionDirectTargetSyntaxId(
-                                    analysis.signatures, target_name
+                                SemanticExpressionDeclaredCallableSyntaxId(
+                                    analysis.signatures,
+                                    analysis.intent_signatures, target_name
                                 );
                             if target_id < 0 { valid = false; }
                             if target_id > 0 {
@@ -261,8 +263,9 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             !EnvContainsName(
                                 names, graph.arena.node_texts[node]) {
                             let callable_id: Int =
-                                SemanticExpressionDirectTargetSyntaxId(
+                                SemanticExpressionDeclaredCallableSyntaxId(
                                     analysis.signatures,
+                                    analysis.intent_signatures,
                                     graph.arena.node_texts[node]
                                 );
                             // Expression nodes are persisted in postorder, so
@@ -284,8 +287,9 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             }
                             if callable_id == 0 && call_node >= 0 {
                                 let call_target_id: Int =
-                                    SemanticExpressionDirectTargetSyntaxId(
+                                    SemanticExpressionDeclaredCallableSyntaxId(
                                         analysis.signatures,
+                                        analysis.intent_signatures,
                                         graph.arena.call_target_names[call_node]
                                     );
                                 if call_target_id < 0 ||

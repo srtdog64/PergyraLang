@@ -170,6 +170,8 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
             fputc(',', out);
         fputs("{\"name\":", out);
         mir_json_emit_str_or_null(out, fp != NULL ? fp->name : NULL);
+        fprintf(out, ",\"source_syntax_id\":%u",
+                ast_func_param_stable_id(fp));
         fputs(",\"type\":", out);
         mir_json_emit_str_or_null(out, param_type);
         fputs(",\"carriage\":", out);
@@ -254,7 +256,8 @@ mir_json_emit_instruction_abi_layout(FILE *out, const MIRInstruction *inst)
 }
 
 static void
-mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
+mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
+                          const MIRInstruction *inst)
 {
     fprintf(out, "{\"id\":%zu,\"kind\":", inst->id);
     mir_json_emit_str(out, mir_inst_kind_name(inst->kind));
@@ -306,11 +309,11 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
     fputs(",\"expr0\":", out);
     mir_json_emit_expr_or_null(out, inst->expr0);
     fputs(",\"expr0_graph\":", out);
-    mir_json_emit_instruction_expression_graph(out, inst, 0);
+    mir_json_emit_instruction_expression_graph(out, routine, inst, 0);
     fputs(",\"expr1\":", out);
     mir_json_emit_expr_or_null(out, inst->expr1);
     fputs(",\"expr1_graph\":", out);
-    mir_json_emit_instruction_expression_graph(out, inst, 1);
+    mir_json_emit_instruction_expression_graph(out, routine, inst, 1);
     if (!mir_json_emit_instruction_runtime_abi(out, inst)
         && inst->text_builder_runtime_row != NULL) {
         const MIRTextBuilderRuntimeRow *row =
@@ -381,7 +384,8 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
 }
 
 static void
-mir_json_emit_block(FILE *out, const MIRBasicBlock *block, size_t index)
+mir_json_emit_block(FILE *out, const MIRRoutine *routine,
+                    const MIRBasicBlock *block, size_t index)
 {
     fprintf(out, "{\"id\":%zu,\"reachable\":%s,\"instructions\":[",
             index, block->is_reachable ? "true" : "false");
@@ -389,7 +393,7 @@ mir_json_emit_block(FILE *out, const MIRBasicBlock *block, size_t index)
          k < block->instruction_count && block->instructions != NULL; k++) {
         if (k > 0)
             fputc(',', out);
-        mir_json_emit_instruction(out, &block->instructions[k]);
+        mir_json_emit_instruction(out, routine, &block->instructions[k]);
     }
     fputs("]", out);
     if (block->has_succ_true)
@@ -457,7 +461,7 @@ mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
          j < routine->block_count && routine->blocks != NULL; j++) {
         if (j > 0)
             fputc(',', out);
-        mir_json_emit_block(out, &routine->blocks[j], j);
+        mir_json_emit_block(out, routine, &routine->blocks[j], j);
     }
     fputc(']', out);
     mir_json_emit_source_locals(out, routine);

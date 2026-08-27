@@ -132,6 +132,7 @@ mir_expression_graph_identity(ASTNode *expression,
 
 void
 mir_json_emit_instruction_expression_graph(FILE *out,
+                                           const MIRRoutine *routine,
                                            const MIRInstruction *inst,
                                            int lane)
 {
@@ -141,7 +142,8 @@ mir_json_emit_instruction_expression_graph(FILE *out,
 
     if (out == NULL)
         return;
-    root = mir_json_expression_graph_build(&graph, expr);
+    root = mir_json_expression_graph_build_for_routine(
+        &graph, expr, routine);
     if (root < 0) {
         fputs("null", out);
         mir_json_expression_graph_dispose(&graph);
@@ -161,8 +163,20 @@ mir_json_emit_instruction_expression_graph(FILE *out,
         mir_json_emit_str(out, node->call_target_kind);
         fputs(",\"call_target_name\":", out);
         mir_json_emit_str(out, node->call_target_name);
-        fprintf(out, ",\"runtime_call_abi_id\":%u",
-                node->runtime_call_abi_id);
+        fprintf(out,
+                ",\"call_target_syntax_id\":%u"
+                ",\"runtime_call_abi_id\":%u"
+                ",\"binding_syntax_id\":%u",
+                node->call_target_syntax_id,
+                node->runtime_call_abi_id,
+                node->binding_syntax_id);
+        fputs(",\"binding_kind\":", out);
+        mir_json_emit_str(out, node->binding_kind);
+        fputs(",\"binding_ordinal\":", out);
+        if (node->binding_ordinal < 0)
+            fputs("null", out);
+        else
+            fprintf(out, "%d", node->binding_ordinal);
         fputs(",\"left\":", out);
         if (node->left < 0)
             fputs("null", out);
