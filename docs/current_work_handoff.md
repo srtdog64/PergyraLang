@@ -79,7 +79,17 @@ percentage by themselves.
   completed green, making the run 28/29 with only `build-linux` red. Local
   repair `5c722a6f` updates those ratchets, and the complete focused
   hard-contract exits 0. Publication and replacement exact-head CI are the next
-  falsifiers.
+  falsifiers. Replacement run `33058636093` then completed 28/29 with full
+  self-host and every non-`build-linux` job green. `build-linux` reached only
+  likeness, where the consolidated lookup had fallen to result-use 4372/4374
+  by encoding invalid/missing/found as raw Int sentinels. Local repair
+  `9454f9fe` returns `Result<Int>` with `Err`, `Ok(0)`, and exact
+  `Ok(SyntaxNodeId)` outcomes; runtime ABI fallback is reachable only from the
+  valid miss. Likeness is 4385/4385 with sentinel 23, native gen0 parse is 0/0,
+  gen2==gen3 is 73,172 lines, and full codegen bootstrap reaches
+  `SELF-HOSTING OK`. Complete component inventory again exceeded 60 seconds and
+  is not claimed green. Publication and replacement exact-head CI remain the
+  next falsifiers.
 - Build reliability note: the earlier segfault came from reusing one build
   directory with relative and `/d/...` absolute spellings, so included `.d`
   targets did not name the same object target. It is not recorded as a general

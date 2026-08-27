@@ -3243,6 +3243,20 @@ green이어도 마지막 정적 gate가 실패했다.
 - 변경한 단일 `require_text`만 확인하지 말고 hard-contract 스크립트 전체의 exit 0을
   관측한다. 앞 조건을 고치면 뒤에 있던 두 번째 stale 문자열이 드러날 수 있다.
 
+### 통합으로 Option 수가 줄었다면 likeness 기준부터 낮추지 않는다
+
+중복 조회를 하나로 합치면 lexical `Option` 수가 줄 수 있다. 하지만 새 통합 반환값이
+invalid/missing/found를 raw Int sentinel로 바꿨다면 이는 단순 deduplication이 아니라
+errors-as-data 회귀다. 2026-08-27의 function+intent lookup은 `-1/0/양수`를 반환해
+result-use가 4374에서 4372로 떨어졌고, `0 - 1` 표기가 sentinel metric까지 우회했다.
+
+- 먼저 기존 실패 의미가 새 반환 타입에서 구분되는지 확인한다.
+- 이 lookup은 `Result<Int>`가 owner다: invalid fact set은 `Err`, 합법적 미발견은
+  `Ok(0)`, exact declaration은 `Ok(SyntaxNodeId)`다.
+- Runtime ABI fallback은 오직 `Ok(0)`에서만 가능하며 `Err`는 fail-closed한다.
+- typed repair 뒤 result-use가 기존 기준을 넘으면 같은 커밋에서 새 측정값으로 최소치를
+  올린다. 이번 repair는 4385/4385이고 sentinel은 23을 유지한다.
+
 ---
 
 ## 2. PowerShell vs bash vs cmd.exe 차이

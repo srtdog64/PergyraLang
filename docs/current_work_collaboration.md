@@ -50,8 +50,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   routine-unaware hard-contract call strings after all earlier execution gates
   passed. Full self-host then completed green, making the run 28/29 with only
   `build-linux` red. Local ratchet repair `5c722a6f` makes the hard-contract
-  track routine-aware emission and is focused green. Publication and replacement
-  exact-head CI remain the falsifiers. Registry
+  track routine-aware emission and is focused green. Replacement run
+  `33058636093` also completed 28/29; every job except `build-linux` was green,
+  and its sole failure was likeness `result_use` 4372 below 4374. The unified
+  lookup had replaced typed invalid/missing distinction with raw Int sentinels.
+  Local repair `9454f9fe` returns `Result<Int>` as
+  `Err`/`Ok(0)`/`Ok(SyntaxNodeId)` and permits runtime ABI fallback only for the
+  successful miss. Likeness is 4385/4385 with sentinel 23; gen0 parse,
+  gen2==gen3 73,172 lines, and full codegen bootstrap are green. Publication
+  and replacement exact-head CI remain the falsifiers. Registry
   and progress remain `50/35/1`, 58.1%, 78.8%, integrated
   83% (81-85%), strict beta 83%, and hard replacement 75%.
 

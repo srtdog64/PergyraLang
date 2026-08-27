@@ -41,6 +41,19 @@ Rocq, toolchain, codegen bootstrap을 포함한 27개 job이 green이다. `build
 실패했다. Repair `5c722a6f`는 호출/graph builder ratchet을 현재 routine identity
 carrier에 맞춘다. Focused hard-contract 전체는 local exit 0이다. Replacement CI
 전에는 29/29를 주장하지 않는다.
+
+다음 exact-head run `33058636093`도 28/29였고 full self-host, codegen bootstrap,
+backend 20/20과 나머지 platform/proof/sanitizer job은 모두 green이었다. 유일한
+`build-linux` 실패는 function+intent lookup 통합 뒤 likeness `result_use`가
+4374에서 4372로 줄어든 것이었다. 중복 Option scan은 제거됐지만 새 lookup이
+invalid/missing/found를 raw Int `-1/0/양수`로 구분해 errors-as-data ratchet을 우회했다.
+Repair `9454f9fe`는 이를 `Result<Int>`의 `Err`/`Ok(0)`/`Ok(SyntaxNodeId)`로 바꾸고,
+runtime ABI fallback을 합법적 `Ok(0)`에서만 허용한다. Likeness는 sentinel 23과
+result-use 4385/4385로 green이며 최소치를 함께 올렸다. Native gen0 parse 0/0,
+gen2==gen3 73,172 lines, full codegen bootstrap `SELF-HOSTING OK`도 통과했다. Complete
+component inventory는 다시 60초 예산을 넘어 중단했으므로 green으로 세지 않는다.
+Replacement exact-head CI 전에는 여전히 29/29를 주장하지 않는다.
+
 리뷰가 제안한 query/cache와 O(n^2) epoch 교체는 이 실행 rung의 blocker가 아니므로
 열지 않는다. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
 (81~85%), strict beta 83%, hard replacement 75%는 유지한다.

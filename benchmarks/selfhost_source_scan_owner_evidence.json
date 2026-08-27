@@ -20,14 +20,14 @@
   },
   "current_callable_owner_hashes": {
     "measured_at": "2026-08-27",
-    "source_revision": "2c052d42",
-    "note": "declared-callable identity joins function and intent signatures exactly with gen0-compatible local names, and formal parameter identity is carried separately from TypeId; retained performance figures are not remeasured",
-    "owner_set_sha256": "337BB57E801A80381500B6F2678E453229381221C4E7908B313750B91E8E43FD",
+    "source_revision": "9454f9fe",
+    "note": "declared-callable identity joins function and intent signatures exactly with typed invalid/missing/found outcomes, and formal parameter identity is carried separately from TypeId; retained performance figures are not remeasured",
+    "owner_set_sha256": "FEA9C96176F5CA484123FFDACD8E0BFEC074E889C7B5DFE6C3DF12B29165DB9C",
     "owner_files_sha256": {
       "src/self_hosted/semantic/callable_resolution_owner.pgy": "DE376EFA2860286C2B5778526B79B92325105C744B5561BCC23428666E746AA0",
       "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy": "6A4F529B4B2B4EBB6278CE6342EB4FCA82494EB2F7BCA18820A92421F78E8EFA",
-      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "2DE52EB4387C7A8C7AF317B0C347965EA4A73062FF867F48D28C087B1307A5AA",
-      "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy": "13877B2761DF79DA0853D378571C75103D533EC19E4F5A1A8F9CBEE31DEBE075"
+      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "D776FB8A1393E8E70488E918A9AA459961000B6057F62BB1EC0C6CB2C096FCFE",
+      "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy": "689F82501946CA8487A8A85C858D31DE4A55F8168FBE15C5CA5351D994214C6D"
     }
   },
   "current_scan_owner_closure": {
