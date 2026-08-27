@@ -25,14 +25,18 @@ explicit-native canonical-event parity, and the missing-sibling negative. The
 Make-owned `self-host-lsp` build and C-only focused diagnostics target both exit
 0. A broad component-contract attempt was stopped after 90 seconds without
 output and is not claimed green. Dual-backend integration, publication, and
-exact-head CI remain open.
+exact-head CI were then supplied by publication `08c1d229`: run `33090103795`
+completed GREEN 30/30, including `build-linux` in 22m50s, full self-host in
+34m10s, codegen bootstrap in 8m20s, Windows in 8m36s, sanitizers in 11m38s, and
+all 20 backend shards.
 
 This is production `SUBSTITUTING` dogfood for one real C-owned public
 debug/diagnostics entrypoint. It does not replace the live JSON-RPC session,
 read-exact loop, semantic feature index, or the LSP-2/LSP-3 product, and it does
 not close `selfhost.semantic_artifact_admission` or another top-level registry
 row. Published progress values remain unchanged until their executable owner
-admits new evidence.
+admits new evidence. This bounded takeover is closed at the published exact
+revision; no whole-LSP successor is inferred from it.
 
 ## 2026-08-27 source-C compiler-purpose intent takeover
 

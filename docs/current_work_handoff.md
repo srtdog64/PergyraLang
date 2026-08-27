@@ -18,13 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - public LSP diagnostics dump takeover
+## Completed self-host context - public LSP diagnostics dump takeover
 
-- Resume checkpoint: implementation `26e8f9c2` is based on the local
-  documentation closure `d2890c64`; both remain ahead of `origin/main`
-  `17e05c9f` until publication. This handoff update is the direct documentation
-  checkpoint for that implementation. Protected untracked
-  `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
+- Published closure: implementation `26e8f9c2` and documentation checkpoint
+  `08c1d229` are on `origin/main`. Exact-head run `33090103795` completed GREEN
+  30/30. Protected untracked `docs/compiler_architectures/` and
+  `pgy-80135c2c/` remain untouched.
 - Objective card: replace default public
   `pgy-lsp --dump-diagnostics SOURCE` execution with the existing Pergyra
   diagnostics owner. Priority is one Pergyra payload owner, installed/public
@@ -51,15 +50,19 @@ percentage by themselves.
   missing-sibling failure. The Make-owned `self-host-lsp` build and its C-only
   focused diagnostics target both exit 0 against the current tree. A broad
   component-contract attempt was stopped after 90 seconds without output, so
-  it is not claimed green. Dual-backend integration, publication, and
-  exact-head CI remain open.
-- Grade and next falsifier: this is bounded production `SUBSTITUTING` for one
+  it is not claimed green from that local run. At that checkpoint dual-backend
+  integration, publication, and exact-head CI remained open. The later
+  exact-head full matrix supersedes those local omissions: `build-linux`
+  passed in 22m50s, full self-host in 34m10s, codegen fixed point in 8m20s,
+  Windows in 8m36s, sanitizers in 11m38s, and all 20 backend shards passed.
+- Grade and closure: this is bounded production `SUBSTITUTING` for one
   real C-owned debug/diagnostics CLI path. It does not replace the live
   JSON-RPC session, LSP-2 read-exact loop, semantic feature index, or LSP-3
-  product, and it closes no top-level SoT row or published percentage. Review
-  and commit this documentation checkpoint, publish it with the non-Markdown
-  implementation, and require the full exact-head CI matrix to own the broad
-  component and dual-backend evidence.
+  product, and it closes no top-level SoT row or published percentage. The
+  exact-head matrix closes this rung. No successor is inferred from LSP keyword
+  counts, query/cache proposals, or another SoT-only cleanup; admit one only
+  after naming a fresh production bypass, its complete Pergyra owner, the last
+  consumer, and one executable falsifier.
 
 ## Completed supporting context - Markdown-only CI isolation closed
 

@@ -6,12 +6,10 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — public LSP diagnostics dump takeover
+## DONE lease — public LSP diagnostics dump takeover
 
-- Editing/integration owner: the primary task. Implementation `26e8f9c2` is
-  based on local documentation closure `d2890c64`; both remain ahead of
-  `origin/main` `17e05c9f` until publication. No parallel implementation track
-  is open.
+- Published implementation `26e8f9c2` and documentation checkpoint `08c1d229`
+  are on `origin/main`. No parallel implementation track is open.
 - Objective: make default public `pgy-lsp --dump-diagnostics SOURCE` execute
   the installed Pergyra-built `pgy-self-lsp`; keep the native C dump only as
   the explicit `--native-pipeline` oracle. The Pergyra diagnostics owner owns
@@ -30,9 +28,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   and the C-only focused parity/negative gate are green. The Make-owned
   `self-host-lsp` build and C-only focused diagnostics target also exit 0. The
   broad component contract was stopped after 90 seconds without output and is
-  not claimed green; dual-backend integration, publication, and exact-head CI
-  remain open. This bounded path is `SUBSTITUTING`; whole LSP product state,
-  registry `50/35/1`, and published progress values remain unchanged.
+  not claimed green from that local run. Dual-backend integration, publication,
+  and exact-head CI were then owned by run `33090103795`, which completed GREEN
+  30/30.
+  `build-linux` passed in 22m50s, full self-host in 34m10s, codegen bootstrap in
+  8m20s, Windows in 8m36s, sanitizers in 11m38s, and backend shards 20/20. This
+  bounded path is `SUBSTITUTING`; whole LSP product state, registry `50/35/1`,
+  and published progress values remain unchanged. The lease is closed; no
+  successor implementation lease is inferred.
 - Protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
   remain untouched.
 

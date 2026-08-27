@@ -27,6 +27,14 @@ LSP-2/LSP-3 전체 제품 치환은 열지 않았고 top-level SoT 행도 닫지
 현재 공개 수치인 SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
 (81~85%), strict beta 83%, hard replacement 75%는 원격 폐쇄 전 그대로 유지한다.
 
+Publication `08c1d229`의 exact-head run `33090103795`는 GREEN 30/30으로 끝났다.
+`build-linux` 22분 50초, full self-host 34분 10초, codegen bootstrap 8분 20초,
+Windows 8분 36초, sanitizers 11분 38초, backend 20/20을 모두 통과했다. 따라서 위
+bounded public diagnostics takeover는 원격에서도 폐쇄됐다. 이는 whole LSP 제품이나
+새 top-level SoT 행 폐쇄가 아니므로 공개 진행률 수치는 그대로다. Fresh production
+bypass, complete Pergyra owner, last consumer, executable falsifier가 함께 관측되기
+전에는 successor를 추정하지 않는다.
+
 2026-08-27 Markdown-only push matrix isolation 로컬 구현: exact Git diff를
 `scripts/ci_change_scope_owner.sh` 하나가 분류하고 `build-linux`는 모든 push/PR에서
 계속 실행한다. 따라서 Markdown 계약도 기존 compiler build, `test-all`, self-host
