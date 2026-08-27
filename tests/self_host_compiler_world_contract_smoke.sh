@@ -193,7 +193,7 @@ require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "drive
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_installed_cli_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" 'import "driver_rung2_artifact_request_execution_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" 'import "driver_source_c_stdout_execution_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "PublishSourceCArtifactThroughPgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "CompileSourceToCThroughPgyCompilerWorld("
 require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "DriverSourceCExecutionOutcomeReadyFor("
 require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "DriverSourceCExecutionOutcomeDiagnostic("
 forbid_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" "CompileSourceToCVerified("
@@ -226,9 +226,12 @@ forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMi
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "action ProduceSourceMir("
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "action PublishSourceMirArtifact("
 require_text "src/self_hosted/compiler/driver_source_mir_execution_owner.pgy" "SelfMirProgramJsonWriteArtifactVerified("
-require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "action PublishSourceCArtifact("
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "action Compile("
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "CompileSourceToCVerified("
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "SelfMirArtifactCommitPayload("
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" "intent CompilePergyraCArtifact("
+forbid_text "src/self_hosted/compiler/world.pgy" "func PublishSourceCArtifact("
+forbid_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" "PublishSourceCArtifactThroughPgyCompilerWorld("
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 'args[0] == "--mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" "PublishMirCArtifactThroughPgyCompilerWorld("
 require_text "src/self_hosted/compiler/world.pgy" "func ProduceMirC("
@@ -394,7 +397,7 @@ for term in \
     "func ProduceSourceMir(" \
     "func PublishSourceMirArtifact(" \
     "func ProduceSourceC(" \
-    "func PublishSourceCArtifact(" \
+    "func CompileSourceToC(" \
     "func CompileSourceToLlvm(" \
     "intent CompilePergyraProgram" \
     "step Compile" \
@@ -1407,12 +1410,13 @@ awk '
                 action = substr(target, separator + 1)
                 type_name = intent_alias_types[delegated_intents[i] SUBSEP alias]
                 key = type_name "." action
-                # The canonical compiler-purpose action is authorized by its
-                # identity-bearing subject inside the source-LLVM zone; it
-                # does not invent a second ability solely for orchestration.
+                # Canonical compiler-purpose actions are authorized by their
+                # identity-bearing subjects inside target zones; they do not
+                # invent a second ability solely for orchestration.
                 if (type_name == "" || action_count[key] != 1 ||
                     (action_requires[key] != 1 &&
-                     key != "DriverSourceLlvmIntentExecution.Compile") ||
+                     key != "DriverSourceLlvmIntentExecution.Compile" &&
+                     key != "DriverSourceCExecution.Compile") ||
                     action_within[key] != 1 ||
                     action_authorized[key] != 1) {
                     print "incomplete delegated action contract " key > "/dev/stderr"
@@ -1428,6 +1432,8 @@ grep -Fq "World: PgyCompilerWorld" "$ast_out" ||
     fail "compiler world AST missing PgyCompilerWorld"
 grep -Fq "Intent: CompilePergyraProgram" "$ast_out" ||
     fail "compiler world AST missing CompilePergyraProgram intent"
+grep -Fq "Intent: CompilePergyraCArtifact" "$ast_out" ||
+    fail "compiler world AST missing CompilePergyraCArtifact intent"
 grep -Fq "Intent: LexSource" "$ast_out" ||
     fail "compiler world AST missing LexSource intent"
 grep -Fq "Intent: ProveSelfHostedParity" "$ast_out" ||

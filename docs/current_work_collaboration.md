@@ -6,24 +6,39 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — select the next semantic-artifact-admission executable rung
+## ACTIVE lease — source-C compiler-purpose intent takeover
 
 - The preceding formal/intent callable identity lease is closed by published
-  implementation/checkpoint `9454f9fe`/`4a1261ec` and exact-head run
-  `33061911002`, which completed GREEN 29/29. The protected untracked
+  implementation/checkpoint `9454f9fe`/`5d7740ce` and exact-head run
+  `33064629767`, which completed GREEN 29/29. The protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/` paths remain out of scope.
-- Objective: inspect the current `selfhost.semantic_artifact_admission` ACTIVE
-  family and name one production entrypoint, direct C-owned bypass, existing
-  Pergyra fact owner, last orchestration consumer, and falsifying fixture before
-  implementation. The primary task owns this selection and publication.
-- Forbidden: opening a general identity algebra rewrite, query/cache layer,
-  O(n^2) epoch replacement, performance track, or parallel implementation lane
-  before that exact executable tuple is recorded. Review recommendations are
-  evidence to test, not semantic authority.
-- Integration gate: `Unknown` until inspection names the reached production
-  path and its focused parity/negative gate. No implementation progress is
-  claimed by this lease. Registry/progress stay `50/35/1`, 58.1%, 78.8%,
-  integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
+- Objective: make public `pgy SOURCE --emit-c -o OUTPUT` reach one real-purpose
+  source-C compiler intent. `DriverSourceCExecution` and its typed outcome own
+  compile/transaction facts; `DriverRung2InstalledPublishSourceC` is the last
+  orchestration consumer.
+- Direct bypass to delete:
+  `DriverRung2InstalledPublishSourceC` ->
+  `PublishSourceCArtifactThroughPgyCompilerWorld` ->
+  `PgyCompilerWorld.PublishSourceCArtifact` -> source-C action. The replacement
+  must retain one owner and may not duplicate compile/commit logic, keep a
+  direct fallback, retry natively, or infer the target from display text.
+- Integration gate: tighten `driver_source_c_execution_action_gate.sh` around
+  installed/public byte parity, compiled runtime intent/trace output,
+  transaction no-artifact rejection, exact successful
+  `CompilePergyraCArtifact` history, and static absence of the retired direct
+  publish names. Only the primary task edits and publishes this rung.
+- General identity algebra, query/cache, O(n^2) epoch, and performance work stay
+  closed. Registry/progress remain `50/35/1`, 58.1%, 78.8%, integrated 83%
+  (81-85%), strict beta 83%, and hard replacement 75% until executable evidence.
+- Local implementation has deleted the direct world/composition publish path.
+  `DriverSourceCExecution.Compile` stores the typed outcome, one
+  `CompilePergyraCArtifact` step observes its Bool completion, and the world and
+  installed consumer cross-check outcome plus intent history. An isolated
+  current-source Pergyra-built driver passes source-C installed/public parity,
+  compile/run, manifest and transaction negatives. Native world AST, topology,
+  source scan, likeness 4393/4393 and 15/15, atomic transaction, shell syntax,
+  and hard contract are green. Full component inventory is not claimed green;
+  publication and exact-head CI remain the integration falsifiers.
 
 ## DONE lease — native formal and intent callable identity carriage
 

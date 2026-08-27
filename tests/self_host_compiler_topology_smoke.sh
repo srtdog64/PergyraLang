@@ -96,6 +96,7 @@ awk '
     }
     in_world && /^}/ { in_world = 0 }
     /intent[[:space:]]+CompilePergyraProgram[[:space:]]*\(/ { compile_intent++ }
+    /intent[[:space:]]+CompilePergyraCArtifact[[:space:]]*\(/ { source_c_intent++ }
     /step[[:space:]]+Compile[[:space:]]*\{/ { compile_step++ }
     /step[[:space:]]+(Frontend|MiddleEnd|Evidence|Backend|SelfProof)[[:space:]]*\{/ {
         readiness_step++
@@ -108,7 +109,8 @@ awk '
             source_llvm_member != 1 || source_c_member != 1 ||
             direct_member_is_first != 1 || source_member_is_second != 1 ||
             source_llvm_member_is_third != 1 || source_c_member_is_fourth != 1 ||
-            compile_intent != 1 || compile_step != 1 || readiness_step != 0 ||
+            compile_intent != 1 || source_c_intent != 1 || compile_step != 2 ||
+            readiness_step != 0 ||
             duplicate_aggregate != 0) {
             exit 1
         }
@@ -184,7 +186,10 @@ for owner_term in \
     "$SOURCE_LLVM_EXECUTION|subject slot execution: DriverSourceLlvmIntentExecution" \
     "$SOURCE_LLVM_EXECUTION|authority execution" \
     "$SOURCE_C_EXECUTION|public zone DriverSourceCZone" \
+    "$SOURCE_C_EXECUTION|intent CompilePergyraCArtifact(" \
+    "$SOURCE_C_EXECUTION|let mut outcome: Option<DriverSourceCExecutionOutcome>;" \
     "$SOURCE_C_EXECUTION|action ProduceSourceC(" \
+    "$SOURCE_C_EXECUTION|action Compile(" \
     "$SOURCE_C_EXECUTION|subject slot execution: DriverSourceCExecution" \
     "$SOURCE_C_EXECUTION|authority execution" \
     "$WORLD|zone direct_mir: DriverRung2DirectMirZone" \
@@ -198,7 +203,7 @@ for owner_term in \
     "$WORLD|return self.source_mir.execution.PublishSourceMirArtifact(" \
     "$WORLD|let completed: Bool = CompilePergyraProgram(" \
     "$WORLD|return self.source_c.execution.ProduceSourceC(" \
-    "$WORLD|return self.source_c.execution.PublishSourceCArtifact(" \
+    "$WORLD|let completed: Bool = CompilePergyraCArtifact(" \
     "$COMPOSITION|import \"world.pgy\";" \
     "$COMPOSITION|func PgyCompilerWorldMaterializeExecutableZones()" \
     "$COMPOSITION|func EmitDirectMirThroughPgyCompilerWorld(" \
@@ -207,7 +212,7 @@ for owner_term in \
     "$COMPOSITION|func ProduceSourceMirThroughPgyCompilerWorld(" \
     "$COMPOSITION|func PublishSourceMirArtifactThroughPgyCompilerWorld(" \
     "$COMPOSITION|func ProduceSourceCThroughPgyCompilerWorld(" \
-    "$COMPOSITION|func PublishSourceCArtifactThroughPgyCompilerWorld(" \
+    "$COMPOSITION|func CompileSourceToCThroughPgyCompilerWorld(" \
     "$COMPOSITION|DriverRung2DirectMirZone(" \
     "$COMPOSITION|DriverSourceMirZone(" \
     "$COMPOSITION|DriverSourceLlvmIntentZone(" \
@@ -218,7 +223,7 @@ for owner_term in \
     "$COMPOSITION|return compiler_world.ProduceSourceMir(" \
     "$COMPOSITION|return compiler_world.PublishSourceMirArtifact(" \
     "$COMPOSITION|return compiler_world.ProduceSourceC(" \
-    "$COMPOSITION|return compiler_world.PublishSourceCArtifact(" \
+    "$COMPOSITION|return compiler_world.CompileSourceToC(" \
     "$SOURCE_C_STDOUT|ProduceSourceCThroughPgyCompilerWorld(" \
     "$SOURCE_C_STDOUT|DriverSourceCPayloadAdmissionReadyFor(" \
     "$MIR_C_STDOUT|ProduceMirCThroughPgyCompilerWorld(" \
@@ -237,7 +242,8 @@ for owner_term in \
     "$ARTIFACT_EXECUTION|EmitDirectMirThroughPgyCompilerWorld(" \
     "$ARTIFACT_EXECUTION|PublishMirCArtifactThroughPgyCompilerWorld(" \
     "$ARTIFACT_EXECUTION|PublishSourceMirArtifactThroughPgyCompilerWorld(" \
-    "$ARTIFACT_EXECUTION|PublishSourceCArtifactThroughPgyCompilerWorld(" \
+    "$ARTIFACT_EXECUTION|CompileSourceToCThroughPgyCompilerWorld(" \
+    "$ARTIFACT_EXECUTION|IntentLastName() != \"CompilePergyraCArtifact\"" \
     "$ARTIFACT_EXECUTION|CompileSourceToLlvmThroughPgyCompilerWorld(" \
     "$ROOT_EXECUTION|func CompileSourceToLlvmThroughPgyCompilerWorld("; do
     owner="${owner_term%%|*}"
@@ -245,6 +251,11 @@ for owner_term in \
     [[ "$(grep -F -c -- "$term" "$owner")" -eq 1 ]] ||
         fail "direct-MIR topology fact must occur exactly once: $term"
 done
+
+if grep -Fq -- 'func PublishSourceCArtifact(' "$WORLD" ||
+    grep -Fq -- 'PublishSourceCArtifactThroughPgyCompilerWorld(' "$COMPOSITION"; then
+    fail "retired direct source-C world publication path returned"
+fi
 
 [[ "$(grep -F -c -- 'within DriverRung2DirectMirZone' "$EXECUTION")" -eq 3 ]] ||
     fail "direct-MIR subject must expose exactly three zone-bound actions"
@@ -344,7 +355,7 @@ source_c_zone_decl_count="$(
 )"
 [[ "$source_c_zone_decl_count" -eq 1 ]] ||
     fail "DriverSourceCZone must have exactly one declaration"
-[[ "$(grep -F -c -- 'DriverSourceCZone' "$WORLD")" -eq 1 ]] ||
+[[ "$(grep -F -c -- 'zone source_c: DriverSourceCZone' "$WORLD")" -eq 1 ]] ||
     fail "PgyCompilerWorld must bind DriverSourceCZone exactly once"
 
 awk '
@@ -387,7 +398,7 @@ awk '
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishDirectMir -> EmitDirectMirThroughPgyCompilerWorld/ { reachable_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2ExecuteReadRequest -> DriverRung2CliLogMirCPayloadOrDie -> ProduceMirCThroughPgyCompilerWorld/ { reachable_mir_c_stdout_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceMir -> PublishSourceMirArtifactThroughPgyCompilerWorld/ { reachable_source_path++ }
-    /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceC -> PublishSourceCArtifactThroughPgyCompilerWorld/ { reachable_source_c_path++ }
+    /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceC -> CompileSourceToCThroughPgyCompilerWorld/ { reachable_source_c_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2ExecuteReadRequest -> DriverRung2CliLogSourceCPayloadOrDie -> ProduceSourceCThroughPgyCompilerWorld/ { reachable_source_c_stdout_path++ }
     /driver_bootstrap_main\.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceLlvm -> CompileSourceToLlvmThroughPgyCompilerWorld/ { reachable_source_llvm_path++ }
     /exactly 22 concrete resource zones and four executable world members/ { exact_topology++ }

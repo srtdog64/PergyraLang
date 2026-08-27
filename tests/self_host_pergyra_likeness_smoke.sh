@@ -349,21 +349,21 @@ SENTINEL_MAX=23
 # carries invalid facts as Err, a legitimate miss as Ok(0), and an exact
 # declaration identity as Ok(SyntaxNodeId). Runtime ABI fallback is reached only
 # from the explicit successful miss, never from an invalid fact set.
-RESULT_USE_MIN=4385
+RESULT_USE_MIN=4393
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world
 # contains only the production-reachable slice. Adding a member requires
 # deleting that stage's old production bypass first.
 COMPILER_WORLD_MEMBERS_EXACT=4
-COMPILER_INTENT_SURFACE_MIN=14
+COMPILER_INTENT_SURFACE_MIN=15
 # Count both intent `where` and action-owned `within` spellings. The bounded
 # compiler-purpose takeover deletes five readiness-only root steps and adds one
 # real source-to-LLVM action. Four of the old multiline steps matched this
 # metric, so 38 -> 35 is a measured net removal of three fake lifecycle
 # bindings, not loss of a resource boundary. The new zone itself is
 # exact-counted above and its action is included in this floor.
-COMPILER_ZONE_BOUND_STEPS_MIN=35
+COMPILER_ZONE_BOUND_STEPS_MIN=37
 COMPILER_STAGE_BINDINGS_EXACT=5
 COMPILER_WORLD_FACT_CONSUMERS_MIN=19
 STAGE_PAYLOAD_CONSUMERS_EXACT=7
@@ -566,7 +566,8 @@ compiler_resource_zones=$(count_lines_in_files '^(public[[:space:]]+)?zone[[:spa
 compiler_world_members=$(count_world_zone_members)
 compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
     src/self_hosted/compiler/world.pgy \
-    src/self_hosted/compiler/stage_intents.pgy)
+    src/self_hosted/compiler/stage_intents.pgy \
+    src/self_hosted/compiler/driver_source_c_execution_owner.pgy)
 compiler_zone_bound_steps=$(count_lines_in_files 'where:[[:space:]]*[A-Za-z0-9_]+Zone;|^[[:space:]]*(requires[[:space:]]+[A-Za-z0-9_]+[[:space:]]+)?within[[:space:]]+[A-Za-z0-9_]+Zone' \
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy \
@@ -702,6 +703,8 @@ require_file_text "src/self_hosted/compiler/world.pgy" "using: intent_zone;"
 require_file_text "src/self_hosted/compiler/world.pgy" \
     "on action_succeeded: intent_execution.Compile("
 require_file_text "src/self_hosted/compiler/world.pgy" "expect: action_succeeded;"
+require_file_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
+    "intent CompilePergyraCArtifact("
 
 # ---- improvement nudges (non-fatal): tell the author to tighten the ratchet ----
 if [ "$core_string_munge_sig" -lt "$CORE_STRING_MUNGE_SIG_MAX" ] \

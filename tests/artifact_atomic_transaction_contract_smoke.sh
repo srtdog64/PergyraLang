@@ -122,8 +122,8 @@ grep -Fq 'SelfMirArtifactCommitStatusKnown(failure.status)' "$TX_OWNER" || {
 }
 
 bash "$SOURCE_ACTION_GATE" >/dev/null
-grep -Fq 'PublishSourceCArtifactThroughPgyCompilerWorld(' "$INSTALLED_CLI" || {
-    echo "installed CLI lost the source-C world/action boundary" >&2
+grep -Fq 'CompileSourceToCThroughPgyCompilerWorld(' "$INSTALLED_CLI" || {
+    echo "installed CLI lost the source-C intent boundary" >&2
     exit 1
 }
 source_c_publish="$(awk '/^func DriverRung2InstalledPublishSourceC\(/{inside=1} inside{print} inside && /^}/{exit}' "$INSTALLED_CLI")"

@@ -10,14 +10,20 @@ func DriverRung2InstalledPublishSourceC(
     output_path: String,
     request: DriverSourceCRequest
 ) -> Void with caps io_read, io_write {
+    let history_before: Int = IntentHistoryCount();
     let outcome: DriverSourceCExecutionOutcome =
-        PublishSourceCArtifactThroughPgyCompilerWorld(
+        CompileSourceToCThroughPgyCompilerWorld(
             source_path, output_path, request
         );
     if !DriverSourceCExecutionOutcomeReadyFor(
         outcome, source_path, output_path
     ) {
         Log(DriverSourceCExecutionOutcomeDiagnostic(outcome, source_path, output_path));
+        Exit(1);
+    }
+    if IntentHistoryCount() != history_before + 1 ||
+        IntentLastName() != "CompilePergyraCArtifact" || IntentLastFailed() {
+        Log("source C intent trace did not record one successful canonical root");
         Exit(1);
     }
 }

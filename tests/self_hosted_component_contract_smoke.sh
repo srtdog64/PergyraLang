@@ -23500,6 +23500,12 @@ require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
     'within DriverSourceCZone'
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
     'action ProduceSourceC('
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
+    'action Compile('
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
+    'intent CompilePergyraCArtifact('
+require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
+    'let mut outcome: Option<DriverSourceCExecutionOutcome>;'
 require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" \
     'SourceCManifestVerified(SelfHostMachineLayerDeclaration)'
 require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" \
@@ -23523,7 +23529,7 @@ require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func ProduceSourceCThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
-    'func PublishSourceCArtifactThroughPgyCompilerWorld('
+    'func CompileSourceToCThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'import "driver_rung2_cli_request_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
@@ -23533,7 +23539,13 @@ require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_o
 require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
     'PublishSourceMirArtifactThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
+    'CompileSourceToCThroughPgyCompilerWorld('
+require_text "src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy" \
+    'IntentLastName() != "CompilePergyraCArtifact"'
+reject_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'PublishSourceCArtifactThroughPgyCompilerWorld('
+reject_text "src/self_hosted/compiler/world.pgy" \
+    'func PublishSourceCArtifact('
 reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     'DriverRung2InstalledCommitSourceC'
 reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \

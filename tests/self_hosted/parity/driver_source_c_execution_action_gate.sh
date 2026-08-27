@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
 # Ratchets source_c_installed_direct_compile_commit.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
-
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 CC="${CC:-cc}"
@@ -23,7 +21,6 @@ ARTIFACT_EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifa
 
 fail() { echo "[driver-source-c-execution-action] $1" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
-
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then PGY="${PGY}.exe"; fi
 if [[ "$SELF_DRIVER" != *.exe ]] && pgy_binary_expects_windows_paths "${SELF_DRIVER}.exe"; then SELF_DRIVER="${SELF_DRIVER}.exe"; fi
 [[ -x "$PGY" ]] || fail "missing public launcher: $PGY"
@@ -43,7 +40,7 @@ for term in 'tobject DriverSourceCExecutionReceipt' \
     'enum DriverSourceCExecutionOutcome'; do
     require_text "$PROTOCOL_OWNER" "$term"
 done
-for term in 'subject DriverSourceCExecution' 'action PublishSourceCArtifact(' \
+for term in 'subject DriverSourceCExecution' 'let mut outcome: Option<DriverSourceCExecutionOutcome>;' 'action Compile(' \
     'within DriverSourceCZone' 'authorized by self' \
     'public zone DriverSourceCZone' \
     'subject slot execution: DriverSourceCExecution' 'authority execution' \
@@ -62,17 +59,18 @@ done
 grep -Fq 'Fallback' "$SOURCE_OWNER" && fail "source-C action regained a fallback branch"
 
 for term in 'zone source_c: DriverSourceCZone' \
-    'func PublishSourceCArtifact(' \
-    'self.source_c.execution.PublishSourceCArtifact('; do
+    'func CompileSourceToC(' 'CompilePergyraCArtifact(' \
+    'DriverSourceCExecutionOutcomeReadyFor('; do
     require_text "$WORLD_OWNER" "$term"
 done
 for term in 'DriverSourceCZone(DriverSourceCExecution(' \
-    'func PublishSourceCArtifactThroughPgyCompilerWorld(' \
-    'compiler_world.PublishSourceCArtifact('; do
+    'DriverSourceCExecutionTopologyIdentity(), None' \
+    'func CompileSourceToCThroughPgyCompilerWorld(' \
+    'compiler_world.CompileSourceToC('; do
     require_text "$COMPOSITION_OWNER" "$term"
 done
 for term in 'func DriverRung2InstalledPublishSourceC(' \
-    'PublishSourceCArtifactThroughPgyCompilerWorld(' \
+    'CompileSourceToCThroughPgyCompilerWorld(' \
     'source_path, output_path, request' \
     'DriverSourceCExecutionOutcomeReadyFor(' \
     'DriverSourceCExecutionOutcomeDiagnostic('; do
@@ -83,11 +81,13 @@ require_text "$INSTALLED_OWNER" 'SourceCManifestVerified('
 ! grep -Fq 'DriverRung2InstalledCommitSourceC' "$ARTIFACT_EXECUTION_OWNER" ||
     fail "retired installed source-C direct commit returned"
 installed_publish="$(awk '/^func DriverRung2InstalledPublishSourceC\(/{inside=1} inside{print} inside && /^}/{exit}' "$ARTIFACT_EXECUTION_OWNER")"
+grep -Fq 'IntentHistoryCount() != history_before + 1' <<<"$installed_publish" && grep -Fq 'IntentLastName() != "CompilePergyraCArtifact"' <<<"$installed_publish" || fail "installed source-C intent trace escaped its consumer"
 grep -Fq 'CompileSourceToCVerified(' <<<"$installed_publish" &&
     fail "installed CLI regained the direct source-C compiler bypass"
 grep -Fq 'SelfMirArtifactCommitPayload(' <<<"$installed_publish" &&
     fail "installed CLI regained the direct source-C commit bypass"
-
+grep -REq 'PublishSourceCArtifactThroughPgyCompilerWorld|\.PublishSourceCArtifact\(' \
+    "$COMPOSITION_OWNER" "$WORLD_OWNER" "$ARTIFACT_EXECUTION_OWNER" && fail "retired direct source-C world publish returned"
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-c-artifact-verified \

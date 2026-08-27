@@ -1,5 +1,25 @@
 # Self-Host Progress
 
+## Active self-host context - 2026-08-27 source-C compiler-purpose intent takeover
+
+- Public installed `pgy SOURCE --emit-c -o OUTPUT` now reaches one
+  `CompilePergyraCArtifact` intent. `DriverSourceCExecution` keeps the existing
+  compile/transaction authority, stores the typed outcome, and returns the Bool
+  observed by the intent; the world rejects missing or crossed completion.
+- The direct `PublishSourceCArtifactThroughPgyCompilerWorld` and
+  `PgyCompilerWorld.PublishSourceCArtifact` path is deleted and negative-gated.
+  The installed consumer requires one successful canonical source-C intent
+  history row. There is no duplicate compile/commit owner or native fallback.
+- An isolated current-source Pergyra-built DRV-2 passes installed/public C byte
+  parity, C compile/run, machine-manifest and transaction no-artifact negatives.
+  Native world AST, topology, source scan, likeness (`4393/4393`, intent
+  `15/15`, zone-bound `37/37`), atomic transaction, and hard contracts are
+  green. Complete component inventory is not claimed green.
+- This is production `REACHABLE` intent dogfood, not a new hard replacement
+  numerator because source-C was already Pergyra-backed. SoT remains
+  `CLOSED=50 BRIDGE=35 ACTIVE=1`; hard closure 58.1%, migration 78.8%, overall
+  83% (81-85%), strict beta 83%, and hard replacement 75% remain unchanged.
+
 ## Active self-host context - 2026-08-27 callable-parameter public substitution
 
 - Canonical recursive `func(T...) -> R` shapes now survive parser, semantic

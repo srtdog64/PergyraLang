@@ -30,11 +30,11 @@ driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2I
     -> DriverSourceMirZone.execution
     -> DriverSourceMirExecution.PublishSourceMirArtifact
 
-driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceC -> PublishSourceCArtifactThroughPgyCompilerWorld
-    -> PgyCompilerWorld.PublishSourceCArtifact
+driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2InstalledPublishSourceC -> CompileSourceToCThroughPgyCompilerWorld
+    -> PgyCompilerWorld.CompileSourceToC
     -> PgyCompilerWorld.source_c
-    -> DriverSourceCZone.execution
-    -> DriverSourceCExecution.PublishSourceCArtifact
+    -> CompilePergyraCArtifact
+    -> DriverSourceCZone.execution.Compile
 
 driver_bootstrap_main.Main -> DriverRung2ExecuteInstalledRequest -> DriverRung2ExecuteReadRequest -> DriverRung2CliLogSourceCPayloadOrDie -> ProduceSourceCThroughPgyCompilerWorld
     -> PgyCompilerWorld.ProduceSourceC
@@ -59,9 +59,11 @@ bin/pgy --self-driver -> native sibling launcher -> bin/pgy-self-driver
 ```
 
 Compiling `world.pgy` remains supporting shape evidence only. The distinct
-production evidence is the exact source-to-LLVM entrypoint above: it invokes
-`CompilePergyraProgram` once and the C host's old source-MIR/backend subprocess
-pair is absent. This promotes only that bounded compiler-purpose slice. The exact
+source-to-LLVM evidence invokes `CompilePergyraProgram` once and deletes the C
+host's old source-MIR/backend subprocess pair, so only that bounded slice is
+`SUBSTITUTING`. Source-to-C now invokes `CompilePergyraCArtifact` once and
+deletes its internal direct world publication path; because the public compiler
+was already Pergyra-backed, that newer slice is `REACHABLE`. The exact
 SURFACE/REACHABLE/SUBSTITUTING distinction and takeover order remain owned by
 `17_pergyra_native_dogfood_contract.md`.
 

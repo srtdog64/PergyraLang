@@ -18,30 +18,58 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - select the next semantic-artifact-admission executable rung
+## Active self-host context - source-C compiler-purpose intent takeover
 
 - Closed predecessor: formal/intent callable identity implementation
-  `9454f9fe`, documentation checkpoint `4a1261ec`, and exact-head run
-  `33061911002` are published and GREEN 29/29. The run includes `build-linux`,
+  `9454f9fe`, closure checkpoint `5d7740ce`, and exact-head run
+  `33064629767` are published and GREEN 29/29. The run includes `build-linux`,
   full self-host fixed point, codegen bootstrap, 20 backend shards,
   Windows/macOS, sanitizers, TSan, and Rocq. The prior gen0, hard-contract, and
   likeness failures are therefore closed at the exact published revision.
-- Objective card: select one production path inside the still-`ACTIVE`
-  `selfhost.semantic_artifact_admission` family where a Pergyra-owned fact can
-  replace a real C-owned compiler bypass. Priority is semantic identity and one
-  SoT, owner-directed facts, fallback deletion, a negative ratchet, then patch
-  size. The registry row is the family owner; the exact production entrypoint,
-  direct bypass, last orchestration consumer, and falsifying fixture are
-  `Unknown` until current-source inspection names all four. No structural
-  implementation or completion is inferred from this selection card.
+- Objective card: make public installed source-to-C compilation execute one
+  real-purpose Pergyra intent instead of directly publishing through a world
+  method. Priority is one semantic owner, typed outcome carriage, direct-bypass
+  deletion, intent trace, negative ratchet, then patch size.
+  `DriverSourceCExecution` and `DriverSourceCExecutionOutcome` own compile,
+  transaction, and typed result facts; `DriverRung2InstalledPublishSourceC` is
+  the last orchestration consumer. Duplicating compile/commit logic in an
+  intent wrapper, keeping direct publish beside the intent, native retry, and
+  target-name inference are forbidden.
+- Production entrypoint and direct bypass: public
+  `pgy SOURCE --emit-c -o OUTPUT` dispatches the installed
+  `DriverCliSourceCArtifact` request into
+  `DriverRung2InstalledPublishSourceC`, which at baseline called
+  `PublishSourceCArtifactThroughPgyCompilerWorld` ->
+  `PgyCompilerWorld.PublishSourceCArtifact` ->
+  `DriverSourceCExecution.PublishSourceCArtifact`. Source-to-LLVM already uses
+  a real-purpose intent; this source-C chain is the reached direct bypass.
+- Verification/falsifier: `driver_source_c_execution_action_gate.sh` owns
+  installed/public byte parity, compiled runtime intent/trace output, and
+  no-artifact transaction rejection. Tighten it so the old world/composition
+  publish names cannot return and one successful `CompilePergyraCArtifact`
+  trace is mandatory. Installed-driver evidence must then pass the existing
+  source-C action gate and bootstrap/source-scan integration gates.
 - Scope guard: the attached identity-algebra review is an audit lens, not
   authority to open a general query engine, cache, O(n^2) epoch rewrite, or
   performance track. Those remain unopened unless the selected executable rung
   reaches them as its exact blocker. Protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
-- Next action: inspect the current production entrypoints, the ACTIVE owner row,
-  and its existing negative gates; then record one exact entrypoint/bypass/
-  consumer/fixture tuple before editing. Registry and progress remain
+- Local implementation: `DriverSourceCExecution` now stores one typed outcome
+  and its `Compile` action is the single step of `CompilePergyraCArtifact`.
+  `PgyCompilerWorld.CompileSourceToC` cross-checks Bool completion against that
+  outcome; the old world/composition publish methods are deleted. The installed
+  consumer requires one successful canonical intent history row. The first
+  isolated self-build exposed a misplaced trace block in the next source-MIR
+  function; the repaired focused gate now verifies trace locality inside the
+  source-C consumer itself.
+- Fresh local evidence: isolated current-source Pergyra-built DRV-2 plus
+  installed/public C byte parity, C compile/run, manifest and transaction
+  negatives are green. Native compiler-world AST, topology, source scan,
+  likeness (`4393/4393`, intent `15/15`, zone-bound `37/37`), atomic
+  transaction, shell syntax, and hard contract are green. Compiler-world and
+  hard-contract exceeded the 60-second static budget but completed green; full
+  component inventory did not run and is not claimed green. Publication and
+  exact-head CI are the next falsifiers. Registry and progress remain
   `50 CLOSED / 35 BRIDGE / 1 ACTIVE`, hard closure 58.1%, migration 78.8%,
   integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
 

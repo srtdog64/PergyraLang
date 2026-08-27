@@ -2,6 +2,26 @@
 
 마지막 업데이트: 2026-08-27
 
+2026-08-27 source-C compiler-purpose intent 로컬 구현: public installed
+`pgy SOURCE --emit-c -o OUTPUT`가 이제 한 `CompilePergyraCArtifact` intent를
+실행한다. `DriverSourceCExecution`은 기존 compile/transaction 권위를 유지하면서
+typed outcome을 저장하고, intent는 Bool completion만 관측한다. World는 outcome 부재나
+Bool/outcome 불일치를 거부하고 installed consumer는 정확히 한 성공 intent history를
+요구한다. 기존 `PublishSourceCArtifactThroughPgyCompilerWorld` 및 world direct publish
+경로는 삭제되고 정적 negative로 고정됐다. Compile/commit 복제나 native retry는 없다.
+
+격리된 current-source Pergyra-built DRV-2가 installed/public C byte parity, C compile/run,
+manifest 검증, missing-parent no-artifact transaction rejection을 통과했다. Native world
+AST, topology, source scan, likeness (`Result`/`Option` 4393/4393, intent 15/15,
+zone-bound 37/37), atomic transaction, shell syntax, hard contract도 green이다. 첫 격리
+self-build는 trace block이 다음 source-MIR 함수로 잘못 들어간 scope 결함을 찾았고,
+수리 뒤 gate가 source-C consumer 본문 안의 trace locality를 직접 검증한다. Full
+component inventory는 실행하지 않아 green으로 세지 않는다. 이는 이미 Pergyra-backed인
+source-C 내부 orchestration을 intent로 닫은 `REACHABLE` dogfood이며 새 hard replacement
+분자는 아니다. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
+(81~85%), strict beta 83%, hard replacement 75%는 유지한다. Publication과 exact-head
+CI가 다음 falsifier다.
+
 2026-08-27 native formal/intent callable identity 구현 `e1ad082f`: native
 `FuncParam`은 이제 AST node와 별개의 parser-owned stable declaration ID를 갖고,
 semantic parameter symbol, MIR routine `source_syntax_id`, persisted expression

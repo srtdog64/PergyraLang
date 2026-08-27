@@ -17,7 +17,7 @@ func PgyCompilerWorldMaterializeExecutableZones() -> PgyCompilerWorld {
         )),
         DriverSourceCZone(DriverSourceCExecution(
             DriverSourceCExecutionOwnerIdentity(),
-            DriverSourceCExecutionTopologyIdentity()
+            DriverSourceCExecutionTopologyIdentity(), None
         ))
     );
     return compiler_world;
@@ -80,11 +80,11 @@ func ProduceSourceCThroughPgyCompilerWorld(
     return compiler_world.ProduceSourceC(source_path, request);
 }
 
-func PublishSourceCArtifactThroughPgyCompilerWorld(
+func CompileSourceToCThroughPgyCompilerWorld(
     source_path: String,
     output_path: String,
     request: DriverSourceCRequest
 ) -> DriverSourceCExecutionOutcome with caps io_read, io_write {
     let compiler_world: PgyCompilerWorld = PgyCompilerWorldMaterializeExecutableZones();
-    return compiler_world.PublishSourceCArtifact(source_path, output_path, request);
+    return compiler_world.CompileSourceToC(source_path, output_path, request);
 }

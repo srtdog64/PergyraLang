@@ -63,6 +63,7 @@ func DriverSourceCProducePayloadAdmitted(
 subject DriverSourceCExecution {
     let identity: String;
     let topology_identity: String;
+    let mut outcome: Option<DriverSourceCExecutionOutcome>;
 
     action ProduceSourceC(
         self,
@@ -78,20 +79,21 @@ subject DriverSourceCExecution {
         );
     }
 
-    action PublishSourceCArtifact(
+    action Compile(
         self,
         source_path: String,
         output_path: String,
         request: DriverSourceCRequest
-    ) -> DriverSourceCExecutionOutcome
+    ) -> Bool
         within DriverSourceCZone
         authorized by self
         with caps io_read, io_write {
         if output_path == "" {
-            return DriverSourceCRejectedOutcome(
+            self.outcome = Some(DriverSourceCRejectedOutcome(
                 source_path, output_path,
                 "source C artifact destination path is empty"
-            );
+            ));
+            return false;
         }
         let admission: DriverSourceCPayloadAdmission =
             DriverSourceCProducePayloadAdmitted(
@@ -100,20 +102,22 @@ subject DriverSourceCExecution {
             );
         match admission {
             case DriverSourceCPayloadDenied(rejection):
-                return DriverSourceCRejectedOutcome(
+                self.outcome = Some(DriverSourceCRejectedOutcome(
                     source_path, output_path,
                     DriverSourceCPayloadAdmissionDiagnostic(
                         admission, source_path, request
                     )
-                );
+                ));
+                return false;
             case DriverSourceCPayloadAdmitted(receipt):
                 if !DriverSourceCPayloadReceiptReadyFor(
                     receipt, source_path, request
                 ) {
-                    return DriverSourceCRejectedOutcome(
+                    self.outcome = Some(DriverSourceCRejectedOutcome(
                         source_path, output_path,
                         "source C payload receipt is invalid"
-                    );
+                    ));
+                    return false;
                 }
                 let committed: SelfMirArtifactCommitOutcome =
                     SelfMirArtifactCommitPayload(
@@ -124,12 +128,13 @@ subject DriverSourceCExecution {
                         if !SelfMirArtifactReceiptReadyFor(
                             commit_receipt, output_path
                         ) {
-                            return DriverSourceCRejectedOutcome(
+                            self.outcome = Some(DriverSourceCRejectedOutcome(
                                 source_path, output_path,
                                 "source C artifact receipt is invalid"
-                            );
+                            ));
+                            return false;
                         }
-                        return DriverSourceCExecuted(
+                        self.outcome = Some(DriverSourceCExecuted(
                             DriverSourceCExecutionReceipt(
                                 DriverSourceCExecutionOutcomeSchema(),
                                 source_path, commit_receipt.final_path,
@@ -137,9 +142,13 @@ subject DriverSourceCExecution {
                                 commit_receipt.atomic_visibility,
                                 commit_receipt.crash_durable
                             )
-                        );
+                        ));
+                        return true;
                     case SelfMirArtifactRejected(failure):
-                        return DriverSourceCArtifactRejected(failure);
+                        self.outcome = Some(
+                            DriverSourceCArtifactRejected(failure)
+                        );
+                        return false;
                 }
         }
     }
@@ -148,4 +157,22 @@ subject DriverSourceCExecution {
 public zone DriverSourceCZone {
     subject slot execution: DriverSourceCExecution
     authority execution
+}
+
+intent CompilePergyraCArtifact(
+    intent_zone: DriverSourceCZone,
+    intent_execution: DriverSourceCExecution,
+    source_path: String, output_path: String,
+    request: DriverSourceCRequest
+) {
+    exclusive;
+    step Compile {
+        using: intent_zone;
+        on action_succeeded: intent_execution.Compile(
+            source_path, output_path, request
+        );
+        expect: action_succeeded;
+    }
+    success: true;
+    failure: false;
 }

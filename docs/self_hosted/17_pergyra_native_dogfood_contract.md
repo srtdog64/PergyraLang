@@ -2,6 +2,39 @@
 
 Status: `BRIDGE`
 
+## 2026-08-27 source-C compiler-purpose intent takeover
+
+Public installed `pgy SOURCE --emit-c -o OUTPUT` now reaches one
+`CompilePergyraCArtifact` intent before C artifact publication. The existing
+`DriverSourceCExecution` subject owns `Option<DriverSourceCExecutionOutcome>`;
+its `Compile` action performs the already-owned compile and transaction once,
+stores the exact typed outcome, and returns only the intent completion fact.
+`PgyCompilerWorld.CompileSourceToC` rejects missing outcome or disagreement
+between that outcome and the intent Bool.
+
+The direct
+`PublishSourceCArtifactThroughPgyCompilerWorld ->
+PgyCompilerWorld.PublishSourceCArtifact` path is deleted. The installed last
+consumer additionally requires exactly one successful
+`CompilePergyraCArtifact` history row. Static ratchets reject restoration of
+the retired path; no duplicate compiler/commit owner, target-name inference,
+native retry, second world, query/cache, or performance track was added.
+
+Fresh local evidence uses an isolated Pergyra-built DRV-2 from the current
+typed source graph. The new driver passes installed/public source-C byte
+parity, C compile/run, machine-manifest validation, missing-parent no-artifact
+rejection, and the atomic transaction contract. Native compiler-world AST,
+topology, source scan, likeness (`Result`/`Option` 4393/4393, intent surface
+15/15, zone-bound contracts 37/37), and hard-substitution contracts are green.
+The complete component inventory was not run and is not claimed green.
+
+This is production `REACHABLE` Pergyra-native intent dogfood, not a new hard
+`SUBSTITUTING` numerator: the public source-C compiler was already
+Pergyra-backed and its C-host compile bypass was closed earlier. Registry and
+progress remain `50 CLOSED / 35 BRIDGE / 1 ACTIVE`, hard closure 58.1%,
+migration 78.8%, integrated 83% (81-85%), strict beta 83%, and hard replacement
+75%.
+
 ## 2026-08-26 installed DeviceSlot declaration carriage
 
 Public installed source-C now carries the installed sibling machine declaration
@@ -508,11 +541,12 @@ driver_bootstrap_main.Main
   -> DriverRung2CliRequestFromArgsOrDie
   -> DriverRung2ExecuteInstalledRequest
   -> DriverRung2InstalledPublishSourceC
-  -> PublishSourceCArtifactThroughPgyCompilerWorld
-  -> PgyCompilerWorld.PublishSourceCArtifact
+  -> CompileSourceToCThroughPgyCompilerWorld
+  -> PgyCompilerWorld.CompileSourceToC
   -> PgyCompilerWorld.source_c
   -> DriverSourceCZone.execution
-  -> DriverSourceCExecution.PublishSourceCArtifact
+  -> CompilePergyraCArtifact
+  -> DriverSourceCExecution.Compile
   -> CompileSourceToCVerified
   -> SelfMirArtifactCommitPayload
 

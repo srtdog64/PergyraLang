@@ -329,11 +329,22 @@ world PgyCompilerWorld {
         );
     }
 
-    func PublishSourceCArtifact(self, source_path: String, output_path: String,
+    func CompileSourceToC(self, source_path: String, output_path: String,
         request: DriverSourceCRequest
     ) -> DriverSourceCExecutionOutcome with caps io_read, io_write {
-        return self.source_c.execution.PublishSourceCArtifact(source_path,
-            output_path, request);
+        let intent_zone: DriverSourceCZone = Clone(source_c);
+        let intent_execution: DriverSourceCExecution = Clone(source_c.execution);
+        let completed: Bool = CompilePergyraCArtifact(
+            intent_zone, intent_execution, source_path, output_path, request
+        );
+        if !IsSome(intent_execution.outcome) {
+            return DriverSourceCRejectedOutcome(source_path, output_path, "source C intent produced no typed outcome");
+        }
+        let outcome: DriverSourceCExecutionOutcome = UnwrapOption(intent_execution.outcome);
+        if completed != DriverSourceCExecutionOutcomeReadyFor(outcome, source_path, output_path) {
+            return DriverSourceCRejectedOutcome(source_path, output_path, "source C intent completion disagrees with its typed outcome");
+        }
+        return outcome;
     }
 
     func CompileSourceToLlvm(self, source_path: String, output_path: String,
