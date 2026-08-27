@@ -38,7 +38,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   compile/run, manifest and transaction negatives. Native world AST, topology,
   source scan, likeness 4393/4393 and 15/15, atomic transaction, shell syntax,
   and hard contract are green. Full component inventory is not claimed green;
-  publication and exact-head CI remain the integration falsifiers.
+  the following publication result supersedes this local-only checkpoint.
+- Checkpoint `20e7da6e` run `33068411554` completed 28/29. Only full self-host
+  failed: native oracle emission correctly rejected cross-module access to the
+  private source-C intent. Repair `cb53b879` makes that intentional boundary
+  public and moves success/artifact-failure variant construction through the
+  protocol owner so MIR-only inference cannot invent self methods. The world
+  and likeness gates now count exported/public intents. Exact failing native C
+  emission, emitted-driver C compilation, generated-driver source-C execution,
+  focused parity/negatives, topology, source scan, likeness, world, and hard
+  contract are local green. Replacement exact-head CI remains the integration
+  gate; no parallel implementation lease is open.
 
 ## DONE lease — native formal and intent callable identity carriage
 

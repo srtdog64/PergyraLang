@@ -2223,9 +2223,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/driver_source_c_execution_owner.pgy` -- production
   source-to-C admission and execution subject, exact existing compiler
   consumption, artifact transaction transition, and the sole
-  `DriverSourceCZone` declaration. Its read-only payload action and canonical
-  `CompilePergyraCArtifact` step consume one admission owner; the mutable typed
-  outcome cross-seals intent completion with publication success or failure.
+  `DriverSourceCZone` declaration. Its read-only payload action and explicitly
+  public canonical `CompilePergyraCArtifact` step consume one admission owner;
+  the mutable typed outcome cross-seals intent completion with publication
+  success or failure.
   It owns no parser, semantic, MIR, target, or C-emission fact.
 - `src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy` --
   read-only last consumer for installed source-C stdout requests. It enters the

@@ -19,8 +19,21 @@ self-build는 trace block이 다음 source-MIR 함수로 잘못 들어간 scope 
 component inventory는 실행하지 않아 green으로 세지 않는다. 이는 이미 Pergyra-backed인
 source-C 내부 orchestration을 intent로 닫은 `REACHABLE` dogfood이며 새 hard replacement
 분자는 아니다. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
-(81~85%), strict beta 83%, hard replacement 75%는 유지한다. Publication과 exact-head
-CI가 다음 falsifier다.
+(81~85%), strict beta 83%, hard replacement 75%는 유지한다. 이 로컬 구현 시점의
+다음 falsifier는 publication과 exact-head CI였다.
+
+Publication checkpoint `20e7da6e`의 exact-head run `33068411554`는 28/29로
+끝났다. Linux fast build를 포함한 나머지 28개 job은 모두 green이고, 유일한 실패는
+full self-host native oracle이 다른 모듈의 private intent를 호출한 가시성 위반이었다.
+Intent를 `public`으로 바꾸자 MIR-only C inference가 action 안의 두 enum variant
+constructor를 implicit self-method로 오인하는 다음 fail-closed 경계가 드러났다. Repair
+`cb53b879`는 성공/transaction failure outcome 생성을 protocol owner 함수로
+명시하고, world/likeness gate가 `[export] Intent`와 `public intent`를 올바르게 세도록
+고쳤다. 동일 native oracle C emission과 C compile이 통과했고, 생성 oracle이 발행한
+`hello.pgy` C도 compile/run해 정확히 `Hello, Pergyra!`를 출력했다. Focused source-C,
+topology, native world, source scan, likeness 15/15, hard contract는 local green이다.
+Full component inventory는 실행하지 않았고 replacement exact-head CI가 다음
+falsifier다. 진행률과 SoT 수치는 그대로다.
 
 2026-08-27 native formal/intent callable identity 구현 `e1ad082f`: native
 `FuncParam`은 이제 AST node와 별개의 parser-owned stable declaration ID를 갖고,

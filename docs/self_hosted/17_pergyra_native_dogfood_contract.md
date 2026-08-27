@@ -28,6 +28,16 @@ topology, source scan, likeness (`Result`/`Option` 4393/4393, intent surface
 15/15, zone-bound contracts 37/37), and hard-substitution contracts are green.
 The complete component inventory was not run and is not claimed green.
 
+Checkpoint `20e7da6e` exact-head run `33068411554` completed 28/29. The only
+failure was the full self-host native oracle refusing cross-module access to
+the private intent. Repair `cb53b879` makes that compiler-purpose boundary
+explicitly public. It also keeps enum variant construction in the protocol
+owner so MIR-only callable inference cannot reinterpret those constructors as
+subject methods. The world and likeness gates now recognize exported/public
+intent syntax without lowering their floors. The formerly failing native
+oracle emission, emitted C compile, generated-driver source-C publication, and
+published C compile/run are local green; replacement exact-head CI is pending.
+
 This is production `REACHABLE` Pergyra-native intent dogfood, not a new hard
 `SUBSTITUTING` numerator: the public source-C compiler was already
 Pergyra-backed and its C-host compile bypass was closed earlier. Registry and

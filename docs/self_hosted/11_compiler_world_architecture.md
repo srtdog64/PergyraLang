@@ -61,7 +61,8 @@ bin/pgy --self-driver -> native sibling launcher -> bin/pgy-self-driver
 Compiling `world.pgy` remains supporting shape evidence only. The distinct
 source-to-LLVM evidence invokes `CompilePergyraProgram` once and deletes the C
 host's old source-MIR/backend subprocess pair, so only that bounded slice is
-`SUBSTITUTING`. Source-to-C now invokes `CompilePergyraCArtifact` once and
+`SUBSTITUTING`. Source-to-C now invokes the explicitly public
+`CompilePergyraCArtifact` once and
 deletes its internal direct world publication path; because the public compiler
 was already Pergyra-backed, that newer slice is `REACHABLE`. The exact
 SURFACE/REACHABLE/SUBSTITUTING distinction and takeover order remain owned by

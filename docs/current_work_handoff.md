@@ -62,14 +62,23 @@ percentage by themselves.
   isolated self-build exposed a misplaced trace block in the next source-MIR
   function; the repaired focused gate now verifies trace locality inside the
   source-C consumer itself.
-- Fresh local evidence: isolated current-source Pergyra-built DRV-2 plus
-  installed/public C byte parity, C compile/run, manifest and transaction
-  negatives are green. Native compiler-world AST, topology, source scan,
-  likeness (`4393/4393`, intent `15/15`, zone-bound `37/37`), atomic
-  transaction, shell syntax, and hard contract are green. Compiler-world and
-  hard-contract exceeded the 60-second static budget but completed green; full
-  component inventory did not run and is not claimed green. Publication and
-  exact-head CI are the next falsifiers. Registry and progress remain
+- Publication checkpoint `20e7da6e` reached exact-head run `33068411554`, which
+  completed 28/29: every platform, backend shard, sanitizer, proof, Linux fast
+  build, and codegen-bootstrap job passed. The sole failure was full self-host
+  native oracle emission: the imported intent was private, then exposing it
+  revealed MIR-only inference treating two enum variant constructors as
+  implicit `DriverSourceCExecution` methods.
+- Repair `cb53b879` makes the cross-module intent explicitly `public`, routes
+  success and artifact-failure construction through the protocol owner, and
+  teaches the world/likeness gates to recognize exported/public intents. The
+  exact failing native command now emits and compiles the integrated oracle;
+  that oracle publishes `hello.pgy`, whose C compiles and runs exact
+  `Hello, Pergyra!`. Focused source-C parity/negatives, topology, native world,
+  source scan, likeness (`4393/4393`, intent `15/15`, zone-bound `37/37`), and
+  hard contract are green. Compiler-world and hard-contract exceeded the
+  60-second static budget but completed green; full component inventory did
+  not run and is not claimed green. Replacement exact-head CI is the next
+  falsifier. Registry and progress remain
   `50 CLOSED / 35 BRIDGE / 1 ACTIVE`, hard closure 58.1%, migration 78.8%,
   integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
 
