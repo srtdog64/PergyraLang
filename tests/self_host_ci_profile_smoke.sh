@@ -12,6 +12,7 @@ PUSH_WINDOWS_STEPS="$ROOT_DIR/scripts/ci_push_windows_steps.sh"
 WORKFLOW="$ROOT_DIR/.github/workflows/ci.yml"
 PLATFORM_WORKFLOW="$ROOT_DIR/.github/workflows/platform_full.yml"
 PARITY_WORKFLOW="$ROOT_DIR/.github/workflows/self_host_parity.yml"
+CHANGE_SCOPE_OWNER="$ROOT_DIR/scripts/ci_change_scope_owner.sh"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
 PLATFORM_PARITY_SHARD_OWNER="$ROOT_DIR/scripts/ci_self_host_platform_parity_shard_owner.sh"
 
@@ -26,6 +27,7 @@ for file in \
     "$WORKFLOW" \
     "$PLATFORM_WORKFLOW" \
     "$PARITY_WORKFLOW" \
+    "$CHANGE_SCOPE_OWNER" \
     "$DRIVER_BOOTSTRAP" \
     "$PLATFORM_PARITY_SHARD_OWNER"; do
     if [[ ! -f "$file" ]]; then
@@ -33,6 +35,107 @@ for file in \
         exit 1
     fi
 done
+
+for required in \
+    'base-unavailable' \
+    'empty-diff' \
+    'markdown-only' \
+    'non-markdown-change' \
+    'git diff --name-status -z --find-renames' \
+    '[[ "$status" == R* ]]' \
+    '[[ "$status" == C* ]]'; do
+    if ! grep -Fq "$required" "$CHANGE_SCOPE_OWNER"; then
+        echo "[self-host-ci-profile] change-scope owner lost fail-closed contract: $required" >&2
+        exit 1
+    fi
+done
+
+for required in \
+    'classify-changes:' \
+    'run_full: ${{ steps.scope.outputs.run_full }}' \
+    'markdown_only: ${{ steps.scope.outputs.markdown_only }}' \
+    'fetch-depth: 0' \
+    'PULL_REQUEST_BASE: ${{ github.event.pull_request.base.sha }}' \
+    'PUSH_BEFORE: ${{ github.event.before }}' \
+    'bash scripts/ci_change_scope_owner.sh "$base_sha" "${{ github.sha }}"' \
+    'needs: [classify-changes, backend-compare-toolchain-linux]'; do
+    if ! grep -Fq "$required" "$WORKFLOW"; then
+        echo "[self-host-ci-profile] push workflow lost change-scope contract: $required" >&2
+        exit 1
+    fi
+done
+
+if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "9" ]] ||
+    [[ "$(grep -Fc "if: needs.classify-changes.outputs.run_full == 'true'" "$WORKFLOW")" != "9" ]]; then
+    echo "[self-host-ci-profile] full-only jobs are not all gated by one change-scope owner" >&2
+    exit 1
+fi
+
+build_linux_scope="$(
+    sed -n '/^  build-linux:/,/^  sanitizers-linux:/p' "$WORKFLOW"
+)"
+if ! grep -Fq 'needs: classify-changes' <<<"$build_linux_scope" ||
+    grep -Fq 'outputs.run_full' <<<"$build_linux_scope"; then
+    echo "[self-host-ci-profile] build-linux must remain the mandatory Markdown contract gate" >&2
+    exit 1
+fi
+
+scope_tmp="$(mktemp -d)"
+trap 'rm -rf "$scope_tmp"' EXIT
+scope_repo="$scope_tmp/repo"
+mkdir -p "$scope_repo"
+git -C "$scope_repo" init -q
+git -C "$scope_repo" config user.name ci-scope-test
+git -C "$scope_repo" config user.email ci-scope-test@example.invalid
+git -C "$scope_repo" config core.autocrlf false
+printf '# baseline\n' >"$scope_repo/README.md"
+printf 'int baseline;\n' >"$scope_repo/source.c"
+git -C "$scope_repo" add README.md source.c
+git -C "$scope_repo" commit -qm baseline
+scope_base="$(git -C "$scope_repo" rev-parse HEAD)"
+
+assert_scope() {
+    local base="$1"
+    local head="$2"
+    local expected_full="$3"
+    local expected_markdown="$4"
+    local expected_reason="$5"
+    local output="$scope_tmp/output"
+    : >"$output"
+    (
+        cd "$scope_repo"
+        bash "$CHANGE_SCOPE_OWNER" "$base" "$head" "$output" >/dev/null
+    )
+    for expected in \
+        "run_full=$expected_full" \
+        "markdown_only=$expected_markdown" \
+        "reason=$expected_reason"; do
+        if ! grep -Fxq "$expected" "$output"; then
+            echo "[self-host-ci-profile] change-scope result mismatch: $expected" >&2
+            exit 1
+        fi
+    done
+}
+
+printf '# markdown only\n' >>"$scope_repo/README.md"
+git -C "$scope_repo" add README.md
+git -C "$scope_repo" commit -qm markdown-only
+scope_markdown="$(git -C "$scope_repo" rev-parse HEAD)"
+assert_scope "$scope_base" "$scope_markdown" false true markdown-only
+
+printf '# mixed\n' >>"$scope_repo/README.md"
+printf 'int changed;\n' >>"$scope_repo/source.c"
+git -C "$scope_repo" add README.md source.c
+git -C "$scope_repo" commit -qm mixed
+scope_mixed="$(git -C "$scope_repo" rev-parse HEAD)"
+assert_scope "$scope_markdown" "$scope_mixed" true false non-markdown-change
+
+git -C "$scope_repo" mv source.c source.md
+git -C "$scope_repo" commit -qm rename-into-markdown
+scope_rename="$(git -C "$scope_repo" rev-parse HEAD)"
+assert_scope "$scope_mixed" "$scope_rename" true false non-markdown-change
+assert_scope 0000000000000000000000000000000000000000 "$scope_rename" true false base-unavailable
+assert_scope "$scope_rename" "$scope_rename" true false empty-diff
 
 for required in \
     'all: $(PGY) $(PGY_LSP) self-host-compiler' \
@@ -410,7 +513,7 @@ for required in \
     fi
 done
 for required in \
-    'needs: backend-compare-toolchain-linux' \
+    'needs: [classify-changes, backend-compare-toolchain-linux]' \
     'uses: actions/download-artifact@v4' \
     'name: backend-compare-linux-toolchain' \
     'chmod +x bin/pgy bin/pgy-self-driver' \

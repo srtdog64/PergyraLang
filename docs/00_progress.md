@@ -2,6 +2,18 @@
 
 마지막 업데이트: 2026-08-27
 
+2026-08-27 Markdown-only push matrix isolation 로컬 구현: exact Git diff를
+`scripts/ci_change_scope_owner.sh` 하나가 분류하고 `build-linux`는 모든 push/PR에서
+계속 실행한다. 따라서 Markdown 계약도 기존 compiler build, `test-all`, self-host
+preparation contract를 그대로 통과해야 한다. 나머지 28개 platform/sanitizer/
+bootstrap/proof/backend job은 모든 변경 경로가 case-insensitive `.md`일 때만
+생략된다. Missing base, empty diff, mixed change, non-Markdown rename/copy source는
+full matrix로 fail closed한다. Synthetic Git history, CI profile, shell syntax,
+`actionlint`, build-source inventory, documentation/progress/SoT gate, 실제
+`c0632e4f..132a29d4` 6-path Markdown 분류는 local green이고 exact-head push가
+다음 falsifier다. 이는 검증 피드백 개선이지 hard substitution 분자가 아니므로
+SoT와 진행률은 변하지 않는다.
+
 2026-08-27 source-C compiler-purpose intent 구현 `fb4acef4`: public installed
 `pgy SOURCE --emit-c -o OUTPUT`가 이제 한 `CompilePergyraCArtifact` intent를
 실행한다. `DriverSourceCExecution`은 기존 compile/transaction 권위를 유지하면서

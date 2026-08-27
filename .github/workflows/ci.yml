@@ -11,7 +11,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  classify-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      run_full: ${{ steps.scope.outputs.run_full }}
+      markdown_only: ${{ steps.scope.outputs.markdown_only }}
+      reason: ${{ steps.scope.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Classify exact changed paths
+        id: scope
+        env:
+          PULL_REQUEST_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          base_sha="${PULL_REQUEST_BASE:-${PUSH_BEFORE:-}}"
+          bash scripts/ci_change_scope_owner.sh "$base_sha" "${{ github.sha }}"
+
   build-linux:
+    needs: classify-changes
     runs-on: ubuntu-latest
     # Push feedback owns build, core runtime, and platform-independent contract
     # evidence. The 117-step platform ladder remains in Platform full.
@@ -35,6 +56,8 @@ jobs:
         run: make ci-push-linux
 
   sanitizers-linux:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     # This is a separate bounded job: memory instrumentation must not lengthen
     # the already broad build-linux critical path or turn a UAF into a 60-minute
@@ -78,6 +101,8 @@ jobs:
         run: make LLVM_ENABLED=0 PGY_EMITTED_SAN_CASES=40 emitted-c-sanitizer-test-smoke
 
   tsan-linux:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     # TSan is separate from ASan/UBSan and from the broad Linux matrix. The
     # intentional race first proves the detector is live; the runtime battery
@@ -102,6 +127,8 @@ jobs:
         run: make LLVM_ENABLED=0 test-tsan
 
   self-host-bootstrap-linux:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -132,6 +159,8 @@ jobs:
           PGY_BIN="$PWD/bin/pgy" bash tests/selfhost_bootstrap_policy_corpus_smoke.sh
 
   self-host-codegen-bootstrap-linux:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -153,6 +182,8 @@ jobs:
         run: make self-host-codegen-bootstrap-test-smoke
 
   formal-proofs-rocq9:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30  # hang budget (docs/190 C1)
     # build-linux machine-checks the proof corpus with Ubuntu's apt Coq (8.x),
@@ -197,6 +228,8 @@ jobs:
         run: OPAMROOT=/home/rocq/.opam opam exec -- bash tests/coq_kernel_check_selftest.sh
 
   backend-compare-toolchain-linux:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -224,7 +257,8 @@ jobs:
           retention-days: 1
 
   backend-compare-linux:
-    needs: backend-compare-toolchain-linux
+    needs: [classify-changes, backend-compare-toolchain-linux]
+    if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30  # hang budget (docs/190 C1): a leg-deadlock shard dies fast
     strategy:
@@ -272,6 +306,8 @@ jobs:
             llvm-test-backend-compare
 
   build-windows:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: windows-latest
     # The compiler and core Windows runtime stay on every push. The 57-step
     # platform ladder and its declared Coq skip remain in Platform full.
@@ -298,6 +334,8 @@ jobs:
         run: CC=gcc make ci-push-windows
 
   build-macos-c-only:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: macos-latest
     timeout-minutes: 20
     steps:

@@ -18,7 +18,36 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - source-C closure reconciled; successor not inferred
+## Active self-host context - no executable successor; Markdown-only CI isolation
+
+- Executable-rung status: source-C compiler-purpose intent takeover is closed
+  by implementation/repair `fb4acef4`/`cb53b879`, checkpoint `c0632e4f`, and
+  exact-head run `33071044311` GREEN 29/29. No fresh production compiler bypass
+  with a complete Pergyra owner and executable falsifier has been admitted.
+- Supporting CI objective card: reduce documentation-checkpoint feedback cost
+  without weakening the repository's Markdown contracts. Priority is mandatory
+  Linux `ci-push-linux` evidence, fail-closed change classification, full matrix
+  for every non-Markdown path, then wall time. The exact Git diff is the fact
+  owner, `scripts/ci_change_scope_owner.sh` owns its classification, and
+  `.github/workflows/ci.yml` is the last consumer. Unknown/missing base, empty
+  diff, mixed changes, rename/copy across a non-Markdown path, and any suffix
+  other than case-insensitive `.md` must select the full matrix. Commit-message
+  inference, path exclusions that skip all checks, and advisory success are
+  forbidden.
+- Local implementation: `classify-changes` fetches complete history and exports
+  `run_full`/`markdown_only`. `build-linux` remains mandatory for every push and
+  pull request, so Markdown changes still run the existing compiler build,
+  `test-all`, and self-host preparation contract. The remaining 28 jobs run
+  only when `run_full=true`; backend shards depend on both the classifier and
+  their artifact-owning toolchain job. The synthetic profile gate proves
+  Markdown-only, mixed, non-Markdown-to-Markdown rename, missing base, and empty
+  diff outcomes. `actionlint`, shell syntax, the synthetic profile,
+  build-source inventory, documentation quality, progress metric, SoT edge,
+  and the observed `c0632e4f..132a29d4` six-path Markdown classification are
+  local green. Exact-head push CI is the next falsifier. This work does not
+  change SoT or self-host percentages.
+
+## Completed self-host context - source-C closure reconciled; successor not inferred
 
 - Closed predecessor: formal/intent callable identity implementation
   `9454f9fe`, closure checkpoint `5d7740ce`, and exact-head run

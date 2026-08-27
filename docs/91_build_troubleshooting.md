@@ -1294,6 +1294,22 @@ seed owner가 바뀌었거나 clean checkout이라면 먼저 seed target을 실�
 그 target의 C/LLVM positive/negative gate를 실행한다. Full bootstrap/fixpoint는
 scheduled 또는 merge boundary의 별도 증거다.
 
+## Markdown-only push feedback boundary
+
+The main push workflow always runs `build-linux`. For a commit or pull request
+whose exact changed paths are all case-insensitive `.md`, the change-scope owner
+skips Windows/macOS, sanitizers, TSan, full/codegen bootstrap, Rocq, and the
+20-way backend matrix. Linux still builds the compiler and runs `test-all` plus
+the self-host preparation contract, so Markdown does not become an unchecked
+semantic-authority lane.
+
+Any non-Markdown path selects the full matrix. Missing or unavailable base
+revision, empty diff, mixed changes, and rename/copy with a non-Markdown source
+also select full. Classification comes from the exact Git diff, never a commit
+message. This first bounded split targets roughly the Linux push duration for
+documentation-only feedback; it does not claim that every documentation check
+is safe to reduce to a smaller custom list.
+
 ## 0. Resource pressure first
 
 If the desktop hangs during local builds, check disk and scratch pressure before

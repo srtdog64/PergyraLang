@@ -6,6 +6,30 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — Markdown-only push matrix isolation
+
+- Objective: keep Linux `ci-push-linux` mandatory while skipping the other 28
+  push jobs only when every exact changed path is case-insensitive `.md`.
+  `scripts/ci_change_scope_owner.sh` owns classification and
+  `.github/workflows/ci.yml` is its last consumer. This is supporting CI work,
+  not a new executable self-host rung or progress numerator.
+- Forbidden: commit-message inference, a workflow-level `paths-ignore` that can
+  omit all required checks, treating an unavailable base or empty diff as docs,
+  allowing mixed changes, or hiding a non-Markdown rename/copy source.
+- Integration gate: synthetic Git histories must classify Markdown-only as
+  `run_full=false`; mixed, rename, missing-base, and empty-diff cases must select
+  full. `build-linux` must remain ungated by `run_full`; the other nine logical
+  jobs, including the backend matrix, must share one exact classifier output.
+  `actionlint`, shell syntax, CI profile, and an exact current documentation
+  range must pass. Only the primary task edits or publishes this lease.
+- Local implementation and evidence: the classifier and job dependencies are
+  implemented. The synthetic profile, build-source inventory, documentation,
+  progress/SoT, shell syntax, and `actionlint` gates are green;
+  `c0632e4f..132a29d4` classifies six Markdown paths as
+  `run_full=false/markdown_only=true`. Exact-head push CI remains the falsifier.
+  Protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
+  remain untouched.
+
 ## DONE lease — source-C compiler-purpose intent takeover
 
 - The preceding formal/intent callable identity lease is closed by published
