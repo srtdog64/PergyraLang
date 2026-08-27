@@ -8,9 +8,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE lease — public LSP diagnostics dump takeover
 
-- Editing/integration owner: the primary task. Base is local `d2890c64`, one
-  documentation closure commit ahead of `origin/main` `17e05c9f`. No parallel
-  implementation track is open.
+- Editing/integration owner: the primary task. Implementation `26e8f9c2` is
+  based on local documentation closure `d2890c64`; both remain ahead of
+  `origin/main` `17e05c9f` until publication. No parallel implementation track
+  is open.
 - Objective: make default public `pgy-lsp --dump-diagnostics SOURCE` execute
   the installed Pergyra-built `pgy-self-lsp`; keep the native C dump only as
   the explicit `--native-pipeline` oracle. The Pergyra diagnostics owner owns

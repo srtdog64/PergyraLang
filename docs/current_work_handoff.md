@@ -20,10 +20,11 @@ percentage by themselves.
 
 ## Active self-host context - public LSP diagnostics dump takeover
 
-- Resume checkpoint: local HEAD `d2890c64` is one documentation-only closure
-  commit ahead of `origin/main` `17e05c9f`; the LSP implementation is dirty and
-  uncommitted. Protected untracked `docs/compiler_architectures/` and
-  `pgy-80135c2c/` remain untouched.
+- Resume checkpoint: implementation `26e8f9c2` is based on the local
+  documentation closure `d2890c64`; both remain ahead of `origin/main`
+  `17e05c9f` until publication. This handoff update is the direct documentation
+  checkpoint for that implementation. Protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` remain untouched.
 - Objective card: replace default public
   `pgy-lsp --dump-diagnostics SOURCE` execution with the existing Pergyra
   diagnostics owner. Priority is one Pergyra payload owner, installed/public
@@ -56,9 +57,9 @@ percentage by themselves.
   real C-owned debug/diagnostics CLI path. It does not replace the live
   JSON-RPC session, LSP-2 read-exact loop, semantic feature index, or LSP-3
   product, and it closes no top-level SoT row or published percentage. Review
-  the exact diff, refresh the documents, publish one non-Markdown
-  implementation commit, and require the full exact-head CI matrix to own the
-  broad component and dual-backend evidence.
+  and commit this documentation checkpoint, publish it with the non-Markdown
+  implementation, and require the full exact-head CI matrix to own the broad
+  component and dual-backend evidence.
 
 ## Completed supporting context - Markdown-only CI isolation closed
 
