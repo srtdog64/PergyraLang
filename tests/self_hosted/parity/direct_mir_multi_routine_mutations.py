@@ -4,6 +4,10 @@
 import json
 import sys
 
+from direct_mir_namespace_internal_call_mutation_owner import (
+    mutate_namespace_internal_callee_binding,
+)
+
 
 def direct_call_nodes(document):
     for routine in document.get("routines", []):
@@ -153,31 +157,11 @@ def entrypoint_void_return_instruction(document):
     return None
 
 
-def namespace_internal_call_edge(document):
-    for routine in document.get("routines", []):
-        for block in routine.get("blocks", []):
-            for instruction in block.get("instructions", []):
-                for lane in ("expr0_graph", "expr1_graph"):
-                    graph = instruction.get(lane)
-                    if not isinstance(graph, dict):
-                        continue
-                    nodes = graph.get("nodes", [])
-                    for node in nodes:
-                        if (node.get("call_target_kind") != "direct" or
-                                node.get("call_target_name") !=
-                                "InternalNames_Fact1"):
-                            continue
-                        callee_index = node.get("left")
-                        if (not isinstance(callee_index, int) or
-                                callee_index < 0 or callee_index >= len(nodes)):
-                            return None
-                        return node, nodes[callee_index]
-    return None
-
-
 def namespace_internal_call_node(document):
-    edge = namespace_internal_call_edge(document)
-    return None if edge is None else edge[0]
+    for node in direct_call_nodes(document):
+        if node.get("call_target_name") == "InternalNames_Fact1":
+            return node
+    return None
 
 
 def namespace_qualified_call_node(document):
@@ -585,28 +569,7 @@ def main():
         node["call_target_syntax_id"] = 0
     elif kind in {"namespace-internal-callee-binding-missing",
                   "namespace-internal-callee-binding-crossed"}:
-        edge = namespace_internal_call_edge(document)
-        if edge is None:
-            raise SystemExit("fixture has no namespace-internal call edge")
-        call, callee = edge
-        if kind.endswith("missing"):
-            callee["binding_syntax_id"] = 0
-            callee["binding_kind"] = "none"
-            callee["binding_ordinal"] = None
-        else:
-            foreign = next(
-                (routine.get("source_syntax_id")
-                 for routine in document.get("routines", [])
-                 if routine.get("name") == "InternalNames_Fact2"),
-                None,
-            )
-            if not isinstance(foreign, int) or foreign <= 0:
-                raise SystemExit("fixture has no foreign namespace callable")
-            if foreign == call.get("call_target_syntax_id"):
-                raise SystemExit("foreign callable identity is not distinct")
-            callee["binding_syntax_id"] = foreign
-            callee["binding_kind"] = "declared_callable"
-            callee["binding_ordinal"] = None
+        mutate_namespace_internal_callee_binding(document, kind)
     elif kind == "set-string-has-call-target":
         node = set_has_call_node(document)
         if node is None:
