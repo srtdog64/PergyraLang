@@ -564,7 +564,7 @@ compiler_resource_zones=$(count_lines_in_files '^(public[[:space:]]+)?zone[[:spa
     src/self_hosted/compiler/driver_source_llvm_intent_execution_owner.pgy \
     src/self_hosted/compiler/driver_source_c_execution_owner.pgy)
 compiler_world_members=$(count_world_zone_members)
-compiler_intent_surface=$(count_lines_in_files '^intent[[:space:]]' \
+compiler_intent_surface=$(count_lines_in_files '^((public|private)[[:space:]]+)?intent[[:space:]]' \
     src/self_hosted/compiler/world.pgy \
     src/self_hosted/compiler/stage_intents.pgy \
     src/self_hosted/compiler/driver_source_c_execution_owner.pgy)

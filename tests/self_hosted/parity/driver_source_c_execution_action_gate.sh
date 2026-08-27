@@ -37,11 +37,11 @@ for owner in "$SOURCE_OWNER" "$PROTOCOL_OWNER" "$WORLD_OWNER" "$COMPOSITION_OWNE
 done
 for term in 'tobject DriverSourceCExecutionReceipt' \
     'tobject DriverSourceCExecutionRejection' \
-    'enum DriverSourceCExecutionOutcome'; do
+    'enum DriverSourceCExecutionOutcome' 'func DriverSourceCExecutedOutcome(' 'func DriverSourceCArtifactRejectedOutcome('; do
     require_text "$PROTOCOL_OWNER" "$term"
 done
 for term in 'subject DriverSourceCExecution' 'let mut outcome: Option<DriverSourceCExecutionOutcome>;' 'action Compile(' \
-    'within DriverSourceCZone' 'authorized by self' \
+    'within DriverSourceCZone' 'authorized by self' 'public intent CompilePergyraCArtifact(' \
     'public zone DriverSourceCZone' \
     'subject slot execution: DriverSourceCExecution' 'authority execution' \
     'source C execution subject identity is invalid' \

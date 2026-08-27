@@ -124,6 +124,9 @@ func DriverSourceCRejectedOutcome(
     ));
 }
 
+func DriverSourceCExecutedOutcome(receipt: DriverSourceCExecutionReceipt) -> DriverSourceCExecutionOutcome { return DriverSourceCExecuted(receipt); }
+func DriverSourceCArtifactRejectedOutcome(failure: SelfMirArtifactFailure) -> DriverSourceCExecutionOutcome { return DriverSourceCArtifactRejected(failure); }
+
 func DriverSourceCPayloadReceiptReadyFor(
     receipt: DriverSourceCPayloadReceipt,
     expected_source_path: String,

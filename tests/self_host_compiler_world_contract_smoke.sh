@@ -1362,9 +1362,9 @@ awk '
     current_action != "" && /^        Authorized by:[[:space:]]+self$/ {
         action_authorized[current_action] = 1
     }
-    /^  Intent:/ {
+    /^  (\[export\] )?Intent:/ {
         line = $0
-        sub(/^  Intent:[[:space:]]+/, "", line)
+        sub(/^  (\[export\] )?Intent:[[:space:]]+/, "", line)
         current_intent = line
         declared_intents[line] = 1
     }
