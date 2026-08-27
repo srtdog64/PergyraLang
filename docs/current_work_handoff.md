@@ -60,6 +60,19 @@ percentage by themselves.
   component inventory and remote CI are not yet claimed green. Do not pass a
   drive-letter or repo-relative build directory to the focused bootstrap
   wrapper; use its default or a Git-Bash absolute `/d/...` path.
+- Exact-head run `33035298360` reached 27 successful jobs and 20/20 backend
+  shards, but `build-linux` failed in the complete component inventory because
+  `callable_parameter_binding_rows_owner.pgy` directly called `Die` without
+  importing the owned `text_owner.pgy`. The local repair adds that explicit
+  import; the direct-consumer scan, source scan, Bash syntax, and likeness
+  `23/23` plus Result/Option `4374/4374` are green. The complete component
+  inventory exhausted the 60-second local budget and is not claimed green;
+  replacement exact-head CI remains the falsifier.
+- CI status handling rule: a job disappearing from a `status != completed`
+  view proves only completion, never success. Read its explicit `conclusion`
+  before reporting green. This session briefly misreported `build-linux` as
+  successful from omission, then corrected it from the explicit conclusion and
+  job log; do not repeat that inference.
 
 ## Completed self-host context - callable-parameter public substitution
 

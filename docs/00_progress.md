@@ -148,6 +148,13 @@ namespace C/LLVM negatives, canonical epoch와 likeness `23/23`, Result/Option
 `4374/4374`가 green이다. Complete component와 remote exact-head CI 전이므로
 퍼센트와 registry 상태는 올리지 않는다.
 
+Exact-head run `33035298360`에서는 20/20 backend shard를 포함한 27개 잡이
+성공했지만 `build-linux`가 새 callable binding row owner의 직접 `Die` 호출에
+필수 `text_owner.pgy` import가 없음을 complete component gate로 잡았다. Local
+repair는 import를 명시했고 direct-consumer/source-scan/likeness/shell syntax가
+green이다. Complete component는 60초 local budget을 소진해 green으로 주장하지
+않으며 replacement CI를 기다린다. 진행 수치와 registry 상태는 변하지 않는다.
+
 2026-08-26 structured MatchCase carrier 로컬 폐쇄: HIR owner가 typed
 `MatchCase` atom을 `SemanticAstStatementFacts` admission에서 한 번만 해석하고,
 기존 SyntaxNodeId 행이 canonical pattern/variant와 평탄 binding range/pool,

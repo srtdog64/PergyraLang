@@ -30,6 +30,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   text from the C emitter. Fresh v19 callable C/LLVM plus 20 negatives,
   namespace C/LLVM plus negatives, canonical epoch, and likeness are green.
   Complete component and remote exact-head CI remain the falsifiers.
+- Run `33035298360` made all 20 backend shards green, but `build-linux` found
+  one static owner violation: the new callable binding row owner called `Die`
+  without a direct `text_owner.pgy` import. The local repair adds that import;
+  direct-consumer scan, source scan, likeness, and shell syntax are green. The
+  60-second complete-component budget expired, so replacement CI must judge it.
+- Never infer success because a job vanished from an unfinished-job filter.
+  Query the completed job's explicit `conclusion` before reporting its result.
 
 ## DONE lease P — callable-parameter installed-path substitution
 
