@@ -1,0 +1,428 @@
+// Sealed identity receipt for admitted self-DIR intent facts.
+//
+// Only the DIR producer may seal a non-empty receipt. Codegen recomputes the
+// receipt from carried rows and the source artifact epoch; it never reopens an
+// AST child, reparses a header, or resolves a compensation node.
+
+import "../semantic/ast_intent_signature_fact_owner.pgy";
+import "intent_result_contract_owner.pgy";
+
+func SelfDirIntentReceiptHashString(hash: Long, value: String) -> Long {
+    let modulus: Long = 268435456L;
+    let out: Long =
+        (hash * 131L + (StringLength(value) as Long)) % modulus;
+    let row: Int = 0;
+    while row < StringLength(value) {
+        out = (out * 131L +
+            (CharCode(value, StringLength(value), row) as Long)) % modulus;
+        row = row + 1;
+    }
+    return out;
+}
+
+func SelfDirIntentReceiptHashInt(hash: Long, value: Int) -> Long {
+    return (hash * 131L + ((value + 2) as Long)) % 268435456L;
+}
+
+func SelfDirIntentReceiptBoundedDigest(hash: Long) -> Int {
+    return (1073741824L + hash) as Int;
+}
+
+func SelfDirIntentReceiptHashBool(hash: Long, value: Bool) -> Long {
+    let bit: Int = 0;
+    if value { bit = 1; }
+    return SelfDirIntentReceiptHashInt(hash, bit);
+}
+
+func SelfDirIntentReceiptTransitionShapeReady(
+    ref facts: SelfDirIntentFacts
+) -> Bool {
+    let intent_count: Int = ArrayLength(facts.intent_node_ids);
+    let step_count: Int = ArrayLength(facts.steps.node_ids);
+    let terminal_count: Int = ArrayLength(facts.transitions.terminal_roles);
+    return ArrayLength(facts.transitions.intent_starts) == intent_count &&
+        ArrayLength(facts.transitions.intent_counts) == intent_count &&
+        ArrayLength(facts.transitions.terminal_starts) == intent_count &&
+        ArrayLength(facts.transitions.terminal_counts) == intent_count &&
+        ArrayLength(facts.transitions.step_requireds) == step_count &&
+        ArrayLength(facts.transitions.step_node_ids) == step_count &&
+        ArrayLength(facts.transitions.step_names) == step_count &&
+        ArrayLength(facts.transitions.predecessor_names) == step_count &&
+        ArrayLength(facts.transitions.predecessor_step_node_ids) == step_count &&
+        ArrayLength(facts.transitions.predecessor_step_indices) == step_count &&
+        ArrayLength(facts.transitions.outcome_enum_names) == step_count &&
+        ArrayLength(facts.transitions.outcome_enum_node_ids) == step_count &&
+        ArrayLength(facts.transitions.success_pattern_node_ids) == step_count &&
+        ArrayLength(facts.transitions.success_variant_names) == step_count &&
+        ArrayLength(facts.transitions.success_variant_indices) == step_count &&
+        ArrayLength(facts.transitions.success_payload_names) == step_count &&
+        ArrayLength(facts.transitions.success_payload_type_names) == step_count &&
+        ArrayLength(facts.transitions.failure_pattern_node_ids) == step_count &&
+        ArrayLength(facts.transitions.failure_variant_names) == step_count &&
+        ArrayLength(facts.transitions.failure_variant_indices) == step_count &&
+        ArrayLength(facts.transitions.failure_payload_names) == step_count &&
+        ArrayLength(facts.transitions.failure_payload_type_names) == step_count &&
+        ArrayLength(facts.transitions.terminal_expression_node_ids) == terminal_count &&
+        ArrayLength(facts.transitions.terminal_source_step_names) == terminal_count &&
+        ArrayLength(facts.transitions.terminal_source_step_node_ids) == terminal_count &&
+        ArrayLength(facts.transitions.terminal_source_step_indices) == terminal_count &&
+        ArrayLength(facts.transitions.terminal_result_enum_names) == terminal_count &&
+        ArrayLength(facts.transitions.terminal_result_enum_node_ids) == terminal_count &&
+        ArrayLength(facts.transitions.terminal_variant_names) == terminal_count &&
+        ArrayLength(facts.transitions.terminal_variant_indices) == terminal_count &&
+        ArrayLength(facts.transitions.terminal_payload_source_names) == terminal_count &&
+        ArrayLength(facts.transitions.terminal_payload_type_names) == terminal_count;
+}
+
+func SelfDirIntentReceiptRangesReady(
+    ref facts: SelfDirIntentFacts
+) -> Bool {
+    let participant_end: Int = 0;
+    let step_end: Int = 0;
+    let terminal_end: Int = 0;
+    let who_end: Int = 0;
+    let requires_end: Int = 0;
+    let authorized_end: Int = 0;
+    let compensate_end: Int = 0;
+    let intent_row: Int = 0;
+    while intent_row < ArrayLength(facts.intent_node_ids) {
+        if facts.participant_starts[intent_row] != participant_end ||
+            facts.participant_counts[intent_row] < 0 ||
+            facts.step_starts[intent_row] != step_end ||
+            facts.step_counts[intent_row] < 0 ||
+            facts.transitions.intent_starts[intent_row] != step_end ||
+            facts.transitions.intent_counts[intent_row] !=
+                facts.step_counts[intent_row] ||
+            facts.transitions.terminal_starts[intent_row] != terminal_end ||
+            facts.transitions.terminal_counts[intent_row] < 0 {
+            return false;
+        }
+        participant_end = participant_end +
+            facts.participant_counts[intent_row];
+        step_end = step_end + facts.step_counts[intent_row];
+        terminal_end = terminal_end +
+            facts.transitions.terminal_counts[intent_row];
+        intent_row = intent_row + 1;
+    }
+    let step_row: Int = 0;
+    while step_row < ArrayLength(facts.steps.node_ids) {
+        if facts.steps.who_starts[step_row] != who_end ||
+            facts.steps.who_counts[step_row] < 0 ||
+            facts.steps.requires_starts[step_row] != requires_end ||
+            facts.steps.requires_counts[step_row] < 0 ||
+            facts.steps.authorized_starts[step_row] != authorized_end ||
+            facts.steps.authorized_counts[step_row] < 0 ||
+            facts.steps.compensate_starts[step_row] != compensate_end ||
+            facts.steps.compensate_counts[step_row] < 0 {
+            return false;
+        }
+        who_end = who_end + facts.steps.who_counts[step_row];
+        requires_end = requires_end + facts.steps.requires_counts[step_row];
+        authorized_end = authorized_end +
+            facts.steps.authorized_counts[step_row];
+        compensate_end = compensate_end +
+            facts.steps.compensate_counts[step_row];
+        step_row = step_row + 1;
+    }
+    return participant_end == ArrayLength(facts.participants.node_ids) &&
+        step_end == ArrayLength(facts.steps.node_ids) &&
+        terminal_end == ArrayLength(facts.transitions.terminal_roles) &&
+        who_end == ArrayLength(facts.steps.who_names) &&
+        requires_end == ArrayLength(facts.steps.requires_names) &&
+        requires_end == ArrayLength(
+            facts.steps.requires_declaration_indices
+        ) && authorized_end == ArrayLength(facts.steps.authorized_names) &&
+        compensate_end == ArrayLength(facts.steps.compensate_node_ids);
+}
+
+func SelfDirIntentReceiptHashStep(
+    hash: Long, ref facts: SelfDirIntentFacts, row: Int
+) -> Long {
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.node_ids[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.names[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.where_zone_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.where_declaration_indices[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.using_aliases[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.transfer_from_aliases[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.transfer_to_aliases[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.receiver_aliases[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.action_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.action_signature_indices[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.target_kinds[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.target_declaration_node_ids[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.target_indices[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.target_names[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.target_return_type_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.target_param_counts[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.outcome_node_ids[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.outcome_names[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.outcome_type_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.target_expression_node_ids[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.guard_node_ids[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.post_node_ids[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.expect_node_ids[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.child_counts[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.predecessor_step_indices[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.steps.causes_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.causes_declaration_indices[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.who_counts[row]);
+    let item: Int = facts.steps.who_starts[row];
+    while item < facts.steps.who_starts[row] + facts.steps.who_counts[row] {
+        hash = SelfDirIntentReceiptHashString(hash, facts.steps.who_names[item]);
+        item = item + 1;
+    }
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.requires_counts[row]);
+    item = facts.steps.requires_starts[row];
+    while item < facts.steps.requires_starts[row] + facts.steps.requires_counts[row] {
+        hash = SelfDirIntentReceiptHashString(hash, facts.steps.requires_names[item]);
+        hash = SelfDirIntentReceiptHashInt(
+            hash, facts.steps.requires_declaration_indices[item]
+        );
+        item = item + 1;
+    }
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.authorized_counts[row]);
+    item = facts.steps.authorized_starts[row];
+    while item < facts.steps.authorized_starts[row] + facts.steps.authorized_counts[row] {
+        hash = SelfDirIntentReceiptHashString(hash, facts.steps.authorized_names[item]);
+        item = item + 1;
+    }
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.compensate_counts[row]);
+    item = facts.steps.compensate_starts[row];
+    while item < facts.steps.compensate_starts[row] + facts.steps.compensate_counts[row] {
+        hash = SelfDirIntentReceiptHashInt(hash, facts.steps.compensate_node_ids[item]);
+        item = item + 1;
+    }
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.who_from_intent[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.who_from_action[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.who_from_on_receiver[row]);
+    hash = SelfDirIntentReceiptHashBool(
+        hash, facts.steps.provenance.who_from_single_participant[row]
+    );
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.where_from_intent[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.where_from_action[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.where_from_using[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.where_from_transfer[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.using_from_transfer[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.using_from_where[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.requires_from_action[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.causes_from_action[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.authorized_from_zone[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.steps.provenance.authorized_from_action[row]);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.transitions.step_requireds[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.step_node_ids[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.transitions.step_names[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.transitions.predecessor_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.predecessor_step_node_ids[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.predecessor_step_indices[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.transitions.outcome_enum_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.outcome_enum_node_ids[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.success_pattern_node_ids[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.transitions.success_variant_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.success_variant_indices[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.transitions.success_payload_names[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.transitions.success_payload_type_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.failure_pattern_node_ids[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.transitions.failure_variant_names[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.failure_variant_indices[row]);
+    hash = SelfDirIntentReceiptHashString(hash, facts.transitions.failure_payload_names[row]);
+    return SelfDirIntentReceiptHashString(hash, facts.transitions.failure_payload_type_names[row]);
+}
+
+func SelfDirIntentFactsIdentityDigest(
+    ref facts: SelfDirIntentFacts
+) -> Int {
+    let hash: Long = SelfDirIntentReceiptHashString(
+        37L, "pgy.self-dir.intent-receipt.v2"
+    );
+    hash = SelfDirIntentReceiptHashBool(hash, facts.required);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.ok);
+    hash = SelfDirIntentReceiptHashString(hash, facts.diagnostic_message);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.artifact_node_count);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.artifact_identity_digest);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.modes.ok);
+    hash = SelfDirIntentReceiptHashString(hash, facts.modes.diagnostic_message);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.modes.artifact_node_count);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.priorities.ok);
+    hash = SelfDirIntentReceiptHashString(hash, facts.priorities.diagnostic_message);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.priorities.artifact_node_count);
+    hash = SelfDirIntentReceiptHashBool(hash, facts.transitions.ok);
+    hash = SelfDirIntentReceiptHashString(hash, facts.transitions.diagnostic_message);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.artifact_node_count);
+    let intent_count: Int = ArrayLength(facts.intent_node_ids);
+    let participant_count: Int = ArrayLength(facts.participants.node_ids);
+    let step_count: Int = ArrayLength(facts.steps.node_ids);
+    let terminal_count: Int = ArrayLength(facts.transitions.terminal_roles);
+    hash = SelfDirIntentReceiptHashInt(hash, intent_count);
+    hash = SelfDirIntentReceiptHashInt(hash, participant_count);
+    hash = SelfDirIntentReceiptHashInt(hash, step_count);
+    hash = SelfDirIntentReceiptHashInt(hash, terminal_count);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.edge_count);
+    let row: Int = 0;
+    while row < intent_count {
+        hash = SelfDirIntentReceiptHashInt(hash, facts.intent_node_ids[row]);
+        hash = SelfDirIntentReceiptHashString(hash, facts.names[row]);
+        hash = SelfDirIntentReceiptHashString(hash, facts.result_modes[row]);
+        hash = SelfDirIntentReceiptHashString(hash, facts.return_type_names[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.modes.node_ids[row]);
+        hash = SelfDirIntentReceiptHashString(hash, facts.modes.names[row]);
+        hash = SelfDirIntentReceiptHashBool(
+            hash, facts.priorities.present[row]
+        );
+        hash = SelfDirIntentReceiptHashInt(hash, facts.priorities.node_ids[row]);
+        hash = SelfDirIntentReceiptHashInt(
+            hash, facts.priorities.expression_root_ids[row]
+        );
+        hash = SelfDirIntentReceiptHashInt(hash, facts.participant_starts[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.participant_counts[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.step_starts[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.step_counts[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.intent_starts[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.intent_counts[row]);
+        hash = SelfDirIntentReceiptHashInt(
+            hash, facts.transitions.terminal_starts[row]
+        );
+        hash = SelfDirIntentReceiptHashInt(
+            hash, facts.transitions.terminal_counts[row]
+        );
+        row = row + 1;
+    }
+    row = 0;
+    while row < participant_count {
+        hash = SelfDirIntentReceiptHashInt(hash, facts.participants.node_ids[row]);
+        hash = SelfDirIntentReceiptHashBool(
+            hash, facts.participants.is_values[row]
+        );
+        hash = SelfDirIntentReceiptHashString(hash, facts.participants.aliases[row]);
+        hash = SelfDirIntentReceiptHashString(hash, facts.participants.type_names[row]);
+        hash = SelfDirIntentReceiptHashInt(
+            hash, facts.participants.declaration_indices[row]
+        );
+        row = row + 1;
+    }
+    row = 0;
+    while row < step_count {
+        hash = SelfDirIntentReceiptHashStep(hash, facts, row);
+        row = row + 1;
+    }
+    row = 0;
+    while row < terminal_count {
+        hash = SelfDirIntentReceiptHashString(hash, facts.transitions.terminal_roles[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.terminal_expression_node_ids[row]);
+        hash = SelfDirIntentReceiptHashString(hash, facts.transitions.terminal_source_step_names[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.terminal_source_step_node_ids[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.terminal_source_step_indices[row]);
+        hash = SelfDirIntentReceiptHashString(hash, facts.transitions.terminal_result_enum_names[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.terminal_result_enum_node_ids[row]);
+        hash = SelfDirIntentReceiptHashString(hash, facts.transitions.terminal_variant_names[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.transitions.terminal_variant_indices[row]);
+        hash = SelfDirIntentReceiptHashString(
+            hash, facts.transitions.terminal_payload_source_names[row]
+        );
+        hash = SelfDirIntentReceiptHashString(hash, facts.transitions.terminal_payload_type_names[row]);
+        row = row + 1;
+    }
+    return SelfDirIntentReceiptBoundedDigest(hash);
+}
+
+func SelfDirIntentFactsSeal(
+    facts: SelfDirIntentFacts
+) -> SelfDirIntentFacts {
+    facts.identity_digest = SelfDirIntentFactsIdentityDigest(facts);
+    return facts;
+}
+
+func SelfDirIntentFactsSealedEmpty(
+    artifact_node_count: Int, artifact_identity_digest: Int
+) -> SelfDirIntentFacts {
+    let facts: SelfDirIntentFacts = SelfDirIntentFactsEmpty(
+        false, true, "", artifact_node_count
+    );
+    facts.artifact_identity_digest = artifact_identity_digest;
+    return SelfDirIntentFactsSeal(facts);
+}
+
+func SelfDirIntentReceiptSignatureReady(
+    ref intents: SemanticAstIntentSignatureFacts,
+    ref facts: SelfDirIntentFacts
+) -> Bool {
+    let intent_count: Int = SemanticAstIntentSignatureCount(intents);
+    if intent_count != ArrayLength(facts.intent_node_ids) { return false; }
+    let participant_row: Int = 0;
+    let intent_row: Int = 0;
+    while intent_row < intent_count {
+        if facts.intent_node_ids[intent_row] !=
+                intents.intent_node_ids[intent_row] ||
+            facts.names[intent_row] != intents.names[intent_row] ||
+            facts.result_modes[intent_row] !=
+                intents.result_modes[intent_row] ||
+            facts.return_type_names[intent_row] !=
+                intents.return_type_names[intent_row] ||
+            facts.participant_starts[intent_row] != participant_row ||
+            facts.participant_counts[intent_row] !=
+                intents.param_counts[intent_row] ||
+            intents.param_starts[intent_row] != participant_row {
+            return false;
+        }
+        let parameter_row: Int = 0;
+        while parameter_row < intents.param_counts[intent_row] {
+            let row: Int = participant_row + parameter_row;
+            if facts.participants.node_ids[row] != intents.param_node_ids[row] ||
+                facts.participants.aliases[row] != intents.param_names[row] ||
+                facts.participants.type_names[row] != intents.param_types[row] ||
+                facts.participants.is_values[row] !=
+                    intents.param_is_values[row] {
+                return false;
+            }
+            parameter_row = parameter_row + 1;
+        }
+        participant_row = participant_row + intents.param_counts[intent_row];
+        intent_row = intent_row + 1;
+    }
+    return participant_row == ArrayLength(facts.participants.node_ids);
+}
+
+func SelfDirIntentReceiptMetadataReady(
+    ref facts: SelfDirIntentFacts
+) -> Bool {
+    return facts.ok && facts.diagnostic_message == "" &&
+        facts.modes.ok && facts.modes.diagnostic_message == "" &&
+        facts.priorities.ok && facts.priorities.diagnostic_message == "" &&
+        facts.transitions.ok && facts.transitions.diagnostic_message == "" &&
+        facts.modes.artifact_node_count == facts.artifact_node_count &&
+        facts.priorities.artifact_node_count == facts.artifact_node_count &&
+        facts.transitions.artifact_node_count == facts.artifact_node_count &&
+        SelfDirIntentFactsShapeReady(facts) &&
+        SelfDirIntentReceiptTransitionShapeReady(facts) &&
+        SelfDirIntentReceiptRangesReady(facts) &&
+        facts.identity_digest > 0 && facts.identity_digest ==
+            SelfDirIntentFactsIdentityDigest(facts);
+}
+
+func SelfDirIntentReceiptIdentityReady(
+    artifact_identity_digest: Int,
+    ref intents: SemanticAstIntentSignatureFacts,
+    ref facts: SelfDirIntentFacts
+) -> Bool {
+    return facts.required && artifact_identity_digest > 0 &&
+        facts.artifact_identity_digest == artifact_identity_digest &&
+        SemanticAstIntentSignatureCount(intents) > 0 &&
+        SelfDirIntentReceiptMetadataReady(facts) &&
+        SelfDirIntentReceiptSignatureReady(intents, facts);
+}
+
+func SelfDirIntentReceiptEmptyReady(
+    ref facts: SelfDirIntentFacts
+) -> Bool {
+    return !facts.required && SelfDirIntentReceiptMetadataReady(facts) &&
+        ArrayLength(facts.intent_node_ids) == 0 &&
+        ArrayLength(facts.participants.node_ids) == 0 &&
+        ArrayLength(facts.steps.node_ids) == 0 &&
+        ArrayLength(facts.steps.compensate_node_ids) == 0 &&
+        ArrayLength(facts.steps.who_names) == 0 &&
+        ArrayLength(facts.steps.requires_names) == 0 &&
+        ArrayLength(facts.steps.authorized_names) == 0 &&
+        ArrayLength(facts.transitions.intent_starts) == 0 &&
+        ArrayLength(facts.transitions.step_node_ids) == 0 &&
+        ArrayLength(facts.transitions.terminal_roles) == 0 &&
+        facts.edge_count == 0;
+}

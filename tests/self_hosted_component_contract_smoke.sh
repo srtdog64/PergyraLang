@@ -1586,7 +1586,69 @@ require_text \
     "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
     "SemanticAstBodyExpressionEnvironmentSeed("
 require_file "src/self_hosted/dir/intent_fact_owner.pgy"
-require_max_lines "src/self_hosted/dir/intent_fact_owner.pgy" 580
+require_max_lines "src/self_hosted/dir/intent_fact_owner.pgy" 590
+require_file "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy"
+require_max_lines \
+    "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy" 450
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy"
+require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'import "intent_exact_identity_contract_owner.pgy";'
+require_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    "SelfDirIntentFactsSeal("
+require_text "src/self_hosted/dir/intent_result_contract_owner.pgy" \
+    "artifact_identity_digest: Int;"
+require_text "src/self_hosted/dir/intent_result_contract_owner.pgy" \
+    "identity_digest: Int;"
+require_text "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy" \
+    "SelfDirIntentReceiptIdentityReady("
+require_text "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy" \
+    "SelfDirIntentReceiptEmptyReady("
+for retired_intent_receipt_reconstruction in \
+    "TypedAstArenaChildAt(" \
+    "SelfDirIntentStepFromArtifact(" \
+    "SemanticAstIntentStepHeaderFromText("; do
+    reject_text "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy" \
+        "$retired_intent_receipt_reconstruction"
+done
+intent_fact_constructor_sources="$(
+    grep -RFl --include='*.pgy' 'SelfDirIntentFacts(' "$SELF_HOST_DIR" |
+        sed "s#^$ROOT_DIR/##" | sort
+)"
+[[ "$(wc -l <<<"$intent_fact_constructor_sources" | tr -d ' ')" -eq 2 ]] ||
+    fail "SelfDirIntentFacts constructor escaped its two owners: $intent_fact_constructor_sources"
+contains_line "$intent_fact_constructor_sources" \
+    "src/self_hosted/dir/intent_result_contract_owner.pgy" ||
+    fail "SelfDirIntentFacts empty constructor owner is missing"
+contains_line "$intent_fact_constructor_sources" \
+    "src/self_hosted/dir/intent_fact_owner.pgy" ||
+    fail "SelfDirIntentFacts producer constructor owner is missing"
+intent_fact_seal_sources="$(
+    grep -RFl --include='*.pgy' 'SelfDirIntentFactsSeal(' "$SELF_HOST_DIR" |
+        sed "s#^$ROOT_DIR/##" | sort
+)"
+[[ "$(wc -l <<<"$intent_fact_seal_sources" | tr -d ' ')" -eq 2 ]] ||
+    fail "SelfDirIntentFacts seal escaped its producer boundary: $intent_fact_seal_sources"
+contains_line "$intent_fact_seal_sources" \
+    "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy" ||
+    fail "SelfDirIntentFacts empty seal owner is missing"
+contains_line "$intent_fact_seal_sources" \
+    "src/self_hosted/dir/intent_fact_owner.pgy" ||
+    fail "SelfDirIntentFacts producer seal owner is missing"
+intent_fact_digest_sources="$(
+    grep -RFl --include='*.pgy' 'SelfDirIntentFactsIdentityDigest(' \
+        "$SELF_HOST_DIR" | sed "s#^$ROOT_DIR/##" | sort
+)"
+[[ "$intent_fact_digest_sources" == \
+    "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy" ]] ||
+    fail "SelfDirIntentFacts digest escaped its receipt owner: $intent_fact_digest_sources"
+intent_fact_digest_assignment_sources="$(
+    grep -RFl --include='*.pgy' 'identity_digest = SelfDirIntentFactsIdentityDigest(' \
+        "$SELF_HOST_DIR" | sed "s#^$ROOT_DIR/##" | sort
+)"
+[[ "$intent_fact_digest_assignment_sources" == \
+    "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy" ]] ||
+    fail "SelfDirIntentFacts digest assignment escaped its receipt owner: $intent_fact_digest_assignment_sources"
 require_file "src/self_hosted/dir/intent_step_fact_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_step_fact_owner.pgy" 540
 reject_file "src/self_hosted/dir/intent_step_header_fact_owner.pgy"
@@ -2000,9 +2062,18 @@ require_text "src/self_hosted/OWNERS.md" \
 require_file \
     "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy"
 require_max_lines \
-    "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy" 160
+    "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy" 180
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy"
+require_text \
+    "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy" \
+    'source_facts: SelfDirIntentFacts;'
+require_text \
+    "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy" \
+    'func CodegenIntentExecutionViewReadyForSemantic('
+require_text \
+    "src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy" \
+    'func CodegenIntentExecutionViewSourceFactsRequired('
 require_file \
     "src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy"
 require_max_lines \
@@ -2027,6 +2098,18 @@ require_text \
 reject_text \
     "src/self_hosted/compiler/intent_policy_c_codegen_bridge_owner.pgy" \
     'admitted.routines.names[row] == intent_name'
+require_file \
+    "src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy"
+require_text \
+    "src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy" \
+    'func CodegenIntentExecutionViewFromSemanticOrDie('
+require_text \
+    "src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy" \
+    'CodegenIntentExecutionViewReadyForSemantic('
 require_file "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" 260
@@ -2128,7 +2211,20 @@ require_text ".github/workflows/self_host_parity.yml" \
 require_text ".github/workflows/self_host_parity.yml" \
     "self-host-intent-typed-compensation-test-smoke"
 require_max_lines \
-    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" 180
+    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" 220
+require_file \
+    "tests/self_hosted/parity/fixture/intent_declaration_rows_negative_probe.pgy"
+require_max_lines \
+    "tests/self_hosted/parity/fixture/intent_declaration_rows_negative_probe.pgy" 110
+require_text \
+    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" \
+    'PGY_SELF_DRIVER_BIN='
+require_text \
+    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" \
+    'compensation-crosswire step-range-crosswire missing-source-view \'
+require_text \
+    "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" \
+    'artifact-epoch-crosswire'
 require_text \
     "tests/self_hosted/parity/intent_guard_post_compensation_execution_owner.sh" \
     "post.history.failure1=post:ForwardB"
@@ -2202,7 +2298,18 @@ require_text \
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
     "zone_authorities: SemanticAstZoneAuthorityFacts"
 require_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
-    "SemanticAstIntentStepActorFromFacts("
+    "intent_execution.source_facts"
+for retired_intent_ast_reconstruction in \
+    "TypedAstArenaChildAt(" \
+    "SemanticAstIntentStepHeaderFromText(" \
+    "SemanticAstIntentStepActorFromFacts(" \
+    "CodegenIntentExecutableStepCount(" \
+    "compensate_nodes"; do
+    reject_regex_under "src/self_hosted/codegen" \
+        "${retired_intent_ast_reconstruction//(/\\(}"
+    reject_regex_under "src/self_hosted/compiler" \
+        "${retired_intent_ast_reconstruction//(/\\(}"
+done
 reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     "authority_alias != who_alias"
 require_file \
@@ -2262,7 +2369,7 @@ require_text "src/self_hosted/OWNERS.md" \
 require_file \
     "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy"
 require_max_lines \
-    "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy" 200
+    "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy" 220
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/emission/intent_observability_emit_owner.pgy"
 require_file "src/self_hosted/codegen/emission/intent_mode_emit_owner.pgy"
@@ -2335,9 +2442,9 @@ reject_text \
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "usage.uses_intent_observability"
 require_text "src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy" \
-    "CodegenIntentObservabilityEmitStepBegin("
+    "CodegenIntentObservabilityEmitAttributionRange("
 require_text "src/self_hosted/codegen/emission/intent_nested_call_emit_owner.pgy" \
-    "CodegenIntentObservabilityEmitStepBegin("
+    "CodegenIntentObservabilityEmitAttributionRange("
 require_file \
     "tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy"
 require_file \
@@ -5245,6 +5352,10 @@ require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "func Ast
 require_file "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" 100
 require_text "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" "func GenerateCUnitFromAdmittedSemanticArtifact("
+require_text "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "CodegenIntentExecutionViewFromSemanticOrDie("
+reject_text "src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy" \
+    "CodegenIntentExecutionViewEmpty(true)"
 reject_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "match_pattern_graphs"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "ArrayPush(provenance_texts, nodes[i].text)"
 reject_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "nodes: Array<CodegenAstTextNode>;"

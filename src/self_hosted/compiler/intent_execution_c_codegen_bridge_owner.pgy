@@ -1,0 +1,66 @@
+// Same-epoch semantic DIR intent facts -> C codegen execution view.
+//
+// This is the only source-semantic constructor for the codegen lane.  It
+// builds the existing DIR owner once, proves exact readiness, and attaches it
+// to either the source-C empty-plan view or a machine-admitted MIR plan view.
+
+import "../codegen/input/intent_execution_codegen_view_owner.pgy";
+import "../dir/intent_mode_fact_owner.pgy";
+import "../dir/intent_priority_fact_owner.pgy";
+import "../dir/intent_fact_owner.pgy";
+import "../semantic/ast_artifact_verdict_owner.pgy";
+
+func CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    ref declarations: SelfMirDeclarationRows
+) -> SelfDirIntentFacts {
+    let modes: SelfDirIntentModeFacts = SelfDirIntentModeFactsFromArtifact(
+        artifact, analysis.intent_signatures
+    );
+    let priorities: SelfDirIntentPriorityFacts =
+        SelfDirIntentPriorityFactsFromArtifact(
+            artifact, analysis.intent_signatures,
+            analysis.expression_surfaces, analysis.constructors,
+            analysis.function_tables
+        );
+    let facts: SelfDirIntentFacts = SelfDirIntentFactsFromArtifact(
+        artifact, declarations, analysis.signatures,
+        analysis.intent_signatures, analysis.intent_transitions,
+        analysis.expression_surfaces, modes, priorities
+    );
+    if !SelfDirIntentFactsReady(
+        artifact, declarations, analysis.signatures,
+        analysis.intent_signatures, analysis.expression_surfaces, facts
+    ) {
+        Die("semantic DIR intent execution facts are missing or crossed");
+    }
+    return facts;
+}
+
+func CodegenIntentExecutionViewAttachSemanticOrDie(
+    base: CodegenIntentExecutionView,
+    artifact_identity_digest: Int,
+    ref intent_signatures: SemanticAstIntentSignatureFacts,
+    source_facts: SelfDirIntentFacts
+) -> CodegenIntentExecutionView {
+    let view: CodegenIntentExecutionView =
+        CodegenIntentExecutionViewWithSourceFacts(base, source_facts);
+    if !CodegenIntentExecutionViewReadyForSemantic(
+        artifact_identity_digest, intent_signatures, view
+    ) {
+        Die("semantic DIR intent execution view did not cross codegen admission");
+    }
+    return view;
+}
+
+func CodegenIntentExecutionViewFromSemanticOrDie(
+    artifact_identity_digest: Int,
+    ref intent_signatures: SemanticAstIntentSignatureFacts,
+    source_facts: SelfDirIntentFacts
+) -> CodegenIntentExecutionView {
+    return CodegenIntentExecutionViewAttachSemanticOrDie(
+        CodegenIntentExecutionViewEmpty(true), artifact_identity_digest,
+        intent_signatures, source_facts
+    );
+}

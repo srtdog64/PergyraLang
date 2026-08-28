@@ -152,7 +152,9 @@ func DirectMirIntentExecutionViewFromAdmitted(
         terminal = terminal + 1;
     }
     return CodegenIntentExecutionView(
-        true, true, plan, expression_surfaces.expression_graph,
+        true, true, plan,
+        SelfDirIntentFactsSealedEmpty(0, 0),
+        expression_surfaces.expression_graph,
         action_roots, compensation_roots, terminal_roots,
         canonical_routine_ids, terminal_canonical_routine_ids
     );

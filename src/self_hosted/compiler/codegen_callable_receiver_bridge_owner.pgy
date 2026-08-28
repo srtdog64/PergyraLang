@@ -9,6 +9,7 @@ import "../codegen/input/domain_runtime_codegen_view_owner.pgy";
 import "domain_runtime_c_codegen_bridge_owner.pgy";
 import "direct_mir_intent_plan_projection_owner.pgy";
 import "intent_policy_c_codegen_bridge_owner.pgy";
+import "intent_execution_c_codegen_bridge_owner.pgy";
 
 struct CodegenAdmittedCView {
     receivers: CodegenCallableReceiverFacts;
@@ -45,6 +46,8 @@ func CodegenAdmittedCViewFromFactsOrDie(
     canonical_routine_source_syntax_ids: Array<String>,
     observe_pressure: Bool
 ) -> CodegenAdmittedCView {
+    let declarations: SelfMirDeclarationRows =
+        SelfMirDeclarationsFromAnalysis(artifact, analysis, analysis.enums);
     if observe_pressure { Log("[codegen-view-stage] receivers:start"); }
     let receivers: CodegenCallableReceiverFacts =
         CodegenCallableReceiverFactsFromAdmittedOrDie(
@@ -66,14 +69,29 @@ func CodegenAdmittedCViewFromFactsOrDie(
         CodegenDomainRuntimeFactsFromAdmittedOrDie(admitted);
     if observe_pressure { Log("[codegen-view-stage] domain-runtime:done"); }
     if observe_pressure { Log("[codegen-view-stage] intent-execution:start"); }
-    let intent_execution: CodegenIntentExecutionView =
+    let plan_intent_execution: CodegenIntentExecutionView =
         DirectMirIntentExecutionViewFromAdmitted(
             admitted, admitted.intent_execution_plan,
             analysis.expression_surfaces,
             intent_expression_occurrences,
             canonical_routine_source_syntax_ids
         );
-    if !CodegenIntentExecutionViewReady(intent_execution) {
+    let source_intents: SelfDirIntentFacts =
+        SelfDirIntentFactsSealedEmpty(0, 0);
+    if CodegenIntentExecutionViewSourceFactsRequired(
+        plan_intent_execution, analysis.intent_signatures) {
+        source_intents = CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
+            artifact, analysis, declarations);
+    }
+    let intent_execution: CodegenIntentExecutionView =
+        CodegenIntentExecutionViewAttachSemanticOrDie(
+            plan_intent_execution, artifact.identity_digest,
+            analysis.intent_signatures, source_intents
+        );
+    if !CodegenIntentExecutionViewReadyForSemantic(
+        artifact.identity_digest, analysis.intent_signatures,
+        intent_execution
+    ) {
         Die("MIR typed intent execution plan did not cross machine admission");
     }
     if observe_pressure { Log("[codegen-view-stage] intent-execution:done"); }

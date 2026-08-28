@@ -1106,6 +1106,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/dir/intent_fact_owner.pgy` -- exact intent declaration,
   participant/value range, ordered-step range, and intent-edge census owner;
   it validates typed identities and never rescans source text.
+- `src/self_hosted/dir/intent_exact_identity_contract_owner.pgy` -- exact
+  declaration-row, participant, direct-step, provenance, and ordered
+  compensation identity seal for an admitted intent DIR receipt. It
+  re-resolves the typed artifact only at admission and owns no codegen policy.
 - `src/self_hosted/dir/intent_child_policy_owner.pgy` -- exact typed child-kind
   admission policy for rows directly owned by an intent declaration.
 - `src/self_hosted/dir/intent_mode_fact_owner.pgy` -- exact singleton direct
@@ -1371,8 +1375,9 @@ inventory must not become a second fact-family owner registry.
 ## Codegen
 
 - `src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy` --
-  bounded codegen view of one admitted typed intent plan, canonical routine
-  identity epoch, and its exact semantic expression roots.
+  bounded two-lane codegen receipt: admitted source DIR facts for source C
+  emission and a canonical-routine keyed MIR execution plan for direct-MIR C
+  emission. Missing source facts fail closed for semantic intents.
 - `src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy` --
   canonical-routine keyed admitted intent mode and priority receipt consumed by
   C emission without reopening AST children or reconstructing graph roots.
@@ -1668,7 +1673,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/intent_emit_owner.pgy` -- distinct intent
   prototype/environment/definition emission for admitted participant bindings,
   zone rebinding, action execution, projection synchronization, and caller
-  value-result writeback; it does not reclassify intent as `func`.
+  value-result writeback from the admitted source DIR receipt; it neither
+  reopens AST children nor reconstructs declaration rows and does not
+  reclassify intent as `func`.
 - `src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy` -- one
   admitted zone-bound action step's materialization, call/outcome, sync, and
   caller writeback emission. It returns the cleanup expressions to the intent
@@ -1885,6 +1892,10 @@ inventory must not become a second fact-family owner registry.
   exact semantic-DIR or machine-admitted-MIR intent policy join into the one C
   codegen receipt; the MIR route binds canonical routine identity, carrier row,
   and semantic expression occurrence without an AST fallback.
+- `src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy` --
+  one-way admission of exact semantic intent DIR facts into the C execution
+  receipt; it validates the declaration/signature identity seal and provides
+  no empty-view or AST-reconstruction fallback to final emission.
 
 - `src/self_hosted/compiler/reachability_owner.pgy` -- mechanism reachability
   contract: no mechanism without a consumer, or an explicit declaration that

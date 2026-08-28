@@ -15,7 +15,9 @@ func CodegenIntentEmitNestedCall(
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     call_node: Int,
     step_name: String,
-    participant_name: String,
+    who_names: Array<String>,
+    who_start: Int,
+    who_count: Int,
     uses_intent_observability: Bool,
     env: CodegenTypeEnv
 ) -> Void {
@@ -32,9 +34,9 @@ func CodegenIntentEmitNestedCall(
     let call_expression: String = RewriteExprFromSemanticGraph(
         graph.graph, graph.root_id, env
     );
-    CodegenIntentObservabilityEmitStepBegin(
+    CodegenIntentObservabilityEmitAttributionRange(
         body, uses_intent_observability, step_name,
-        "<zone>", participant_name, "<unbound>"
+        "<zone>", who_names, who_start, who_count, "<unbound>"
     );
     let failure_line: String = CodegenIntentObservabilityFailureLine(
         uses_intent_observability, "intent", step_name

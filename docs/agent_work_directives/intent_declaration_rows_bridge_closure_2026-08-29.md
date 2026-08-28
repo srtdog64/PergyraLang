@@ -1,11 +1,11 @@
 # Intent declaration rows BRIDGE closure — 2026-08-29
 
-Status: `WAITING FOR FORMATTER PUBLICATION`
+Status: `DONE` (local closure green; exact-head CI publication pending)
 
 This directive fixes the next executable objective. It is temporary
 coordination, not semantic authority, a registry verdict, or completion
-evidence. Implementation may begin only after the public formatter checkpoint
-is pushed and its exact-head CI publication result is observed.
+evidence. Formatter checkpoint `1aed1291` is on `origin/main`; exact-head CI
+run `33197495199` completed GREEN, so this bounded executable rung is released.
 
 ## Objective card
 
@@ -40,6 +40,17 @@ is pushed and its exact-head CI publication result is observed.
   through installed/public source-C. Require success/failure/ordered reverse
   compensation parity, missing/drifted/crossed fact mutations with no artifact,
   and static rejection of the deleted reconstruction terms.
+
+## Completion evidence
+
+- Source DIR is sealed to every carried row and the typed artifact epoch;
+  codegen admission uses the sealed receipt without reopening AST/header data.
+- Action execution uses `receiver_aliases`; `who_names` is retained separately
+  for observability attribution, including multi-participant ranges.
+- Fresh installed-driver parity, 11 negative modes, component/hard contracts,
+  root compile, SoT census, progress, shell syntax, and diff checks are green.
+- The authority row moved in place from `BRIDGE` to `CLOSED`; no authority row
+  was added. Census is `CLOSED=53 BRIDGE=34 ACTIVE=1`.
 
 ## Edit boundary
 

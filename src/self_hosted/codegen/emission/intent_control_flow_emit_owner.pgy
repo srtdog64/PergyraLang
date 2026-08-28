@@ -1,31 +1,9 @@
 // Intent predicate failure and ordered compensation C emission owner.
-import "../../hir/ast_text_arena_projection_owner.pgy";
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "intent_observability_emit_owner.pgy";
-
-func CodegenIntentExecutableStepCount(
-    artifact: AstTreeArtifact,
-    intent_node: Int
-) -> Int {
-    let count: Int = 0;
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
-        artifact.arena, intent_node, child_index
-    );
-    while IsSome(child) {
-        if TypedAstArenaNodeKindIs(
-            artifact.arena, UnwrapOption(child), TypedAstKindIntentStepTag()
-        ) { count = count + 1; }
-        child_index = child_index + 1;
-        child = TypedAstArenaChildAt(
-            artifact.arena, intent_node, child_index
-        );
-    }
-    return count;
-}
 
 func CodegenIntentEmitControlPrologue(
     inout body: Array<String>,

@@ -18,10 +18,10 @@ import "intent_outcome_contract_owner.pgy";
 import "intent_mode_fact_owner.pgy";
 import "intent_priority_fact_owner.pgy";
 import "intent_result_contract_owner.pgy";
-
+import "intent_exact_identity_contract_owner.pgy";
 func SelfDirIntentFactsFromArtifact(
     artifact: AstTreeArtifact,
-    rows: SelfMirDeclarationRows,
+    ref rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
     ref signature_facts: SemanticAstIntentSignatureFacts,
     transition_facts: SemanticAstIntentTransitionFacts,
@@ -30,7 +30,9 @@ func SelfDirIntentFactsFromArtifact(
 ) -> SelfDirIntentFacts {
     let required: Bool = SemanticAstIntentSignatureCount(signature_facts) > 0;
     if !required {
-        return SelfDirIntentFactsEmpty(false, true, "", artifact.count);
+        return SelfDirIntentFactsSealedEmpty(
+            artifact.count, artifact.identity_digest
+        );
     }
     if !AstTreeArtifactReady(artifact) || !signatures.ok ||
         !SemanticAstActionContractFactsReady(
@@ -293,7 +295,8 @@ func SelfDirIntentFactsFromArtifact(
         intent_index = intent_index + 1;
     }
 
-    return SelfDirIntentFacts(true, true, "", artifact.count,
+    let facts: SelfDirIntentFacts = SelfDirIntentFacts(
+        true, true, "", artifact.count, artifact.identity_digest,
         intent_node_ids, intent_names, intent_result_modes, intent_return_type_names,
         mode_facts, priority_facts,
         participant_starts, participant_counts,
@@ -322,14 +325,14 @@ func SelfDirIntentFactsFromArtifact(
             requires_declaration_indices, authorized_starts, authorized_counts,
             authorized_names, step_provenance
         ),
-        transition_facts,
-        edge_count
+        transition_facts, 0, edge_count
     );
+    return SelfDirIntentFactsSeal(facts);
 }
 
 func SelfDirIntentFactsReady(
     artifact: AstTreeArtifact,
-    rows: SelfMirDeclarationRows,
+    ref rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
@@ -345,9 +348,10 @@ func SelfDirIntentFactsReady(
             artifact, expression_surfaces,
             facts.intent_node_ids, facts.priorities
         ) ||
-        !SemanticAstIntentSignatureFactsReady(
-            artifact, intent_signatures
-        ) {
+        !SemanticAstIntentSignatureFactsReady(artifact, intent_signatures) ||
+        (facts.required && !SelfDirIntentReceiptIdentityReady(
+            artifact.identity_digest, intent_signatures, facts
+        )) || (!facts.required && !SelfDirIntentReceiptEmptyReady(facts)) {
         return false;
     }
     let intent_count: Int = ArrayLength(facts.intent_node_ids);

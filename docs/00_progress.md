@@ -2,6 +2,20 @@
 
 마지막 업데이트: 2026-08-29
 
+`selfhost.intent_declaration_rows`는 이제 기존 BRIDGE를 실제로 닫았다.
+DIR producer가 intent 선언·참여자·step·보상·transition 전체와 typed artifact
+epoch를 한 번 봉인하고, source-C codegen은 이 receipt와 admitted signature만
+검증한다. 최종 emitter의 AST child walk, step-header 재파싱, compensation 재구성은
+삭제됐다. Action 실행은 `on`의 exact receiver를 사용하고, `who`는 다중 행을
+보존하는 observability attribution으로 분리됐다. Fresh installed driver에서
+source-C/MIR-to-C/public parity와 11개 missing/crossed/epoch negative가 통과했고,
+component/hard contract, root self-host compile, SoT/progress gate도 green이다.
+따라서 현재 census는 `CLOSED=53 BRIDGE=34 ACTIVE=1`, hard closure
+`53/88 = 60.2%`, migration `79.8%`다. 통합 진행도는 증거 가중치상 **83%**
+(81~85%), strict beta 83%, hard replacement 75%를 유지한다. 이제 `35`가 표에서만
+아니라 실제 최종 consumer 치환으로 `34`가 됐다. Exact-head CI가 남은 publication
+falsifier다.
+
 `pgy fmt SOURCE [--check|--write]`의 native lexer/parser/layout 경로는
 로컬 트리에서 Pergyra 구현으로 치환됐다. `lexer/scan_owner.pgy`가 한 번 생성한
 typed `LexerTokenFact`를 public token text와 formatter가 함께 소비하고,
@@ -24,7 +38,7 @@ SoT authority-edge, authority negative mutations, documentation/progress,
 shell syntax와 changed-C Werror가 local green이다. 로컬 Coq/Rocq 실행 파일은 없어
 선언된 skip이며 정적 owner/consumer 및 negative mutation 검사는 통과했다. Coq spine에는
 `SFSourceFormatLayout -> SOSourceFormatter`를 선언했고 새
-`selfhost.source_format_layout` 행은 local `CLOSED`다. 현재 census는
+`selfhost.source_format_layout` 행은 local `CLOSED`다. Formatter 완료 당시 census는
 `CLOSED=52 BRIDGE=35 ACTIVE=1`, hard closure `52/88 = 59.1%`, migration
 `79.3%`다. 이 작업은 실제 `SUBSTITUTING`이지만 새 CLOSED 행을 추가했으므로
 기존 BRIDGE 35를 줄이지는 않았다. 구현 checkpoint는 `e9e9e20b`다. 다음

@@ -334,20 +334,10 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
             mir_generic_specializations.diagnostic_message
         ));
     }
-    DriverRung2PressureStage(
-        observe_pressure, "consumer:generic-specialization:done"
-    );
-    // Body admission is the last legitimate consumer of the owned callable
-    // table strings. Codegen consumes signatures and the sealed body receipt,
-    // so retain no dead function-table epoch across C emission.
+    DriverRung2PressureStage(observe_pressure, "consumer:generic-specialization:done");
+    // Source intent admission inside the codegen view is the last legitimate
+    // consumer of the owned callable table strings.
     let codegen_analysis: SemanticAstArtifactAnalysis = verified.analysis;
-    let expired_function_tables: SemanticAstExpressionFunctionTableFacts =
-        codegen_analysis.function_tables;
-    SemanticAstExpressionFunctionTableFactsRelease(expired_function_tables);
-    codegen_analysis.function_tables = expired_function_tables;
-    DriverRung2PressureStage(
-        observe_pressure, "consumer:function-tables:released"
-    );
     DriverRung2PressureStage(observe_pressure, "consumer:codegen-view:start");
     let routine_identity_epoch: CanonicalMirRoutineIdentityEpoch =
         CanonicalMirRoutineIdentityEpochFromArtifact(admitted.routines,
@@ -365,7 +355,13 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         intent_expression_occurrences,
         routine_identity_epoch.source_syntax_ids, observe_pressure);
     DriverRung2PressureStage(observe_pressure, "consumer:codegen-view:done");
+    let expired_function_tables: SemanticAstExpressionFunctionTableFacts =
+        codegen_analysis.function_tables;
+    SemanticAstExpressionFunctionTableFactsRelease(expired_function_tables);
+    codegen_analysis.function_tables = expired_function_tables;
+    DriverRung2PressureStage(observe_pressure, "consumer:function-tables:released");
     let codegen_body_types: CodegenSemanticBodyTypeFacts = codegen_view.body_types;
+    let codegen_intent_execution: CodegenIntentExecutionView = codegen_view.intent_execution;
     if retire_owned_source_json {
         MirJsonOwnedInputRelease(json);
         DriverRung2PressureStage(
@@ -380,8 +376,9 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         MirDomainTopologyGraphPlanAttachToC(
             topology_receipt, admitted.domain_topology_plan,
             GenerateCFromVerifiedSemanticArtifact(
-                artifact, codegen_analysis, codegen_body_types, codegen_view.receivers,
-                codegen_view.domain_runtime, codegen_view.intent_execution,
+                artifact, codegen_analysis, codegen_body_types,
+                codegen_view.receivers,
+                codegen_view.domain_runtime, codegen_intent_execution,
                 codegen_view.intent_policy,
                 admitted.machine_declaration, target_projection,
                 observe_pressure

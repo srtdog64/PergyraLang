@@ -85,7 +85,9 @@ zone WorkflowZone {
 
 intent RunWorkflow(
     work: WorkflowZone,
+    shadow_work: WorkflowZone,
     actor: WorkflowActor,
+    shadow_actor: WorkflowActor,
     first_guard_ok: Bool,
     guard_ok: Bool,
     expect_ok: Bool,
@@ -96,6 +98,7 @@ intent RunWorkflow(
         on: actor.ForwardA();
         compensate: actor.UndoA();
         guard: first_guard_ok;
+        expect: true;
         post: actor.state == 10;
     }
 
@@ -125,36 +128,51 @@ func Observe(label: String, ok: Bool, actor: WorkflowActor) -> Void {
 func Main() -> Void {
     let success_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
     let success_work = WorkflowZone(Clone(success_actor));
+    let success_shadow_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let success_shadow_work = WorkflowZone(Clone(success_shadow_actor));
     let success_ok = RunWorkflow(
-        success_work, success_actor, true, true, true, true
+        success_work, success_shadow_work, success_actor,
+        success_shadow_actor, true, true, true, true
     );
     Observe("success", success_ok, success_actor);
 
     let first_guard_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
     let first_guard_work = WorkflowZone(Clone(first_guard_actor));
+    let first_guard_shadow_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let first_guard_shadow_work = WorkflowZone(Clone(first_guard_shadow_actor));
     let first_guard_ok = RunWorkflow(
-        first_guard_work, first_guard_actor, false, true, true, true
+        first_guard_work, first_guard_shadow_work, first_guard_actor,
+        first_guard_shadow_actor, false, true, true, true
     );
     Observe("first_guard", first_guard_ok, first_guard_actor);
 
     let guard_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
     let guard_work = WorkflowZone(Clone(guard_actor));
+    let guard_shadow_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let guard_shadow_work = WorkflowZone(Clone(guard_shadow_actor));
     let guard_ok = RunWorkflow(
-        guard_work, guard_actor, true, false, true, true
+        guard_work, guard_shadow_work, guard_actor, guard_shadow_actor,
+        true, false, true, true
     );
     Observe("guard", guard_ok, guard_actor);
 
     let expect_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
     let expect_work = WorkflowZone(Clone(expect_actor));
+    let expect_shadow_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let expect_shadow_work = WorkflowZone(Clone(expect_shadow_actor));
     let expect_ok = RunWorkflow(
-        expect_work, expect_actor, true, true, false, true
+        expect_work, expect_shadow_work, expect_actor, expect_shadow_actor,
+        true, true, false, true
     );
     Observe("expect", expect_ok, expect_actor);
 
     let post_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
     let post_work = WorkflowZone(Clone(post_actor));
+    let post_shadow_actor = WorkflowActor(0, 0, 0, 0, 0, 0, 0);
+    let post_shadow_work = WorkflowZone(Clone(post_shadow_actor));
     let post_ok = RunWorkflow(
-        post_work, post_actor, true, true, true, false
+        post_work, post_shadow_work, post_actor, post_shadow_actor,
+        true, true, true, false
     );
     Observe("post", post_ok, post_actor);
     Log("post.history.count=" + ToString(IntentHistoryCount()));

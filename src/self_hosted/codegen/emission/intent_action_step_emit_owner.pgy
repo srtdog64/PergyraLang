@@ -22,7 +22,10 @@ func CodegenIntentEmitActionStep(
     ref intents: SemanticAstIntentSignatureFacts,
     ref zone_authorities: SemanticAstZoneAuthorityFacts,
     intent_index: Int,
-    who_alias: String,
+    receiver_alias: String,
+    who_names: Array<String>,
+    who_start: Int,
+    who_count: Int,
     using_alias: String,
     authority_alias: String,
     where_zone_name: String,
@@ -40,16 +43,17 @@ func CodegenIntentEmitActionStep(
     let binding: CodegenIntentStepBindingFact =
         CodegenIntentStepBindingFactFromFacts(
             intents, zone_authorities, intent_index,
-            who_alias, using_alias, authority_alias, where_zone_name, env
+            receiver_alias, using_alias, authority_alias, where_zone_name, env
         );
     if !binding.ok {
         Die(Concat(
             "self-host intent step binding is invalid: ", binding.diagnostic
         ));
     }
-    CodegenIntentObservabilityEmitStepBegin(
+    CodegenIntentObservabilityEmitAttributionRange(
         body, uses_intent_observability, step_name,
-        binding.zone_type, who_alias, binding.slot_name
+        binding.zone_type, who_names, who_start, who_count,
+        binding.slot_name
     );
     ArrayPush(body, Concat(
         "    ", Concat(binding.zone_member, Concat(
@@ -57,7 +61,7 @@ func CodegenIntentEmitActionStep(
         ))
     ));
     CodegenIntentObservabilityEmitMaterialize(
-        body, uses_intent_observability, who_alias,
+        body, uses_intent_observability, receiver_alias,
         binding.slot_name, binding.zone_type
     );
     ArrayPush(body, Concat(
@@ -67,7 +71,7 @@ func CodegenIntentEmitActionStep(
     ));
     let step_env: CodegenTypeEnv = TypeEnvAppendLocalRows(
         env, CodegenFunctionValueBindingFactForCExpression(
-            who_alias, binding.who_type, env, binding.zone_member
+            receiver_alias, binding.who_type, env, binding.zone_member
         ).env_rows
     );
     let on_graph: SemanticExpressionGraphView =

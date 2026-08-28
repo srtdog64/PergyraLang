@@ -1,0 +1,100 @@
+// Gate-only mutation probe for source-DIR intent declaration carriage.
+
+import "../../../../src/self_hosted/compiler/driver_pipeline_owner.pgy";
+import "../../../../src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 {
+        Die("intent declaration rows probe requires <source> <mode>");
+    }
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(args[0]);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !SemanticAstArtifactAdmissionReady(artifact, analysis, true) {
+        Die("intent declaration rows probe source admission failed");
+    }
+    let declarations: SelfMirDeclarationRows = SelfMirDeclarationsFromAnalysis(
+        artifact, analysis, analysis.enums
+    );
+    let facts: SelfDirIntentFacts =
+        CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
+            artifact, analysis, declarations
+        );
+    let mode: String = args[1];
+    let view: CodegenIntentExecutionView =
+        CodegenIntentExecutionViewEmpty(true);
+    if mode == "missing-source-view" {
+        if CodegenIntentExecutionViewReadyForSemantic(
+            artifact.identity_digest, analysis.intent_signatures, view
+        ) {
+            Die("missing source intent view was admitted");
+        }
+        Log(Concat("rejected:", mode));
+        return;
+    }
+    if mode == "artifact-epoch-crosswire" {
+        view = CodegenIntentExecutionViewWithSourceFacts(view, facts);
+        if CodegenIntentExecutionViewReadyForSemantic(
+            artifact.identity_digest + 1, analysis.intent_signatures, view
+        ) {
+            Die("cross-epoch source intent receipt was admitted");
+        }
+        Log(Concat("rejected:", mode));
+        return;
+    }
+    let steps: SelfDirIntentStepFacts = facts.steps;
+    if ArrayLength(steps.node_ids) != 2 {
+        Die("intent declaration rows probe requires exactly two steps");
+    }
+    if mode == "actor-crosswire" {
+        let values: Array<String> = steps.who_names;
+        ArraySet(values, steps.who_starts[0], "shadow_actor");
+        steps.who_names = values;
+    } else if mode == "using-crosswire" {
+        let values: Array<String> = steps.using_aliases;
+        ArraySet(values, 0, "shadow_work");
+        steps.using_aliases = values;
+    } else if mode == "authority-crosswire" {
+        let values: Array<String> = steps.authorized_names;
+        ArraySet(values, steps.authorized_starts[0], "shadow_actor");
+        steps.authorized_names = values;
+    } else if mode == "target-crosswire" {
+        let values: Array<Int> = steps.target_expression_node_ids;
+        ArraySet(values, 0, values[1]);
+        steps.target_expression_node_ids = values;
+    } else if mode == "guard-crosswire" {
+        let values: Array<Int> = steps.guard_node_ids;
+        ArraySet(values, 0, values[1]);
+        steps.guard_node_ids = values;
+    } else if mode == "post-crosswire" {
+        let values: Array<Int> = steps.post_node_ids;
+        ArraySet(values, 0, values[1]);
+        steps.post_node_ids = values;
+    } else if mode == "expect-crosswire" {
+        let values: Array<Int> = steps.expect_node_ids;
+        ArraySet(values, 0, values[1]);
+        steps.expect_node_ids = values;
+    } else if mode == "compensation-crosswire" {
+        let start: Int = steps.compensate_starts[1];
+        let values: Array<Int> = steps.compensate_node_ids;
+        let first: Int = values[start];
+        ArraySet(values, start, values[start + 1]);
+        ArraySet(values, start + 1, first);
+        steps.compensate_node_ids = values;
+    } else if mode == "step-range-crosswire" {
+        let values: Array<Int> = facts.step_starts;
+        ArraySet(values, 0, 1);
+        facts.step_starts = values;
+    } else {
+        Die("unknown intent declaration rows mutation mode");
+    }
+    facts.steps = steps;
+    view = CodegenIntentExecutionViewWithSourceFacts(view, facts);
+    if CodegenIntentExecutionViewReadyForSemantic(
+        artifact.identity_digest, analysis.intent_signatures, view
+    ) {
+        Die(Concat("crossed source intent view was admitted: ", mode));
+    }
+    Log(Concat("rejected:", mode));
+}

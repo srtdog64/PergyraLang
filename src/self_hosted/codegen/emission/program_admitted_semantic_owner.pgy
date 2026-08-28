@@ -9,6 +9,7 @@ import "../input/domain_runtime_codegen_view_owner.pgy";
 import "../../compiler/machine_layer_declaration_consumer.pgy";
 import "../../compiler/domain_runtime_c_codegen_bridge_owner.pgy";
 import "../../compiler/intent_policy_c_codegen_bridge_owner.pgy";
+import "../../compiler/intent_execution_c_codegen_bridge_owner.pgy";
 import "../input/intent_execution_codegen_view_owner.pgy";
 import "../../mir/declaration_rows_owner.pgy";
 import "../../dir/domain_topology_row_owner.pgy";
@@ -55,11 +56,18 @@ func GenerateCUnitFromAdmittedSemanticArtifactObserved(
         CodegenSemanticBodyTypeFactsFromBundleOrDie(
             artifact, semantic_analysis, bundle, generic_specializations
         );
-    let intent_execution: CodegenIntentExecutionView =
-        CodegenIntentExecutionViewEmpty(true);
+    let source_intents: SelfDirIntentFacts =
+        CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
+            artifact, semantic_analysis, declarations
+        );
     let intent_policy: CodegenIntentPolicyView =
-        CodegenIntentPolicyViewFromAdmittedSemanticOrDie(
-            artifact, semantic_analysis
+        CodegenIntentPolicyViewFromDirFactsOrDie(
+            semantic_analysis, source_intents
+        );
+    let intent_execution: CodegenIntentExecutionView =
+        CodegenIntentExecutionViewFromSemanticOrDie(
+            artifact.identity_digest, semantic_analysis.intent_signatures,
+            source_intents
         );
     return GenerateCUnitFromReadySemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,

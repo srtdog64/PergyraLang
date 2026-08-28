@@ -537,7 +537,7 @@ func CodegenDomainRuntimeFactsFromDomainAdmittedOrDie(
 // It consumes typed declaration/topology/map owners directly and deliberately
 // does not synthesize a partial DIR graph identity or a pgy.mir.v1 document.
 func CodegenDomainRuntimeFactsFromZeroTopologyOrDie(
-    own declarations: SelfMirDeclarationRows,
+    ref declarations: SelfMirDeclarationRows,
     topology: SelfDirDomainTopologyRows,
     projection_maps: SelfDirDomainProjectionMapRows
 ) -> CodegenDomainRuntimeFacts {

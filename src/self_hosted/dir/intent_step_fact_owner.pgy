@@ -119,7 +119,7 @@ func SelfDirIntentStepAppendActionContractRange(
 
 func SelfDirIntentStepFromArtifact(
     artifact: AstTreeArtifact,
-    rows: SelfMirDeclarationRows,
+    ref rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,

@@ -134,6 +134,35 @@ func CodegenIntentObservabilityEmitTypedStepBegin(
     ));
 }
 
+func CodegenIntentObservabilityEmitAttributionRange(
+    inout body: Array<String>, enabled: Bool,
+    step_name: String, zone_name: String,
+    participant_names: Array<String>, start: Int, count: Int,
+    slot_name: String
+) -> Void {
+    if start < 0 || count < 0 ||
+        start + count > ArrayLength(participant_names) {
+        Die("intent observability attribution range is invalid");
+    }
+    if !enabled { return; }
+    ArrayPush(body, Concat(
+        Concat("    ", Concat(IntentRuntimeCTraceStepFn(),
+            "(__intent_handle, \"")),
+        Concat(step_name, Concat("\", \"", Concat(zone_name, "\");\n")))
+    ));
+    let row: Int = start;
+    while row < start + count {
+        ArrayPush(body, Concat(
+            Concat("    ", Concat(IntentRuntimeCTraceBindFn(),
+                "(__intent_handle, \"")),
+            Concat(participant_names[row], Concat("\", \"", Concat(
+                slot_name, "\");\n"
+            )))
+        ));
+        row = row + 1;
+    }
+}
+
 func CodegenIntentObservabilityEmitMaterialize(
     inout body: Array<String>, enabled: Bool, participant_name: String,
     slot_name: String, zone_name: String

@@ -18,7 +18,44 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - public formatter Pergyra token/layout substitution
+## Active self-host context - intent declaration rows closure publication
+
+- Objective card: close existing authority `selfhost.intent_declaration_rows`
+  on the real installed/public source-C path. Stable semantic intent identity
+  and the existing `SelfDirIntentFacts.steps` owner must feed one
+  `CodegenIntentExecutionView`; the last legitimate consumer is
+  `CodegenIntentDefinitionBlock`.
+- Priority: exact owner carriage, missing/crossed-fact failure, emitter
+  migration, AST reconstruction deletion, focused executable/negative gate,
+  then registry publication. A present intent with an empty DIR view,
+  step/header/compensation AST rescan, mixed plan/AST fallback, and a new
+  authority row are forbidden.
+- Released basis: formatter checkpoint `1aed1291` is on `origin/main` and
+  exact-head CI run `33197495199` completed GREEN. This worktree contains the
+  executable successor delta; its parent census was `52/35/1`.
+- Implemented result: source DIR builds the intent rows once, seals every
+  carried field plus the typed-artifact epoch, and hands the receipt to one
+  `CodegenIntentExecutionView`. Codegen validates only the carried digest,
+  current artifact identity, and admitted signature rows. It no longer calls
+  an AST/header/compensation resolver. Action execution consumes the sealed
+  `receiver_alias`; `who` remains a separate observability attribution range.
+  The dead declaration snapshot ends at the DIR producer.
+- Observed gates: the freshly rebuilt installed driver passed source-C,
+  MIR-to-C, public/installed output parity and 11 missing/crossed/epoch
+  negatives in `intent_guard_post_compensation_execution_owner.sh`. The hard
+  contract, component structural contract, SoT registry gate, progress gate,
+  root self-host compile (`0 errors`, three pre-existing redundant-`who`
+  warnings), shell syntax, and `git diff --check` are green. The registry now
+  reports 88 authorities / 182 carriers / `CLOSED=53 BRIDGE=34 ACTIVE=1`.
+- Publication boundary: create the explicit-path implementation commit, push
+  it, and use exact-head CI as the remaining external falsifier. The local
+  epoch negative changes the consumer digest while holding rows fixed; a
+  constructed same-count/two-artifact cross-carry fixture remains useful
+  stronger evidence but is not substituted for the exact digest comparison.
+- Protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
+  remain outside inspection, edit, and staging scope.
+
+## Completed self-host context - public formatter Pergyra token/layout substitution
 
 - Objective card: production entrypoint `pgy fmt SOURCE [--check|--write]`;
   priority is byte-compatible output, one typed self-host token scan, one

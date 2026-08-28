@@ -1,44 +1,69 @@
-// C emission for the bounded admitted intent declaration path.
+// C emission for the admitted source-DIR intent declaration lane.
 //
-// Intent remains its own semantic callable.  This owner consumes the compact
-// intent signature rows plus the executable expression graphs reconstructed
-// from admitted MIR; it does not reinterpret an intent as a func.  A typed
-// Outcome row binds the one On action result exactly once and makes that
-// immutable value available to the same step predicates and compensation.
+// The DIR owner carries exact declaration, participant, step, phase, and
+// ordered compensation identities.  This final consumer emits those rows and
+// never discovers intent topology from AST children or reparses source text.
 
 import "../../semantic/ast_intent_signature_fact_owner.pgy";
-import "../../semantic/ast_intent_action_call_fact_owner.pgy";
-import "../../semantic/ast_intent_transition_row_owner.pgy";
 import "../../semantic/ast_zone_authority_fact_owner.pgy";
 import "../input/intent_execution_codegen_view_owner.pgy";
 import "../input/intent_policy_codegen_view_owner.pgy";
-import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
-import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
-import "function_binding_env_owner.pgy";
-import "expr_semantic_graph_emit_owner.pgy";
 import "intent_signature_emit_owner.pgy";
 import "intent_outcome_emit_owner.pgy";
 import "intent_control_flow_emit_owner.pgy";
 import "intent_observability_emit_owner.pgy";
-import "intent_step_binding_owner.pgy";
 import "intent_nested_call_emit_owner.pgy";
 import "intent_action_step_emit_owner.pgy";
 
+func CodegenIntentSourceRowOrDie(
+    ref view: CodegenIntentExecutionView,
+    syntax_id: Int,
+    name: String
+) -> Int {
+    let found: Int = -1;
+    let matches: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(view.source_facts.intent_node_ids) {
+        if view.source_facts.intent_node_ids[row] == syntax_id {
+            matches = matches + 1;
+            found = row;
+            if view.source_facts.names[row] != name {
+                Die("codegen DIR intent declaration name identity is stale");
+            }
+        }
+        row = row + 1;
+    }
+    if matches != 1 || found < 0 {
+        Die("codegen DIR intent declaration identity is missing or duplicated");
+    }
+    return found;
+}
+
+func CodegenIntentOptionalRangeNameOrDie(
+    values: Array<String>, start: Int, count: Int, kind: String
+) -> String {
+    if start < 0 || count < 0 || count > 1 ||
+        start + count > ArrayLength(values) {
+        Die(Concat("codegen DIR intent optional range is invalid: ", kind));
+    }
+    if count == 0 { return ""; }
+    return values[start];
+}
+
 func CodegenIntentDefinitionBlock(
-    artifact: AstTreeArtifact,
-    signatures: SemanticAstFunctionSignatureFacts,
     ref intents: SemanticAstIntentSignatureFacts,
     ref zone_authorities: SemanticAstZoneAuthorityFacts,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     base_env: CodegenTypeEnv,
-    ref intent_execution: CodegenIntentExecutionView,
+    own intent_execution: CodegenIntentExecutionView,
     ref intent_policy: CodegenIntentPolicyView,
     uses_intent_observability: Bool
 ) -> String {
     let definitions: Array<String> = [];
+    let steps: SelfDirIntentStepFacts = intent_execution.source_facts.steps;
     let intent_index: Int = 0;
     while intent_index < SemanticAstIntentSignatureCount(intents) {
         let intent_node: Int = intents.intent_node_ids[intent_index];
@@ -48,13 +73,17 @@ func CodegenIntentDefinitionBlock(
             intent_index = intent_index + 1;
             continue;
         }
+        let source_intent: Int = CodegenIntentSourceRowOrDie(
+            intent_execution, intent_node, intents.names[intent_index]
+        );
         let env: CodegenTypeEnv = CodegenIntentLocalEnv(
             intents, intent_index, base_env
         );
         let body: Array<String> = [];
-        let step_count: Int = CodegenIntentExecutableStepCount(
-            artifact, intent_node
-        );
+        let step_start: Int =
+            intent_execution.source_facts.step_starts[source_intent];
+        let step_count: Int =
+            intent_execution.source_facts.step_counts[source_intent];
         let compensation_starts: Array<Int> = [];
         let compensation_counts: Array<Int> = [];
         let compensation_expressions: Array<String> = [];
@@ -65,243 +94,110 @@ func CodegenIntentDefinitionBlock(
             intent_policy, intents, intent_index,
             expression_surfaces, env
         );
-        let step_index: Int = 0;
-        let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
-            artifact.arena, intent_node, child_index
-        );
-        while IsSome(child) {
-            let child_id: Int = UnwrapOption(child);
-            if TypedAstArenaNodeKindIs(
-                artifact.arena, child_id, TypedAstKindIntentStepTag()
-            ) {
-                let on_count: Int = 0;
-                let intent_call_count: Int = 0;
-                let outcome_count: Int = 0;
-                let expect_count: Int = 0;
-                let guard_count: Int = 0;
-                let post_count: Int = 0;
-                let on_node: Int = 0 - 1;
-                let intent_call_node: Int = 0 - 1;
-                let expect_node: Int = 0 - 1;
-                let guard_node: Int = 0 - 1;
-                let post_node: Int = 0 - 1;
-                let compensate_nodes: Array<Int> = [];
-                let outcome_name: String = "";
-                let who_alias: String = "";
-                let using_alias: String = "";
-                let authority_alias: String = "";
-                let step_child_index: Int = 0;
-                let step_child: Option<Int> = TypedAstArenaChildAt(
-                    artifact.arena, child_id, step_child_index
+        let local_step: Int = 0;
+        while local_step < step_count {
+            let step_row: Int = step_start + local_step;
+            let step_name: String = steps.names[step_row];
+            let authority_alias: String =
+                CodegenIntentOptionalRangeNameOrDie(
+                    steps.authorized_names,
+                    steps.authorized_starts[step_row],
+                    steps.authorized_counts[step_row], "authority"
                 );
-                while IsSome(step_child) {
-                    let row_id: Int = UnwrapOption(step_child);
-                    if TypedAstArenaNodeKindIs(
-                        artifact.arena, row_id,
-                        TypedAstKindIntentStepOnTag()
-                    ) {
-                        on_count = on_count + 1;
-                        on_node = row_id;
-                    } else if TypedAstArenaNodeKindIs(
-                        artifact.arena, row_id,
-                        TypedAstKindIntentStepIntentTag()
-                    ) {
-                        intent_call_count = intent_call_count + 1;
-                        intent_call_node = row_id;
-                    } else if TypedAstArenaNodeKindIs(
-                        artifact.arena, row_id,
-                        TypedAstKindIntentStepOutcomeTag()
-                    ) {
-                        outcome_count = outcome_count + 1;
-                        let outcome_atom: Option<String> =
-                            TypedAstArenaAtomText(artifact.arena, row_id);
-                        if !IsSome(outcome_atom) ||
-                            !IsIdentifier(UnwrapOption(outcome_atom)) {
-                            Die("self-host intent outcome binding is invalid");
-                        }
-                        outcome_name = UnwrapOption(outcome_atom);
-                    } else if TypedAstArenaNodeKindIs(
-                        artifact.arena, row_id,
-                        TypedAstKindIntentStepExpectTag()
-                    ) {
-                        expect_count = expect_count + 1;
-                        expect_node = row_id;
-                    } else if TypedAstArenaNodeKindIs(
-                        artifact.arena, row_id,
-                        TypedAstKindIntentStepGuardTag()
-                    ) {
-                        guard_count = guard_count + 1;
-                        guard_node = row_id;
-                    } else if TypedAstArenaNodeKindIs(
-                        artifact.arena, row_id,
-                        TypedAstKindIntentStepPostTag()
-                    ) {
-                        post_count = post_count + 1;
-                        post_node = row_id;
-                    } else if TypedAstArenaNodeKindIs(
-                        artifact.arena, row_id,
-                        TypedAstKindIntentStepCompensateTag()
-                    ) {
-                        ArrayPush(compensate_nodes, row_id);
-                    } else {
-                        let provenance: Option<String> =
-                            TypedAstArenaProvenanceText(
-                                artifact.arena, row_id
-                            );
-                        if IsSome(provenance) && StartsWith(
-                            UnwrapOption(provenance), "Who: "
-                        ) {
-                            who_alias = StringTrim(Substring(
-                                UnwrapOption(provenance),
-                                StringLength("Who: "),
-                                StringLength(UnwrapOption(provenance)) -
-                                    StringLength("Who: ")
-                            ));
-                        } else if IsSome(provenance) && StartsWith(
-                            UnwrapOption(provenance), "Using: "
-                        ) {
-                            using_alias = StringTrim(Substring(
-                                UnwrapOption(provenance),
-                                StringLength("Using: "),
-                                StringLength(UnwrapOption(provenance)) -
-                                    StringLength("Using: ")
-                            ));
-                        } else if IsSome(provenance) && StartsWith(
-                            UnwrapOption(provenance), "AuthorizedBy: "
-                        ) {
-                            authority_alias = StringTrim(Substring(
-                                UnwrapOption(provenance),
-                                StringLength("AuthorizedBy: "),
-                                StringLength(UnwrapOption(provenance)) -
-                                    StringLength("AuthorizedBy: ")
-                            ));
-                        }
-                    }
-                    step_child_index = step_child_index + 1;
-                    step_child = TypedAstArenaChildAt(
-                        artifact.arena, child_id, step_child_index
-                    );
+            let outcome_count: Int = 0;
+            if steps.outcome_node_ids[step_row] >= 0 {
+                if steps.outcome_names[step_row] == "" {
+                    Die("codegen DIR intent outcome identity is missing");
                 }
-                if on_count + intent_call_count != 1 ||
-                    (on_count == 1 && on_node < 0) ||
-                    (intent_call_count == 1 && intent_call_node < 0) ||
-                    outcome_count > 1 ||
-                    (outcome_count == 1 && outcome_name == "") ||
-                    expect_count > 1 || guard_count > 1 || post_count > 1 {
-                    Die("self-host intent executable step clause shape is invalid");
-                }
-                let step_header: Option<String> = TypedAstArenaAtomText(
-                    artifact.arena, child_id
-                );
-                let call_node: Int = on_node;
-                if intent_call_count == 1 { call_node = intent_call_node; }
-                let on_text: Option<String> = TypedAstArenaAtomText(
-                    artifact.arena, call_node
-                );
-                if !IsSome(step_header) || !IsSome(on_text) {
-                    Die("self-host intent executable step text is missing");
-                }
-                let header: SemanticAstIntentStepHeaderRow =
-                    SemanticAstIntentStepHeaderFromText(
-                        UnwrapOption(step_header)
-                    );
-                if !header.ok ||
-                    (header.using_alias != "" &&
-                     header.using_alias != using_alias) {
-                    Die("self-host intent executable step boundary is invalid");
-                }
-                let actor: SemanticAstIntentStepActorFact =
-                    SemanticAstIntentStepActorFromFacts(
-                        signatures, intents, intent_index,
-                        header.name, UnwrapOption(on_text),
-                        who_alias
-                    );
-                if !actor.ok {
-                    Die(Concat(
-                        "self-host intent executable step actor is unresolved: ",
-                        actor.provenance
-                    ));
-                }
-                who_alias = actor.actor_alias;
-                let step_env: CodegenTypeEnv = env;
-                if intent_call_count == 1 {
-                    if using_alias != "" || authority_alias != "" ||
-                        outcome_count != 0 || header.where_zone_name != "" {
-                        Die("self-host nested intent step boundary is invalid");
-                    }
-                    CodegenIntentEmitNestedCall(
-                        body, expression_surfaces, call_node, header.name,
-                        who_alias, uses_intent_observability, step_env
-                    );
-                    ArrayPush(step_sync_expressions, "");
-                    ArrayPush(step_writeback_expressions, "");
-                } else {
-                    let emitted: CodegenIntentActionStepEmission =
-                        CodegenIntentEmitActionStep(
-                            body, intents, zone_authorities, intent_index,
-                            who_alias, using_alias, authority_alias,
-                            header.where_zone_name, header.name,
-                            expression_surfaces, on_node, outcome_count,
-                            outcome_name, uses_intent_observability, env
-                        );
-                    step_env = emitted.env;
-                    ArrayPush(
-                        step_sync_expressions, emitted.sync_expression
-                    );
-                    ArrayPush(
-                        step_writeback_expressions,
-                        emitted.writeback_expression
-                    );
-                }
-                CodegenIntentEmitStepCompleted(body, step_index);
-                ArrayPush(compensation_starts,
-                    ArrayLength(compensation_expressions));
-                ArrayPush(compensation_counts,
-                    ArrayLength(compensate_nodes));
-                let compensate_index: Int = 0;
-                while compensate_index < ArrayLength(compensate_nodes) {
-                    ArrayPush(compensation_expressions,
-                        CodegenIntentCompensationExpression(
-                            expression_surfaces,
-                            compensate_nodes[compensate_index], step_env
-                        )
-                    );
-                    compensate_index = compensate_index + 1;
-                }
-                if guard_count == 1 {
-                    CodegenIntentEmitPredicate(
-                        body, expression_surfaces, guard_node,
-                        "guard", header.name, uses_intent_observability,
-                        step_env
-                    );
-                }
-                if expect_count == 1 {
-                    CodegenIntentEmitExpect(
-                        body, expression_surfaces, expect_node,
-                        outcome_count, header.name,
-                        uses_intent_observability, step_env
-                    );
-                }
-                if post_count == 1 {
-                    CodegenIntentEmitPredicate(
-                        body, expression_surfaces, post_node,
-                        "post", header.name, uses_intent_observability,
-                        step_env
-                    );
-                }
-                CodegenIntentObservabilityEmitStepOk(
-                    body, uses_intent_observability, header.name
-                );
-                step_index = step_index + 1;
+                outcome_count = 1;
             }
-            child_index = child_index + 1;
-            child = TypedAstArenaChildAt(
-                artifact.arena, intent_node, child_index
+            let step_env: CodegenTypeEnv = env;
+            if steps.target_kinds[step_row] == "intent" {
+                if steps.using_aliases[step_row] != "" ||
+                    authority_alias != "" || outcome_count != 0 ||
+                    steps.where_zone_names[step_row] != "" {
+                    Die("codegen DIR nested intent boundary is invalid");
+                }
+                CodegenIntentEmitNestedCall(
+                    body, expression_surfaces,
+                    steps.target_expression_node_ids[step_row], step_name,
+                    steps.who_names, steps.who_starts[step_row],
+                    steps.who_counts[step_row],
+                    uses_intent_observability, step_env
+                );
+                ArrayPush(step_sync_expressions, "");
+                ArrayPush(step_writeback_expressions, "");
+            } else if steps.target_kinds[step_row] == "action" {
+                let emitted: CodegenIntentActionStepEmission =
+                    CodegenIntentEmitActionStep(
+                        body, intents, zone_authorities, intent_index,
+                        steps.receiver_aliases[step_row],
+                        steps.who_names, steps.who_starts[step_row],
+                        steps.who_counts[step_row],
+                        steps.using_aliases[step_row],
+                        authority_alias, steps.where_zone_names[step_row],
+                        step_name, expression_surfaces,
+                        steps.target_expression_node_ids[step_row],
+                        outcome_count, steps.outcome_names[step_row],
+                        uses_intent_observability, env
+                    );
+                step_env = emitted.env;
+                ArrayPush(step_sync_expressions, emitted.sync_expression);
+                ArrayPush(
+                    step_writeback_expressions,
+                    emitted.writeback_expression
+                );
+            } else {
+                Die("codegen DIR intent target kind is invalid");
+            }
+            CodegenIntentEmitStepCompleted(body, local_step);
+            ArrayPush(
+                compensation_starts, ArrayLength(compensation_expressions)
             );
-        }
-        if step_index != step_count {
-            Die("self-host intent executable step count drifted");
+            let compensation_start: Int =
+                steps.compensate_starts[step_row];
+            let compensation_count: Int =
+                steps.compensate_counts[step_row];
+            ArrayPush(compensation_counts, compensation_count);
+            let compensation: Int = 0;
+            while compensation < compensation_count {
+                ArrayPush(
+                    compensation_expressions,
+                    CodegenIntentCompensationExpression(
+                        expression_surfaces,
+                        steps.compensate_node_ids[
+                            compensation_start + compensation
+                        ],
+                        step_env
+                    )
+                );
+                compensation = compensation + 1;
+            }
+            if steps.guard_node_ids[step_row] >= 0 {
+                CodegenIntentEmitPredicate(
+                    body, expression_surfaces,
+                    steps.guard_node_ids[step_row], "guard", step_name,
+                    uses_intent_observability, step_env
+                );
+            }
+            if steps.expect_node_ids[step_row] >= 0 {
+                CodegenIntentEmitExpect(
+                    body, expression_surfaces,
+                    steps.expect_node_ids[step_row], outcome_count, step_name,
+                    uses_intent_observability, step_env
+                );
+            }
+            if steps.post_node_ids[step_row] >= 0 {
+                CodegenIntentEmitPredicate(
+                    body, expression_surfaces,
+                    steps.post_node_ids[step_row], "post", step_name,
+                    uses_intent_observability, step_env
+                );
+            }
+            CodegenIntentObservabilityEmitStepOk(
+                body, uses_intent_observability, step_name
+            );
+            local_step = local_step + 1;
         }
         CodegenIntentEmitCleanup(
             body, step_count, compensation_starts, compensation_counts,

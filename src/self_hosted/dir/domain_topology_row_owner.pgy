@@ -65,7 +65,7 @@ func SelfDirDomainTopologyRowsError(
 }
 
 func SelfDirDeclarationIndexForName(
-    rows: SelfMirDeclarationRows,
+    ref rows: SelfMirDeclarationRows,
     name: String
 ) -> Int {
     let i: Int = 0;

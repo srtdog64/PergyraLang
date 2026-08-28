@@ -1,6 +1,23 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-29 public formatter substitution
+## Active self-host context - 2026-08-29 intent DIR receipt publication
+
+- `selfhost.intent_declaration_rows` now reaches the final source-C consumer
+  through one artifact-epoch-bound `SelfDirIntentFacts` receipt. The emitter
+  no longer reopens intent AST children, reparses step headers, or rebuilds
+  compensation arrays. Direct-MIR remains an explicit plan-owned lane, not a
+  fallback.
+- Action execution consumes the exact `on` receiver while `who` remains a
+  separate, multi-row observability attribution. Missing source facts, ten
+  crossed row/range mutations, and one artifact-epoch mismatch fail codegen
+  admission.
+- Fresh installed-driver source/MIR/public parity, component/hard contracts,
+  root compile, SoT and progress gates are local green. Census is `53/34/1`,
+  hard closure 60.2%, migration 79.8%, integrated 83% (81-85%), strict beta
+  83%, and hard replacement 75%. Exact-head remote CI is the publication
+  falsifier.
+
+## Completed self-host context - 2026-08-29 public formatter substitution
 
 - Production `pgy fmt SOURCE [--check|--write]` now reaches one installed
   Pergyra token/layout session. Native C lexer/parser/layout code is deleted;

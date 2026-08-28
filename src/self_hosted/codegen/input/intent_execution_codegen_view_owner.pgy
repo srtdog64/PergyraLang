@@ -1,17 +1,20 @@
-// Codegen-facing view of one machine-admitted typed intent execution plan.
+// Codegen-facing view of admitted intent execution facts.
 //
-// The MIR owner retains transition and terminal identity.  This view only
-// carries the exact expression graphs selected by those identities; codegen
-// must not recover topology from AST children, spelling, or row order.
+// DIR owns the source-semantic declaration/step topology.  MIR retains the
+// typed transition/terminal plan for routines already substituted there.
+// Codegen consumes these two explicit lanes and never recovers topology from
+// AST children, spelling, or row order.
 
 import "../../mir/intent_execution_fact_owner.pgy";
 import "../../semantic/ast_expression_graph_fact_owner.pgy";
 import "../../semantic/ast_expression_place_fact_owner.pgy";
+import "../../dir/intent_fact_owner.pgy";
 
 struct CodegenIntentExecutionView {
     valid: Bool;
     present: Bool;
     plan: MirIntentExecutionPlan;
+    source_facts: SelfDirIntentFacts;
     expression_graphs: SemanticExpressionGraphFacts;
     action_graph_roots: Array<Int>;
     compensation_graph_roots: Array<Int>;
@@ -32,7 +35,9 @@ func CodegenIntentExecutionViewEmpty(
     let routine_canonical_syntax_ids: Array<Int> = [];
     let terminal_routine_canonical_syntax_ids: Array<Int> = [];
     return CodegenIntentExecutionView(
-        valid, false, plan, SemanticExpressionGraphFactsEmpty(),
+        valid, false, plan,
+        SelfDirIntentFactsSealedEmpty(0, 0),
+        SemanticExpressionGraphFactsEmpty(),
         action_graph_roots, compensation_graph_roots, terminal_graph_roots,
         routine_canonical_syntax_ids,
         terminal_routine_canonical_syntax_ids
@@ -42,7 +47,9 @@ func CodegenIntentExecutionViewEmpty(
 func CodegenIntentExecutionViewReady(
     ref view: CodegenIntentExecutionView
 ) -> Bool {
-    if !view.valid || view.present != view.plan.present {
+    if !view.valid || view.present != view.plan.present ||
+        !view.source_facts.ok ||
+        !SelfDirIntentFactsShapeReady(view.source_facts) {
         return false;
     }
     if !view.present {
@@ -97,6 +104,17 @@ func CodegenIntentExecutionViewReady(
     return true;
 }
 
+func CodegenIntentExecutionViewWithSourceFacts(
+    view: CodegenIntentExecutionView, source_facts: SelfDirIntentFacts
+) -> CodegenIntentExecutionView {
+    return CodegenIntentExecutionView(
+        view.valid, view.present, view.plan, source_facts,
+        view.expression_graphs, view.action_graph_roots,
+        view.compensation_graph_roots, view.terminal_graph_roots,
+        view.routine_canonical_syntax_ids,
+        view.terminal_routine_canonical_syntax_ids);
+}
+
 func CodegenIntentExecutionViewOwnsRoutine(
     ref view: CodegenIntentExecutionView,
     routine_syntax_id: Int
@@ -110,4 +128,33 @@ func CodegenIntentExecutionViewOwnsRoutine(
         row = row + 1;
     }
     return false;
+}
+
+func CodegenIntentExecutionViewSourceFactsRequired(
+    ref view: CodegenIntentExecutionView,
+    ref intents: SemanticAstIntentSignatureFacts
+) -> Bool {
+    let row: Int = 0;
+    while row < SemanticAstIntentSignatureCount(intents) {
+        if !CodegenIntentExecutionViewOwnsRoutine(
+            view, intents.intent_node_ids[row]) { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func CodegenIntentExecutionViewReadyForSemantic(
+    artifact_identity_digest: Int,
+    ref intent_signatures: SemanticAstIntentSignatureFacts,
+    ref view: CodegenIntentExecutionView
+) -> Bool {
+    if !CodegenIntentExecutionViewReady(view) { return false; }
+    let required: Bool = CodegenIntentExecutionViewSourceFactsRequired(
+        view, intent_signatures);
+    if !required {
+        return SelfDirIntentReceiptEmptyReady(view.source_facts);
+    }
+    return SelfDirIntentReceiptIdentityReady(
+        artifact_identity_digest, intent_signatures, view.source_facts
+    );
 }

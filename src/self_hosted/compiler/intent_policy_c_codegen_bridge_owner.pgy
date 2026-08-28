@@ -6,8 +6,7 @@
 // emission.
 
 import "../codegen/input/intent_policy_codegen_view_owner.pgy";
-import "../dir/intent_mode_fact_owner.pgy";
-import "../dir/intent_priority_fact_owner.pgy";
+import "../dir/intent_result_contract_owner.pgy";
 import "../mir_lower/expression_graph_semantic_occurrence_owner.pgy";
 import "../mir_lower/intent_mode_projection_owner.pgy";
 import "../mir_lower/intent_priority_projection_owner.pgy";
@@ -16,27 +15,10 @@ import "../mir_lower/machine_layer_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
 
-func CodegenIntentPolicyViewFromAdmittedSemanticOrDie(
-    artifact: AstTreeArtifact,
-    analysis: SemanticAstArtifactAnalysis
+func CodegenIntentPolicyViewFromDirFactsOrDie(
+    analysis: SemanticAstArtifactAnalysis,
+    ref facts: SelfDirIntentFacts
 ) -> CodegenIntentPolicyView {
-    let modes: SelfDirIntentModeFacts = SelfDirIntentModeFactsFromArtifact(
-        artifact, analysis.intent_signatures
-    );
-    let priorities: SelfDirIntentPriorityFacts =
-        SelfDirIntentPriorityFactsFromArtifact(
-            artifact, analysis.intent_signatures,
-            analysis.expression_surfaces, analysis.constructors,
-            analysis.function_tables
-        );
-    if !SelfDirIntentModeFactsReady(
-            artifact, analysis.intent_signatures.intent_node_ids, modes
-        ) || !SelfDirIntentPriorityFactsReady(
-            artifact, analysis.expression_surfaces,
-            analysis.intent_signatures.intent_node_ids, priorities
-        ) {
-        Die("semantic intent policy receipt is missing or invalid");
-    }
     let syntax_ids: Array<Int> = [];
     let names: Array<String> = [];
     let concurrent: Array<Bool> = [];
@@ -50,10 +32,10 @@ func CodegenIntentPolicyViewFromAdmittedSemanticOrDie(
             syntax_ids, analysis.intent_signatures.intent_node_ids[row]
         );
         ArrayPush(names, analysis.intent_signatures.names[row]);
-        ArrayPush(concurrent, modes.names[row] == "concurrent");
-        ArrayPush(priority_present, priorities.present[row]);
-        if priorities.present[row] {
-            ArrayPush(priority_roots, priorities.expression_root_ids[row]);
+        ArrayPush(concurrent, facts.modes.names[row] == "concurrent");
+        ArrayPush(priority_present, facts.priorities.present[row]);
+        if facts.priorities.present[row] {
+            ArrayPush(priority_roots, facts.priorities.expression_root_ids[row]);
         } else {
             ArrayPush(priority_roots, 0);
         }

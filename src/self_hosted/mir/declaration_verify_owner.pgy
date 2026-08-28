@@ -58,7 +58,7 @@ func SelfMirDeclarationContractVocabularyRangeReady(
     return true;
 }
 
-func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
+func SelfMirDeclarationRowsReady(ref rows: SelfMirDeclarationRows) -> Bool {
     let count: Int = ArrayLength(rows.names);
     if !SelfMirDeclarationParallelStringCount(count, rows.kinds) ||
         !SelfMirDeclarationParallelStringCount(count, rows.nominal_kinds) ||

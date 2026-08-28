@@ -6,7 +6,30 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — public `pgy fmt` Pergyra token/layout substitution
+## ACTIVE lease — intent declaration rows closure publication
+
+- Objective card: publish the completed closure of
+  `selfhost.intent_declaration_rows` on the installed/public source-C path.
+  The executable and negative gates passed and the census is now
+  `CLOSED=53 BRIDGE=34 ACTIVE=1`; exact-head CI is the remaining external
+  publication falsifier.
+- Fact owner: `SemanticAstIntentSignatureFacts` owns declaration identity and
+  the existing DIR intent rows own admitted step topology. The last consumer
+  is the C intent emitter. `MirIntentExecutionPlan` retains only routines it
+  already owns in the direct-MIR slice.
+- Forbidden fallback: a present semantic intent with empty DIR carriage,
+  `TypedAstArenaChildAt` step discovery in the emitter, step-header reparsing,
+  compensation rescan, mixed DIR/AST reads, or registry closure before the
+  executable gate.
+- Integration evidence: installed/public source-C guard/expect/post and
+  ordered compensation parity, ten row/missing mutations plus one artifact
+  epoch mismatch, component/hard contracts, root self-host compile, SoT census,
+  progress, and diff checks are local green.
+- Publication basis: formatter checkpoint `1aed1291` is on `origin/main` and
+  exact-head CI run `33197495199` completed GREEN. The formatter lease is
+  released; this publication lease is the only active rung.
+
+## DONE lease — public `pgy fmt` Pergyra token/layout substitution
 
 - Objective card: production entrypoint `pgy fmt SOURCE [--check|--write]`;
   preserve the current byte output while moving token/layout and
@@ -62,13 +85,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   operations. A clean full codegen bootstrap, fresh installed driver, focused
   public formatter, legacy formatter, hard/component contracts, build
   inventory, SoT edge, and progress gate are green locally. Replacement
-  exact-head CI remains the publication falsifier.
+  exact-head CI run `33197495199` completed GREEN. The lease is released.
 - Progress discipline: this real substitution added a CLOSED authority but did
   not reduce BRIDGE=35. The next implementation lease may not add another row;
   it must migrate and close one existing BRIDGE so the count becomes 34. The
   waiting objective card is
   `docs/agent_work_directives/intent_declaration_rows_bridge_closure_2026-08-29.md`;
-  it cannot begin before this formatter lease is published and released.
+  it was released after the exact-head GREEN publication above.
 
 ## DONE lease — public `pgy debug` Pergyra session publication
 
