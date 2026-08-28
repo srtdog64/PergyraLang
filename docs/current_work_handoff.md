@@ -18,67 +18,66 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - no successor after bounded LSP hardening
+## Active self-host context - no successor after Print stdout closure
 
-- Published closure: implementation `b87c6b89`, typed-result repair
-  `7de0bd42`, and repair checkpoint `c573542f` are on `origin/main`.
-  Exact-head run `33140178069` completed GREEN 30/30. The
-  expected remaining dirty state is only the protected untracked
-  `docs/compiler_architectures/` and `pgy-80135c2c/`; neither was inspected,
-  staged, or modified.
-- Objective card: make the already-substituting live LSP transport admit
-  `Content-Length` once, reject impossible lengths before arithmetic overflow,
-  and share one 262,144-byte ceiling with the retained live buffer. Priority is
-  typed rejection identity, pre-arithmetic fail-closed behavior, one cap owner,
-  actual public-session failure, then patch size. `transport_owner.pgy` owns
-  `LspTransportLengthAdmission` and the ceiling;
-  `live_session_owner.pgy` is the last buffer/orchestration consumer. Relying
-  on checked-Int panic, waiting for the buffer cap, duplicating the literal,
-  treating over-limit as `body_incomplete`, or emitting a partial response is
+- Exact implementation `0c6e9902` and receipt repair `0c243074` are on
+  `origin/main`. First exact-head run `33144668885` completed RED 29/30, while
+  replacement run `33146672633` completed GREEN 30/30. After this documentation
+  checkpoint, the expected remaining worktree state is only protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/`. The protected directories
+  were not inspected, staged, or modified.
+- Objective card: byte-exact `Print` consumes existing `io_write` through one
+  append-only builtin policy and both runtime twins before emitting any byte.
+  Priority is stable registry identity, native/self-host semantic parity,
+  runtime fail-closed parity, reached live-LSP denial with empty stdout, then
+  patch size. `builtin_capability_registry.def` owns the source policy, the
+  runtime capability context owns the effective grant, and
+  `RunLspLiveSession` is the reached last orchestration consumer. Renumbering
+  existing IDs, semantic-only/runtime-only gating, a second policy table,
+  treating `Log*` as protocol output, or partial output before denial is
   forbidden.
-- Implementation: digit admission checks `d > maximum` or
-  `value > (maximum - d) / 10` before multiplication/addition. Missing header,
-  missing length, invalid length, over-limit length, and incomplete body retain
-  distinct reasons. The live owner waits only for an incomplete header/body;
-  malformed and over-limit declarations fail immediately with empty stdout.
-  The retired unbounded `LspParseNonNegativeInt` path is negative-gated.
-- Observed local evidence: C transport-frame parity passes normal, incomplete,
-  262,145-byte, and 30-digit declarations; transport-stream parity is green;
-  source/public and installed/public live sessions are green; shell syntax,
-  the focused structural owner ratchet, and builtin capability registry smoke
-  exit 0. The broad component inventory produced no output for two minutes and
-  was stopped because it exceeded the repository's 60-second static-gate
-  budget; it is not claimed green.
-- First exact-head run `33138532091` admitted the full matrix and passed
-  classifier, codegen bootstrap, Windows/macOS, sanitizers, TSan, Rocq, and all
-  20 backend shards. Its Linux component inventory also passed before
-  `build-linux` exposed `result_use=4447 < 4453`: the
-  first implementation had replaced six Option occurrences with a parallel
-  `{ok,value,reason}` carrier. Repair `7de0bd42` deletes that carrier and uses
-  the language-owned `Result<Int, String>` error channel. Focused C frame,
-  stream, public live, structural, and likeness gates are repair green;
-  likeness is ratcheted upward to the measured 4458. At that local repair
-  checkpoint a replacement exact-head run remained required; the first run is
-  not claimed green.
-- Replacement closure: run `33140178069` passed `build-linux` in 24m23s and
-  full self-host in 33m58s. Codegen bootstrap passed in 8m07s, Windows in
-  5m14s, sanitizers in 9m18s, backend toolchain in 10m02s, backend shards
-  20/20, macOS, TSan, and Rocq. This supersedes the local broad-component
-  omission and the failed first run at the exact repair checkpoint.
-- Separate reached-boundary audit: `Print`/`Log*` are explicitly excluded from
-  Phase-1 AIR resource-boundary evidence, the canonical builtin-capability
-  registry has no `Print` row, and both canonical `pgy_print` implementations
-  write/flush stdout without `pgy_cap_require_export`. This is a validated
-  capability-model asymmetry, not a demonstrated vulnerability and not silently
-  resolved by this transport patch. Choosing a capability or a documented
-  host-owned output channel with a quantitative byte budget remains a separate
-  semantic/ABI decision.
-- Grade and successor guard: this is production Pergyra dogfood hardening on an
-  already reached `SUBSTITUTING` path, not another C-to-Pergyra replacement and
-  not a SoT closure. Published progress and registry values stay unchanged.
-  The executable lease is closed. No successor is admitted; do not open
-  query/cache, semantic-index, performance, or Print-capability implementation
-  without a fresh production bypass/decision boundary and executable falsifier.
+- Implementation: stable ID 17 appends `Print -> io_write`; native semantic
+  inference and the generated self-host projection consume it. Both canonical
+  `pgy_print` definitions call `pgy_cap_require_export(PGY_CAP_IO_WRITE,
+  "print")` before output. Live LSP `Main`/`RunLspLiveSession` and MIR lower's
+  output owner declare `io_write`. AIR still excludes Print/Log from Phase-1
+  resource-boundary evidence; capability admission and AIR classification are
+  distinct. `Log*` remains diagnostic observability outside this bounded
+  policy lease.
+- Observed local evidence: a fresh native compiler build completed; the
+  corrected four-owner generator check, registry smoke, Bash and PowerShell
+  static capability manifests, and the complete C/LLVM runtime enforcement
+  matrix are green. Source and public live LSP retain exact successful frames;
+  `PGY_CAP_GRANT=env,io_read` exits nonzero with empty stdout and canonical
+  `op=print`/`class=capability-denied`. The first generator check used an old
+  named-argument form and is not counted; the first Git-Bash manifest run chose
+  non-launchable `bin/pgy` and is likewise replaced only by the observed
+  `bin/pgy.exe` run.
+- First CI falsifier: run `33144668885` passed full self-host in 33m35s,
+  backend shards 20/20, sanitizers, Windows/macOS, codegen bootstrap, TSan,
+  Rocq, and 20 other jobs. `build-linux` alone failed in 22m50s after the full
+  component inventory reached `sot_authority_edge_smoke`: the registry's
+  human-readable enforcement descriptions were absent as literal gate-file
+  receipts, and the new fallback names were absent from the CLOSED inventory.
+  Repair `0c243074` points at executable labels and adds those inventory names.
+  Local authority-edge and registry smokes are repair green. Local authority
+  adequacy is not claimed because no Coq/Rocq executable is installed; the
+  first CI's Rocq job is the observed proof evidence.
+- Grade and next falsifier: this is a supporting closure on an already reached
+  `SUBSTITUTING` path, not a new C-to-Pergyra substitution and not a registry
+  status/count change. SoT `50/35/1`, hard closure 58.1%, migration 78.8%, and
+  published percentage lines remain unchanged. Replacement run `33146672633`
+  owns publication: `build-linux` passed in 25m58s, full self-host in 33m09s,
+  codegen bootstrap in 6m37s, Windows in 9m36s, sanitizers in 11m44s, and the
+  backend toolchain in 9m54s; backend shards 20/20, macOS, TSan, and Rocq are
+  also green. The 29/30 first run is not green evidence. This executable lease
+  is closed and no successor is inferred.
+  The receipt repair and this checkpoint consume the two consecutive
+  SoT/support-only commit allowance after the executable policy delta. Do not
+  land another such commit: identify one real C-owned
+  production bypass with its Pergyra owner and executable falsifier, or record
+  the exact missing fact/owner/last consumer/fixture as `BLOCKED`. Query/cache,
+  semantic-index, performance, and a quantitative `Log*` budget remain closed.
 
 ## Completed self-host context - public live LSP closure
 

@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — live LSP stdout capability closure
+## DONE lease — live LSP stdout capability closure
 
 - Objective card: make byte-exact `Print` output consume the existing
   `io_write` authority through the canonical builtin-capability registry and
@@ -26,6 +26,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   empty stdout and `op=print`/`class=capability-denied`. `Log*` remains the
   existing diagnostic-observability family and any quantitative diagnostic
   budget is outside this bounded lease.
+- Published implementation `0c6e9902` and receipt repair `0c243074` are on
+  `origin/main`. Local generator, registry, Bash/PowerShell manifest, C/LLVM
+  runtime, source/public live-LSP, and repaired authority-edge gates are green.
+  First exact-head run `33144668885` completed RED 29/30: only `build-linux`
+  rejected non-literal registry receipts after its full component inventory;
+  full self-host and the other 28 jobs were green. Replacement exact-head run
+  `33146672633` completed GREEN 30/30: `build-linux` 25m58s, full self-host
+  33m09s, backend shards 20/20, and all remaining platform/sanitizer/proof jobs
+  passed. The lease is released. No parallel implementation track or inferred
+  successor is open.
 
 ## DONE lease — bounded live LSP frame-length admission
 

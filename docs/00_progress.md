@@ -36,14 +36,43 @@ Replacement checkpoint `c573542f`의 exact-head run `33140178069`은 GREEN
 따라서 첫 run의 parallel carrier 결함과 로컬 broad-component 미검증은 exact repair
 checkpoint에서 폐쇄됐다. 이 실행 lease는 닫혔고 successor는 추정하지 않는다.
 
-같이 감사한 `Print`는 현재 builtin capability registry 행과 runtime
-`pgy_cap_require_export`가 없고, 기존 AIR 문서는 Print/Log를 Phase-1 resource
-evidence에서 제외한다. 이는 검증된 capability-model 비대칭이지만 이번 transport
-패치에서 capability/ABI 정책을 암묵적으로 정하지 않았다. Capability로 만들지,
-정량 output budget을 가진 host-owned channel로 문서화할지는 별도 semantic 결정이다.
-이번 변경은 새 hard substitution이나 SoT 폐쇄가 아니므로 SoT `50/35/1`, hard
-closure 58.1%, migration 78.8%, 통합 83% (81~85%), strict beta 83%, hard
-replacement 75%는 그대로다. Query/cache와 semantic-index 후속도 열지 않는다.
+2026-08-28 `Print` stdout capability closure 구현 `0c6e9902`: append-only
+builtin capability stable ID 17이 byte-exact `Print`를 기존 `io_write`에 투영한다.
+Native type checker와 생성된 self-host projection이 같은 owner를 소비하고, 두
+canonical `pgy_print` runtime twin은 첫 byte 전에 `op=print`로 grant를 검사한다.
+실제 public live LSP의 `Main`/`RunLspLiveSession`과 MIR lower 출력 소비자도
+`io_write`를 선언한다. AIR Phase-1 resource-boundary 분류는 바뀌지 않았으며,
+`Log*`는 protocol/data 출력이 아닌 diagnostic observability로 남는다.
+
+Generator check, registry probe/negative, Bash와 PowerShell 정적 manifest,
+C/LLVM runtime 전체 행렬, source/public live LSP 성공 프레임과
+`PGY_CAP_GRANT=env,io_read`의 nonzero/빈 stdout 부정 경로가 local green이다.
+첫 generator 재검사는 예전 named CLI를 써 usage 오류가 났으므로 green으로 세지
+않고 올바른 네 positional owner로 다시 실행했다. 첫 Bash manifest 호출도
+Windows에서 기본 `bin/pgy`를 골라 exit 126이었으며, 명시적 `bin/pgy.exe`로
+재실행한 결과만 센다. 구현 HEAD의 exact-head CI run `33144668885`는 29/30으로
+RED다. Full self-host 33분 35초, backend 20/20, sanitizer, Windows/macOS,
+codegen bootstrap, TSan, Rocq 등 29개 job은 green이지만 `build-linux`가 전체
+component 통과 뒤 SoT registry receipt의 설명 문자열이 실제 gate 파일에 없음을
+적발했다. Repair `0c243074`는 runtime/LSP gate의 실제 문자열을 receipt로 가리키고
+세 forbidden fallback 이름을 CLOSED gate inventory에 추가한다. 로컬
+`sot_authority_edge_smoke`와 registry smoke는 repair green이고, local
+`sot_authority_adequacy_smoke`는 Coq/Rocq 부재로 실패했으므로 green으로 세지
+않는다. Replacement exact-head run `33146672633`은 GREEN 30/30이다.
+`build-linux`는 full component/authority edge를 포함해 25분 58초, full
+self-host는 33분 09초에 통과했다. Codegen bootstrap 6분 37초, Windows 9분
+36초, sanitizers 11분 44초, backend toolchain 9분 54초와 shards 20/20,
+macOS, TSan, Rocq도 모두 green이다. 따라서 첫 run의 receipt-label 결함과
+publication falsifier가 replacement exact HEAD에서 폐쇄됐다.
+
+이 변경은 이미 `SUBSTITUTING`인 출력 경계의 지원성 policy closure이지 새
+C-to-Pergyra hard substitution이 아니다. Registry 행은 계속 `CLOSED`이고 SoT
+`50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83% (81~85%), strict beta
+83%, hard replacement 75%는 그대로다. 이 구현 뒤 receipt repair와 문서
+checkpoint로 연속 지원성/SoT-only 커밋 예산을 모두 썼다. 다음 커밋은 실제
+C-owned production bypass를 Pergyra가 대체하는 executable delta이거나, exact
+missing fact/owner/last consumer/falsifying fixture를 적은 `BLOCKED`여야 한다.
+Query/cache, semantic-index, `Log*`의 정량 diagnostic budget 후속은 열지 않는다.
 
 2026-08-28 public live LSP 로컬 치환(`d78a4040`): no-argument
 `pgy-lsp`의 기본 C `lsp_read_message`/dispatch 경로를 설치된 Pergyra-built
