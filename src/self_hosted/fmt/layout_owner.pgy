@@ -63,7 +63,8 @@ func FormatSourceAppendNewline(inout output: Array<String>) -> Void {
 
 func FormatSourceFromTokenFacts(tokens: Array<LexerTokenFact>) -> String {
     if !LexerTokenFactsReady(tokens) {
-        Die("formatter requires an admitted token stream");
+        Log("FORMAT ERROR: formatter requires an admitted token stream");
+        Exit(1);
     }
     let output: Array<String> = [];
     let indent: Int = 0;
@@ -74,7 +75,8 @@ func FormatSourceFromTokenFacts(tokens: Array<LexerTokenFact>) -> String {
     while index < ArrayLength(tokens) {
         let token: LexerTokenFact = tokens[index];
         if !LexerTokenFactReady(token) || token.ordinal != index + 1 {
-            Die("formatter received an invalid token fact");
+            Log("FORMAT ERROR: formatter received an invalid token fact");
+            Exit(1);
         }
         if token.line > previous_line + 1 && indent == 0 && !at_line_start {
             FormatSourceAppendNewline(output);

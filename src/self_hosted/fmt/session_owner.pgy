@@ -8,13 +8,16 @@ func RunFormatSourceArtifact(
     output_path: String
 ) -> Void with caps io_read, io_write {
     if source_path == output_path {
-        Die("formatter source and output paths must differ");
+        Log("FORMAT ERROR: formatter source and output paths must differ");
+        Exit(1);
     }
     if !FileExists(source_path) {
-        Die("formatter source path does not exist");
+        Log("FORMAT ERROR: formatter source path does not exist");
+        Exit(1);
     }
     if !FormatSourceLayoutContractReady() {
-        Die("formatter layout contract drifted");
+        Log("FORMAT ERROR: formatter layout contract drifted");
+        Exit(1);
     }
     let source: String = ReadFile(source_path);
     let formatted: String =
@@ -22,13 +25,15 @@ func RunFormatSourceArtifact(
     let roundtrip: String =
         FormatSourceFromTokenFacts(LexContentFacts(formatted));
     if formatted != roundtrip {
-        Die("formatter output is not stable");
+        Log("FORMAT ERROR: formatter output is not stable");
+        Exit(1);
     }
     let parsed: ParserProgramBuild =
         ParseFormatProgramBuildContent(output_path, formatted);
     let artifact: AstTreeArtifact = ParserProgramArtifactFromBuild(parsed);
     if !AstTreeArtifactReady(artifact) {
-        Die("formatter output did not produce an admitted parser artifact");
+        Log("FORMAT ERROR: formatter output did not produce an admitted parser artifact");
+        Exit(1);
     }
     WriteFile(output_path, formatted);
 }

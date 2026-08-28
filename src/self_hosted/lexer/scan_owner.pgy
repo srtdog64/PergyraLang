@@ -97,7 +97,10 @@ func LexContentFacts(content: String) -> Array<LexerTokenFact> {
                     col = col + 1;
                 }
             }
-            if !block_closed { Die("unterminated block comment"); }
+            if !block_closed {
+                Log("LEXER ERROR: unterminated block comment");
+                Exit(1);
+            }
             continue;
         }
 
@@ -130,7 +133,8 @@ func LexContentFacts(content: String) -> Array<LexerTokenFact> {
                 i = i + 1;
                 col = col + 1;
             } else {
-                Die("unterminated interpolated string");
+                Log("LEXER ERROR: unterminated interpolated string");
+                Exit(1);
             }
             let itext: String = Substring(content, istart, i - istart);
             let interpolation_source: String =
@@ -211,7 +215,8 @@ func LexContentFacts(content: String) -> Array<LexerTokenFact> {
                 i = i + 1;
                 col = col + 1;
             } else {
-                Die("unterminated string literal");
+                Log("LEXER ERROR: unterminated string literal");
+                Exit(1);
             }
             let text: String = Substring(content, start, i - start);
             token_count = token_count + 1;
@@ -362,7 +367,10 @@ func LexContentFacts(content: String) -> Array<LexerTokenFact> {
             continue;
         }
 
-        Die(Concat("invalid source character at line ", ToString(line)));
+        Log(Concat(
+            "LEXER ERROR: invalid source character at line ", ToString(line)
+        ));
+        Exit(1);
     }
 
     token_count = token_count + 1;

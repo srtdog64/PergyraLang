@@ -14,10 +14,10 @@ struct LexerTokenFact {
 }
 
 func LexerDocCommentExactLexemeReady(fact: LexerTokenFact) -> Bool {
-    if !StartsWith(fact.source_text, "///") {
+    let source_length: Int = StringLength(fact.source_text);
+    if source_length < 3 || Substring(fact.source_text, 0, 3) != "///" {
         return false;
     }
-    let source_length: Int = StringLength(fact.source_text);
     let i: Int = 3;
     while i < source_length &&
         (CharCode(fact.source_text, source_length, i) == 32 ||
@@ -200,7 +200,8 @@ func PadLeft(s: String, width: Int) -> String {
 
 func LexerTokenFactLine(fact: LexerTokenFact) -> String {
     if !LexerTokenFactReady(fact) {
-        Die("lexer token fact is incomplete");
+        Log("LEXER ERROR: lexer token fact is incomplete");
+        Exit(1);
     }
     let parts: Array<String> = [
         PadLeft(ToString(fact.ordinal), 4),
@@ -228,7 +229,8 @@ func LexerTokenFactsText(
     tokens: Array<LexerTokenFact>
 ) -> String {
     if !LexerTokenFactsReady(tokens) {
-        Die("lexer token stream is incomplete");
+        Log("LEXER ERROR: lexer token stream is incomplete");
+        Exit(1);
     }
     let output_lines: Array<String> = [];
     ArrayPush(output_lines, Concat(Concat("=== tokens: ", source_path), " ==="));
