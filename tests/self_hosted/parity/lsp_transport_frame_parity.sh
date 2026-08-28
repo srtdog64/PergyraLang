@@ -119,6 +119,42 @@ capture_frame_output() {
         "lsp_transport_frame"
 }
 
+capture_frame_rejection() {
+    local backend="$1"
+    local bin="$2"
+    local label="$3"
+    local input="$4"
+    local out_file="$BUILD_DIR/${label}_${backend}.json"
+    local err_file="$BUILD_DIR/${label}_${backend}.err"
+    local rc
+
+    set +e
+    printf '%b' "$input" | (cd "$ROOT_DIR" && "$bin" --transport-frame-probe 64 >"$out_file.raw" 2>"$err_file")
+    rc=$?
+    set -e
+    tr -d '\r' < "$out_file.raw" > "$out_file"
+    rm -f "$out_file.raw"
+
+    if [[ "$rc" -ne 0 ]]; then
+        echo "[self-host-parity:lsp-transport-frame] backend=$backend label=$label failed rc=$rc" >&2
+        cat "$out_file" "$err_file" >&2
+        exit 1
+    fi
+    grep -Fq '"schema":"pgy.selfhost.lsp-transport-frame.v1"' "$out_file" || {
+        echo "[self-host-parity:lsp-transport-frame] backend=$backend label=$label schema missing" >&2
+        exit 1
+    }
+    grep -Fq '"ok":false' "$out_file" || {
+        echo "[self-host-parity:lsp-transport-frame] backend=$backend label=$label was accepted" >&2
+        exit 1
+    }
+    grep -Fq '"reason":"content_length_exceeds_limit"' "$out_file" || {
+        echo "[self-host-parity:lsp-transport-frame] backend=$backend label=$label lost bounded-length identity" >&2
+        cat "$out_file" >&2
+        exit 1
+    }
+}
+
 BACKENDS="${PGY_SELFHOST_LSP_BACKENDS:-c llvm}"
 RAN_BACKENDS=()
 SKIPPED_BACKENDS=()
@@ -146,6 +182,12 @@ for backend in $BACKENDS; do
         "transport_frame_incomplete" \
         'Content-Length: 5\r\n\r\n{}' \
         "$EXPECTED_TRANSPORT_FRAME_INCOMPLETE"
+    capture_frame_rejection "$backend" "$lsp_bin" \
+        "transport_frame_over_limit" \
+        'Content-Length: 262145\r\n\r\n'
+    capture_frame_rejection "$backend" "$lsp_bin" \
+        "transport_frame_integer_overflow" \
+        'Content-Length: 999999999999999999999999999999\r\n\r\n'
     RAN_BACKENDS+=("$backend")
 done
 

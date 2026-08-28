@@ -303,7 +303,9 @@ func LspLiveSessionConsumeBuffer(
             let partial_reason: Option<String> =
                 LspTransportPartialReason(buffer);
             if IsSome(partial_reason) &&
-                UnwrapOption(partial_reason) == "missing_content_length" {
+                LspTransportPartialReasonRequiresFailure(
+                    UnwrapOption(partial_reason)
+                ) {
                 LspLiveSessionFail();
             }
             keep_consuming = false;
@@ -341,7 +343,7 @@ func RunLspLiveSession() -> Void with caps io_read {
             return;
         }
         buffer = Concat(buffer, chunk);
-        if StringLength(buffer) > 262144 {
+        if StringLength(buffer) > LspTransportMaxFrameBytes() {
             LspLiveSessionFail();
         }
         LspLiveSessionConsumeBuffer(buffer, state);

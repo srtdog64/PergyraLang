@@ -257,6 +257,25 @@ if incomplete.process.wait(timeout=8.0) == 0:
 if incomplete.process.stdout.read():
     fail("incomplete body emitted a partial response")
 
+
+def expect_rejected_transport(payload: bytes, label: str) -> None:
+    process = LiveProcess()
+    process.send(payload)
+    process.process.stdin.close()
+    if process.process.wait(timeout=8.0) == 0:
+        fail(f"{label} Content-Length did not fail closed")
+    if process.process.stdout.read():
+        fail(f"{label} Content-Length emitted a partial response")
+
+
+expect_rejected_transport(
+    b"Content-Length: 262145\r\n\r\n", "over-limit"
+)
+expect_rejected_transport(
+    b"Content-Length: 999999999999999999999999999999\r\n\r\n",
+    "integer-overflow",
+)
+
 print("[self-host-parity:lsp-live-session] live fragmented session owner ok")
 PY
 

@@ -25367,7 +25367,8 @@ require_text "src/self_hosted/lsp/live_session_owner.pgy" "LspDocumentRevisionCh
 require_text "src/self_hosted/lsp/live_session_owner.pgy" "LspDocumentFeatureIndexBuild("
 require_text "src/self_hosted/lsp/live_session_owner.pgy" "LspLiveSessionDocumentIndex("
 require_text "src/self_hosted/lsp/live_session_owner.pgy" "Print(UnwrapOption(response_opt));"
-require_text "src/self_hosted/lsp/live_session_owner.pgy" "StringLength(buffer) > 262144"
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "StringLength(buffer) > LspTransportMaxFrameBytes()"
+require_text "src/self_hosted/lsp/live_session_owner.pgy" "LspTransportPartialReasonRequiresFailure("
 reject_text "src/self_hosted/lsp/live_session_owner.pgy" "LspSessionReplayJson("
 require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "class LspDocumentFeatureIndex"
 require_text "src/self_hosted/lsp/document_feature_index_owner.pgy" "func LspDocumentFeatureIndexBuild"
@@ -25387,6 +25388,11 @@ require_text "src/self_hosted/lsp/transport_owner.pgy" "func RunLspTransportFram
 require_text "src/self_hosted/lsp/transport_owner.pgy" "func RunLspTransportStreamProbeFromArgs"
 require_text "src/self_hosted/lsp/transport_owner.pgy" "ReadStdin(max_bytes)"
 require_text "src/self_hosted/lsp/transport_owner.pgy" '"Content-Length:"'
+require_text "src/self_hosted/lsp/transport_owner.pgy" "func LspTransportMaxFrameBytes()"
+require_text "src/self_hosted/lsp/transport_owner.pgy" "struct LspTransportLengthAdmission"
+require_text "src/self_hosted/lsp/transport_owner.pgy" "value > (maximum - d) / 10"
+require_text "src/self_hosted/lsp/transport_owner.pgy" '"content_length_exceeds_limit"'
+reject_text "src/self_hosted/lsp/transport_owner.pgy" "LspParseNonNegativeInt("
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../lib/json_emit.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/diagnostic_code_owner.pgy";'
 require_text "src/self_hosted/lsp/diagnostics_owner.pgy" 'import "../semantic/source_bundle_owner.pgy";'
