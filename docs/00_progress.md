@@ -30,7 +30,13 @@ shell syntax와 changed-C Werror가 local green이다. 로컬 Coq/Rocq 실행 �
 기존 BRIDGE 35를 줄이지는 않았다. 구현 checkpoint는 `e9e9e20b`다. 다음
 successor는 새 authority 추가가 아니라
 기존 BRIDGE 하나를 `CLOSED`로 바꾸어 `35 -> 34`를 증명해야 한다. Formatter
-exact-head remote CI는 아직 publication falsifier다. 다음 후보는
+checkpoint `1a12ba84`의 exact-head run `33191951046`은 RED다. 새 formatter
+declaration parser가 예약어 `subject`를 local binder로 사용해 native parser가
+거부했고, 같은 원인이 Linux build/bootstrap, sanitizer-driver, backend toolchain으로
+전파됐다. Binder rename과 함께 Linux가 먼저 드러낸 unused-parameter warning을
+수리했으며, native manifest, bounded codegen seed, fresh installed driver, public fmt,
+hard/component/build inventory/SoT edge가 local green이다. Replacement exact-head CI가
+publication falsifier다. 다음 후보는
 `selfhost.intent_declaration_rows`이며, present intent의 empty execution view와
 step-header/compensation AST 재구성을 제거해 `53/34/1`을 만드는 것만 성공으로 센다.
 

@@ -34,12 +34,17 @@ percentage by themselves.
   invalid fail-closed behavior, and static old-path deletion without adding a
   CI job or second self-host build.
 - Checkpoint basis: formatter implementation checkpoint `e9e9e20b` follows
-  public debugger publication `97d54a64` / GREEN run `33169622957`. The
-  implementation checkpoint and this handoff form the formatter publication
-  candidate; only exact-head remote CI can release the lease. Expected dirty
-  state after the handoff commit is only protected untracked
-  `docs/compiler_architectures/` and `pgy-80135c2c/`, which remain outside
-  inspection, edit, and staging scope.
+  public debugger publication `97d54a64` / GREEN run `33169622957`; formatter
+  handoff checkpoint `1a12ba84` is on `origin/main`. Exact-head run
+  `33191951046` completed RED. The Linux build, self-host bootstrap, codegen
+  bootstrap, sanitizer-driver build, and backend-toolchain build all stopped
+  at one native parser defect: `format_surface_decl_owner.pgy` used reserved
+  keyword `subject` as a local variable. Windows, macOS, TSan, and Rocq were
+  green. The local repair renames that binder to `subject_name` and suppresses
+  the independently reached non-Windows unused `backup_path` warning without
+  changing replacement behavior. Only replacement exact-head remote CI can
+  release the lease. Protected untracked `docs/compiler_architectures/` and
+  `pgy-80135c2c/` remain outside inspection, edit, and staging scope.
 - Implemented delta: native formatter lexer/parser/layout owners are deleted;
   lossless typed lexer facts feed one Pergyra layout/session owner through an
   installed format request, while C retains stdout/compare/atomic replace
@@ -56,7 +61,11 @@ percentage by themselves.
   legacy formatter smoke, public tokens, installed-driver integration,
   build-source inventory, full component structural contract, hard contract,
   SoT authority edge, static authority mutations, documentation/progress,
-  shell syntax, and changed-C warning-as-error checks are green. Local Coq is a
+  shell syntax, and changed-C warning-as-error checks are green. After the CI
+  repair, the exact native test-harness manifest build, bounded codegen seed,
+  fresh installed DRV-2 build, focused public formatter, legacy formatter,
+  hard/component contracts, build-source inventory, SoT edge, and Windows C
+  warning-as-error syntax check are observed green locally. Local Coq is a
   declared skip because no prover is installed. The edge reports 88
   authorities / 182 derived carriers / `CLOSED=52 BRIDGE=35 ACTIVE=1`; hard
   closure is 59.1% and migration 79.3%. Exact-head remote CI remains the

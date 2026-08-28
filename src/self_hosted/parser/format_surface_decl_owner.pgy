@@ -40,12 +40,12 @@ func ParseFormatLifecycleDeclaration(
     let i: Int = LanguageWordEnd(start, LanguageWordId.WordLifecycle);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor, 0, i);
-    let subject: String = ReadIdent(content, i, cursor);
-    if subject == "" {
+    let subject_name: String = ReadIdent(content, i, cursor);
+    if subject_name == "" {
         Fail("expected subject name after `lifecycle`", content, i);
     }
     i = Expect(content, cursor[0], "{");
-    let tree_text: String = Concat("  Lifecycle: ", subject);
+    let tree_text: String = Concat("  Lifecycle: ", subject_name);
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) == "}" {

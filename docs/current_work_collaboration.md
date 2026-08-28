@@ -49,7 +49,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   installed. The edge reports 88 authorities / 182 derived carriers /
   `CLOSED=52 BRIDGE=35 ACTIVE=1` after the Coq spine projection and
   `selfhost.source_format_layout` CLOSED row. Implementation checkpoint is
-  `e9e9e20b`; exact-head remote CI remains the publication falsifier.
+  `e9e9e20b` and handoff checkpoint is `1a12ba84`. Exact-head run
+  `33191951046` completed RED because the new formatter declaration parser
+  used reserved keyword `subject` as a local binder; the same native parse
+  failure fanned out into Linux build/bootstrap, sanitizer-driver, and backend
+  toolchain jobs. The repair renames the binder and removes the reached
+  non-Windows unused-parameter warning. Native manifest build, bounded codegen
+  seed, a fresh installed driver, focused public formatter, hard/component
+  contracts, build inventory, SoT edge, and Windows C Werror syntax are green
+  locally. Replacement exact-head CI remains the publication falsifier.
 - Progress discipline: this real substitution added a CLOSED authority but did
   not reduce BRIDGE=35. The next implementation lease may not add another row;
   it must migrate and close one existing BRIDGE so the count becomes 34. The

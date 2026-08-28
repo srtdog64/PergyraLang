@@ -193,6 +193,9 @@ path_replace_file_atomic_if_unchanged(const char *tmp_path,
 {
     if (tmp_path == NULL || dst_path == NULL || expected_content == NULL)
         return PATH_REPLACE_ERROR;
+#ifndef _WIN32
+    (void)backup_path;
+#endif
     /* Do not expose formatted bytes merely to discover a conflict that was
      * already observable. A post-check remains necessary for the residual
      * race; that path is recoverable and its workspace must be preserved. */
