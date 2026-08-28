@@ -77,8 +77,6 @@ def load_builtin_rows(path: Path) -> list[BuiltinRow]:
         {row.source_name for row in rows}
     ) != len(rows):
         raise ValueError("builtin capability identities and names must be unique")
-    if [row.source_name for row in rows] != sorted(row.source_name for row in rows):
-        raise ValueError("builtin capability rows must be source-name sorted")
     for row in rows:
         if row.policy not in {FIXED, FILE_MODE}:
             raise ValueError(f"unknown capability policy on {row.source_name}")

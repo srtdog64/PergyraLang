@@ -11,7 +11,7 @@ import "session_owner.pgy";
 import "session_state_owner.pgy";
 import "transport_owner.pgy";
 
-func Main() -> Void with caps env, io_read {
+func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
     if ArrayLength(args) == 0 {
         RunLspLiveSession();

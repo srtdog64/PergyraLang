@@ -268,6 +268,7 @@ char *pgy_read_stdin(int32_t max_bytes)
 }
 void pgy_print(const char *msg)
 {
+    pgy_cap_require_export(PGY_CAP_IO_WRITE, "print");
     if (msg == NULL)
         msg = "";
 #ifdef _WIN32

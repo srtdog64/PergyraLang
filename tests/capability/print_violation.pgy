@@ -1,0 +1,7 @@
+func EmitProtocol() -> Void with caps io_read {
+    Print("unreachable");
+}
+
+func Main() -> Void {
+    EmitProtocol();
+}

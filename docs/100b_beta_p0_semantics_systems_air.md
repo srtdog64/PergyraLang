@@ -967,7 +967,10 @@ Closed now:
   observability output calls, not AIR resource-boundary evidence in Phase 1.
   This is a codegen outputter-owner split, not the AIR/RIR resource-boundary inputter
   set: `Print` and `Log*` remain observability outputter artifact calls and are
-  explicitly excluded from `io_boundary_builtin.c`.
+  explicitly excluded from `io_boundary_builtin.c`. This AIR classification
+  does not make stdout ambient: byte-exact `Print` consumes `io_write` through
+  the builtin-capability owner and the runtime grant before emitting any byte.
+  `Log*` remains diagnostic observability and is not protocol/data output.
   `src/test_air.c` covers AST-backed spawn boundary drift, IO `either`
   boundary non-drift, the stable execution boundary set (`parallel`, `async`,
   `channel-send`, `channel-recv`, `select`), and the full stable boundary

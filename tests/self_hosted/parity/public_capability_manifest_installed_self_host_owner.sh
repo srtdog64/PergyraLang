@@ -105,6 +105,7 @@ file_handle_read_violation|StreamRead|io_read
 file_handle_dynamic_mode_violation|OpenDynamic|io_write
 file_handle_read_write_violation|OpenReadWrite|io_read
 file_exists_violation|ProbeExists|io_read
+print_violation|EmitProtocol|io_write
 CASES
 
 set +e

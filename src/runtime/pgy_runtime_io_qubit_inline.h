@@ -353,6 +353,7 @@ pgy_input(const char *prompt)
 static inline void
 pgy_print(const char *msg)
 {
+    pgy_cap_require_export(PGY_CAP_IO_WRITE, "print");
 #ifdef _WIN32
     /* Print owns byte-exact output. Text mode would rewrite LF to CRLF and
      * corrupt framed protocols such as JSON-RPC/LSP. */

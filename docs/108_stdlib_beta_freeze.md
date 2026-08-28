@@ -19,6 +19,10 @@ These are compiler/runtime builtins, not `use` modules:
 
 - Logging and console: `Log`, `LogBlock`, `LogBanner`, `LogRaw`, `Print`,
   `ReadLine`.
+  `Print` is byte-exact stdout output and requires the existing `io_write`
+  capability before emitting any byte. `Log*` remains diagnostic
+  observability output; it is not a substitute for protocol or data output,
+  and its quantitative diagnostic budget is outside this surface rule.
 - File IO: `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
   `WriteFile`, `FileExists`, `DirWalk`. `DirWalk(String) -> Array<String>`
   returns a deterministic, lexicographically sorted owned snapshot of regular

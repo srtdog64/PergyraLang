@@ -6,7 +6,9 @@
  *     identity, stable_id, source_name, primary_capability_identity,
  *     secondary_capability_identity, policy)
  *
- * FIXED rows require primary (primary == secondary). FILE_MODE rows derive
+ * Stable IDs are append-only and must not be renumbered when a source name
+ * would sort between existing rows. FIXED rows require primary
+ * (primary == secondary). FILE_MODE rows derive
  * the precise read/write union from pgy_file_mode_capability.def and use the
  * two identities as their fail-closed dynamic/unknown result.
  */
@@ -28,3 +30,4 @@ PGY_BUILTIN_CAPABILITY(READ_FILE, 13, "ReadFile", CAP_IO_READ, CAP_IO_READ, PGY_
 PGY_BUILTIN_CAPABILITY(READ_STDIN, 14, "ReadStdin", CAP_IO_READ, CAP_IO_READ, PGY_BUILTIN_CAPABILITY_FIXED)
 PGY_BUILTIN_CAPABILITY(SEED_RANDOM, 15, "SeedRandom", CAP_RANDOM, CAP_RANDOM, PGY_BUILTIN_CAPABILITY_FIXED)
 PGY_BUILTIN_CAPABILITY(WRITE_FILE, 16, "WriteFile", CAP_IO_WRITE, CAP_IO_WRITE, PGY_BUILTIN_CAPABILITY_FIXED)
+PGY_BUILTIN_CAPABILITY(PRINT, 17, "Print", CAP_IO_WRITE, CAP_IO_WRITE, PGY_BUILTIN_CAPABILITY_FIXED)

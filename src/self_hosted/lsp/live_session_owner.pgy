@@ -331,7 +331,7 @@ func LspLiveSessionConsumeBuffer(
     }
 }
 
-func RunLspLiveSession() -> Void with caps io_read {
+func RunLspLiveSession() -> Void with caps io_read, io_write {
     let state: LspLiveSessionState = NewLspLiveSessionState();
     let buffer: String = "";
     while !state.exit_requested {

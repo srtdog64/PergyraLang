@@ -77,16 +77,19 @@ capability_builtin_registry_ready(void)
     const size_t count = sizeof(k_builtin_caps) / sizeof(k_builtin_caps[0]);
     size_t file_mode_count = 0;
 
-    if (count != 17 || !pgy_callable_contract_vocabulary_ready())
+    if (count != 18 || !pgy_callable_contract_vocabulary_ready())
         return false;
     for (size_t i = 0; i < count; i++) {
         const PgyBuiltinCapabilitySpec *row = &k_builtin_caps[i];
         uint32_t primary = capability_mask_for_identity(row->primary_id);
         uint32_t secondary = capability_mask_for_identity(row->secondary_id);
         if (row->stable_id != i || row->name == NULL || row->name[0] == '\0' ||
-            primary == PGY_CAP_NONE || secondary == PGY_CAP_NONE ||
-            (i > 0 && strcmp(k_builtin_caps[i - 1].name, row->name) >= 0))
+            primary == PGY_CAP_NONE || secondary == PGY_CAP_NONE)
             return false;
+        for (size_t j = 0; j < i; j++) {
+            if (strcmp(k_builtin_caps[j].name, row->name) == 0)
+                return false;
+        }
         if (row->policy == PGY_BUILTIN_CAPABILITY_FIXED) {
             if (primary != secondary || capability_for_builtin(row->name) != primary)
                 return false;

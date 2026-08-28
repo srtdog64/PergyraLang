@@ -7,6 +7,7 @@
 #   manifest_clean / manifest_declared_ok -> exit 0
 #   manifest_violation                    -> exit 1 (GetTimestamp: missing clock)
 #   manifest_interproc                    -> exit 1 (entry: clock via helper())
+#   print_violation                       -> exit 1 (EmitProtocol: missing io_write)
 
 # Continue (not Stop): pgy writes its diagnostic summary to stderr, and under
 # Stop + 2>&1 PowerShell 5.1 promotes native stderr to a terminating error.
@@ -53,7 +54,7 @@ function Check-Violation($file, $fn) {
 Check-Violation "manifest_violation" "GetTimestamp"
 Check-Violation "manifest_interproc" "entry"
 
-function Check-FileHandleViolation($file, $fn, $missingCap) {
+function Check-IOViolation($file, $fn, $missingCap) {
     $out = Run-Manifest "tests\capability\$file.pgy"
     $rc = $LASTEXITCODE
     if ($rc -eq 0) { Write-Host "[FAIL] $file exit=0 (gate did not fire)"; $script:fail++; return }
@@ -64,11 +65,12 @@ function Check-FileHandleViolation($file, $fn, $missingCap) {
         Write-Host "[PASS] $file under-declaration gate fired ($fn -> $missingCap, exit $rc)"
     }
 }
-Check-FileHandleViolation "file_handle_write_violation" "StreamWrite" "io_write"
-Check-FileHandleViolation "file_handle_read_violation" "StreamRead" "io_read"
-Check-FileHandleViolation "file_handle_dynamic_mode_violation" "OpenDynamic" "io_write"
-Check-FileHandleViolation "file_handle_read_write_violation" "OpenReadWrite" "io_read"
-Check-FileHandleViolation "file_exists_violation" "ProbeExists" "io_read"
+Check-IOViolation "file_handle_write_violation" "StreamWrite" "io_write"
+Check-IOViolation "file_handle_read_violation" "StreamRead" "io_read"
+Check-IOViolation "file_handle_dynamic_mode_violation" "OpenDynamic" "io_write"
+Check-IOViolation "file_handle_read_write_violation" "OpenReadWrite" "io_read"
+Check-IOViolation "file_exists_violation" "ProbeExists" "io_read"
+Check-IOViolation "print_violation" "EmitProtocol" "io_write"
 
 if ($fail -eq 0) { Write-Host "ALL PASS (0 failures)"; exit 0 }
 Write-Host "FAILED ($fail)"; exit 1

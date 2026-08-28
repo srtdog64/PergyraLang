@@ -8,6 +8,9 @@
 #
 #   capability: cap_random_demo.pgy calls Random() (gates PGY_CAP_RANDOM).
 #     PGY_CAP_GRANT unset / "random" -> runs; "clock" / "none" -> capability-denied.
+#   stdout: print_demo.pgy calls Print() (gates PGY_CAP_IO_WRITE).
+#     PGY_CAP_GRANT unset / "io_write" -> exact marker; "io_read" -> denial
+#     before the marker is emitted.
 #   budget:     budget_alloc_demo4.pgy while-pushes a List (forced heap).
 #     no limit -> runs; PGY_BUDGET_ALLOC_BYTES=64 -> budget-exceeded.
 #
@@ -62,7 +65,8 @@ run_prog() {
     env "$@" $PGY_TIMEOUT "$PGY_BIN" "--backend=$be" --run "$file" 2>&1
 }
 
-# expect_marker <label> <backend> <file> <want|deny:CLASS|run:MARKER> <env...>
+# expect <label> <backend> <file>
+#   <deny:CLASS|deny-clean:CLASS:MARKER|run:MARKER> <env...>
 expect() {
     local label="$1" be="$2" file="$3" want="$4"; shift 4
     local out rc
@@ -75,6 +79,16 @@ expect() {
         llvm_ok=0; return
     fi
     case "$want" in
+        deny-clean:*)
+            local denial="${want#deny-clean:}"
+            local cls="${denial%%:*}"
+            local mk="${denial#*:}"
+            if printf '%s' "$out" | grep -q "class=$cls" \
+               && ! printf '%s' "$out" | grep -q "$mk"; then
+                echo "[PASS] $label ($be) fail-closed class=$cls before '$mk'"
+            else
+                echo "[FAIL] $label ($be) expected class=$cls without '$mk', got: $(printf '%s' "$out" | tail -1)"; fail=1
+            fi ;;
         deny:*)
             local cls="${want#deny:}"
             if printf '%s' "$out" | grep -q "class=$cls"; then
@@ -109,6 +123,11 @@ for be in c llvm; do
     # backends now that the LLVM Args sret-call crash is fixed.)
     expect "env default"        "$be" tests/capability/cap_env_demo.pgy run:"args ok"
     expect "env denied"         "$be" tests/capability/cap_env_demo.pgy deny:capability-denied PGY_CAP_GRANT=random
+    # Print owns byte-exact stdout, so its IO_WRITE gate must run before the
+    # first byte on both runtime twins.
+    expect "print default"       "$be" tests/capability/print_demo.pgy run:"print ok"
+    expect "print granted"       "$be" tests/capability/print_demo.pgy run:"print ok" PGY_CAP_GRANT=io_write
+    expect "print denied clean"  "$be" tests/capability/print_demo.pgy deny-clean:capability-denied:"print ok" PGY_CAP_GRANT=io_read
     # FileOpen/FileRead/FileWrite used to bypass both static inference and the
     # runtime grant. Pin literal-mode refinement and mode-specific fail-closed
     # enforcement on both backends.

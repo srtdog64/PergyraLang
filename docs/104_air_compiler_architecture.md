@@ -464,7 +464,10 @@ sixth compiler core and the architecture is wrong.
   are synchronous body/CFG boundaries; strict evidence checks HIR/CFG evidence
   for them, not RIR resource-boundary evidence. `with` and event-handler body
   traversal are part of the Phase 1 contract so nested IO/time boundaries are
-  not hidden by execution containers.
+  not hidden by execution containers. This classification is independent of
+  capability admission: byte-exact `Print` consumes `io_write` through the
+  canonical builtin policy and runtime grant before output. `Log*` remains
+  diagnostic observability, not a protocol/data-output substitute.
 - Expression boundary evidence is source-specific: `spawn` / `async` / `await` /
   `parallel` / `task-group`, `channel` / `select`, and IO boundaries are not satisfied by a
   generic RIR scope with the same intent owner. They need matching

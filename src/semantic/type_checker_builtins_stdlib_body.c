@@ -34,6 +34,8 @@ type_check_builtin_print(ASTNode *expr, SemanticContext *ctx)
     require_assignable(stdlib_body_normalize_type(
             type_check_expression(arg0, ctx)),
         TYPE_STRING, arg0, ctx);
+    semantic_record_effect(ctx, EFFECT_IO);
+    semantic_record_capability(ctx, capability_for_builtin("Print"));
     return TYPE_VOID;
 }
 

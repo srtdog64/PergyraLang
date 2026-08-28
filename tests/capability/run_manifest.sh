@@ -12,6 +12,8 @@
 #   manifest_interproc.pgy    -> exit 1; entry declares io_read but calls helper()
 #                                which uses CLOCK (capability propagates through
 #                                the call graph -- the interprocedural proof).
+#   print_violation.pgy       -> exit 1; EmitProtocol declares io_read but
+#                                byte-exact Print requires io_write.
 #
 # PGY_BIN must point at the built compiler.
 set -u
@@ -69,7 +71,7 @@ check_violation manifest_interproc entry
 
 # File-handle I/O is not a capability escape hatch. Literal modes refine the
 # open operation, while FileRead/FileWrite independently carry the same cap.
-check_file_handle_violation() { # file  function-name  missing-cap
+check_io_violation() { # file  function-name  missing-cap
     out="$(run_manifest "tests/capability/$1.pgy")"; rc=$?
     if [ "$rc" -eq 0 ]; then echo "[FAIL] $1 exit=0 (gate did not fire)"; fail=1; return; fi
     printf '%s' "$out" | grep -q "missing declared capabilities" \
@@ -84,11 +86,12 @@ check_file_handle_violation() { # file  function-name  missing-cap
         echo "[PASS] $1 under-declaration gate fired ($2 -> $3, exit $rc)"
     fi
 }
-check_file_handle_violation file_handle_write_violation StreamWrite io_write
-check_file_handle_violation file_handle_read_violation StreamRead io_read
-check_file_handle_violation file_handle_dynamic_mode_violation OpenDynamic io_write
-check_file_handle_violation file_handle_read_write_violation OpenReadWrite io_read
-check_file_handle_violation file_exists_violation ProbeExists io_read
+check_io_violation file_handle_write_violation StreamWrite io_write
+check_io_violation file_handle_read_violation StreamRead io_read
+check_io_violation file_handle_dynamic_mode_violation OpenDynamic io_write
+check_io_violation file_handle_read_write_violation OpenReadWrite io_read
+check_io_violation file_exists_violation ProbeExists io_read
+check_io_violation print_violation EmitProtocol io_write
 
 if [ "$fail" -eq 0 ]; then echo "ALL PASS (0 failures)"; exit 0; fi
 echo "FAILED"; exit 1

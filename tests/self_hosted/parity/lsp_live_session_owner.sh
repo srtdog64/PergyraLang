@@ -51,6 +51,7 @@ fi
 
 "$PYTHON_BIN" - "$RUNTIME_BIN" <<'PY'
 import json
+import os
 import queue
 import subprocess
 import sys
@@ -275,6 +276,23 @@ expect_rejected_transport(
     b"Content-Length: 999999999999999999999999999999\r\n\r\n",
     "integer-overflow",
 )
+
+denied_env = os.environ.copy()
+denied_env["PGY_CAP_GRANT"] = "env,io_read"
+denied = subprocess.Popen(
+    [binary],
+    stdin=subprocess.PIPE,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    env=denied_env,
+)
+denied_stdout, denied_stderr = denied.communicate(frame(initialize), timeout=8.0)
+if denied.returncode == 0:
+    fail("live response succeeded without io_write")
+if denied_stdout:
+    fail("io_write denial emitted a partial protocol response")
+if b"op=print" not in denied_stderr or b"class=capability-denied" not in denied_stderr:
+    fail("io_write denial lost the canonical Print capability identity")
 
 print("[self-host-parity:lsp-live-session] live fragmented session owner ok")
 PY

@@ -15,6 +15,7 @@ main(void)
     assert(capability_for_builtin("DirWalk") == PGY_CAP_IO_READ);
     assert(capability_for_builtin("FileExists") == PGY_CAP_IO_READ);
     assert(capability_for_builtin("Now") == PGY_CAP_CLOCK);
+    assert(capability_for_builtin("Print") == PGY_CAP_IO_WRITE);
     assert(capability_for_builtin("Random") == PGY_CAP_RANDOM);
     assert(capability_for_builtin("SeedRandom") == PGY_CAP_RANDOM);
     assert(capability_for_builtin("FileOpen") == PGY_CAP_NONE);

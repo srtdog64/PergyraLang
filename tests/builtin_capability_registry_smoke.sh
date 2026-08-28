@@ -48,5 +48,19 @@ if grep -Fq 'if (*p == '\''r'\'')' \
     echo "[builtin-capability-registry] runtime FileOpen mode policy was reimplemented" >&2
     exit 1
 fi
+if ! grep -Fq 'capability_for_builtin("Print")' \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_body.c"; then
+    echo "[builtin-capability-registry] Print bypassed semantic capability inference" >&2
+    exit 1
+fi
+for runtime_owner in \
+    "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h"; do
+    if ! grep -Fq 'pgy_cap_require_export(PGY_CAP_IO_WRITE, "print");' \
+        "$runtime_owner"; then
+        echo "[builtin-capability-registry] Print bypassed runtime io_write gate: $runtime_owner" >&2
+        exit 1
+    fi
+done
 
 echo "builtin capability registry smoke: ok"

@@ -15,7 +15,7 @@ import "decl_lower.pgy";
 import "program_lower.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 
-func RunMirLowerFromArgs(args: Array<String>) -> Void with caps io_read {
+func RunMirLowerFromArgs(args: Array<String>) -> Void with caps io_read, io_write {
     if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
         EmitMirParityFixtureManifest();
         return;

@@ -6,6 +6,27 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — live LSP stdout capability closure
+
+- Objective card: make byte-exact `Print` output consume the existing
+  `io_write` authority through the canonical builtin-capability registry and
+  both runtime twins. Priority is stable registry identity, native/self-host
+  semantic parity, runtime fail-closed parity, reached live-LSP denial with no
+  partial frame, then patch size. `builtin_capability_registry.def` owns the
+  source builtin policy; the runtime capability context owns the effective
+  grant; `RunLspLiveSession` is the reached last orchestration consumer.
+- Forbidden: renumbering existing stable policy IDs, a semantic-only or
+  runtime-only gate, a second Print policy table, treating `Log*` as protocol
+  output, emitting bytes before authority admission, or claiming another
+  C-to-Pergyra substitution/progress increment.
+- Integration gate: the registry generator/probe must project `Print ->
+  io_write`; both canonical `pgy_print` definitions must require the same
+  capability and operation identity; the live source/public path must retain
+  exact successful frames, while `PGY_CAP_GRANT=env,io_read` exits nonzero with
+  empty stdout and `op=print`/`class=capability-denied`. `Log*` remains the
+  existing diagnostic-observability family and any quantitative diagnostic
+  budget is outside this bounded lease.
+
 ## DONE lease — bounded live LSP frame-length admission
 
 - Published implementation `b87c6b89`, repair `7de0bd42`, and checkpoint

@@ -12,7 +12,7 @@ struct SemanticBuiltinCapabilityRow {
 
 func SemanticBuiltinCapabilityFixedPolicy() -> Int { return 1; }
 func SemanticBuiltinCapabilityFileModePolicy() -> Int { return 2; }
-func SemanticBuiltinCapabilityCount() -> Int { return 17; }
+func SemanticBuiltinCapabilityCount() -> Int { return 18; }
 
 func SemanticBuiltinCapabilityRowAt(index: Int) -> SemanticBuiltinCapabilityRow {
     if index == 0 { return SemanticBuiltinCapabilityRow(true, "Args", SemanticBuiltinCapabilityFixedPolicy(), 32, 32); }
@@ -32,6 +32,7 @@ func SemanticBuiltinCapabilityRowAt(index: Int) -> SemanticBuiltinCapabilityRow 
     if index == 14 { return SemanticBuiltinCapabilityRow(true, "ReadStdin", SemanticBuiltinCapabilityFixedPolicy(), 1, 1); }
     if index == 15 { return SemanticBuiltinCapabilityRow(true, "SeedRandom", SemanticBuiltinCapabilityFixedPolicy(), 16, 16); }
     if index == 16 { return SemanticBuiltinCapabilityRow(true, "WriteFile", SemanticBuiltinCapabilityFixedPolicy(), 2, 2); }
+    if index == 17 { return SemanticBuiltinCapabilityRow(true, "Print", SemanticBuiltinCapabilityFixedPolicy(), 2, 2); }
     return SemanticBuiltinCapabilityRow(false, "", 0, 0, 0);
 }
 
