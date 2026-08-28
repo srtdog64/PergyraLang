@@ -2,6 +2,8 @@
 # Closed fallbacks: native_builtin_capability_switch,
 # selfhost_builtin_capability_switch, manifest_builtin_name_rescan,
 # missing_builtin_capability_registry_success,
+# print_semantic_capability_bypass, print_runtime_capability_bypass,
+# print_bytes_before_capability_admission,
 # native_file_mode_character_switch, selfhost_file_mode_character_switch,
 # dynamic_file_mode_read_only_default, unknown_file_mode_empty_capability.
 set -euo pipefail
