@@ -2,6 +2,25 @@
 
 마지막 업데이트: 2026-08-28
 
+현재 hard-substitution 실행 런은 `BLOCKED`다. 공개 launcher/package를 다시 센
+결과, 남은 `driver_run_pipeline`은 exact test MIR oracle과 명시적
+`--native-pipeline`/`PGY_NATIVE_PIPELINE` opt-out뿐이다. 패키지 컴파일과 REPL
+evaluation은 이미 installed Pergyra owner를 쓰고, bare RIR/AIR/HIR는 fail
+closed한다. 따라서 이 경로들을 다시 SoT 작업으로 늘리는 것은 진행이 아니다.
+
+다음으로 관측되는 compiler-bearing production 후보는 `pgy debug SOURCE`다.
+현재 `src/compiler/debugger.c`가 native parse, semantic analysis, prompt state와 AST
+walk를 함께 소유하지만 `src/self_hosted`에는 admitted program/source identity와
+source location, command, breakpoint, cursor/outcome, diagnostic/exit을 한 세션으로
+소유하는 Pergyra producer가 없다. 이 owner 없이 Pergyra AST/text를 C가 다시
+읽게 만드는 것은 이중 SoT라 금지한다. 기존 tooling-conformance debug fixture를
+exactly-once installed session, missing-owner/invalid-source fail-closed, native
+parser/semantic/AST path deletion까지 검증하는 focused gate로 확장할 수 있을 때만
+이 런을 재개한다. 이 `BLOCKED` 기록은 구현이나 진행률 증가가 아니므로 hard
+replacement 75%, SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
+(81~85%), strict beta 83%는 그대로다. Query/cache와 semantic-index는 successor가
+아니다.
+
 2026-08-28 live LSP `Content-Length` admission 구현 `b87c6b89`: 이미
 production `SUBSTITUTING`인 공개 live 경로에서 길이를 transport owner가 한 번만
 admit하도록 고쳤다. 선언 body 길이와 retained live buffer는 같은 262,144-byte

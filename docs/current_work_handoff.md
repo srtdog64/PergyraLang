@@ -18,7 +18,61 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - no successor after Print stdout closure
+## Active self-host context - BLOCKED: no admissible executable successor
+
+- Checkpoint basis: `main` and `origin/main` are both `d59f4592`. The working
+  tree contains only the protected untracked `docs/compiler_architectures/`
+  and `pgy-80135c2c/`; neither directory was inspected, staged, or modified.
+  Print capability closure is published and exact-head run `33146672633` is
+  GREEN 30/30. This card records no implementation delta and no progress
+  increment.
+- Production census: the only remaining `driver_run_pipeline` calls in the
+  public launcher/package path are the exact test MIR oracle and the declared
+  `--native-pipeline`/`PGY_NATIVE_PIPELINE` opt-out. Package compiler verbs and
+  each REPL evaluation already enter installed Pergyra owners. Bare public
+  RIR/AIR/HIR requests fail closed; their native diagnostics require explicit
+  opt-in. Formatter, scaffold/new, package init/metadata, and the native REPL
+  session UI are product boundaries, not an unclosed default compiler bypass.
+- Candidate objective card: the next observed compiler-bearing production
+  path is `pgy debug SOURCE`. Its direct C path is
+  `pgy_driver.c::main -> driver_run_debug_command -> lexer_create /
+  parser_parse_program / semantic_analyze -> debug_walk_statements`. Priority
+  is one admitted program/revision identity, one session-transition owner,
+  installed public delegation, missing-owner fail-closed behavior, deletion of
+  the native parser/semantic path, then UI parity. The last legitimate C
+  consumers are `driver_run_debug_command`, `debug_prompt`, and
+  `debug_walk_statements` in `src/compiler/debugger.c`.
+- Exact missing fact and owner: no production-reachable Pergyra debugger or
+  debug-session owner exists in `src/self_hosted`. Resumption requires one
+  typed Pergyra owner for admitted program/source identity plus current source
+  location, command identity, breakpoint state, transition cursor/outcome,
+  diagnostic identity, and exit meaning. `DebugSessionAdmission` and
+  `DebugSessionTransition` are descriptive fact-family names here, not
+  admitted registry identities. Existing parser/semantic facts alone do not
+  own their lifetime or the interactive state transition.
+- Forbidden fallback: do not emit a Pergyra AST/text summary and reparse it in
+  C; do not run C parser/semantic after sibling failure; do not retain native
+  and Pergyra session reads side by side; do not count a launcher/UI-only
+  rewrite as compiler substitution; and do not open query/cache, semantic
+  index, or performance work to avoid this missing owner.
+- Re-entry falsifier: extend the existing `tests/tooling_conformance_smoke.sh`
+  `debug_case.pgy`/`q` fixture with a focused installed-owner gate that proves
+  the public command enters the Pergyra session exactly once, preserves the
+  admitted program identity and observable quit behavior, fails missing-owner
+  and invalid-source cases without banner/partial output or native timing, and
+  statically rejects `parser_parse_program`, `semantic_analyze`, and native
+  AST walking from the public debugger path. Until that producer and gate are
+  named in source, this executable rung is `BLOCKED` rather than inferred.
+- Observed focused evidence at this checkpoint:
+  `public_native_ir_explicit_opt_in_owner.sh`,
+  `public_repl_installed_self_host_compile_owner.sh`,
+  `self_host_substitution_velocity_smoke.sh`, and
+  `self_host_progress_metric_smoke.sh` all exit 0. The metric remains
+  `default_c_emit=substituting`, `full_default_compile=open`, hard replacement
+  75%, SoT `50/35/1`, hard closure 58.1%, migration 78.8%, integrated 83%
+  (81-85%), and strict beta 83%.
+
+## Completed supporting context - Print stdout closure
 
 - Exact implementation `0c6e9902` and receipt repair `0c243074` are on
   `origin/main`. First exact-head run `33144668885` completed RED 29/30, while

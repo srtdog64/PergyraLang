@@ -1,5 +1,35 @@
 # Self-Host Progress
 
+## Active self-host context - 2026-08-28 BLOCKED debugger successor
+
+- Published Print capability closure is green, but a fresh launcher census
+  finds no remaining implicit `driver_run_pipeline`: the surviving sites are
+  the exact test MIR oracle and declared native opt-out. Package compilation
+  and REPL evaluation already use installed Pergyra owners; bare RIR/AIR/HIR
+  requests fail closed. No additional substitution is inferred from those
+  paths.
+- The next observed compiler-bearing production candidate is
+  `pgy debug SOURCE`, whose C path still performs native parse, semantic
+  analysis, prompt state, and AST walking in `src/compiler/debugger.c`. No
+  production-reachable Pergyra debug-session producer exists. Existing parser
+  and semantic facts do not own source location, commands, breakpoints,
+  transition cursor/outcome, diagnostics, or exit meaning as one session.
+- This rung is exactly `BLOCKED` on that missing fact family and owner. Do not
+  bridge it by serializing Pergyra AST/text for C to reparse, retrying native
+  after child failure, retaining dual session reads, or claiming a UI-only
+  rewrite as hard progress. Query/cache, semantic-index, formatter, scaffold,
+  package metadata, and performance remain outside the active rung.
+- Re-entry requires a complete Pergyra session owner plus a focused installed
+  public gate derived from the tooling-conformance `debug_case.pgy` fixture.
+  It must prove exactly-once Pergyra entry, admitted identity/session parity,
+  missing-owner and invalid-source failure without partial output/native
+  timing, and deletion of public debugger calls to `parser_parse_program`,
+  `semantic_analyze`, and native AST walking.
+- Focused RIR/AIR/HIR opt-in, REPL installed-owner, substitution-velocity, and
+  progress-metric gates are green. Progress remains hard replacement 75%, SoT
+  `50/35/1`, hard closure 58.1%, migration 78.8%, integrated 83% (81-85%), and
+  strict beta 83%.
+
 ## Completed self-host context - 2026-08-28 bounded live LSP frame admission
 
 - Implementation `b87c6b89` makes `transport_owner.pgy` own one typed
@@ -26,8 +56,9 @@
   20/20. The first-run regression and local broad-component omission are
   closed; no successor lease is inferred.
 - This hardens an existing production `SUBSTITUTING` path; it does not replace
-  another C path or close a SoT row. The separate Print capability asymmetry is
-  recorded but not resolved. Registry and progress values remain unchanged;
+  another C path or close a SoT row. The later `0c6e9902`/`0c243074` Print
+  capability closure resolved the recorded asymmetry and run `33146672633`
+  published GREEN 30/30. Registry and progress values remain unchanged;
   query/cache and semantic-index work remain unopened.
 
 ## Completed self-host context - 2026-08-27 source-C compiler-purpose intent takeover
@@ -65,7 +96,7 @@
   complete Pergyra owner, its last consumer, and one executable falsifier are
   named.
 
-## Active self-host context - 2026-08-27 callable-parameter public substitution
+## Completed self-host context - 2026-08-27 callable-parameter public substitution
 
 - Canonical recursive `func(T...) -> R` shapes now survive parser, semantic
   admission, MIR parameter/target carriage, and both installed public backend
@@ -122,7 +153,7 @@
   `5ce4b384` are published; replacement run `32969362909` passed 29/29 at the
   exact repair HEAD. No successor implementation lease is inferred.
 
-## Active self-host context - 2026-08-26 REPL compile/run substitution
+## Completed self-host context - 2026-08-26 REPL compile/run substitution
 
 - Public `pgy --repl` keeps its native C session UI, but each executable input
   now enters the existing installed Pergyra C compile/run owner. The direct
@@ -148,7 +179,7 @@
   `SUBSTITUTING`; overall 78%, strict beta 83%, and hard SoT
   `CLOSED=49 BRIDGE=36 ACTIVE=1` remain unchanged. No successor is inferred.
 
-## Active self-host context - 2026-08-26 explicit-native isolation for unowned IR
+## Completed self-host context - 2026-08-26 explicit-native isolation for unowned IR
 
 - The final implicit launcher dispatch to `driver_run_pipeline` is deleted for
   bare public `--rir*`, `--air*`, and `--hir*`. Until complete Pergyra
@@ -298,7 +329,7 @@
   and Rocq are green. This bounded rung is closed; no successor implementation
   is inferred without a new production bypass and objective card.
 
-## Active self-host context - 2026-08-26 source-C stdout world/action closure
+## Completed self-host context - 2026-08-26 source-C stdout world/action closure
 
 - Checkpoint `20ffa7c7` removes both installed source-C stdout calls
   that bypassed `PgyCompilerWorld.source_c`. Default, explicit
@@ -327,7 +358,7 @@
   no successor implementation is inferred without a new production bypass and
   objective card.
 
-## Active self-host context - 2026-08-26 nested intent LLVM closed
+## Completed self-host context - 2026-08-26 nested intent LLVM closed
 
 - Repair checkpoint `6be30daa` is on local and remote `main`. Preserve the
   unrelated user-owned `pgy-80135c2c/` directory and do not use it as project

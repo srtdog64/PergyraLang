@@ -6,6 +6,39 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## BLOCKED lease — `pgy debug` lacks a Pergyra session owner
+
+- Objective card: replace the production
+  `pgy debug SOURCE -> driver_run_debug_command -> native parse/semantic/AST
+  walk` path only after one Pergyra owner admits program/source identity and
+  owns command, breakpoint, cursor, transition outcome, diagnostic, and exit
+  facts. `src/compiler/debugger.c` is the last C consumer. Stable fact identity,
+  full-session ownership, fail-closed delegation, native-path deletion, and
+  executable parity are the priority order.
+- Missing owner: the `src/self_hosted` census contains no debugger/session
+  producer. Existing parser and semantic artifacts do not own an interactive
+  session or its transitions. Provisional labels such as
+  `DebugSessionAdmission`/`DebugSessionTransition` describe the missing family;
+  they are not declared SoT owners and must not be consumed as if they exist.
+- Forbidden: Pergyra text/AST serialization followed by C reparsing, native
+  parser/semantic retry after child failure, dual native/Pergyra reads,
+  launcher- or prompt-only work claimed as hard substitution, or diversion to
+  query/cache, semantic-index, formatter, scaffold, package metadata, or
+  performance tracks.
+- Integration gate required to unblock: a focused sibling of the existing
+  tooling-conformance debug fixture must observe exactly one installed Pergyra
+  session, matching quit/session behavior, missing-owner and invalid-source
+  failure with no partial banner/output or native timing, and a structural ban
+  on `parser_parse_program`, `semantic_analyze`, and native AST walking from the
+  public debugger path. No agent may open implementation until the complete
+  producer boundary and this falsifier are fixed together.
+- Evidence: public RIR/AIR/HIR fail closed unless native mode is explicitly
+  selected; public REPL evaluation uses the installed Pergyra compiler owner;
+  substitution-velocity and progress-metric gates are green. The remaining
+  launcher/package `driver_run_pipeline` sites are test-only or explicit
+  opt-outs. This lease records an exact `BLOCKED` rung, not completion,
+  parallel authorization, or a progress increment.
+
 ## DONE lease — live LSP stdout capability closure
 
 - Objective card: make byte-exact `Print` output consume the existing
