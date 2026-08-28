@@ -6,38 +6,27 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## BLOCKED lease — `pgy debug` lacks a Pergyra session owner
+## ACTIVE lease — public `pgy debug` Pergyra session publication
 
-- Objective card: replace the production
-  `pgy debug SOURCE -> driver_run_debug_command -> native parse/semantic/AST
-  walk` path only after one Pergyra owner admits program/source identity and
-  owns command, breakpoint, cursor, transition outcome, diagnostic, and exit
-  facts. `src/compiler/debugger.c` is the last C consumer. Stable fact identity,
-  full-session ownership, fail-closed delegation, native-path deletion, and
-  executable parity are the priority order.
-- Missing owner: the `src/self_hosted` census contains no debugger/session
-  producer. Existing parser and semantic artifacts do not own an interactive
-  session or its transitions. Provisional labels such as
-  `DebugSessionAdmission`/`DebugSessionTransition` describe the missing family;
-  they are not declared SoT owners and must not be consumed as if they exist.
-- Forbidden: Pergyra text/AST serialization followed by C reparsing, native
-  parser/semantic retry after child failure, dual native/Pergyra reads,
-  launcher- or prompt-only work claimed as hard substitution, or diversion to
-  query/cache, semantic-index, formatter, scaffold, package metadata, or
-  performance tracks.
-- Integration gate required to unblock: a focused sibling of the existing
-  tooling-conformance debug fixture must observe exactly one installed Pergyra
-  session, matching quit/session behavior, missing-owner and invalid-source
-  failure with no partial banner/output or native timing, and a structural ban
-  on `parser_parse_program`, `semantic_analyze`, and native AST walking from the
-  public debugger path. No agent may open implementation until the complete
-  producer boundary and this falsifier are fixed together.
-- Evidence: public RIR/AIR/HIR fail closed unless native mode is explicitly
-  selected; public REPL evaluation uses the installed Pergyra compiler owner;
-  substitution-velocity and progress-metric gates are green. The remaining
-  launcher/package `driver_run_pipeline` sites are test-only or explicit
-  opt-outs. This lease records an exact `BLOCKED` rung, not completion,
-  parallel authorization, or a progress increment.
+- Objective card is fixed to `pgy debug SOURCE`: parser-cursor location evidence
+  and admitted artifact identity feed one Pergyra session owner; the public C
+  adapter is the last consumer. Native parse/semantic/AST walking, sibling
+  failure retry, dual reads, post-admission source reload, and UI-only progress
+  claims are forbidden.
+- Local implementation `a4dbf559` is committed. `debug/session_owner.pgy` owns semantic
+  admission plus commands, breakpoints, traversal cursor, and exit meaning;
+  `self_host_debug_driver.c` owns one installed child handoff; `debugger.c`
+  contains no native compiler path. `selfhost.debug_session` is a declared
+  `CLOSED` registry authority and its parser-location join is classified.
+- Integration gate is green for real `n/n/q` line provenance, exactly one child
+  invocation, missing/invalid nonzero with empty stdout, no native timing, one
+  parser build, and static old-path rejection. Native link/source inventory,
+  tooling conformance, SoT edge, and full component inventory are also green.
+- Publication is the only open part of this lease. No other task may edit or
+  publish this executable rung until `a4dbf559` plus this ledger checkpoint are
+  pushed and exact-head CI
+  is observed. Query/cache, semantic-index, formatter, scaffold, package
+  metadata, performance, and unrelated SoT tracks remain closed.
 
 ## DONE lease — live LSP stdout capability closure
 
