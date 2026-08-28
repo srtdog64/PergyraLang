@@ -18,15 +18,16 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - public debugger local closure awaiting publication
+## Active self-host context - public debugger CI repair awaiting replacement publication
 
-- Checkpoint basis: implementation `a4dbf559` is committed on local `main`;
-  `origin/main` is still `df9b088b` until publication. The remaining tracked
-  worktree delta is this handoff and the collaboration ledger checkpoint.
-  Protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/` were
-  not inspected, staged, or modified. Another local task was observed building
-  self-host artifacts, so this session did not start a competing broad
-  self-host rebuild after that observation.
+- Checkpoint basis: implementation `a4dbf559` and publication checkpoint
+  `ac3eab20` are on `origin/main`. Exact-head run `33161152217` opened the full
+  matrix and exposed one real bootstrap integration defect: the read-only
+  composition root did not exhaust the new `DriverCliDebugSession` request.
+  The remaining tracked delta is the explicit fail-closed case, its focused
+  receipt, and this navigation checkpoint. Protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` were not inspected,
+  staged, or modified.
 - Objective card: production entrypoint `pgy debug SOURCE`; priority is one
   admitted program identity, parser-owned location evidence, one interactive
   session-transition owner, installed exactly-once delegation, fail-closed
@@ -52,13 +53,23 @@ percentage by themselves.
   self-host component structural/removed-path contract all exit 0. The broad
   component gate ran longer under concurrent build load; no timeout or partial
   result is claimed.
+- First CI falsifier and repair: `self-host-bootstrap-linux` rejected native
+  oracle emission with a non-exhaustive `DriverRung2CliRequest` match, missing
+  `DriverCliDebugSession`. The installed composition root already owns the
+  session; the read-only root lacks write/installed-session authority, so it
+  now rejects that request explicitly instead of executing it or adding a
+  fallback. The exact native-oracle command now exits 0 and writes a
+  32,608,634-byte C artifact with zero errors and three pre-existing intent
+  clause warnings. The source-MIR read-owner ratchet and focused public debug
+  gate both pass after the repair. Run `33161152217` is RED evidence and is not
+  publication closure.
 - Registry/progress: `selfhost.debug_session` is `CLOSED`; source-location facts
   are classified as its local view. Census is `CLOSED=51 BRIDGE=35 ACTIVE=1`,
   hard closure `51/87 = 58.6%`, migration `79.0%`, integrated 83% (81-85%),
   strict beta 83%, and conservative denominator-free hard replacement 75%.
-- Next falsifier: publish implementation `a4dbf559` plus this navigation
-  checkpoint, then observe CI on the pushed exact HEAD. Until publication is
-  green this lease remains active;
+- Next falsifier: commit and publish the explicit read-root rejection plus this
+  checkpoint, then observe replacement CI on that exact HEAD. Until the
+  replacement run is green this lease remains active;
   no formatter, query/cache, semantic-index, performance, or unrelated SoT
   successor is inferred.
 

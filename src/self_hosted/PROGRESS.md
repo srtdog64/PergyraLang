@@ -20,8 +20,16 @@
   top-level `CLOSED` authority, so the census is `51/35/1`, hard closure 58.6%
   and migration 79.0%. The denominator-free hard-replacement forecast remains
   a conservative 75%; fixed-weight integrated progress is 83% (81-85%) and
-  strict beta is 83%. Commit, publication and exact-head CI remain the next
-  falsifier; no successor rung is inferred.
+  strict beta is 83%.
+- Implementation `a4dbf559` and checkpoint `ac3eab20` are published. First
+  exact-head run `33161152217` is RED evidence: native bootstrap oracle
+  emission found the read-only request executor's non-exhaustive
+  `DriverCliDebugSession` match. The installed root remains the only session
+  executor; the read-only root now rejects the request explicitly and cannot
+  become a fallback. Exact native-oracle emission now exits 0 with a
+  32,608,634-byte C artifact, and the source-MIR owner plus focused public
+  debug gates are green. Repair publication and replacement exact-head CI are
+  the next falsifier; no successor rung is inferred.
 
 ## Completed self-host context - 2026-08-28 bounded live LSP frame admission
 

@@ -19,6 +19,7 @@ DEBUG_ADAPTER="$ROOT_DIR/src/compiler/debugger.c"
 DEBUG_HANDOFF="$ROOT_DIR/src/compiler/self_host_debug_driver.c"
 CLI_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 EXEC_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
+READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 SESSION_OWNER="$ROOT_DIR/src/self_hosted/debug/session_owner.pgy"
 LOCATION_OWNER="$ROOT_DIR/src/self_hosted/debug/source_location_fact_owner.pgy"
 
@@ -145,6 +146,10 @@ grep -Fq 'DriverCliDebugSession(String)' "$CLI_OWNER" ||
     fail "installed CLI request owner lacks debug-session identity"
 grep -Fq 'case DriverCliDebugSession(source_path):' "$EXEC_OWNER" ||
     fail "installed executor does not consume debug-session identity"
+grep -Fq 'case DriverCliDebugSession(source_path):' "$READ_OWNER" ||
+    fail "read-only composition root lost exhaustive debug-session rejection"
+grep -Fq 'debug session request requires installed composition root' \
+    "$READ_OWNER" || fail "read-only root accidentally executes debug session"
 [[ -f "$SESSION_OWNER" ]] || fail "Pergyra debug session owner is missing"
 [[ "$(grep -Fc 'ParseRootProgramBuild(' "$SESSION_OWNER")" == "1" ]] ||
     fail "debug session must build the parser artifact exactly once"

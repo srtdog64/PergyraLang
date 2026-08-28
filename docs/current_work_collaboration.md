@@ -13,7 +13,8 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   adapter is the last consumer. Native parse/semantic/AST walking, sibling
   failure retry, dual reads, post-admission source reload, and UI-only progress
   claims are forbidden.
-- Local implementation `a4dbf559` is committed. `debug/session_owner.pgy` owns semantic
+- Implementation `a4dbf559` and publication checkpoint `ac3eab20` are on
+  `origin/main`. `debug/session_owner.pgy` owns semantic
   admission plus commands, breakpoints, traversal cursor, and exit meaning;
   `self_host_debug_driver.c` owns one installed child handoff; `debugger.c`
   contains no native compiler path. `selfhost.debug_session` is a declared
@@ -22,10 +23,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   invocation, missing/invalid nonzero with empty stdout, no native timing, one
   parser build, and static old-path rejection. Native link/source inventory,
   tooling conformance, SoT edge, and full component inventory are also green.
-- Publication is the only open part of this lease. No other task may edit or
-  publish this executable rung until `a4dbf559` plus this ledger checkpoint are
-  pushed and exact-head CI
-  is observed. Query/cache, semantic-index, formatter, scaffold, package
+- First exact-head run `33161152217` is RED evidence: the native bootstrap
+  oracle found that the read-only composition root did not exhaust the new
+  `DriverCliDebugSession` request. The installed root remains the sole session
+  executor; the read-only root now fails closed with an explicit rejection.
+  Exact native-oracle emission writes 32,608,634 bytes with zero errors, and
+  the source-MIR read-owner plus public-debug focused gates pass. No other task
+  may edit or publish this executable rung until the repair checkpoint is
+  pushed and replacement exact-head CI is observed. Query/cache,
+  semantic-index, formatter, scaffold, package
   metadata, performance, and unrelated SoT tracks remain closed.
 
 ## DONE lease — live LSP stdout capability closure

@@ -18,8 +18,17 @@ ratchet도 local green이다. 새 top-level `selfhost.debug_session` 행은 `CLO
 SoT census는 `51/35/1`, hard closure는 `51/87 = 58.6%`, migration index는
 `79.0%`다. Hard replacement 75%는 산술 분모 없는 보수적 작업 예측이라 임의의
 1%를 만들지 않았고, 고정 가중 통합치는 83.4%로 반올림 표시 **83%**
-(81~85%), strict beta 83%다. Commit/publication과 exact-head CI가 다음 falsifier며
-query/cache, semantic-index나 별도 SoT successor는 열지 않는다.
+(81~85%), strict beta 83%다.
+
+구현 `a4dbf559`와 publication checkpoint `ac3eab20`은 `origin/main`에 있다. 첫
+exact-head run `33161152217`은 native bootstrap oracle emission에서
+`DriverRung2CliRequest`의 새 `DriverCliDebugSession` variant를 read-only 실행
+루트가 처리하지 않아 RED가 됐다. 설치 루트가 유일한 세션 실행 owner이므로
+read-only 루트에는 실행이나 fallback 대신 명시적 fail-closed 거부를 추가했다.
+같은 native-oracle 명령은 이제 32,608,634-byte C를 zero error로 생성하고,
+source-MIR read-owner ratchet과 focused public-debug gate도 green이다. 첫 run은
+closure로 세지 않으며 repair commit/publication과 replacement exact-head CI가 다음
+falsifier다. Query/cache, semantic-index나 별도 SoT successor는 열지 않는다.
 
 2026-08-28 live LSP `Content-Length` admission 구현 `b87c6b89`: 이미
 production `SUBSTITUTING`인 공개 live 경로에서 길이를 transport owner가 한 번만

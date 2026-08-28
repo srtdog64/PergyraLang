@@ -15,6 +15,8 @@ func DriverRung2ExecuteReadRequest(
     request: DriverRung2CliRequest
 ) -> Void with caps io_read {
     match request {
+        case DriverCliDebugSession(source_path):
+            Die("debug session request requires installed composition root");
         case DriverCliSourceTokensStdout(source_path):
             Log(LexContent(source_path, LexerReadSource(source_path)));
         case DriverCliSourceAstStdout(source_path):
