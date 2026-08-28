@@ -18,7 +18,52 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - no successor admitted after public live LSP closure
+## Active self-host context - bounded live LSP frame-length admission
+
+- Executable checkpoint: implementation `b87c6b89`; the documentation commit
+  containing this card is the intended publication HEAD. Verify it against
+  `origin/main` and exact-head CI rather than inferring publication. The
+  expected remaining dirty state is only the protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/`; neither was inspected,
+  staged, or modified.
+- Objective card: make the already-substituting live LSP transport admit
+  `Content-Length` once, reject impossible lengths before arithmetic overflow,
+  and share one 262,144-byte ceiling with the retained live buffer. Priority is
+  typed rejection identity, pre-arithmetic fail-closed behavior, one cap owner,
+  actual public-session failure, then patch size. `transport_owner.pgy` owns
+  `LspTransportLengthAdmission` and the ceiling;
+  `live_session_owner.pgy` is the last buffer/orchestration consumer. Relying
+  on checked-Int panic, waiting for the buffer cap, duplicating the literal,
+  treating over-limit as `body_incomplete`, or emitting a partial response is
+  forbidden.
+- Implementation: digit admission checks `d > maximum` or
+  `value > (maximum - d) / 10` before multiplication/addition. Missing header,
+  missing length, invalid length, over-limit length, and incomplete body retain
+  distinct reasons. The live owner waits only for an incomplete header/body;
+  malformed and over-limit declarations fail immediately with empty stdout.
+  The retired unbounded `LspParseNonNegativeInt` path is negative-gated.
+- Observed local evidence: C transport-frame parity passes normal, incomplete,
+  262,145-byte, and 30-digit declarations; transport-stream parity is green;
+  source/public and installed/public live sessions are green; shell syntax,
+  the focused structural owner ratchet, and builtin capability registry smoke
+  exit 0. The broad component inventory produced no output for two minutes and
+  was stopped because it exceeded the repository's 60-second static-gate
+  budget; it is not claimed green.
+- Separate reached-boundary audit: `Print`/`Log*` are explicitly excluded from
+  Phase-1 AIR resource-boundary evidence, the canonical builtin-capability
+  registry has no `Print` row, and both canonical `pgy_print` implementations
+  write/flush stdout without `pgy_cap_require_export`. This is a validated
+  capability-model asymmetry, not a demonstrated vulnerability and not silently
+  resolved by this transport patch. Choosing a capability or a documented
+  host-owned output channel with a quantitative byte budget remains a separate
+  semantic/ABI decision.
+- Grade and next falsifier: this is production Pergyra dogfood hardening on an
+  already reached `SUBSTITUTING` path, not another C-to-Pergyra replacement and
+  not a SoT closure. Published progress and registry values stay unchanged.
+  Publish the documentation checkpoint and require exact-head CI; do not open
+  query/cache, semantic-index, or performance work from the attached review.
+
+## Completed self-host context - public live LSP closure
 
 - Published closure: implementation `d78a4040`, initial checkpoint `4b18fb9f`,
   Linux repair `f9537320`, and repair checkpoint `943a0abe` are on

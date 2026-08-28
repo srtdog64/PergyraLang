@@ -6,6 +6,34 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — bounded live LSP frame-length admission
+
+- Executable checkpoint `b87c6b89` hardens the already-reached public live LSP
+  path. Only the primary task publishes this lease. Protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/` remain outside the edit,
+  stage, and inspection scope.
+- Objective card: `transport_owner.pgy` owns one typed `Content-Length`
+  admission and the 262,144-byte maximum; `live_session_owner.pgy` is the last
+  buffer consumer. Reject before multiplication/addition overflow, preserve a
+  distinct over-limit reason, and emit no response. Checked-Int panic,
+  downstream-cap reliance, a second numeric parser or cap literal, and
+  over-limit-as-incomplete fallback are forbidden.
+- Integration gate: C transport-frame parity must reject 262,145 and a
+  30-digit decimal as `content_length_exceeds_limit`; the source/public and
+  installed/public live gate must exit nonzero with empty stdout for both;
+  focused structural checks must reject `LspParseNonNegativeInt`. Exact-head
+  CI is the publication falsifier.
+- Current evidence: C frame and stream parity, both live/public paths, shell
+  syntax, focused structural ratchet, builtin capability registry smoke, and
+  diff checks are green. The broad component inventory was stopped after two
+  silent minutes because it exceeded the 60-second static budget and is not
+  claimed green.
+- `Print` capability status is audit-only in this lease. Existing AIR docs
+  exclude Print/Log from Phase-1 resource evidence; the registry/runtime prove
+  there is no Print capability gate today. No capability, ABI, output budget,
+  query/cache, or semantic-index implementation is authorized by this lease.
+  The lease closes only after publication and exact-head CI.
+
 ## DONE lease — public live LSP takeover and CI repair
 
 - Published implementation `d78a4040` replaces the no-argument public C live

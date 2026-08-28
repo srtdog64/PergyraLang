@@ -1,5 +1,22 @@
 # Self-Host Progress
 
+## Active self-host context - 2026-08-28 bounded live LSP frame admission
+
+- Implementation `b87c6b89` makes `transport_owner.pgy` own one typed
+  `Content-Length` admission and the shared 262,144-byte declared/retained cap.
+  Decimal admission rejects before arithmetic overflow; the live owner fails
+  invalid and over-limit declarations instead of waiting for more body bytes.
+  The old unbounded parser is deleted and negative-gated.
+- C frame/stream parity, source/public and installed/public live sessions,
+  shell syntax, focused structural checks, and capability-registry smoke are
+  local green. 262,145 and a 30-digit decimal both produce nonzero/empty stdout
+  from the live process. Full component inventory exceeded the 60-second static
+  budget and is not claimed green. Publication/exact-head CI remain open.
+- This hardens an existing production `SUBSTITUTING` path; it does not replace
+  another C path or close a SoT row. The separate Print capability asymmetry is
+  recorded but not resolved. Registry and progress values remain unchanged;
+  query/cache and semantic-index work remain unopened.
+
 ## Completed self-host context - 2026-08-27 source-C compiler-purpose intent takeover
 
 - Implementation `fb4acef4`: public installed `pgy SOURCE --emit-c -o OUTPUT` now reaches one

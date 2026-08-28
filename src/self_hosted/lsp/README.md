@@ -15,6 +15,15 @@ translation. Malformed framing, incomplete EOF, stale/same-version changes,
 and buffer overflow are fatal at this boundary. Buffered request/session/store
 owners remain parity artifacts and are not execution fallbacks.
 
+`transport_owner.pgy` owns one 262,144-byte ceiling for both declared body
+length and the retained live buffer. `Content-Length` decimal admission checks
+the ceiling before multiplication/addition, so over-limit and integer-overflow
+strings fail as `content_length_exceeds_limit` rather than depending on checked
+integer behavior or growing the live buffer. Missing header, missing/invalid
+length, over-limit length, and incomplete body remain distinct transport
+states. The live loop waits only for an incomplete header/body and emits no
+response for malformed or over-limit framing.
+
 The live state deliberately owns one current document, matching the native
 production loop being replaced. `document_revision_owner.pgy` owns its URI,
 version, and exact text. `document_feature_index_owner.pgy` builds one typed
@@ -38,3 +47,10 @@ owns buffered multi-document projection fixtures; `request_owner.pgy`,
 `response_owner.pgy`, `session_owner.pgy`, and `session_state_owner.pgy` remain
 bounded replay/probe owners. `fixture/` and `expected/` are committed parity
 contracts, not live semantic authority.
+
+The output-capability question is intentionally not decided here. Current AIR
+contracts classify `Print`/`Log*` as observability output rather than Phase-1
+resource-boundary evidence, while the builtin capability registry and runtime
+show no `Print` capability check. LSP transport hardening does not promote that
+existing asymmetry into a host-owned exception or add an output byte budget;
+either choice requires its own semantic/ABI objective card and falsifier.

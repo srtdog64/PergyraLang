@@ -2,6 +2,31 @@
 
 마지막 업데이트: 2026-08-28
 
+2026-08-28 live LSP `Content-Length` admission 구현 `b87c6b89`: 이미
+production `SUBSTITUTING`인 공개 live 경로에서 길이를 transport owner가 한 번만
+admit하도록 고쳤다. 선언 body 길이와 retained live buffer는 같은 262,144-byte
+상한을 쓰며, 각 digit은 곱셈/덧셈 전에 `d > maximum` 또는
+`value > (maximum - d) / 10`으로 검사된다. 따라서 262,145와 Int 범위를 훨씬
+넘는 30자리 선언은 downstream buffer 증가나 checked-Int panic에 기대지 않고
+`content_length_exceeds_limit`로 거부된다. 기존 무제한
+`LspParseNonNegativeInt`는 삭제하고 정적 negative를 추가했다.
+
+C transport-frame/stream parity, source/public 및 installed/public live session,
+shell syntax, focused structural owner ratchet, builtin capability registry smoke가
+local green이다. 실제 live process는 두 과대 입력 모두 nonzero/빈 stdout으로
+fail closed한다. 전체 component inventory는 2분 동안 출력 없이 정적 게이트의
+60초 예산을 넘겨 중단했으므로 green으로 세지 않는다. Publication 및 exact-head
+CI가 다음 falsifier다.
+
+같이 감사한 `Print`는 현재 builtin capability registry 행과 runtime
+`pgy_cap_require_export`가 없고, 기존 AIR 문서는 Print/Log를 Phase-1 resource
+evidence에서 제외한다. 이는 검증된 capability-model 비대칭이지만 이번 transport
+패치에서 capability/ABI 정책을 암묵적으로 정하지 않았다. Capability로 만들지,
+정량 output budget을 가진 host-owned channel로 문서화할지는 별도 semantic 결정이다.
+이번 변경은 새 hard substitution이나 SoT 폐쇄가 아니므로 SoT `50/35/1`, hard
+closure 58.1%, migration 78.8%, 통합 83% (81~85%), strict beta 83%, hard
+replacement 75%는 그대로다. Query/cache와 semantic-index 후속도 열지 않는다.
+
 2026-08-28 public live LSP 로컬 치환(`d78a4040`): no-argument
 `pgy-lsp`의 기본 C `lsp_read_message`/dispatch 경로를 설치된 Pergyra-built
 `pgy-self-lsp` handoff로 바꿨다. 기존 C live loop는 명시적

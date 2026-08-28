@@ -2,6 +2,33 @@
 
 Status: `BRIDGE`
 
+## 2026-08-28 bounded live LSP frame-length admission
+
+Implementation `b87c6b89` hardens the already-substituting live LSP boundary.
+`transport_owner.pgy` now owns one `LspTransportLengthAdmission` and one
+262,144-byte maximum shared by declared body length and retained live buffer.
+Decimal admission rejects before multiplication/addition overflow; missing,
+invalid, over-limit, and incomplete states remain distinguishable. The live
+owner waits only for an incomplete header/body and fails malformed or
+over-limit declarations with no response. The former unbounded parser is
+deleted and negative-gated.
+
+C frame and stream parity, source/public and installed/public live sessions,
+shell syntax, focused structural ownership, and capability-registry smoke are
+local green. Both a 262,145 declaration and a 30-digit declaration fail the
+real live process nonzero with empty stdout. The full component inventory was
+stopped after two silent minutes because it exceeded the 60-second static-gate
+budget and is not claimed green. Exact-head CI remains the publication
+falsifier.
+
+This is reached Pergyra dogfood hardening, not a new `SUBSTITUTING` numerator or
+SoT closure. The adjacent Print audit also changes no policy: current owner
+evidence proves that Print/Log are outside Phase-1 AIR resource evidence and
+that `pgy_print` has no capability-registry/runtime guard. A capability versus
+host-owned quantitatively bounded output channel remains a separate decision.
+Progress and registry counts remain unchanged, and no query/cache or semantic
+index successor is admitted.
+
 ## 2026-08-28 public live LSP takeover
 
 Implementation `d78a4040` makes the no-argument public `pgy-lsp` entrypoint
