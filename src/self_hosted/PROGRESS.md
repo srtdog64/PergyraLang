@@ -1,6 +1,40 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-28 public debugger publication
+## Active self-host context - 2026-08-29 public formatter substitution
+
+- Production `pgy fmt SOURCE [--check|--write]` now reaches one installed
+  Pergyra token/layout session. Native C lexer/parser/layout code is deleted;
+  only stdout, comparison, and atomic replacement remain in the C host.
+- `lexer/scan_owner.pgy` owns typed `LexerTokenFact` rows and keeps the
+  existing token dump as their projection. `fmt/layout_owner.pgy` owns layout;
+  `fmt/session_owner.pgy` owns verified artifact publication. Native formatter
+  lex/parse/layout, debug-token reparsing, missing-driver retry, and partial
+  in-place writes are forbidden.
+- Pre-publication review repaired invalid-token/comment deletion, lossy
+  doc/interpolation lexemes, write-before-parser-admission, fixed temp suffixes,
+  stale source overwrite, source identity/mode drift, ambiguous argv, and child
+  diagnostic stdout leakage. Final audit also repaired format-only
+  `use`/`lifecycle` admission, token-kind/exact-lexeme forgery, strict Windows
+  final-target identity, and rollback-failure cleanup. A deterministic
+  post-precheck race gate proves nonzero publication and preserved concurrent
+  bytes in the reported recovery workspace. The focused public gate proves
+  those negative
+  boundaries in addition to byte output, check/write idempotence, compiled
+  result, exactly-once installed execution, and old C path deletion.
+  Legacy formatter smoke, public tokens, installed-driver integration,
+  build-source inventory, full component structural/hard contract, SoT edge,
+  authority negative mutations, docs/progress, shell syntax, and changed-C
+  Werror are local green. Coq/Rocq execution is a declared local skip.
+- `selfhost.source_format_layout` is local `CLOSED`; Coq maps
+  `SFSourceFormatLayout` to `SOSourceFormatter`. Census is `52/35/1`, hard
+  closure 59.1%, migration 79.3%, integrated 83% (81-85%), strict beta 83%,
+  and hard replacement 75%. This added a CLOSED row but did not reduce the 35
+  existing BRIDGEs, so the next rung must close one existing row to reach 34.
+  Implementation checkpoint is `e9e9e20b`; exact-head remote CI remains the
+  publication falsifier. The waiting successor is
+  `selfhost.intent_declaration_rows`; success requires `53/34/1`, not a new row.
+
+## Completed self-host context - 2026-08-28 public debugger publication
 
 - `pgy debug SOURCE` now enters one installed Pergyra-built session. The C
   adapter no longer contains lexer, parser, semantic analysis, prompt state, or
@@ -57,6 +91,10 @@
   repository-declared skip, while the exact-head remote Rocq job is green.
   This is a caller-inventory/negative-ratchet repair, not another SoT closure;
   replacement exact-head CI still owns publication closure.
+- Repair `97d54a64` exact-head run `33169622957` completed GREEN 30/30:
+  `build-linux` 24m23s, full self-host 34m17s, and every platform, codegen,
+  sanitizer, proof, toolchain, and backend 20/20 job passed. The debugger
+  publication lease is closed.
 
 ## Completed self-host context - 2026-08-28 bounded live LSP frame admission
 

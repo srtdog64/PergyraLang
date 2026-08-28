@@ -1,12 +1,63 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-08-28 (Asia/Seoul)
+Updated: 2026-08-29 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — public `pgy debug` Pergyra session publication
+## ACTIVE lease — public `pgy fmt` Pergyra token/layout substitution
+
+- Objective card: production entrypoint `pgy fmt SOURCE [--check|--write]`;
+  preserve the current byte output while moving token/layout and
+  parse-stability decisions behind one Pergyra owner. Priority is one typed
+  token scan, one layout policy, parseable and idempotent artifact admission,
+  host-only stdout/compare/atomic-replace, fail-closed installed execution,
+  then patch size.
+- Fact owner: `src/self_hosted/lexer/scan_owner.pgy` owns typed
+  `LexerTokenFact` rows and the existing public token dump becomes their
+  projection. `src/self_hosted/fmt/layout_owner.pgy` owns source layout;
+  `src/self_hosted/fmt/session_owner.pgy` owns verified artifact publication.
+  `src/compiler/fmt.c` is the last legitimate host-transaction consumer.
+- Forbidden fallback: C `lexer_create`, `lexer_next_token`, or
+  `parser_parse_program`; parsing the token-debug serialization; installed
+  formatter failure retrying native layout; output publication before
+  parse/stability verification; invalid-token deletion; lossy doc/interpolation
+  lexemes; fixed source-suffix temp files; stale source overwrite; inherited
+  child diagnostic stdout; partial in-place overwrite. REPL session,
+  query/cache, and unrelated SoT work remain outside this lease.
+- Integration gate: real public stdout, pre/post `--check`, first/second
+  `--write`, compilation of the result, exactly one installed child, missing
+  driver and invalid-source no-mutation/no-temp behavior, and static native
+  lexer/parser/layout residue deletion. No new CI job or second compiler build
+  is permitted.
+- Local implementation/evidence: native formatter policy files are deleted;
+  lossless typed token facts, Pergyra layout/session owners, installed request,
+  and the host-only adapter are wired. Parallel pre-publication review found
+  and the primary task repaired semantic loss, parser-admission ordering, temp
+  collision, stale update, source identity/permission, argv, diagnostic stdout,
+  and ratchet defects. Final audit additionally closed format-only
+  `use`/`lifecycle` admission, token-kind/lexeme forgery, strict final-target
+  identity, and rollback-failure recovery. The executable negative injects a
+  post-precheck concurrent edit, forces rollback failure, and proves nonzero
+  exit plus preserved concurrent bytes. Focused formatter, legacy formatter
+  smoke, public token,
+  installed-driver integration, build-source inventory, full component
+  structural contract, hard contract, SoT edge, authority negative mutations,
+  documentation/progress, shell syntax, and changed-C warning-as-error checks
+  are green. Coq execution is a declared local skip because no prover is
+  installed. The edge reports 88 authorities / 182 derived carriers /
+  `CLOSED=52 BRIDGE=35 ACTIVE=1` after the Coq spine projection and
+  `selfhost.source_format_layout` CLOSED row. Implementation checkpoint is
+  `e9e9e20b`; exact-head remote CI remains the publication falsifier.
+- Progress discipline: this real substitution added a CLOSED authority but did
+  not reduce BRIDGE=35. The next implementation lease may not add another row;
+  it must migrate and close one existing BRIDGE so the count becomes 34. The
+  waiting objective card is
+  `docs/agent_work_directives/intent_declaration_rows_bridge_closure_2026-08-29.md`;
+  it cannot begin before this formatter lease is published and released.
+
+## DONE lease — public `pgy debug` Pergyra session publication
 
 - Objective card is fixed to `pgy debug SOURCE`: parser-cursor location evidence
   and admitted artifact identity feed one Pergyra session owner; the public C
@@ -62,6 +113,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   remaining authority, compiler-world, MIR flow, and filesystem rows passed.
   The same exact-head remote Rocq job is green. Publication and replacement
   exact-head CI remain the only active work; counts and progress do not change.
+- Final publication run `33169622957` at repair `97d54a64` completed GREEN
+  30/30. `build-linux` passed in 24m23s, full self-host in 34m17s, and all
+  platform, codegen, sanitizer, proof, toolchain, and backend 20/20 jobs were
+  green. The debugger lease is released.
 
 ## DONE lease — live LSP stdout capability closure
 

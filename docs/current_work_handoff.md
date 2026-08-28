@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-28 (Asia/Seoul)
+Updated: 2026-08-29 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -18,7 +18,59 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - public debugger CI repair awaiting replacement publication
+## Active self-host context - public formatter Pergyra token/layout substitution
+
+- Objective card: production entrypoint `pgy fmt SOURCE [--check|--write]`;
+  priority is byte-compatible output, one typed self-host token scan, one
+  Pergyra layout owner, parseable/idempotent artifact admission, host-only
+  stdout/compare/atomic replacement, and fail-closed installed execution.
+  `src/self_hosted/lexer/scan_owner.pgy` owns typed token facts,
+  `src/self_hosted/fmt/layout_owner.pgy` owns layout, and
+  `src/compiler/fmt.c` is the last host-transaction consumer.
+- C native lexing/parsing/layout, token-debug-text reparsing, missing-driver
+  native retry, verification-after-in-place-write, and partial replacement are
+  forbidden. The focused public gate must cover stdout, check/write
+  idempotence, result compilation, exactly-once child execution, missing and
+  invalid fail-closed behavior, and static old-path deletion without adding a
+  CI job or second self-host build.
+- Checkpoint basis: formatter implementation checkpoint `e9e9e20b` follows
+  public debugger publication `97d54a64` / GREEN run `33169622957`. The
+  implementation checkpoint and this handoff form the formatter publication
+  candidate; only exact-head remote CI can release the lease. Expected dirty
+  state after the handoff commit is only protected untracked
+  `docs/compiler_architectures/` and `pgy-80135c2c/`, which remain outside
+  inspection, edit, and staging scope.
+- Implemented delta: native formatter lexer/parser/layout owners are deleted;
+  lossless typed lexer facts feed one Pergyra layout/session owner through an
+  installed format request, while C retains stdout/compare/atomic replace
+  only. Pre-publication review found and repaired invalid-character/comment
+  deletion, doc/interpolation lexeme loss, write-before-parser-admission,
+  fixed-suffix temp deletion, stale source overwrite, symlink/mode drift,
+  ambiguous argv, and child diagnostic stdout leakage. Final review also found
+  valid `use`/`lifecycle` formatter admission gaps, forged token-kind rows,
+  fail-open Windows final-target identity, and a rollback-failure cleanup
+  window. Format-only declaration admission is isolated from general
+  compilation, token kind is sealed to the exact lexeme, installed source
+  identity is strict, and commit-time races preserve a reported recovery
+  workspace. Focused formatter,
+  legacy formatter smoke, public tokens, installed-driver integration,
+  build-source inventory, full component structural contract, hard contract,
+  SoT authority edge, static authority mutations, documentation/progress,
+  shell syntax, and changed-C warning-as-error checks are green. Local Coq is a
+  declared skip because no prover is installed. The edge reports 88
+  authorities / 182 derived carriers / `CLOSED=52 BRIDGE=35 ACTIVE=1`; hard
+  closure is 59.1% and migration 79.3%. Exact-head remote CI remains the
+  publication falsifier.
+- Successor guard: formatter added one CLOSED row but did not lower BRIDGE=35.
+  After publication, the next executable rung must close an existing BRIDGE
+  to reach 34; a new authority row, module-only work, query/cache, or owner-only
+  cleanup is not admitted as the successor. The bounded candidate is
+  `selfhost.intent_declaration_rows`: carry one complete admitted transition
+  view into public source-C, delete `CodegenIntentExecutionViewEmpty(true)` for
+  present intents plus step-header/compensation AST reconstruction, and extend
+  the existing guard/post/compensation gate with no-artifact mutations.
+
+## Completed self-host context - public debugger Pergyra session publication
 
 - Checkpoint basis: implementation `a4dbf559` and publication checkpoint
   `ac3eab20` are on `origin/main`. Exact-head run `33161152217` opened the full
@@ -103,12 +155,11 @@ percentage by themselves.
   are classified as its local view. Census is `CLOSED=51 BRIDGE=35 ACTIVE=1`,
   hard closure `51/87 = 58.6%`, migration `79.0%`, integrated 83% (81-85%),
   strict beta 83%, and conservative denominator-free hard replacement 75%.
-- Next falsifier: commit and publish the lifetime caller repair, strict 4483
-  likeness ratchet, and this checkpoint, then observe replacement CI on that
-  exact HEAD. Until the
-  replacement run is green this lease remains active;
-  no formatter, query/cache, semantic-index, performance, or unrelated SoT
-  successor is inferred.
+- Final publication: repair `97d54a64` exact-head run `33169622957` completed
+  GREEN 30/30. `build-linux` passed in 24m23s, full self-host in 34m17s, and
+  all platform, codegen, sanitizer, proof, toolchain, and backend 20/20 jobs
+  were green. The debugger lease is closed; the active successor is the
+  formatter card above.
 
 ## Completed supporting context - Print stdout closure
 

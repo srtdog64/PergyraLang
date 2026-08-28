@@ -1,6 +1,38 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-28
+마지막 업데이트: 2026-08-29
+
+`pgy fmt SOURCE [--check|--write]`의 native lexer/parser/layout 경로는
+로컬 트리에서 Pergyra 구현으로 치환됐다. `lexer/scan_owner.pgy`가 한 번 생성한
+typed `LexerTokenFact`를 public token text와 formatter가 함께 소비하고,
+`fmt/layout_owner.pgy`가 layout을, `fmt/session_owner.pgy`가 stable roundtrip과
+parser-admitted artifact를 소유한다. C `fmt.c`는 설치된 driver를 정확히 한 번
+호출한 뒤 stdout, byte compare, atomic replace만 수행한다. `fmt_io.*`와
+`fmt_layout.*`는 삭제됐다. 검토에서 드러난 invalid 문자/미종결 주석 삭제,
+doc/interpolation lexeme 손실, parser admission 이전 기록, 고정 suffix temp 충돌,
+child 실행 중 source 변경 덮어쓰기, symlink/mode 변경, 모호한 argv, 실패 진단의
+stdout 누출도 수정됐다. 추가 재감사에서 유효한 `use`/`lifecycle` 선언의 formatter
+전용 admission, token kind와 exact lexeme 결속, Windows final reparse target의
+fail-closed identity를 보강했다. Commit-time 경합은 stale output을 성공시키지
+않으며, rollback 실패 시 동시 편집본이 든 recovery workspace를 지우지 않고
+경로를 진단한다. Missing/invalid/pre-commit conflict 실패는 source와 stdout을
+바꾸지 않고 사설 임시 artifact도 남기지 않는다.
+
+Focused public formatter, legacy formatter smoke, public token, installed-driver
+integration, build-source inventory, full component structural/hard contract,
+SoT authority-edge, authority negative mutations, documentation/progress,
+shell syntax와 changed-C Werror가 local green이다. 로컬 Coq/Rocq 실행 파일은 없어
+선언된 skip이며 정적 owner/consumer 및 negative mutation 검사는 통과했다. Coq spine에는
+`SFSourceFormatLayout -> SOSourceFormatter`를 선언했고 새
+`selfhost.source_format_layout` 행은 local `CLOSED`다. 현재 census는
+`CLOSED=52 BRIDGE=35 ACTIVE=1`, hard closure `52/88 = 59.1%`, migration
+`79.3%`다. 이 작업은 실제 `SUBSTITUTING`이지만 새 CLOSED 행을 추가했으므로
+기존 BRIDGE 35를 줄이지는 않았다. 구현 checkpoint는 `e9e9e20b`다. 다음
+successor는 새 authority 추가가 아니라
+기존 BRIDGE 하나를 `CLOSED`로 바꾸어 `35 -> 34`를 증명해야 한다. Formatter
+exact-head remote CI는 아직 publication falsifier다. 다음 후보는
+`selfhost.intent_declaration_rows`이며, present intent의 empty execution view와
+step-header/compensation AST 재구성을 제거해 `53/34/1`을 만드는 것만 성공으로 센다.
 
 `pgy debug SOURCE`의 compiler-bearing C 우회는 로컬에서 실제 치환됐다.
 `src/compiler/debugger.c`는 launcher 인자를 확인한 뒤 설치된 driver를 정확히 한
@@ -60,6 +92,12 @@ proof owner/consumer negative, SoT edge, likeness, text-builder, source-scan,
 compiler-world, MIR resource/loop flow, filesystem gate는 모두 통과했다. 같은 exact
 HEAD의 원격 Rocq job은 green이다. 이 repair는 새 top-level SoT 폐쇄나 진행률
 증가가 아니며 replacement exact-head CI가 publication falsifier다.
+
+Repair `97d54a64`의 exact-head run `33169622957`은 GREEN 30/30이다.
+`build-linux` 24분 23초와 full self-host 34분 17초를 포함해 codegen bootstrap,
+Windows/macOS, sanitizer, TSan, Rocq, backend toolchain과 shards 20/20이 모두
+통과했다. 따라서 public debugger publication은 닫혔고 formatter가 그 다음
+exclusive executable rung으로 열렸다.
 
 2026-08-28 live LSP `Content-Length` admission 구현 `b87c6b89`: 이미
 production `SUBSTITUTING`인 공개 live 경로에서 길이를 transport owner가 한 번만
@@ -1005,8 +1043,8 @@ checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure�
 | 축 | 현재치 | 분모와 근거 | 다음 상승 조건 |
 | --- | ---: | --- | --- |
 | 언어 strict beta | 83% | `docs/100_beta_readiness_checklist.md`의 현재 공식선 | current full suite와 남은 beta-critical fallback 폐쇄 |
-| SoT hard closure | 51/87 = 58.6% CLOSED | owner registry의 `CLOSED 51 / BRIDGE 35 / ACTIVE 1` | consumer migration, old read 삭제, negative gate까지 갖춰 `CLOSED` 승격 |
-| SoT migration index | 79.0% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | BRIDGE를 늘리는 문서/owner 추가가 아니라 실제 hard substitution |
+| SoT hard closure | 52/88 = 59.1% CLOSED | owner registry의 `CLOSED 52 / BRIDGE 35 / ACTIVE 1` | 새 행 추가가 아니라 기존 BRIDGE consumer migration, old read 삭제, negative gate로 `35 -> 34` |
+| SoT migration index | 79.3% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | 기존 BRIDGE 하나를 실제 hard substitution으로 CLOSED 승격 |
 | self-host substrate | 10/10 READY | executable scorecard의 capability 4는 allocator lanes, `BoxArray`, explicit destroy, TextBuilder/result assembly를 포함해 이미 READY이고 본문의 measured closure도 Phase 1 closure를 선언한다. | remaining compiler-scale String scope reclamation은 효율 전선이며 새 native fallback의 근거가 아님 |
 | 일반 GraphPlan 연속 전선 | complete-source Pergyra producer/gen2/gen3 fixed point + installed public C/LLVM/package/MIR/REPL-compile boundaries | canonical O3 gen2/gen3 byte equality, repository-installed sibling, fail-closed public gates가 누적됐고 latest implementation source의 remote full self-host job도 green이다. routine·row·V·owner 수는 진행률 분자가 아니다. | 기존 fixed point를 유지하고 fresh production compiler bypass가 실제 Pergyra owner에 닿을 때만 후속 rung을 연다. |
 | hard self-host replacement 예측 | 75% | complete-source producer/fixed point와 public compiler-bearing C/LLVM/package/MIR/REPL 내부는 bounded `SUBSTITUTING`이지만 whole product와 unsupported RIR/AIR/HIR에는 완전한 Pergyra owner가 없다. 기존 추정 분모를 새 숫자 없이 유지한다. | fresh production bypass, complete Pergyra owner, executable falsifier가 함께 존재하는 다음 target-specific substitution |
@@ -1029,8 +1067,8 @@ ordinal이나 통과 routine 수는 프로그램 구조가 바뀔 때 함께 변
 분수로 환산하지 않는다. 75%는 현재 실제 hard-substitution 범위와 완전한
 Pergyra owner가 없는 native product shell 및 unsupported IR producer를 함께 본
 target-specific 작업 예측이며 산술 통과율이 아니다.
-통합 계산은 `83×0.30 + 79.0×0.25 + 75×0.25 + 100×0.10 +
-100×0.10 = 83.40`이며 표시값은 83%다.
+통합 계산은 `83×0.30 + 79.3×0.25 + 75×0.25 + 100×0.10 +
+100×0.10 = 83.48`이며 표시값은 83%다.
 
 2026-08-18 control-flow 실행 갱신: 다음 compiler-scale RED는 SoT 행이
 아니라 direct `else if` tail을 source 깊이만큼 재귀 호출하던 MIR lowering이었다.
