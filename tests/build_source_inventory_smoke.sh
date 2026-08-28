@@ -810,20 +810,30 @@ if awk '
 fi
 
 local_compiler_file_readers="$(
-    pgy_scan_ch_E 'fseek\(|ftell\(|fread\(buf' \
-        src/compiler/debugger.c src/compiler/fmt_io.c
+    pgy_scan_ch_E 'fopen\(|getline\(|fseek\(|ftell\(|fread\(buf' \
+        src/compiler/debugger.c src/compiler/fmt.c
 )"
 if [[ -n "$local_compiler_file_readers" ]]; then
     printf '%s\n' "$local_compiler_file_readers" >&2
-    echo "[build-source-inventory] debugger/fmt_io must use path_read_file instead of local source-file readers" >&2
+    echo "[build-source-inventory] debugger/fmt must use owned path/file boundaries instead of local source-file readers" >&2
     missing=1
 fi
-for term in \
-    "PGY_MAX_TEXT_FILE_BYTES" \
-    "read_len != (size_t)len" \
-    "free(buf)"; do
-    if ! grep -Fq "$term" "$ROOT_DIR/src/compiler/fmt.c"; then
-        echo "[build-source-inventory] fmt stream reader must preserve size cap and partial-read failure handling: $term" >&2
+for owned_reader_term in \
+    'PGY_MAX_TEXT_FILE_BYTES' \
+    'fread(buf, 1, (size_t)sz, f) != (size_t)sz' \
+    'memchr(buf, '\''\0'\'', (size_t)sz)'; do
+    if ! grep -Fq "$owned_reader_term" "$ROOT_DIR/src/compiler/path_utils.c"; then
+        echo "[build-source-inventory] path_read_file lost an owned size/short-read/NUL invariant: $owned_reader_term" >&2
+        missing=1
+    fi
+done
+for forbidden_formatter_path in \
+    src/compiler/fmt_io.c \
+    src/compiler/fmt_io.h \
+    src/compiler/fmt_layout.c \
+    src/compiler/fmt_layout.h; do
+    if [[ -e "$ROOT_DIR/$forbidden_formatter_path" ]]; then
+        echo "[build-source-inventory] retired native formatter owner returned: $forbidden_formatter_path" >&2
         missing=1
     fi
 done

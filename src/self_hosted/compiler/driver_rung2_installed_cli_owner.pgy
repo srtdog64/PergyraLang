@@ -6,6 +6,7 @@ import "driver_rung2_cli_request_owner.pgy";
 import "driver_rung2_cli_read_execution_owner.pgy";
 import "driver_rung2_artifact_request_execution_owner.pgy";
 import "../debug/session_owner.pgy";
+import "../fmt/session_owner.pgy";
 
 func DriverRung2ExecuteInstalledRequest(
     request: DriverRung2CliRequest
@@ -13,6 +14,8 @@ func DriverRung2ExecuteInstalledRequest(
     match request {
         case DriverCliDebugSession(source_path):
             RunDebugSession(source_path);
+        case DriverCliFormatSourceArtifact(source_path, output_path):
+            RunFormatSourceArtifact(source_path, output_path);
         case DriverCliSourceTokensStdout(source_path):
             DriverRung2ExecuteReadRequest(request);
         case DriverCliSourceAstStdout(source_path):

@@ -1118,8 +1118,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/llvm_runner.c \
                    $(COMPILER_DIR)/c_runner.c \
                    $(COMPILER_DIR)/repl.c \
-                   $(COMPILER_DIR)/fmt_io.c \
-                   $(COMPILER_DIR)/fmt_layout.c \
+                   $(COMPILER_DIR)/self_host_fmt_driver.c \
                    $(COMPILER_DIR)/fmt.c \
                    $(COMPILER_DIR)/pkg.c \
                    $(COMPILER_DIR)/pkg_lock.c \

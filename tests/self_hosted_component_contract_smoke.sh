@@ -8864,7 +8864,7 @@ require_file "src/self_hosted/compiler/driver_rung2_cli_owner.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" 40
 require_text "src/self_hosted/compiler/driver_rung2_cli_owner.pgy" "func RunDriverRung2FromArgs"
 require_file "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
-require_max_lines "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 300
+require_max_lines "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" 320
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "enum DriverRung2CliRequest"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
@@ -8875,6 +8875,10 @@ require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "DriverCliSourceCapabilityManifestStdout(String)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "DriverCliSourceDirStdout(String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "DriverCliFormatSourceArtifact(String, String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    'args[0] == "--format-source-verified"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--emit-machine-manifest-verified"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
@@ -8962,6 +8966,10 @@ require_file "src/compiler/self_host_driver.c"
 require_file "src/compiler/self_host_driver.h"
 require_file "src/compiler/self_host_debug_driver.c"
 require_file "src/compiler/self_host_debug_driver.h"
+require_file "src/compiler/self_host_fmt_driver.c"
+require_file "src/compiler/self_host_fmt_driver.h"
+require_file "src/self_hosted/fmt/layout_owner.pgy"
+require_file "src/self_hosted/fmt/session_owner.pgy"
 require_file "src/compiler/self_host_machine_manifest_artifact_owner.c"
 require_file "src/compiler/self_host_machine_manifest_artifact_owner.h"
 require_file "src/compiler/self_host_mir_artifact_owner.c"
@@ -8988,6 +8996,13 @@ require_file "tests/self_hosted/parity/public_mir_diagnostic_installed_self_host
 require_file "tests/self_hosted/parity/fixture/silent_self_host_driver.c"
 require_file "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_fmt_installed_self_host_owner.sh"
+require_file \
+    "tests/self_hosted/parity/fixture/counting_self_host_fmt_driver.c"
+require_file \
+    "tests/self_hosted/parity/fixture/fmt_recovery_publication_owner.c"
+require_max_lines \
+    "tests/self_hosted/parity/fixture/fmt_recovery_publication_owner.c" 80
 require_file "tests/self_hosted/parity/public_ast_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh"
@@ -9004,6 +9019,10 @@ require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "PARSER GRAPH ERROR: "
 require_max_lines "src/compiler/self_host_driver.c" 270
 require_max_lines "src/compiler/self_host_debug_driver.c" 90
+require_max_lines "src/compiler/self_host_fmt_driver.c" 100
+require_max_lines "src/compiler/fmt.c" 180
+require_max_lines "src/self_hosted/fmt/layout_owner.pgy" 200
+require_max_lines "src/self_hosted/fmt/session_owner.pgy" 50
 require_max_lines "src/compiler/self_host_mir_artifact_owner.c" 90
 require_max_lines "src/compiler/self_host_mir_diagnostic_stdout_owner.c" 130
 require_max_lines "src/compiler/compiler_process.c" 620
@@ -9017,6 +9036,10 @@ require_max_lines \
     "tests/self_hosted/parity/fixture/silent_self_host_driver.c" 60
 require_max_lines "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh" 140
 require_max_lines "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh" 120
+require_max_lines \
+    "tests/self_hosted/parity/public_fmt_installed_self_host_owner.sh" 520
+require_max_lines \
+    "tests/self_hosted/parity/fixture/counting_self_host_fmt_driver.c" 70
 require_max_lines "tests/self_hosted/parity/public_ast_installed_self_host_owner.sh" 140
 require_max_lines "tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh" 180
 require_max_lines "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh" 140
@@ -9118,7 +9141,7 @@ reject_text "src/compiler/self_host_driver.c" 'child_argv[1] = source_path'
 require_text "src/compiler/self_host_driver.c" \
     'driver_self_host_source_identity_path_dup('
 require_text "src/compiler/self_host_driver.c" \
-    'import_resolver_canonicalize_path_dup(source_path)'
+    'import_resolver_existing_final_identity_path_dup(source_path)'
 require_text "src/compiler/import_resolver_paths.c" "if (*p == '\\\\')"
 require_text "src/compiler/self_host_driver.c" 'mir_json_mode = strcmp(argv[0], "--mir-json") == 0'
 require_text "src/compiler/self_host_driver.c" 'mir_producer_mode = strcmp(argv[0], "--emit-mir-json-verified") == 0'
@@ -9173,6 +9196,73 @@ reject_text "src/compiler/self_host_driver.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_driver.c" "system("
 reject_text "src/compiler/self_host_debug_driver.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_debug_driver.c" "system("
+require_text "src/compiler/self_host_fmt_driver.c" \
+    'child_argv[1] = "--format-source-verified";'
+require_text "src/compiler/self_host_fmt_driver.c" \
+    "pgy_exec_argv_capture_stdout("
+reject_text "src/compiler/self_host_fmt_driver.c" \
+    "pgy_exec_argv(child_argv, false)"
+reject_text "src/compiler/self_host_fmt_driver.c" "driver_run_pipeline("
+reject_text "src/compiler/self_host_fmt_driver.c" "system("
+require_text "src/compiler/fmt.c" \
+    "driver_materialize_self_host_format_artifact("
+require_text "src/compiler/fmt.c" \
+    "path_replace_file_atomic_if_unchanged("
+require_text "src/compiler/fmt.c" \
+    "driver_self_host_source_identity_path_dup(path)"
+require_text "src/compiler/fmt.c" \
+    "compiler_transient_artifact_workspace_open("
+require_text "src/compiler/fmt.c" \
+    "source changed while formatting"
+for native_fmt_term in lexer_create lexer_next_token parser_parse_program \
+    format_source_to_stream fmt_token_needs_space \
+    fmt_token_starts_toplevel_decl; do
+    reject_text "src/compiler/fmt.c" "$native_fmt_term"
+    reject_text "src/compiler/self_host_fmt_driver.c" "$native_fmt_term"
+done
+for retired_fmt_owner in fmt_io.c fmt_io.h fmt_layout.c fmt_layout.h; do
+    reject_file "src/compiler/$retired_fmt_owner"
+done
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/fmt/layout_owner.pgy` -- source layout policy'
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/fmt/session_owner.pgy` -- stable, parser-admitted formatted'
+require_text "src/self_hosted/lexer/scan_owner.pgy" \
+    "func LexContentFacts(content: String) -> Array<LexerTokenFact>"
+require_text "src/self_hosted/fmt/layout_owner.pgy" \
+    "func FormatSourceFromTokenFacts(tokens: Array<LexerTokenFact>) -> String"
+reject_text "src/self_hosted/fmt/layout_owner.pgy" "LexContent("
+require_text "src/self_hosted/fmt/session_owner.pgy" \
+    "ParseFormatProgramBuildContent("
+require_text "src/self_hosted/fmt/session_owner.pgy" \
+    "AstTreeArtifactReady(artifact)"
+require_text "src/self_hosted/lexer/token_owner.pgy" \
+    "func LexerTokenFactExactLexemeReady("
+require_text "src/self_hosted/lexer/token_owner.pgy" \
+    '1, "}", "Log(1);", "Log(1);", 1, 1'
+require_text "src/self_hosted/fmt/layout_owner.pgy" \
+    "LexerTokenExactLexemeContractReady()"
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "lifecycle_transition_indent"
+reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    'if StringIndexOf(text, ": ") > 0 && StringIndexOf(text, " -> ") > 0'
+reject_text "src/compiler/path_utils.c" "remove(dst_path)"
+require_text "src/compiler/path_utils.c" \
+    "ReplaceFileA(dst_path, tmp_path, backup_path, 0, NULL, NULL)"
+require_text "src/compiler/path_utils.c" \
+    "chmod(tmp_path, destination.st_mode & 07777)"
+require_text "src/compiler/path_utils.c" \
+    "path_exchange_files_atomic(tmp_path, dst_path)"
+require_text "src/compiler/path_utils.c" \
+    "path_file_content_equals(dst_path, expected_content)"
+require_text "src/compiler/fmt.c" \
+    "PATH_REPLACE_RECOVERY_REQUIRED"
+require_text "src/compiler/fmt.c" \
+    "if (!preserve_workspace)"
+require_text "src/compiler/import_resolver_paths.c" \
+    "GetFinalPathNameByHandleA("
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/public_fmt_installed_self_host_owner.sh"'
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "system("
 require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \

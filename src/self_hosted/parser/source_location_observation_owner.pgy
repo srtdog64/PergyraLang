@@ -112,21 +112,23 @@ func ParserSourceLocationCommit(
 func ParserObservedStatementFinish(
     tree_text: String,
     slot: Int,
+    owner_kind: Int,
     inout observations: Array<ParserSourceLocationObservation>
 ) -> String {
     if slot < 0 {
         return tree_text;
     }
-    let newline: Int = StringIndexOf(tree_text, "\n");
-    let first_line: String = tree_text;
-    if newline >= 0 {
-        first_line = Substring(tree_text, 0, newline);
+    let observed_kind: Int = owner_kind;
+    if observed_kind == TypedAstKindUnknownTag() {
+        let newline: Int = StringIndexOf(tree_text, "\n");
+        let first_line: String = tree_text;
+        if newline >= 0 {
+            first_line = Substring(tree_text, 0, newline);
+        }
+        observed_kind = TypedAstTextKindOf(StringTrim(first_line));
     }
     ParserSourceLocationCommit(
-        slot,
-        TypedAstTextKindOf(StringTrim(first_line)),
-        "",
-        observations
+        slot, observed_kind, "", observations
     );
     return tree_text;
 }

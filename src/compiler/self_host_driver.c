@@ -36,7 +36,7 @@ driver_resolve_self_host_binary(const char *launcher_path)
 char *
 driver_self_host_source_identity_path_dup(const char *source_path)
 {
-    return import_resolver_canonicalize_path_dup(source_path);
+    return import_resolver_existing_final_identity_path_dup(source_path);
 }
 
 int

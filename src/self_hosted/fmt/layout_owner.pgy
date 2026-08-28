@@ -1,0 +1,176 @@
+// Pergyra source-format layout owner.
+//
+// Consumes the typed self-host lexer facts directly. Token debug text is an
+// output projection and is never parsed back into formatting policy.
+
+import "../lexer/scan_owner.pgy";
+
+func FormatTokenKindIsBinaryOperator(kind: String) -> Bool {
+    return kind == "=" || kind == "+" || kind == "-" || kind == "*" ||
+        kind == "/" || kind == "%" || kind == "==" || kind == "!=" ||
+        kind == "<" || kind == "<=" || kind == ">" || kind == ">=" ||
+        kind == "&&" || kind == "&" || kind == "||" || kind == "|" ||
+        kind == "->" || kind == "<-" || kind == "|>";
+}
+
+func FormatTokenKindsNeedSpace(previous: String, current: String) -> Bool {
+    if previous == "EOF" || current == "EOF" { return false; }
+    if current == ")" || current == "]" || current == "," ||
+        current == ";" || current == ":" || current == "." {
+        return false;
+    }
+    if previous == "(" || previous == "[" || previous == "." {
+        return false;
+    }
+    if current == "(" {
+        return previous == "IF" || previous == "WHILE" ||
+            previous == "MATCH" || previous == "SELECT";
+    }
+    if current == "[" { return false; }
+    if previous == "," || previous == ":" { return true; }
+    if FormatTokenKindIsBinaryOperator(previous) ||
+        FormatTokenKindIsBinaryOperator(current) {
+        return true;
+    }
+    return true;
+}
+
+func FormatTokenKindStartsTopLevelDeclaration(kind: String) -> Bool {
+    return kind == "FUNC" || kind == "CLASS" || kind == "STRUCT" ||
+        kind == "ABILITY" || kind == "ROLE" || kind == "PARTY" ||
+        kind == "ROSTER" || kind == "WORLD" || kind == "ENUM" ||
+        kind == "EXTERN" || kind == "NAMESPACE" || kind == "IMPORT" ||
+        kind == "USE" || kind == "EVENT";
+}
+
+func FormatTokenKindIsCaseLabel(kind: String) -> Bool {
+    return kind == "CASE" || kind == "DEFAULT";
+}
+
+func FormatSourceAppendIndent(
+    inout output: Array<String>, indent: Int
+) -> Void {
+    let index: Int = 0;
+    while index < indent {
+        ArrayPush(output, "    ");
+        index = index + 1;
+    }
+}
+
+func FormatSourceAppendNewline(inout output: Array<String>) -> Void {
+    ArrayPush(output, "\n");
+}
+
+func FormatSourceFromTokenFacts(tokens: Array<LexerTokenFact>) -> String {
+    if !LexerTokenFactsReady(tokens) {
+        Die("formatter requires an admitted token stream");
+    }
+    let output: Array<String> = [];
+    let indent: Int = 0;
+    let at_line_start: Bool = true;
+    let previous_kind: String = "EOF";
+    let previous_line: Int = 1;
+    let index: Int = 0;
+    while index < ArrayLength(tokens) {
+        let token: LexerTokenFact = tokens[index];
+        if !LexerTokenFactReady(token) || token.ordinal != index + 1 {
+            Die("formatter received an invalid token fact");
+        }
+        if token.line > previous_line + 1 && indent == 0 && !at_line_start {
+            FormatSourceAppendNewline(output);
+            at_line_start = true;
+        }
+        if token.line > previous_line && token.kind != "EOF" &&
+            !at_line_start {
+            FormatSourceAppendNewline(output);
+            at_line_start = true;
+        }
+
+        if token.kind == "{" {
+            if !at_line_start {
+                FormatSourceAppendNewline(output);
+            }
+            FormatSourceAppendIndent(output, indent);
+            ArrayPush(output, "{");
+            FormatSourceAppendNewline(output);
+            indent = indent + 1;
+            at_line_start = true;
+        } else if token.kind == "}" {
+            indent = indent - 1;
+            if indent < 0 { indent = 0; }
+            if !at_line_start {
+                FormatSourceAppendNewline(output);
+            }
+            FormatSourceAppendIndent(output, indent);
+            ArrayPush(output, "}");
+            FormatSourceAppendNewline(output);
+            at_line_start = true;
+        } else if token.kind == ";" {
+            ArrayPush(output, ";");
+            FormatSourceAppendNewline(output);
+            at_line_start = true;
+        } else if token.kind == "STRING" ||
+            token.kind == "INTERPOLATED_STRING" {
+            if at_line_start {
+                FormatSourceAppendIndent(output, indent);
+                at_line_start = false;
+            } else if FormatTokenKindsNeedSpace(previous_kind, token.kind) {
+                ArrayPush(output, " ");
+            }
+            ArrayPush(output, token.source_text);
+        } else if token.kind == "," {
+            ArrayPush(output, ",");
+        } else if token.kind == ":" {
+            ArrayPush(output, ":");
+            if FormatTokenKindIsCaseLabel(previous_kind) {
+                FormatSourceAppendNewline(output);
+                at_line_start = true;
+            }
+        } else if token.kind == "(" {
+            if !at_line_start &&
+                FormatTokenKindsNeedSpace(previous_kind, token.kind) {
+                ArrayPush(output, " ");
+            }
+            ArrayPush(output, "(");
+        } else if token.kind == ")" {
+            ArrayPush(output, ")");
+        } else if token.kind == "[" {
+            ArrayPush(output, "[");
+        } else if token.kind == "]" {
+            ArrayPush(output, "]");
+        } else if token.kind != "EOF" {
+            if at_line_start && indent == 0 && previous_kind == "}" &&
+                FormatTokenKindStartsTopLevelDeclaration(token.kind) {
+                FormatSourceAppendNewline(output);
+            }
+            if at_line_start {
+                if FormatTokenKindIsCaseLabel(token.kind) && indent > 0 {
+                    FormatSourceAppendIndent(output, indent - 1);
+                } else {
+                    FormatSourceAppendIndent(output, indent);
+                }
+                at_line_start = false;
+            } else if token.text != "" &&
+                FormatTokenKindsNeedSpace(previous_kind, token.kind) {
+                ArrayPush(output, " ");
+            }
+            if token.source_text != "" {
+                ArrayPush(output, token.source_text);
+            }
+        }
+        previous_line = token.line;
+        previous_kind = token.kind;
+        index = index + 1;
+    }
+    if !at_line_start { FormatSourceAppendNewline(output); }
+    return StringJoin(output, "");
+}
+
+func FormatSourceLayoutContractReady() -> Bool {
+    let source: String =
+        "func Main()->Void{if(true){Log(1+2);}}";
+    let expected: String =
+        "func Main() -> Void\n{\n    if (true)\n    {\n        Log(1 + 2);\n    }\n}\n";
+    return LexerTokenExactLexemeContractReady() &&
+        FormatSourceFromTokenFacts(LexContentFacts(source)) == expected;
+}

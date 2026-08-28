@@ -58,9 +58,18 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/lexer/run_owner.pgy` -- lexer CLI run boundary and mode
   selection.
 - `src/self_hosted/lexer/source_input_owner.pgy` -- source path and file input.
-- `src/self_hosted/lexer/scan_owner.pgy` -- token scan loop state.
-- `src/self_hosted/lexer/token_owner.pgy` -- token classification, rendering,
-  and token-stream payload contract facts.
+- `src/self_hosted/lexer/scan_owner.pgy` -- typed token scan loop and ordered
+  `LexerTokenFact` publication.
+- `src/self_hosted/lexer/token_owner.pgy` -- token classification, normalized
+  text/exact-lexeme cross-validation, rendering projection, and token-stream
+  payload contract.
+
+## Formatter
+
+- `src/self_hosted/fmt/layout_owner.pgy` -- source layout policy over the
+  typed lexer fact stream; it never reparses token-debug serialization.
+- `src/self_hosted/fmt/session_owner.pgy` -- stable, parser-admitted formatted
+  artifact publication for the installed compiler composition root.
 
 ## Parser
 
@@ -68,6 +77,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/cursor_owner.pgy` -- parser cursor/token stream.
 - `src/self_hosted/parser/decl_ability_owner.pgy` -- ability declarations.
 - `src/self_hosted/parser/decl_dispatch_owner.pgy` -- top-level declaration dispatch.
+- `src/self_hosted/parser/format_surface_decl_owner.pgy` -- format-only `use`
+  and `lifecycle` syntax admission. General compilation remains fail-closed
+  until the corresponding semantic consumers own these rows.
 - `src/self_hosted/parser/decl_effect_relation_owner.pgy` -- effect and relation declarations.
 - `src/self_hosted/parser/domain_projection_map_owner.pgy` -- exact parser
   syntax carriage for projection `target <- source` map entries; semantic
@@ -4040,7 +4052,7 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy` -- sole pure
   argv admission owner for the versioned DRV-2 CLI request family. It maps
   exact source-token, source-AST, internal verified source-DIR, installed
-  machine-manifest, source-C,
+  machine-manifest, verified source-format artifact, source-C,
   source-MIR, canonical, MIR-C, and direct-backend forms to a flat typed enum
   before I/O. Artifact requests
   require an explicit artifact mode or `-o`; optional positional-third guessing

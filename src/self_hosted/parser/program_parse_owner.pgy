@@ -51,18 +51,13 @@ func ParserProgramGraphFail(reason: String) -> Void {
     Exit(1);
 }
 
-func ParseProgramBuildWithImportPolicyObserved(
+func ParseProgramBuildContentWithImportPolicyObserved(
     source_path: String,
+    content: String,
     follow_imports: Bool,
-    observe_phases: Bool
+    observe_phases: Bool,
+    admit_format_surfaces: Bool
 ) -> ParserProgramBuild {
-    if !FileExists(source_path) {
-        Exit(1);
-    }
-    if observe_phases { Log("Phase: source-read:start"); }
-    let content: String = ReadFile(source_path);
-    if observe_phases { Log("Phase: source-read:done"); }
-
     let cursor: Array<Int> = [0];
     let i: Int = SkipWhitespaceAndComments(content, 0);
     ArraySet(cursor, 0, i);
@@ -80,7 +75,8 @@ func ParseProgramBuildWithImportPolicyObserved(
     if observe_phases { Log("Phase: declaration-composition:start"); }
     let decls: String = ParseDecls(
         content, i, cursor, "", false, src_dir, source_path, false,
-        follow_imports, "", involve_types, import_paths, expression_graphs,
+        follow_imports, admit_format_surfaces, "", involve_types,
+        import_paths, expression_graphs,
         source_locations, declaration_module_paths
     );
     if observe_phases { Log("Phase: declaration-composition:done"); }
@@ -143,6 +139,39 @@ func ParseProgramBuildWithImportPolicyObserved(
         declaration_module_paths, source_location_kinds,
         source_location_paths, source_location_lines,
         source_location_offsets, source_location_callable_names
+    );
+}
+
+func ParseProgramBuildWithImportPolicyObserved(
+    source_path: String,
+    follow_imports: Bool,
+    observe_phases: Bool
+) -> ParserProgramBuild {
+    if !FileExists(source_path) { Exit(1); }
+    if observe_phases { Log("Phase: source-read:start"); }
+    let content: String = ReadFile(source_path);
+    if observe_phases { Log("Phase: source-read:done"); }
+    return ParseProgramBuildContentWithImportPolicyObserved(
+        source_path, content, follow_imports, observe_phases, false
+    );
+}
+
+func ParseProgramBuildContentWithImportPolicy(
+    source_path: String,
+    content: String,
+    follow_imports: Bool
+) -> ParserProgramBuild {
+    return ParseProgramBuildContentWithImportPolicyObserved(
+        source_path, content, follow_imports, false, false
+    );
+}
+
+func ParseFormatProgramBuildContent(
+    source_path: String,
+    content: String
+) -> ParserProgramBuild {
+    return ParseProgramBuildContentWithImportPolicyObserved(
+        source_path, content, false, false, true
     );
 }
 

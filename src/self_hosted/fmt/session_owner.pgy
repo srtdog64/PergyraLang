@@ -1,0 +1,34 @@
+// Verified source-format artifact owner for the installed composition root.
+
+import "layout_owner.pgy";
+import "../parser/program_parse_owner.pgy";
+
+func RunFormatSourceArtifact(
+    source_path: String,
+    output_path: String
+) -> Void with caps io_read, io_write {
+    if source_path == output_path {
+        Die("formatter source and output paths must differ");
+    }
+    if !FileExists(source_path) {
+        Die("formatter source path does not exist");
+    }
+    if !FormatSourceLayoutContractReady() {
+        Die("formatter layout contract drifted");
+    }
+    let source: String = ReadFile(source_path);
+    let formatted: String =
+        FormatSourceFromTokenFacts(LexContentFacts(source));
+    let roundtrip: String =
+        FormatSourceFromTokenFacts(LexContentFacts(formatted));
+    if formatted != roundtrip {
+        Die("formatter output is not stable");
+    }
+    let parsed: ParserProgramBuild =
+        ParseFormatProgramBuildContent(output_path, formatted);
+    let artifact: AstTreeArtifact = ParserProgramArtifactFromBuild(parsed);
+    if !AstTreeArtifactReady(artifact) {
+        Die("formatter output did not produce an admitted parser artifact");
+    }
+    WriteFile(output_path, formatted);
+}

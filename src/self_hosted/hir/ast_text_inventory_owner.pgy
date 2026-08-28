@@ -211,6 +211,12 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Extern Block (") {
         return TypedAstKindExternBlockTag();
     }
+    if StartsWith(text, "Use: ") {
+        return TypedAstKindUseDeclTag();
+    }
+    if StartsWith(text, "Lifecycle: ") {
+        return TypedAstKindLifecycleDeclTag();
+    }
     if text == "Return" {
         return TypedAstKindBareReturnStmtTag();
     }
@@ -397,6 +403,15 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         }
         return "";
     }
+    if kind == TypedAstKindUseDeclTag() {
+        return StringTrim(Substring(text, 4, StringLength(text) - 4));
+    }
+    if kind == TypedAstKindLifecycleDeclTag() {
+        return StringTrim(Substring(text, 10, StringLength(text) - 10));
+    }
+    if kind == TypedAstKindLifecycleTransitionTag() {
+        return text;
+    }
     if kind == TypedAstKindNominalDeclTag() {
         if StartsWith(text, "Struct: ") {
             return Substring(text, 8, StringLength(text) - 8);
@@ -560,6 +575,7 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
     let line_index: Int = 0;
     let param_indent: Int = -1;
     let field_indent: Int = -1;
+    let lifecycle_transition_indent: Int = -1;
     while line_index < ArrayLength(lines) {
         let raw_line: String = lines[line_index];
         let trimmed: String = StringTrim(raw_line);
@@ -580,12 +596,23 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
             if field_indent >= 0 && indent < field_indent {
                 field_indent = -1;
             }
+            if lifecycle_transition_indent >= 0 &&
+                indent < lifecycle_transition_indent {
+                lifecycle_transition_indent = -1;
+            }
             if kind == TypedAstKindParametersTag() {
                 param_indent = indent + 2;
                 field_indent = -1;
             } else if kind == TypedAstKindFieldsHeaderTag() {
                 field_indent = indent + 2;
                 param_indent = -1;
+            } else if kind == TypedAstKindLifecycleDeclTag() {
+                lifecycle_transition_indent = indent + 2;
+            } else if lifecycle_transition_indent >= 0 &&
+                indent == lifecycle_transition_indent &&
+                StringIndexOf(trimmed, ": ") > 0 &&
+                StringIndexOf(trimmed, " -> ") > 0 {
+                kind = TypedAstKindLifecycleTransitionTag();
             } else if param_indent >= 0 && indent == param_indent &&
                 (StringIndexOf(trimmed, ": ") >= 0 || trimmed == "self") {
                 kind = TypedAstKindParamTag();

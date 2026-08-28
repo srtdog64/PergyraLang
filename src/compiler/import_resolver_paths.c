@@ -10,6 +10,7 @@
 
 #ifdef _WIN32
 #include <direct.h>
+#include <windows.h>
 #define pgy_fullpath _fullpath
 #else
 #include <limits.h>
@@ -25,6 +26,51 @@ import_path_file_exists(const char *path)
     fclose(f);
     return true;
 }
+
+#ifdef _WIN32
+static char *
+import_path_final_identity_dup(const char *path)
+{
+    HANDLE handle;
+    DWORD required;
+    DWORD written;
+    char *resolved;
+
+    handle = CreateFileA(path, 0,
+                         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                         NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (handle == INVALID_HANDLE_VALUE)
+        return NULL;
+    required = GetFinalPathNameByHandleA(
+        handle, NULL, 0, FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+    if (required == 0) {
+        CloseHandle(handle);
+        return NULL;
+    }
+    resolved = malloc((size_t)required + 1u);
+    if (resolved == NULL) {
+        CloseHandle(handle);
+        return NULL;
+    }
+    written = GetFinalPathNameByHandleA(
+        handle, resolved, required + 1u,
+        FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+    CloseHandle(handle);
+    if (written == 0 || written > required) {
+        free(resolved);
+        return NULL;
+    }
+    if (strncmp(resolved, "\\\\?\\UNC\\", 8) == 0) {
+        size_t tail_length = strlen(resolved + 8);
+        memmove(resolved + 2, resolved + 8, tail_length + 1);
+        resolved[0] = '\\';
+        resolved[1] = '\\';
+    } else if (strncmp(resolved, "\\\\?\\", 4) == 0) {
+        memmove(resolved, resolved + 4, strlen(resolved + 4) + 1);
+    }
+    return resolved;
+}
+#endif
 
 static char *
 path_parent_dir_dup(const char *path)
@@ -43,7 +89,7 @@ path_parent_dir_dup(const char *path)
 }
 
 char *
-import_resolver_canonicalize_path_dup(const char *path)
+import_resolver_existing_final_identity_path_dup(const char *path)
 {
     char *canonical = NULL;
 
@@ -51,11 +97,7 @@ import_resolver_canonicalize_path_dup(const char *path)
         return NULL;
 
 #ifdef _WIN32
-    {
-        char buffer[_MAX_PATH];
-        if (pgy_fullpath(buffer, path, _MAX_PATH) != NULL)
-            canonical = pergyra_strdup(buffer);
-    }
+    canonical = import_path_final_identity_dup(path);
 #else
     {
         char *resolved = realpath(path, NULL);
@@ -63,9 +105,6 @@ import_resolver_canonicalize_path_dup(const char *path)
             canonical = resolved;
     }
 #endif
-
-    if (canonical == NULL)
-        canonical = pergyra_strdup(path);
     if (canonical == NULL)
         return NULL;
 
@@ -87,6 +126,28 @@ import_resolver_canonicalize_path_dup(const char *path)
     }
 #endif
 
+    return canonical;
+}
+
+char *
+import_resolver_canonicalize_path_dup(const char *path)
+{
+    char *canonical;
+
+    if (path == NULL)
+        return NULL;
+    canonical = import_resolver_existing_final_identity_path_dup(path);
+    if (canonical != NULL)
+        return canonical;
+#ifdef _WIN32
+    {
+        char buffer[_MAX_PATH];
+        if (pgy_fullpath(buffer, path, _MAX_PATH) != NULL)
+            canonical = pergyra_strdup(buffer);
+    }
+#endif
+    if (canonical == NULL)
+        canonical = pergyra_strdup(path);
     return canonical;
 }
 

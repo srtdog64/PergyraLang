@@ -17,6 +17,7 @@ import "decl_intent_owner.pgy";
 import "decl_nominal_owner.pgy";
 import "diagnostic_owner.pgy";
 import "source_location_observation_owner.pgy";
+import "format_surface_decl_owner.pgy";
 
 // Imported-module visibility is a token fact, not a substring fact. Comments
 // and string literals may legitimately contain the word `export`; treating
@@ -63,6 +64,7 @@ func ParseDeclsInto(
     source_path: String,
     force_export: Bool,
     follow_imports: Bool,
+    admit_format_surfaces: Bool,
     within_zone: String,
     inout involve_types: Array<String>,
     inout import_paths: Set<String>,
@@ -136,7 +138,8 @@ func ParseDeclsInto(
                 let imp_cursor: Array<Int> = [0];
                 ParseDeclsInto(
                     imp_content, 0, imp_cursor, name_prefix, false, imp_dir,
-                    imp_path, true, true, active_within_zone, involve_types,
+                    imp_path, true, true, admit_format_surfaces,
+                    active_within_zone, involve_types,
                     import_paths, expression_graphs, script_graphs,
                     source_locations, script_source_locations,
                     out_blocks, out_module_paths, script_blocks
@@ -165,7 +168,8 @@ func ParseDeclsInto(
             ArraySet(cursor_out, 0, i);
             ParseDeclsInto(
                 content, i, cursor_out, new_prefix, true, source_dir,
-                source_path, force_export, follow_imports, active_within_zone,
+                source_path, force_export, follow_imports,
+                admit_format_surfaces, active_within_zone,
                 involve_types, import_paths, expression_graphs, script_graphs,
                 source_locations, script_source_locations,
                 out_blocks, out_module_paths, script_blocks
@@ -192,7 +196,8 @@ func ParseDeclsInto(
             ArraySet(cursor_out, 0, i);
             ParseDeclsInto(
                 content, i, cursor_out, name_prefix, true, source_dir,
-                source_path, force_export, follow_imports, wz_name, involve_types,
+                source_path, force_export, follow_imports,
+                admit_format_surfaces, wz_name, involve_types,
                 import_paths, expression_graphs, script_graphs,
                 source_locations, script_source_locations,
                 out_blocks, out_module_paths, script_blocks
@@ -211,6 +216,20 @@ func ParseDeclsInto(
         // the declaration shape (`lifecycle NAME {`) follows -- a plain
         // identifier spelled lifecycle still parses as a statement.
         if MatchLanguageWord(content, i, LanguageWordId.WordUse) {
+            if admit_format_surfaces {
+                let use_slot: Int = ParserSourceLocationReserve(
+                    location_context, i, source_locations
+                );
+                let use_decl: ParserFormatSurfaceDecl =
+                    ParseFormatUseDeclaration(content, i);
+                i = use_decl.cursor;
+                ParserSourceLocationCommit(
+                    use_slot, use_decl.kind, "", source_locations
+                );
+                ArrayPush(out_blocks, use_decl.tree_text);
+                ArrayPush(out_module_paths, source_path);
+                continue;
+            }
             ParseDiagnosticReportUncoveredSurface("use");
             Exit(1);
         }
@@ -272,6 +291,20 @@ func ParseDeclsInto(
             let lc_name: String = ReadIdent(content, lc_probe, lc_cursor);
             lc_probe = SkipWhitespaceAndComments(content, lc_cursor[0]);
             if StringLength(lc_name) > 0 && ParserCharAt(content, lc_probe) == "{" {
+                if admit_format_surfaces {
+                    let lifecycle_slot: Int = ParserSourceLocationReserve(
+                        location_context, i, source_locations
+                    );
+                    let lifecycle_decl: ParserFormatSurfaceDecl =
+                        ParseFormatLifecycleDeclaration(content, i);
+                    i = lifecycle_decl.cursor;
+                    ParserSourceLocationCommit(
+                        lifecycle_slot, lifecycle_decl.kind, "", source_locations
+                    );
+                    ArrayPush(out_blocks, lifecycle_decl.tree_text);
+                    ArrayPush(out_module_paths, source_path);
+                    continue;
+                }
                 ParseDiagnosticReportUncoveredSurface("lifecycle");
                 Exit(1);
             }
@@ -484,6 +517,7 @@ func ParseDecls(
     source_path: String,
     force_export: Bool,
     follow_imports: Bool,
+    admit_format_surfaces: Bool,
     within_zone: String,
     inout involve_types: Array<String>,
     inout import_paths: Set<String>,
@@ -500,7 +534,8 @@ func ParseDecls(
     );
     ParseDeclsInto(
         content, start, cursor_out, name_prefix, until_brace, source_dir,
-        source_path, force_export, follow_imports, within_zone, involve_types,
+        source_path, force_export, follow_imports, admit_format_surfaces,
+        within_zone, involve_types,
         import_paths, expression_graphs, script_graphs,
         source_locations, script_source_locations,
         out_blocks, declaration_module_paths, script_blocks

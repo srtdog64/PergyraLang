@@ -1,0 +1,95 @@
+// Format-only syntax admission for declarations not yet owned by the
+// production self-host semantic pipeline.
+//
+// These rows are admitted only by ParseFormatProgramBuildContent. General
+// compilation keeps failing closed until its semantic consumers own them.
+
+import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+
+struct ParserFormatSurfaceDecl {
+    cursor: Int;
+    tree_text: String;
+    kind: Int;
+}
+
+func ParseFormatUseDeclaration(
+    content: String,
+    start: Int
+) -> ParserFormatSurfaceDecl {
+    let cursor: Array<Int> = [0];
+    let i: Int = LanguageWordEnd(start, LanguageWordId.WordUse);
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor, 0, i);
+    let module_name: String = ReadIdent(content, i, cursor);
+    if module_name == "" {
+        Fail("expected module name after `use`", content, i);
+    }
+    i = Expect(content, cursor[0], ";");
+    return ParserFormatSurfaceDecl(
+        i, Concat("  Use: ", module_name), TypedAstKindUseDeclTag()
+    );
+}
+
+func ParseFormatLifecycleDeclaration(
+    content: String,
+    start: Int
+) -> ParserFormatSurfaceDecl {
+    let cursor: Array<Int> = [0];
+    let i: Int = LanguageWordEnd(start, LanguageWordId.WordLifecycle);
+    i = SkipWhitespaceAndComments(content, i);
+    ArraySet(cursor, 0, i);
+    let subject: String = ReadIdent(content, i, cursor);
+    if subject == "" {
+        Fail("expected subject name after `lifecycle`", content, i);
+    }
+    i = Expect(content, cursor[0], "{");
+    let tree_text: String = Concat("  Lifecycle: ", subject);
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if ParserCharAt(content, i) == "}" {
+            i = i + 1;
+            break;
+        }
+        if ParserCharAt(content, i) == "" {
+            Fail("expected `}` after lifecycle declaration", content, i);
+        }
+        ArraySet(cursor, 0, i);
+        let operation: String = ReadIdent(content, i, cursor);
+        if operation == "" {
+            Fail("expected lifecycle operation name", content, i);
+        }
+        i = Expect(content, cursor[0], ":");
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor, 0, i);
+        let from_state: String = ReadIdent(content, i, cursor);
+        if from_state == "" {
+            Fail("expected lifecycle source state", content, i);
+        }
+        i = Expect(content, cursor[0], "->");
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor, 0, i);
+        let to_state: String = ReadIdent(content, i, cursor);
+        if to_state == "" {
+            Fail("expected lifecycle target state", content, i);
+        }
+        i = SkipWhitespaceAndComments(content, cursor[0]);
+        if ParserCharAt(content, i) == ";" {
+            i = i + 1;
+        }
+        tree_text = AppendLine(
+            tree_text,
+            Concat(
+                "    ",
+                Concat(
+                    operation,
+                    Concat(": ", Concat(from_state, Concat(" -> ", to_state)))
+                )
+            )
+        );
+    }
+    return ParserFormatSurfaceDecl(
+        i, tree_text, TypedAstKindLifecycleDeclTag()
+    );
+}

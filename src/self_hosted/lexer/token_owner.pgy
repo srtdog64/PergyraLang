@@ -1,7 +1,183 @@
 // Self-host lexer token classification and output formatting owner.
 
 import "fixture_manifest_owner.pgy";
+import "char_owner.pgy";
 import "language_keyword_registry_projection_owner.pgy";
+
+struct LexerTokenFact {
+    ordinal: Int;
+    kind: String;
+    text: String;
+    source_text: String;
+    line: Int;
+    column: Int;
+}
+
+func LexerDocCommentExactLexemeReady(fact: LexerTokenFact) -> Bool {
+    if !StartsWith(fact.source_text, "///") {
+        return false;
+    }
+    let source_length: Int = StringLength(fact.source_text);
+    let i: Int = 3;
+    while i < source_length &&
+        (CharCode(fact.source_text, source_length, i) == 32 ||
+         CharCode(fact.source_text, source_length, i) == 9) {
+        i = i + 1;
+    }
+    return Substring(fact.source_text, i, source_length - i) == fact.text;
+}
+
+func LexerIdentifierExactLexemeReady(text: String) -> Bool {
+    let length: Int = StringLength(text);
+    if length == 0 || !IsAlphaCode(CharCode(text, length, 0)) {
+        return false;
+    }
+    let index: Int = 1;
+    while index < length {
+        if !IsAlphaNumCode(CharCode(text, length, index)) { return false; }
+        index = index + 1;
+    }
+    return true;
+}
+
+func LexerNumberExactLexemeReady(text: String) -> Bool {
+    let length: Int = StringLength(text);
+    if length == 0 || !IsDigitCode(CharCode(text, length, 0)) {
+        return false;
+    }
+    let index: Int = 0;
+    while index < length && IsDigitCode(CharCode(text, length, index)) {
+        index = index + 1;
+    }
+    if index < length && CharCode(text, length, index) == Ord(".") {
+        index = index + 1;
+        if index >= length || !IsDigitCode(CharCode(text, length, index)) {
+            return false;
+        }
+        while index < length && IsDigitCode(CharCode(text, length, index)) {
+            index = index + 1;
+        }
+    }
+    if index < length && CharCode(text, length, index) == Ord("L") {
+        index = index + 1;
+    }
+    return index == length;
+}
+
+func LexerStringExactLexemeReady(text: String) -> Bool {
+    let length: Int = StringLength(text);
+    if length < 2 || CharCode(text, length, 0) != Ord("\"") ||
+        CharCode(text, length, length - 1) != Ord("\"") {
+        return false;
+    }
+    let index: Int = 1;
+    while index < length - 1 {
+        let code: Int = CharCode(text, length, index);
+        if code == Ord("\"") { return false; }
+        if code == Ord("\\") {
+            index = index + 1;
+            if index >= length - 1 { return false; }
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+func LexerPunctuationExactLexemeReady(kind: String, text: String) -> Bool {
+    if kind == "." && text == ".." { return true; }
+    if kind != text { return false; }
+    return kind == "(" || kind == ")" || kind == "{" || kind == "}" ||
+        kind == "[" || kind == "]" || kind == ";" || kind == "," ||
+        kind == ":" || kind == "." || kind == "=" || kind == "+" ||
+        kind == "-" || kind == "*" || kind == "/" || kind == "!" ||
+        kind == "<" || kind == ">" || kind == "%" || kind == "&" ||
+        kind == "|" || kind == "?" || kind == "@" || kind == "->" ||
+        kind == "<-" || kind == "+=" || kind == "-=" || kind == "*=" ||
+        kind == "/=" || kind == "::" || kind == "=>" || kind == "|>" ||
+        kind == "??" || kind == "==" || kind == "!=" || kind == "<=" ||
+        kind == ">=" || kind == "&&" || kind == "||";
+}
+
+func LexerTokenFactExactLexemeReady(fact: LexerTokenFact) -> Bool {
+    if fact.kind == "EOF" {
+        return fact.text == "" && fact.source_text == "";
+    }
+    if fact.kind == "DOC_COMMENT" {
+        return LexerDocCommentExactLexemeReady(fact);
+    }
+    if fact.kind == "INTERPOLATED_STRING" {
+        let source_length: Int = StringLength(fact.source_text);
+        if source_length != StringLength(fact.text) + 1 ||
+            source_length < 3 {
+            return false;
+        }
+        let prefix: String = Substring(fact.source_text, 0, 1);
+        return (prefix == "$" || prefix == "f") &&
+            LexerStringExactLexemeReady(fact.text) &&
+            Substring(fact.source_text, 1, source_length - 1) == fact.text;
+    }
+    if fact.source_text != fact.text { return false; }
+    if fact.kind == "NUMBER" { return LexerNumberExactLexemeReady(fact.text); }
+    if fact.kind == "STRING" { return LexerStringExactLexemeReady(fact.text); }
+    if LexerIdentifierExactLexemeReady(fact.text) {
+        return fact.kind == KeywordType(fact.text);
+    }
+    return LexerPunctuationExactLexemeReady(fact.kind, fact.text);
+}
+
+func LexerTokenFactReady(fact: LexerTokenFact) -> Bool {
+    if fact.ordinal <= 0 || fact.kind == "" ||
+        fact.line <= 0 || fact.column <= 0 {
+        return false;
+    }
+    return LexerTokenFactExactLexemeReady(fact);
+}
+
+func LexerTokenExactLexemeContractReady() -> Bool {
+    let forged_doc: LexerTokenFact = LexerTokenFact(
+        1, "DOC_COMMENT", "safe", "Log(1);", 1, 1
+    );
+    let forged_interpolation: LexerTokenFact = LexerTokenFact(
+        1, "INTERPOLATED_STRING", "\"x\"", "\"x\"", 1, 1
+    );
+    let forged_structure: LexerTokenFact = LexerTokenFact(
+        1, "}", "Log(1);", "Log(1);", 1, 1
+    );
+    let valid_doc: LexerTokenFact = LexerTokenFact(
+        1, "DOC_COMMENT", "safe", "/// safe", 1, 5
+    );
+    let valid_interpolation: LexerTokenFact = LexerTokenFact(
+        1, "INTERPOLATED_STRING", "\"x\"", "$\"x\"", 1, 2
+    );
+    return !LexerTokenFactReady(forged_doc) &&
+        !LexerTokenFactReady(forged_interpolation) &&
+        !LexerTokenFactReady(forged_structure) &&
+        LexerTokenFactReady(valid_doc) &&
+        LexerTokenFactReady(valid_interpolation);
+}
+
+func LexerTokenFactsReady(tokens: Array<LexerTokenFact>) -> Bool {
+    let count: Int = ArrayLength(tokens);
+    if count == 0 { return false; }
+    let previous_line: Int = 1;
+    let previous_column: Int = 0;
+    let index: Int = 0;
+    while index < count {
+        let fact: LexerTokenFact = tokens[index];
+        if !LexerTokenFactReady(fact) || fact.ordinal != index + 1 {
+            return false;
+        }
+        if fact.line < previous_line ||
+            (fact.line == previous_line && fact.column < previous_column) {
+            return false;
+        }
+        if fact.kind == "EOF" && index != count - 1 { return false; }
+        previous_line = fact.line;
+        previous_column = fact.column;
+        index = index + 1;
+    }
+    return tokens[count - 1].kind == "EOF";
+}
 
 func KeywordType(text: String) -> String {
     return LanguageKeywordDebugIdentity(text);
@@ -22,20 +198,50 @@ func PadLeft(s: String, width: Int) -> String {
     return Concat(result, s);
 }
 
-func TokenLine(idx: Int, ttype: String, text: String, line: Int, col: Int) -> String {
+func LexerTokenFactLine(fact: LexerTokenFact) -> String {
+    if !LexerTokenFactReady(fact) {
+        Die("lexer token fact is incomplete");
+    }
     let parts: Array<String> = [
-        PadLeft(ToString(idx), 4),
+        PadLeft(ToString(fact.ordinal), 4),
         "  Token{type: ",
-        ttype,
+        fact.kind,
         ", text: \"",
-        text,
+        fact.text,
         "\", line: ",
-        ToString(line),
+        ToString(fact.line),
         ", col: ",
-        ToString(col),
+        ToString(fact.column),
         "}"
     ];
     return StringJoin(parts, "");
+}
+
+func TokenLine(idx: Int, ttype: String, text: String, line: Int, col: Int) -> String {
+    return LexerTokenFactLine(
+        LexerTokenFact(idx, ttype, text, text, line, col)
+    );
+}
+
+func LexerTokenFactsText(
+    source_path: String,
+    tokens: Array<LexerTokenFact>
+) -> String {
+    if !LexerTokenFactsReady(tokens) {
+        Die("lexer token stream is incomplete");
+    }
+    let output_lines: Array<String> = [];
+    ArrayPush(output_lines, Concat(Concat("=== tokens: ", source_path), " ==="));
+    let index: Int = 0;
+    while index < ArrayLength(tokens) {
+        let fact: LexerTokenFact = tokens[index];
+        ArrayPush(output_lines, LexerTokenFactLine(fact));
+        index = index + 1;
+    }
+    ArrayPush(output_lines, Concat(
+        "  ", Concat(ToString(ArrayLength(tokens)), " tokens total")
+    ));
+    return StringJoin(output_lines, "\n");
 }
 
 func LexerTokenPayloadSchema() -> String {

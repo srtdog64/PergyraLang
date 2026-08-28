@@ -95,6 +95,11 @@ func TypedAstKindIntentStepContractProvenanceTag() -> Int { return 88; }
 func TypedAstKindIntentStepIntentTag() -> Int { return 89; }
 // Appended intent declaration priority; existing compact IDs never move.
 func TypedAstKindIntentPriorityTag() -> Int { return 90; }
+// Format-admission-only surface rows. General self-host compilation does not
+// admit these declarations until their semantic consumers own them.
+func TypedAstKindUseDeclTag() -> Int { return 91; }
+func TypedAstKindLifecycleDeclTag() -> Int { return 92; }
+func TypedAstKindLifecycleTransitionTag() -> Int { return 93; }
 
 func TypedAstKindIsIntentRow(kind: Int) -> Bool {
     return (kind >= TypedAstKindIntentModeTag() &&
@@ -116,7 +121,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindIntentPriorityTag();
+        kind <= TypedAstKindLifecycleTransitionTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -209,14 +214,15 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindExternBlockTag(),
         TypedAstKindIntentStepContractProvenanceTag(),
         TypedAstKindIntentStepIntentTag(),
-        TypedAstKindIntentPriorityTag()
+        TypedAstKindIntentPriorityTag(), TypedAstKindUseDeclTag(),
+        TypedAstKindLifecycleDeclTag(), TypedAstKindLifecycleTransitionTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 90 {
+    if ArrayLength(tags) != 93 {
         return false;
     }
     let i: Int = 0;
@@ -260,6 +266,9 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindIntentStepContractProvenanceTag()) &&
         TypedAstKindKnown(TypedAstKindIntentStepIntentTag()) &&
         TypedAstKindKnown(TypedAstKindIntentPriorityTag()) &&
+        TypedAstKindKnown(TypedAstKindUseDeclTag()) &&
+        TypedAstKindKnown(TypedAstKindLifecycleDeclTag()) &&
+        TypedAstKindKnown(TypedAstKindLifecycleTransitionTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentModeTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentTerminalFailureTag()) &&
         TypedAstKindIsIntentRow(
@@ -279,7 +288,7 @@ func TypedAstKindOwnerReady() -> Bool {
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
         !TypedAstKindKnown(
-            TypedAstKindIntentPriorityTag() + 1
+            TypedAstKindLifecycleTransitionTag() + 1
         ) &&
         TypedAstKindKnown(TypedAstKindExternBlockTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindExternBlockTag()) &&

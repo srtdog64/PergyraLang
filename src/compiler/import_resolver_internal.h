@@ -17,6 +17,8 @@ void import_stack_pop(ImportStack *stack);
 void import_stack_destroy(ImportStack *stack);
 
 char *import_resolver_canonicalize_path_dup(const char *path);
+/* Existing-file identity only: no lexical or unresolved-path fallback. */
+char *import_resolver_existing_final_identity_path_dup(const char *path);
 char *import_resolver_resolve_stdlib_module_path(const char *source_path,
                                                  const char *module_name);
 

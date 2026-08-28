@@ -36,6 +36,9 @@ rm -f "$WORK_DIR"/*.out "$WORK_DIR"/*.err "$WORK_DIR"/*.txt
 rm -f "$TEMP_DIR"/pgy_repl_*
 
 TEMP_FOR_PGY="$(pgy_path_for_compiler "$PGY" "$TEMP_DIR")"
+if pgy_binary_expects_windows_paths "$PGY"; then
+    TEMP_FOR_PGY="${TEMP_FOR_PGY//\\//}"
+fi
 DRIVER_FOR_PGY="$(pgy_path_for_compiler "$PGY" "$DRIVER")"
 COUNT_FILE_FOR_DRIVER="$(pgy_path_for_compiler "$PGY" "$COUNT_FILE")"
 

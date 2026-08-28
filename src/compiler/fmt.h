@@ -6,6 +6,6 @@
  *   --write: overwrite file in-place (default: stdout)
  *   --check: return non-zero if file is not formatted
  */
-int driver_run_fmt_command(int argc, char *argv[]);
+int driver_run_fmt_command(const char *launcher_path, int argc, char *argv[]);
 
 #endif

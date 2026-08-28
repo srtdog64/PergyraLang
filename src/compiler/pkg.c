@@ -98,21 +98,39 @@ pkg_run_entry(const char *launcher_path,
 }
 
 static int
-pkg_run_fmt_entry(const PgyPackageManifest *manifest, int argc, char *argv[])
+pkg_run_fmt_entry(const char *launcher_path,
+                  const PgyPackageManifest *manifest,
+                  int argc,
+                  char *argv[])
 {
     char *entry_path;
     char *fmt_argv[4];
     int fmt_argc = 0;
     bool write = false;
+    bool check = false;
     int rc;
 
     for (int i = 0; i < argc; i++) {
-        if (strcmp(argv[i], "--write") == 0 || strcmp(argv[i], "-w") == 0)
+        if (strcmp(argv[i], "--write") == 0 || strcmp(argv[i], "-w") == 0) {
+            if (write) {
+                fprintf(stderr, "pgy fmt: duplicate --write option\n");
+                return 1;
+            }
             write = true;
-        else if (strcmp(argv[i], "--check") != 0) {
+        } else if (strcmp(argv[i], "--check") == 0) {
+            if (check) {
+                fprintf(stderr, "pgy fmt: duplicate --check option\n");
+                return 1;
+            }
+            check = true;
+        } else {
             fprintf(stderr, "pgy fmt: package mode accepts --check or --write\n");
             return 1;
         }
+    }
+    if (write && check) {
+        fprintf(stderr, "pgy fmt: --write and --check are mutually exclusive\n");
+        return 1;
     }
 
     entry_path = pgy_package_manifest_entry_path_dup(manifest, false);
@@ -121,7 +139,7 @@ pkg_run_fmt_entry(const PgyPackageManifest *manifest, int argc, char *argv[])
     fmt_argv[fmt_argc++] = "fmt";
     fmt_argv[fmt_argc++] = entry_path;
     fmt_argv[fmt_argc++] = write ? "--write" : "--check";
-    rc = driver_run_fmt_command(fmt_argc, fmt_argv);
+    rc = driver_run_fmt_command(launcher_path, fmt_argc, fmt_argv);
     free(entry_path);
     return rc;
 }
@@ -236,7 +254,7 @@ driver_run_pkg_command(const char *launcher_path,
         if (rc == 0)
             printf("pgy prove: package evidence preflight ok (not a theorem)\n");
     } else if (strcmp(verb, "fmt") == 0) {
-        rc = pkg_run_fmt_entry(&manifest, argc, argv);
+        rc = pkg_run_fmt_entry(launcher_path, &manifest, argc, argv);
     } else if (strcmp(verb, "package") == 0) {
         rc = pkg_run_entry(launcher_path, native_pipeline,
             &manifest, "package-check", false, true, false);

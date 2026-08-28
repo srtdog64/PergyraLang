@@ -18,7 +18,6 @@ import "stmt_loop_owner.pgy";
 import "stmt_parallel_owner.pgy";
 import "stmt_match_owner.pgy";
 import "source_location_observation_owner.pgy";
-
 // Parse one statement. Returns its formatted AST lines joined by "\n";
 // empty string only if a parse error path was reached (which Exits anyway).
 // Mutually recursive with ParseBlock for `if` and `while` bodies.
@@ -29,7 +28,7 @@ func ParseOneStmtCore(
     stmt_indent: Int,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     location_context: ParserSourceLocationContext,
-    inout source_locations: Array<ParserSourceLocationObservation>
+    inout source_locations: Array<ParserSourceLocationObservation>, inout owner_kind_out: Array<Int>
 ) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let head_start: Int = i;
@@ -456,6 +455,7 @@ func ParseOneStmtCore(
     );
     if !expr_fact.ok { Exit(1); }
     let owner_kind: Int = ParserExpressionCallStatementKind(expr_fact);
+    ArraySet(owner_kind_out, 0, owner_kind);
     if owner_kind != TypedAstKindUnknownTag() {
         if owner_kind == TypedAstKindLogStmtTag() {
             let log_argument: ParserExpressionFact =
@@ -516,13 +516,13 @@ func ParseOneStmtObserved(
     let slot: Int = ParserSourceLocationReserve(
         location_context, observed_start, source_locations
     );
+    let owner_kind: Array<Int> = [TypedAstKindUnknownTag()];
     let tree_text: String = ParseOneStmtCore(
         content, start, cursor_out, stmt_indent, expression_graphs,
-        location_context, source_locations
+        location_context, source_locations, owner_kind
     );
-    return ParserObservedStatementFinish(tree_text, slot, source_locations);
+    return ParserObservedStatementFinish(tree_text, slot, owner_kind[0], source_locations);
 }
-
 func ParseOneStmt(
     content: String,
     start: Int,

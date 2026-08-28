@@ -1,340 +1,174 @@
 /*
- * pgy fmt — Pergyra source code formatter
+ * Public formatter host adapter.
  *
- * Strategy: lex → reformat tokens → output
- * Does not parse to AST — operates on token stream for safety.
- * Preserves comments. Normalizes indentation to 4 spaces.
- * Enforces BSD (Allman) brace style.
+ * The installed Pergyra formatter owns tokenization, layout, parseability, and
+ * stability. This boundary executes it exactly once, then owns only stdout,
+ * byte comparison, and atomic in-place publication.
  */
 
 #include "fmt.h"
-#include "../lexer/lexer.h"
-#include "../parser/parser.h"
-#include "../parser/ast.h"
-#include "../common/string_compat.h"
+#include "compiler_transient_artifact_workspace.h"
+#include "path_utils.h"
+#include "self_host_fmt_driver.h"
+#include "self_host_driver.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <errno.h>
-
-static bool fmt_replace_file(const char *dst_path, const char *tmp_path);
-
-static bool format_source_to_stream(const char *source, FILE *out);
-static char *format_source_to_string(const char *source,
-                                     const char *scratch_path);
-
-#include "fmt_io.h"
-#include "fmt_layout.h"
-#include "path_utils.h"
-
-static bool
-format_source_to_stream(const char *source, FILE *out)
-{
-    Lexer *lexer;
-    FmtCtx ctx = { .out = out, .indent = 0, .at_line_start = true,
-                    .needs_blank_before_block = false };
-    Token prev = { .type = TOKEN_EOF };
-    Token tok;
-    uint32_t prev_line = 1;
-
-    if (source == NULL || out == NULL)
-        return false;
-
-    lexer = lexer_create(source);
-    if (lexer == NULL)
-        return false;
-
-    do {
-        tok = lexer_next_token(lexer);
-        if (tok.type == TOKEN_ERROR) {
-            lexer_destroy(lexer);
-            return false;
-        }
-
-        if (tok.line > prev_line + 1 && ctx.indent == 0 && !ctx.at_line_start) {
-            fmt_newline(&ctx);
-        }
-
-        if (tok.line > prev_line && tok.type != TOKEN_EOF) {
-            if (!ctx.at_line_start) fmt_newline(&ctx);
-        }
-
-        switch (tok.type) {
-        case TOKEN_LBRACE:
-            if (!ctx.at_line_start) fmt_newline(&ctx);
-            fmt_indent(&ctx);
-            fprintf(out, "{");
-            fmt_newline(&ctx);
-            ctx.indent++;
-            break;
-        case TOKEN_RBRACE:
-            ctx.indent--;
-            if (ctx.indent < 0) ctx.indent = 0;
-            if (!ctx.at_line_start) fmt_newline(&ctx);
-            fmt_indent(&ctx);
-            fprintf(out, "}");
-            fmt_newline(&ctx);
-            break;
-        case TOKEN_SEMICOLON:
-            fprintf(out, ";");
-            fmt_newline(&ctx);
-            break;
-        case TOKEN_STRING:
-            if (ctx.at_line_start) fmt_indent(&ctx);
-            else if (fmt_token_needs_space(prev, tok))
-                fprintf(out, " ");
-            if (tok.text != NULL && tok.text[0] == '"')
-                fprintf(out, "%s", tok.text);
-            else
-                fprintf(out, "\"%s\"", tok.text ? tok.text : "");
-            break;
-        case TOKEN_COMMA:
-            fprintf(out, ",");
-            break;
-        case TOKEN_COLON:
-            fprintf(out, ":");
-            if (fmt_token_is_case_label(prev.type))
-                fmt_newline(&ctx);
-            break;
-        case TOKEN_LPAREN:
-            if (!ctx.at_line_start && fmt_token_needs_space(prev, tok))
-                fprintf(out, " ");
-            fprintf(out, "(");
-            break;
-        case TOKEN_RPAREN:
-            fprintf(out, ")");
-            break;
-        case TOKEN_LBRACKET:
-            fprintf(out, "[");
-            break;
-        case TOKEN_RBRACKET:
-            fprintf(out, "]");
-            break;
-        default:
-            if (ctx.at_line_start && ctx.indent == 0
-                && prev.type == TOKEN_RBRACE
-                && fmt_token_starts_toplevel_decl(tok.type)) {
-                fmt_newline(&ctx);
-            }
-            if (ctx.at_line_start) {
-                if (fmt_token_is_case_label(tok.type) && ctx.indent > 0) {
-                    for (int i = 0; i < ctx.indent - 1; i++)
-                        fprintf(ctx.out, "    ");
-                    ctx.at_line_start = false;
-                } else {
-                    fmt_indent(&ctx);
-                }
-            }
-            else if (tok.text && fmt_token_needs_space(prev, tok))
-                fprintf(out, " ");
-            if (tok.text) fprintf(out, "%s", tok.text);
-            break;
-        }
-
-        prev_line = tok.line;
-        prev = tok;
-    } while (tok.type != TOKEN_EOF);
-
-    if (!ctx.at_line_start) fmt_newline(&ctx);
-    lexer_destroy(lexer);
-    return true;
-}
-
-static char *
-fmt_read_stream(FILE *f)
-{
-    long len;
-    size_t read_len;
-    char *buf;
-
-    if (f == NULL)
-        return NULL;
-    if (fseek(f, 0, SEEK_END) != 0)
-        return NULL;
-    len = ftell(f);
-    if (len < 0 || (unsigned long)len > (unsigned long)PGY_MAX_TEXT_FILE_BYTES)
-        return NULL;
-    if (fseek(f, 0, SEEK_SET) != 0)
-        return NULL;
-    buf = malloc((size_t)len + 1);
-    if (buf == NULL)
-        return NULL;
-    read_len = fread(buf, 1, (size_t)len, f);
-    /*
-     * tmpfile() streams are text-mode on Windows: ftell counts the CR bytes
-     * the CRT wrote, fread hands back the translated LF-only text, so a
-     * clean read of any output with a newline comes up short of len. Only a
-     * stream error or a short read without EOF is a real failure; treating
-     * the translated length as one made every fmt roundtrip "not stable"
-     * on Windows.
-     */
-    if (ferror(f) != 0 || (read_len != (size_t)len && feof(f) == 0)) {
-        free(buf);
-        return NULL;
-    }
-    buf[read_len] = '\0';
-    return buf;
-}
-
-static char *
-/*
- * The scratch file lives next to the input like the main temp output does.
- * tmpfile() is not usable here: on Windows it opens text-mode (CR/LF
- * translation breaks the byte-exact roundtrip compare) and targets the
- * current drive's root, which CI runners and user machines may refuse.
- */
-format_source_to_string(const char *source, const char *scratch_path)
-{
-    FILE *tmp;
-    char *result;
-
-    if (source == NULL || scratch_path == NULL)
-        return NULL;
-    tmp = fopen(scratch_path, "w+b");
-    if (tmp == NULL)
-        return NULL;
-    if (!format_source_to_stream(source, tmp)) {
-        fclose(tmp);
-        remove(scratch_path);
-        return NULL;
-    }
-    fflush(tmp);
-    result = fmt_read_stream(tmp);
-    fclose(tmp);
-    remove(scratch_path);
-    return result;
-}
-
-static bool
-fmt_replace_file(const char *dst_path, const char *tmp_path)
-{
-    if (dst_path == NULL || tmp_path == NULL)
-        return false;
-
-    if (remove(dst_path) != 0 && errno != ENOENT)
-        return false;
-
-    if (rename(tmp_path, dst_path) != 0)
-        return false;
-
-    return true;
-}
 
 int
-driver_run_fmt_command(int argc, char *argv[])
+driver_run_fmt_command(const char *launcher_path, int argc, char *argv[])
 {
     bool write_inplace = false;
     bool check_only = false;
     const char *path = NULL;
+    const char *workspace_base;
+    CompilerTransientArtifactWorkspace workspace = {0};
+    char *canonical_path = NULL;
+    char *source_dir = NULL;
+    char *source = NULL;
+    char *formatted = NULL;
+    char *current = NULL;
+    PathReplaceFileResult replace_result = PATH_REPLACE_ERROR;
+    bool preserve_workspace = false;
+    int rc = 1;
 
-    for (int i = 0; i < argc; i++) {
+    if (argc < 2 || strcmp(argv[0], "fmt") != 0) {
+        fprintf(stderr, "Usage: pgy fmt <file.pgy> [--write|--check]\n");
+        return 1;
+    }
+    for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--write") == 0 || strcmp(argv[i], "-w") == 0) {
+            if (write_inplace) goto invalid_arguments;
             write_inplace = true;
         } else if (strcmp(argv[i], "--check") == 0) {
+            if (check_only) goto invalid_arguments;
             check_only = true;
-        } else if (argv[i][0] != '-') {
+        } else if (argv[i][0] == '-' || path != NULL) {
+            goto invalid_arguments;
+        } else {
             path = argv[i];
         }
     }
+    if (path == NULL || (write_inplace && check_only))
+        goto invalid_arguments;
 
-    if (!path) {
-        fprintf(stderr, "Usage: pgy fmt <file.pgy> [--write] [--check]\n");
-        return 1;
+    canonical_path = driver_self_host_source_identity_path_dup(path);
+    if (canonical_path == NULL) {
+        fprintf(stderr, "pgy fmt: could not canonicalize '%s'\n", path);
+        goto cleanup;
     }
-
-    char *source = fmt_read_file(path);
-    if (!source) {
+    source = path_read_file(canonical_path);
+    if (source == NULL) {
         fprintf(stderr, "pgy fmt: cannot read '%s'\n", path);
-        return 1;
+        goto cleanup;
+    }
+    source_dir = path_dirname_dup(canonical_path);
+    if (source_dir == NULL) {
+        fprintf(stderr, "pgy fmt: cannot resolve source directory\n");
+        goto cleanup;
+    }
+    workspace_base = source_dir;
+    if (!write_inplace) {
+        const char *temporary_base = getenv("TMPDIR");
+#ifdef _WIN32
+        if (temporary_base == NULL || temporary_base[0] == '\0')
+            temporary_base = getenv("TEMP");
+#else
+        if (temporary_base == NULL || temporary_base[0] == '\0')
+            temporary_base = "/tmp";
+#endif
+        if (temporary_base != NULL && temporary_base[0] != '\0')
+            workspace_base = temporary_base;
+    }
+    if (!compiler_transient_artifact_workspace_open(
+            canonical_path, workspace_base, ".fmt.tmp", ".fmt.previous",
+            &workspace)) {
+        fprintf(stderr, "pgy fmt: cannot create private artifact workspace\n");
+        goto cleanup;
     }
 
-    /* Format to temp file or stdout */
-    FILE *out;
-    char tmppath[512];
-    tmppath[0] = '\0';
-
-    if (write_inplace || check_only) {
-        snprintf(tmppath, sizeof(tmppath), "%s.fmt.tmp", path);
-        out = fopen(tmppath, "wb");
-        if (!out) {
-            fprintf(stderr, "pgy fmt: cannot create temp file\n");
-            free(source);
-            return 1;
-        }
-    } else {
-        out = stdout;
+    rc = driver_materialize_self_host_format_artifact(
+        launcher_path, canonical_path, workspace.primary_path);
+    if (rc != 0) goto cleanup;
+    formatted = path_read_file(workspace.primary_path);
+    if (formatted == NULL) {
+        fprintf(stderr, "pgy fmt: cannot read verified temporary output\n");
+        rc = 1;
+        goto cleanup;
+    }
+    current = path_read_file(canonical_path);
+    if (current == NULL || strcmp(source, current) != 0) {
+        fprintf(stderr,
+                "pgy fmt: source changed while formatting; refusing stale output\n");
+        rc = 1;
+        goto cleanup;
     }
 
-    if (!format_source_to_stream(source, out)) {
-        if (write_inplace || check_only) {
-            fclose(out);
-            remove(tmppath);
+    if (!write_inplace && !check_only) {
+        if (fputs(formatted, stdout) == EOF) {
+            fprintf(stderr, "pgy fmt: failed to write formatted output\n");
+            rc = 1;
+        } else {
+            rc = 0;
         }
-        free(source);
-        fprintf(stderr, "pgy fmt: failed to format '%s'\n", path);
-        return 1;
+        goto cleanup;
     }
 
-    if (write_inplace || check_only) {
-        char *formatted;
-        char *roundtrip;
-        fclose(out);
-        formatted = fmt_read_file(tmppath);
-        if (formatted == NULL) {
-            remove(tmppath);
-            fprintf(stderr, "pgy fmt: cannot read temp output\n");
-            return 1;
+    if (check_only) {
+        if (strcmp(source, formatted) != 0) {
+            fprintf(stderr, "pgy fmt: '%s' needs formatting\n", path);
+            rc = 1;
+        } else {
+            rc = 0;
         }
-        if (!fmt_source_is_parseable(formatted)) {
-            free(formatted);
-            remove(tmppath);
-            fprintf(stderr, "pgy fmt: formatter produced unparsable output for '%s'\n", path);
-            return 1;
-        }
-        char rtpath[512];
-        snprintf(rtpath, sizeof(rtpath), "%s.fmt.rt.tmp", path);
-        roundtrip = format_source_to_string(formatted, rtpath);
-        if (roundtrip == NULL || strcmp(formatted, roundtrip) != 0) {
-            free(formatted);
-            free(roundtrip);
-            remove(tmppath);
-            fprintf(stderr, "pgy fmt: formatter output is not stable for '%s'\n", path);
-            return 1;
-        }
-        free(roundtrip);
-        if (check_only) {
-            int same = strcmp(source, formatted) == 0;
-            free(source);
-            free(formatted);
-            remove(tmppath);
-            if (!same) {
-                fprintf(stderr, "pgy fmt: '%s' needs formatting\n", path);
-                return 1;
-            }
-            return 0;
-        }
-        if (strcmp(source, formatted) == 0) {
-            free(source);
-            free(formatted);
-            remove(tmppath);
-            printf("pgy fmt: '%s' already formatted\n", path);
-            return 0;
-        }
-        free(source);
-        free(formatted);
-        if (!fmt_replace_file(path, tmppath)) {
-            remove(tmppath);
-            fprintf(stderr, "pgy fmt: failed to replace '%s' with formatted output\n",
-                    path);
-            return 1;
-        }
-        printf("pgy fmt: formatted '%s'\n", path);
-        return 0;
+        goto cleanup;
     }
 
+    if (strcmp(source, formatted) == 0) {
+        printf("pgy fmt: '%s' already formatted\n", path);
+        rc = 0;
+        goto cleanup;
+    }
+    replace_result = path_replace_file_atomic_if_unchanged(
+        workspace.primary_path, canonical_path, workspace.secondary_path,
+        source);
+    if (replace_result == PATH_REPLACE_SOURCE_CHANGED) {
+        fprintf(stderr,
+                "pgy fmt: source changed while formatting; refusing stale output\n");
+        rc = 1;
+        goto cleanup;
+    }
+    if (replace_result == PATH_REPLACE_RECOVERY_REQUIRED) {
+        preserve_workspace = true;
+        fprintf(stderr,
+                "pgy fmt: source changed during final publication; recovery "
+                "artifacts preserved at '%s'\n",
+                workspace.directory);
+        rc = 1;
+        goto cleanup;
+    }
+    if (replace_result != PATH_REPLACE_OK) {
+        fprintf(stderr,
+                "pgy fmt: failed to atomically replace '%s' with formatted output\n",
+                path);
+        rc = 1;
+        goto cleanup;
+    }
+    printf("pgy fmt: formatted '%s'\n", path);
+    rc = 0;
+    goto cleanup;
+
+invalid_arguments:
+    fprintf(stderr, "Usage: pgy fmt <file.pgy> [--write|--check]\n");
+cleanup:
+    free(current);
+    free(formatted);
     free(source);
-    return 0;
+    free(source_dir);
+    free(canonical_path);
+    if (!preserve_workspace)
+        compiler_transient_artifact_workspace_close(&workspace);
+    return rc;
 }

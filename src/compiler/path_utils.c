@@ -3,6 +3,12 @@
  * All rights reserved.
  */
 
+#ifndef _WIN32
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#endif
+
 #include "path_utils.h"
 
 #include <stdio.h>
@@ -15,8 +21,11 @@
 
 #ifdef _WIN32
 #include <io.h>
+#include <windows.h>
 #define PGY_ACCESS _access
 #else
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #define PGY_ACCESS access
 #endif
@@ -124,6 +133,96 @@ bool
 path_file_exists(const char *path)
 {
     return path != NULL && PGY_ACCESS(path, 0) == 0;
+}
+
+static bool
+path_file_content_equals(const char *path, const char *expected_content)
+{
+    char *actual;
+    bool matches;
+
+    if (path == NULL || expected_content == NULL)
+        return false;
+    actual = path_read_file(path);
+    if (actual == NULL)
+        return false;
+    matches = strcmp(actual, expected_content) == 0;
+    free(actual);
+    return matches;
+}
+
+#ifndef _WIN32
+static bool
+path_exchange_files_atomic(const char *left_path, const char *right_path)
+{
+#if defined(__linux__)
+    return renameat2(AT_FDCWD, left_path, AT_FDCWD, right_path,
+                     RENAME_EXCHANGE) == 0;
+#elif defined(__APPLE__)
+    return renamex_np(left_path, right_path, RENAME_SWAP) == 0;
+#else
+    (void)left_path;
+    (void)right_path;
+    return false;
+#endif
+}
+#endif
+
+#ifdef PGY_PATH_REPLACE_TEST_HOOKS
+extern void pgy_path_replace_test_after_precheck(const char *dst_path);
+extern bool pgy_path_replace_test_rollback_enabled(void);
+#else
+static void
+pgy_path_replace_test_after_precheck(const char *dst_path)
+{
+    (void)dst_path;
+}
+
+static bool
+pgy_path_replace_test_rollback_enabled(void)
+{
+    return true;
+}
+#endif
+
+PathReplaceFileResult
+path_replace_file_atomic_if_unchanged(const char *tmp_path,
+                                      const char *dst_path,
+                                      const char *backup_path,
+                                      const char *expected_content)
+{
+    if (tmp_path == NULL || dst_path == NULL || expected_content == NULL)
+        return PATH_REPLACE_ERROR;
+    /* Do not expose formatted bytes merely to discover a conflict that was
+     * already observable. A post-check remains necessary for the residual
+     * race; that path is recoverable and its workspace must be preserved. */
+    if (!path_file_content_equals(dst_path, expected_content))
+        return PATH_REPLACE_SOURCE_CHANGED;
+    pgy_path_replace_test_after_precheck(dst_path);
+#ifdef _WIN32
+    if (backup_path == NULL || backup_path[0] == '\0')
+        return PATH_REPLACE_ERROR;
+    if (!ReplaceFileA(dst_path, tmp_path, backup_path, 0, NULL, NULL))
+        return PATH_REPLACE_ERROR;
+    if (path_file_content_equals(backup_path, expected_content))
+        return PATH_REPLACE_OK;
+    if (pgy_path_replace_test_rollback_enabled())
+        (void)ReplaceFileA(dst_path, backup_path, tmp_path, 0, NULL, NULL);
+    return PATH_REPLACE_RECOVERY_REQUIRED;
+#else
+    struct stat destination;
+    if (stat(dst_path, &destination) != 0)
+        return PATH_REPLACE_ERROR;
+    if (chmod(tmp_path, destination.st_mode & 07777) != 0)
+        return PATH_REPLACE_ERROR;
+    if (!path_exchange_files_atomic(tmp_path, dst_path))
+        return PATH_REPLACE_ERROR;
+    if (path_file_content_equals(tmp_path, expected_content))
+        return PATH_REPLACE_OK;
+    if (pgy_path_replace_test_rollback_enabled())
+        (void)path_exchange_files_atomic(tmp_path, dst_path);
+    return PATH_REPLACE_RECOVERY_REQUIRED;
+#endif
 }
 
 #ifdef _WIN32

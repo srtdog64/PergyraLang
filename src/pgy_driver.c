@@ -195,7 +195,7 @@ main(int argc, char *argv[])
         if (strcmp(argv[1], "--self-driver") == 0)
             return driver_run_self_host_command(argv[0], argc - 2, argv + 2);
         if (strcmp(argv[1], "fmt") == 0 && argc > 2 && argv[2][0] != '-')
-            return driver_run_fmt_command(argc - 1, argv + 1);
+            return driver_run_fmt_command(argv[0], argc - 1, argv + 1);
         if (strcmp(argv[1], "fmt") == 0)
             return driver_run_pkg_command(argv[0], pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")), "fmt", argc - 2, argv + 2);
         if (strcmp(argv[1], "init") == 0)

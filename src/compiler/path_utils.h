@@ -27,6 +27,27 @@ char *path_replace_extension(const char *path, const char *new_ext);
 /* Read entire file into heap-allocated string. Returns NULL on failure. */
 char *path_read_file(const char *path);
 
+typedef enum
+{
+    PATH_REPLACE_ERROR = 0,
+    PATH_REPLACE_OK,
+    PATH_REPLACE_SOURCE_CHANGED,
+    PATH_REPLACE_RECOVERY_REQUIRED
+} PathReplaceFileResult;
+
+/*
+ * Reject a destination that already differs from expected_content before any
+ * exchange. If a race is observed only after the exchange, rollback is
+ * attempted and PATH_REPLACE_RECOVERY_REQUIRED is returned; the caller must
+ * preserve both workspace paths because either may contain a concurrent edit.
+ * backup_path is a private sibling used by the Windows exchange primitive.
+ */
+PathReplaceFileResult path_replace_file_atomic_if_unchanged(
+    const char *tmp_path,
+    const char *dst_path,
+    const char *backup_path,
+    const char *expected_content);
+
 /* Default binary output path for a source file. */
 char *path_default_binary(const char *source_path);
 

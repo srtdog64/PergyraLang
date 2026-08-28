@@ -7,6 +7,7 @@ import "../lib/path.pgy";
 import "../codegen/text/text_owner.pgy";
 enum DriverRung2CliRequest {
     DriverCliDebugSession(String),
+    DriverCliFormatSourceArtifact(String, String),
     DriverCliSourceTokensStdout(String),
     DriverCliSourceAstStdout(String),
     DriverCliSourceCapabilityManifestStdout(String),
@@ -58,6 +59,17 @@ func DriverRung2CliRequestFromArgsOrDie(
         if count != 2 { Die("debug session mode requires exactly one source path"); }
         return DriverCliDebugSession(DriverRung2CliPathOperandOrDie(
             args[1], "debug session source path"));
+    }
+    if args[0] == "--format-source-verified" {
+        if count != 4 || args[2] != "-o" {
+            Die("format source mode requires source -o output");
+        }
+        let source_path: String = DriverRung2CliPathOperandOrDie(
+            args[1], "format source input path");
+        let output_path: String = DriverRung2CliPathOperandOrDie(
+            args[3], "format source output path");
+        DriverRung2CliArtifactPathsOrDie(source_path, output_path);
+        return DriverCliFormatSourceArtifact(source_path, output_path);
     }
     if args[0] == "--tokens" {
         if count != 2 { Die("source token mode requires exactly one input path"); }

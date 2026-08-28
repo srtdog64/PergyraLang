@@ -6,7 +6,7 @@ source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY="$(pgy_select_optional_exe_binary "$PGY")"
-TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
+TMP_BASE="${PGY_FMT_TMP_BASE:-${RUNNER_TEMP:-/tmp}}"
 
 if [[ ! -x "$PGY" ]]; then
     echo "missing compiler binary: $PGY" >&2
@@ -16,6 +16,14 @@ pgy_require_runnable_binary_here "fmt-smoke" "$PGY"
 
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_fmt_smoke.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
+WORK_TMPDIR="$WORK_DIR"
+if pgy_binary_expects_windows_paths "$PGY"; then
+    WORK_TMPDIR="$(pgy_path_for_compiler "$PGY" "$WORK_DIR")"
+    WORK_TMPDIR="${WORK_TMPDIR//\\//}"
+fi
+export TMPDIR="$WORK_TMPDIR"
+export TEMP="$WORK_TMPDIR"
+export TMP="$WORK_TMPDIR"
 
 SOURCE="$WORK_DIR/fmt_case.pgy"
 cat > "$SOURCE" <<'EOF'
