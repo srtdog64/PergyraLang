@@ -30,13 +30,20 @@ Repair `7de0bd42` replaces that carrier with explicit
 frame, stream, public-live, structural, and likeness gates are repair green;
 replacement exact-head CI owns closure.
 
+Repair checkpoint `c573542f` exact-head run `33140178069` completed GREEN
+30/30. `build-linux` passed the full component inventory and the ratcheted
+4458 errors-as-data surface in 24m23s; full self-host passed in 33m58s,
+codegen bootstrap in 8m07s, Windows in 5m14s, sanitizers in 9m18s, backend
+toolchain in 10m02s, and backend shards 20/20. The first-run regression and
+local broad-component omission are closed at the exact repair checkpoint.
+
 This is reached Pergyra dogfood hardening, not a new `SUBSTITUTING` numerator or
 SoT closure. The adjacent Print audit also changes no policy: current owner
 evidence proves that Print/Log are outside Phase-1 AIR resource evidence and
 that `pgy_print` has no capability-registry/runtime guard. A capability versus
 host-owned quantitatively bounded output channel remains a separate decision.
 Progress and registry counts remain unchanged, and no query/cache or semantic
-index successor is admitted.
+index successor is admitted. The executable lease is closed.
 
 ## 2026-08-28 public live LSP takeover
 

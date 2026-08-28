@@ -6,11 +6,10 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — bounded live LSP frame-length admission
+## DONE lease — bounded live LSP frame-length admission
 
-- Executable checkpoint `b87c6b89` plus repair `7de0bd42` hardens the
-  already-reached public live LSP path. Only the primary task publishes this
-  lease. Protected untracked
+- Published implementation `b87c6b89`, repair `7de0bd42`, and checkpoint
+  `c573542f` harden the already-reached public live LSP path. Protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/` remain outside the edit,
   stage, and inspection scope.
 - Objective card: `transport_owner.pgy` owns one typed `Content-Length`
@@ -37,11 +36,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   the measured errors-as-data ratchet to 4458. Focused frame/stream/public-live,
   structural, and likeness gates are repair green. Replacement CI, not the
   partial first run, owns closure.
+- Replacement exact-head run `33140178069` completed GREEN 30/30. It passed
+  `build-linux` including the full component and 4458 likeness ratchet, full
+  self-host, codegen bootstrap, Windows/macOS, sanitizers, TSan, Rocq, and
+  backend shards 20/20. This closes the executable lease; no parallel
+  implementation track or inferred successor is open.
 - `Print` capability status is audit-only in this lease. Existing AIR docs
   exclude Print/Log from Phase-1 resource evidence; the registry/runtime prove
   there is no Print capability gate today. No capability, ABI, output budget,
-  query/cache, or semantic-index implementation is authorized by this lease.
-  The lease closes only after publication and exact-head CI.
+  query/cache, or semantic-index implementation was authorized by this lease.
 
 ## DONE lease — public live LSP takeover and CI repair
 

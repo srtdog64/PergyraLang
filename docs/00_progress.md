@@ -28,6 +28,14 @@ Repair `7de0bd42`는 그 병렬 carrier를 삭제하고 언어 소유
 public live, focused structural, likeness가 repair green이고 새 실측 최소값은
 4458로 올렸다. Replacement exact-head CI 전에는 첫 run을 green으로 세지 않는다.
 
+Replacement checkpoint `c573542f`의 exact-head run `33140178069`은 GREEN
+30/30으로 끝났다. `build-linux`는 full component와 `result_use=4458` ratchet을
+포함해 24분 23초에 통과했고 full self-host는 33분 58초, codegen bootstrap은
+8분 07초, Windows는 5분 14초, sanitizer는 9분 18초, backend toolchain은
+10분 02초에 통과했다. Backend shard 20/20, macOS, TSan, Rocq도 모두 green이다.
+따라서 첫 run의 parallel carrier 결함과 로컬 broad-component 미검증은 exact repair
+checkpoint에서 폐쇄됐다. 이 실행 lease는 닫혔고 successor는 추정하지 않는다.
+
 같이 감사한 `Print`는 현재 builtin capability registry 행과 runtime
 `pgy_cap_require_export`가 없고, 기존 AIR 문서는 Print/Log를 Phase-1 resource
 evidence에서 제외한다. 이는 검증된 capability-model 비대칭이지만 이번 transport

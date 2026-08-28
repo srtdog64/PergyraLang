@@ -1,6 +1,6 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-28 bounded live LSP frame admission
+## Completed self-host context - 2026-08-28 bounded live LSP frame admission
 
 - Implementation `b87c6b89` makes `transport_owner.pgy` own one typed
   `Content-Length` admission and the shared 262,144-byte declared/retained cap.
@@ -18,7 +18,13 @@
   `7de0bd42` replaces the parallel admission carrier with explicit
   `Result<Int, String>` and raises the measured ratchet to 4458. Focused
   frame/stream/public-live, structural, and likeness gates are repair green;
-  replacement CI remains open.
+  at that local repair checkpoint replacement CI remained open.
+- Repair checkpoint `c573542f` run `33140178069` completed GREEN 30/30.
+  `build-linux` passed full component plus the 4458 likeness ratchet in 24m23s;
+  full self-host passed in 33m58s, codegen bootstrap in 8m07s, Windows in
+  5m14s, sanitizers in 9m18s, backend toolchain in 10m02s, and backend shards
+  20/20. The first-run regression and local broad-component omission are
+  closed; no successor lease is inferred.
 - This hardens an existing production `SUBSTITUTING` path; it does not replace
   another C path or close a SoT row. The separate Print capability asymmetry is
   recorded but not resolved. Registry and progress values remain unchanged;

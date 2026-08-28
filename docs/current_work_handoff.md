@@ -18,12 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - bounded live LSP frame-length admission
+## Active self-host context - no successor after bounded LSP hardening
 
-- Executable checkpoint: implementation `b87c6b89` plus typed-result repair
-  `7de0bd42`; the documentation commit containing this card is the intended
-  publication HEAD. Verify it against
-  `origin/main` and exact-head CI rather than inferring publication. The
+- Published closure: implementation `b87c6b89`, typed-result repair
+  `7de0bd42`, and repair checkpoint `c573542f` are on `origin/main`.
+  Exact-head run `33140178069` completed GREEN 30/30. The
   expected remaining dirty state is only the protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/`; neither was inspected,
   staged, or modified.
@@ -58,8 +57,14 @@ percentage by themselves.
   `{ok,value,reason}` carrier. Repair `7de0bd42` deletes that carrier and uses
   the language-owned `Result<Int, String>` error channel. Focused C frame,
   stream, public live, structural, and likeness gates are repair green;
-  likeness is ratcheted upward to the measured 4458. A replacement exact-head
-  run is required; the first run is not claimed green.
+  likeness is ratcheted upward to the measured 4458. At that local repair
+  checkpoint a replacement exact-head run remained required; the first run is
+  not claimed green.
+- Replacement closure: run `33140178069` passed `build-linux` in 24m23s and
+  full self-host in 33m58s. Codegen bootstrap passed in 8m07s, Windows in
+  5m14s, sanitizers in 9m18s, backend toolchain in 10m02s, backend shards
+  20/20, macOS, TSan, and Rocq. This supersedes the local broad-component
+  omission and the failed first run at the exact repair checkpoint.
 - Separate reached-boundary audit: `Print`/`Log*` are explicitly excluded from
   Phase-1 AIR resource-boundary evidence, the canonical builtin-capability
   registry has no `Print` row, and both canonical `pgy_print` implementations
@@ -68,11 +73,12 @@ percentage by themselves.
   resolved by this transport patch. Choosing a capability or a documented
   host-owned output channel with a quantitative byte budget remains a separate
   semantic/ABI decision.
-- Grade and next falsifier: this is production Pergyra dogfood hardening on an
+- Grade and successor guard: this is production Pergyra dogfood hardening on an
   already reached `SUBSTITUTING` path, not another C-to-Pergyra replacement and
   not a SoT closure. Published progress and registry values stay unchanged.
-  Publish the documentation checkpoint and require exact-head CI; do not open
-  query/cache, semantic-index, or performance work from the attached review.
+  The executable lease is closed. No successor is admitted; do not open
+  query/cache, semantic-index, performance, or Print-capability implementation
+  without a fresh production bypass/decision boundary and executable falsifier.
 
 ## Completed self-host context - public live LSP closure
 
