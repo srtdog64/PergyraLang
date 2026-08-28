@@ -45,6 +45,23 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   and compatibility wrappers delegate to it exactly once. The contract now
   ratchets the core plus both wrapper edges and passes locally. This run is
   strong repair evidence but not the final green publication receipt.
+- Boundary-repair run `33165113838` at `32f3f5bb` also completed RED 29/30.
+  Full self-host passed in 33m54s and every other platform, codegen,
+  sanitizer, proof, and backend job was green. `build-linux` progressed past
+  the repaired hard contract and then the semantic-environment lifetime
+  ratchet rejected the new `debug/session_owner.pgy` admission caller because
+  its exact caller inventory had not been updated. The production debug owner
+  already consumes one typed analysis, artifact admission, admitted body,
+  receipt, and receipt-readiness chain in order. The repair registers that
+  legitimate same-epoch consumer, rejects the checked analysis/body
+  fallbacks, and tightens the errors-as-data likeness floor from 4458 to 4483
+  for its typed command, provenance, location, and traversal absence facts.
+  Focused lifetime and likeness gates pass. The preparation aggregate passed
+  every pre-proof row before stopping explicitly because local Coq/Rocq is
+  unavailable; the proof adequacy gate then ran with its declared skip and all
+  remaining authority, compiler-world, MIR flow, and filesystem rows passed.
+  The same exact-head remote Rocq job is green. Publication and replacement
+  exact-head CI remain the only active work; counts and progress do not change.
 
 ## DONE lease — live LSP stdout capability closure
 

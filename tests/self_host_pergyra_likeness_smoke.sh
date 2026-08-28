@@ -355,7 +355,10 @@ SENTINEL_MAX=23
 # 4453 -> 4458 (2026-08-28): bounded LSP Content-Length admission uses the
 # language-owned Result<Int, String> channel instead of a parallel
 # ok/value/reason structure. Invalid and over-limit reasons remain typed errors.
-RESULT_USE_MIN=4458
+# 4458 -> 4483 (2026-08-28): the public debugger session carries command EOF,
+# parser provenance, source locations, and traversal children as typed Option
+# facts. Missing state cannot fall back to empty text, line zero, or node zero.
+RESULT_USE_MIN=4483
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

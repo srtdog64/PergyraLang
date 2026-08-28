@@ -25,6 +25,7 @@ BUILTINS="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
 MIR_FACTS="$ROOT_DIR/src/self_hosted/mir/artifact_lower_owner.pgy"
 DRIVER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy"
 PIPELINE="$ROOT_DIR/src/self_hosted/compiler/driver_pipeline_owner.pgy"
+DEBUG_SESSION="$ROOT_DIR/src/self_hosted/debug/session_owner.pgy"
 VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
 BODY_ADMISSION="$ROOT_DIR/src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy"
 ENTRY="$ROOT_DIR/src/self_hosted/codegen/emission/program_entry_owner.pgy"
@@ -49,7 +50,8 @@ for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
     "$PLACE_FACTS" "$GENERIC_FACTS" "$INITIALIZER_FACTS" \
     "$INITIALIZER_REFINEMENT" "$INITIALIZER_TABLE_BRIDGE" \
     "$INITIALIZER_CURSOR" "$STATEMENT_FACTS" \
-    "$MIR_FACTS" "$DRIVER" "$PIPELINE" "$VERDICT" "$BODY_ADMISSION" "$ENTRY" \
+    "$MIR_FACTS" "$DRIVER" "$PIPELINE" "$DEBUG_SESSION" "$VERDICT" \
+    "$BODY_ADMISSION" "$ENTRY" \
     "$ADMITTED_ENTRY" \
     "$BUILTINS" "$TYPECHECK" "$TRANS_POLICY" \
     "$TRANS_EMIT" "$LLVM_EMIT" "$LLVM_RUNTIME" "$INLINE_RUNTIME" \
@@ -659,6 +661,48 @@ fi
 # The fast path relies on one immutable-after-admission call graph.  Any new
 # direct caller must choose the checked public entry or update this owner gate
 # with explicit evidence that it receives the same admitted epoch.
+debug_session_body="$(function_body "$DEBUG_SESSION" 'RunDebugSession')"
+[[ -n "$debug_session_body" ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] missing RunDebugSession admission consumer" >&2
+    exit 1
+}
+for admitted_call in \
+    'SemanticAstArtifactAnalyzeTyped(' \
+    'SemanticAstArtifactAdmissionReady(' \
+    'SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(' \
+    'SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(' \
+    'SemanticAstBodyTypeBundleAdmissionReceiptReadyFor('; do
+    [[ "$(grep -Fc "$admitted_call" <<<"$debug_session_body" || true)" -eq 1 ]] || {
+        echo "[self-host-parity:semantic-environment-lifetime] debug session must consume exactly one admitted epoch step: $admitted_call" >&2
+        exit 1
+    }
+done
+debug_analysis_line="$(grep -nF 'SemanticAstArtifactAnalyzeTyped(' \
+    <<<"$debug_session_body" | head -n 1 | cut -d: -f1)"
+debug_admission_line="$(grep -nF 'SemanticAstArtifactAdmissionReady(' \
+    <<<"$debug_session_body" | head -n 1 | cut -d: -f1)"
+debug_body_line="$(grep -nF 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(' \
+    <<<"$debug_session_body" | head -n 1 | cut -d: -f1)"
+debug_receipt_line="$(grep -nF 'SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(' \
+    <<<"$debug_session_body" | head -n 1 | cut -d: -f1)"
+debug_receipt_ready_line="$(grep -nF 'SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(' \
+    <<<"$debug_session_body" | head -n 1 | cut -d: -f1)"
+if [[ "$debug_analysis_line" -ge "$debug_admission_line" ||
+    "$debug_admission_line" -ge "$debug_body_line" ||
+    "$debug_body_line" -ge "$debug_receipt_line" ||
+    "$debug_receipt_line" -ge "$debug_receipt_ready_line" ]]; then
+    echo "[self-host-parity:semantic-environment-lifetime] debug session reordered admitted artifact/body receipts" >&2
+    exit 1
+fi
+for checked_fallback in \
+    'SemanticAstArtifactAnalyze(' \
+    'SemanticAstBodyTypeBundleFromAnalysis(' \
+    'SemanticAstBodyTypeBundleFromAnalysisObserved('; do
+    if grep -Fq "$checked_fallback" <<<"$debug_session_body"; then
+        echo "[self-host-parity:semantic-environment-lifetime] debug session reopened checked analysis: $checked_fallback" >&2
+        exit 1
+    fi
+done
 assert_exact_call_files 'GenerateCUnitFromReadySemanticFacts(' \
     'src/self_hosted/codegen/emission/program_admitted_semantic_owner.pgy' \
     'src/self_hosted/codegen/emission/program_emit.pgy' \
@@ -678,6 +722,7 @@ assert_exact_call_files 'SemanticAstArtifactAdmissionReady(' \
     'src/self_hosted/codegen/emission/program_emit.pgy' \
     'src/self_hosted/compiler/dir_text_artifact_owner.pgy' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy' \
+    'src/self_hosted/debug/session_owner.pgy' \
     'src/self_hosted/semantic/ast_artifact_verdict_contract_owner.pgy' \
     'src/self_hosted/semantic/ast_artifact_verdict_owner.pgy' \
     'src/self_hosted/semantic/ast_body_analysis_admission_owner.pgy' \
@@ -691,6 +736,7 @@ assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved('
     'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
 assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy' \
+    'src/self_hosted/debug/session_owner.pgy' \
     'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
 
 for production_body in \

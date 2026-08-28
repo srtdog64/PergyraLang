@@ -44,6 +44,23 @@ inventory 통과 뒤 stale hard contract에서 실패했다. Call-statement 분�
 실제 세 경계에 맞춰 강화했고 local hard contract는 green이다. 이 두 번째 run도
 최종 publication closure로 세지 않으며 다음 exact-head replacement가 falsifier다.
 
+Boundary checkpoint `32f3f5bb`의 run `33165113838`도 29/30 RED로 끝났다. Full
+self-host는 33분 54초에 통과했고 Rocq, platform, sanitizer, codegen, backend
+20/20을 포함한 나머지 28개 job은 모두 green이었다. `build-linux`는 위 hard
+contract를 통과한 뒤 semantic environment lifetime의 exact caller inventory에서
+새 `debug/session_owner.pgy` 소비자를 적발했다. 이 owner는 이미 typed analysis,
+artifact admission, admitted body, receipt, receipt readiness를 같은 epoch에서 각각
+한 번씩 순서대로 소비한다. Gate가 이 legitimate caller를 등록하고 checked
+analysis/body fallback을 금지하도록 강화됐으며 focused lifetime gate가 green이다.
+Debugger의 command EOF, provenance, source location, traversal child 부재가 typed
+Option으로 운반되므로 likeness `result_use` floor도 `4458 -> 4483`으로 조였고 exact
+4483에서 통과한다. 로컬 preparation aggregate는 이 lifetime gate까지 모두 통과한
+뒤 Coq/Rocq 실행 파일 부재를 명시적으로 보고했으며, declared skip으로 이어 실행한
+proof owner/consumer negative, SoT edge, likeness, text-builder, source-scan,
+compiler-world, MIR resource/loop flow, filesystem gate는 모두 통과했다. 같은 exact
+HEAD의 원격 Rocq job은 green이다. 이 repair는 새 top-level SoT 폐쇄나 진행률
+증가가 아니며 replacement exact-head CI가 publication falsifier다.
+
 2026-08-28 live LSP `Content-Length` admission 구현 `b87c6b89`: 이미
 production `SUBSTITUTING`인 공개 live 경로에서 길이를 transport owner가 한 번만
 admit하도록 고쳤다. 선언 body 길이와 retained live buffer는 같은 262,144-byte

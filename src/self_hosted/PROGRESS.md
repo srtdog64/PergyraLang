@@ -43,6 +43,20 @@
   `ParseOneStmt` delegate to that core. The contract now checks the core and
   both wrapper edges and passes locally. Replacement exact-head CI remains the
   publication falsifier.
+- Boundary checkpoint `32f3f5bb` run `33165113838` completed RED 29/30. Full
+  self-host passed in 33m54s; all remaining platform, codegen, sanitizer,
+  proof, and backend jobs were green. `build-linux` passed the repaired hard
+  contract and then rejected the new debug owner as an unregistered exact
+  semantic-admission caller. The lifetime ratchet now proves that
+  `RunDebugSession` consumes one typed analysis, admission, admitted body,
+  receipt, and receipt-readiness sequence in order and cannot reopen the
+  checked analysis/body path. Its typed absence facts raise the strict
+  likeness floor from 4458 to 4483. Both focused gates pass. The local
+  preparation chain passed through this lifetime row before explicitly
+  stopping on unavailable local Coq/Rocq; the post-proof rows pass under the
+  repository-declared skip, while the exact-head remote Rocq job is green.
+  This is a caller-inventory/negative-ratchet repair, not another SoT closure;
+  replacement exact-head CI still owns publication closure.
 
 ## Completed self-host context - 2026-08-28 bounded live LSP frame admission
 

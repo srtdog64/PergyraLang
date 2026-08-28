@@ -80,12 +80,32 @@ percentage by themselves.
   `ParseOneStmt -> ParseOneStmtObserved -> ParseOneStmtCore`. The hard contract
   now verifies those three real boundaries and passes locally without moving
   or duplicating semantic logic.
+- Third exact-head falsifier: boundary checkpoint `32f3f5bb` run
+  `33165113838` completed RED 29/30. Full self-host passed in 33m54s and the
+  other 28 jobs, including Rocq and backend shards 20/20, were green.
+  `build-linux` passed the repaired hard contract, then the exact semantic
+  admission caller inventory rejected `debug/session_owner.pgy`. That owner
+  already derives one typed analysis and consumes artifact admission,
+  admitted body, receipt, and receipt readiness exactly once in order. The
+  lifetime ratchet now admits that same-epoch consumer and rejects checked
+  analysis/body fallbacks. The new debugger's typed Option paths also raise
+  the measured errors-as-data floor from 4458 to 4483; focused lifetime and
+  likeness gates pass at those exact values.
+- Local integration evidence: the preparation aggregate passed every row
+  through the changed lifetime gate and then stopped explicitly because no
+  local Coq/Rocq executable is installed. With the repository's declared
+  missing-proof skip, the proof owner/consumer and negative-mutation checks,
+  SoT edge, likeness, text builder, source scan, compiler world, MIR resource
+  flow, MIR loop flow, and filesystem directory walk all passed. This is
+  segmented local evidence, not a claim that the unmodified aggregate exited
+  zero; run `33165113838` supplies the observed remote Rocq proof result.
 - Registry/progress: `selfhost.debug_session` is `CLOSED`; source-location facts
   are classified as its local view. Census is `CLOSED=51 BRIDGE=35 ACTIVE=1`,
   hard closure `51/87 = 58.6%`, migration `79.0%`, integrated 83% (81-85%),
   strict beta 83%, and conservative denominator-free hard replacement 75%.
-- Next falsifier: commit and publish the hard-contract boundary repair plus
-  this checkpoint, then observe replacement CI on that exact HEAD. Until the
+- Next falsifier: commit and publish the lifetime caller repair, strict 4483
+  likeness ratchet, and this checkpoint, then observe replacement CI on that
+  exact HEAD. Until the
   replacement run is green this lease remains active;
   no formatter, query/cache, semantic-index, performance, or unrelated SoT
   successor is inferred.
