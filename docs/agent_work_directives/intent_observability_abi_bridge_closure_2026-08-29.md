@@ -1,9 +1,10 @@
 # Intent observability ABI BRIDGE closure — 2026-08-29
 
-Status: `WAITING` (candidate base `01afa785794f461367b91d37ecea47168a09e55e`;
-runs `33209375173` and `33213561874` exposed successive integration failures;
-release only after the follow-up bootstrap repair's replacement exact-head CI
-is GREEN)
+Status: `WAITING` (candidate base is the exact GREEN repair successor of
+`f617ee15`; runs `33209375173` and `33213561874` exposed successive bootstrap
+integration failures, while run `33218013637` proved full bootstrap GREEN and
+left only the stale likeness floor in `build-linux`; release only after that
+ratchet repair's replacement exact-head CI is GREEN)
 
 This directive coordinates the next candidate rung. It is not semantic
 authority, a registry verdict, progress evidence, or permission to overlap the

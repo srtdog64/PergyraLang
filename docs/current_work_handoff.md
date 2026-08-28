@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - intent declaration rows bootstrap repair publication
+## Active self-host context - intent declaration rows CI-ratchet repair publication
 
 - Objective card: close existing authority `selfhost.intent_declaration_rows`
   on the real installed/public source-C path. Stable semantic intent identity
@@ -64,6 +64,20 @@ percentage by themselves.
   The stale header/child equality is deleted; the typed child target is the
   owner and only simultaneous `on` plus `intent` child rows are rejected. A
   structural negative prevents that dual read from returning.
+- Second repair exact-head evidence: checkpoint `f617ee15` is on `origin/main`;
+  run `33218013637` completed RED 29/30. The full Pergyra-built self-host
+  bootstrap completed GREEN in 34m24s, and all platform, proof, sanitizer,
+  codegen, backend-toolchain, and backend 20/20 jobs remained GREEN. The only
+  failure was `build-linux`: its likeness scorecard still required
+  `result_use >= 4483` although the published declaration-row closure measures
+  4476.
+- Current CI-ratchet repair: history reconstruction proves every revision from
+  `97d54a64` through `1225bf51` measured 4483 and `01afa785` alone changed the
+  corpus to 4476. That closure deleted seven consumer-local `Option` annotations
+  with the final emitter's AST child/text rediscovery; sealed DIR receipt,
+  range, digest, identity, and negative gates now reject absence/crossing before
+  emission. The floor is therefore rebased to the surviving 4476 corpus rather
+  than restoring the forbidden second read or adding token-only wrappers.
 - Observed local gates: a fresh Pergyra-built DRV-2 passes the complete
   compiler-purpose direct/public source-C artifact, stdout, execution,
   transaction, machine-manifest, and invalid-manifest gate. The same installed
@@ -71,9 +85,12 @@ percentage by themselves.
   language-word registry, hard contract, SoT registry, and progress gates are
   green; the registry reports 88 authorities / 182 carriers /
   `CLOSED=53 BRIDGE=34 ACTIVE=1`. The earlier broad local component inventory
-  was stopped after 90 seconds without output and is not claimed green.
-- Publication boundary: finish narrow gates, create one explicit-path follow-up
-  repair commit, push it, and require replacement exact-head CI
+  was stopped after 90 seconds without output and is not claimed green. The
+  repaired likeness scorecard and the six remaining `test-all` gates after it
+  are locally GREEN. The broad `self-host-preparation-contract` aggregate is
+  not claimed locally; replacement exact-head CI owns that evidence.
+- Publication boundary: publish the one-file ratchet repair plus this handoff
+  refresh, and require replacement exact-head CI
   GREEN before releasing the next `BRIDGE=34 -> 33` rung. The waiting candidate
   is `abi.intent_observability_rows`; it may not overlap this repair.
 - Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and

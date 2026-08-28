@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — intent declaration rows bootstrap repair publication
+## ACTIVE lease — intent declaration rows CI-ratchet repair publication
 
 - Objective card: preserve the published closure of
   `selfhost.intent_declaration_rows` while repairing the exact Pergyra-built
@@ -48,8 +48,19 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   child rows as the actual conflict. A fresh Pergyra-built DRV-2 passes both
   the full compiler-purpose source-C action gate and the placed nested-intent
   execution gate.
+- Second repair publication: checkpoint `f617ee15` is on `origin/main`; run
+  `33218013637` completed RED 29/30. Full self-host bootstrap passed in 34m24s
+  and every job except `build-linux` was GREEN. Linux stopped only because the
+  likeness floor remained 4483 while the current implementation measured
+  4476.
+- Ratchet audit: the 4483 corpus remains exact from `97d54a64` through
+  `1225bf51`; `01afa785` alone removed seven `Option` annotations when it
+  deleted the last emitter-side AST child/text rediscovery. Missing, crossed,
+  range, digest, artifact, and signature facts remain fail-closed at the DIR
+  receipt boundary. The primary task owns the evidence-backed floor repair to
+  4476; restoring the old read or adding count-only wrappers is forbidden.
 - Publication boundary: the primary task alone owns documentation, explicit
-  staging, follow-up repair commit, push, and replacement exact-head CI. The
+  staging, ratchet repair commit, push, and replacement exact-head CI. The
   waiting `abi.intent_observability_rows` candidate remains read-only until
   that CI is GREEN.
 

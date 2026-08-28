@@ -358,7 +358,13 @@ SENTINEL_MAX=23
 # 4458 -> 4483 (2026-08-28): the public debugger session carries command EOF,
 # parser provenance, source locations, and traversal children as typed Option
 # facts. Missing state cannot fall back to empty text, line zero, or node zero.
-RESULT_USE_MIN=4483
+# 4483 -> 4476 (2026-08-29): closing selfhost.intent_declaration_rows deleted
+# the final C emitter's AST-child rediscovery path. Its seven Option annotations
+# represented absence while re-walking a second authority; the DIR owner now
+# rejects missing/crossed rows before emission and carries admitted ranges to
+# the consumer. This delayed baseline repair records removal of the old read,
+# not a loss of errors-as-data behavior. Keep the surviving corpus monotonic.
+RESULT_USE_MIN=4476
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world
