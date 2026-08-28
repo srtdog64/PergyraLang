@@ -37,6 +37,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   pushed and replacement exact-head CI is observed. Query/cache,
   semantic-index, formatter, scaffold, package
   metadata, performance, and unrelated SoT tracks remain closed.
+- Repair run `33162788387` at `5573ac5d` completed RED 29/30. Full self-host
+  passed in 34m17s and every codegen/platform/sanitizer/proof/backend job was
+  green, including backend 20/20. `build-linux` alone found a stale hard
+  contract that searched the legacy `ParseOneStmt` wrapper for call-statement
+  classification. The semantic call remains in `ParseOneStmtCore`; observed
+  and compatibility wrappers delegate to it exactly once. The contract now
+  ratchets the core plus both wrapper edges and passes locally. This run is
+  strong repair evidence but not the final green publication receipt.
 
 ## DONE lease — live LSP stdout capability closure
 

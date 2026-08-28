@@ -1292,7 +1292,11 @@ require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh" \
     '"name":"missing_balance","type":"Int"'
 require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
-    "ParseOneStmt" "ParserExpressionCallStatementKind(expr_fact)"
+    "ParseOneStmtCore" "ParserExpressionCallStatementKind(expr_fact)"
+require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
+    "ParseOneStmtObserved" "ParseOneStmtCore("
+require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
+    "ParseOneStmt" "ParseOneStmtObserved("
 require_function_text "src/self_hosted/hir/ast_expression_owner_kind_binding.pgy" \
     "AstTreeArtifactBindExpressionOwnerKinds" \
     "kind == TypedAstKindUnknownTag()"

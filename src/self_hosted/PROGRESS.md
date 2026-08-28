@@ -34,6 +34,15 @@
   whole-product `OPEN` scorecard, forbids the stale sentence, and passes
   locally. Repair publication and replacement exact-head CI are the next
   falsifier; no successor rung is inferred.
+- Repair checkpoint `5573ac5d` run `33162788387` completed RED 29/30. Full
+  self-host passed in 34m17s, and codegen bootstrap, Windows/macOS,
+  sanitizers, TSan, Rocq, backend toolchain, and backend 20/20 were green.
+  `build-linux` alone found that the hard contract still searched the legacy
+  `ParseOneStmt` wrapper for call-statement classification. The classifier
+  remains once in `ParseOneStmtCore`; `ParseOneStmtObserved` and
+  `ParseOneStmt` delegate to that core. The contract now checks the core and
+  both wrapper edges and passes locally. Replacement exact-head CI remains the
+  publication falsifier.
 
 ## Completed self-host context - 2026-08-28 bounded live LSP frame admission
 

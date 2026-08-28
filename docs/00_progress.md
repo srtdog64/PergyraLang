@@ -34,6 +34,16 @@ scorecard를 요구하고 과거 0% 문구를 금지하며 local green이다. �
 세지 않으며 두 repair의 publication과 replacement exact-head CI가 다음 falsifier다.
 Query/cache, semantic-index나 별도 SoT successor는 열지 않는다.
 
+Repair checkpoint `5573ac5d`의 run `33162788387`은 29/30 RED다. Full self-host가
+34분 17초에 통과해 새 debug request의 exhaustive match는 complete fixed point에서
+검증됐다. Codegen bootstrap, Windows/macOS, sanitizer, TSan, Rocq, backend
+toolchain과 shard 20/20도 모두 green이다. `build-linux`만 preparation과 component
+inventory 통과 뒤 stale hard contract에서 실패했다. Call-statement 분류는
+`ParseOneStmtCore`에 그대로 한 번 존재하고 새 위치 관측 경계는
+`ParseOneStmt -> ParseOneStmtObserved -> ParseOneStmtCore`로 위임한다. Gate를 이
+실제 세 경계에 맞춰 강화했고 local hard contract는 green이다. 이 두 번째 run도
+최종 publication closure로 세지 않으며 다음 exact-head replacement가 falsifier다.
+
 2026-08-28 live LSP `Content-Length` admission 구현 `b87c6b89`: 이미
 production `SUBSTITUTING`인 공개 live 경로에서 길이를 transport owner가 한 번만
 admit하도록 고쳤다. 선언 body 길이와 retained live buffer는 같은 262,144-byte

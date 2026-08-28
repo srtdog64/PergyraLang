@@ -68,12 +68,24 @@ percentage by themselves.
   and forbids the obsolete zero-percent claim. The source-MIR read-owner,
   focused public debug, and self-host preparation gates pass after the repairs.
   The first run remains RED evidence, not publication closure.
+- Second exact-head falsifier: repair checkpoint `5573ac5d` run `33162788387`
+  completed RED 29/30. Full self-host passed in 34m17s, proving the exhaustive
+  debug-request repair through the complete fixed point; codegen bootstrap,
+  Windows/macOS, sanitizers, TSan, Rocq, backend toolchain, and shards 20/20
+  also passed. `build-linux` alone failed after the refreshed preparation gate
+  and component inventory passed: `self_host_hard_contract_smoke.sh` still
+  looked for call-statement classification inside the old `ParseOneStmt`
+  wrapper. The classifier remains exactly once in `ParseOneStmtCore`; the new
+  location-observation boundary delegates through
+  `ParseOneStmt -> ParseOneStmtObserved -> ParseOneStmtCore`. The hard contract
+  now verifies those three real boundaries and passes locally without moving
+  or duplicating semantic logic.
 - Registry/progress: `selfhost.debug_session` is `CLOSED`; source-location facts
   are classified as its local view. Census is `CLOSED=51 BRIDGE=35 ACTIVE=1`,
   hard closure `51/87 = 58.6%`, migration `79.0%`, integrated 83% (81-85%),
   strict beta 83%, and conservative denominator-free hard replacement 75%.
-- Next falsifier: commit and publish the explicit read-root rejection plus this
-  checkpoint, then observe replacement CI on that exact HEAD. Until the
+- Next falsifier: commit and publish the hard-contract boundary repair plus
+  this checkpoint, then observe replacement CI on that exact HEAD. Until the
   replacement run is green this lease remains active;
   no formatter, query/cache, semantic-index, performance, or unrelated SoT
   successor is inferred.
