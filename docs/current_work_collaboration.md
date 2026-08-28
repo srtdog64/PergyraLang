@@ -53,11 +53,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `33191951046` completed RED because the new formatter declaration parser
   used reserved keyword `subject` as a local binder; the same native parse
   failure fanned out into Linux build/bootstrap, sanitizer-driver, and backend
-  toolchain jobs. The repair renames the binder and removes the reached
-  non-Windows unused-parameter warning. Native manifest build, bounded codegen
-  seed, a fresh installed driver, focused public formatter, hard/component
-  contracts, build inventory, SoT edge, and Windows C Werror syntax are green
-  locally. Replacement exact-head CI remains the publication falsifier.
+  toolchain jobs. Repair `95160383` fixed that binder and the reached
+  non-Windows warning. Replacement run `33193841830` then exposed the
+  standalone lexer's accidental use of codegen-only `Die`; after the
+  conclusive codegen-bootstrap failure the remaining long jobs were canceled.
+  Repair `1225bf51` gives lexer/formatter explicit local failure boundaries and
+  replaces the masked unregistered `StartsWith` call with admitted string
+  operations. A clean full codegen bootstrap, fresh installed driver, focused
+  public formatter, legacy formatter, hard/component contracts, build
+  inventory, SoT edge, and progress gate are green locally. Replacement
+  exact-head CI remains the publication falsifier.
 - Progress discipline: this real substitution added a CLOSED authority but did
   not reduce BRIDGE=35. The next implementation lease may not add another row;
   it must migrate and close one existing BRIDGE so the count becomes 34. The

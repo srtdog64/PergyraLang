@@ -16,13 +16,15 @@ is pushed and its exact-head CI publication result is observed.
 - Priority: stable intent/routine identity, one complete admitted transition
   view, consumer migration, missing-fact failure before artifact publication,
   old reconstruction deletion, then patch size.
-- Fact owner: the existing semantic intent signature and transition facts own
-  declaration identity. The exact missing fact is same-epoch admitted
-  expression identity for action/nested-call, guard/expect/post, and ordered
-  compensation. `MirIntentExecutionPlan` already carries the corresponding
-  later-stage shape, but the direct semantic-to-C path does not build or own
-  that plan. Extend the existing transition/view seam; do not add a top-level
-  authority.
+- Fact owner: semantic intent signature/transition facts own declaration
+  identity, while the existing `SelfDirIntentFacts.steps` rows already carry
+  same-epoch action/nested-call targets, guard/expect/post node identities,
+  participant/authority names, and ordered compensation identities. The exact
+  missing seam is carriage of those admitted DIR facts into
+  `CodegenIntentExecutionView`; duplicating them as new semantic arrays would
+  create a second source of truth. `MirIntentExecutionPlan` remains the later
+  plan-owned view for the direct-MIR slice. Extend the existing execution view
+  with admitted DIR facts; do not add a top-level authority.
 - Direct bypass to delete: source-C currently supplies
   `CodegenIntentExecutionViewEmpty(true)` from
   `program_admitted_semantic_owner.pgy`; `CodegenIntentDefinitionBlock` then
@@ -41,11 +43,12 @@ is pushed and its exact-head CI publication result is observed.
 
 ## Edit boundary
 
-- The active implementation scope, once released, is limited to
-  `ast_intent_transition_fact_owner.pgy`, the existing intent execution
-  codegen view, `program_admitted_semantic_owner.pgy`, the final
-  intent codegen consumer, the focused gate, component ratchets, registry/Coq
-  status projection, and progress/handoff documents.
+- The active implementation scope, once released, is limited to the existing
+  DIR intent fact/readiness owners, the intent execution codegen view, the
+  semantic/direct-MIR adapters that construct that view,
+  `program_admitted_semantic_owner.pgy`, the final intent codegen consumer, the
+  focused gate, component ratchets, registry/Coq status projection, and
+  progress/handoff documents.
 - Module composition, query/cache, ABI observability, performance, and new
   authority rows are outside this rung. Parallel implementation on the same
   consumer is forbidden; read-only review may be delegated after the first

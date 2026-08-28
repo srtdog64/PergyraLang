@@ -34,17 +34,20 @@ percentage by themselves.
   invalid fail-closed behavior, and static old-path deletion without adding a
   CI job or second self-host build.
 - Checkpoint basis: formatter implementation checkpoint `e9e9e20b` follows
-  public debugger publication `97d54a64` / GREEN run `33169622957`; formatter
-  handoff checkpoint `1a12ba84` is on `origin/main`. Exact-head run
-  `33191951046` completed RED. The Linux build, self-host bootstrap, codegen
-  bootstrap, sanitizer-driver build, and backend-toolchain build all stopped
-  at one native parser defect: `format_surface_decl_owner.pgy` used reserved
-  keyword `subject` as a local variable. Windows, macOS, TSan, and Rocq were
-  green. The local repair renames that binder to `subject_name` and suppresses
-  the independently reached non-Windows unused `backup_path` warning without
-  changing replacement behavior. Only replacement exact-head remote CI can
-  release the lease. Protected untracked `docs/compiler_architectures/` and
-  `pgy-80135c2c/` remain outside inspection, edit, and staging scope.
+  public debugger publication `97d54a64` / GREEN run `33169622957`. Formatter
+  handoff `1a12ba84`, first CI repair `95160383`, and standalone bootstrap
+  repair `1225bf51` are the current publication chain. Exact-head run
+  `33191951046` exposed the reserved local binder `subject` and a non-Windows
+  unused-parameter warning. Replacement run `33193841830` reached the
+  self-host codegen breadth gate, then rejected the standalone lexer because
+  it borrowed codegen-only `Die`; the remaining long jobs were canceled after
+  that conclusive failure to avoid spending the full matrix budget. Removing
+  `Die` exposed a second masked call target: formatter token admission used
+  `StartsWith`, which is not in the self-host builtin signature owner. The
+  repair uses already admitted string operations and local lexer/formatter
+  `Log` plus `Exit` failure boundaries. Only replacement exact-head remote CI
+  can release the lease. Protected untracked `docs/compiler_architectures/`
+  and `pgy-80135c2c/` remain outside inspection, edit, and staging scope.
 - Implemented delta: native formatter lexer/parser/layout owners are deleted;
   lossless typed lexer facts feed one Pergyra layout/session owner through an
   installed format request, while C retains stdout/compare/atomic replace
@@ -61,12 +64,14 @@ percentage by themselves.
   legacy formatter smoke, public tokens, installed-driver integration,
   build-source inventory, full component structural contract, hard contract,
   SoT authority edge, static authority mutations, documentation/progress,
-  shell syntax, and changed-C warning-as-error checks are green. After the CI
-  repair, the exact native test-harness manifest build, bounded codegen seed,
-  fresh installed DRV-2 build, focused public formatter, legacy formatter,
-  hard/component contracts, build-source inventory, SoT edge, and Windows C
-  warning-as-error syntax check are observed green locally. Local Coq is a
-  declared skip because no prover is installed. The edge reports 88
+  shell syntax, and changed-C warning-as-error checks are green. On
+  `1225bf51`, a clean full self-host codegen bootstrap reached its fixpoint and
+  matched lexer, parser, semantic, MIR-lower, audit-tool, and fuzz artifacts to
+  their oracles. A fresh installed DRV-2 build, focused public formatter,
+  legacy formatter, hard/component contracts, build-source inventory, SoT
+  edge, and Windows C warning-as-error syntax check are also observed green
+  locally. Local Coq is a declared skip because no prover is installed. The
+  edge reports 88
   authorities / 182 derived carriers / `CLOSED=52 BRIDGE=35 ACTIVE=1`; hard
   closure is 59.1% and migration 79.3%. Exact-head remote CI remains the
   publication falsifier.

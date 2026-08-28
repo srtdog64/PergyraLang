@@ -30,13 +30,15 @@ shell syntax와 changed-C Werror가 local green이다. 로컬 Coq/Rocq 실행 �
 기존 BRIDGE 35를 줄이지는 않았다. 구현 checkpoint는 `e9e9e20b`다. 다음
 successor는 새 authority 추가가 아니라
 기존 BRIDGE 하나를 `CLOSED`로 바꾸어 `35 -> 34`를 증명해야 한다. Formatter
-checkpoint `1a12ba84`의 exact-head run `33191951046`은 RED다. 새 formatter
-declaration parser가 예약어 `subject`를 local binder로 사용해 native parser가
-거부했고, 같은 원인이 Linux build/bootstrap, sanitizer-driver, backend toolchain으로
-전파됐다. Binder rename과 함께 Linux가 먼저 드러낸 unused-parameter warning을
-수리했으며, native manifest, bounded codegen seed, fresh installed driver, public fmt,
-hard/component/build inventory/SoT edge가 local green이다. Replacement exact-head CI가
-publication falsifier다. 다음 후보는
+checkpoint `1a12ba84`의 exact-head run `33191951046`은 예약어 local binder와
+non-Windows warning으로 RED였다. 첫 수리 `95160383`의 run `33193841830`은 더
+진행해 standalone lexer가 codegen-only `Die`를 빌려 쓰는 결함을 드러냈고, 명확한
+실패 뒤 남은 장시간 job은 취소했다. 수리 `1225bf51`은 lexer/formatter 실패 경계를
+각 구성 안의 `Log`/`Exit`로 닫고, 그 뒤 가려져 있던 미등록 `StartsWith` 호출도 이미
+admit된 string 연산으로 바꿨다. Clean full codegen bootstrap은 fixpoint와
+lexer/parser/semantic/MIR-lower/tool/fuzz oracle parity를 모두 통과했다. Fresh installed
+driver, public fmt, legacy fmt, hard/component/build inventory/SoT edge/progress도 local
+green이다. Replacement exact-head CI가 publication falsifier다. 다음 후보는
 `selfhost.intent_declaration_rows`이며, present intent의 empty execution view와
 step-header/compensation AST 재구성을 제거해 `53/34/1`을 만드는 것만 성공으로 센다.
 
