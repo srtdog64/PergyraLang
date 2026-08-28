@@ -70,7 +70,7 @@ grep -Fq "### Three-axis scorecard" "$PROGRESS" ||
     fail "PROGRESS lost the implementation/bounded/released scorecard"
 grep -Fq "| Bounded executable replacement |" "$PROGRESS" ||
     fail "PROGRESS lost bounded executable replacement evidence"
-grep -Fq '| Released/default replacement | pure-C artifact emit: `SUBSTITUTING`; plain compile/link, run, package, LLVM: `OPEN` |' "$PROGRESS" ||
+grep -Fq '| Released/default replacement | pure-C artifact emit and public debug session: `SUBSTITUTING`; whole-product replacement: `OPEN` |' "$PROGRESS" ||
     fail "PROGRESS blurred the promoted artifact target with open default targets"
 grep -Fq "self-host-progress-metric-test-smoke" "$PROGRESS" ||
     fail "PROGRESS does not name this executable metric"

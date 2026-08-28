@@ -1,34 +1,27 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-28 BLOCKED debugger successor
+## Active self-host context - 2026-08-28 public debugger publication
 
-- Published Print capability closure is green, but a fresh launcher census
-  finds no remaining implicit `driver_run_pipeline`: the surviving sites are
-  the exact test MIR oracle and declared native opt-out. Package compilation
-  and REPL evaluation already use installed Pergyra owners; bare RIR/AIR/HIR
-  requests fail closed. No additional substitution is inferred from those
-  paths.
-- The next observed compiler-bearing production candidate is
-  `pgy debug SOURCE`, whose C path still performs native parse, semantic
-  analysis, prompt state, and AST walking in `src/compiler/debugger.c`. No
-  production-reachable Pergyra debug-session producer exists. Existing parser
-  and semantic facts do not own source location, commands, breakpoints,
-  transition cursor/outcome, diagnostics, or exit meaning as one session.
-- This rung is exactly `BLOCKED` on that missing fact family and owner. Do not
-  bridge it by serializing Pergyra AST/text for C to reparse, retrying native
-  after child failure, retaining dual session reads, or claiming a UI-only
-  rewrite as hard progress. Query/cache, semantic-index, formatter, scaffold,
-  package metadata, and performance remain outside the active rung.
-- Re-entry requires a complete Pergyra session owner plus a focused installed
-  public gate derived from the tooling-conformance `debug_case.pgy` fixture.
-  It must prove exactly-once Pergyra entry, admitted identity/session parity,
-  missing-owner and invalid-source failure without partial output/native
-  timing, and deletion of public debugger calls to `parser_parse_program`,
-  `semantic_analyze`, and native AST walking.
-- Focused RIR/AIR/HIR opt-in, REPL installed-owner, substitution-velocity, and
-  progress-metric gates are green. Progress remains hard replacement 75%, SoT
-  `50/35/1`, hard closure 58.1%, migration 78.8%, integrated 83% (81-85%), and
-  strict beta 83%.
+- `pgy debug SOURCE` now enters one installed Pergyra-built session. The C
+  adapter no longer contains lexer, parser, semantic analysis, prompt state, or
+  AST walking; a missing driver or rejected source fails without native retry
+  or partial stdout.
+- `debug/session_owner.pgy` parses once, admits the typed artifact, semantic
+  verdict and body-type receipt, joins parser-cursor source locations to that
+  artifact identity, then owns command, breakpoint, traversal cursor and exit
+  transitions. Location lookup does not re-read source or parse serialized AST
+  text after admission.
+- The focused `n/n/q` gate observes line 3 provenance, exactly one child entry,
+  missing/invalid fail-closed behavior, no native timing, and static deletion
+  of C parser/semantic/AST paths. Native build/source inventory, tooling
+  conformance, SoT authority edge, and the full component structural ratchet
+  are local green.
+- This production path is `SUBSTITUTING`. `selfhost.debug_session` is a new
+  top-level `CLOSED` authority, so the census is `51/35/1`, hard closure 58.6%
+  and migration 79.0%. The denominator-free hard-replacement forecast remains
+  a conservative 75%; fixed-weight integrated progress is 83% (81-85%) and
+  strict beta is 83%. Commit, publication and exact-head CI remain the next
+  falsifier; no successor rung is inferred.
 
 ## Completed self-host context - 2026-08-28 bounded live LSP frame admission
 
@@ -5446,7 +5439,7 @@ These numbers must not be collapsed into one percentage:
 |------|------------------|---------|
 | Implementation inventory | 63,378 frontend/backend LOC / 330,170 C-reference LOC = 19.20%; broader Pergyra compiler-core inventory = 120,090 LOC (live-measured 2026-08-01 by `self-host-progress-metric-test-smoke`; the previous 58,954 / 328,645 = 17.94% snapshot is retained only in history) | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
 | Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 110 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. The current complete-source lane emits a 90,429,326-byte MIR and byte-identical 5,595,167-byte gen2/gen3 C. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. `make self-host-compiler` builds the installed driver through Pergyra parser/codegen seeds, while the complete-source lane closes the gen2/gen3 fixed point. |
-| Released/default replacement | pure-C artifact emit: `SUBSTITUTING`; plain compile/link, run, package, LLVM: `OPEN` | default `pgy --emit-c` selects the sibling Pergyra-built driver and has no native fallback; other default product targets still use C-owned orchestration. |
+| Released/default replacement | pure-C artifact emit and public debug session: `SUBSTITUTING`; whole-product replacement: `OPEN` | default artifact emission and `pgy debug` select installed Pergyra-built owners with no native fallback; unsupported or unowned product targets remain explicit opt-ins or fail closed. |
 
 The scorecard prevents two false claims: implementation volume is not native
 replacement, and one promoted target does not imply whole-product self-hosting.
@@ -5464,10 +5457,11 @@ implementation to replace a real compiler stage/pass beside the C/LLVM oracle.
 Run `make self-host-progress-metric-test-smoke` to measure the current Pergyra
 frontend/backend and compiler-core LOC beside the C reference inventory.
 Implementation volume only proves that code exists.
-**Released/native replacement remains 0%** because the default path still uses
-the C-owned compiler driver. Stage-0 seed creation and final emitted-C
-compilation also retain the native C toolchain. **Explicit bounded replacement:
-DRV-2 is live** through `make self-host-compiler` and
+**Released/native replacement is target-specific, not a whole-product
+percentage.** Stage-0 seed creation and final emitted-C compilation retain the
+native C toolchain, while named public compiler paths use installed Pergyra
+owners. **Explicit bounded replacement: DRV-2 is live** through
+`make self-host-compiler` and
 `pgy --self-driver <source.pgy>`; unsupported inputs fail closed instead of
 falling back to the C pipeline.
 The verified component frontiers are the

@@ -6,6 +6,7 @@
 import "../lib/path.pgy";
 import "../codegen/text/text_owner.pgy";
 enum DriverRung2CliRequest {
+    DriverCliDebugSession(String),
     DriverCliSourceTokensStdout(String),
     DriverCliSourceAstStdout(String),
     DriverCliSourceCapabilityManifestStdout(String),
@@ -52,24 +53,23 @@ func DriverRung2CliRequestFromArgsOrDie(
     args: Array<String>
 ) -> DriverRung2CliRequest {
     let count: Int = ArrayLength(args);
-    if count == 0 {
-        Die("driver rung-2 requires an explicit source or mode");
+    if count == 0 { Die("driver rung-2 requires an explicit source or mode"); }
+    if args[0] == "--debug-session" {
+        if count != 2 { Die("debug session mode requires exactly one source path"); }
+        return DriverCliDebugSession(DriverRung2CliPathOperandOrDie(
+            args[1], "debug session source path"));
     }
     if args[0] == "--tokens" {
-        if count != 2 {
-            Die("source token mode requires exactly one input path");
-        }
-        return DriverCliSourceTokensStdout(
-            DriverRung2CliPathOperandOrDie(args[1], "source token input path")
-        );
+        if count != 2 { Die("source token mode requires exactly one input path"); }
+        return DriverCliSourceTokensStdout(DriverRung2CliPathOperandOrDie(
+            args[1], "source token input path"));
     }
     if args[0] == "--ast" {
         if count != 2 {
             Die("source AST mode requires exactly one input path");
         }
-        return DriverCliSourceAstStdout(
-            DriverRung2CliPathOperandOrDie(args[1], "source AST input path")
-        );
+        return DriverCliSourceAstStdout(DriverRung2CliPathOperandOrDie(
+            args[1], "source AST input path"));
     }
     if args[0] == "--emit-capability-manifest-verified" {
         if count != 2 {

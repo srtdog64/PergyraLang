@@ -1,0 +1,325 @@
+// Complete Pergyra-native interactive debug session owner.
+//
+// The session admits one parser build, one typed AST artifact, one semantic
+// verdict, and one source-location fact bundle before publishing any prompt.
+// The public C launcher may delegate here once; it may not parse or walk AST.
+
+import "source_location_fact_owner.pgy";
+import "../semantic/ast_artifact_verdict_owner.pgy";
+import "../semantic/ast_body_type_bundle_owner.pgy";
+import "../semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
+
+class DebugSessionState
+{
+    let mut running: Bool;
+    let mut step_mode: Bool;
+    let mut current_node_id: Int;
+    let mut current_line: Int;
+    let mut current_path: String;
+    let mut input_buffer: String;
+    let mut breakpoints: Array<Int>;
+}
+
+func NewDebugSessionState() -> DebugSessionState {
+    let breakpoints: Array<Int> = [];
+    return DebugSessionState(true, true, 0 - 1, 0, "", "", breakpoints);
+}
+
+func DebugSessionPositiveDecimal(text: String) -> Bool {
+    if text == "" {
+        return false;
+    }
+    let i: Int = 0;
+    while i < StringLength(text) {
+        let code: Int = CharCode(text, StringLength(text), i);
+        if code < 48 || code > 57 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return ToInt(text) > 0 && ToString(ToInt(text)) == text;
+}
+
+func DebugSessionHasBreakpoint(
+    state: DebugSessionState,
+    line: Int
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(state.breakpoints) {
+        if state.breakpoints[i] == line {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func DebugSessionAddBreakpoint(
+    line: Int,
+    inout state: DebugSessionState
+) -> Void with caps io_write {
+    if DebugSessionHasBreakpoint(state, line) {
+        Print(Concat("[debug] breakpoint already set at ", Concat(
+            ToString(line), "\n"
+        )));
+        return;
+    }
+    let breakpoints: Array<Int> = state.breakpoints;
+    ArrayPush(breakpoints, line);
+    state.breakpoints = breakpoints;
+    Print(Concat("[debug] breakpoint set at ", Concat(
+        ToString(line), "\n"
+    )));
+}
+
+func DebugSessionClearBreakpoint(
+    line: Int,
+    inout state: DebugSessionState
+) -> Void with caps io_write {
+    let i: Int = 0;
+    let breakpoints: Array<Int> = state.breakpoints;
+    while i < ArrayLength(breakpoints) {
+        if breakpoints[i] == line {
+            let last: Int = ArrayLength(breakpoints) - 1;
+            if i != last {
+                ArraySet(breakpoints, i, breakpoints[last]);
+            }
+            ArrayPop(breakpoints);
+            state.breakpoints = breakpoints;
+            Print(Concat("[debug] breakpoint cleared at ", Concat(
+                ToString(line), "\n"
+            )));
+            return;
+        }
+        i = i + 1;
+    }
+    Print(Concat("[debug] no breakpoint at ", Concat(
+        ToString(line), "\n"
+    )));
+}
+
+func DebugSessionPrintBreakpoints(
+    state: DebugSessionState
+) -> Void with caps io_write {
+    if ArrayLength(state.breakpoints) == 0 {
+        Print("[debug] no breakpoints\n");
+        return;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(state.breakpoints) {
+        Print(Concat("[debug] breakpoint ", Concat(
+            ToString(state.breakpoints[i]), "\n"
+        )));
+        i = i + 1;
+    }
+}
+
+func DebugSessionReadCommand(
+    inout state: DebugSessionState
+) -> Option<String> with caps io_read {
+    while true {
+        let newline: Int = StringIndexOf(state.input_buffer, "\n");
+        if newline >= 0 {
+            let command: String = Substring(state.input_buffer, 0, newline);
+            state.input_buffer = Substring(
+                state.input_buffer, newline + 1,
+                StringLength(state.input_buffer) - newline - 1
+            );
+            return Some(StringTrim(command));
+        }
+        let chunk: String = ReadStdin(4096);
+        if StringLength(chunk) == 0 {
+            if state.input_buffer == "" {
+                return None;
+            }
+            let command: String = StringTrim(state.input_buffer);
+            state.input_buffer = "";
+            return Some(command);
+        }
+        state.input_buffer = Concat(state.input_buffer, chunk);
+        if StringLength(state.input_buffer) > 65536 {
+            return None;
+        }
+    }
+    return None;
+}
+
+func DebugSessionShowCurrent(
+    artifact: AstTreeArtifact,
+    state: DebugSessionState
+) -> Void with caps io_write {
+    let provenance: String = "<typed-node>";
+    let provenance_opt: Option<String> = TypedAstArenaProvenanceText(
+        artifact.arena, state.current_node_id
+    );
+    if IsSome(provenance_opt) {
+        provenance = UnwrapOption(provenance_opt);
+    }
+    Print(Concat(state.current_path, Concat(":", Concat(
+        ToString(state.current_line), Concat(" | ", Concat(provenance, "\n"))
+    ))));
+}
+
+func DebugSessionCommandLine(
+    artifact: AstTreeArtifact,
+    command: String,
+    inout state: DebugSessionState
+) -> Bool with caps io_write {
+    if command == "" || command == "n" || command == "next" {
+        state.step_mode = true;
+        return true;
+    }
+    if command == "c" || command == "continue" {
+        state.step_mode = false;
+        return true;
+    }
+    if command == "q" || command == "quit" {
+        state.running = false;
+        return true;
+    }
+    if command == "l" || command == "list" {
+        DebugSessionShowCurrent(artifact, state);
+        return false;
+    }
+    if command == "bt" {
+        Print(Concat("[debug] Main at ", Concat(
+            state.current_path, Concat(":", Concat(
+                ToString(state.current_line), "\n"
+            ))
+        )));
+        return false;
+    }
+    if command == "info break" {
+        DebugSessionPrintBreakpoints(state);
+        return false;
+    }
+    if StartsWith(command, "b ") {
+        let line_text: String = StringTrim(Substring(
+            command, 2, StringLength(command) - 2
+        ));
+        if DebugSessionPositiveDecimal(line_text) {
+            DebugSessionAddBreakpoint(ToInt(line_text), state);
+        } else {
+            Print("[debug] breakpoint line must be a positive integer\n");
+        }
+        return false;
+    }
+    if StartsWith(command, "cl ") {
+        let line_text: String = StringTrim(Substring(
+            command, 3, StringLength(command) - 3
+        ));
+        if DebugSessionPositiveDecimal(line_text) {
+            DebugSessionClearBreakpoint(ToInt(line_text), state);
+        } else {
+            Print("[debug] breakpoint line must be a positive integer\n");
+        }
+        return false;
+    }
+    Print("Commands: n(ext), c(ontinue), b <line>, l(ist), q(uit)\n");
+    return false;
+}
+
+func DebugSessionPauseAt(
+    artifact: AstTreeArtifact,
+    facts: DebugSourceLocationFacts,
+    node_id: Int,
+    inout state: DebugSessionState
+) -> Void with caps io_read, io_write {
+    let line_opt: Option<Int> = DebugSourceLocationLineAt(facts, node_id);
+    let path_opt: Option<String> = DebugSourceLocationPathAt(facts, node_id);
+    if !IsSome(line_opt) || !IsSome(path_opt) {
+        return;
+    }
+    let line: Int = UnwrapOption(line_opt);
+    if !state.step_mode && !DebugSessionHasBreakpoint(state, line) {
+        return;
+    }
+    state.current_node_id = node_id;
+    state.current_line = line;
+    state.current_path = UnwrapOption(path_opt);
+    DebugSessionShowCurrent(artifact, state);
+    let advance: Bool = false;
+    while state.running && !advance {
+        Print(Concat("(pgy-debug:", Concat(ToString(line), ") ")));
+        let command_opt: Option<String> = DebugSessionReadCommand(state);
+        if !IsSome(command_opt) {
+            state.running = false;
+            return;
+        }
+        advance = DebugSessionCommandLine(
+            artifact, UnwrapOption(command_opt), state
+        );
+    }
+}
+
+func DebugSessionWalkNode(
+    artifact: AstTreeArtifact,
+    facts: DebugSourceLocationFacts,
+    node_id: Int,
+    inout state: DebugSessionState
+) -> Void with caps io_read, io_write {
+    if !state.running {
+        return;
+    }
+    DebugSessionPauseAt(artifact, facts, node_id, state);
+    if !state.running {
+        return;
+    }
+    let child_index: Int = 0;
+    let child_opt: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, node_id, child_index
+    );
+    while state.running && IsSome(child_opt) {
+        DebugSessionWalkNode(
+            artifact, facts, UnwrapOption(child_opt), state
+        );
+        child_index = child_index + 1;
+        child_opt = TypedAstArenaChildAt(
+            artifact.arena, node_id, child_index
+        );
+    }
+}
+
+func RunDebugSession(
+    source_path: String
+) -> Void with caps io_read, io_write {
+    let build: ParserProgramBuild = ParseRootProgramBuild(source_path);
+    let artifact: AstTreeArtifact = ParserProgramArtifactFromBuild(build);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok || !SemanticAstArtifactAdmissionReady(
+        artifact, analysis, true
+    ) {
+        Exit(1);
+    }
+    let body_types: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
+            artifact, analysis, false, false
+        );
+    let body_admission: SemanticAstBodyTypeBundleAdmissionReceipt =
+        SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(
+            artifact, analysis, body_types
+        );
+    if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
+        body_admission, artifact, analysis, body_types
+    ) {
+        Exit(1);
+    }
+    let locations: DebugSourceLocationFacts =
+        DebugSourceLocationFactsFromParserBuild(artifact, build);
+    if !DebugSourceLocationFactsReadyFor(locations, artifact) {
+        Exit(1);
+    }
+
+    Print("0 error(s), 0 warning(s)\n");
+    Print(Concat("Pergyra Debugger v0.1 - ", Concat(source_path, "\n")));
+    Print("Commands: n(ext), c(ontinue), b <line>, l(ist), q(uit)\n\n");
+    Print("[debug] entering Main()\n");
+    let state: DebugSessionState = NewDebugSessionState();
+    DebugSessionWalkNode(
+        artifact, locations, locations.main_node_id, state
+    );
+    if state.running {
+        Print("\n[debug] program ended.\n");
+    }
+}

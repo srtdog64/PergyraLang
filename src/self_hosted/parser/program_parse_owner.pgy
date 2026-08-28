@@ -15,6 +15,35 @@ struct ParserProgramBuild {
     tree_text: String;
     expression_graphs: AstExpressionGraphRows;
     declaration_module_paths: Array<String>;
+    source_location_kinds: Array<Int>;
+    source_location_paths: Array<String>;
+    source_location_lines: Array<Int>;
+    source_location_offsets: Array<Int>;
+    source_location_callable_names: Array<String>;
+}
+
+func ParserProgramBuildSourceLocationRowsReady(
+    build: ParserProgramBuild
+) -> Bool {
+    let count: Int = ArrayLength(build.source_location_kinds);
+    if count == 0 || ArrayLength(build.source_location_paths) != count ||
+        ArrayLength(build.source_location_lines) != count ||
+        ArrayLength(build.source_location_offsets) != count ||
+        ArrayLength(build.source_location_callable_names) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if !TypedAstKindKnown(build.source_location_kinds[row]) ||
+            build.source_location_kinds[row] == TypedAstKindUnknownTag() ||
+            build.source_location_paths[row] == "" ||
+            build.source_location_lines[row] < 1 ||
+            build.source_location_offsets[row] < 0 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
 }
 
 func ParserProgramGraphFail(reason: String) -> Void {
@@ -47,11 +76,12 @@ func ParseProgramBuildWithImportPolicyObserved(
         expression_graphs, AstExpressionGraphRowsEmpty()
     );
     let declaration_module_paths: Array<String> = [];
+    let source_locations: Array<ParserSourceLocationObservation> = [];
     if observe_phases { Log("Phase: declaration-composition:start"); }
     let decls: String = ParseDecls(
         content, i, cursor, "", false, src_dir, source_path, false,
         follow_imports, "", involve_types, import_paths, expression_graphs,
-        declaration_module_paths
+        source_locations, declaration_module_paths
     );
     if observe_phases { Log("Phase: declaration-composition:done"); }
     if !ParserIntentParameterResolutionContractReady() {
@@ -68,6 +98,29 @@ func ParseProgramBuildWithImportPolicyObserved(
     decls = resolved_intents.tree_text;
     if observe_phases { Log("Phase: intent-resolution:done"); }
     let composed_rows: AstExpressionGraphRows = expression_graphs[0];
+    if !ParserSourceLocationObservationsReady(source_locations) {
+        ParserProgramGraphFail(
+            "source-location observation rows are incomplete"
+        );
+    }
+    let source_location_kinds: Array<Int> = [];
+    let source_location_paths: Array<String> = [];
+    let source_location_lines: Array<Int> = [];
+    let source_location_offsets: Array<Int> = [];
+    let source_location_callable_names: Array<String> = [];
+    let source_location_row: Int = 0;
+    while source_location_row < ArrayLength(source_locations) {
+        let source_location: ParserSourceLocationObservation =
+            source_locations[source_location_row];
+        ArrayPush(source_location_kinds, source_location.kind);
+        ArrayPush(source_location_paths, source_location.source_path);
+        ArrayPush(source_location_lines, source_location.source_line);
+        ArrayPush(source_location_offsets, source_location.source_offset);
+        ArrayPush(
+            source_location_callable_names, source_location.callable_name
+        );
+        source_location_row = source_location_row + 1;
+    }
     if observe_phases { Log("Phase: expression-graph-admission:start"); }
     if !AstExpressionGraphRowsReady(composed_rows) {
         ParserProgramGraphFail(
@@ -79,13 +132,17 @@ func ParseProgramBuildWithImportPolicyObserved(
         let empty_program: String = "Program:";
         return ParserProgramBuild(
             Concat(empty_program, "\n"), composed_rows,
-            declaration_module_paths
+            declaration_module_paths, source_location_kinds,
+            source_location_paths, source_location_lines,
+            source_location_offsets, source_location_callable_names
         );
     }
     let program_text: String = Concat("Program:\n", decls);
     return ParserProgramBuild(
         Concat(program_text, "\n"), composed_rows,
-        declaration_module_paths
+        declaration_module_paths, source_location_kinds,
+        source_location_paths, source_location_lines,
+        source_location_offsets, source_location_callable_names
     );
 }
 
@@ -110,8 +167,9 @@ func ParseRootProgram(source_path: String) -> String {
     return ParseRootProgramBuild(source_path).tree_text;
 }
 
-func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
-    let build: ParserProgramBuild = ParseRootProgramBuild(source_path);
+func ParserProgramArtifactFromBuild(
+    build: ParserProgramBuild
+) -> AstTreeArtifact {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(build.tree_text);
     let source_modules: AstSourceModuleFacts =
         AstSourceModuleFactsFromTopLevelPaths(
@@ -127,4 +185,8 @@ func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
     let owner_bound: AstTreeArtifact =
         AstTreeArtifactBindExpressionOwnerKinds(typed);
     return AstTreeArtifactBindDestructurePayloads(owner_bound);
+}
+
+func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
+    return ParserProgramArtifactFromBuild(ParseRootProgramBuild(source_path));
 }

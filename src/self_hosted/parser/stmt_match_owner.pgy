@@ -1,13 +1,16 @@
 // Self-host parser statement branch owner.
 
 import "cursor_owner.pgy";
+import "source_location_observation_owner.pgy";
 
 func ParseMatchStmt(
     content: String,
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    location_context: ParserSourceLocationContext,
+    inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     let i: Int = after_head;
     // `match EXPR { (case EXPR : STMT | default : STMT)* }`. Each
@@ -84,8 +87,9 @@ func ParseMatchStmt(
                 break;
             }
             ArraySet(cursor_out, 0, i);
-            let case_body: String = ParseOneStmt(
-                content, i, cursor_out, stmt_indent + 6, expression_graphs
+            let case_body: String = ParseOneStmtObserved(
+                content, i, cursor_out, stmt_indent + 6, expression_graphs,
+                location_context, source_locations
             );
             i = cursor_out[0];
             if StringLength(case_body) > 0 {

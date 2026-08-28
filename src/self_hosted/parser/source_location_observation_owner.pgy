@@ -1,0 +1,169 @@
+// Parser-produced source-location observations for executable AST nodes.
+//
+// These rows are captured while the parser cursor owns the source offset.
+// They are not reconstructed from emitted AST text and they do not own
+// parsing or semantic meaning. A later consumer must join kind/order against
+// the admitted AstTreeArtifact and fail closed on any mismatch.
+
+import "../hir/ast_text_inventory_owner.pgy";
+
+struct ParserSourceLocationContext {
+    known: Bool;
+    source_path: String;
+    source_length: Int;
+    line_starts: Array<Int>;
+}
+
+struct ParserSourceLocationObservation {
+    kind: Int;
+    source_path: String;
+    source_line: Int;
+    source_offset: Int;
+    callable_name: String;
+}
+
+func ParserSourceLocationContextUnknown() -> ParserSourceLocationContext {
+    let no_starts: Array<Int> = [];
+    return ParserSourceLocationContext(false, "", 0, no_starts);
+}
+
+func ParserSourceLocationContextFromSource(
+    source_path: String,
+    content: String
+) -> ParserSourceLocationContext {
+    let starts: Array<Int> = [0];
+    let length: Int = StringLength(content);
+    let i: Int = 0;
+    while i < length {
+        if CharCode(content, length, i) == 10 {
+            ArrayPush(starts, i + 1);
+        }
+        i = i + 1;
+    }
+    return ParserSourceLocationContext(
+        source_path != "", source_path, length, starts
+    );
+}
+
+func ParserSourceLocationLineForOffset(
+    context: ParserSourceLocationContext,
+    offset: Int
+) -> Option<Int> {
+    if !context.known || offset < 0 || offset > context.source_length ||
+        ArrayLength(context.line_starts) == 0 {
+        return None;
+    }
+    let low: Int = 0;
+    let high: Int = ArrayLength(context.line_starts);
+    while low + 1 < high {
+        let middle: Int = low + ((high - low) / 2);
+        if context.line_starts[middle] <= offset {
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    return Some(low + 1);
+}
+
+func ParserSourceLocationReserve(
+    context: ParserSourceLocationContext,
+    source_offset: Int,
+    inout observations: Array<ParserSourceLocationObservation>
+) -> Int {
+    let line_opt: Option<Int> = ParserSourceLocationLineForOffset(
+        context, source_offset
+    );
+    if !IsSome(line_opt) {
+        return 0 - 1;
+    }
+    let slot: Int = ArrayLength(observations);
+    ArrayPush(
+        observations,
+        ParserSourceLocationObservation(
+            TypedAstKindUnknownTag(), context.source_path,
+            UnwrapOption(line_opt), source_offset, ""
+        )
+    );
+    return slot;
+}
+
+func ParserSourceLocationCommit(
+    slot: Int,
+    kind: Int,
+    callable_name: String,
+    inout observations: Array<ParserSourceLocationObservation>
+) -> Void {
+    if slot < 0 || slot >= ArrayLength(observations) ||
+        !TypedAstKindKnown(kind) || kind == TypedAstKindUnknownTag() {
+        return;
+    }
+    let prior: ParserSourceLocationObservation = observations[slot];
+    ArraySet(
+        observations,
+        slot,
+        ParserSourceLocationObservation(
+            kind, prior.source_path, prior.source_line,
+            prior.source_offset, callable_name
+        )
+    );
+}
+
+func ParserObservedStatementFinish(
+    tree_text: String,
+    slot: Int,
+    inout observations: Array<ParserSourceLocationObservation>
+) -> String {
+    if slot < 0 {
+        return tree_text;
+    }
+    let newline: Int = StringIndexOf(tree_text, "\n");
+    let first_line: String = tree_text;
+    if newline >= 0 {
+        first_line = Substring(tree_text, 0, newline);
+    }
+    ParserSourceLocationCommit(
+        slot,
+        TypedAstTextKindOf(StringTrim(first_line)),
+        "",
+        observations
+    );
+    return tree_text;
+}
+
+func ParserSourceLocationAppendSynthetic(
+    kind: Int,
+    source_path: String,
+    source_line: Int,
+    source_offset: Int,
+    callable_name: String,
+    inout observations: Array<ParserSourceLocationObservation>
+) -> Void {
+    if !TypedAstKindKnown(kind) || kind == TypedAstKindUnknownTag() ||
+        source_path == "" || source_line < 1 || source_offset < 0 {
+        return;
+    }
+    ArrayPush(
+        observations,
+        ParserSourceLocationObservation(
+            kind, source_path, source_line, source_offset, callable_name
+        )
+    );
+}
+
+func ParserSourceLocationObservationsReady(
+    observations: Array<ParserSourceLocationObservation>
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(observations) {
+        let row: ParserSourceLocationObservation = observations[i];
+        if !TypedAstKindKnown(row.kind) ||
+            row.kind == TypedAstKindUnknownTag() ||
+            row.source_path == "" || row.source_line < 1 ||
+            row.source_offset < 0 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}

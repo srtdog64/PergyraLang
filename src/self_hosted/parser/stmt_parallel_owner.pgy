@@ -1,13 +1,16 @@
 // Self-host parser statement branch owner.
 
 import "cursor_owner.pgy";
+import "source_location_observation_owner.pgy";
 
 func ParseParallelStmt(
     content: String,
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    location_context: ParserSourceLocationContext,
+    inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     let i: Int = after_head;
     let parallel_probe: Int = SkipWhitespaceAndComments(content, i);
@@ -64,8 +67,9 @@ func ParseParallelStmt(
                 }
             }
             ArraySet(cursor_out, 0, i);
-            on_body = ParseBlock(
-                content, i, cursor_out, stmt_indent + 6, expression_graphs
+            on_body = ParseBlockObserved(
+                content, i, cursor_out, stmt_indent + 6, expression_graphs,
+                location_context, source_locations
             );
             i = cursor_out[0];
             i = Expect(content, i, "}");
@@ -81,8 +85,9 @@ func ParseParallelStmt(
                     break;
                 }
                 ArraySet(cursor_out, 0, i);
-                let direct_stmt: String = ParseOneStmt(
-                    content, i, cursor_out, stmt_indent + 6, expression_graphs
+                let direct_stmt: String = ParseOneStmtObserved(
+                    content, i, cursor_out, stmt_indent + 6, expression_graphs,
+                    location_context, source_locations
                 );
                 i = cursor_out[0];
                 if StringLength(direct_stmt) > 0 {
@@ -130,8 +135,9 @@ func ParseParallelStmt(
         return Concat(IndentStr(stmt_indent), "Parallel:");
     }
     ArraySet(cursor_out, 0, i);
-    let pbody: String = ParseBlock(
-        content, i, cursor_out, stmt_indent + 2, expression_graphs
+    let pbody: String = ParseBlockObserved(
+        content, i, cursor_out, stmt_indent + 2, expression_graphs,
+        location_context, source_locations
     );
     i = cursor_out[0];
     ArraySet(cursor_out, 0, i);

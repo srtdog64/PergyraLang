@@ -100,7 +100,8 @@ printf 'q\n' | "$PGY" debug "$DEBUG_SOURCE_ARG" >"$WORK_DIR/debug.out" 2>"$WORK_
 grep -Fq "Pergyra Debugger v0.1" "$WORK_DIR/debug.out"
 grep -Fq "Commands: n(ext), c(ontinue), b <line>, l(ist), q(uit)" "$WORK_DIR/debug.out"
 grep -Fq "(pgy-debug:" "$WORK_DIR/debug.out"
-grep -Fq "0 error(s), 0 warning(s)" "$WORK_DIR/debug.err"
+grep -Fq "0 error(s), 0 warning(s)" \
+    <(cat "$WORK_DIR/debug.out" "$WORK_DIR/debug.err")
 if grep -Fq "pgy debug:" "$WORK_DIR/debug.err"; then
     echo "debugger emitted a command failure during conformance smoke:" >&2
     cat "$WORK_DIR/debug.err" >&2

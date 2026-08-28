@@ -1,13 +1,16 @@
 // Self-host parser loop statement branch owner.
 
 import "cursor_owner.pgy";
+import "source_location_observation_owner.pgy";
 
 func ParseWhileStmt(
     content: String,
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    location_context: ParserSourceLocationContext,
+    inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     let i: Int = after_head;
     ArraySet(cursor_out, 0, i);
@@ -22,8 +25,9 @@ func ParseWhileStmt(
     let out: String = Concat(IndentStr(stmt_indent), Concat("While: ", cond));
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
-    let body: String = ParseBlock(
-        content, i, cursor_out, stmt_indent + 4, expression_graphs
+    let body: String = ParseBlockObserved(
+        content, i, cursor_out, stmt_indent + 4, expression_graphs,
+        location_context, source_locations
     );
     i = cursor_out[0];
     if StringLength(body) > 0 {
@@ -38,7 +42,9 @@ func ParseLoopStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    location_context: ParserSourceLocationContext,
+    inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     let i: Int = after_head;
     let out: String = Concat(IndentStr(stmt_indent), "While: true");
@@ -48,8 +54,9 @@ func ParseLoopStmt(
     );
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
-    let body: String = ParseBlock(
-        content, i, cursor_out, stmt_indent + 4, expression_graphs
+    let body: String = ParseBlockObserved(
+        content, i, cursor_out, stmt_indent + 4, expression_graphs,
+        location_context, source_locations
     );
     i = cursor_out[0];
     if StringLength(body) > 0 {
@@ -64,7 +71,9 @@ func ParseForStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    location_context: ParserSourceLocationContext,
+    inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
     // `for IDENT in EXPR..EXPR { ... }`. Range bounds use ParseExpr so `..`
     // terminates the lower bound and this owner consumes the upper explicitly.
@@ -115,8 +124,9 @@ func ParseForStmt(
     let out: String = Concat(IndentStr(stmt_indent), header);
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
-    let body: String = ParseBlock(
-        content, i, cursor_out, stmt_indent + 4, expression_graphs
+    let body: String = ParseBlockObserved(
+        content, i, cursor_out, stmt_indent + 4, expression_graphs,
+        location_context, source_locations
     );
     i = cursor_out[0];
     if StringLength(body) > 0 {

@@ -1,0 +1,153 @@
+// Typed debugger source-location fact owner.
+//
+// Parser observations carry the source offset while the source cursor owns it.
+// This owner joins those observations to one admitted AST identity in preorder.
+// It never reparses source text or guesses a location from serialized AST rows.
+
+import "../parser/program_parse_owner.pgy";
+
+struct DebugSourceLocationFacts {
+    ok: Bool;
+    artifact_identity_digest: Int;
+    node_lines: Array<Int>;
+    node_paths: Array<String>;
+    main_node_id: Int;
+}
+
+func DebugSourceLocationFactsEmpty() -> DebugSourceLocationFacts {
+    let lines: Array<Int> = [];
+    let paths: Array<String> = [];
+    return DebugSourceLocationFacts(false, 0, lines, paths, 0 - 1);
+}
+
+func DebugSourceLocationRowMatches(
+    arena: AstArena,
+    node_id: Int,
+    kind: Int,
+    callable_name: String
+) -> Bool {
+    if !TypedAstArenaNodeKindIs(arena, node_id, kind) {
+        return false;
+    }
+    if kind != TypedAstKindFuncDeclTag() {
+        return true;
+    }
+    let atom_opt: Option<String> = TypedAstArenaAtomText(arena, node_id);
+    let parent_opt: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    return callable_name != "" && IsSome(atom_opt) &&
+        UnwrapOption(atom_opt) == callable_name &&
+        IsSome(parent_opt) && TypedAstArenaNodeKindIs(
+            arena, UnwrapOption(parent_opt), TypedAstKindProgramTag()
+        );
+}
+
+func DebugSourceLocationFactsFromParserBuild(
+    artifact: AstTreeArtifact,
+    build: ParserProgramBuild
+) -> DebugSourceLocationFacts {
+    if !AstTreeArtifactReady(artifact) ||
+        !ParserProgramBuildSourceLocationRowsReady(build) {
+        return DebugSourceLocationFactsEmpty();
+    }
+    let node_lines: Array<Int> = [];
+    let node_paths: Array<String> = [];
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        ArrayPush(node_lines, 0);
+        ArrayPush(node_paths, "");
+        node_id = node_id + 1;
+    }
+
+    let search_node: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(build.source_location_kinds) {
+        let matched_node: Int = 0 - 1;
+        while search_node < artifact.count && matched_node < 0 {
+            if DebugSourceLocationRowMatches(
+                artifact.arena, search_node,
+                build.source_location_kinds[row],
+                build.source_location_callable_names[row]
+            ) {
+                matched_node = search_node;
+            }
+            search_node = search_node + 1;
+        }
+        if matched_node < 0 || node_lines[matched_node] != 0 {
+            return DebugSourceLocationFactsEmpty();
+        }
+        ArraySet(
+            node_lines, matched_node, build.source_location_lines[row]
+        );
+        ArraySet(
+            node_paths, matched_node, build.source_location_paths[row]
+        );
+        row = row + 1;
+    }
+
+    let main_node_id: Int = 0 - 1;
+    let main_count: Int = 0;
+    node_id = 0;
+    while node_id < artifact.count {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindFuncDeclTag()
+        ) {
+            let parent_opt: Option<Int> = TypedAstArenaParentId(
+                artifact.arena, node_id
+            );
+            let atom_opt: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, node_id
+            );
+            if IsSome(parent_opt) && TypedAstArenaNodeKindIs(
+                artifact.arena, UnwrapOption(parent_opt),
+                TypedAstKindProgramTag()
+            ) && IsSome(atom_opt) && UnwrapOption(atom_opt) == "Main" {
+                main_count = main_count + 1;
+                main_node_id = node_id;
+            }
+        }
+        node_id = node_id + 1;
+    }
+    if main_count != 1 || main_node_id < 0 ||
+        node_lines[main_node_id] < 1 || node_paths[main_node_id] == "" {
+        return DebugSourceLocationFactsEmpty();
+    }
+    return DebugSourceLocationFacts(
+        true, artifact.identity_digest,
+        node_lines, node_paths, main_node_id
+    );
+}
+
+func DebugSourceLocationFactsReadyFor(
+    facts: DebugSourceLocationFacts,
+    artifact: AstTreeArtifact
+) -> Bool {
+    return facts.ok && artifact.identity_digest > 0 &&
+        facts.artifact_identity_digest == artifact.identity_digest &&
+        ArrayLength(facts.node_lines) == artifact.count &&
+        ArrayLength(facts.node_paths) == artifact.count &&
+        facts.main_node_id >= 0 && facts.main_node_id < artifact.count &&
+        facts.node_lines[facts.main_node_id] > 0 &&
+        facts.node_paths[facts.main_node_id] != "";
+}
+
+func DebugSourceLocationLineAt(
+    facts: DebugSourceLocationFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 || node_id >= ArrayLength(facts.node_lines) ||
+        facts.node_lines[node_id] < 1 {
+        return None;
+    }
+    return Some(facts.node_lines[node_id]);
+}
+
+func DebugSourceLocationPathAt(
+    facts: DebugSourceLocationFacts,
+    node_id: Int
+) -> Option<String> {
+    if !facts.ok || node_id < 0 || node_id >= ArrayLength(facts.node_paths) ||
+        facts.node_paths[node_id] == "" {
+        return None;
+    }
+    return Some(facts.node_paths[node_id]);
+}

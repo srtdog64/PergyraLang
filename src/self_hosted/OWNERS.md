@@ -134,6 +134,10 @@ inventory must not become a second fact-family owner registry.
   silence; a rejection now reports its reason before the caller stops. Output
   shape stays in `lib/diagnostic.pgy`.
 - `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
+- `src/self_hosted/parser/source_location_observation_owner.pgy` -- captures
+  source path, parser-cursor offset, line, node kind, and enclosing callable at
+  the parser owner boundary. It does not reconstruct locations from AST text
+  or own debugger session policy.
 - `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- interprets the
   canonical typed `MatchCase` spelling as one bounded pattern fact. Semantic
   admission proves the full artifact once, then the ready-artifact projection
@@ -159,6 +163,16 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/tree_text_owner.pgy` -- compact AST text rendering
   and current AST payload contract consumed by `PgyCompilerWorld`.
 - `src/self_hosted/parser/type_name_owner.pgy` -- written type-name parsing.
+
+## Debug
+
+- `src/self_hosted/debug/source_location_fact_owner.pgy` -- binds the
+  parser-owned source-location observations to one admitted typed-AST artifact
+  identity and fails closed when the join is incomplete or ambiguous.
+- `src/self_hosted/debug/session_owner.pgy` -- owns the admitted interactive
+  debug-session state, command transitions, breakpoints, traversal cursor, and
+  exit meaning after parser, semantic, body-type, and source-location
+  admission. It does not re-read or reparse source text.
 
 ## Semantic
 

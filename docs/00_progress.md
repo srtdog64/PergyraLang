@@ -2,24 +2,24 @@
 
 마지막 업데이트: 2026-08-28
 
-현재 hard-substitution 실행 런은 `BLOCKED`다. 공개 launcher/package를 다시 센
-결과, 남은 `driver_run_pipeline`은 exact test MIR oracle과 명시적
-`--native-pipeline`/`PGY_NATIVE_PIPELINE` opt-out뿐이다. 패키지 컴파일과 REPL
-evaluation은 이미 installed Pergyra owner를 쓰고, bare RIR/AIR/HIR는 fail
-closed한다. 따라서 이 경로들을 다시 SoT 작업으로 늘리는 것은 진행이 아니다.
+`pgy debug SOURCE`의 compiler-bearing C 우회는 로컬에서 실제 치환됐다.
+`src/compiler/debugger.c`는 launcher 인자를 확인한 뒤 설치된 driver를 정확히 한
+번 호출하는 adapter만 남고, native lexer/parser/semantic/AST walker는 삭제됐다.
+`src/self_hosted/debug/session_owner.pgy`가 한 parser build에서 artifact, semantic
+verdict, body-type receipt, parser-cursor source location을 모두 승인한 뒤 command,
+breakpoint, cursor와 exit 전이를 소유한다. 실패 뒤 native retry나 source 재독해는
+없다. 이 경로는 Pergyra-native `SUBSTITUTING`이다.
 
-다음으로 관측되는 compiler-bearing production 후보는 `pgy debug SOURCE`다.
-현재 `src/compiler/debugger.c`가 native parse, semantic analysis, prompt state와 AST
-walk를 함께 소유하지만 `src/self_hosted`에는 admitted program/source identity와
-source location, command, breakpoint, cursor/outcome, diagnostic/exit을 한 세션으로
-소유하는 Pergyra producer가 없다. 이 owner 없이 Pergyra AST/text를 C가 다시
-읽게 만드는 것은 이중 SoT라 금지한다. 기존 tooling-conformance debug fixture를
-exactly-once installed session, missing-owner/invalid-source fail-closed, native
-parser/semantic/AST path deletion까지 검증하는 focused gate로 확장할 수 있을 때만
-이 런을 재개한다. 이 `BLOCKED` 기록은 구현이나 진행률 증가가 아니므로 hard
-replacement 75%, SoT `50/35/1`, hard closure 58.1%, migration 78.8%, 통합 83%
-(81~85%), strict beta 83%는 그대로다. Query/cache와 semantic-index는 successor가
-아니다.
+Focused public gate는 실제 `n/n/q` 세션의 line 3 provenance, exactly-once installed
+entry, missing-driver와 invalid-source의 nonzero/빈 stdout, native timing 부재,
+C residue 삭제, 단일 parser build를 검증한다. Native C build/source inventory,
+tooling conformance, SoT authority edge, full self-host component structural/removed-path
+ratchet도 local green이다. 새 top-level `selfhost.debug_session` 행은 `CLOSED`이며
+SoT census는 `51/35/1`, hard closure는 `51/87 = 58.6%`, migration index는
+`79.0%`다. Hard replacement 75%는 산술 분모 없는 보수적 작업 예측이라 임의의
+1%를 만들지 않았고, 고정 가중 통합치는 83.4%로 반올림 표시 **83%**
+(81~85%), strict beta 83%다. Commit/publication과 exact-head CI가 다음 falsifier며
+query/cache, semantic-index나 별도 SoT successor는 열지 않는다.
 
 2026-08-28 live LSP `Content-Length` admission 구현 `b87c6b89`: 이미
 production `SUBSTITUTING`인 공개 live 경로에서 길이를 transport owner가 한 번만
@@ -965,8 +965,8 @@ checkpoint `626f2188`이 그 exact production 경계를 선택해 local closure�
 | 축 | 현재치 | 분모와 근거 | 다음 상승 조건 |
 | --- | ---: | --- | --- |
 | 언어 strict beta | 83% | `docs/100_beta_readiness_checklist.md`의 현재 공식선 | current full suite와 남은 beta-critical fallback 폐쇄 |
-| SoT hard closure | 50/86 = 58.1% CLOSED | owner registry의 `CLOSED 50 / BRIDGE 35 / ACTIVE 1` | consumer migration, old read 삭제, negative gate까지 갖춰 `CLOSED` 승격 |
-| SoT migration index | 78.8% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | BRIDGE를 늘리는 문서/owner 추가가 아니라 실제 hard substitution |
+| SoT hard closure | 51/87 = 58.6% CLOSED | owner registry의 `CLOSED 51 / BRIDGE 35 / ACTIVE 1` | consumer migration, old read 삭제, negative gate까지 갖춰 `CLOSED` 승격 |
+| SoT migration index | 79.0% | 진행 예측용으로만 `CLOSED=1`, `BRIDGE=0.5`, `ACTIVE=0.25`를 적용 | BRIDGE를 늘리는 문서/owner 추가가 아니라 실제 hard substitution |
 | self-host substrate | 10/10 READY | executable scorecard의 capability 4는 allocator lanes, `BoxArray`, explicit destroy, TextBuilder/result assembly를 포함해 이미 READY이고 본문의 measured closure도 Phase 1 closure를 선언한다. | remaining compiler-scale String scope reclamation은 효율 전선이며 새 native fallback의 근거가 아님 |
 | 일반 GraphPlan 연속 전선 | complete-source Pergyra producer/gen2/gen3 fixed point + installed public C/LLVM/package/MIR/REPL-compile boundaries | canonical O3 gen2/gen3 byte equality, repository-installed sibling, fail-closed public gates가 누적됐고 latest implementation source의 remote full self-host job도 green이다. routine·row·V·owner 수는 진행률 분자가 아니다. | 기존 fixed point를 유지하고 fresh production compiler bypass가 실제 Pergyra owner에 닿을 때만 후속 rung을 연다. |
 | hard self-host replacement 예측 | 75% | complete-source producer/fixed point와 public compiler-bearing C/LLVM/package/MIR/REPL 내부는 bounded `SUBSTITUTING`이지만 whole product와 unsupported RIR/AIR/HIR에는 완전한 Pergyra owner가 없다. 기존 추정 분모를 새 숫자 없이 유지한다. | fresh production bypass, complete Pergyra owner, executable falsifier가 함께 존재하는 다음 target-specific substitution |
@@ -989,8 +989,8 @@ ordinal이나 통과 routine 수는 프로그램 구조가 바뀔 때 함께 변
 분수로 환산하지 않는다. 75%는 현재 실제 hard-substitution 범위와 완전한
 Pergyra owner가 없는 native product shell 및 unsupported IR producer를 함께 본
 target-specific 작업 예측이며 산술 통과율이 아니다.
-통합 계산은 `83×0.30 + 78.8×0.25 + 75×0.25 + 100×0.10 +
-100×0.10 = 83.35`이며 표시값은 83%다.
+통합 계산은 `83×0.30 + 79.0×0.25 + 75×0.25 + 100×0.10 +
+100×0.10 = 83.40`이며 표시값은 83%다.
 
 2026-08-18 control-flow 실행 갱신: 다음 compiler-scale RED는 SoT 행이
 아니라 direct `else if` tail을 source 깊이만큼 재귀 호출하던 MIR lowering이었다.

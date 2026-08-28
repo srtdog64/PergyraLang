@@ -16,6 +16,7 @@ import "decl_role_owner.pgy";
 import "decl_intent_owner.pgy";
 import "decl_nominal_owner.pgy";
 import "diagnostic_owner.pgy";
+import "source_location_observation_owner.pgy";
 
 // Imported-module visibility is a token fact, not a substring fact. Comments
 // and string literals may legitimately contain the word `export`; treating
@@ -67,10 +68,14 @@ func ParseDeclsInto(
     inout import_paths: Set<String>,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     inout script_graphs: Array<AstExpressionGraphRows>,
+    inout source_locations: Array<ParserSourceLocationObservation>,
+    inout script_source_locations: Array<ParserSourceLocationObservation>,
     inout out_blocks: Array<String>,
     inout out_module_paths: Array<String>,
     inout script_blocks: Array<String>
 ) -> Void {
+    let location_context: ParserSourceLocationContext =
+        ParserSourceLocationContextFromSource(source_path, content);
     let i: Int = start;
     let n: Int = StringLength(content);
     let active_within_zone: String = within_zone;
@@ -133,6 +138,7 @@ func ParseDeclsInto(
                     imp_content, 0, imp_cursor, name_prefix, false, imp_dir,
                     imp_path, true, true, active_within_zone, involve_types,
                     import_paths, expression_graphs, script_graphs,
+                    source_locations, script_source_locations,
                     out_blocks, out_module_paths, script_blocks
                 );
             }
@@ -161,6 +167,7 @@ func ParseDeclsInto(
                 content, i, cursor_out, new_prefix, true, source_dir,
                 source_path, force_export, follow_imports, active_within_zone,
                 involve_types, import_paths, expression_graphs, script_graphs,
+                source_locations, script_source_locations,
                 out_blocks, out_module_paths, script_blocks
             );
             i = cursor_out[0];
@@ -187,6 +194,7 @@ func ParseDeclsInto(
                 content, i, cursor_out, name_prefix, true, source_dir,
                 source_path, force_export, follow_imports, wz_name, involve_types,
                 import_paths, expression_graphs, script_graphs,
+                source_locations, script_source_locations,
                 out_blocks, out_module_paths, script_blocks
             );
             i = cursor_out[0];
@@ -415,9 +423,10 @@ func ParseDeclsInto(
         // `func NAME(params) -> Type { body }` at top level (base_indent=2).
         if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
-            let fn_block: String = ParseFunction(
+            let fn_block: String = ParseFunctionObserved(
                 content, i, cursor_out, decl_prefix, effective_export, 2,
-                "func", "Function: ", false, active_within_zone, expression_graphs
+                "func", "Function: ", false, active_within_zone,
+                expression_graphs, location_context, source_locations
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, fn_block);
@@ -440,9 +449,18 @@ func ParseDeclsInto(
         ParserExpressionGraphRowsBoxStart(
             statement_graphs, AstExpressionGraphRowsEmpty()
         );
-        let stmt_block: String = ParseOneStmt(
-            content, i, cursor_out, stmt_indent, statement_graphs
-        );
+        let stmt_block: String = "";
+        if collect_script {
+            stmt_block = ParseOneStmtObserved(
+                content, i, cursor_out, stmt_indent, statement_graphs,
+                location_context, script_source_locations
+            );
+        } else {
+            stmt_block = ParseOneStmtObserved(
+                content, i, cursor_out, stmt_indent, statement_graphs,
+                location_context, source_locations
+            );
+        }
         i = cursor_out[0];
         if collect_script {
             ArrayPush(script_blocks, stmt_block);
@@ -470,11 +488,13 @@ func ParseDecls(
     inout involve_types: Array<String>,
     inout import_paths: Set<String>,
     inout expression_graphs: Array<AstExpressionGraphRows>,
+    inout source_locations: Array<ParserSourceLocationObservation>,
     inout declaration_module_paths: Array<String>
 ) -> String {
     let out_blocks: Array<String> = [];
     let script_blocks: Array<String> = [];
     let script_graphs: Array<AstExpressionGraphRows> = [];
+    let script_source_locations: Array<ParserSourceLocationObservation> = [];
     ParserExpressionGraphRowsBoxStart(
         script_graphs, AstExpressionGraphRowsEmpty()
     );
@@ -482,6 +502,7 @@ func ParseDecls(
         content, start, cursor_out, name_prefix, until_brace, source_dir,
         source_path, force_export, follow_imports, within_zone, involve_types,
         import_paths, expression_graphs, script_graphs,
+        source_locations, script_source_locations,
         out_blocks, declaration_module_paths, script_blocks
     );
     ParserExpressionGraphsAppendRowsInto(expression_graphs, script_graphs[0]);
@@ -508,6 +529,29 @@ func ParseDecls(
     let program_text: String = AppendImplicitMain(output_text, script_text);
     if ArrayLength(script_blocks) > 0 {
         ArrayPush(declaration_module_paths, source_path);
+        if ArrayLength(script_source_locations) == 0 {
+            Exit(1);
+        }
+        let first_script: ParserSourceLocationObservation =
+            script_source_locations[0];
+        ParserSourceLocationAppendSynthetic(
+            TypedAstKindFuncDeclTag(), first_script.source_path,
+            first_script.source_line, first_script.source_offset, "Main",
+            source_locations
+        );
+        ParserSourceLocationAppendSynthetic(
+            TypedAstKindBlockTag(), first_script.source_path,
+            first_script.source_line, first_script.source_offset, "",
+            source_locations
+        );
+        let script_location_index: Int = 0;
+        while script_location_index < ArrayLength(script_source_locations) {
+            ArrayPush(
+                source_locations,
+                script_source_locations[script_location_index]
+            );
+            script_location_index = script_location_index + 1;
+        }
     }
     AllocatorDestroy(script_allocator);
     AllocatorDestroy(output_allocator);

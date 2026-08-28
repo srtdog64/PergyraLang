@@ -211,7 +211,7 @@ main(int argc, char *argv[])
             || strcmp(argv[1], "install") == 0)
             return driver_run_pkg_command(argv[0], pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")), argv[1], argc - 2, argv + 2);
         if (strcmp(argv[1], "debug") == 0)
-            return driver_run_debug_command(argc - 1, argv + 1);
+            return driver_run_debug_command(argv[0], argc - 1, argv + 1);
         if (strcmp(argv[1], "scaffold") == 0)
             return driver_run_scaffold_command(argc - 1, argv + 1);
         if (strcmp(argv[1], "new") == 0) {

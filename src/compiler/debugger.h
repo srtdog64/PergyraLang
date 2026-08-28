@@ -14,6 +14,8 @@
  *   q / quit     — exit debugger
  *   l / list     — show current source context
  */
-int driver_run_debug_command(int argc, char *argv[]);
+int driver_run_debug_command(const char *launcher_path,
+                             int argc,
+                             char *argv[]);
 
 #endif

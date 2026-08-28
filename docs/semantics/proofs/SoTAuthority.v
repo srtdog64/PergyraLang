@@ -1069,6 +1069,7 @@ Inductive SpineFact : Type :=
   | SFBackendArtifact
   | SFCompilerArtifactCommit
   | SFDriverCliRequest
+  | SFDebugSession
   | SFCompatibilityEvolution
   | SFZoneAuthorityRows
   | SFExpressionGraph
@@ -1134,6 +1135,7 @@ Inductive SpineOwner : Type :=
   | SOArtifactZone
   | SOCompilerArtifactCommit
   | SODriverCliRequest
+  | SODebugSession
   | SOCompatibilityEvolution
   | SOSemanticZoneAuthority
   | SOSemanticLocalBinding
@@ -1220,6 +1222,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFBackendArtifact => SOArtifactZone
   | SFCompilerArtifactCommit => SOCompilerArtifactCommit
   | SFDriverCliRequest => SODriverCliRequest
+  | SFDebugSession => SODebugSession
   | SFCompatibilityEvolution => SOCompatibilityEvolution
   | SFZoneAuthorityRows => SOSemanticZoneAuthority
   | SFExpressionGraph => SOParserExpressionGraph

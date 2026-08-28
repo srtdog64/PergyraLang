@@ -8960,6 +8960,8 @@ reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "CheckB
 reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/compiler/self_host_driver.c"
 require_file "src/compiler/self_host_driver.h"
+require_file "src/compiler/self_host_debug_driver.c"
+require_file "src/compiler/self_host_debug_driver.h"
 require_file "src/compiler/self_host_machine_manifest_artifact_owner.c"
 require_file "src/compiler/self_host_machine_manifest_artifact_owner.h"
 require_file "src/compiler/self_host_mir_artifact_owner.c"
@@ -9001,6 +9003,7 @@ reject_text "src/self_hosted/parser/stmt_match_owner.pgy" \
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
     "PARSER GRAPH ERROR: "
 require_max_lines "src/compiler/self_host_driver.c" 270
+require_max_lines "src/compiler/self_host_debug_driver.c" 90
 require_max_lines "src/compiler/self_host_mir_artifact_owner.c" 90
 require_max_lines "src/compiler/self_host_mir_diagnostic_stdout_owner.c" 130
 require_max_lines "src/compiler/compiler_process.c" 620
@@ -9168,6 +9171,8 @@ require_text "src/compiler/self_host_driver.c" "pgy_exec_argv(child_argv, false)
 require_text "src/compiler/self_host_driver.c" "self-host driver is unavailable"
 reject_text "src/compiler/self_host_driver.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_driver.c" "system("
+reject_text "src/compiler/self_host_debug_driver.c" "driver_run_pipeline("
+reject_text "src/compiler/self_host_debug_driver.c" "system("
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "system("
 require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \

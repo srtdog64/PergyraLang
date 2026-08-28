@@ -6,6 +6,7 @@ import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "stmt_owner.pgy";
 import "generic_parameter_list_owner.pgy";
+import "source_location_observation_owner.pgy";
 import "../lib/callable_contract_vocabulary_projection_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -102,7 +103,7 @@ func ParserCallableContractCanonicalCaps(names: Array<String>) -> String {
 //
 // Used at both top level (base_indent = 2) and inside subject/class
 // `Methods:` blocks (base_indent = 6).
-func ParseFunction(
+func ParseFunctionObserved(
     content: String,
     start: Int,
     inout cursor_out: Array<Int>,
@@ -113,8 +114,13 @@ func ParseFunction(
     fn_label: String,
     is_signature: Bool,
     within_zone_arg: String,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    location_context: ParserSourceLocationContext,
+    inout source_locations: Array<ParserSourceLocationObservation>
 ) -> String {
+    let function_slot: Int = ParserSourceLocationReserve(
+        location_context, start, source_locations
+    );
     let kw: String = fn_keyword;
     if StringLength(kw) == 0 {
         kw = "func";
@@ -130,6 +136,10 @@ func ParseFunction(
     if StringLength(fn_name) == 0 {
         Exit(1);
     }
+    ParserSourceLocationCommit(
+        function_slot, TypedAstKindFuncDeclTag(),
+        Concat(name_prefix, fn_name), source_locations
+    );
     // Optional generic parameter list: `func IDENT<T, U>(...)`. AST adds
     // a `    Generic params: <T, U>` line after `Function: NAME`.
     ArraySet(cursor_out, 0, i);
@@ -403,8 +413,9 @@ func ParseFunction(
         }
     } else {
         ArraySet(cursor_out, 0, i);
-        body_text = ParseBlock(
-            content, i, cursor_out, base_indent + 6, expression_graphs
+        body_text = ParseBlockObserved(
+            content, i, cursor_out, base_indent + 6, expression_graphs,
+            location_context, source_locations
         );
         i = cursor_out[0];
     }
@@ -472,4 +483,27 @@ func ParseFunction(
         block = AppendLine(block, body_text);
     }
     return block;
+}
+
+func ParseFunction(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    name_prefix: String,
+    is_export: Bool,
+    base_indent: Int,
+    fn_keyword: String,
+    fn_label: String,
+    is_signature: Bool,
+    within_zone_arg: String,
+    inout expression_graphs: Array<AstExpressionGraphRows>
+) -> String {
+    let context: ParserSourceLocationContext =
+        ParserSourceLocationContextUnknown();
+    let locations: Array<ParserSourceLocationObservation> = [];
+    return ParseFunctionObserved(
+        content, start, cursor_out, name_prefix, is_export, base_indent,
+        fn_keyword, fn_label, is_signature, within_zone_arg,
+        expression_graphs, context, locations
+    );
 }
