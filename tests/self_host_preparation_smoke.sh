@@ -257,7 +257,9 @@ require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPIL
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_INTENTS_PATH"
 require_text "src/self_hosted/PROGRESS.md" "Implementation inventory is live-measured"
-require_text "src/self_hosted/PROGRESS.md" "Released/native replacement remains 0%"
+require_text "src/self_hosted/PROGRESS.md" "Released/native replacement is target-specific, not a whole-product"
+require_text "src/self_hosted/PROGRESS.md" 'pure-C artifact emit and public debug session: `SUBSTITUTING`; whole-product replacement: `OPEN`'
+forbid_text "src/self_hosted/PROGRESS.md" "Released/native replacement remains 0%"
 require_text "src/self_hosted/PROGRESS.md" "self-host-progress-metric-test-smoke"
 require_text "src/self_hosted/PROGRESS.md" "Hard self-host contract"
 require_text "src/self_hosted/PROGRESS.md" "Peripheral Audit Tools (Not Counted In Coverage)"

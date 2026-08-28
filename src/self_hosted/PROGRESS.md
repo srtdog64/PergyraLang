@@ -22,14 +22,18 @@
   a conservative 75%; fixed-weight integrated progress is 83% (81-85%) and
   strict beta is 83%.
 - Implementation `a4dbf559` and checkpoint `ac3eab20` are published. First
-  exact-head run `33161152217` is RED evidence: native bootstrap oracle
+  exact-head run `33161152217` completed RED 28/30: native bootstrap oracle
   emission found the read-only request executor's non-exhaustive
   `DriverCliDebugSession` match. The installed root remains the only session
   executor; the read-only root now rejects the request explicitly and cannot
   become a fallback. Exact native-oracle emission now exits 0 with a
   32,608,634-byte C artifact, and the source-MIR owner plus focused public
-  debug gates are green. Repair publication and replacement exact-head CI are
-  the next falsifier; no successor rung is inferred.
+  debug gates are green. `build-linux` separately found that the preparation
+  gate still required an obsolete zero-percent replacement sentence. It now
+  requires the target-specific public-debug `SUBSTITUTING` /
+  whole-product `OPEN` scorecard, forbids the stale sentence, and passes
+  locally. Repair publication and replacement exact-head CI are the next
+  falsifier; no successor rung is inferred.
 
 ## Completed self-host context - 2026-08-28 bounded live LSP frame admission
 

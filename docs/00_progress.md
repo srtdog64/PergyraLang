@@ -21,14 +21,18 @@ SoT census는 `51/35/1`, hard closure는 `51/87 = 58.6%`, migration index는
 (81~85%), strict beta 83%다.
 
 구현 `a4dbf559`와 publication checkpoint `ac3eab20`은 `origin/main`에 있다. 첫
-exact-head run `33161152217`은 native bootstrap oracle emission에서
+exact-head run `33161152217`은 28/30 RED였다. Native bootstrap oracle emission에서
 `DriverRung2CliRequest`의 새 `DriverCliDebugSession` variant를 read-only 실행
 루트가 처리하지 않아 RED가 됐다. 설치 루트가 유일한 세션 실행 owner이므로
 read-only 루트에는 실행이나 fallback 대신 명시적 fail-closed 거부를 추가했다.
 같은 native-oracle 명령은 이제 32,608,634-byte C를 zero error로 생성하고,
-source-MIR read-owner ratchet과 focused public-debug gate도 green이다. 첫 run은
-closure로 세지 않으며 repair commit/publication과 replacement exact-head CI가 다음
-falsifier다. Query/cache, semantic-index나 별도 SoT successor는 열지 않는다.
+source-MIR read-owner ratchet과 focused public-debug gate도 green이다.
+`build-linux`는 별도로 compiler/test body를 통과한 뒤 preparation gate의 오래된
+`Released/native replacement remains 0%` 문구 요구를 적발했다. 이 gate는 이제
+public debug를 포함한 target-specific `SUBSTITUTING`과 whole-product `OPEN`
+scorecard를 요구하고 과거 0% 문구를 금지하며 local green이다. 첫 run은 closure로
+세지 않으며 두 repair의 publication과 replacement exact-head CI가 다음 falsifier다.
+Query/cache, semantic-index나 별도 SoT successor는 열지 않는다.
 
 2026-08-28 live LSP `Content-Length` admission 구현 `b87c6b89`: 이미
 production `SUBSTITUTING`인 공개 live 경로에서 길이를 transport owner가 한 번만

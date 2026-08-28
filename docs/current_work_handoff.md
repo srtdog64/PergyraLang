@@ -53,16 +53,21 @@ percentage by themselves.
   self-host component structural/removed-path contract all exit 0. The broad
   component gate ran longer under concurrent build load; no timeout or partial
   result is claimed.
-- First CI falsifier and repair: `self-host-bootstrap-linux` rejected native
-  oracle emission with a non-exhaustive `DriverRung2CliRequest` match, missing
+- First CI falsifier and repairs: run `33161152217` completed RED 28/30.
+  `self-host-bootstrap-linux` rejected native oracle emission with a
+  non-exhaustive `DriverRung2CliRequest` match, missing
   `DriverCliDebugSession`. The installed composition root already owns the
   session; the read-only root lacks write/installed-session authority, so it
   now rejects that request explicitly instead of executing it or adding a
   fallback. The exact native-oracle command now exits 0 and writes a
   32,608,634-byte C artifact with zero errors and three pre-existing intent
-  clause warnings. The source-MIR read-owner ratchet and focused public debug
-  gate both pass after the repair. Run `33161152217` is RED evidence and is not
-  publication closure.
+  clause warnings. `build-linux` separately passed its compiler/test bodies but
+  found `self_host_preparation_smoke.sh` still demanding the obsolete claim
+  `Released/native replacement remains 0%`. That ratchet now requires the
+  target-specific public-debug `SUBSTITUTING` / whole-product `OPEN` scorecard
+  and forbids the obsolete zero-percent claim. The source-MIR read-owner,
+  focused public debug, and self-host preparation gates pass after the repairs.
+  The first run remains RED evidence, not publication closure.
 - Registry/progress: `selfhost.debug_session` is `CLOSED`; source-location facts
   are classified as its local view. Census is `CLOSED=51 BRIDGE=35 ACTIVE=1`,
   hard closure `51/87 = 58.6%`, migration `79.0%`, integrated 83% (81-85%),

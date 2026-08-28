@@ -23,13 +23,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   invocation, missing/invalid nonzero with empty stdout, no native timing, one
   parser build, and static old-path rejection. Native link/source inventory,
   tooling conformance, SoT edge, and full component inventory are also green.
-- First exact-head run `33161152217` is RED evidence: the native bootstrap
+- First exact-head run `33161152217` completed RED 28/30. The native bootstrap
   oracle found that the read-only composition root did not exhaust the new
   `DriverCliDebugSession` request. The installed root remains the sole session
   executor; the read-only root now fails closed with an explicit rejection.
-  Exact native-oracle emission writes 32,608,634 bytes with zero errors, and
-  the source-MIR read-owner plus public-debug focused gates pass. No other task
-  may edit or publish this executable rung until the repair checkpoint is
+  `build-linux` independently found a stale preparation ratchet demanding the
+  obsolete `Released/native replacement remains 0%` sentence after the public
+  debug substitution. That gate now requires the target-specific
+  `SUBSTITUTING` / whole-product `OPEN` scorecard and rejects the stale claim.
+  Exact native-oracle emission writes 32,608,634 bytes with zero errors; the
+  source-MIR read-owner, public-debug, and preparation gates pass. No other
+  task may edit or publish this executable rung until the repair checkpoint is
   pushed and replacement exact-head CI is observed. Query/cache,
   semantic-index, formatter, scaffold, package
   metadata, performance, and unrelated SoT tracks remain closed.
