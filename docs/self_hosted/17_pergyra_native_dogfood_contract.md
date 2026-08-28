@@ -21,6 +21,15 @@ stopped after two silent minutes because it exceeded the 60-second static-gate
 budget and is not claimed green. Exact-head CI remains the publication
 falsifier.
 
+First exact-head run `33138532091` passed the completed platform, codegen,
+sanitizer, proof, and backend 20/20 jobs but `build-linux` rejected the parallel
+ok/value/reason admission carrier after its full component inventory passed,
+because the carrier lowered the errors-as-data metric to 4447 below 4453.
+Repair `7de0bd42` replaces that carrier with explicit
+`Result<Int, String>` and ratchets the measured surface upward to 4458. Focused
+frame, stream, public-live, structural, and likeness gates are repair green;
+replacement exact-head CI owns closure.
+
 This is reached Pergyra dogfood hardening, not a new `SUBSTITUTING` numerator or
 SoT closure. The adjacent Print audit also changes no policy: current owner
 evidence proves that Print/Log are outside Phase-1 AIR resource evidence and

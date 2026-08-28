@@ -21,8 +21,8 @@ the ceiling before multiplication/addition, so over-limit and integer-overflow
 strings fail as `content_length_exceeds_limit` rather than depending on checked
 integer behavior or growing the live buffer. Missing header, missing/invalid
 length, over-limit length, and incomplete body remain distinct transport
-states. The live loop waits only for an incomplete header/body and emits no
-response for malformed or over-limit framing.
+states through `Result<Int, String>`. The live loop waits only for an incomplete
+header/body and emits no response for malformed or over-limit framing.
 
 The live state deliberately owns one current document, matching the native
 production loop being replaced. `document_revision_owner.pgy` owns its URI,

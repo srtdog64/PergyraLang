@@ -20,8 +20,9 @@ percentage by themselves.
 
 ## Active self-host context - bounded live LSP frame-length admission
 
-- Executable checkpoint: implementation `b87c6b89`; the documentation commit
-  containing this card is the intended publication HEAD. Verify it against
+- Executable checkpoint: implementation `b87c6b89` plus typed-result repair
+  `7de0bd42`; the documentation commit containing this card is the intended
+  publication HEAD. Verify it against
   `origin/main` and exact-head CI rather than inferring publication. The
   expected remaining dirty state is only the protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/`; neither was inspected,
@@ -49,6 +50,16 @@ percentage by themselves.
   exit 0. The broad component inventory produced no output for two minutes and
   was stopped because it exceeded the repository's 60-second static-gate
   budget; it is not claimed green.
+- First exact-head run `33138532091` admitted the full matrix and passed
+  classifier, codegen bootstrap, Windows/macOS, sanitizers, TSan, Rocq, and all
+  20 backend shards. Its Linux component inventory also passed before
+  `build-linux` exposed `result_use=4447 < 4453`: the
+  first implementation had replaced six Option occurrences with a parallel
+  `{ok,value,reason}` carrier. Repair `7de0bd42` deletes that carrier and uses
+  the language-owned `Result<Int, String>` error channel. Focused C frame,
+  stream, public live, structural, and likeness gates are repair green;
+  likeness is ratcheted upward to the measured 4458. A replacement exact-head
+  run is required; the first run is not claimed green.
 - Separate reached-boundary audit: `Print`/`Log*` are explicitly excluded from
   Phase-1 AIR resource-boundary evidence, the canonical builtin-capability
   registry has no `Print` row, and both canonical `pgy_print` implementations

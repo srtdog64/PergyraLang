@@ -8,8 +8,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE lease — bounded live LSP frame-length admission
 
-- Executable checkpoint `b87c6b89` hardens the already-reached public live LSP
-  path. Only the primary task publishes this lease. Protected untracked
+- Executable checkpoint `b87c6b89` plus repair `7de0bd42` hardens the
+  already-reached public live LSP path. Only the primary task publishes this
+  lease. Protected untracked
   `docs/compiler_architectures/` and `pgy-80135c2c/` remain outside the edit,
   stage, and inspection scope.
 - Objective card: `transport_owner.pgy` owns one typed `Content-Length`
@@ -28,6 +29,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   diff checks are green. The broad component inventory was stopped after two
   silent minutes because it exceeded the 60-second static budget and is not
   claimed green.
+- First exact-head run `33138532091` opened the full matrix. Its completed
+  platform, codegen, sanitizer, proof, and backend 20/20 jobs are green, but
+  `build-linux` rejected `result_use=4447 < 4453` after its full component
+  inventory passed. Repair `7de0bd42` replaces
+  the parallel ok/value/reason carrier with `Result<Int, String>` and raises
+  the measured errors-as-data ratchet to 4458. Focused frame/stream/public-live,
+  structural, and likeness gates are repair green. Replacement CI, not the
+  partial first run, owns closure.
 - `Print` capability status is audit-only in this lease. Existing AIR docs
   exclude Print/Log from Phase-1 resource evidence; the registry/runtime prove
   there is no Print capability gate today. No capability, ABI, output budget,

@@ -12,6 +12,13 @@
   local green. 262,145 and a 30-digit decimal both produce nonzero/empty stdout
   from the live process. Full component inventory exceeded the 60-second static
   budget and is not claimed green. Publication/exact-head CI remain open.
+- First run `33138532091` passed the completed platform/codegen/sanitizer/proof
+  and backend 20/20 jobs, but Linux found `result_use=4447 < 4453`. The full
+  component inventory had passed before that failure. Repair
+  `7de0bd42` replaces the parallel admission carrier with explicit
+  `Result<Int, String>` and raises the measured ratchet to 4458. Focused
+  frame/stream/public-live, structural, and likeness gates are repair green;
+  replacement CI remains open.
 - This hardens an existing production `SUBSTITUTING` path; it does not replace
   another C path or close a SoT row. The separate Print capability asymmetry is
   recorded but not resolved. Registry and progress values remain unchanged;

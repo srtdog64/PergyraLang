@@ -18,6 +18,16 @@ fail closed한다. 전체 component inventory는 2분 동안 출력 없이 정�
 60초 예산을 넘겨 중단했으므로 green으로 세지 않는다. Publication 및 exact-head
 CI가 다음 falsifier다.
 
+첫 exact-head run `33138532091`은 full matrix를 열고 codegen bootstrap,
+Windows/macOS, sanitizer, TSan, Rocq, backend 20/20을 통과했지만 `build-linux`가
+full component inventory 통과 뒤 `result_use=4447 < 4453` 하나를 적발했다. 첫
+구현의 `{ok,value,reason}` carrier가
+기존 Option 표면 여섯 개를 지우면서 errors-as-data ratchet을 낮춘 것이 원인이다.
+Repair `7de0bd42`는 그 병렬 carrier를 삭제하고 언어 소유
+`Result<Int, String>`으로 invalid/over-limit 이유를 운반한다. C frame/stream,
+public live, focused structural, likeness가 repair green이고 새 실측 최소값은
+4458로 올렸다. Replacement exact-head CI 전에는 첫 run을 green으로 세지 않는다.
+
 같이 감사한 `Print`는 현재 builtin capability registry 행과 runtime
 `pgy_cap_require_export`가 없고, 기존 AIR 문서는 Print/Log를 Phase-1 resource
 evidence에서 제외한다. 이는 검증된 capability-model 비대칭이지만 이번 transport
