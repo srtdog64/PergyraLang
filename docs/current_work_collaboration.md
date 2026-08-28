@@ -34,10 +34,24 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   hard contract, SoT census, and progress are local green. Broad component
   inventory exceeded its 60-second static budget and was stopped after 90
   seconds without output; it is not claimed green.
+- First repair publication: checkpoint `9d1fded5` is on `origin/main` and run
+  `33213561874` completed RED 28/30. All platform, proof, sanitizer, codegen,
+  toolchain, and backend 20/20 jobs were GREEN. `build-linux` found only the
+  stale generated language-word inventory at its final preparation step.
+  `self-host-bootstrap-linux` built the driver and reached the final
+  compiler-purpose source-C action gate, where a stale equality still required
+  the typed child `intent:` target to equal an empty reconstructed header
+  target.
+- Follow-up repair: regenerate the inventory through its owner, preserve the
+  exact DIR producer diagnostic at the codegen admission boundary, delete the
+  header/child target dual read, and ratchet simultaneous `on` plus `intent`
+  child rows as the actual conflict. A fresh Pergyra-built DRV-2 passes both
+  the full compiler-purpose source-C action gate and the placed nested-intent
+  execution gate.
 - Publication boundary: the primary task alone owns documentation, explicit
-  staging, repair commit, push, and replacement exact-head CI. The waiting
-  `abi.intent_observability_rows` candidate remains read-only until that CI is
-  GREEN.
+  staging, follow-up repair commit, push, and replacement exact-head CI. The
+  waiting `abi.intent_observability_rows` candidate remains read-only until
+  that CI is GREEN.
 
 ## DONE lease — public `pgy fmt` Pergyra token/layout substitution
 

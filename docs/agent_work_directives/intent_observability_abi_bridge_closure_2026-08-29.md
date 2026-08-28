@@ -1,8 +1,9 @@
 # Intent observability ABI BRIDGE closure — 2026-08-29
 
 Status: `WAITING` (candidate base `01afa785794f461367b91d37ecea47168a09e55e`;
-run `33209375173` exposed an integration failure and was canceled; release only
-after the bootstrap repair's replacement exact-head CI is GREEN)
+runs `33209375173` and `33213561874` exposed successive integration failures;
+release only after the follow-up bootstrap repair's replacement exact-head CI
+is GREEN)
 
 This directive coordinates the next candidate rung. It is not semantic
 authority, a registry verdict, progress evidence, or permission to overlap the

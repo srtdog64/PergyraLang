@@ -167,10 +167,9 @@ func SelfDirIntentStepFromArtifact(
     let step_name: String = header.name;
     let on_text: String = clauses.on_text;
     let on_node_id: Int = clauses.on_node_id;
-    if clauses.intent_text != header.intent_text ||
-        (on_text != "" && clauses.intent_text != "") {
+    if on_text != "" && clauses.intent_text != "" {
         return SelfDirIntentResolvedStepError(
-            "self-host DIR intent step target rows disagree"
+            "self-host DIR intent step has both on and intent target rows"
         );
     }
     let outcome_node_id: Int = clauses.outcome_node_id;

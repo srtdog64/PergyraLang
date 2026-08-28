@@ -57,6 +57,11 @@ run `33197495199` completed GREEN, so this bounded executable rung is released.
   an intent target but the emitter treated every intent target as
   placement-free. That repair remains under the sole active collaboration
   lease; this completed directive does not authorize the successor rung.
+- Repair run `33213561874` then completed RED 28/30: every unrelated job was
+  GREEN, while Linux preparation found the generated language-word inventory
+  stale and full bootstrap found the remaining header/child intent-target dual
+  read at the compiler-purpose source-C gate. Both are follow-up publication
+  work under the same lease, not a reopened authority row.
 
 ## Edit boundary
 

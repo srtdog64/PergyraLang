@@ -29,6 +29,12 @@ func CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
         analysis.intent_signatures, analysis.intent_transitions,
         analysis.expression_surfaces, modes, priorities
     );
+    if !facts.ok || facts.diagnostic_message != "" {
+        Die(Concat(
+            "semantic DIR intent execution facts are invalid: ",
+            facts.diagnostic_message
+        ));
+    }
     if !SelfDirIntentFactsReady(
         artifact, declarations, analysis.signatures,
         analysis.intent_signatures, analysis.expression_surfaces, facts

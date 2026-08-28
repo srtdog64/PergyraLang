@@ -1651,6 +1651,10 @@ intent_fact_digest_assignment_sources="$(
     fail "SelfDirIntentFacts digest assignment escaped its receipt owner: $intent_fact_digest_assignment_sources"
 require_file "src/self_hosted/dir/intent_step_fact_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_step_fact_owner.pgy" 540
+reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'clauses.intent_text != header.intent_text'
+require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'self-host DIR intent step has both on and intent target rows'
 reject_file "src/self_hosted/dir/intent_step_header_fact_owner.pgy"
 require_file "src/self_hosted/semantic/ast_intent_transition_row_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_intent_transition_row_owner.pgy" 240
@@ -2277,6 +2281,8 @@ require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
     'self-host DIR placed intent boundary is unresolved'
 require_text "src/self_hosted/dir/intent_step_target_contract_owner.pgy" \
     'func SelfDirIntentStepPlacementReceiverReady('
+require_text "src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy" \
+    'semantic DIR intent execution facts are invalid: '
 require_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     'steps.receiver_aliases[step_row] != ""'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" \
