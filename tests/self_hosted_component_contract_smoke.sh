@@ -25389,7 +25389,9 @@ require_text "src/self_hosted/lsp/transport_owner.pgy" "func RunLspTransportStre
 require_text "src/self_hosted/lsp/transport_owner.pgy" "ReadStdin(max_bytes)"
 require_text "src/self_hosted/lsp/transport_owner.pgy" '"Content-Length:"'
 require_text "src/self_hosted/lsp/transport_owner.pgy" "func LspTransportMaxFrameBytes()"
-require_text "src/self_hosted/lsp/transport_owner.pgy" "struct LspTransportLengthAdmission"
+require_text "src/self_hosted/lsp/transport_owner.pgy" "func LspTransportLengthAdmissionFromRaw("
+require_text "src/self_hosted/lsp/transport_owner.pgy" "Result<Int, String>"
+reject_text "src/self_hosted/lsp/transport_owner.pgy" "struct LspTransportLengthAdmission"
 require_text "src/self_hosted/lsp/transport_owner.pgy" "value > (maximum - d) / 10"
 require_text "src/self_hosted/lsp/transport_owner.pgy" '"content_length_exceeds_limit"'
 reject_text "src/self_hosted/lsp/transport_owner.pgy" "LspParseNonNegativeInt("

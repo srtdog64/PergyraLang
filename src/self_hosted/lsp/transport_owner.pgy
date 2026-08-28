@@ -52,43 +52,31 @@ func LspTransportDigitValue(c: String) -> Option<Int> {
     return None;
 }
 
-struct LspTransportLengthAdmission {
-    ok: Bool;
-    value: Int;
-    reason: String;
-}
-
-func LspTransportLengthRejected(reason: String) -> LspTransportLengthAdmission {
-    return LspTransportLengthAdmission(false, 0, reason);
-}
-
 func LspTransportLengthAdmissionFromRaw(
     raw: String,
     maximum: Int
-) -> LspTransportLengthAdmission {
+) -> Result<Int, String> {
     let s: String = StringTrim(raw);
     if maximum < 0 || StringLength(s) == 0 {
-        return LspTransportLengthRejected("invalid_content_length");
+        return Err("invalid_content_length");
     }
     let value: Int = 0;
     let i: Int = 0;
     while i < StringLength(s) {
         let d_opt: Option<Int> = LspTransportDigitValue(CharAt(s, i));
         if !IsSome(d_opt) {
-            return LspTransportLengthRejected("invalid_content_length");
+            return Err("invalid_content_length");
         }
         let d: Int = UnwrapOption(d_opt);
         // Check before multiplication/addition so rejection does not depend on
         // checked-Int overflow semantics or a downstream buffer limit.
         if d > maximum || value > (maximum - d) / 10 {
-            return LspTransportLengthRejected(
-                "content_length_exceeds_limit"
-            );
+            return Err("content_length_exceeds_limit");
         }
         value = (value * 10) + d;
         i = i + 1;
     }
-    return LspTransportLengthAdmission(true, value, "");
+    return Ok(value);
 }
 
 func LspTransportHeaderEnd(frame: String) -> Option<Int> {
@@ -130,17 +118,17 @@ func LspTransportHeaderLineEnd(header: String, value_start: Int) -> Int {
 
 func LspTransportContentLengthAdmission(
     frame: String
-) -> LspTransportLengthAdmission {
+) -> Result<Int, String> {
     let header_end_opt: Option<Int> = LspTransportHeaderEnd(frame);
     if !IsSome(header_end_opt) {
-        return LspTransportLengthRejected("missing_header_end");
+        return Err("missing_header_end");
     }
     let header_end: Int = UnwrapOption(header_end_opt);
     let header: String = Substring(frame, 0, header_end);
     let marker: String = "Content-Length:";
     let marker_pos: Int = StringIndexOf(header, marker);
     if marker_pos < 0 {
-        return LspTransportLengthRejected("missing_content_length");
+        return Err("missing_content_length");
     }
     let value_start: Int = marker_pos + StringLength(marker);
     let value_end: Int = LspTransportHeaderLineEnd(header, value_start);
@@ -151,12 +139,12 @@ func LspTransportContentLengthAdmission(
 }
 
 func LspTransportContentLength(frame: String) -> Option<Int> {
-    let admission: LspTransportLengthAdmission =
+    let admission: Result<Int, String> =
         LspTransportContentLengthAdmission(frame);
-    if !admission.ok {
+    if IsErr(admission) {
         return None;
     }
-    return Some(admission.value);
+    return Some(Unwrap(admission));
 }
 
 func LspTransportFrameBody(frame: String) -> Option<String> {
@@ -198,10 +186,10 @@ func LspTransportPartialReason(frame: String) -> Option<String> {
     if !IsSome(header_end_opt) {
         return Some("missing_header_end");
     }
-    let admission: LspTransportLengthAdmission =
+    let admission: Result<Int, String> =
         LspTransportContentLengthAdmission(frame);
-    if !admission.ok {
-        return Some(admission.reason);
+    if IsErr(admission) {
+        return Some(UnwrapErr(admission));
     }
     let complete_opt: Option<Int> = LspTransportCompleteFrameLength(frame);
     if !IsSome(complete_opt) {
@@ -230,13 +218,13 @@ func LspTransportFrameJson(frame: String) -> Option<String> {
     if !IsSome(header_end_opt) {
         return Some(LspTransportFrameJsonError("missing_header_end", -1));
     }
-    let admission: LspTransportLengthAdmission =
+    let admission: Result<Int, String> =
         LspTransportContentLengthAdmission(frame);
-    if !admission.ok {
-        return Some(LspTransportFrameJsonError(admission.reason, -1));
+    if IsErr(admission) {
+        return Some(LspTransportFrameJsonError(UnwrapErr(admission), -1));
     }
     let body_opt: Option<String> = LspTransportFrameBody(frame);
-    let len: Int = admission.value;
+    let len: Int = Unwrap(admission);
     if !IsSome(body_opt) {
         return Some(LspTransportFrameJsonError("body_incomplete", len));
     }

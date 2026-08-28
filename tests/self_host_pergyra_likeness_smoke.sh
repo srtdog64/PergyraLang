@@ -352,7 +352,10 @@ SENTINEL_MAX=23
 # 4393 -> 4453 (2026-08-28): the live LSP session carries revision, frame,
 # request, and document-index absence through typed Option facts. Missing or
 # stale state fails closed instead of reopening empty-string/sentinel control.
-RESULT_USE_MIN=4453
+# 4453 -> 4458 (2026-08-28): bounded LSP Content-Length admission uses the
+# language-owned Result<Int, String> channel instead of a parallel
+# ok/value/reason structure. Invalid and over-limit reasons remain typed errors.
+RESULT_USE_MIN=4458
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world
