@@ -176,6 +176,7 @@ rm -f "$DRIVER_SEED_C_RAW" "$DRIVER_SEED_C"
 if ! (cd "$ROOT_DIR" && "$CODEGEN_BIN" --source "$driver_rel" \
     >"$DRIVER_SEED_C_RAW" 2>"$BUILD_DIR/seed_emit.err"); then
     echo "[self-host-driver-bootstrap] Pergyra-built codegen failed to emit driver seed" >&2
+    tail -c 65536 "$DRIVER_SEED_C_RAW" >&2 || true
     cat "$BUILD_DIR/seed_emit.err" >&2 || true
     exit 1
 fi

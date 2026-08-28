@@ -416,6 +416,21 @@ func SelfDirIntentStepFromArtifact(
             who_from_single_participant = true;
         }
     }
+    let placed_intent: Bool = intent_call.ok &&
+        (using_alias != "" || where_zone != "" ||
+         ArrayLength(authorized_names) > 0);
+    if placed_intent {
+        if using_alias == "" || where_zone == "" ||
+            ArrayLength(who_names) != 1 {
+            return SelfDirIntentResolvedStepError(
+                "self-host DIR placed intent boundary is unresolved"
+            );
+        }
+        // An `on: OtherIntent(...)` step can own an outer zone placement.
+        // Keep that placement receiver distinct from the callee intent and
+        // carry it explicitly; codegen must not infer it from attribution.
+        receiver_alias = who_names[0];
+    }
     if action_call.ok && ArrayLength(requires_names) == 0 &&
         !SelfDirIntentStepAppendActionContractRange(
             contracts.requires_names, contracts.requires_starts[action_index],

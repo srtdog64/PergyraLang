@@ -2273,6 +2273,14 @@ require_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     'CodegenIntentEmitActionStep('
 require_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     'CodegenIntentEmitNestedCall('
+require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'self-host DIR placed intent boundary is unresolved'
+require_text "src/self_hosted/dir/intent_step_target_contract_owner.pgy" \
+    'func SelfDirIntentStepPlacementReceiverReady('
+require_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
+    'steps.receiver_aliases[step_row] != ""'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" \
+    'tail -c 65536 "$DRIVER_SEED_C_RAW"'
 reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     'if using_alias == "" {'
 require_text \

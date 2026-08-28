@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - intent declaration rows closure publication
+## Active self-host context - intent declaration rows bootstrap repair publication
 
 - Objective card: close existing authority `selfhost.intent_declaration_rows`
   on the real installed/public source-C path. Stable semantic intent identity
@@ -30,9 +30,11 @@ percentage by themselves.
   then registry publication. A present intent with an empty DIR view,
   step/header/compensation AST rescan, mixed plan/AST fallback, and a new
   authority row are forbidden.
-- Released basis: formatter checkpoint `1aed1291` is on `origin/main` and
-  exact-head CI run `33197495199` completed GREEN. This worktree contains the
-  executable successor delta; its parent census was `52/35/1`.
+- Published basis: closure checkpoint `01afa785` is on `origin/main`; the
+  registry census is already `CLOSED=53 BRIDGE=34 ACTIVE=1`. Exact-head CI run
+  `33209375173` reached the real Pergyra-built gen2 driver seed, then exposed
+  `CODEGEN ERROR: codegen DIR nested intent boundary is invalid`. The remaining
+  jobs were canceled after that conclusive failure to preserve runner time.
 - Implemented result: source DIR builds the intent rows once, seals every
   carried field plus the typed-artifact epoch, and hands the receipt to one
   `CodegenIntentExecutionView`. Codegen validates only the carried digest,
@@ -40,20 +42,28 @@ percentage by themselves.
   an AST/header/compensation resolver. Action execution consumes the sealed
   `receiver_alias`; `who` remains a separate observability attribution range.
   The dead declaration snapshot ends at the DIR producer.
-- Observed gates: the freshly rebuilt installed driver passed source-C,
-  MIR-to-C, public/installed output parity and 11 missing/crossed/epoch
-  negatives in `intent_guard_post_compensation_execution_owner.sh`. The hard
-  contract, component structural contract, SoT registry gate, progress gate,
-  root self-host compile (`0 errors`, three pre-existing redundant-`who`
-  warnings), shell syntax, and `git diff --check` are green. The registry now
-  reports 88 authorities / 182 carriers / `CLOSED=53 BRIDGE=34 ACTIVE=1`.
-- Publication boundary: create the explicit-path implementation commit, push
-  it, and use exact-head CI as the remaining external falsifier. The local
-  epoch negative changes the consumer digest while holding rows fixed; a
-  constructed same-count/two-artifact cross-carry fixture remains useful
-  stronger evidence but is not substituted for the exact digest comparison.
-- Protected untracked `docs/compiler_architectures/` and `pgy-80135c2c/`
-  remain outside inspection, edit, and staging scope.
+- Reached repair: `on: OtherIntent(...)` with outer `using`/`where` placement
+  is semantically an intent target but retains an action-shaped
+  materialize/call/writeback boundary. DIR now carries its exact placement
+  receiver, readiness rejects missing or crossed placement facts, and codegen
+  selects the action-shaped lane only from that carried receiver. A pure
+  placement-free nested intent remains on `CodegenIntentEmitNestedCall`.
+  `driver_bootstrap.sh` now prints the generated stdout tail on failure so a
+  remote `CODEGEN ERROR` cannot be hidden behind the wrapper message again.
+- Observed repair gates: a fresh gen2 emits the integrated driver seed and the
+  bounded driver bootstrap passes. The freshly built installed driver passes
+  the placed-nested-intent direct source-C, public launcher, native oracle, and
+  execution parity gate. Hard contract, SoT registry, and progress gates are
+  green; the registry reports 88 authorities / 182 carriers /
+  `CLOSED=53 BRIDGE=34 ACTIVE=1`. The broad component inventory was stopped
+  after 90 seconds without output because it exceeded the static-gate budget;
+  it is not claimed green for this repair revision.
+- Publication boundary: finish narrow syntax/diff ratchets, create one
+  explicit-path repair commit, push it, and require replacement exact-head CI
+  GREEN before releasing the next `BRIDGE=34 -> 33` rung. The waiting candidate
+  is `abi.intent_observability_rows`; it may not overlap this repair.
+- Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
+  `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
 
 ## Completed self-host context - public formatter Pergyra token/layout substitution
 

@@ -113,20 +113,52 @@ func CodegenIntentDefinitionBlock(
             }
             let step_env: CodegenTypeEnv = env;
             if steps.target_kinds[step_row] == "intent" {
-                if steps.using_aliases[step_row] != "" ||
-                    authority_alias != "" || outcome_count != 0 ||
-                    steps.where_zone_names[step_row] != "" {
+                if outcome_count != 0 {
                     Die("codegen DIR nested intent boundary is invalid");
                 }
-                CodegenIntentEmitNestedCall(
-                    body, expression_surfaces,
-                    steps.target_expression_node_ids[step_row], step_name,
-                    steps.who_names, steps.who_starts[step_row],
-                    steps.who_counts[step_row],
-                    uses_intent_observability, step_env
-                );
-                ArrayPush(step_sync_expressions, "");
-                ArrayPush(step_writeback_expressions, "");
+                if steps.receiver_aliases[step_row] != "" {
+                    if steps.using_aliases[step_row] == "" ||
+                        steps.where_zone_names[step_row] == "" {
+                        Die("codegen DIR placed intent boundary is invalid");
+                    }
+                    // A semantically nested intent reached through `on:` may
+                    // retain an outer zone placement.  It uses the same
+                    // action-shaped materialize/call/writeback boundary, but
+                    // its placement receiver is carried explicitly by DIR.
+                    let emitted: CodegenIntentActionStepEmission =
+                        CodegenIntentEmitActionStep(
+                            body, intents, zone_authorities, intent_index,
+                            steps.receiver_aliases[step_row],
+                            steps.who_names, steps.who_starts[step_row],
+                            steps.who_counts[step_row],
+                            steps.using_aliases[step_row], authority_alias,
+                            steps.where_zone_names[step_row], step_name,
+                            expression_surfaces,
+                            steps.target_expression_node_ids[step_row],
+                            0, "", uses_intent_observability, env
+                        );
+                    step_env = emitted.env;
+                    ArrayPush(step_sync_expressions, emitted.sync_expression);
+                    ArrayPush(
+                        step_writeback_expressions,
+                        emitted.writeback_expression
+                    );
+                } else {
+                    if steps.using_aliases[step_row] != "" ||
+                        authority_alias != "" ||
+                        steps.where_zone_names[step_row] != "" {
+                        Die("codegen DIR nested intent boundary is invalid");
+                    }
+                    CodegenIntentEmitNestedCall(
+                        body, expression_surfaces,
+                        steps.target_expression_node_ids[step_row], step_name,
+                        steps.who_names, steps.who_starts[step_row],
+                        steps.who_counts[step_row],
+                        uses_intent_observability, step_env
+                    );
+                    ArrayPush(step_sync_expressions, "");
+                    ArrayPush(step_writeback_expressions, "");
+                }
             } else if steps.target_kinds[step_row] == "action" {
                 let emitted: CodegenIntentActionStepEmission =
                     CodegenIntentEmitActionStep(

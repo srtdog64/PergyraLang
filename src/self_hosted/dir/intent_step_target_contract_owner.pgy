@@ -33,8 +33,7 @@ func SelfDirIntentStepTargetContractReady(
     }
     if steps.target_kinds[step_index] == "intent" {
         let intent_index: Int = steps.target_indices[step_index];
-        return steps.receiver_aliases[step_index] == "" &&
-            steps.action_names[step_index] == "" &&
+        return steps.action_names[step_index] == "" &&
             steps.action_signature_indices[step_index] == -1 &&
             intent_index >= 0 &&
             intent_index <
@@ -47,6 +46,41 @@ func SelfDirIntentStepTargetContractReady(
                 intent_signatures.return_type_names[intent_index] &&
             steps.target_param_counts[step_index] ==
                 intent_signatures.param_counts[intent_index];
+    }
+    return false;
+}
+
+func SelfDirIntentStepPlacementReceiverReady(
+    ref participants: SelfDirIntentParticipantFacts,
+    participant_start: Int,
+    participant_count: Int,
+    ref steps: SelfDirIntentStepFacts,
+    step_index: Int
+) -> Bool {
+    let receiver: String = steps.receiver_aliases[step_index];
+    if steps.target_kinds[step_index] == "intent" && receiver == "" {
+        return steps.using_aliases[step_index] == "" &&
+            steps.where_zone_names[step_index] == "" &&
+            steps.authorized_counts[step_index] == 0;
+    }
+    if steps.target_kinds[step_index] != "action" &&
+        steps.target_kinds[step_index] != "intent" {
+        return false;
+    }
+    if receiver == "" || (steps.target_kinds[step_index] == "intent" &&
+        (steps.using_aliases[step_index] == "" ||
+         steps.where_zone_names[step_index] == "" ||
+         steps.who_counts[step_index] != 1 ||
+         steps.who_names[steps.who_starts[step_index]] != receiver)) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < participant_count {
+        let row: Int = participant_start + i;
+        if participants.aliases[row] == receiver {
+            return !participants.is_values[row];
+        }
+        i = i + 1;
     }
     return false;
 }

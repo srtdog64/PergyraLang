@@ -6,13 +6,12 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — intent declaration rows closure publication
+## ACTIVE lease — intent declaration rows bootstrap repair publication
 
-- Objective card: publish the completed closure of
-  `selfhost.intent_declaration_rows` on the installed/public source-C path.
-  The executable and negative gates passed and the census is now
-  `CLOSED=53 BRIDGE=34 ACTIVE=1`; exact-head CI is the remaining external
-  publication falsifier.
+- Objective card: preserve the published closure of
+  `selfhost.intent_declaration_rows` while repairing the exact Pergyra-built
+  gen2 bootstrap failure reached on that path. Checkpoint `01afa785` is on
+  `origin/main` and the census is already `CLOSED=53 BRIDGE=34 ACTIVE=1`.
 - Fact owner: `SemanticAstIntentSignatureFacts` owns declaration identity and
   the existing DIR intent rows own admitted step topology. The last consumer
   is the C intent emitter. `MirIntentExecutionPlan` retains only routines it
@@ -21,13 +20,24 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `TypedAstArenaChildAt` step discovery in the emitter, step-header reparsing,
   compensation rescan, mixed DIR/AST reads, or registry closure before the
   executable gate.
-- Integration evidence: installed/public source-C guard/expect/post and
-  ordered compensation parity, ten row/missing mutations plus one artifact
-  epoch mismatch, component/hard contracts, root self-host compile, SoT census,
-  progress, and diff checks are local green.
-- Publication basis: formatter checkpoint `1aed1291` is on `origin/main` and
-  exact-head CI run `33197495199` completed GREEN. The formatter lease is
-  released; this publication lease is the only active rung.
+- Reached failure: exact-head CI run `33209375173` failed in
+  `self-host-bootstrap-linux` because gen2 rejected an outer-placed nested
+  intent as an invalid pure-nested boundary. The run was canceled after the
+  exact failure was recovered to avoid spending the remaining matrix budget.
+- Repair boundary: DIR carries the placed intent receiver, readiness seals its
+  one `who` plus `using`/`where` facts, codegen reuses the action-shaped
+  materialize/call/writeback lane, and placement-free nested intent remains on
+  the pure nested lane. No registry row, progress status, or unrelated intent
+  consumer may change in this lease.
+- Integration evidence: fresh gen2 driver-seed emission, bounded integrated
+  bootstrap, fresh installed direct/public/native placed-intent execution,
+  hard contract, SoT census, and progress are local green. Broad component
+  inventory exceeded its 60-second static budget and was stopped after 90
+  seconds without output; it is not claimed green.
+- Publication boundary: the primary task alone owns documentation, explicit
+  staging, repair commit, push, and replacement exact-head CI. The waiting
+  `abi.intent_observability_rows` candidate remains read-only until that CI is
+  GREEN.
 
 ## DONE lease — public `pgy fmt` Pergyra token/layout substitution
 

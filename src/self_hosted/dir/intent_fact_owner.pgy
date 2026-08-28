@@ -425,20 +425,9 @@ func SelfDirIntentFactsReady(
                     facts.steps.where_zone_names[step_row]) {
                 return false;
             }
-            if facts.steps.target_kinds[step_row] == "action" {
-                let receiver_row: Int = SelfDirIntentParticipantIndex(
-                    facts.participants.aliases, p_start, p_count,
-                    facts.steps.receiver_aliases[step_row]
-                );
-                if receiver_row < 0 ||
-                    facts.participants.is_values[receiver_row] {
-                    return false;
-                }
-            } else if facts.steps.target_kinds[step_row] == "intent" {
-                if facts.steps.receiver_aliases[step_row] != "" {
-                    return false;
-                }
-            } else {
+            if !SelfDirIntentStepPlacementReceiverReady(
+                facts.participants, p_start, p_count, facts.steps, step_row
+            ) {
                 return false;
             }
             let name_i: Int = 0;

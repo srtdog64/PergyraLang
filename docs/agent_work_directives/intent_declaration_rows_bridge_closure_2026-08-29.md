@@ -1,6 +1,7 @@
 # Intent declaration rows BRIDGE closure — 2026-08-29
 
-Status: `DONE` (local closure green; exact-head CI publication pending)
+Status: `IMPLEMENTATION COMPLETE` (closure checkpoint `01afa785` published;
+bootstrap repair publication active)
 
 This directive fixes the next executable objective. It is temporary
 coordination, not semantic authority, a registry verdict, or completion
@@ -51,6 +52,11 @@ run `33197495199` completed GREEN, so this bounded executable rung is released.
   root compile, SoT census, progress, shell syntax, and diff checks are green.
 - The authority row moved in place from `BRIDGE` to `CLOSED`; no authority row
   was added. Census is `CLOSED=53 BRIDGE=34 ACTIVE=1`.
+- Exact-head run `33209375173` subsequently reached a distinct integration
+  defect in the published path: an outer-placed nested intent was admitted as
+  an intent target but the emitter treated every intent target as
+  placement-free. That repair remains under the sole active collaboration
+  lease; this completed directive does not authorize the successor rung.
 
 ## Edit boundary
 
