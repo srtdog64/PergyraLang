@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-29 (Asia/Seoul)
+Updated: 2026-08-30 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — ArrayString named value-boundary semantic rejection
+## No active self-host implementation — ArrayString named value-boundary semantic rejection published
 
 - Exact base is `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on
   `origin/main`; the primary task owns the sole implementation lease.
@@ -46,8 +46,16 @@ percentage by themselves.
 - Current-source DRV-2 and a 32,923,787-byte native production-bootstrap C
   artifact are green. Component, SoT edge/live adequacy, single-owner,
   hard-contract, likeness `4509/4509`, documentation, progress, and diff checks
-  pass locally. Coq/Rocq is a declared local skip; publication and exact-head CI
-  remain pending. Census and the 83% project forecast do not change.
+  pass locally. Coq/Rocq is a declared local skip. Census and the 83% project
+  forecast do not change.
+- Publication result: implementation
+  `5f77be4fe3601487e5e5b7f6e7b67fb2df5a18b9` and generated language-word
+  inventory correction `a6f530ff153f6cf9047bcc4d889418a08198f781` are on
+  `origin/main`. The first run exposed only the generated inventory drift.
+  Exact-head full dispatch run `33258296309` completed GREEN 30/30 in 32m39s:
+  Linux 27m23s, full self-host 32m22s, codegen bootstrap 8m52s, sanitizers
+  12m27s, Windows 8m36s, Rocq 9 2m09s, backend toolchain 11m14s, and comparison
+  shards 20/20. The lease is released; no successor implementation is inferred.
 
 ## No active self-host implementation - ArrayString owner-handle caller move retirement published
 

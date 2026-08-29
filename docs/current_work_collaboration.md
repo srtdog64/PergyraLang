@@ -1,12 +1,12 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-08-29 (Asia/Seoul)
+Updated: 2026-08-30 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE publication lease — ArrayString named value-boundary semantic rejection
+## NO ACTIVE implementation lease — ArrayString named value-boundary semantic rejection published
 
 - Exact base is `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on
   `origin/main`; the primary task is the sole integration owner.
@@ -32,7 +32,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   C emission, existing C/LLVM ownership controls, component inventory, SoT edge
   and live adequacy, single-owner, hard-contract, likeness `4509/4509`,
   documentation, progress, and diff checks are locally green. Coq/Rocq is a
-  declared local skip; commit, push, and exact-head CI remain pending.
+  declared local skip.
+- Publication result: implementation
+  `5f77be4fe3601487e5e5b7f6e7b67fb2df5a18b9` and generated language-word
+  inventory correction `a6f530ff153f6cf9047bcc4d889418a08198f781` are on
+  `origin/main`. The first run exposed only that generated inventory drift.
+  Exact-head full dispatch run `33258296309` completed GREEN 30/30 in 32m39s;
+  Linux passed in 27m23s, full self-host in 32m22s, Rocq 9 in 2m09s, and
+  backend comparison passed 20/20. The lease is released without opening or
+  implying a successor rung.
 
 ## NO ACTIVE implementation lease — ArrayString owner-handle caller move retirement published
 

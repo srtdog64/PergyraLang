@@ -1,6 +1,6 @@
 # ArrayString named value-boundary semantic rejection result — 2026-08-29
 
-Status: `LOCAL GREEN — PUBLICATION PENDING`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on
 `origin/main`.
@@ -69,3 +69,20 @@ Multiple or conditional named owner moves, aggregate-result transfer, general
 value returns, and the remaining direct-MIR program-extension consumers stay
 open. No registry row closes: the census remains `55 CLOSED / 32 BRIDGE / 1
 ACTIVE`, and the evidence-reconciled project forecast remains 83%.
+
+## Publication evidence
+
+Implementation `5f77be4fe3601487e5e5b7f6e7b67fb2df5a18b9` is on
+`origin/main`. Its first remote run `33257018917` passed every completed
+platform, proof, sanitizer, codegen, and backend-comparison job, but
+`build-linux` correctly rejected stale generated language-word implementation
+counts. The official registry generator changed only `func`, `let`, `own`, and
+`return` counts; the 146-row registry smoke passed locally.
+
+Generated inventory correction
+`a6f530ff153f6cf9047bcc4d889418a08198f781` is on `origin/main`.
+Exact-head full dispatch run `33258296309` completed GREEN 30/30 in 32m39s:
+Linux 27m23s, full self-host 32m22s, codegen bootstrap 8m52s, sanitizers
+12m27s, Windows 8m36s, Rocq 9 2m09s, backend toolchain 11m14s, and backend
+comparison 20/20. The publication lease is released without opening a
+successor rung.

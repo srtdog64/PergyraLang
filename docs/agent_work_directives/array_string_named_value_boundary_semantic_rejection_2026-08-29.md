@@ -1,6 +1,6 @@
 # ArrayString named value-boundary semantic rejection
 
-Status: `IMPLEMENTATION COMPLETE — LOCAL GREEN, PUBLICATION PENDING`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on
 `origin/main`.
@@ -57,6 +57,9 @@ Exact base: `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on
   `tests/self_hosted/parity/direct_mir_array_string_named_value_boundary_owner.sh`.
 
 The focused native/self-host gate, existing ownership controls, current-source
-DRV-2 build, and native production-bootstrap emission are locally green. The
-directive does not own semantic status, SoT census, project progress, or remote
-publication evidence.
+DRV-2 build, and native production-bootstrap emission are locally green.
+Implementation `5f77be4fe3601487e5e5b7f6e7b67fb2df5a18b9` and generated
+inventory correction `a6f530ff153f6cf9047bcc4d889418a08198f781` are on
+`origin/main`; exact-head full CI run `33258296309` completed GREEN 30/30.
+This directive does not own semantic status, SoT census, project progress, or
+a successor rung.
