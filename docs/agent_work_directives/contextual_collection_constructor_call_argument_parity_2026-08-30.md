@@ -1,6 +1,6 @@
 # Contextual collection-constructor call-argument parity
 
-Status: `LOCALLY CLOSED — PUBLICATION PENDING`
+Status: `DONE — PUBLISHED`
 
 Exact base: `c098b2e1bb02b0e73d34909da41dacdef0e82a08` on
 `origin/main`.
@@ -86,13 +86,29 @@ Exact base: `c098b2e1bb02b0e73d34909da41dacdef0e82a08` on
   path ratchets pass after replacing their two obsolete concrete-only selector
   strings. SoT edge remains green at `88` authorities, `183` carriers,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`.
-- The local initializer projection gate currently fails at
+- The local initializer projection gate fails at
   `identity-bound callable C binding is missing`. Reverting all four semantic
   source files byte-for-byte to the exact base reproduces the same failure with
   the freshly rebuilt GCC 16 native compiler, so it is not recorded as a
-  regression, pass, or skip for this slice. Exact-head CI remains the required
-  cross-toolchain falsifier. Local Coq/Rocq is also unavailable; no missing-
-  prover bypass was used.
+  regression, pass, or skip for this slice. Exact implementation-head Windows
+  CI passes and therefore supplies the cross-toolchain falsifier. Local
+  Coq/Rocq is also unavailable; no missing-prover bypass was used, and the Rocq
+  9 CI job passes.
+
+## Publication evidence
+
+- Implementation `e3905894d4800d47ec87f2c008ebac1b37014aeb` and generated
+  inventory correction `33701ca8937ee325aadf2f7840e1ac77000b0ad9` are on
+  `origin/main`.
+- Implementation run `33273587010` exposed only the generated language-word
+  inventory drift in Linux step 14. Windows, TSan, sanitizers, macOS C-only,
+  Rocq 9, codegen bootstrap, backend toolchain, and comparison shards 20/20
+  passed. Its initially cancelled full self-host job was rerun alone in attempt
+  2 and passed in about 41 minutes.
+- Corrected exact-head run `33274558821` completed green in 54 seconds through
+  the docs-only classification path. The implementation lease is released;
+  neither the broader expression-surface `BRIDGE` row nor the 83% project
+  forecast changes, and no successor rung is inferred.
 
 This directive is a temporary coordination artifact. It does not own semantic
 status, registry census, project percentage, remote publication, or a successor

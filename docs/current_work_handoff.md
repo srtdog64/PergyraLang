@@ -18,10 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — contextual collection-constructor call arguments locally closed, publication pending
+## No active self-host implementation — contextual collection-constructor call arguments published
 
-- Exact base is `c098b2e1bb02b0e73d34909da41dacdef0e82a08` on
-  `origin/main`; the primary task owns the sole implementation lease.
+- Implementation `e3905894d4800d47ec87f2c008ebac1b37014aeb`, based on
+  `c098b2e1bb02b0e73d34909da41dacdef0e82a08`, and generated inventory
+  correction `33701ca8937ee325aadf2f7840e1ac77000b0ad9` are on
+  `origin/main`; the lease is released.
 - Production entrypoint:
   `DriverSourceMirProjectionFromAdmittedRequest`. Direct bypass to delete:
   rejecting matching fresh List/Queue/Set constructor arguments at semantic
@@ -46,9 +48,14 @@ percentage by themselves.
   source reproduces that result after the fresh GCC 16 native rebuild. It is
   recorded as an existing local baseline, not a pass or a change regression.
   Coq/Rocq is unavailable locally and no missing-prover bypass was used.
-- Next falsifier: publish the implementation and observe exact-head CI,
-  including Windows initializer projection and Rocq proof jobs. Do not release
-  the lease or infer a successor rung before that result.
+- Publication result: implementation run `33273587010` exposed only generated
+  language-word inventory drift in Linux step 14. Windows, TSan, sanitizers,
+  macOS C-only, Rocq 9, codegen bootstrap, backend toolchain, and comparison
+  shards 20/20 passed. Its cancelled full self-host job was rerun alone in
+  attempt 2 and passed in about 41 minutes. Corrected exact-head docs-only run
+  `33274558821` completed green in 54 seconds.
+- No successor implementation is inferred. The next session must choose one
+  reached production executable seam before opening another lease.
 - Objective card and consolidated gate:
   `docs/agent_work_directives/contextual_collection_constructor_call_argument_parity_2026-08-30.md`.
   Census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`, with no percentage change.

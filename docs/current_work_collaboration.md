@@ -6,10 +6,12 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — contextual collection-constructor call arguments locally closed, publication pending
+## NO ACTIVE implementation lease — contextual collection-constructor call arguments published
 
-- Exact base is `c098b2e1bb02b0e73d34909da41dacdef0e82a08` on
-  `origin/main`; the primary task is the sole integration owner.
+- Implementation `e3905894d4800d47ec87f2c008ebac1b37014aeb`, based on
+  `c098b2e1bb02b0e73d34909da41dacdef0e82a08`, and generated inventory
+  correction `33701ca8937ee325aadf2f7840e1ac77000b0ad9` are on
+  `origin/main`; the lease is released.
 - Reproduced split: native publishes C for matching direct `ListNew()`,
   `QueueNew()`, and `SetNew()` function arguments. Installed self-host rejects
   before MIR with `call_arg_type_mismatch` and the corresponding
@@ -31,9 +33,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - The initializer projection gate remains locally red at
   `identity-bound callable C binding is missing`; byte-identical exact-base
   semantic sources reproduce it after the fresh GCC 16 native rebuild. This is
-  not counted as a pass or a change regression. Coq/Rocq is unavailable and no
-  missing-prover bypass was used. Exact-head CI is the next falsifier, and the
-  lease remains active until publication is observed.
+  not counted as a pass or a change regression. Exact implementation-head
+  Windows CI and Rocq 9 pass, so the local toolchain and missing-prover gaps are
+  cross-checked without a bypass.
+- Implementation run `33273587010` exposed only generated language-word
+  inventory drift in Linux step 14. All other completed heavy axes and backend
+  shards 20/20 passed; the initially cancelled full self-host job passed its
+  isolated attempt-2 rerun in about 41 minutes. Correction run `33274558821`
+  is green on exact `33701ca8`. No successor lease is inferred.
 
 ## NO ACTIVE implementation lease — owned sequence named value-boundary parity published
 
