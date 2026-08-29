@@ -1,6 +1,6 @@
 # ArrayString process Args target projection — 2026-08-29
 
-Status: `ACTIVE — IMPLEMENTATION`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `3beff662f2f536ba2bb45f1ab056584f2d5158b1` on `origin/main`.
 
@@ -81,5 +81,8 @@ evidence, commit, push, and exact-head CI are observed. The census remains
   collection orchestration, and 102/115 for LLVM collection orchestration. No
   cap was raised.
 
-This remains an implementation candidate until commit, push, and exact-head
-CI are observed. `abi.mir_array_string_layout_projection` stays `BRIDGE`.
+Publication result: implementation
+`492da553b893a554c4eba68cd78fe6bb2a07d417` is on `origin/main`; exact-head
+run `33243492637` completed GREEN 30/30. `build-linux` passed in 22m11s, full
+self-host passed in 34m24s, and backend parity passed 20/20. The lease is
+released. `abi.mir_array_string_layout_projection` stays `BRIDGE`.

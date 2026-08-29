@@ -18,11 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - ArrayString process Args target projection
+## No active self-host implementation - ArrayString process Args target projection published
 
-- Exact base is `3beff662f2f536ba2bb45f1ab056584f2d5158b1` on
-  `origin/main`; the tracked worktree contains one active implementation
-  candidate. The primary task owns the sole implementation lease.
+- Exact implementation base was
+  `3beff662f2f536ba2bb45f1ab056584f2d5158b1` on `origin/main`. The primary
+  task owned the sole implementation lease.
 - Objective: the production scalar C and LLVM process-Args adapters consume
   the existing target-qualified ArrayString projection. LLVM deletes its three
   ArrayString storage-alignment literals for alloca, initialization, and
@@ -45,8 +45,14 @@ percentage by themselves.
 - Registry census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`; parameter binding,
   value-result transfer, owned return, mutation, cleanup, and other expression
   materializers still prevent whole-row closure.
-- Next falsifier is exact-head full CI after an explicit implementation commit
-  and push. Do not open another semantic rung before that result.
+- Publication result: implementation
+  `492da553b893a554c4eba68cd78fe6bb2a07d417` is on `origin/main`; exact-head
+  run `33243492637` completed GREEN 30/30. `build-linux` passed in 22m11s,
+  full self-host passed in 34m24s, and backend parity passed 20/20. The lease
+  is released; no successor implementation lease is open.
+- The green run emitted a non-fatal GitHub Actions warning that
+  `actions/download-artifact@v4` targets deprecated Node.js 20 and was forced
+  onto Node.js 24. It is bounded CI maintenance, not an open semantic rung.
 - Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
   `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
 

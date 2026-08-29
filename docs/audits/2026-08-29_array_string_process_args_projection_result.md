@@ -1,6 +1,6 @@
 # ArrayString process Args target projection result — 2026-08-29
 
-Status: `LOCAL IMPLEMENTATION CANDIDATE`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `3beff662f2f536ba2bb45f1ab056584f2d5158b1` on
 `origin/main`.
@@ -59,4 +59,9 @@ binding, value-result transfer, owned return, mutation, cleanup, and other
 expression materializers still require consumer migration. No `56/31/1`
 closure is claimed.
 
-Commit, push, and exact-head CI remain the publication boundary.
+Implementation `492da553b893a554c4eba68cd78fe6bb2a07d417` is on
+`origin/main`. Exact-head run `33243492637` completed GREEN 30/30;
+`build-linux` passed in 22m11s, full self-host in 34m24s, and backend parity
+20/20. The run emitted one non-fatal GitHub Actions annotation that
+`actions/download-artifact@v4` targets deprecated Node.js 20 and was forced to
+Node.js 24; this is CI maintenance, not a semantic publication blocker.

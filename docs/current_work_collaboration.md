@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — ArrayString process Args target projection
+## NO ACTIVE implementation lease — ArrayString process Args target projection published
 
 - Exact base is `3beff662f2f536ba2bb45f1ab056584f2d5158b1` on
   `origin/main`. The primary task is the sole integration owner.
@@ -20,6 +20,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `docs/agent_work_directives/array_string_process_args_projection_2026-08-29.md`.
 - Other ArrayString consumers are outside this lease. Census remains
   `CLOSED=55 BRIDGE=32 ACTIVE=1`; no whole-row closure is claimed.
+- Publication result: implementation
+  `492da553b893a554c4eba68cd78fe6bb2a07d417` is on `origin/main`; exact-head
+  run `33243492637` completed GREEN 30/30. `build-linux` passed in 22m11s,
+  full self-host passed in 34m24s, and backend parity passed 20/20. The lease
+  is released; no successor implementation lease is open.
 
 ## NO ACTIVE implementation lease — ArrayString C DirWalk target projection published
 
