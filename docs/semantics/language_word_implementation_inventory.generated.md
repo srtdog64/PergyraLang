@@ -95,7 +95,7 @@ evidence.
 | `forbids` | contextual | native | 1 | 0 | 0 | 0 | none | native-only |
 | `from` | contextual | native+self_host | 2 | 3 | 0 | 19 | none | native+selfhost-typed |
 | `full` | soft | native | 1 | 0 | 0 | 2 | none | native-only |
-| `func` | reserved | native+self_host | 21 | 7 | 1 | 623 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
+| `func` | reserved | native+self_host | 21 | 7 | 1 | 625 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `give` | contextual | native | 1 | 0 | 0 | 0 | none | native-only |
 | `guard` | contextual | native+self_host | 1 | 0 | 3 | 4 | TextMate:keyword.other.intent.pergyra | native+selfhost-direct-only |
 | `if` | reserved | native+self_host | 4 | 1 | 1 | 167 | TextMate:keyword.control.pergyra | native+selfhost-typed |
@@ -111,7 +111,7 @@ evidence.
 | `is` | contextual | native | 1 | 0 | 0 | 3 | none | native-only |
 | `join` | contextual | native+self_host | 2 | 1 | 0 | 0 | none | native+selfhost-typed |
 | `layer` | contextual | native | 1 | 0 | 0 | 1 | none | native-only |
-| `let` | reserved | native+self_host | 7 | 4 | 1 | 490 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
+| `let` | reserved | native+self_host | 7 | 4 | 1 | 492 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `lifecycle` | contextual | native | 1 | 1 | 0 | 2 | none | native+selfhost-typed |
 | `link` | contextual | native+self_host | 1 | 1 | 0 | 3 | none | native+selfhost-typed |
 | `local` | reserved | native+self_host | 1 | 0 | 0 | 8 | TextMate:storage.modifier.pergyra | native-only |
@@ -130,7 +130,7 @@ evidence.
 | `objects` | contextual | native | 1 | 0 | 0 | 0 | none | native-only |
 | `on` | contextual | native+self_host | 4 | 1 | 3 | 29 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
 | `override` | reserved | native+self_host | 1 | 0 | 0 | 1 | TextMate:storage.modifier.pergyra | native-only |
-| `own` | reserved | native+self_host | 2 | 1 | 0 | 8 | TextMate:storage.modifier.pergyra | native+selfhost-typed |
+| `own` | reserved | native+self_host | 2 | 1 | 0 | 10 | TextMate:storage.modifier.pergyra | native+selfhost-typed |
 | `parallel` | reserved | native+self_host | 4 | 1 | 2 | 12 | completion, hover, TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `party` | reserved | native+self_host | 6 | 3 | 0 | 2 | hover, TextMate:storage.type.pergyra | native+selfhost-typed |
 | `pin` | contextual | native | 1 | 0 | 0 | 0 | none | native-only |
