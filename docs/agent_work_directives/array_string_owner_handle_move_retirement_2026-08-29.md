@@ -1,6 +1,6 @@
 # ArrayString owner-handle caller move retirement — 2026-08-29
 
-Status: `LOCAL GREEN — PUBLICATION PENDING`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `ca2555e1e898f3ac2f0472e76d616dfba22e0410` on `origin/main`.
 
@@ -70,3 +70,7 @@ does not admit general move analysis.
   Coq/Rocq is an explicit local skip because no prover is installed.
 - The registry remains `CLOSED=55 BRIDGE=32 ACTIVE=1`; multiple or conditional
   moves and fresh-result/literal moves remain outside this bounded lease.
+- Implementation `973f3d21b2bc843ed6a61dbaba0e05fc44112fad` and CI
+  correction `ec5ba7cb5cef69188ac973d101e0031ec5a42a5f` are on
+  `origin/main`. Exact-head CI run `33252340111` completed GREEN 30/30; the
+  implementation lease is released without opening a successor rung.

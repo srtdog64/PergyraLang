@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — ArrayString owner-handle caller move retirement
+## NO ACTIVE implementation lease — ArrayString owner-handle caller move retirement published
 
 - Exact base is `ca2555e1e898f3ac2f0472e76d616dfba22e0410` on
   `origin/main`; the primary task is the sole integration owner.
@@ -24,8 +24,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Local result is green: current-source DRV-2, 32,902,238-byte native
   production-bootstrap C emission, focused C/LLVM execution plus five negative
   cases, full component, SoT edge/live adequacy, single-owner, hard-contract,
-  likeness, and documentation. Coq/Rocq is a declared local skip. Publication
-  and remote exact-head CI remain pending, so this lease stays active.
+  likeness, and documentation. Coq/Rocq is a declared local skip.
+- Publication result: implementation
+  `973f3d21b2bc843ed6a61dbaba0e05fc44112fad` and generated-inventory/CI
+  correction `ec5ba7cb5cef69188ac973d101e0031ec5a42a5f` are on
+  `origin/main`. Exact-head run `33252340111` completed GREEN 30/30 in 40m26s;
+  `build-linux` passed in 24m16s and full self-host passed in 40m10s. The lease
+  is released; no successor implementation lease is open.
 
 ## NO ACTIVE implementation lease — ArrayString LLVM readonly-ref target projection published
 

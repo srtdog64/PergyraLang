@@ -1,6 +1,6 @@
 # ArrayString owner-handle caller move retirement result — 2026-08-29
 
-Status: `LOCAL GREEN — PUBLICATION PENDING`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `ca2555e1e898f3ac2f0472e76d616dfba22e0410` on
 `origin/main`.
@@ -62,5 +62,19 @@ Multiple/conditional moves, moves from parameters or members, fresh-result and
 literal arguments, value-result transfer, owned return, and general aggregate
 ownership are not closed by this result. No `56/31/1` census is claimed.
 
-Publication commit and exact-head remote CI are pending. Until both are green,
-the collaboration lease remains active.
+## Publication evidence
+
+Implementation `973f3d21b2bc843ed6a61dbaba0e05fc44112fad` is on
+`origin/main`. Its first remote run exposed only a stale generated
+language-word inventory: 29/30 jobs were green, while `build-linux` rejected
+the unrefreshed `func`, `let`, and `own` implementation counts. The repository
+generator updated those three rows, and the CI workflow gained an explicit
+`workflow_dispatch` entry so a current HEAD can request a full fail-closed run
+without a dummy code change.
+
+Correction `ec5ba7cb5cef69188ac973d101e0031ec5a42a5f` is on
+`origin/main`. Exact-head CI run `33252340111` completed GREEN 30/30 in 40m26s:
+`build-linux` passed in 24m16s, full self-host in 40m10s, codegen bootstrap in
+8m24s, sanitizers in 10m17s, Windows in 8m43s, Rocq 9 in 1m40s, and the backend
+toolchain plus all 20 comparison shards passed. The collaboration lease is
+released without opening or implying a successor implementation rung.

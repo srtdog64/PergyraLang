@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — ArrayString owner-handle caller move retirement
+## No active self-host implementation - ArrayString owner-handle caller move retirement published
 
 - Exact base is `ca2555e1e898f3ac2f0472e76d616dfba22e0410` on
   `origin/main`; the primary task owns the sole implementation lease.
@@ -47,7 +47,14 @@ percentage by themselves.
   artifacts. Current-source DRV-2, 32,902,238-byte native production-bootstrap
   C emission, full component, SoT edge/live adequacy, single-owner,
   hard-contract, likeness, and documentation are green. Coq/Rocq is a declared
-  local skip. Publication and remote exact-head CI remain pending.
+  local skip.
+- Publication result: implementation
+  `973f3d21b2bc843ed6a61dbaba0e05fc44112fad` and generated-inventory/CI
+  correction `ec5ba7cb5cef69188ac973d101e0031ec5a42a5f` are on
+  `origin/main`. Exact-head run `33252340111` completed GREEN 30/30 in 40m26s;
+  `build-linux` passed in 24m16s, full self-host in 40m10s, codegen bootstrap in
+  8m24s, sanitizers in 10m17s, Windows in 8m43s, Rocq 9 in 1m40s, and backend
+  toolchain in 10m29s. The lease is released without opening a successor rung.
 - Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
   `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
 
