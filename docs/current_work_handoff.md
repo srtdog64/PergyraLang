@@ -18,6 +18,35 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Latest bounded result — LLVM Option member context fixed; intent value ABI next
+
+- Exact base: `e19b15b2647664e4208f7d97e490318085f652d6` on
+  `origin/main`; the member-assignment implementation lease is retired.
+- Production entrypoint: native LLVM compilation of
+  `driver_rung2_main.pgy`, whose import-composed source contains the live
+  `CompilePergyraProgram` compiler-purpose intent.
+- Removed falsifier: the filtered LLVM driver-body lane no longer stops at
+  `driver_source_llvm_intent_execution_owner.pgy:29:28` with
+  `LLVM Some(value) requires contextual Option<T>`.
+- Fact owner: the declared field type materialized in the registered
+  `LLVMClassTypeEntry`; last consumer is the member-assignment RHS emitter
+  immediately before `llvm_emit_result_option_call` builds the Option value.
+- Forbidden fallback: anonymous/payload-derived Option layout, `Option<Int>`
+  default, field-name special casing, Pergyra source helper workaround, or
+  leaking the target context beyond RHS emission.
+- Green focused gate: exact C/LLVM `41` / `true` runtime parity for an
+  `Option<nominal>` member plus a contextless `Some` artifact-negative.
+- Next falsifier: the filtered real LLVM driver-body gate advances to LLVM
+  verification, then finds `DriverSourceCRequest` passed as `ptr` to a declared
+  by-value `%DriverSourceCRequest` parameter in `CompilePergyraCArtifact`.
+  The ordered intent binding kind must distinguish participant references from
+  value arguments at the call emitter; no fixture executed yet.
+- Objective card:
+  `docs/agent_work_directives/llvm_option_member_assignment_context_2026-08-30.md`.
+- This removes one reached bootstrap parity blocker but does not close the
+  production rung, change the hard substitution numerator, census, project
+  percentage, or the separately owned decompilation-hardness release target.
+
 ## No active self-host implementation — contextual collection-constructor call arguments published
 
 - Implementation `e3905894d4800d47ec87f2c008ebac1b37014aeb`, based on

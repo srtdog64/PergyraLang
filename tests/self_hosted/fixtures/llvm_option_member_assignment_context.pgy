@@ -1,0 +1,29 @@
+struct OptionMemberReceipt {
+    value: Int;
+}
+
+struct OptionMemberState {
+    outcome: Option<OptionMemberReceipt>;
+}
+
+func PublishOptionMember(
+    inout state: OptionMemberState,
+    value: Int
+) -> Void {
+    state.outcome = Some(OptionMemberReceipt { value: value });
+}
+
+func ClearOptionMember(inout state: OptionMemberState) -> Void {
+    state.outcome = None;
+}
+
+func Main() -> Void {
+    let missing: Option<OptionMemberReceipt> = None;
+    let state: OptionMemberState = OptionMemberState { outcome: missing };
+    PublishOptionMember(state, 41);
+    if IsSome(state.outcome) {
+        Log(UnwrapOption(state.outcome).value);
+    }
+    ClearOptionMember(state);
+    Log(ToString(IsNone(state.outcome)));
+}

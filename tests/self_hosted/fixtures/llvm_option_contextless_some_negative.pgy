@@ -1,0 +1,7 @@
+func EmitContextlessSome(value: Int) -> Void {
+    Some(value);
+}
+
+func Main() -> Void {
+    EmitContextlessSome(7);
+}

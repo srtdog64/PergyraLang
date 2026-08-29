@@ -6,6 +6,28 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## RETIRED lease — LLVM Option member-assignment context blocker removed
+
+- Implemented from exact base
+  `e19b15b2647664e4208f7d97e490318085f652d6` on `origin/main`.
+- Reproduced blocker: the filtered LLVM driver-body lane fails before fixture
+  execution at `driver_source_llvm_intent_execution_owner.pgy:29:28` because
+  `self.outcome = Some(...)` does not carry the registered
+  `Option<DriverSourceLlvmIntentOutcome>` field layout into RHS emission.
+- Result: the registered member field layout now scopes only RHS emission.
+  Exact C/LLVM behavior and the contextless-`Some` artifact negative pass.
+- Forbidden: payload-derived/anonymous Option layouts, `Option<Int>` default,
+  field-name special cases, Pergyra source helper workarounds, other LLVM or
+  semantic gaps, and unrelated SoT work.
+- Objective card and integration boundary:
+  `docs/agent_work_directives/llvm_option_member_assignment_context_2026-08-30.md`.
+- The production lane remains red: after passing this blocker it reaches a
+  distinct LLVM verifier mismatch where the `DriverSourceCRequest` intent
+  value argument is passed as `ptr` to a by-value aggregate parameter. A new
+  owner card, not this retired scope, must own that successor.
+- This is executable bootstrap parity and does not claim a new hard
+  `SUBSTITUTING` numerator, census change, or percentage increase.
+
 ## NO ACTIVE implementation lease — contextual collection-constructor call arguments published
 
 - Implementation `e3905894d4800d47ec87f2c008ebac1b37014aeb`, based on

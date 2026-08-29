@@ -222,13 +222,20 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
 
     if (target->type == AST_MEMBER_ACCESS) {
         LLVMTypeRef field_type = NULL;
+        LLVMTypeRef saved_current_ret_type;
         LLVMValueRef gep = llvm_emit_member_lvalue_ptr(
             target, ctx, &field_type);
         LLVMValueRef val;
         if (gep == NULL || field_type == NULL)
             return llvm_assignment_error(ctx, node,
                 "LLVM member assignment requires a writable member lvalue");
+        /* The registered field layout owns target-typed constructors on the
+         * RHS. Keep the context bounded to this expression; payload inference
+         * must not mint an anonymous Option/Result aggregate. */
+        saved_current_ret_type = ctx->current_ret_type;
+        ctx->current_ret_type = field_type;
         val = llvm_emit_expression(value, ctx);
+        ctx->current_ret_type = saved_current_ret_type;
         if (val == NULL)
             return llvm_assignment_error(ctx, node,
                 "LLVM member assignment could not lower value expression");
