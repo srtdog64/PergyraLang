@@ -1,0 +1,13 @@
+func BuildOwnedInts() -> List<Int> {
+    let values: List<Int> = ListNew();
+    ListPush(values, 7);
+    return values;
+}
+
+func ReleaseOwnedInts(own values: List<Int>) -> Void {
+    Log("released");
+}
+
+func Main() -> Void {
+    ReleaseOwnedInts(BuildOwnedInts());
+}

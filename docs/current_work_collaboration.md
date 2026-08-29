@@ -6,6 +6,38 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — owned sequence named value-boundary parity
+
+- Exact base is `c3fc46b003d7bb60f371e311b38a0d757672a64c` on
+  `origin/main`; the primary task is the sole integration owner.
+- Reproduced split: native rejects function-returned `List<Int>` and
+  `Queue<Int>` at an `own` boundary before C, while installed self-host
+  publishes 8,164- and 8,196-byte verified MIR artifacts.
+- Objective: extend the canonical owned-sequence shape fact from Array to
+  List/Queue and make the existing semantic named-boundary verdict consume it
+  without a type-name allowlist or backend fallback.
+- Native admits fresh `ListNew()`/`QueueNew()` ownership transfer. The verdict
+  must preserve that contextual-constructor exception even though installed
+  self-host currently fails those calls earlier at a separate contextual type
+  bridge. Slice fails at a separate carried call-target bridge and is excluded.
+- Fact owner, last consumer, forbidden fallbacks, edit scope, and integration
+  gate are fixed in
+  `docs/agent_work_directives/owned_sequence_named_value_boundary_parity_2026-08-30.md`.
+- Census starts at `CLOSED=55 BRIDGE=32 ACTIVE=1`; opening this lease changes
+  neither that census nor the 83% project forecast.
+- Local result: current-source DRV-2 now rejects the reproduced List/Queue
+  function-return gaps before MIR; named/default controls and native fresh
+  constructors remain admitted. The existing Array regression is green.
+- Native production-bootstrap C emission produced 32,931,450 bytes with zero
+  errors and the three existing redundant-`who` warnings. Collection protocol,
+  full component inventory, hard contract, SoT edge/live adequacy with declared
+  prover skip, single-owner, likeness `4519/4519`, official language inventory,
+  documentation, and progress gates are green. Publication remains pending.
+- Filtered `list_ops` and `sequence_literal_list_queue` body parity passes its C
+  leg. The LLVM test-driver build is still red at the pre-existing
+  `driver_source_llvm_intent_execution_owner.pgy:29` contextual Option gap from
+  2026-08-25; it is outside this lease and is not recorded as a skip or pass.
+
 ## NO ACTIVE implementation lease — Array type named value-boundary parity published
 
 - Exact base is `965d4399e46795f583dcbb8b881cd78e626f13a2` on

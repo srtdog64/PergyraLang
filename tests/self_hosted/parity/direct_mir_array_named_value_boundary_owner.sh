@@ -37,8 +37,8 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 
 grep -Fq 'SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(' "$OWNER" ||
     fail "named value-boundary owner is missing"
-grep -Fq 'SemanticArrayElementType(type_name)' "$OWNER" ||
-    fail "named boundary bypasses the canonical Array shape owner"
+grep -Fq 'SemanticOwnedSequenceElementType(type_name)' "$OWNER" ||
+    fail "named boundary bypasses the canonical owned-sequence shape owner"
 ! grep -Fq 'type_name == "Array<' "$OWNER" ||
     fail "named boundary contains an element-type allowlist"
 grep -Fq '!IsSome(SemanticArrayElementType("Array<Int"))' "$SHAPE" ||

@@ -1,0 +1,19 @@
+func BuildOwnedInts() -> List<Int> {
+    let values: List<Int> = ListNew();
+    ListPush(values, 7);
+    return values;
+}
+
+func ReleaseOwnedInts(own values: List<Int>) -> Void {
+    Log("owned");
+}
+
+func ObserveInts(values: List<Int>) -> Void {
+    Log("default");
+}
+
+func Main() -> Void {
+    let owned: List<Int> = BuildOwnedInts();
+    ReleaseOwnedInts(owned);
+    ObserveInts(BuildOwnedInts());
+}

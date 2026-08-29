@@ -10,6 +10,7 @@ import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_generic_call_owner.pgy";
 import "ast_expression_place_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
+import "builtin_signature_owner.pgy";
 import "diagnostic_owner.pgy";
 
 struct SemanticAstNamedValueBoundaryVerdict {
@@ -37,9 +38,47 @@ func SemanticAstNamedValueBoundaryVerdictError(
 }
 
 func SemanticAstNamedValueBoundaryTracksType(type_name: String) -> Bool {
-    // Array shape identity stays with the canonical semantic shape owner.
+    // Owned-sequence shape identity stays with the canonical semantic owner.
     // Element spellings do not form a second ownership policy here.
-    return IsSome(SemanticArrayElementType(type_name));
+    return IsSome(SemanticOwnedSequenceElementType(type_name));
+}
+
+func SemanticAstNamedValueBoundaryFreshOwnedSequenceConstructor(
+    ref graph: SemanticExpressionGraphFacts,
+    argument_node_id: Int,
+    parameter_type: String,
+    arena_count: Int
+) -> Bool {
+    if !SemanticAstNamedValueBoundaryTracksType(parameter_type) { return false; }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, argument_node_id
+    );
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCall() {
+        return false;
+    }
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, argument_node_id
+    );
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, argument_node_id
+    );
+    if !IsSome(target_kind) || !IsSome(target_name) ||
+        UnwrapOption(target_kind) != SemanticCallTargetDirect() {
+        return false;
+    }
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewForCallNodeWithin(
+            graph, argument_node_id, arena_count - 1
+    );
+    if !call.ok { return false; }
+    let declared_type: Option<String> = Some(parameter_type);
+    let contextual_type: Option<String> =
+        SemanticContextualBuiltinReturnTypeOpt(
+            UnwrapOption(target_name), ArrayLength(call.argument_nodes),
+            declared_type
+        );
+    return IsSome(contextual_type) &&
+        UnwrapOption(contextual_type) == parameter_type;
 }
 
 func SemanticAstNamedValueBoundaryModeName(mode: Int) -> String {
@@ -136,11 +175,17 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
                 );
             }
             let mode: Int = UnwrapOption(parameter_mode);
+            let admitted_parameter_type: String = UnwrapOption(parameter_type);
+            let argument_node_id: Int = call.argument_nodes[argument_index];
             if mode != 0 &&
                 SemanticAstNamedValueBoundaryTracksType(
-                    UnwrapOption(parameter_type)
+                    admitted_parameter_type
                 ) && UnwrapOption(argument_place) ==
-                    SemanticExpressionPlaceValue() {
+                    SemanticExpressionPlaceValue() &&
+                !SemanticAstNamedValueBoundaryFreshOwnedSequenceConstructor(
+                    graph, argument_node_id, admitted_parameter_type,
+                    arena_count
+                ) {
                 return SemanticAstNamedValueBoundaryVerdictError(
                     "named_value_boundary_argument_required",
                     SemanticError3(

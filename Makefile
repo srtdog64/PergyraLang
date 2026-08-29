@@ -3312,6 +3312,10 @@ self-host-array-named-value-boundary-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_array_named_value_boundary_owner.sh
 
+self-host-owned-sequence-named-value-boundary-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_sequence_named_value_boundary_owner.sh
+
 self-host-direct-mir-scalar-logical-record-collection-fields-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_collection_fields_owner.sh
@@ -3583,6 +3587,7 @@ self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-n
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-owned-string-parameter-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-array-named-value-boundary-test-smoke
+self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-owned-sequence-named-value-boundary-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-readonly-logical-record-single-value-result-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-direct-scalar-callable-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-value-parameter-rebind-test-smoke
@@ -3612,6 +3617,7 @@ self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-p
 .PHONY: self-host-direct-mir-scalar-owned-string-parameter-test-smoke
 .PHONY: self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke
 .PHONY: self-host-array-named-value-boundary-test-smoke
+.PHONY: self-host-owned-sequence-named-value-boundary-test-smoke
 .PHONY: self-host-direct-mir-scalar-readonly-logical-record-single-value-result-test-smoke
 .PHONY: self-host-direct-mir-scalar-direct-scalar-callable-test-smoke
 .PHONY: self-host-direct-mir-scalar-value-parameter-rebind-test-smoke

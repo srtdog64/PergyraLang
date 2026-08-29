@@ -380,7 +380,11 @@ SENTINEL_MAX=23
 # 4501 -> 4509 (2026-08-29): named ArrayString boundary admission now joins
 # parameter type/mode and expression-place rows as explicit Option evidence and
 # fails closed when a carried fact is absent.
-RESULT_USE_MIN=4509
+# 4509 -> 4518 (2026-08-30): owned List/Queue boundary admission consumes the
+# canonical owned-sequence shape and contextual builtin signature facts.
+# 4518 -> 4519 (2026-08-30): the contextual constructor input is carried as an
+# explicit Option<String> fact so C and LLVM do not infer an anonymous layout.
+RESULT_USE_MIN=4519
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

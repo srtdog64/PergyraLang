@@ -1,0 +1,7 @@
+func ReleaseOwnedQueue(own values: Queue<Int>) -> Void {
+    Log("released");
+}
+
+func Main() -> Void {
+    ReleaseOwnedQueue(QueueNew());
+}

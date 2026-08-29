@@ -10,11 +10,11 @@ func SemanticArrayElementType(type_name: String) -> Option<String> {
     return None;
 }
 
-func SemanticSequenceElementType(type_name: String) -> Option<String> {
+func SemanticOwnedSequenceElementType(type_name: String) -> Option<String> {
     if IsSome(SemanticArrayElementType(type_name)) {
         return SemanticArrayElementType(type_name);
     }
-    let prefixes: Array<String> = ["Slice<", "List<", "Queue<"];
+    let prefixes: Array<String> = ["List<", "Queue<"];
     let i: Int = 0;
     while i < ArrayLength(prefixes) {
         let prefix: String = prefixes[i];
@@ -31,12 +31,28 @@ func SemanticSequenceElementType(type_name: String) -> Option<String> {
     return None;
 }
 
+func SemanticSequenceElementType(type_name: String) -> Option<String> {
+    let owned_element: Option<String> =
+        SemanticOwnedSequenceElementType(type_name);
+    if IsSome(owned_element) { return owned_element; }
+    if StringLength(type_name) > 6 && StartsWith(type_name, "Slice<") &&
+        SourceCharAt(type_name, StringLength(type_name) - 1) == ">" {
+        return Some(Substring(type_name, 6, StringLength(type_name) - 7));
+    }
+    return None;
+}
+
 func SemanticArrayTypeShapeContractReady() -> Bool {
     let element: Option<String> = SemanticArrayElementType("Array<Int>");
     return IsSome(element) && UnwrapOption(element) == "Int" &&
         !IsSome(SemanticArrayElementType("Int")) &&
         !IsSome(SemanticArrayElementType("Array<Int")) &&
+        IsSome(SemanticOwnedSequenceElementType("List<Int>")) &&
+        UnwrapOption(SemanticOwnedSequenceElementType("Queue<String>")) ==
+            "String" &&
+        !IsSome(SemanticOwnedSequenceElementType("Slice<Int>")) &&
         IsSome(SemanticSequenceElementType("List<Int>")) &&
+        IsSome(SemanticSequenceElementType("Slice<Int>")) &&
         UnwrapOption(SemanticSequenceElementType("Queue<String>")) ==
             "String" &&
         !IsSome(SemanticSequenceElementType("Int"));

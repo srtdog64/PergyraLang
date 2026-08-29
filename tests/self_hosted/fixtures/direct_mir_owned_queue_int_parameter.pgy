@@ -1,0 +1,19 @@
+func BuildOwnedQueue() -> Queue<Int> {
+    let values: Queue<Int> = QueueNew();
+    QueuePush(values, 7);
+    return values;
+}
+
+func ReleaseOwnedQueue(own values: Queue<Int>) -> Void {
+    Log("owned");
+}
+
+func ObserveQueue(values: Queue<Int>) -> Void {
+    Log("default");
+}
+
+func Main() -> Void {
+    let owned: Queue<Int> = BuildOwnedQueue();
+    ReleaseOwnedQueue(owned);
+    ObserveQueue(BuildOwnedQueue());
+}

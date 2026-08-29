@@ -1,0 +1,7 @@
+func ReleaseOwnedInts(own values: List<Int>) -> Void {
+    Log("released");
+}
+
+func Main() -> Void {
+    ReleaseOwnedInts(ListNew());
+}

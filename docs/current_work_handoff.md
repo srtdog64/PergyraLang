@@ -18,6 +18,44 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — owned sequence named value-boundary parity
+
+- Exact base is `c3fc46b003d7bb60f371e311b38a0d757672a64c` on
+  `origin/main`; the primary task owns the sole implementation lease.
+- Production entrypoint:
+  `DriverSourceMirProjectionFromAdmittedRequest`. Direct bypass to delete:
+  accepting a function-returned `List<Int>` or `Queue<Int>` across an `own`
+  boundary and publishing verified MIR instead of rejecting at semantic body
+  admission.
+- Fact owner: canonical owned-sequence shape in
+  `array_type_shape_owner.pgy`, consumed by
+  `SemanticAstNamedValueBoundaryVerdict` with carried parameter mode,
+  expression place, and contextual builtin signature facts.
+- Last consumer: `SemanticAstBodyTypeBundle` before MIR publication.
+- Next falsifier: native and installed self-host reject the two function-return
+  cases without artifacts; named own and default-mode controls remain admitted;
+  the named-boundary policy preserves native fresh List/Queue constructor
+  transfer. Slice and the existing contextual `Unknown` constructor bridge are
+  outside this rung.
+- Objective card and consolidated gate:
+  `docs/agent_work_directives/owned_sequence_named_value_boundary_parity_2026-08-30.md`.
+  Census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`, with no percentage change.
+- Local result: canonical owned-sequence shape now covers Array/List/Queue and
+  excludes Slice. Installed self-host rejects the two reproduced function-return
+  gaps before MIR while named/default controls remain admitted; fresh native
+  List/Queue constructor transfer is preserved through the contextual builtin
+  signature owner.
+- Current-source DRV-2, 32,931,450-byte native production-bootstrap C emission,
+  new List/Queue and existing Array gates, collection protocol, hard contract,
+  full component inventory, SoT edge/live adequacy with declared prover skip,
+  single-owner, likeness `4519/4519`, official language inventory,
+  documentation, and progress checks are locally green. Publication is
+  pending.
+- Filtered List/Queue body parity passed its C leg. Its LLVM leg remains blocked
+  before fixture execution by the pre-existing 2026-08-25 contextual Option gap
+  at `driver_source_llvm_intent_execution_owner.pgy:29`; do not count it as a
+  pass or silently skip it, and do not expand this active lease to repair it.
+
 ## No active self-host implementation — Array type named value-boundary parity published
 
 - Exact base is `965d4399e46795f583dcbb8b881cd78e626f13a2` on
