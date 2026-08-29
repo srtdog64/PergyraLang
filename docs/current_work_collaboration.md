@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — Array type named value-boundary parity
+## NO ACTIVE implementation lease — Array type named value-boundary parity published
 
 - Exact base is `965d4399e46795f583dcbb8b881cd78e626f13a2` on
   `origin/main`; the primary task is the sole integration owner.
@@ -31,7 +31,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   C emission, existing Array C/LLVM controls, component inventory, SoT edge and
   live adequacy, single-owner, hard-contract, likeness `4509/4509`, language
   inventory, documentation, progress, and diff checks are locally green.
-  Coq/Rocq is a declared local skip; commit, push, and exact-head CI remain.
+- Publication result: implementation
+  `0c07ccb3161be51268094ae78945ff5dbd20c1ac` is on `origin/main`. Exact-head
+  push run `33261198946` completed GREEN 30/30 in 40m10s; full self-host passed
+  in 39m51s, Linux in 24m19s, sanitizer in 12m49s, codegen bootstrap in 8m39s,
+  Windows in 8m57s, Rocq 9 in 1m52s, and backend comparison passed 20/20. The
+  lease is released without opening or implying a successor rung.
 
 ## NO ACTIVE implementation lease — ArrayString named value-boundary semantic rejection published
 

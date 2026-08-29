@@ -1,6 +1,6 @@
 # Array type named value-boundary parity result — 2026-08-30
 
-Status: `LOCAL GREEN — PUBLICATION PENDING`
+Status: `PUBLISHED — EXACT-HEAD CI GREEN`
 
 Exact base: `965d4399e46795f583dcbb8b881cd78e626f13a2` on
 `origin/main`.
@@ -56,6 +56,15 @@ self-host rejects at body semantic admission with stable diagnostic
 - single-owner, hard-contract, likeness `4509/4509`, official 146-row language
   inventory, documentation, progress, shell syntax, and `git diff --check`:
   PASS
+
+## Publication evidence
+
+- implementation: `0c07ccb3161be51268094ae78945ff5dbd20c1ac` on
+  `origin/main`
+- exact-head push run `33261198946`: GREEN 30/30 in 40m10s
+- full self-host: 39m51s; Linux: 24m19s; sanitizers: 12m49s; codegen
+  bootstrap: 8m39s; Windows: 8m57s; Rocq 9: 1m52s
+- backend toolchain: 11m08s; comparison shards: 20/20
 
 ## Remaining boundary
 

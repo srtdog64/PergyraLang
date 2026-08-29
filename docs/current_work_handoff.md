@@ -18,10 +18,10 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — Array type named value-boundary parity
+## No active self-host implementation — Array type named value-boundary parity published
 
 - Exact base is `965d4399e46795f583dcbb8b881cd78e626f13a2` on
-  `origin/main`; the primary task owns the sole implementation lease.
+  `origin/main`; the primary task owned the sole implementation lease.
 - Production entrypoint:
   `DriverSourceMirProjectionFromAdmittedRequest`. Direct bypass to delete:
   accepting an unnamed `Array<Int>` call result across an `own` boundary,
@@ -47,7 +47,14 @@ percentage by themselves.
   artifact are green. Existing Array C/LLVM controls, component, SoT edge/live
   adequacy, single-owner, hard-contract, likeness `4509/4509`, official
   language inventory, documentation, progress, and diff checks pass locally.
-  Coq/Rocq is a declared local skip; publication and exact-head CI remain.
+- Publication result: implementation
+  `0c07ccb3161be51268094ae78945ff5dbd20c1ac` is on `origin/main`. Exact-head
+  push run `33261198946` completed GREEN 30/30 in 40m10s: full self-host 39m51s,
+  Linux 24m19s, sanitizers 12m49s, codegen bootstrap 8m39s, Windows 8m57s,
+  Rocq 9 1m52s, backend toolchain 11m08s, and comparison shards 20/20. The
+  lease is released; no successor implementation is inferred.
+- Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
+  `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
 
 ## No active self-host implementation — ArrayString named value-boundary semantic rejection published
 

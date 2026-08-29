@@ -1,6 +1,6 @@
 # Array type named value-boundary parity
 
-Status: `IMPLEMENTATION COMPLETE — LOCAL GREEN, PUBLICATION PENDING`
+Status: `PUBLISHED — EXACT-HEAD CI GREEN`
 
 Exact base: `965d4399e46795f583dcbb8b881cd78e626f13a2` on
 `origin/main`.
@@ -60,5 +60,9 @@ Exact base: `965d4399e46795f583dcbb8b881cd78e626f13a2` on
 
 The current-source installed driver, consolidated Array family gate, existing
 Array ABI/owner-transfer controls, component contract, and native production
-bootstrap are locally green. This directive does not own semantic status,
-registry census, project percentage, remote publication, or a successor rung.
+bootstrap are locally green. Implementation
+`0c07ccb3161be51268094ae78945ff5dbd20c1ac` is on `origin/main`; exact-head
+push run `33261198946` completed GREEN 30/30 in 40m10s, including full
+self-host, Rocq 9, sanitizers, and backend comparison 20/20. The lease is
+released. This directive does not own semantic status, registry census,
+project percentage, or a successor rung.
