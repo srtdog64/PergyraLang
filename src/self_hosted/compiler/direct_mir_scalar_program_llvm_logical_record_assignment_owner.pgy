@@ -21,6 +21,7 @@ func DirectMirScalarProgramLlvmExpressionNodeValue(
 func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
@@ -36,13 +37,15 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
             plan.program.expressions, target_row, runtime,
             plan.program.nominal_abi, plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
-            plan.routines, routine, target);
+            plan.routines, routine, plan.program.array_string_abi,
+            array_string_projection, target);
     let value_expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, value_row, runtime,
             plan.program.nominal_abi, plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
-            plan.routines, routine, target);
+            plan.routines, routine, plan.program.array_string_abi,
+            array_string_projection, target);
     let element_type: String =
         DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
             plan, operation);
@@ -132,13 +135,15 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
 func DirectMirScalarProgramLlvmLogicalRecordAssignment(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     if plan.operation_kinds[operation] ==
             DirectMirScalarCfgOpLogicalRecordMemberRebind() {
         return DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
-            plan, routine, operation, runtime, target);
+            plan, routine, operation, runtime, array_string_projection,
+            target);
     }
     return DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
-        plan, routine, operation, runtime, target);
+        plan, routine, operation, runtime, array_string_projection, target);
 }

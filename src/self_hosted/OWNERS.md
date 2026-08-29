@@ -3728,6 +3728,8 @@ inventory must not become a second fact-family owner registry.
   proof may narrow these source semantics.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy`
   -- MIR-blind range-driven LLVM program rendering from the sealed GraphPlan.
+  It derives one target-qualified ArrayString projection and carries the same
+  receipt through routine, operation, and expression rendering.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_operation_owner.pgy`
   and `direct_mir_scalar_program_llvm_array_mutation_owner.pgy` -- MIR-blind
   LLVM per-operation dispatch and local/value-result ArrayInt/ArrayString
@@ -3933,6 +3935,11 @@ inventory must not become a second fact-family owner registry.
   It also owns the single fact/projection/target cross-seal consumed by C and
   LLVM materializers. The C/LLVM emission roots derive this receipt once per
   semantic program.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy`
+  -- final LLVM read-only ArrayString parameter load and pointer-forwarding
+  consumer. The value load consumes the root-carried target projection and
+  its storage alignment; it cannot derive another projection or own a layout
+  literal. Pointer forwarding remains layout-free.
 - `direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy`
   and
   `direct_mir_scalar_program_llvm_array_string_storage_materialization_owner.pgy`

@@ -6,6 +6,28 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — ArrayString LLVM readonly-ref local green, publication pending
+
+- Exact base is `4a97f19a17a64e36a66b29747098a80811f11285` on
+  `origin/main`. The primary task is the sole integration owner.
+- Objective: the production scalar LLVM read-only ArrayString parameter load
+  consumes the target projection already derived by the LLVM emission root and
+  no longer owns a storage-alignment literal.
+- Integration gate:
+  `direct_mir_scalar_array_string_readonly_ref_owner.sh` executes C/LLVM
+  pointer parity and rejects parameter policy plus ABI-layout drift without
+  artifacts; the component contract ratchets projection carriage/readiness and
+  the removed literal. See
+  `docs/agent_work_directives/array_string_llvm_readonly_ref_projection_2026-08-29.md`.
+- Owned-parameter move semantics and all other ArrayString consumers are
+  outside this lease. Census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`; no
+  whole-row closure is claimed.
+- Local evidence is green: final-source DRV-2 reproduction, production
+  bootstrap C emission, focused C/LLVM plus six negatives, full component,
+  SoT edge/live adequacy, single-owner, hard-contract, likeness `4501/4501`,
+  and documentation. Coq/Rocq is a declared local skip. Commit, push, and
+  exact-head CI remain before lease release.
+
 ## NO ACTIVE implementation lease — ArrayString process Args target projection published
 
 - Exact base is `3beff662f2f536ba2bb45f1ab056584f2d5158b1` on

@@ -1,11 +1,14 @@
 // LLVM value/address projection for read-only Array<String> parameters.
 
 import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 
 func DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(
     ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    ref abi: DirectMirScalarProgramArrayStringAbiFact,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>,
     routine: Int, ordinal: Int, result: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if !DirectMirScalarProgramArrayStringReadonlyRefAt(
@@ -13,10 +16,23 @@ func DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(
         return DirectMirScalarProgramLlvmStringExpression(
             false, true, "", "");
     }
+    if !IsSome(projection_opt) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let projection: DirectMirArrayStringAbiProjection =
+        UnwrapOption(projection_opt);
+    if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            abi, projection, CompilerTargetCpuLlvmProjection()) {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
     let pointer: String = Concat("%pgy.param.", ToString(ordinal));
+    let storage_align: String = ToString(projection.storage.align);
     let instructions: String = Concat("  ", Concat(result,
         Concat(" = load %pgy.array.string, ptr ",
-        Concat(pointer, ", align 8\n"))));
+        Concat(pointer, Concat(", align ",
+        Concat(storage_align, "\n"))))));
     return DirectMirScalarProgramLlvmStringExpression(
         true, true, instructions, result);
 }

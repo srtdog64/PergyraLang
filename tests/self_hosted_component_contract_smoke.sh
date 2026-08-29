@@ -19143,6 +19143,35 @@ require_function_text \
     "func DirectMirScalarProgramLlvmArrayStringReadonlyRefCallArgument(" \
     'Concat("%pgy.local.", ToString('
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(" \
+    "DirectMirScalarProgramArrayStringAbiProjectionReadyForFact("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(" \
+    "projection.storage.align"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(" \
+    'Concat(pointer, ", align 8\n")'
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
+    "DirectMirScalarProgramArrayStringAbiProjectionFromFact("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    "DirectMirScalarProgramArrayStringAbiProjectionFromFact("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramLlvmRoutine(" \
+    "array_string_projection: Option<DirectMirArrayStringAbiProjection>"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmExpressionAt(" \
+    "array_string_projection: Option<DirectMirArrayStringAbiProjection>"
+require_text \
+    "tests/self_hosted/parity/direct_mir_scalar_array_string_readonly_ref_owner.sh" \
+    "array-string-readonly-ref-abi-layout"
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy" \
     "func DirectMirScalarProgramCallMarkerReady(" \
     'sequence.arena.identities.call_target_syntax_ids[node] > 0'

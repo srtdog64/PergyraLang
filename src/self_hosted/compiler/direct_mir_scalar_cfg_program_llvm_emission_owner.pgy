@@ -42,7 +42,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
     process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     int_line_format: String, string_line_format: String,
-    target: CompilerTargetProjectionFact
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>, target: CompilerTargetProjectionFact
 ) -> String {
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
@@ -96,7 +96,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
         while operation < operation_end {
             let emitted: String = DirectMirScalarCfgProgramLlvmOperation(
                 plan, routine, operation, formatted_print, process_exit,
-                runtime, int_line_format, string_line_format, target);
+                runtime, int_line_format, string_line_format, array_string_projection, target);
             if emitted == "" &&
                 (plan.operation_kinds[operation] ==
                     DirectMirScalarCfgOpPhiInt() ||
@@ -150,8 +150,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                     plan.program.expressions, return_row, runtime,
                     plan.program.nominal_abi, plan.program.logical_record,
                     plan.program.payload_free_enum,
-                    plan.program.referenced_enum, plan.routines, routine,
-                    target);
+                    plan.program.referenced_enum, plan.routines, routine, plan.program.array_string_abi,
+                    array_string_projection, target);
             if !expression.valid { Die(
                 "direct MIR scalar CFG LLVM return expression is invalid"); }
             TextBuilderAppend(output, expression.instructions);
@@ -190,8 +190,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                     runtime, plan.program.nominal_abi,
                     plan.program.logical_record,
                     plan.program.payload_free_enum,
-                    plan.program.referenced_enum, plan.routines, routine,
-                    target);
+                    plan.program.referenced_enum, plan.routines, routine, plan.program.array_string_abi,
+                    array_string_projection, target);
             if !condition.valid || condition.type_name !=
                     CompilerAbiLayoutBoolTypeName() {
                 DirectMirScalarCfgProgramLlvmConditionProjectionFailed(
@@ -348,7 +348,8 @@ func DirectMirScalarCfgEmitProgramLlvm(
     while routine < ArrayLength(plan.routines.roles) {
         let owned_routine: Array<String> = [DirectMirScalarCfgProgramLlvmRoutine(
             plan, routine, formatted_print, process_exit, runtime,
-            int_line_format, string_line_format, target)];
+            int_line_format, string_line_format, array_string_projection,
+            target)];
         TextBuilderAppend(output, owned_routine[0]);
         ArrayDropOwnedStrings(owned_routine);
         routine = routine + 1;

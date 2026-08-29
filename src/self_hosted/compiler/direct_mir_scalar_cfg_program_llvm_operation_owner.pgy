@@ -15,7 +15,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
     process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     int_line_format: String, string_line_format: String,
-    target: CompilerTargetProjectionFact
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>, target: CompilerTargetProjectionFact
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
     if kind != DirectMirScalarCfgOpExpressionDefinition() &&
@@ -28,11 +28,12 @@ func DirectMirScalarCfgProgramLlvmOperation(
         kind != DirectMirScalarCfgOpProcessExit() { return ""; }
     if kind == DirectMirScalarCfgOpOptionIntTryDefinition() {
         return DirectMirScalarProgramLlvmOptionIntTryDefinition(
-            plan, routine, operation, runtime, target);
+            plan, routine, operation, runtime, array_string_projection, target);
     }
     if kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() || kind == DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() {
         return DirectMirScalarProgramLlvmLogicalRecordAssignment(
-            plan, routine, operation, runtime, target);
+            plan, routine, operation, runtime, array_string_projection,
+            target);
     }
     let expression_row: Int = plan.program.operation_expression_rows[operation];
     if DirectMirScalarProgramArrayPopKind(kind) {
@@ -46,13 +47,16 @@ func DirectMirScalarCfgProgramLlvmOperation(
                 plan.program.operation_secondary_expression_rows[operation],
                 runtime, plan.program.nominal_abi,
                 plan.program.logical_record, plan.program.payload_free_enum,
-                plan.program.referenced_enum, plan.routines, routine, target);
+                plan.program.referenced_enum, plan.routines, routine,
+                plan.program.array_string_abi, array_string_projection,
+                target);
         let value: DirectMirScalarProgramLlvmExpression =
             DirectMirScalarProgramLlvmExpressionAt(
                 plan.program.expressions, expression_row, runtime,
                 plan.program.nominal_abi, plan.program.logical_record,
                 plan.program.payload_free_enum, plan.program.referenced_enum,
-                plan.routines, routine, target);
+                plan.routines, routine, plan.program.array_string_abi,
+                array_string_projection, target);
         let expected: String = CompilerAbiLayoutStringTypeName();
         if kind == DirectMirScalarCfgOpLocalArrayIntSet() ||
             kind == DirectMirScalarCfgOpArrayIntValueResultSet() {
@@ -91,7 +95,8 @@ func DirectMirScalarCfgProgramLlvmOperation(
             plan.program.expressions, expression_row, runtime,
             plan.program.nominal_abi, plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
-            plan.routines, routine, target);
+            plan.routines, routine, plan.program.array_string_abi,
+            array_string_projection, target);
     if !expression.valid {
         let diagnostic: String = Concat("direct MIR scalar CFG LLVM expression is invalid: routine=", ToString(routine));
         diagnostic = Concat(diagnostic, Concat(" operation=", ToString(operation)));

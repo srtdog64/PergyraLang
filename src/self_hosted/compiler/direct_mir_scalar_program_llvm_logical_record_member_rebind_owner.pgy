@@ -5,6 +5,7 @@ import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
@@ -35,7 +36,8 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
             plan.program.expressions, expression_row, runtime,
             plan.program.nominal_abi, plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
-            plan.routines, routine, target);
+            plan.routines, routine, plan.program.array_string_abi,
+            array_string_projection, target);
     if local_row < 0 || field_type == "" || llvm_record == "" ||
         llvm_field == "" || !expression.valid ||
         expression.type_name != field_type ||

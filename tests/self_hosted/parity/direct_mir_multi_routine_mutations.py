@@ -548,6 +548,8 @@ def main():
             param["type"] = "Array<Int>"
         elif kind.endswith("abi-required"):
             param["abi_layout_required"] = False
+        elif kind.endswith("abi-layout"):
+            param["abi_layout"]["align"] = 16
         else:
             raise SystemExit(
                 f"unknown read-only Array<String> mutation: {kind}"

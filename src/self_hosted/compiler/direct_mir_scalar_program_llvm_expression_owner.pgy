@@ -37,8 +37,8 @@ func DirectMirScalarProgramLlvmExpressionAt(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
-    ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int,
-    target: CompilerTargetProjectionFact
+    ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int, ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>, target: CompilerTargetProjectionFact
 ) -> DirectMirScalarProgramLlvmExpression {
     let chunks: Array<String> = [];
     let values: Array<String> = [];
@@ -171,7 +171,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
             let array_parameter_read:
                 DirectMirScalarProgramLlvmStringExpression =
                     DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(
-                        routines, routine, ordinal, result);
+                        routines, array_string_abi, array_string_projection, routine, ordinal, result);
             if array_parameter_read.matched {
                 if !array_parameter_read.valid {
                     return DirectMirScalarProgramLlvmExpression(

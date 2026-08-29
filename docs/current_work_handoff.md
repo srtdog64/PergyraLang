@@ -18,6 +18,40 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — ArrayString LLVM readonly-ref target projection
+
+- Exact base is `4a97f19a17a64e36a66b29747098a80811f11285` on
+  `origin/main`; the primary task owns the sole implementation lease.
+- Objective: carry the LLVM root's already-derived target-qualified
+  ArrayString projection to the read-only parameter load and replace its local
+  `align 8` decision with `projection.storage.align`.
+- Fact owner and last consumer: `DirectMirArrayStringCapturedAbiReady` owns
+  admitted layout identity, `DirectMirScalarProgramArrayStringAbiFact` carries
+  it, and `DirectMirScalarProgramArrayStringAbiProjectionReadyForFact` owns the
+  cross-seal. The reached last consumer is
+  `DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead`.
+- Forbidden fallback: a read-only load without carried projection, a literal
+  ArrayString load alignment, expression-local projection, type-name lookup,
+  missing/drifted ABI acceptance, or changed C/pointer-forwarding semantics.
+- Base evidence: the existing focused read-only gate executes C/LLVM and its
+  five policy negatives green. The prior owned-parameter candidate was not
+  admitted: a temporary executable probe exposed missing caller-side move
+  retirement for local owner-handle ArrayString arguments, while direct fresh
+  result/literal arguments are not yet supported. That is a separate future
+  rung, not evidence for this implementation.
+- Falsifier result: the focused gate rejects read-only parameter ABI-layout
+  drift without an artifact, generated LLVM retains the admitted alignment,
+  and source contains no read-only load literal. Census remains
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Local result: the final source reproduced the fingerprinted Pergyra-built
+  DRV-2 and emitted an 11,348,955-byte production bootstrap C artifact.
+  Focused C/LLVM parity plus six negatives, full component, SoT edge/live
+  adequacy, single-owner, hard-contract, tightened likeness `4501/4501`, and
+  documentation are green. Coq/Rocq is explicitly declared skipped locally.
+  Commit, push, and exact-head CI remain before publication and lease release.
+- Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
+  `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
+
 ## No active self-host implementation - ArrayString process Args target projection published
 
 - Exact implementation base was
