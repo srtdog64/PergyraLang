@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — ArrayString LLVM Join target projection
+## NO ACTIVE implementation lease — ArrayString LLVM Join target projection published
 
 - Exact base is `18a0b6666ef3b6119a1c0482693a12bffe1f3798` on
   `origin/main`. The primary task is the sole integration owner.
@@ -20,6 +20,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `docs/agent_work_directives/array_string_llvm_join_projection_2026-08-29.md`.
 - Other ArrayString consumers are outside this lease. The census remains
   `CLOSED=55 BRIDGE=32 ACTIVE=1`; no whole-row closure is claimed.
+- Publication result: implementation `fef8fb1f` is on `origin/main` and
+  exact-head run `33238680231` completed GREEN 30/30. `build-linux` passed in
+  24m15s and full self-host passed in 34m05s. The lease is released; no
+  successor implementation lease is open.
 
 ## NO ACTIVE implementation lease — ArrayString scalar preamble target projection published
 

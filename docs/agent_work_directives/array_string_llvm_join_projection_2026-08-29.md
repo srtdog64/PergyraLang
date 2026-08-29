@@ -1,6 +1,6 @@
 # ArrayString LLVM Join target projection — 2026-08-29
 
-Status: `ACTIVE — IMPLEMENTATION`
+Status: `DONE — PUBLISHED GREEN`
 
 Exact base: `18a0b6666ef3b6119a1c0482693a12bffe1f3798` on `origin/main`.
 
@@ -73,11 +73,12 @@ authority or progress evidence by itself.
   carriers, and `55/32/1`; live adequacy mutations, single-owner, hard
   contract, likeness `4493/4493`, and documentation quality are GREEN. Local
   Coq/Rocq execution is a declared skip, not a claimed proof run.
-- Exact-head CI publication remains pending. The implementation lease stays
-  active until the pushed revision is GREEN.
+- Implementation `fef8fb1fd10b1d32e3f49962c857089da662fd5e` is on
+  `origin/main`. Exact-head run `33238680231` completed GREEN 30/30, including
+  full self-host, Linux/Windows/macOS, sanitizers, Rocq, codegen bootstrap, and
+  backend parity 20/20. The implementation lease is released.
 
 ## Output classification
 
-Source and test edits are implementation candidates until the focused gate,
-structural ratchet, current-source driver evidence, commit, push, and exact-
-head CI have been observed. The census remains `55/32/1`.
+This bounded prerequisite is published executable evidence. It does not own or
+imply whole-row closure. The census remains `55/32/1`.

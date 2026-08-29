@@ -44,6 +44,15 @@ it.
   GREEN. Local Coq/Rocq is explicitly unavailable; no local formal execution is
   claimed.
 
+## Publication result
+
+- Implementation `fef8fb1fd10b1d32e3f49962c857089da662fd5e` is published
+  on `origin/main`. Exact-head run `33238680231` completed GREEN 30/30.
+- `build-linux` took 24m15s and full self-host took 34m05s. The run also passed
+  Rocq, sanitizers, Windows/macOS, codegen bootstrap, and backend parity 20/20.
+- The evidence publishes this one consumer migration only. Registry status
+  remains `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+
 ## Remaining BRIDGE inventory
 
 Parameter binding, value-result transfer, owned return, mutation, cleanup,

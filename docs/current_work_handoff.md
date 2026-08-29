@@ -18,10 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - ArrayString LLVM Join target projection
+## No active self-host implementation - ArrayString LLVM Join target projection published
 
-- Exact base is `18a0b6666ef3b6119a1c0482693a12bffe1f3798` on
-  `origin/main`. The primary task owns the only active implementation lease.
+- Exact implementation base was
+  `18a0b6666ef3b6119a1c0482693a12bffe1f3798` on `origin/main`. The primary
+  task owned the only implementation lease.
 - Objective: close one more executable prerequisite of
   `abi.mir_array_string_layout_projection`. The production scalar LLVM
   `StringJoin` body must consume the target projection already derived by the
@@ -43,9 +44,15 @@ percentage by themselves.
 - Census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`. Parameter binding,
   value-result transfer, owned return, mutation, cleanup, process/directory,
   and other expression materializers remain outside this rung.
-- Next publication boundary: explicitly stage only this rung, commit/push, and
-  require exact-head full CI GREEN. Until then the source and test edits are
-  implementation candidates, not a published completion claim.
+- Publication result: implementation
+  `fef8fb1fd10b1d32e3f49962c857089da662fd5e` is on `origin/main`; exact-head
+  run `33238680231` completed GREEN 30/30. `build-linux` passed in 24m15s and
+  full self-host passed in 34m05s. Rocq, sanitizers, all platforms, codegen
+  bootstrap, and backend parity 20/20 are included in that result.
+- No successor implementation lease is open. The only intended tracked dirty
+  state before the next publication is this coordination/audit refresh.
+  Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
+  `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
 
 ## No active self-host implementation - ArrayString scalar preamble projection published
 
