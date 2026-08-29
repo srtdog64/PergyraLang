@@ -42,10 +42,10 @@ func SemanticContextualBuiltinReturnTypeFromGraph(
     );
 }
 
-func SemanticContextualBuiltinInitializerTypeFromGraph(
+func SemanticContextualBuiltinExpectedTypeFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
-    declared_type: Option<String>,
+    expected_type: Option<String>,
     verdict_ok: Bool,
     inferred_type: String
 ) -> String {
@@ -57,7 +57,7 @@ func SemanticContextualBuiltinInitializerTypeFromGraph(
     }
     let contextual: Option<String> =
         SemanticContextualBuiltinReturnTypeFromGraph(
-            graph, root_id, declared_type
+            graph, root_id, expected_type
         );
     if IsSome(contextual) { return UnwrapOption(contextual); }
     return inferred_type;

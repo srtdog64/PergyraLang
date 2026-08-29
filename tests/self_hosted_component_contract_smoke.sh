@@ -7757,7 +7757,7 @@ require_text "tests/generic_method_specialization_smoke.sh" \
 require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy" \
     "let nested_generic: SemanticExpressionGraphGenericCallFact"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
-    "if concrete_scalar_value_owned && !generic_value.applies"
+    "if graph_call_value_owned && !generic_value.applies"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "return 284;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'mir_fixture_rows[@]}" -ne 284'
@@ -8412,7 +8412,7 @@ require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pg
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
     'let invalid_index_text: String = "stack[\"bad\"]"'
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
-    "if !concrete_scalar_value_owned && !index_value_owned"
+    "if !graph_call_value_owned && !index_value_owned"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "else if index_value_owned"
 require_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \

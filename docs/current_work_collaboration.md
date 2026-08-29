@@ -6,6 +6,35 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — contextual collection-constructor call arguments locally closed, publication pending
+
+- Exact base is `c098b2e1bb02b0e73d34909da41dacdef0e82a08` on
+  `origin/main`; the primary task is the sole integration owner.
+- Reproduced split: native publishes C for matching direct `ListNew()`,
+  `QueueNew()`, and `SetNew()` function arguments. Installed self-host rejects
+  before MIR with `call_arg_type_mismatch` and the corresponding
+  `List<Unknown>`, `Queue<Unknown>`, or `Set<Unknown>` actual type.
+- Objective: make the concrete-scalar call-argument consumer use the existing
+  contextual builtin owner with the carried expected parameter type. A wrong
+  constructor family and general Unknown coercion remain rejected.
+- Native currently accepts `QueueNew()` for a `List<Int>` parameter; self-host
+  correctly rejects it. This lease does not copy that native defect. Both
+  pipelines reject nonzero-arity `ListNew(7)` without artifacts.
+- Fact owner, last consumer, forbidden fallbacks, edit scope, and integration
+  gate are fixed in
+  `docs/agent_work_directives/contextual_collection_constructor_call_argument_parity_2026-08-30.md`.
+- Census starts at `CLOSED=55 BRIDGE=32 ACTIVE=1`; opening this lease changes
+  neither that census nor the 83% project forecast.
+- Local result: current-source DRV-2 accepts matching direct List/Queue/Set
+  fresh constructors and keeps wrong-family and arity negatives fail-closed.
+  Standalone C/LLVM emission, component inventory, and SoT edge are green.
+- The initializer projection gate remains locally red at
+  `identity-bound callable C binding is missing`; byte-identical exact-base
+  semantic sources reproduce it after the fresh GCC 16 native rebuild. This is
+  not counted as a pass or a change regression. Coq/Rocq is unavailable and no
+  missing-prover bypass was used. Exact-head CI is the next falsifier, and the
+  lease remains active until publication is observed.
+
 ## NO ACTIVE implementation lease — owned sequence named value-boundary parity published
 
 - Implementation `fc85801716322dda8e70b70980898f85fd3ca5c4`, based on

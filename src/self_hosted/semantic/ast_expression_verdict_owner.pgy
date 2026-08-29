@@ -283,8 +283,15 @@ func SemanticAstExpressionVerdictFromGraph(
             graph, root_id, constructors, names, types, function_names,
             function_returns, function_params
         );
+    let contextual_call_arguments_owned: Bool =
+        SemanticExpressionGraphContextualCallArgumentsOwned(
+            graph, root_id, constructors, names, types, function_names,
+            function_returns, function_params
+        );
+    let graph_call_value_owned: Bool = concrete_scalar_value_owned ||
+        contextual_call_arguments_owned;
     let call_error: String = "";
-    if concrete_scalar_value_owned && !generic_value.applies {
+    if graph_call_value_owned && !generic_value.applies {
         call_error = SemanticExpressionGraphConcreteScalarValueError(
             graph, root_id, constructors, names, types,
             function_names, function_returns, function_params
@@ -349,7 +356,7 @@ func SemanticAstExpressionVerdictFromGraph(
         );
     }
     let operand_error: String = "";
-    if !concrete_scalar_value_owned && !index_value_owned {
+    if !graph_call_value_owned && !index_value_owned {
         operand_error = CheckLogicalOperands(
             text, names, types, function_names, function_returns
         );

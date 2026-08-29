@@ -1,0 +1,7 @@
+func ObserveList(values: List<Int>) -> Void {
+    Log("observed");
+}
+
+func Main() -> Void {
+    ObserveList(ListNew(7));
+}

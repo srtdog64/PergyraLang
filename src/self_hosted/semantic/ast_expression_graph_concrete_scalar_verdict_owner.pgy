@@ -8,6 +8,7 @@ import "diagnostic_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "ast_signature_type_expression_fact_owner.pgy";
+import "ast_contextual_builtin_type_owner.pgy";
 
 func SemanticExpressionGraphConcreteScalarValueOwned(
     ref graph: SemanticExpressionGraphFacts,
@@ -150,6 +151,82 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
         i = i + 1;
     }
     return true;
+}
+
+func SemanticExpressionGraphContextualCallArgumentsOwned(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>
+) -> Bool {
+    if ArrayLength(function_names) != ArrayLength(function_params) {
+        return false;
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, node_id
+    );
+    if !call.ok { return false; }
+    let target_fact: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            graph, node_id, constructors, names, types,
+            function_names, function_returns
+        );
+    if !target_fact.ok { return false; }
+    let local_callable: SemanticAstCallableTypeShape =
+        SemanticAstCallableTypeShapeFromName(
+            EnvLookup(names, types, target_fact.name)
+        );
+    let signature: String = "";
+    if local_callable.ok {
+        signature = SemanticAstCallableTypeParameterSignature(
+            local_callable
+        );
+    } else {
+        let target: Option<Int> = SemanticCallableIndex(
+            function_names, target_fact.name
+        );
+        if !IsSome(target) { return false; }
+        signature = function_params[UnwrapOption(target)];
+    }
+    let signature_facts: SemanticDelimitedRangeFacts =
+        SemanticSignatureRangeFactsFromSource(signature);
+    let signature_count: Int = 0;
+    if signature != "" {
+        signature_count = SemanticDelimitedRangeCount(signature_facts);
+    }
+    if signature_count < target_fact.parameter_offset ||
+        signature_count - target_fact.parameter_offset !=
+        ArrayLength(call.argument_nodes) {
+        return false;
+    }
+    let has_contextual_argument: Bool = false;
+    let i: Int = 0;
+    while i < ArrayLength(call.argument_nodes) {
+        let expected: Option<String> = Some(
+            SemanticDelimitedRangeText(
+                signature_facts, signature,
+                i + target_fact.parameter_offset
+            )
+        );
+        let contextual: Option<String> =
+            SemanticContextualBuiltinReturnTypeFromGraph(
+                graph, call.argument_nodes[i], expected
+            );
+        if IsSome(contextual) {
+            has_contextual_argument = true;
+        } else if !SemanticExpressionGraphConcreteScalarValueOwned(
+            graph, call.argument_nodes[i], constructors, names, types,
+            function_names, function_returns, function_params
+        ) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return has_contextual_argument;
 }
 
 func SemanticExpressionGraphConcreteScalarValueError(
@@ -334,6 +411,10 @@ func SemanticExpressionGraphConcreteScalarValueError(
         let actual: String = SemanticExpressionGraphScalarTypeName(
             graph, argument, constructors, names, types,
             function_names, function_returns
+        );
+        let expected_type: Option<String> = Some(expected);
+        actual = SemanticContextualBuiltinExpectedTypeFromGraph(
+            graph, argument, expected_type, true, actual
         );
         let argument_text: Option<String> =
             SemanticExpressionGraphNodeText(graph, argument);

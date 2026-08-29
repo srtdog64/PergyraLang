@@ -18,6 +18,41 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — contextual collection-constructor call arguments locally closed, publication pending
+
+- Exact base is `c098b2e1bb02b0e73d34909da41dacdef0e82a08` on
+  `origin/main`; the primary task owns the sole implementation lease.
+- Production entrypoint:
+  `DriverSourceMirProjectionFromAdmittedRequest`. Direct bypass to delete:
+  rejecting matching fresh List/Queue/Set constructor arguments at semantic
+  call checking because their unresolved inferred type is compared without the
+  enclosing parameter's carried expected type.
+- Fact owner: `ast_contextual_builtin_type_owner.pgy` over canonical builtin
+  signature and direct call-spine facts. Parameter type identity remains with
+  the admitted signature owner.
+- Last consumer: `SemanticAstExpressionVerdict` selects the contextual graph
+  capability and `SemanticExpressionGraphConcreteScalarValueError` checks the
+  carried parameter type before body admission and MIR publication.
+- Local result: a current-source DRV-2 publishes verified MIR for matching
+  fresh List/Queue/Set arguments. Existing `own` List/Queue transfer remains
+  admitted; wrong-family and nonzero-arity cases remain fail-closed without
+  artifacts. Native's current wrong-family acceptance is a separate defect and
+  is not the oracle for this rung.
+- The changed owners emit standalone C/LLVM with zero diagnostics. Component
+  inventory and SoT edge are green; the census remains
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, with no percentage change.
+- Local initializer projection remains red at
+  `identity-bound callable C binding is missing`, but the exact-base semantic
+  source reproduces that result after the fresh GCC 16 native rebuild. It is
+  recorded as an existing local baseline, not a pass or a change regression.
+  Coq/Rocq is unavailable locally and no missing-prover bypass was used.
+- Next falsifier: publish the implementation and observe exact-head CI,
+  including Windows initializer projection and Rocq proof jobs. Do not release
+  the lease or infer a successor rung before that result.
+- Objective card and consolidated gate:
+  `docs/agent_work_directives/contextual_collection_constructor_call_argument_parity_2026-08-30.md`.
+  Census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`, with no percentage change.
+
 ## No active self-host implementation — owned sequence named value-boundary parity published
 
 - Implementation `fc85801716322dda8e70b70980898f85fd3ca5c4`, based on

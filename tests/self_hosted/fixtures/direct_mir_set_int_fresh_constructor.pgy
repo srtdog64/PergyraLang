@@ -1,0 +1,7 @@
+func ObserveSet(values: Set<Int>) -> Void {
+    Log("observed");
+}
+
+func Main() -> Void {
+    ObserveSet(SetNew());
+}

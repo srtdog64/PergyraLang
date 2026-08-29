@@ -1008,6 +1008,13 @@ Other expression shapes remain under `selfhost.expression_surface`. The try row 
 structure and its operand edge only. Payload type classification remains in the
 expression-surface `BRIDGE`, and the compact legacy/native canonicalization
 bridge must reproduce the same graph but is not hard-codegen authority.
+Direct zero-argument `ListNew`, `QueueNew`, and `SetNew` call arguments consume
+the enclosing signature's carried expected type through the contextual builtin
+owner before source-text fallback. Matching families and wrong-family/arity
+falsifiers are owned by
+`direct_mir_contextual_collection_constructor_argument_owner.sh`; this closes
+that reached consumer slice but does not close the broader expression-surface
+`BRIDGE` row.
 
 Concrete Option/Result C materialization is a derived projection of
 `selfhost.type_runtime_usage_surface` and `abi.layout_rows`, not a new ABI

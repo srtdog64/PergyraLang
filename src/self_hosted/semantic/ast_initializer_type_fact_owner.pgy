@@ -290,7 +290,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             inferred = UnwrapOption(declared);
         }
         if expression_verdict.ok && IsSome(declared) && SemanticExpressionGraphSetLiteralMatchesDeclaredType(expression_surfaces.expression_graph, UnwrapOption(graph_root), UnwrapOption(declared), constructors, names, types, function_tables.names, function_tables.returns) { inferred = UnwrapOption(declared); }
-        inferred = SemanticContextualBuiltinInitializerTypeFromGraph(
+        inferred = SemanticContextualBuiltinExpectedTypeFromGraph(
             expression_surfaces.expression_graph, UnwrapOption(graph_root),
             declared, expression_verdict.ok, inferred
         );
