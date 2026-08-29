@@ -21,6 +21,7 @@ active status and executable gates, not inferred from design-document volume.
 | Capability audit | [`../120_vision_and_capability_audit.md`](../120_vision_and_capability_audit.md) |
 | Production bar | [`../166_production_bar_review_2026_07.md`](../166_production_bar_review_2026_07.md) |
 | Validation isolation | [`../152_validation_isolation_policy.md`](../152_validation_isolation_policy.md) |
+| Binary reconstruction resistance target | [`binary_reconstruction_resistance_target.md`](binary_reconstruction_resistance_target.md) |
 
 Historical snapshots and external reviews provide context but do not override
 the active status owner.
