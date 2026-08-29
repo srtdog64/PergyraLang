@@ -1,6 +1,6 @@
 # Owned sequence named value-boundary parity
 
-Status: `LOCAL GREEN — PUBLICATION PENDING`
+Status: `PUBLISHED — EXACT-HEAD CI GREEN`
 
 Exact base: `c3fc46b003d7bb60f371e311b38a0d757672a64c` on
 `origin/main`.
@@ -82,9 +82,11 @@ implementation rung.
   Array regression, native production-bootstrap C emission, collection call
   protocol, full component inventory, hard contract, SoT edge/live adequacy
   with declared prover skip, single-owner, likeness, language inventory,
-  documentation, and progress checks are locally green. Publication remains
-  pending.
+  documentation, and progress checks are locally green.
 - The focused List/Queue body-parity C leg passes. The LLVM test-driver build
   remains red at the pre-existing
   `driver_source_llvm_intent_execution_owner.pgy:29` contextual Option gap;
   this directive does not reopen that separate source-to-LLVM intent bridge.
+- Implementation `fc85801716322dda8e70b70980898f85fd3ca5c4` is on
+  `origin/main`. Exact-head run `33267433932` completed GREEN 30/30 in 39m48s;
+  the implementation lease is released without opening a successor rung.

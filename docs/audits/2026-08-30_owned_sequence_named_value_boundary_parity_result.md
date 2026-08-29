@@ -1,6 +1,6 @@
 # Owned sequence named value-boundary parity result — 2026-08-30
 
-Status: `LOCAL GREEN — PUBLICATION PENDING`
+Status: `PUBLISHED — EXACT-HEAD CI GREEN`
 
 Exact base: `c3fc46b003d7bb60f371e311b38a0d757672a64c` on
 `origin/main`.
@@ -82,3 +82,13 @@ project forecast. Slice call-target completion, self-host contextual typing of
 fresh List/Queue constructors, Set/Map/Option/Result/tuple/nominal/resource
 classification, and backend collection ABI/lowering remain separate. The SoT
 census remains `55 CLOSED / 32 BRIDGE / 1 ACTIVE`.
+
+## Publication evidence
+
+- implementation: `fc85801716322dda8e70b70980898f85fd3ca5c4` on
+  `origin/main`
+- exact-head push run `33267433932`: GREEN 30/30 in 39m48s
+- full self-host: 39m31s; Linux: 24m19s; sanitizers: 12m47s; codegen
+  bootstrap: 8m25s; Windows: 8m14s; Rocq 9: 1m45s
+- backend toolchain: 10m57s; comparison shards: 20/20; macOS C-only:
+  2m16s; TSan: 22s

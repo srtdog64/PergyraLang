@@ -6,10 +6,11 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — owned sequence named value-boundary parity
+## NO ACTIVE implementation lease — owned sequence named value-boundary parity published
 
-- Exact base is `c3fc46b003d7bb60f371e311b38a0d757672a64c` on
-  `origin/main`; the primary task is the sole integration owner.
+- Implementation `fc85801716322dda8e70b70980898f85fd3ca5c4`, based on
+  `c3fc46b003d7bb60f371e311b38a0d757672a64c`, is on `origin/main`; the lease is
+  released.
 - Reproduced split: native rejects function-returned `List<Int>` and
   `Queue<Int>` at an `own` boundary before C, while installed self-host
   publishes 8,164- and 8,196-byte verified MIR artifacts.
@@ -32,11 +33,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   errors and the three existing redundant-`who` warnings. Collection protocol,
   full component inventory, hard contract, SoT edge/live adequacy with declared
   prover skip, single-owner, likeness `4519/4519`, official language inventory,
-  documentation, and progress gates are green. Publication remains pending.
+  documentation, and progress gates are green.
 - Filtered `list_ops` and `sequence_literal_list_queue` body parity passes its C
   leg. The LLVM test-driver build is still red at the pre-existing
   `driver_source_llvm_intent_execution_owner.pgy:29` contextual Option gap from
   2026-08-25; it is outside this lease and is not recorded as a skip or pass.
+- Exact-head push run `33267433932` completed GREEN 30/30 in 39m48s: full
+  self-host 39m31s, Linux 24m19s, sanitizers 12m47s, codegen bootstrap 8m25s,
+  Windows 8m14s, Rocq 9 1m45s, backend toolchain 10m57s, and comparison shards
+  20/20. No successor implementation lease is inferred.
 
 ## NO ACTIVE implementation lease — Array type named value-boundary parity published
 

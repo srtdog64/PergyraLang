@@ -18,10 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — owned sequence named value-boundary parity
+## No active self-host implementation — owned sequence named value-boundary parity published
 
-- Exact base is `c3fc46b003d7bb60f371e311b38a0d757672a64c` on
-  `origin/main`; the primary task owns the sole implementation lease.
+- Implementation `fc85801716322dda8e70b70980898f85fd3ca5c4`, based on
+  `c3fc46b003d7bb60f371e311b38a0d757672a64c`, is on `origin/main`; the lease is
+  released.
 - Production entrypoint:
   `DriverSourceMirProjectionFromAdmittedRequest`. Direct bypass to delete:
   accepting a function-returned `List<Int>` or `Queue<Int>` across an `own`
@@ -49,12 +50,16 @@ percentage by themselves.
   new List/Queue and existing Array gates, collection protocol, hard contract,
   full component inventory, SoT edge/live adequacy with declared prover skip,
   single-owner, likeness `4519/4519`, official language inventory,
-  documentation, and progress checks are locally green. Publication is
-  pending.
+  documentation, and progress checks are locally green.
 - Filtered List/Queue body parity passed its C leg. Its LLVM leg remains blocked
   before fixture execution by the pre-existing 2026-08-25 contextual Option gap
   at `driver_source_llvm_intent_execution_owner.pgy:29`; do not count it as a
-  pass or silently skip it, and do not expand this active lease to repair it.
+  pass or silently skip it, and do not expand this published result to repair
+  it.
+- Exact-head push run `33267433932` completed GREEN 30/30 in 39m48s: full
+  self-host 39m31s, Linux 24m19s, sanitizers 12m47s, codegen bootstrap 8m25s,
+  Windows 8m14s, Rocq 9 1m45s, backend toolchain 10m57s, macOS C-only 2m16s,
+  TSan 22s, and comparison shards 20/20. No successor rung is inferred.
 
 ## No active self-host implementation — Array type named value-boundary parity published
 
