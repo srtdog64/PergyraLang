@@ -18,6 +18,37 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — Array type named value-boundary parity
+
+- Exact base is `965d4399e46795f583dcbb8b881cd78e626f13a2` on
+  `origin/main`; the primary task owns the sole implementation lease.
+- Production entrypoint:
+  `DriverSourceMirProjectionFromAdmittedRequest`. Direct bypass to delete:
+  accepting an unnamed `Array<Int>` call result across an `own` boundary,
+  publishing MIR, and relying on the direct backend's Array argument
+  entrypoint-identity rejection.
+- Fact owner: canonical `SemanticArrayElementType` for structural `Array<T>`
+  identity, consumed by `SemanticAstNamedValueBoundaryVerdict` with the
+  existing parameter-mode and expression-place facts.
+- Last consumer: `SemanticAstBodyTypeBundle` before MIR publication.
+- Next falsifier: native and installed self-host reject String/Int unnamed
+  Array call results and populated literals without artifacts; named own Array
+  values, default-mode Array values, and copy-only String remain admitted.
+- Objective card and consolidated integration gate:
+  `docs/agent_work_directives/array_type_named_value_boundary_parity_2026-08-30.md`.
+  Census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`; no percentage change is
+  claimed by opening the lease.
+- Local result: the semantic named-boundary verdict consumes canonical Array
+  shape identity and no longer owns an element-type allowlist. Native and
+  installed self-host reject String/Int unnamed call results and populated
+  literals before artifacts, while named/default Array and copy-only String
+  controls remain admitted.
+- Current-source DRV-2 and a 32,923,853-byte native production-bootstrap C
+  artifact are green. Existing Array C/LLVM controls, component, SoT edge/live
+  adequacy, single-owner, hard-contract, likeness `4509/4509`, official
+  language inventory, documentation, progress, and diff checks pass locally.
+  Coq/Rocq is a declared local skip; publication and exact-head CI remain.
+
 ## No active self-host implementation — ArrayString named value-boundary semantic rejection published
 
 - Exact base is `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on

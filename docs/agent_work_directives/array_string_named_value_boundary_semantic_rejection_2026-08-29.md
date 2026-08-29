@@ -54,7 +54,9 @@ Exact base: `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on
   integration shards remain within the repository 30-minute local budget.
 - Integration owner: the primary task at this exact base.
 - Integration gate:
-  `tests/self_hosted/parity/direct_mir_array_string_named_value_boundary_owner.sh`.
+  current consolidated successor
+  `tests/self_hosted/parity/direct_mir_array_named_value_boundary_owner.sh`
+  supersedes the published String-only filename while retaining its cases.
 
 The focused native/self-host gate, existing ownership controls, current-source
 DRV-2 build, and native production-bootstrap emission are locally green.

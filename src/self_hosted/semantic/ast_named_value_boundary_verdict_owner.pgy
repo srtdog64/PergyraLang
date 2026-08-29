@@ -9,6 +9,7 @@ import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_generic_call_owner.pgy";
 import "ast_expression_place_fact_owner.pgy";
+import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
 
 struct SemanticAstNamedValueBoundaryVerdict {
@@ -36,10 +37,9 @@ func SemanticAstNamedValueBoundaryVerdictError(
 }
 
 func SemanticAstNamedValueBoundaryTracksType(type_name: String) -> Bool {
-    // This executable rung is intentionally bounded to the reproduced
-    // Array<String> ownership seam. Wider native ownership-class parity needs
-    // its own reached fixture and must not be inferred by a backend.
-    return type_name == "Array<String>";
+    // Array shape identity stays with the canonical semantic shape owner.
+    // Element spellings do not form a second ownership policy here.
+    return IsSome(SemanticArrayElementType(type_name));
 }
 
 func SemanticAstNamedValueBoundaryModeName(mode: Int) -> String {

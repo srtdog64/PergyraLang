@@ -31,10 +31,10 @@ ownership-class distinction rather than banning all call-result arguments.
 
 ## Falsifying evidence
 
-- `direct_mir_array_string_named_value_boundary_owner.sh` rejects both the
-  unnamed call result and populated literal in native and installed self-host
-  modes without C/MIR artifacts, then emits verified MIR for named ArrayString
-  and copy-only String controls.
+- The current consolidated
+  `direct_mir_array_named_value_boundary_owner.sh` retains the original String
+  unnamed call-result/literal rejections and named ArrayString/copy-only String
+  controls while superseding the published String-only filename.
 - `direct_mir_scalar_owned_array_string_parameter_owner.sh` retains C/LLVM
   owner-transfer execution and its negative mutations.
 - `direct_mir_scalar_owned_string_parameter_owner.sh` retains C/LLVM String

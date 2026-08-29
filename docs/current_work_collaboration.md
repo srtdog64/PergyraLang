@@ -6,6 +6,33 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — Array type named value-boundary parity
+
+- Exact base is `965d4399e46795f583dcbb8b881cd78e626f13a2` on
+  `origin/main`; the primary task is the sole integration owner.
+- Reproduced split: native rejects an unnamed `own Array<Int>` call result
+  before C publication. Installed self-host publishes a 9,682-byte verified
+  MIR artifact, and only the direct backend later rejects the Array argument
+  entrypoint identity.
+- Objective: make the existing semantic named-boundary verdict consume the
+  canonical `SemanticArrayElementType` fact so every well-formed `Array<T>`
+  follows the same borrow-tracked rule without an element-type allowlist.
+- Fact owner, last consumer, forbidden fallbacks, bounded edit scope, and the
+  consolidated integration gate are fixed in
+  `docs/agent_work_directives/array_type_named_value_boundary_parity_2026-08-30.md`.
+- Census starts at `CLOSED=55 BRIDGE=32 ACTIVE=1`; opening this lease does not
+  close a registry row or change the 83% project forecast.
+- Local result: `SemanticAstNamedValueBoundaryVerdict` now consumes canonical
+  `SemanticArrayElementType` rather than an `Array<String>` equality. Native
+  and installed self-host reject String/Int unnamed Array call results and
+  populated literals without artifacts; named own ArrayString/ArrayInt,
+  default-mode ArrayInt/ArrayBool, and copy-only String remain admitted.
+- Current-source DRV-2 installation, 32,923,853-byte native production-bootstrap
+  C emission, existing Array C/LLVM controls, component inventory, SoT edge and
+  live adequacy, single-owner, hard-contract, likeness `4509/4509`, language
+  inventory, documentation, progress, and diff checks are locally green.
+  Coq/Rocq is a declared local skip; commit, push, and exact-head CI remain.
+
 ## NO ACTIVE implementation lease — ArrayString named value-boundary semantic rejection published
 
 - Exact base is `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on

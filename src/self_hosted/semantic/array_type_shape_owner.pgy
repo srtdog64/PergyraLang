@@ -35,6 +35,7 @@ func SemanticArrayTypeShapeContractReady() -> Bool {
     let element: Option<String> = SemanticArrayElementType("Array<Int>");
     return IsSome(element) && UnwrapOption(element) == "Int" &&
         !IsSome(SemanticArrayElementType("Int")) &&
+        !IsSome(SemanticArrayElementType("Array<Int")) &&
         IsSome(SemanticSequenceElementType("List<Int>")) &&
         UnwrapOption(SemanticSequenceElementType("Queue<String>")) ==
             "String" &&

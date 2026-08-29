@@ -1,0 +1,15 @@
+func ReleaseOwnedInts(own values: Array<Int>) -> Void {
+    let count: Int = ArrayLength(values);
+}
+
+func BuildOwnedInts() -> Array<Int> {
+    let values: Array<Int> = [];
+    ArrayPush(values, 7);
+    return values;
+}
+
+func Main() -> Void {
+    let values: Array<Int> = BuildOwnedInts();
+    ReleaseOwnedInts(values);
+    Log("admitted");
+}

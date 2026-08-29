@@ -1,0 +1,8 @@
+func ReleaseOwnedInts(own values: Array<Int>) -> Void {
+    let count: Int = ArrayLength(values);
+}
+
+func Main() -> Void {
+    ReleaseOwnedInts([7]);
+    Log("unreachable");
+}

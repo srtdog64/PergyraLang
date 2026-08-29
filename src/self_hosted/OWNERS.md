@@ -472,7 +472,8 @@ inventory must not become a second fact-family owner registry.
   lowering; codegen consumes the carried node fact without binding lookup.
 - `src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy` --
   fail-closed join of admitted parameter type/mode and expression-place facts
-  for the reached `Array<String>` named-value boundary; MIR and backends may
+  for canonical `Array<T>` named-value boundaries. It consumes the Array shape
+  owner instead of maintaining an element-type allowlist; MIR and backends may
   not reconstruct or defer this source-semantic rejection.
 - `src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy` and
   `src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy`
