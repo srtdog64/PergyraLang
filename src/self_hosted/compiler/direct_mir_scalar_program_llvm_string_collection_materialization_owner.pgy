@@ -56,8 +56,7 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
     }
     let output: String = "";
     if array_required {
-        let abi: DirectMirArrayStringAbiProjection =
-            UnwrapOption(projection_opt);
+        let abi: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
         if !DirectMirScalarProgramLlvmArrayStringProjectionReady(
                 plan.program.array_string_abi, abi) {
             Die("direct MIR scalar program LLVM Array<String> projection drifted");
@@ -106,7 +105,11 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
         output = Concat(output,
             DirectMirScalarProgramLlvmStringSplitBlock(runtime, abi));
     }
-    if plan.program.runtime_abi.string_join_id != 0 { output = Concat(
-        output, DirectMirScalarProgramLlvmStringJoinBlock(runtime)); }
+    if plan.program.runtime_abi.string_join_id != 0 {
+        let abi: DirectMirArrayStringAbiProjection =
+            UnwrapOption(projection_opt);
+        output = Concat(output,
+            DirectMirScalarProgramLlvmStringJoinBlock(runtime, abi));
+    }
     return output;
 }

@@ -10818,6 +10818,24 @@ require_file \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" 20
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringJoinBlock(" \
+    "ToString(abi.data_index)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringJoinBlock(" \
+    "ToString(abi.length_index)"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" \
+    "extractvalue %pgy.array.string %array, 0"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" \
+    "extractvalue %pgy.array.string %array, 1"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringCollectionMaterialization(" \
+    "DirectMirScalarProgramLlvmStringJoinBlock(runtime, abi)"
+require_function_text \
     "src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy" \
     "func StringRuntimeCStringJoinBlock(" "pgy_as_len(a)"
 require_function_text \

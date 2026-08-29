@@ -3293,7 +3293,8 @@ inventory must not become a second fact-family owner registry.
   runtime row without rewriting Print as newline-producing Log.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy`
   -- the LLVM body for the sealed `Array<String>, String -> String` join ABI.
-  It consumes the runtime projection and owns no builtin name or argument-type
+  It consumes the runtime and target-qualified ArrayString projections and
+  owns no builtin name, argument-type, aggregate-layout, or field-index
   decision; the C path consumes the canonical String runtime block.
 - `src/self_hosted/compiler/direct_mir_scalar_program_string_index_runtime_owner.pgy`
   -- canonical StringIndexOf ABI identity, result sentinel/range/unit, and

@@ -6,6 +6,21 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — ArrayString LLVM Join target projection
+
+- Exact base is `18a0b6666ef3b6119a1c0482693a12bffe1f3798` on
+  `origin/main`. The primary task is the sole integration owner.
+- Objective: the production scalar LLVM `StringJoin` body consumes the one
+  carried target projection and stops reconstructing ArrayString data/length
+  field indices as literals. Runtime ABI and allocation semantics do not move.
+- Integration gate: `one_mir_string_collection_builtin_projection.sh`
+  executes Join in C/LLVM and retains its negative matrix; the component
+  contract requires projected `data_index`/`length_index` use and rejects the
+  old `extractvalue ... 0/1` body. See
+  `docs/agent_work_directives/array_string_llvm_join_projection_2026-08-29.md`.
+- Other ArrayString consumers are outside this lease. The census remains
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`; no whole-row closure is claimed.
+
 ## NO ACTIVE implementation lease — ArrayString scalar preamble target projection published
 
 - Exact implementation base was

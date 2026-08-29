@@ -18,6 +18,35 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context - ArrayString LLVM Join target projection
+
+- Exact base is `18a0b6666ef3b6119a1c0482693a12bffe1f3798` on
+  `origin/main`. The primary task owns the only active implementation lease.
+- Objective: close one more executable prerequisite of
+  `abi.mir_array_string_layout_projection`. The production scalar LLVM
+  `StringJoin` body must consume the target projection already derived by the
+  LLVM emission root and delete its local data/length field-index literals.
+- Fact owner and last consumer: `DirectMirArrayStringCapturedAbiReady` owns
+  admitted layout identity, the scalar-program fact carries it, and
+  `DirectMirArrayStringAbiProjection` owns target indices. The reached last
+  consumer is `DirectMirScalarProgramLlvmStringJoinBlock` through the scalar
+  LLVM collection materializer.
+- Forbidden fallback: literal Join indices 0/1, type-name lookup, a second Join
+  projection, missing/drifted projection acceptance, or changing runtime ABI,
+  allocation, and ownership semantics.
+- Local evidence: a fresh Pergyra-built current-source DRV-2 is installed. The
+  final focused C/LLVM Split/Join and negative gate passes in 25 seconds; the
+  full component inventory, native-oracle emission with zero errors, SoT live
+  mutations, single-owner, hard contract, likeness `4493/4493`, documentation,
+  and diff checks are GREEN. Join is 18/20 lines and its orchestration caller
+  is 115/115; no cap was raised. Local Coq/Rocq remains a declared skip.
+- Census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`. Parameter binding,
+  value-result transfer, owned return, mutation, cleanup, process/directory,
+  and other expression materializers remain outside this rung.
+- Next publication boundary: explicitly stage only this rung, commit/push, and
+  require exact-head full CI GREEN. Until then the source and test edits are
+  implementation candidates, not a published completion claim.
+
 ## No active self-host implementation - ArrayString scalar preamble projection published
 
 - Objective: close one executable prerequisite of
