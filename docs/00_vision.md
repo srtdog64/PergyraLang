@@ -47,6 +47,26 @@ C/LLVM-style backends. Future NPU, tensor, dataflow, or GPU projections must
 consume the same owner facts through their own projection IR instead of making
 CPU-shaped MIR the universal ontology.
 
+## Release Binary Reconstruction Target
+
+Pergyra의 `--opt=release` 배포 바이너리는 같은 target과 host toolchain으로
+빌드한 일반적인 **최적화·strip된 C++ 릴리스보다 소스 수준 구조를 더 쉽게
+복원할 수 없어야 한다.** 이 목표는 원본의 주석, 로컬 이름, 소스 경로,
+모듈 경계와 Pergyra의 `world` / `zone` / `subject` / `action` / `intent`
+구조가 릴리스 전용 메타데이터 때문에 그대로 노출되지 않는 수준을 뜻한다.
+
+이는 디컴파일이나 역공학이 불가능하다는 약속이 아니다. 실행 흐름, 상수,
+문자열 리터럴, 공개 FFI/ABI는 C++ 바이너리에서도 일정 부분 복원되며,
+클라이언트 바이너리에 포함된 비밀을 보호하는 보안 경계로 취급할 수 없다.
+현재 상태는 `OPEN TARGET`이다. C와 LLVM 배포 경로가 동일한 정책을 소비하고,
+동일 툴체인의 C++ 기준군과 누출 항목별로 비교하는 실행 게이트가 닫힐 때까지
+구현 완료를 주장하지 않는다.
+
+목표의 단일 계약과 판정 조건은
+[`docs/release/binary_reconstruction_resistance_target.md`](release/binary_reconstruction_resistance_target.md)가
+소유한다. 이 목표를 달성하기 위해 언어 의미를 난독화하거나 packer,
+anti-debugging, self-modifying code를 기본 기능으로 도입하지 않는다.
+
 ## Beta Then Self-Hosting
 
 Self-hosting is a post-beta validation target, not a beta blocker.
