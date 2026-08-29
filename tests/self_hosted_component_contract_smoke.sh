@@ -19337,6 +19337,73 @@ reject_text \
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy" \
     "plan.program.array_string_boundary.literal_local_row"
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy" 100
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy" 100
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" 160
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" \
+    "func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(" \
+    "DirectMirScalarProgramOwnedArrayStringMoveIsLastUse("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" \
+    "func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(" \
+    "candidates != 1"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy" \
+    "owned_array_string_move"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_admission_owner.pgy" \
+    "func DirectMirScalarCfgProgramExtensionFromOwners(" \
+    "DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringLocalCleanupRequired(" \
+    "DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy" \
+    "func DirectMirScalarProgramCStringArrayCleanup(" \
+    "DirectMirScalarProgramArrayStringLocalCleanupRequired("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringArrayCleanup(" \
+    "DirectMirScalarProgramArrayStringLocalCleanupRequired("
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_owned_array_string_parameter.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_owned_array_string_parameter.pgy" 20
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_owned_array_string_parameter_use_after_move.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_owned_array_string_parameter_use_after_move.pgy" 20
+require_file \
+    "tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh" 160
+require_text \
+    "tests/self_hosted/parity/direct_mir_multi_routine_mutations.py" \
+    'kind.startswith("owned-array-string-parameter-")'
+for move_mutation in \
+    owned-array-string-parameter-carriage \
+    owned-array-string-parameter-pass \
+    owned-array-string-parameter-abi-layout \
+    owned-array-string-parameter-call-target; do
+    require_text \
+        "tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh" \
+        "$move_mutation"
+done
+require_text "Makefile" \
+    "self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke: self-host-compiler"
+require_text "Makefile" \
+    "self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_member_rebind_owner.pgy" \
     "func DirectMirScalarProgramLogicalRecordMemberRebindAppendOperation(" \

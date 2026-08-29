@@ -6,6 +6,27 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — ArrayString owner-handle caller move retirement
+
+- Exact base is `ca2555e1e898f3ac2f0472e76d616dfba22e0410` on
+  `origin/main`; the primary task is the sole integration owner.
+- Objective: one reached entrypoint `Array<String>` local moved into an
+  owner-handle direct-call parameter carries a typed last-use fact, and C/LLVM
+  caller cleanup no longer releases the callee-owned storage.
+- Reproduced falsifier: current C and LLVM artifacts both perform callee drop
+  followed by caller drop and terminate with Windows heap-corruption code
+  `-1073740940`. The positive and use-after-move fixtures now own the bounded
+  execution boundary.
+- Forbidden fallback and integration gate are fixed in
+  `docs/agent_work_directives/array_string_owner_handle_move_retirement_2026-08-29.md`.
+  Multiple/conditional moves and fresh-return/literal arguments remain outside
+  this lease. Census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Local result is green: current-source DRV-2, 32,902,238-byte native
+  production-bootstrap C emission, focused C/LLVM execution plus five negative
+  cases, full component, SoT edge/live adequacy, single-owner, hard-contract,
+  likeness, and documentation. Coq/Rocq is a declared local skip. Publication
+  and remote exact-head CI remain pending, so this lease stays active.
+
 ## NO ACTIVE implementation lease — ArrayString LLVM readonly-ref target projection published
 
 - Exact base is `4a97f19a17a64e36a66b29747098a80811f11285` on

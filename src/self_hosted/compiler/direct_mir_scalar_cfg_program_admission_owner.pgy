@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_extension_abi_seal_owner.pgy";
 import "direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy";
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_cfg_program_expression_diagnostic_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy";
 func DirectMirScalarCfgProgramExtensionFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     own route: DirectMirScalarProgramRouteFact,
@@ -46,6 +47,9 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
     if !abi.valid {
         Die(Concat("direct MIR scalar program extension ABI is invalid: stage=", abi.stage));
     }
+    let owned_array_string_move: DirectMirScalarProgramOwnedArrayStringMoveFact =
+        DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
+            callables, storage, sealed_expressions, abi.array_string);
     let source: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             true, 0, callable, sealed_expressions,
@@ -57,7 +61,7 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
             abi.payload_free_enum,
             abi.array_int_value_result,
             abi.array_bool,
-            abi.array_string, abi.boundary
+            abi.array_string, abi.boundary, owned_array_string_move
         );
     let fact: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFactWithDigest(

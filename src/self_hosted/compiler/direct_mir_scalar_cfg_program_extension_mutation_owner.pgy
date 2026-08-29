@@ -25,7 +25,8 @@ func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
             empty.payload_free_enum,
             empty.array_int_value_result,
             empty.array_bool_abi,
-            empty.array_string_abi, empty.array_string_boundary);
+            empty.array_string_abi, empty.array_string_boundary,
+            empty.owned_array_string_move);
     let abi_mutation: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFact(
             false, 0, empty.callable, empty.expressions,
@@ -38,7 +39,8 @@ func DirectMirScalarCfgProgramExtensionMutationRejected() -> Bool {
             empty.array_int_value_result,
             empty.array_bool_abi,
             empty.array_string_abi,
-            empty.array_string_boundary
+            empty.array_string_boundary,
+            empty.owned_array_string_move
         );
     return !DirectMirScalarCfgProgramExtensionFactReady(expression_mutation) &&
         !DirectMirScalarCfgProgramExtensionFactReady(abi_mutation) &&

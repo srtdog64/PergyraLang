@@ -65,3 +65,10 @@ func DirectMirScalarProgramArrayStringCleanupDropSymbol(
     }
     return CollectionRuntimeCOwnedStringDropFn();
 }
+
+func DirectMirScalarProgramArrayStringLocalCleanupRequired(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
+) -> Bool {
+    return !DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(
+        plan.program.owned_array_string_move, routine, local_row);
+}

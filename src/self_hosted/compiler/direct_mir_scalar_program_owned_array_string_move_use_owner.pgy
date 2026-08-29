@@ -1,0 +1,81 @@
+// Last-use proof for one caller-local owner-handle Array<String> transfer.
+
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramExpressionGraphLocalUseCount(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    graph: Int, local_row: Int
+) -> Int {
+    if graph < 0 || graph >= ArrayLength(expressions.graph_starts) {
+        return -1;
+    }
+    let count: Int = 0;
+    let node: Int = expressions.graph_starts[graph];
+    let end: Int = node + expressions.graph_counts[graph];
+    while node < end {
+        if expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprLocal() &&
+            expressions.node_local_rows[node] == local_row {
+            count = count + 1;
+        }
+        node = node + 1;
+    }
+    return count;
+}
+
+func DirectMirScalarProgramOperationUsesLocal(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation: Int, local_row: Int
+) -> Bool {
+    if storage.operations.left_locals[operation] == local_row ||
+        storage.operations.right_locals[operation] == local_row {
+        return true;
+    }
+    let left: Int = storage.operations.left_values[operation];
+    let right: Int = storage.operations.right_values[operation];
+    if (left >= 0 && storage.values.value_local_rows[left] == local_row) ||
+        (right >= 0 && storage.values.value_local_rows[right] == local_row) {
+        return true;
+    }
+    return DirectMirScalarProgramExpressionGraphLocalUseCount(
+            expressions, storage.operations.expression_rows[operation],
+            local_row) > 0 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            expressions,
+            storage.operations.secondary_expression_rows[operation],
+            local_row) > 0;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation: Int, graph: Int, local_row: Int
+) -> Bool {
+    if ArrayLength(storage.routines.operation_counts) != 2 ||
+        ArrayLength(storage.routines.block_counts) != 2 ||
+        storage.routines.block_counts[0] != 1 ||
+        ArrayLength(storage.blocks.operation_starts) < 1 ||
+        storage.blocks.operation_starts[0] != 0 ||
+        storage.blocks.operation_counts[0] !=
+            storage.routines.operation_counts[0] ||
+        storage.blocks.succ_true[0] >= 0 || storage.blocks.succ_false[0] >= 0 ||
+        storage.blocks.condition_expression_rows[0] >= 0 ||
+        storage.blocks.return_expression_rows[0] >= 0 ||
+        expressions.graph_roots[graph] + 1 !=
+            expressions.graph_starts[graph] + expressions.graph_counts[graph] ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            expressions, graph, local_row) != 1 {
+        return false;
+    }
+    let end: Int = storage.routines.operation_counts[0];
+    let later: Int = operation + 1;
+    while later < end {
+        if DirectMirScalarProgramOperationUsesLocal(
+                storage, expressions, later, local_row) { return false; }
+        later = later + 1;
+    }
+    return true;
+}

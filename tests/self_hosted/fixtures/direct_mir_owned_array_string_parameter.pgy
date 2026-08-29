@@ -1,0 +1,11 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    let marker: String = Concat("owned", "-array");
+    ArrayPushOwnedString(values, marker);
+    ReleaseOwnedArray(values);
+    Log("released");
+}

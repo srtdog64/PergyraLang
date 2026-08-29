@@ -1,0 +1,145 @@
+// Sole derivation of the bounded owner-handle Array<String> caller move.
+
+import "direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_use_owner.pgy";
+import "direct_mir_scalar_program_callable_inventory_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+
+func DirectMirScalarProgramOperationForExpression(
+    ref storage: DirectMirScalarCfgProgramGraphStorage, graph: Int
+) -> Int {
+    let found: Int = -1;
+    let operation: Int = 0;
+    while operation < ArrayLength(storage.operations.expression_rows) {
+        if storage.operations.expression_rows[operation] == graph ||
+            storage.operations.secondary_expression_rows[operation] == graph {
+            if found >= 0 { return -2; }
+            found = operation;
+        }
+        operation = operation + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramRoutineForOperation(
+    ref counts: Array<Int>, operation: Int
+) -> Int {
+    let start: Int = 0;
+    let routine: Int = 0;
+    while routine < ArrayLength(counts) {
+        if operation >= start && operation < start + counts[routine] {
+            return routine;
+        }
+        start = start + counts[routine];
+        routine = routine + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref abi: DirectMirScalarProgramArrayStringAbiFact
+) -> DirectMirScalarProgramOwnedArrayStringMoveFact {
+    if !callables.valid || !storage.values.valid || !storage.blocks.valid ||
+        !storage.operations.valid ||
+        !DirectMirScalarProgramExpressionSetReady(expressions) {
+        return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
+    }
+    let candidates: Int = 0;
+    let call_operation: Int = -1;
+    let call_expression: Int = -1;
+    let caller_routine: Int = -1;
+    let moved_local: Int = -1;
+    let callable: Int = -1;
+    let parameter_ordinal: Int = -1;
+    let graph: Int = 0;
+    while graph < ArrayLength(expressions.graph_starts) {
+        let node: Int = expressions.graph_starts[graph];
+        let end: Int = node + expressions.graph_counts[graph];
+        while node < end {
+            if expressions.node_kinds[node] ==
+                    DirectMirScalarProgramExprDirectCall() &&
+                expressions.node_callable_rows[node] > 0 {
+                let target: Int = expressions.node_callable_rows[node];
+                if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(
+                        callables, target) {
+                    return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
+                }
+                let callable_row: Int = target - 1;
+                let arguments: Array<Int> =
+                    DirectMirScalarProgramDirectCallArgumentRows(
+                        expressions, node);
+                let ordinal: Int = 0;
+                while ordinal < callables.parameter_counts[callable_row] {
+                    let parameter: Int =
+                        callables.parameter_starts[callable_row] + ordinal;
+                    if callables.parameter_carriages[parameter] ==
+                            "owner-handle" &&
+                        callables.parameter_types[parameter] ==
+                            CompilerAbiLayoutArrayStringTypeName() {
+                        candidates = candidates + 1;
+                        if candidates != 1 || ordinal >=
+                                ArrayLength(arguments) || node !=
+                                expressions.graph_roots[graph] {
+                            return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
+                        }
+                        let argument: Int = arguments[ordinal];
+                        let operation: Int =
+                            DirectMirScalarProgramOperationForExpression(
+                                storage, graph);
+                        let routine: Int =
+                            DirectMirScalarProgramRoutineForOperation(
+                                storage.routines.operation_counts, operation);
+                        if target != 1 || routine != 0 ||
+                            expressions.node_kinds[argument] !=
+                                DirectMirScalarProgramExprLocal() ||
+                            expressions.node_types[argument] !=
+                                CompilerAbiLayoutArrayStringTypeName() ||
+                            !DirectMirScalarProgramArrayStringAbiFactReady(abi) {
+                            return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
+                        }
+                        let local_row: Int =
+                            expressions.node_local_rows[argument];
+                        if local_row < 0 || local_row >=
+                                storage.routines.local_counts[0] ||
+                            storage.values.local_types[local_row] !=
+                                CompilerAbiLayoutArrayStringTypeName() ||
+                            !DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(
+                                storage, expressions, operation, graph,
+                                local_row) {
+                            return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
+                        }
+                        call_operation = operation;
+                        call_expression = graph;
+                        caller_routine = routine;
+                        moved_local = local_row;
+                        callable = target;
+                        parameter_ordinal = ordinal;
+                    }
+                    ordinal = ordinal + 1;
+                }
+            }
+            node = node + 1;
+        }
+        graph = graph + 1;
+    }
+    if candidates == 0 {
+        return DirectMirScalarProgramOwnedArrayStringMoveFactCanonicalEmpty();
+    }
+    let source: DirectMirScalarProgramOwnedArrayStringMoveFact =
+        DirectMirScalarProgramOwnedArrayStringMoveFact(
+            true, 0, true, caller_routine, call_operation,
+            call_expression, moved_local, callable, parameter_ordinal,
+            abi.layout_id);
+    let fact: DirectMirScalarProgramOwnedArrayStringMoveFact =
+        DirectMirScalarProgramOwnedArrayStringMoveFact(
+            true, DirectMirScalarProgramOwnedArrayStringMoveFactDigest(source),
+            true, caller_routine, call_operation, call_expression,
+            moved_local, callable, parameter_ordinal, abi.layout_id);
+    if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(fact, abi) {
+        return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
+    }
+    return fact;
+}

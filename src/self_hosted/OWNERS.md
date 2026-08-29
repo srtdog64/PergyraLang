@@ -3394,6 +3394,16 @@ inventory must not become a second fact-family owner registry.
   identity and one-use consumption. Source spelling guesses, untyped dynamic
   elements, mixed parameter ownership, and a second expression parser remain
   forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy`,
+  `direct_mir_scalar_program_owned_array_string_move_use_owner.pgy`, and
+  `direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy` --
+  one target-neutral caller-local move into an owner-handle `Array<String>`
+  parameter. The fact cross-seals local, operation, callable, parameter, and
+  ABI layout identity after proving the move is the local's last use. C and
+  LLVM cleanup consume that fact and may not infer transfer from source/type
+  spelling or rescan MIR. The current boundary admits one single-block
+  entrypoint move only; multiple, conditional, parameter/member,
+  fresh-result, and literal moves fail closed.
 - `src/self_hosted/compiler/direct_mir_scalar_program_array_int_empty_literal_admission_owner.pgy`,
   `direct_mir_scalar_program_array_int_empty_literal_readiness_owner.pgy`,
   `direct_mir_scalar_program_array_int_expression_kind_owner.pgy`, and their

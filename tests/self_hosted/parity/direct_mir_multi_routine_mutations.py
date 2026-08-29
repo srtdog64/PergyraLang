@@ -65,11 +65,11 @@ def nominal_instructions(document):
                     yield instruction
 
 
-def array_int_value_result_params(document):
+def abi_value_result_params(document, type_name):
     for routine in document.get("routines", []):
         for param in routine.get("params", []):
             if (
-                param.get("type") == "Array<Int>"
+                param.get("type") == type_name
                 and param.get("carriage") == "value-result"
             ):
                 yield param
@@ -80,26 +80,6 @@ def abi_value_params(document, type_name):
         for param in routine.get("params", []):
             if (
                 param.get("type") == type_name
-                and param.get("carriage") == "value"
-            ):
-                yield param
-
-
-def array_string_value_result_params(document):
-    for routine in document.get("routines", []):
-        for param in routine.get("params", []):
-            if (
-                param.get("type") == "Array<String>"
-                and param.get("carriage") == "value-result"
-            ):
-                yield param
-
-
-def array_string_value_params(document):
-    for routine in document.get("routines", []):
-        for param in routine.get("params", []):
-            if (
-                param.get("type") == "Array<String>"
                 and param.get("carriage") == "value"
             ):
                 yield param
@@ -143,6 +123,23 @@ def array_string_readonly_ref_param(document):
     return None
 
 
+def sole_parameter(document, routine_name):
+    for routine in document.get("routines", []):
+        if routine.get("name") != routine_name:
+            continue
+        params = routine.get("params", [])
+        if len(params) == 1:
+            return params[0]
+    return None
+
+
+def named_direct_call_node(document, target_name):
+    for node in direct_call_nodes(document):
+        if node.get("call_target_name") == target_name:
+            return node
+    return None
+
+
 def entrypoint_void_return_instruction(document):
     for routine in document.get("routines", []):
         if routine.get("name") != "Main":
@@ -154,13 +151,6 @@ def entrypoint_void_return_instruction(document):
                     and instruction.get("source_type") == "AST_RETURN_VOID"
                 ):
                     return instruction
-    return None
-
-
-def namespace_internal_call_node(document):
-    for node in direct_call_nodes(document):
-        if node.get("call_target_name") == "InternalNames_Fact1":
-            return node
     return None
 
 
@@ -207,16 +197,6 @@ def array_string_return_instructions(document):
                     and instruction.get("abi_type_name") == "Array<String>"
                 ):
                     yield instruction
-
-
-def owned_string_parameter(document):
-    for routine in document.get("routines", []):
-        if routine.get("name") != "ReleaseOwnedString":
-            continue
-        params = routine.get("params", [])
-        if len(params) == 1:
-            return params[0]
-    return None
 
 
 def owned_string_drop_call_node(document):
@@ -395,7 +375,7 @@ def main():
             raise SystemExit("fixture has no two-field nominal ABI")
         fields[1]["offset"] = 0
     elif kind == "array-int-value-result-abi-layout":
-        param = next(array_int_value_result_params(document), None)
+        param = next(abi_value_result_params(document, "Array<Int>"), None)
         if param is None:
             raise SystemExit("fixture has no value-result Array<Int> parameter")
         fields = param.get("abi_layout", {}).get("fields", [])
@@ -403,7 +383,7 @@ def main():
             raise SystemExit("fixture has no four-field Array<Int> ABI")
         fields[1]["offset"] = 0
     elif kind == "array-int-value-result-carriage":
-        param = next(array_int_value_result_params(document), None)
+        param = next(abi_value_result_params(document, "Array<Int>"), None)
         if param is None:
             raise SystemExit("fixture has no value-result Array<Int> parameter")
         param["carriage"] = "value"
@@ -458,7 +438,7 @@ def main():
             raise SystemExit("fixture has no Array<Int> return")
         instruction["kind"] = "def"
     elif kind == "array-string-value-result-abi-layout":
-        param = next(array_string_value_result_params(document), None)
+        param = next(abi_value_result_params(document, "Array<String>"), None)
         if param is None:
             raise SystemExit(
                 "fixture has no value-result Array<String> parameter"
@@ -468,7 +448,7 @@ def main():
             raise SystemExit("fixture has no four-field Array<String> ABI")
         fields[1]["offset"] = 0
     elif kind == "array-string-value-result-carriage":
-        param = next(array_string_value_result_params(document), None)
+        param = next(abi_value_result_params(document, "Array<String>"), None)
         if param is None:
             raise SystemExit(
                 "fixture has no value-result Array<String> parameter"
@@ -481,7 +461,7 @@ def main():
             raise SystemExit("fixture has no owned String push routine")
         routine["params"][0]["carriage"] = "value"
     elif kind == "array-string-value-abi-layout":
-        param = next(array_string_value_params(document), None)
+        param = next(abi_value_params(document, "Array<String>"), None)
         if param is None:
             raise SystemExit("fixture has no value Array<String> parameter")
         fields = param.get("abi_layout", {}).get("fields", [])
@@ -489,14 +469,14 @@ def main():
             raise SystemExit("fixture has no four-field Array<String> ABI")
         fields[1]["offset"] = 0
     elif kind == "array-string-value-carriage":
-        param = next(array_string_value_params(document), None)
+        param = next(abi_value_params(document, "Array<String>"), None)
         if param is None:
             raise SystemExit("fixture has no value Array<String> parameter")
         # readonly-ref is a separately admitted Array<String> callable ABI, so
         # changing only to that carriage describes another valid program.
         param["carriage"] = "borrowed"
     elif kind == "array-string-value-pass-shape":
-        param = next(array_string_value_params(document), None)
+        param = next(abi_value_params(document, "Array<String>"), None)
         if param is None:
             raise SystemExit("fixture has no value Array<String> parameter")
         param["pass"] = "indirect"
@@ -534,6 +514,25 @@ def main():
             raise SystemExit(
                 f"unknown Set<String> value-result mutation: {kind}"
             )
+    elif kind.startswith("owned-array-string-parameter-"):
+        param = sole_parameter(document, "ReleaseOwnedArray")
+        if param is None:
+            raise SystemExit("fixture has no owned Array<String> parameter")
+        if kind.endswith("carriage"):
+            param["carriage"] = "value"
+        elif kind.endswith("pass"):
+            param["pass"] = "indirect"
+        elif kind.endswith("abi-layout"):
+            param["abi_layout"]["align"] = 16
+        elif kind.endswith("call-target"):
+            node = named_direct_call_node(document, "ReleaseOwnedArray")
+            if node is None:
+                raise SystemExit("fixture has no owned Array<String> call")
+            node["call_target_syntax_id"] = 0
+        else:
+            raise SystemExit(
+                f"unknown owned Array<String> mutation: {kind}"
+            )
     elif kind.startswith("array-string-readonly-ref-"):
         param = array_string_readonly_ref_param(document)
         if param is None:
@@ -560,7 +559,7 @@ def main():
             raise SystemExit("fixture has no explicit entrypoint void return")
         instruction["source_type"] = "AST_RETURN"
     elif kind == "namespace-internal-call-syntax-id":
-        node = namespace_internal_call_node(document)
+        node = named_direct_call_node(document, "InternalNames_Fact1")
         if node is None:
             raise SystemExit("fixture has no namespace-internal direct call")
         node["call_target_syntax_id"] = 0
@@ -591,17 +590,17 @@ def main():
             raise SystemExit("fixture has no owned Array<String> return")
         instruction["kind"] = "def"
     elif kind == "owned-string-parameter-carriage":
-        param = owned_string_parameter(document)
+        param = sole_parameter(document, "ReleaseOwnedString")
         if param is None:
             raise SystemExit("fixture has no owned String parameter")
         param["carriage"] = "value-result"
     elif kind == "owned-string-parameter-type":
-        param = owned_string_parameter(document)
+        param = sole_parameter(document, "ReleaseOwnedString")
         if param is None:
             raise SystemExit("fixture has no owned String parameter")
         param["type"] = "Int"
     elif kind == "owned-string-parameter-pass":
-        param = owned_string_parameter(document)
+        param = sole_parameter(document, "ReleaseOwnedString")
         if param is None:
             raise SystemExit("fixture has no owned String parameter")
         param["pass"] = "indirect"

@@ -49,7 +49,10 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
             DirectMirScalarProgramArrayStringAbiReadyForExpressions(
                 fact.array_string_abi, fact.expressions) &&
             DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
-                fact.array_string_boundary) { return 0; }
+                fact.array_string_boundary) &&
+            DirectMirScalarProgramOwnedArrayStringMoveFactReady(
+                fact.owned_array_string_move) &&
+            !fact.owned_array_string_move.present { return 0; }
         return 1;
     }
     let callable_ready: Bool =
@@ -105,6 +108,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
     if !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
             fact.array_string_abi, fact.expressions) { return 17; }
     if !array_boundary_ready { return 18; }
+    if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
+            fact.owned_array_string_move, fact.array_string_abi) { return 19; }
     return 0;
 }
 func DirectMirScalarCfgProgramExtensionFactReady(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Bool {

@@ -8,6 +8,7 @@ import "direct_mir_closed_module_call_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_callable_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
 import "direct_mir_scalar_program_result_int_abi_owner.pgy";
 import "direct_mir_scalar_program_option_string_abi_owner.pgy";
@@ -41,10 +42,10 @@ struct DirectMirScalarCfgProgramExtensionFact {
     let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact;
     let array_string_abi: DirectMirScalarProgramArrayStringAbiFact;
     let array_string_boundary: DirectMirScalarProgramArrayStringBoundaryFact;
+    let owned_array_string_move: DirectMirScalarProgramOwnedArrayStringMoveFact;
 }
 
-func DirectMirScalarCfgProgramExtensionFactEmpty(
-) -> DirectMirScalarCfgProgramExtensionFact {
+func DirectMirScalarCfgProgramExtensionFactEmpty() -> DirectMirScalarCfgProgramExtensionFact {
     let rows: Array<Int> = [];
     return DirectMirScalarCfgProgramExtensionFact(
         false, 0, DirectMirScalarCfgProgramCallableFactInvalid(),
@@ -62,7 +63,8 @@ func DirectMirScalarCfgProgramExtensionFactEmpty(
         DirectMirScalarProgramArrayIntValueResultFactCanonicalEmpty(),
         DirectMirScalarProgramArrayBoolAbiFactCanonicalEmpty(),
         DirectMirScalarProgramArrayStringAbiFactEmpty(),
-        DirectMirScalarProgramArrayStringBoundaryFactEmpty()
+        DirectMirScalarProgramArrayStringBoundaryFactEmpty(),
+        DirectMirScalarProgramOwnedArrayStringMoveFactCanonicalEmpty()
     );
 }
 
@@ -95,6 +97,7 @@ func DirectMirScalarCfgProgramExtensionFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.array_bool_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_boundary.digest);
+    hash = DirectMirCfgHashInt(hash, fact.owned_array_string_move.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
 
@@ -116,6 +119,7 @@ func DirectMirScalarCfgProgramExtensionFactWithDigest(
         fact.array_int_value_result,
         fact.array_bool_abi,
         fact.array_string_abi,
-        fact.array_string_boundary
+        fact.array_string_boundary,
+        fact.owned_array_string_move
     );
 }

@@ -10,7 +10,9 @@ func DirectMirScalarProgramCStringArrayCleanup(
     let end: Int = start + plan.routines.local_counts[routine];
     let row: Int = start;
     while row < end {
-        if plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() {
+        if plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() &&
+            DirectMirScalarProgramArrayStringLocalCleanupRequired(
+                plan, routine, row) {
             output = Concat(output, Concat("    ", Concat(
                 DirectMirScalarProgramArrayStringCleanupDropSymbol(
                     plan, routine, row),

@@ -1,0 +1,89 @@
+// One admitted caller-local move into an owner-handle Array<String> parameter.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+
+struct DirectMirScalarProgramOwnedArrayStringMoveFact {
+    let valid: Bool;
+    let digest: Int;
+    let present: Bool;
+    let caller_routine: Int;
+    let call_operation_row: Int;
+    let call_expression_row: Int;
+    let local_row: Int;
+    let callable_ordinal: Int;
+    let parameter_ordinal: Int;
+    let abi_layout_id: Int;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveFactInvalid(
+) -> DirectMirScalarProgramOwnedArrayStringMoveFact {
+    return DirectMirScalarProgramOwnedArrayStringMoveFact(
+        false, 0, false, -1, -1, -1, -1, -1, -1, 0);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveFactDigest(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(307L, fact.caller_routine);
+    hash = DirectMirCfgHashInt(hash, fact.call_operation_row);
+    hash = DirectMirCfgHashInt(hash, fact.call_expression_row);
+    hash = DirectMirCfgHashInt(hash, fact.local_row);
+    hash = DirectMirCfgHashInt(hash, fact.callable_ordinal);
+    hash = DirectMirCfgHashInt(hash, fact.parameter_ordinal);
+    hash = DirectMirCfgHashInt(hash, fact.abi_layout_id);
+    if fact.present { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveFactReady(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramOwnedArrayStringMoveFactDigest(fact) {
+        return false;
+    }
+    if !fact.present {
+        return fact.caller_routine == -1 && fact.call_operation_row == -1 &&
+            fact.call_expression_row == -1 && fact.local_row == -1 &&
+            fact.callable_ordinal == -1 && fact.parameter_ordinal == -1 &&
+            fact.abi_layout_id == 0;
+    }
+    return fact.caller_routine == 0 && fact.call_operation_row >= 0 &&
+        fact.call_expression_row >= 0 && fact.local_row >= 0 &&
+        fact.callable_ordinal > 0 && fact.parameter_ordinal >= 0 &&
+        fact.abi_layout_id > 0;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveFactCanonicalEmpty(
+) -> DirectMirScalarProgramOwnedArrayStringMoveFact {
+    let source: DirectMirScalarProgramOwnedArrayStringMoveFact =
+        DirectMirScalarProgramOwnedArrayStringMoveFact(
+            true, 0, false, -1, -1, -1, -1, -1, -1, 0);
+    return DirectMirScalarProgramOwnedArrayStringMoveFact(
+        true, DirectMirScalarProgramOwnedArrayStringMoveFactDigest(source),
+        false, -1, -1, -1, -1, -1, -1, 0);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact,
+    ref abi: DirectMirScalarProgramArrayStringAbiFact
+) -> Bool {
+    if !DirectMirScalarProgramOwnedArrayStringMoveFactReady(fact) {
+        return false;
+    }
+    return !fact.present ||
+        (DirectMirScalarProgramArrayStringAbiFactReady(abi) &&
+         fact.abi_layout_id == abi.layout_id);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact,
+    routine: Int, local_row: Int
+) -> Bool {
+    return DirectMirScalarProgramOwnedArrayStringMoveFactReady(fact) &&
+        fact.present && fact.caller_routine == routine &&
+        fact.local_row == local_row;
+}

@@ -18,6 +18,39 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — ArrayString owner-handle caller move retirement
+
+- Exact base is `ca2555e1e898f3ac2f0472e76d616dfba22e0410` on
+  `origin/main`; the primary task owns the sole implementation lease.
+- Objective: derive one target-neutral last-use move fact when an entrypoint
+  `Array<String>` local is passed to an owner-handle direct-call parameter,
+  then make C/LLVM caller cleanup consume that fact instead of unconditionally
+  dropping the moved storage.
+- Fact owner and last consumers:
+  `DirectMirScalarProgramOwnedArrayStringMoveFact` owns local, operation,
+  callable, parameter, and ABI identity. The C/LLVM ArrayString cleanup
+  emitters are its last consumers; the callee retains terminal ownership.
+- Forbidden fallback: type/name-based move inference in a backend, cleanup
+  rescans, caller drop after transfer, later local use, missing/drifted ABI
+  identity, or silently widening to multiple/conditional/fresh-result moves.
+- Reproduced base failure: source-produced MIR and both target artifacts are
+  valid, but generated C and LLVM execute callee drop followed by caller drop;
+  both binaries terminate with Windows heap-corruption code `-1073740940`.
+- Next falsifier: the positive fixture must print `released` on C and LLVM with
+  caller cleanup absent, while the use-after-move fixture fails before either
+  artifact is published. Registry census starts at
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Local result: the typed move fact and last-use owner are carried through the
+  scalar program extension, and the shared cleanup policy retires only the
+  admitted caller local. C and LLVM print `released`; caller cleanup is absent;
+  use-after-move and carriage/pass/layout/call-target mutations publish no
+  artifacts. Current-source DRV-2, 32,902,238-byte native production-bootstrap
+  C emission, full component, SoT edge/live adequacy, single-owner,
+  hard-contract, likeness, and documentation are green. Coq/Rocq is a declared
+  local skip. Publication and remote exact-head CI remain pending.
+- Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
+  `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
+
 ## No active self-host implementation - ArrayString LLVM readonly-ref target projection published
 
 - Exact implementation base was
