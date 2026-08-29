@@ -24133,6 +24133,9 @@ require_max_lines \
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_collection_owner.pgy" 160
+require_file "src/self_hosted/compiler/direct_mir_returned_array_foreach_call_abi_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_returned_array_foreach_call_abi_owner.pgy" 80
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_definition_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_definition_owner.pgy" 40

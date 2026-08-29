@@ -1,0 +1,40 @@
+// Admits the exact Array<Int> ABI carried by a returned foreach call and
+// cross-seals it against the producer receipt before collection planning.
+
+import "direct_mir_array_int_producer_fact_owner.pgy";
+
+func DirectMirReturnedArrayForEachCallAbiAdmission(
+    json: String,
+    ref declaration: MirRoutineInstructionScalarCapture,
+    ref producer: DirectMirArrayIntProducerFact
+) -> Option<MirAbiLayoutRowCapture> {
+    if !declaration.valid ||
+        !DirectMirArrayIntProducerFactReady(producer) ||
+        declaration.abi_type_name != CompilerAbiLayoutArrayIntTypeName() ||
+        !declaration.abi_type_value_ready {
+        return None;
+    }
+    let admitted: Option<MirAbiLayoutRowCapture> =
+        MirCapturedRequiredAbiLayoutRowAdmission(
+            json, declaration.abi_type_name,
+            declaration.abi_type_value_ready, declaration.abi_type_start,
+            declaration.abi_type_end, declaration.abi_layout_id_start,
+            declaration.abi_layout_id_end,
+            declaration.abi_layout_required_start,
+            declaration.abi_layout_required_end,
+            declaration.abi_layout_start, declaration.abi_layout_end
+        );
+    if !IsSome(admitted) { return None; }
+    let abi: MirAbiLayoutRowCapture = UnwrapOption(admitted);
+    if !DirectMirArrayIntCapturedAbiReady(abi) ||
+        MirAbiLayoutIdFromCapture(abi) != producer.abi_layout_id ||
+        ToInt(abi.size_text) != producer.abi_size ||
+        ToInt(abi.align_text) != producer.abi_align ||
+        ToInt(abi.field_offsets[0]) != producer.data_offset ||
+        ToInt(abi.field_offsets[1]) != producer.length_offset ||
+        ToInt(abi.field_offsets[2]) != producer.capacity_offset ||
+        ToInt(abi.field_offsets[3]) != producer.allocator_offset {
+        return None;
+    }
+    return Some(abi);
+}

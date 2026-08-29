@@ -14,9 +14,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   collection owner must admit and cross-seal the carried ArrayInt ABI with the
   producer receipt; valid call roots must not fall through to local-literal
   decoding. Success is `CLOSED=55 BRIDGE=32 ACTIVE=1`, not a new row.
-- Exact base: `d7b785757a6acc7f2e08f54c31731384388294d6` is on
-  `origin/main`; run `33224632130` completed GREEN 30/30. The released census
-  was `54/33/1`.
+- Published implementation: `42f1d7237d0ac33ab01c6bbaa88e6e38f70532ad`
+  is on `origin/main`. Exact-head run `33227810785` has 29 GREEN jobs; its
+  `build-linux` job failed only because the collection owner measured 177
+  lines against its 160-line component cap.
 - Fact owners: `DirectMirScalarIntLiteralInRange`,
   `MirCapturedRequiredAbiLayoutRowAdmission`,
   `DirectMirArrayIntProducerFact`, and the LoopSyntaxId-keyed
@@ -31,12 +32,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   ArrayInt, returned ArrayInt, and mixed Int/String foreach C/LLVM gates. The
   returned gate includes call-layout and call-ID mutations. SoT edge is GREEN
   at 88 authorities / 182 carriers / `55/32/1`; hard contract, docs/progress,
-  and likeness 4480/4480 are GREEN. Coq execution is a declared local skip.
+  and likeness 4486/4486 are GREEN. Coq execution is a declared local skip.
+- CI-ratchet repair: returned-call ABI admission plus producer cross-seal is
+  now owned by `direct_mir_returned_array_foreach_call_abi_owner.pgy` and
+  returns typed `Option` evidence. The collection owner no longer reconstructs
+  that validation. Current line counts are 157/160 and 40/80 respectively; a
+  fresh installed DRV-2 passes the same three focused gates after the split.
 - Integration boundary: the primary task alone owns shared documents,
   registry state, staging, commit, push, and exact-head CI interpretation.
   Candidate-audit agents are read-only. No other BRIDGE implementation track
   is open.
-- Publication boundary: stage only the named tracked files, commit and push,
+- Publication boundary: stage only the named repair files, commit and push,
   then require replacement exact-head CI GREEN before releasing this lease.
   Supplementary ArrayInt/array-return gates are not claimed because unchanged
   pre-base owners hit stale 175/160 and 110/80 line caps before behavior.

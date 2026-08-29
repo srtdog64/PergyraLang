@@ -1,8 +1,9 @@
 # Scalar CFG foreach receipt BRIDGE closure — 2026-08-29
 
-Status: `ACTIVE — IMPLEMENTED LOCALLY, PUBLICATION PENDING` (exact base
-`d7b785757a6acc7f2e08f54c31731384388294d6`; exact-head run `33224632130`
-completed GREEN 30/30 and released the implementation lease)
+Status: `ACTIVE — CI RATCHET REPAIR VERIFIED LOCALLY, REPLACEMENT PUBLICATION PENDING`
+(implementation `42f1d7237d0ac33ab01c6bbaa88e6e38f70532ad` is on
+`origin/main`; exact-head run `33227810785` reached 29 GREEN jobs but its
+`build-linux` job failed the foreach collection-owner line cap)
 
 This directive coordinates one executable closure. It is not semantic
 authority, a registry verdict, progress evidence, or permission to open a
@@ -76,12 +77,21 @@ parallel implementation track on the same rung.
   negatives. The SoT edge reports 88 authorities, 182 carriers, and
   `CLOSED=55 BRIDGE=32 ACTIVE=1`.
 - Documentation, progress metric, hard contract, and likeness are GREEN;
-  `result_use` is ratcheted at 4480/4480. Coq/Rocq execution is a declared
+  `result_use` is ratcheted at 4486/4486. Coq/Rocq execution is a declared
   local skip because no prover is installed; live owner/consumer binding and
   negative mutations pass. Two supplementary non-row gates do not reach
   behavior because unchanged pre-base owners already exceed their stale line
   caps (`direct_mir_array_int_abi_projection_owner.pgy` 175/160 and
   `direct_mir_multi_routine_projection_owner.pgy` 110/80); neither owner is in
   this diff and neither gate is claimed GREEN.
-- Publication remains pending until the scoped diff is committed and pushed
-  and replacement exact-head CI is GREEN.
+- First publication evidence is exact: Linux push steps 1-13 passed, then the
+  component inventory reported the collection owner at 177 lines against its
+  160-line cap. The returned-call ABI admission and producer cross-seal now
+  live in the responsibility-named
+  `direct_mir_returned_array_foreach_call_abi_owner.pgy`; the collection owner
+  consumes its `Option` receipt. Current `wc -l` is 157/160 for the collection
+  owner and 40/80 for the new owner. A fresh installed DRV-2 (6,449,210 bytes,
+  SHA-256 `FB14F7E714CC16CAC7B970219BCAD9855507B2E7F7DD876649C2A8CA9B2FAFC4`)
+  passes all three focused gates after this split.
+- Publication remains pending until this scoped repair is committed and pushed
+  and its replacement exact-head CI is GREEN.

@@ -38,10 +38,11 @@ percentage by themselves.
   range/return/Option retry are forbidden. Other effectful producers and
   element ABIs remain separately declared rungs, not missing facts in this
   bounded row.
-- Published basis: exact base
-  `d7b785757a6acc7f2e08f54c31731384388294d6` is on `origin/main`; exact-head
-  run `33224632130` completed GREEN 30/30. The released census was
-  `CLOSED=54 BRIDGE=33 ACTIVE=1`.
+- Published implementation: exact commit
+  `42f1d7237d0ac33ab01c6bbaa88e6e38f70532ad` is on `origin/main`. Exact-head
+  run `33227810785` has 29 GREEN jobs; `build-linux` failed after push steps
+  1-13 passed because the collection owner measured 177 lines against its
+  160-line component cap.
 - Reached falsifiers: the current installed C path first accepted
   `2147483648` as `-2147483648`. After lexical admission was added, a fresh
   DRV-2 exposed the old returned-call consumer rule requiring empty ABI even
@@ -51,26 +52,30 @@ percentage by themselves.
   lexical domain before `ToInt`. Hoisted call results admit their carried ABI
   and match ID, size, alignment, and all four offsets with the producer fact.
   A call root fails the local route instead of falling into literal decoding.
-  The focused returned gate adds call-layout and call-ID mutations.
-- Observed local evidence: one fresh installed DRV-2 (6,447,592 bytes,
-  SHA-256 `7A3F207FEC13EDFDFF32A52941C7C378F0F2F42A38B069541531D0BC913F534E`)
+  The focused returned gate adds call-layout and call-ID mutations. The CI
+  repair moves returned-call ABI admission and producer cross-sealing behind
+  `DirectMirReturnedArrayForEachCallAbiAdmission`; its collection consumer no
+  longer owns or recreates that responsibility.
+- Observed local evidence: one fresh installed DRV-2 (6,449,210 bytes,
+  SHA-256 `FB14F7E714CC16CAC7B970219BCAD9855507B2E7F7DD876649C2A8CA9B2FAFC4`)
   passes local ArrayInt, returned ArrayInt, and mixed Int/String foreach C/LLVM
   gates. Overflow, producer/call ABI, call identity, false-hoist, LocalRef, and
   CFG mutations fail without artifacts. SoT edge is GREEN at 88 authorities /
   182 carriers / `CLOSED=55 BRIDGE=32 ACTIVE=1`; hard closure is 62.5% and
   migration is 81.0%. Documentation, progress metric, hard contract, and
-  likeness 4480/4480 are GREEN. Coq/Rocq execution is a declared local skip;
-  its live owner/consumer and negative checks pass.
-- Verification boundary: stage only this rung's tracked files, commit and push,
+  likeness 4486/4486 are GREEN. Coq/Rocq execution is a declared local skip;
+  its live owner/consumer and negative checks pass. Exact `wc -l` is 157/160
+  for the collection owner and 40/80 for the new call-ABI owner.
+- Verification boundary: stage only this rung's CI-repair files, commit and push,
   then require replacement exact-head CI GREEN. The broad local component
   inventory is not rerun; the previous 90-second budget overrun is not claimed
   GREEN. Supplementary ArrayInt and array-return gates stop before behavior on
   unchanged pre-base owner line caps (175/160 and 110/80), so they are not
   claimed GREEN and their unrelated caps are not loosened here. No successor
   implementation or parallel publication lease opens before the remote result.
-- Exact worktree basis: HEAD equals `origin/main` at `d7b78575`; dirty tracked
-  files belong to this closure plus the prior closure's publication-document
-  refresh. Protected untracked `docs/compiler_architectures/`,
+- Exact worktree basis: HEAD equals `origin/main` at `42f1d723`; dirty tracked
+  files belong only to this CI-ratchet repair and its evidence refresh.
+  Protected untracked `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
   staging scope.
 
