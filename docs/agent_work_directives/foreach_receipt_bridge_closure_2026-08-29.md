@@ -1,9 +1,8 @@
 # Scalar CFG foreach receipt BRIDGE closure — 2026-08-29
 
-Status: `ACTIVE — CI RATCHET REPAIR VERIFIED LOCALLY, REPLACEMENT PUBLICATION PENDING`
-(implementation `42f1d7237d0ac33ab01c6bbaa88e6e38f70532ad` is on
-`origin/main`; exact-head run `33227810785` reached 29 GREEN jobs but its
-`build-linux` job failed the foreach collection-owner line cap)
+Status: `DONE — PUBLISHED GREEN` (CI-ratchet repair
+`e54ce620d49f79c3ab817ca9afeefd8b5a0310f7` is on `origin/main`; exact-head
+run `33229419440` completed GREEN 30/30)
 
 This directive coordinates one executable closure. It is not semantic
 authority, a registry verdict, progress evidence, or permission to open a
@@ -93,5 +92,7 @@ parallel implementation track on the same rung.
   owner and 40/80 for the new owner. A fresh installed DRV-2 (6,449,210 bytes,
   SHA-256 `FB14F7E714CC16CAC7B970219BCAD9855507B2E7F7DD876649C2A8CA9B2FAFC4`)
   passes all three focused gates after this split.
-- Publication remains pending until this scoped repair is committed and pushed
-  and its replacement exact-head CI is GREEN.
+- Publication result: repair `e54ce620` is on `origin/main`; exact-head run
+  `33229419440` completed GREEN 30/30. `build-linux` passed in 24m25s and the
+  full self-host fixed point passed in 27m27s. The lease is released at
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.

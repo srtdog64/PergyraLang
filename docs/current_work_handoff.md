@@ -18,7 +18,24 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - scalar CFG foreach receipt publication
+## No active self-host implementation - successor admission audit complete
+
+- Exact published basis is
+  `e54ce620d49f79c3ab817ca9afeefd8b5a0310f7`; exact-head CI run
+  `33229419440` completed GREEN 30/30. The released registry census is
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Six read-only successor candidates were checked. Match-case pattern is
+  already CLOSED. Loop flow, ArrayString ABI, diagnostic catalog,
+  compatibility evolution, and enum declaration rows each have multiple
+  missing producer/carriage or last-consumer prerequisites, so none can
+  honestly close in one bounded rung.
+- No successor implementation lease is open. Resume from
+  `docs/audits/2026-08-29_bridge_32_successor_admission_audit.md`, select one
+  reached prerequisite production bypass, name its exact owner and focused
+  falsifier, and count only executable replacement. Do not reclassify a row to
+  manufacture `56/31/1`.
+
+## Completed self-host context - scalar CFG foreach receipt publication
 
 - Objective card: close only
   `projection.direct_mir_scalar_cfg_foreach_receipt`. Priority is lexical
@@ -38,11 +55,10 @@ percentage by themselves.
   range/return/Option retry are forbidden. Other effectful producers and
   element ABIs remain separately declared rungs, not missing facts in this
   bounded row.
-- Published implementation: exact commit
-  `42f1d7237d0ac33ab01c6bbaa88e6e38f70532ad` is on `origin/main`. Exact-head
-  run `33227810785` has 29 GREEN jobs; `build-linux` failed after push steps
-  1-13 passed because the collection owner measured 177 lines against its
-  160-line component cap.
+- First publication attempt: exact commit
+  `42f1d7237d0ac33ab01c6bbaa88e6e38f70532ad` reached 29 GREEN jobs, but
+  `build-linux` failed after push steps 1-13 passed because the collection
+  owner measured 177 lines against its 160-line component cap.
 - Reached falsifiers: the current installed C path first accepted
   `2147483648` as `-2147483648`. After lexical admission was added, a fresh
   DRV-2 exposed the old returned-call consumer rule requiring empty ABI even
@@ -66,15 +82,18 @@ percentage by themselves.
   likeness 4486/4486 are GREEN. Coq/Rocq execution is a declared local skip;
   its live owner/consumer and negative checks pass. Exact `wc -l` is 157/160
   for the collection owner and 40/80 for the new call-ABI owner.
-- Verification boundary: stage only this rung's CI-repair files, commit and push,
-  then require replacement exact-head CI GREEN. The broad local component
-  inventory is not rerun; the previous 90-second budget overrun is not claimed
-  GREEN. Supplementary ArrayInt and array-return gates stop before behavior on
-  unchanged pre-base owner line caps (175/160 and 110/80), so they are not
-  claimed GREEN and their unrelated caps are not loosened here. No successor
-  implementation or parallel publication lease opens before the remote result.
-- Exact worktree basis: HEAD equals `origin/main` at `42f1d723`; dirty tracked
-  files belong only to this CI-ratchet repair and its evidence refresh.
+- Publication result: CI-ratchet repair
+  `e54ce620d49f79c3ab817ca9afeefd8b5a0310f7` is on `origin/main`; exact-head
+  run `33229419440` completed GREEN 30/30. `build-linux` passed in 24m25s and
+  full self-host passed in 27m27s. The released census is
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- The broad local component inventory was not rerun; the exact remote owner-cap
+  failure and its repaired full Linux gate own that evidence. Supplementary
+  ArrayInt and array-return gates stop before behavior on unchanged pre-base
+  owner line caps (175/160 and 110/80), so they are not claimed GREEN and their
+  unrelated caps were not loosened.
+- Exact worktree basis: HEAD equals `origin/main` at `e54ce620`; dirty tracked
+  documents belong only to this publication refresh and successor selection.
   Protected untracked `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
   staging scope.

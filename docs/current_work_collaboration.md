@@ -6,7 +6,22 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — scalar CFG foreach receipt BRIDGE closure
+## NO ACTIVE implementation lease — successor admission audit complete
+
+- Published basis: `e54ce620d49f79c3ab817ca9afeefd8b5a0310f7` is on
+  `origin/main`; exact-head run `33229419440` completed GREEN 30/30 and the
+  released census is `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Six read-only candidates were checked against production entrypoints, fact
+  owners, last consumers, direct bypasses, and decisive negative gates.
+  `selfhost.match_case_pattern` is already CLOSED; loop flow, ArrayString ABI,
+  diagnostic catalog, compatibility evolution, and enum declaration rows each
+  require more than one independent prerequisite.
+- No implementation lease is admitted from this audit. See
+  `docs/audits/2026-08-29_bridge_32_successor_admission_audit.md`. A future
+  lease must name one executable prerequisite and must not promise a BRIDGE
+  decrement before the whole declared row meets closure criteria.
+
+## DONE lease — scalar CFG foreach receipt BRIDGE closure
 
 - Objective card: close only
   `projection.direct_mir_scalar_cfg_foreach_receipt`. The existing signed Int32
@@ -42,8 +57,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   registry state, staging, commit, push, and exact-head CI interpretation.
   Candidate-audit agents are read-only. No other BRIDGE implementation track
   is open.
-- Publication boundary: stage only the named repair files, commit and push,
-  then require replacement exact-head CI GREEN before releasing this lease.
+- Publication result: CI-ratchet repair `e54ce620` is on `origin/main` and
+  exact-head run `33229419440` completed GREEN 30/30. `build-linux` passed in
+  24m25s and full self-host passed in 27m27s. The lease is released at
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.
   Supplementary ArrayInt/array-return gates are not claimed because unchanged
   pre-base owners hit stale 175/160 and 110/80 line caps before behavior.
 
