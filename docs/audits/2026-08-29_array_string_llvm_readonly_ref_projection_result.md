@@ -1,6 +1,6 @@
 # ArrayString LLVM readonly-ref target projection result — 2026-08-29
 
-Status: `LOCAL GREEN — PUBLICATION PENDING`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `4a97f19a17a64e36a66b29747098a80811f11285` on
 `origin/main`.
@@ -69,3 +69,12 @@ and literal LLVM load-alignment fallback. The ArrayString ABI row remains
 `BRIDGE`: owned parameter binding, value-result transfer, owned return,
 mutation, cleanup, and other expression materializers still require migration.
 No `56/31/1` closure is claimed.
+
+## Publication evidence
+
+Implementation `703ef40013c3ad6467e13bae67009f689431e80a` is on
+`origin/main`. Exact-head CI run `33246996181` completed GREEN 30/30 in
+27m29s: `build-linux` passed in 24m25s, full self-host in 27m14s, Rocq 9 in
+1m37s, sanitizers in 9m12s, all three platform jobs passed, and backend parity
+passed 20/20. This releases the bounded read-only projection lease without
+opening or implying the owned-parameter move-retirement rung.

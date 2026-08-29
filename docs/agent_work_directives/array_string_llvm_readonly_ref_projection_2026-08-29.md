@@ -1,6 +1,6 @@
 # ArrayString LLVM readonly-ref target projection — 2026-08-29
 
-Status: `LOCAL GREEN — PUBLICATION PENDING`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `4a97f19a17a64e36a66b29747098a80811f11285` on `origin/main`.
 
@@ -81,3 +81,15 @@ evidence, commit, push, and exact-head CI are observed. The census remains
   cache, or shard was raised.
 - The owned-parameter candidate remains outside this lease because its missing
   caller-side move retirement is a distinct executable correctness rung.
+
+## Publication result
+
+- Implementation `703ef40013c3ad6467e13bae67009f689431e80a` is on
+  `origin/main`.
+- Exact-head CI run `33246996181` completed GREEN 30/30 in 27m29s.
+  `build-linux` passed in 24m25s, full self-host in 27m14s, codegen bootstrap
+  in 6m42s, sanitizers in 9m12s, Windows in 8m30s, macOS C-only in 2m21s,
+  Rocq 9 in 1m37s, and backend parity passed 20/20 after its 10m14s shared
+  toolchain build.
+- The lease is released. No successor implementation lease is opened by this
+  publication.

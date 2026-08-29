@@ -18,10 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — ArrayString LLVM readonly-ref target projection
+## No active self-host implementation - ArrayString LLVM readonly-ref target projection published
 
-- Exact base is `4a97f19a17a64e36a66b29747098a80811f11285` on
-  `origin/main`; the primary task owns the sole implementation lease.
+- Exact implementation base was
+  `4a97f19a17a64e36a66b29747098a80811f11285` on `origin/main`. The primary
+  task owned the sole implementation lease.
 - Objective: carry the LLVM root's already-derived target-qualified
   ArrayString projection to the read-only parameter load and replace its local
   `align 8` decision with `projection.storage.align`.
@@ -47,8 +48,13 @@ percentage by themselves.
   DRV-2 and emitted an 11,348,955-byte production bootstrap C artifact.
   Focused C/LLVM parity plus six negatives, full component, SoT edge/live
   adequacy, single-owner, hard-contract, tightened likeness `4501/4501`, and
-  documentation are green. Coq/Rocq is explicitly declared skipped locally.
-  Commit, push, and exact-head CI remain before publication and lease release.
+  documentation are green. Coq/Rocq was explicitly declared skipped locally.
+- Publication result: implementation
+  `703ef40013c3ad6467e13bae67009f689431e80a` is on `origin/main`; exact-head
+  run `33246996181` completed GREEN 30/30 in 27m29s. `build-linux` passed in
+  24m25s, full self-host in 27m14s, codegen bootstrap in 6m42s, sanitizers in
+  9m12s, Rocq 9 in 1m37s, all platforms passed, and backend parity passed
+  20/20. The lease is released; no successor implementation lease is open.
 - Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
   `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
 
