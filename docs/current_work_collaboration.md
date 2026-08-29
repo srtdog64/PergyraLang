@@ -6,6 +6,21 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — ArrayString C DirWalk target projection
+
+- Exact base is `568c7b07292ee4ddee4e573b4f1ec1db2d2e9f27` on
+  `origin/main`. The primary task is the sole integration owner.
+- Objective: one program fact/projection readiness owner replaces the duplicate
+  C/LLVM cross-seals, and the production C DirWalk adapter consumes projected
+  field names instead of a positional four-field initializer.
+- Integration gate: the DirWalk nested direct-call program executes C/LLVM and
+  rejects call identity plus layout drift without artifacts; the component
+  contract rejects the positional initializer and duplicate readiness owners.
+  See
+  `docs/agent_work_directives/array_string_c_dir_walk_projection_2026-08-29.md`.
+- LLVM DirWalk and other ArrayString consumers are outside this lease. Census
+  remains `CLOSED=55 BRIDGE=32 ACTIVE=1`; no whole-row closure is claimed.
+
 ## NO ACTIVE implementation lease — ArrayString LLVM Join target projection published
 
 - Exact base is `18a0b6666ef3b6119a1c0482693a12bffe1f3798` on

@@ -9,27 +9,12 @@ func DirectMirScalarProgramCStringArrayOwnedSingleFn() -> String {
 }
 func DirectMirScalarProgramCStringArrayValuesFn() -> String { return "pgy_as_from_values"; }
 
-func DirectMirScalarProgramCStringArrayProjectionReady(
-    ref abi: DirectMirScalarProgramArrayStringAbiFact,
-    ref projection: DirectMirArrayStringAbiProjection
-) -> Bool {
-    return DirectMirScalarProgramArrayStringAbiFactReady(abi) &&
-        DirectMirArrayStringAbiProjectionReadyFor(
-            projection, CompilerTargetCpuCProjection()) &&
-        projection.abi_layout_id == abi.layout_id &&
-        projection.storage.size == abi.size &&
-        projection.storage.align == abi.align &&
-        projection.storage.data_offset == abi.data_offset &&
-        projection.storage.length_offset == abi.length_offset &&
-        projection.storage.capacity_offset == abi.capacity_offset &&
-        projection.storage.allocator_offset == abi.allocator_offset;
-}
-
 func DirectMirScalarProgramCStringArrayStorageBlock(
     ref abi: DirectMirScalarProgramArrayStringAbiFact,
     ref projection: DirectMirArrayStringAbiProjection
 ) -> String {
-    if !DirectMirScalarProgramCStringArrayProjectionReady(abi, projection) {
+    if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            abi, projection, CompilerTargetCpuCProjection()) {
         return "";
     }
     let type_name: String = CompilerAbiLayoutArrayStringCValueType();

@@ -1,18 +1,25 @@
 // C adapter from the sealed host-io DirWalk receipt to native runtime facts.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 
 func DirectMirScalarProgramCDirWalkBlock(
     ref plan: DirectMirScalarCfgGraphPlan,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref projection: DirectMirArrayStringAbiProjection
 ) -> String {
     if plan.program.runtime_abi.dir_walk_id == 0 { return ""; }
-    if !runtime.dir_walk.ok || runtime.dir_walk.symbol !=
-            HostIORuntimeCDirWalkFn() {
+    if !runtime.dir_walk.ok || runtime.dir_walk.symbol != HostIORuntimeCDirWalkFn() ||
+        !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            plan.program.array_string_abi, projection, CompilerTargetCpuCProjection()) {
         Die("direct MIR scalar C dir-walk ABI is invalid");
     }
-    return Concat("#include \"pgy_runtime.h\"\nstatic pgy_as ", Concat(
-        runtime.dir_walk.symbol,
-        "(const char *root) { PgyArray_String source = pgy_dir_walk(root); pgy_as out = {(const char **)source.data, source.length, source.capacity, source.allocator}; return out; }\n\n"));
+    let output: String = Concat("#include \"pgy_runtime.h\"\nstatic pgy_as ", Concat(
+        runtime.dir_walk.symbol, "(const char *root) { PgyArray_String source = pgy_dir_walk(root); pgy_as out = { ."));
+    output = Concat(output, Concat(projection.storage.data_field, Concat(" = (const char **)source.", Concat(projection.storage.data_field, ", ."))));
+    output = Concat(output, Concat(projection.storage.length_field, Concat(" = source.", Concat(projection.storage.length_field, ", ."))));
+    output = Concat(output, Concat(projection.storage.capacity_field, Concat(" = source.", Concat(projection.storage.capacity_field, ", ."))));
+    output = Concat(output, Concat(projection.storage.allocator_field, Concat(" = source.", Concat(projection.storage.allocator_field, " }; return out; }\n\n"))));
+    return output;
 }

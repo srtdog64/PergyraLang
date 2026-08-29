@@ -3237,7 +3237,9 @@ inventory must not become a second fact-family owner registry.
   -- target adapters from the sealed `host-io/dir-walk` row to the native
   `pgy_dir_walk` runtime owner. The runtime remains the sole directory-walk,
   capability, ordering, and owned-path authority; these adapters only carry
-  its ABI-compatible `Array<String>` result into GraphPlan target types.
+  its ABI-compatible `Array<String>` result into GraphPlan target types. The C
+  adapter consumes projected public/private field names and does not own a
+  positional layout; the LLVM adapter returns the aggregate unchanged.
 - `src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy`
   -- the single GraphPlan join from normalized host-I/O expression kinds to
   existing runtime-call ABI rows. It currently seals process Args, directory
@@ -3920,12 +3922,14 @@ inventory must not become a second fact-family owner registry.
   consume the persisted layout row; neither backend guesses offsets or runtime
   symbols. The direct public C projection is the four-field
   `PgyArray_String`; `CompilerAbiLayoutArrayStringCValueType()` and its
-  three-field `pgy_as` spelling remain private to self-codegen/runtime carriage
+  four-field `pgy_as` spelling remain private to self-codegen/runtime carriage
   and cannot own this direct projection.
 - `src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_projection_owner.pgy`
   -- binds the carried scalar-program ArrayString ABI fact to exactly one
   selected-target projection, with canonical absence represented as `None`.
-  The C/LLVM emission roots derive this receipt once per semantic program.
+  It also owns the single fact/projection/target cross-seal consumed by C and
+  LLVM materializers. The C/LLVM emission roots derive this receipt once per
+  semantic program.
 - `direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy`
   and
   `direct_mir_scalar_program_llvm_array_string_storage_materialization_owner.pgy`

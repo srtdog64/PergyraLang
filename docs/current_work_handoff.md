@@ -18,6 +18,42 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context - ArrayString C DirWalk target projection
+
+- Exact base is `568c7b07292ee4ddee4e573b4f1ec1db2d2e9f27` on
+  `origin/main`; the tracked worktree contains the one active implementation
+  candidate described below. The primary task owns the sole implementation
+  lease.
+- Objective: the production scalar C `DirWalk` adapter consumes the existing
+  C-qualified ArrayString projection and no longer reconstructs its four-field
+  layout positionally. One scalar-program readiness owner now cross-seals the
+  carried ArrayString fact with C and LLVM projections; duplicate backend
+  readiness functions are deleted.
+- Fact owner and last consumer: `DirectMirArrayStringCapturedAbiReady` owns
+  admitted layout identity, `DirectMirScalarProgramArrayStringAbiFact` carries
+  it, and `DirectMirScalarProgramArrayStringAbiProjectionReadyForFact` owns the
+  fact/projection/target cross-seal. The reached last consumer is
+  `DirectMirScalarProgramCDirWalkBlock`.
+- Forbidden fallback: positional `{source.data, source.length, ...}` layout,
+  hard-coded adapter fields, adapter-local projection, duplicate C/LLVM
+  readiness, type-name lookup, missing/drifted ABI acceptance, or changing the
+  public `PgyArray_String`/private `pgy_as` boundary.
+- Local evidence: current-source DRV-2 is installed; native-oracle emission
+  completed with zero errors and three known redundant-`who` warnings. Focused
+  C/LLVM DirWalk execution and four negative mutations pass. The full component
+  contract, SoT edge/live adequacy, single-owner, hard-contract, likeness
+  `4493/4493`, and documentation gates are green; local Coq/Rocq is a declared
+  skip. Generated C uses projected designated fields. No owner cap was raised.
+- Registry impact: both reached program-extension and ArrayString ABI rows name
+  the consumer, negative gate, positional fallback, and duplicate-readiness
+  fallback. Census stays `CLOSED=55 BRIDGE=32 ACTIVE=1`; Args, parameter
+  binding, value-result transfer, owned return, mutation, cleanup, and other
+  expression materializers still prevent whole-row closure.
+- Next falsifier: exact-head full CI after an explicit implementation commit and
+  push. Do not open another semantic rung before that result. Protected
+  untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
+  `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
+
 ## No active self-host implementation - ArrayString LLVM Join target projection published
 
 - Exact implementation base was

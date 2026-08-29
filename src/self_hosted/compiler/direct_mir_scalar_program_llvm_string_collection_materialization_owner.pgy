@@ -10,22 +10,6 @@ import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_storage_materialization_owner.pgy";
 
-func DirectMirScalarProgramLlvmArrayStringProjectionReady(
-    ref abi: DirectMirScalarProgramArrayStringAbiFact,
-    ref projection: DirectMirArrayStringAbiProjection
-) -> Bool {
-    return DirectMirScalarProgramArrayStringAbiFactReady(abi) &&
-        DirectMirArrayStringAbiProjectionReadyFor(
-            projection, CompilerTargetCpuLlvmProjection()) &&
-        projection.abi_layout_id == abi.layout_id &&
-        projection.storage.size == abi.size &&
-        projection.storage.align == abi.align &&
-        projection.storage.data_offset == abi.data_offset &&
-        projection.storage.length_offset == abi.length_offset &&
-        projection.storage.capacity_offset == abi.capacity_offset &&
-        projection.storage.allocator_offset == abi.allocator_offset;
-}
-
 func DirectMirScalarProgramLlvmStringCollectionMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
@@ -57,8 +41,9 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
     let output: String = "";
     if array_required {
         let abi: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
-        if !DirectMirScalarProgramLlvmArrayStringProjectionReady(
-                plan.program.array_string_abi, abi) {
+        if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+                plan.program.array_string_abi, abi,
+                CompilerTargetCpuLlvmProjection()) {
             Die("direct MIR scalar program LLVM Array<String> projection drifted");
         }
         output = Concat("%pgy.array.string = type ",

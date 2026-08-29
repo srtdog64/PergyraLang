@@ -21263,6 +21263,16 @@ require_function_text \
     "func DirectMirScalarProgramArrayStringAbiProjectionFromFact(" \
     "return Some(projection);"
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_projection_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(" \
+    "projection.storage.allocator_offset == fact.allocator_offset"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy" \
+    "func DirectMirScalarProgramCStringArrayProjectionReady("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringProjectionReady("
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
     "func DirectMirScalarCfgEmitProgramC(" \
     "DirectMirScalarProgramArrayStringAbiProjectionFromFact("
@@ -21343,6 +21353,21 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" \
     "func DirectMirScalarProgramCDirWalkBlock(" \
     "PgyArray_String source = pgy_dir_walk(root)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" \
+    "func DirectMirScalarProgramCDirWalkBlock(" \
+    "DirectMirScalarProgramArrayStringAbiProjectionReadyForFact("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" \
+    "func DirectMirScalarProgramCDirWalkBlock(" \
+    "projection.storage.allocator_field"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy" \
+    "pgy_as out = {(const char **)source.data"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_materialization_owner.pgy" \
+    "func DirectMirScalarProgramCStringCollectionMaterialization(" \
+    "DirectMirScalarProgramCDirWalkBlock(plan, runtime, projection)"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_dir_walk_materialization_owner.pgy" \
     "func DirectMirScalarProgramLlvmDirWalkBlock(" \

@@ -4,6 +4,20 @@
 import "direct_mir_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 
+func DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    ref projection: DirectMirArrayStringAbiProjection, expected_target: String
+) -> Bool {
+    return DirectMirScalarProgramArrayStringAbiFactReady(fact) &&
+        DirectMirArrayStringAbiProjectionReadyFor(projection, expected_target) &&
+        projection.abi_layout_id == fact.layout_id &&
+        projection.storage.size == fact.size && projection.storage.align == fact.align &&
+        projection.storage.data_offset == fact.data_offset &&
+        projection.storage.length_offset == fact.length_offset &&
+        projection.storage.capacity_offset == fact.capacity_offset &&
+        projection.storage.allocator_offset == fact.allocator_offset;
+}
+
 func DirectMirScalarProgramArrayStringAbiProjectionFromFact(
     ref fact: DirectMirScalarProgramArrayStringAbiFact,
     target: CompilerTargetProjectionFact
@@ -20,15 +34,8 @@ func DirectMirScalarProgramArrayStringAbiProjectionFromFact(
             fact.data_offset, fact.length_offset, fact.capacity_offset,
             fact.allocator_offset
         );
-    if !DirectMirArrayStringAbiProjectionReadyFor(
-            projection, target.projection) ||
-        projection.abi_layout_id != fact.layout_id ||
-        projection.storage.size != fact.size ||
-        projection.storage.align != fact.align ||
-        projection.storage.data_offset != fact.data_offset ||
-        projection.storage.length_offset != fact.length_offset ||
-        projection.storage.capacity_offset != fact.capacity_offset ||
-        projection.storage.allocator_offset != fact.allocator_offset {
+    if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            fact, projection, target.projection) {
         Die("direct MIR scalar program Array<String> ABI projection drifted");
     }
     return Some(projection);

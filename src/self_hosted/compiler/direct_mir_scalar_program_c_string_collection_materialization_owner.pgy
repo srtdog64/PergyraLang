@@ -55,8 +55,12 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
     }
     output = Concat(output,
         DirectMirScalarProgramCProcessArgsBlock(plan, runtime));
-    output = Concat(output,
-        DirectMirScalarProgramCDirWalkBlock(plan, runtime));
+    if plan.program.runtime_abi.dir_walk_id != 0 {
+        let projection: DirectMirArrayStringAbiProjection =
+            UnwrapOption(projection_opt);
+        output = Concat(output,
+            DirectMirScalarProgramCDirWalkBlock(plan, runtime, projection));
+    }
     output = Concat(output,
         DirectMirScalarProgramCFileExistsBlock(plan, runtime));
     output = Concat(output,

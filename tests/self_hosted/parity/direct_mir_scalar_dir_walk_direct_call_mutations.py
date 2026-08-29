@@ -20,6 +20,16 @@ elif mode == "dirwalk-target-syntax":
     dir_walk["call_target_syntax_id"] = 1
 elif mode == "fixture-target-syntax":
     fixture_dir["call_target_syntax_id"] = 0
+elif mode == "array-layout-offset":
+    array_result = next(
+        instruction
+        for routine in document["routines"]
+        for block in routine["blocks"]
+        for instruction in block["instructions"]
+        if instruction.get("abi_type_name") == "Array<String>"
+        and instruction.get("abi_layout_required") is True
+    )
+    array_result["abi_layout"]["fields"][3]["offset"] = 16
 else:
     raise SystemExit(f"unknown mutation: {mode}")
 
