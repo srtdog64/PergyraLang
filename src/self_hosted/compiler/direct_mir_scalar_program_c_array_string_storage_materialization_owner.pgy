@@ -33,31 +33,30 @@ func DirectMirScalarProgramCStringArrayStorageBlock(
         return "";
     }
     let type_name: String = CompilerAbiLayoutArrayStringCValueType();
-    let storage: DirectMirArrayStorageAbiProjection = projection.storage;
     let output: String = "typedef struct { const char **";
-    output = Concat(output, storage.data_field);
-    output = Concat(output, Concat("; ", storage.c_length_type));
-    output = Concat(output, Concat(" ", storage.length_field));
-    output = Concat(output, Concat("; ", storage.c_length_type));
-    output = Concat(output, Concat(" ", storage.capacity_field));
-    output = Concat(output, Concat("; void *", storage.allocator_field));
+    output = Concat(output, projection.storage.data_field);
+    output = Concat(output, Concat("; ", projection.storage.c_length_type));
+    output = Concat(output, Concat(" ", projection.storage.length_field));
+    output = Concat(output, Concat("; ", projection.storage.c_length_type));
+    output = Concat(output, Concat(" ", projection.storage.capacity_field));
+    output = Concat(output, Concat("; void *", projection.storage.allocator_field));
     output = Concat(output, Concat("; } ", Concat(type_name, ";\n")));
     output = Concat(output, Concat("_Static_assert(sizeof(pgy_as) == ",
-        Concat(ToString(storage.size), ", \"Array<String> size\");\n")));
+        Concat(ToString(projection.storage.size), ", \"Array<String> size\");\n")));
     output = Concat(output, Concat("_Static_assert(_Alignof(pgy_as) == ",
-        Concat(ToString(storage.align), ", \"Array<String> align\");\n")));
+        Concat(ToString(projection.storage.align), ", \"Array<String> align\");\n")));
     output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
-        Concat(storage.data_field, Concat(") == ", Concat(
-        ToString(storage.data_offset), ", \"Array<String> data\");\n")))));
+        Concat(projection.storage.data_field, Concat(") == ", Concat(
+        ToString(projection.storage.data_offset), ", \"Array<String> data\");\n")))));
     output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
-        Concat(storage.length_field, Concat(") == ", Concat(
-        ToString(storage.length_offset), ", \"Array<String> length\");\n")))));
+        Concat(projection.storage.length_field, Concat(") == ", Concat(
+        ToString(projection.storage.length_offset), ", \"Array<String> length\");\n")))));
     output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
-        Concat(storage.capacity_field, Concat(") == ", Concat(
-        ToString(storage.capacity_offset), ", \"Array<String> capacity\");\n")))));
+        Concat(projection.storage.capacity_field, Concat(") == ", Concat(
+        ToString(projection.storage.capacity_offset), ", \"Array<String> capacity\");\n")))));
     output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
-        Concat(storage.allocator_field, Concat(") == ", Concat(
-        ToString(storage.allocator_offset),
+        Concat(projection.storage.allocator_field, Concat(") == ", Concat(
+        ToString(projection.storage.allocator_offset),
         ", \"Array<String> allocator\");\n\n")))));
     output = Concat(output,
         "static pgy_as pgy_as_new(void) { pgy_as a = {NULL, 0, 0, NULL}; return a; }\nstatic void pgy_as_push(pgy_as *a, const char *v) {\n    if (a->length == a->capacity) { size_t n = a->capacity ? a->capacity * 2 : 4; const char **p = (const char **)realloc(a->data, n * sizeof(const char *)); if (p == NULL) abort(); a->data = p; a->capacity = n; }\n    a->data[a->length++] = v;\n}\n");
