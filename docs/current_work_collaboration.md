@@ -6,6 +6,34 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE publication lease — ArrayString named value-boundary semantic rejection
+
+- Exact base is `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on
+  `origin/main`; the primary task is the sole integration owner.
+- Reproduced split: native semantic analysis rejects
+  `ReleaseOwnedArray(BuildOwnedArray())` because a borrow-tracked value crossing
+  an `own` boundary has no stable source binding. The installed self-host
+  source-to-MIR entrypoint publishes verified MIR, and only the direct backend
+  later rejects it with program-extension code 19.
+- Objective: consume the already resolved signature, call-target, and
+  expression-place facts at the body semantic boundary and reject the unnamed
+  ArrayString value before MIR publication. Copy-only String call results and
+  named-local ArrayString transfers remain valid.
+- Forbidden fallbacks, bounded edit scope, and the integration gate are fixed
+  in `docs/agent_work_directives/array_string_named_value_boundary_semantic_rejection_2026-08-29.md`.
+- Census starts at `CLOSED=55 BRIDGE=32 ACTIVE=1`; no row decrement or progress
+  increase is claimed by opening this lease.
+- Local result: the semantic body bundle now consumes a dedicated verdict over
+  admitted parameter type/mode and expression-place facts. Native and installed
+  self-host reject both an unnamed ArrayString call result and a populated
+  ArrayString literal before C/MIR publication; named ArrayString and copy-only
+  String controls remain green.
+- Current-source DRV-2 installation, 32,923,787-byte native production-bootstrap
+  C emission, existing C/LLVM ownership controls, component inventory, SoT edge
+  and live adequacy, single-owner, hard-contract, likeness `4509/4509`,
+  documentation, progress, and diff checks are locally green. Coq/Rocq is a
+  declared local skip; commit, push, and exact-head CI remain pending.
+
 ## NO ACTIVE implementation lease — ArrayString owner-handle caller move retirement published
 
 - Exact base is `ca2555e1e898f3ac2f0472e76d616dfba22e0410` on

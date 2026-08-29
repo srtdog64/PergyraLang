@@ -1,0 +1,15 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func BuildOwnedArray() -> Array<String> {
+    let values: Array<String> = [];
+    let marker: String = Concat("fresh", "-array");
+    ArrayPushOwnedString(values, marker);
+    return values;
+}
+
+func Main() -> Void {
+    ReleaseOwnedArray(BuildOwnedArray());
+    Log("unreachable");
+}

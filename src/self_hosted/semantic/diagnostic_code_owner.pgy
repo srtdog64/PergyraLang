@@ -11,6 +11,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "compare_type_mismatch",
         "binop_type_mismatch",
         "call_arg_type_mismatch",
+        "named_value_boundary_argument_required",
         "builtin_arg_type_mismatch",
         "option_concrete_type_required",
         "value_param_collection_mutation",
@@ -76,6 +77,9 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
         return "PGY_SEM_BINOP_TYPE_MISMATCH";
     }
     if code == "call_arg_type_mismatch" {
+        return "PGY_SEM_TYPE_MISMATCH";
+    }
+    if code == "named_value_boundary_argument_required" {
         return "PGY_SEM_TYPE_MISMATCH";
     }
     if code == "builtin_arg_type_mismatch" {

@@ -19,7 +19,7 @@ C_CALL_ARGUMENT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_
 LLVM_COLLECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy"
 C_EXPRESSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy"
 LLVM_EXPRESSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy"
-C_MATERIALIZATION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_materialization_owner.pgy"
+C_STORAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy"
 MEMBER_ARGUMENT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_string_member_argument_owner.pgy"
 CALL_RESULT_ARGUMENT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_string_call_result_argument_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
@@ -66,7 +66,7 @@ for owner in "$C_EXPRESSION" "$LLVM_EXPRESSION"; do
         fail "target literal projection re-infers element ownership"
 done
 grep -Fq 'DirectMirScalarProgramCStringArrayOwnedSingleFn()' \
-    "$C_MATERIALIZATION" || fail "C omits heap-backed owned literal storage"
+    "$C_STORAGE" || fail "C omits heap-backed owned literal storage"
 for term in 'DirectMirScalarProgramExprLogicalRecordMember()' \
     'facts.node_kinds[base] != DirectMirScalarProgramExprLocal()' \
     'DirectMirScalarProgramLogicalRecordFieldType('; do

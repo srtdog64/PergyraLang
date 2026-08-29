@@ -61,6 +61,7 @@ func SemanticReason(code: String) -> String {
     if code == "call_arg_type_mismatch" {
         return "call argument type does not match the callee parameter type";
     }
+    if code == "named_value_boundary_argument_required" { return "borrow-tracked value boundaries require one stable source binding"; }
     if code == "builtin_arg_type_mismatch" {
         return "builtin argument type does not match the builtin contract";
     }
@@ -162,6 +163,7 @@ func SemanticFix(code: String) -> String {
     if code == "call_arg_type_mismatch" {
         return "change the argument expression or the callee parameter type";
     }
+    if code == "named_value_boundary_argument_required" { return "bind the value to a local variable before passing it through the boundary"; }
     if code == "builtin_arg_type_mismatch" {
         return "pass a value that satisfies the builtin signature";
     }
@@ -639,9 +641,7 @@ func SemanticErrorWithFacts(code: String, facts: String) -> String {
         "none",
         stable_facts);
 }
-func SemanticError1(code: String, k1: String, v1: String) -> String {
-    return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact1(k1, v1));
-}
+func SemanticError1(code: String, k1: String, v1: String) -> String { return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact1(k1, v1)); }
 func SemanticError2(code: String, k1: String, v1: String, k2: String, v2: String) -> String {
     return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact2(k1, v1, k2, v2));
 }

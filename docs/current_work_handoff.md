@@ -18,6 +18,37 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — ArrayString named value-boundary semantic rejection
+
+- Exact base is `7fbe86c2c44b65c1330a34585ca5db0096595c1c` on
+  `origin/main`; the primary task owns the sole implementation lease.
+- Production entrypoint:
+  `DriverSourceMirProjectionFromAdmittedRequest`. Direct bypass to delete:
+  accepting an unnamed `Array<String>` call result across an `own`/`ref`/`inout`
+  boundary and relying on direct backend program-extension error 19.
+- Fact owner: the body semantic boundary after carried call-target and
+  expression-place resolution. Signature parameter type/mode and expression
+  place stay with their existing owners; MIR/backend code may not reconstruct
+  either fact.
+- Last consumer: `SemanticAstBodyTypeBundle` admission before
+  `SelfMirProgramFactsBeforeCanonicalIdsObserved` can publish MIR.
+- Next falsifier: native and installed self-host both reject the permanent
+  unnamed-boundary fixture without artifacts; the named-local ArrayString move
+  and fresh String call-result fixtures remain green.
+- Coordination card and forbidden fallbacks:
+  `docs/agent_work_directives/array_string_named_value_boundary_semantic_rejection_2026-08-29.md`.
+  Census starts at `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Local result: `SemanticAstNamedValueBoundaryVerdict` joins admitted signature
+  type/mode with carried expression place and rejects unnamed ArrayString call
+  results and populated literals before MIR. Named ArrayString and copy-only
+  String controls remain admitted; the existing bounded C/LLVM owner transfers
+  remain green.
+- Current-source DRV-2 and a 32,923,787-byte native production-bootstrap C
+  artifact are green. Component, SoT edge/live adequacy, single-owner,
+  hard-contract, likeness `4509/4509`, documentation, progress, and diff checks
+  pass locally. Coq/Rocq is a declared local skip; publication and exact-head CI
+  remain pending. Census and the 83% project forecast do not change.
+
 ## No active self-host implementation - ArrayString owner-handle caller move retirement published
 
 - Exact base is `ca2555e1e898f3ac2f0472e76d616dfba22e0410` on

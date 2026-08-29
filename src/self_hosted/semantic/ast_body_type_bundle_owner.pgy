@@ -13,6 +13,7 @@ import "ast_initializer_type_function_table_bridge_owner.pgy";
 import "ast_iteration_graph_root_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_body_type_bundle_readiness_owner.pgy";
+import "ast_named_value_boundary_verdict_owner.pgy";
 struct SemanticAstBodyTypeBundle {
     verdict: SemanticAstBodyVerdict;
     initializer_types: SemanticAstInitializerTypeFacts;
@@ -119,6 +120,13 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             analysis.function_scopes, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "statement:done");
+    SemanticAstBodyTypeStage(observe_pressure, "named-boundary:start");
+    let named_boundary: SemanticAstNamedValueBoundaryVerdict =
+        SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
+            analysis.signatures,
+            analysis.expression_surfaces.expression_graph
+        );
+    SemanticAstBodyTypeStage(observe_pressure, "named-boundary:done");
     SemanticAstBodyTypeStage(observe_pressure, "generic:start");
     let generic_specializations: SemanticAstGenericSpecializationFacts =
         SemanticAstGenericSpecializationFactsFromAdmittedBody(
@@ -150,6 +158,12 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             "expression_place_unresolved",
             "semantic expression place rows are incomplete after body fixpoint",
             -1
+        );
+    } else if verdict.ok && !named_boundary.ok {
+        verdict = SemanticAstBodyVerdictError(
+            named_boundary.diagnostic_code,
+            named_boundary.diagnostic_message,
+            named_boundary.call_node_id
         );
     } else if verdict.ok && !generic_specializations.ok {
         verdict = SemanticAstBodyVerdictError(

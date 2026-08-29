@@ -1,0 +1,160 @@
+// Named-value requirement for borrow-tracked parameter boundaries.
+//
+// Parameter type/mode and expression place are already admitted facts here.
+// This owner joins them once before MIR lowering; backends may not recover the
+// boundary from source text or a projected type name.
+
+import "ast_signature_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_graph_generic_call_owner.pgy";
+import "ast_expression_place_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstNamedValueBoundaryVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    call_node_id: Int;
+    argument_index: Int;
+}
+
+func SemanticAstNamedValueBoundaryVerdictOk(
+) -> SemanticAstNamedValueBoundaryVerdict {
+    return SemanticAstNamedValueBoundaryVerdict(true, "", "", -1, -1);
+}
+
+func SemanticAstNamedValueBoundaryVerdictError(
+    code: String,
+    message: String,
+    call_node_id: Int,
+    argument_index: Int
+) -> SemanticAstNamedValueBoundaryVerdict {
+    return SemanticAstNamedValueBoundaryVerdict(
+        false, code, message, call_node_id, argument_index
+    );
+}
+
+func SemanticAstNamedValueBoundaryTracksType(type_name: String) -> Bool {
+    // This executable rung is intentionally bounded to the reproduced
+    // Array<String> ownership seam. Wider native ownership-class parity needs
+    // its own reached fixture and must not be inferred by a backend.
+    return type_name == "Array<String>";
+}
+
+func SemanticAstNamedValueBoundaryModeName(mode: Int) -> String {
+    if mode == 1 { return "inout"; }
+    if mode == 2 { return "own"; }
+    if mode == 3 { return "ref"; }
+    return "default";
+}
+
+func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts
+) -> SemanticAstNamedValueBoundaryVerdict {
+    if !signatures.ok ||
+        !SemanticExpressionGraphCarriedCallTargetsReady(graph) ||
+        !SemanticExpressionGraphPlaceKindsReady(graph) {
+        return SemanticAstNamedValueBoundaryVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner",
+                "SemanticAstNamedValueBoundaryVerdict"
+            ),
+            -1, -1
+        );
+    }
+    let arena_count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    let call_node: Int = 0;
+    while call_node < arena_count {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, call_node
+        );
+        if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCall() {
+            call_node = call_node + 1;
+            continue;
+        }
+        let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+            graph, call_node
+        );
+        let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+            graph, call_node
+        );
+        if !IsSome(target_kind) || !IsSome(target_name) ||
+            UnwrapOption(target_kind) != SemanticCallTargetDirect() {
+            call_node = call_node + 1;
+            continue;
+        }
+        let signature_index: Option<Int> = SemanticGenericCallSignatureIndex(
+            signatures, UnwrapOption(target_name)
+        );
+        if !IsSome(signature_index) {
+            call_node = call_node + 1;
+            continue;
+        }
+        let call: SemanticCallSpineView =
+            SemanticCallSpineViewForCallNodeWithin(
+                graph, call_node, arena_count - 1
+            );
+        let parameter_count: Option<Int> = SemanticAstFunctionParamCountAt(
+            signatures, UnwrapOption(signature_index)
+        );
+        if !call.ok || !IsSome(parameter_count) ||
+            ArrayLength(call.argument_nodes) != UnwrapOption(parameter_count) {
+            return SemanticAstNamedValueBoundaryVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner",
+                    "SemanticAstNamedValueBoundaryVerdict"
+                ),
+                call_node, -1
+            );
+        }
+        let argument_index: Int = 0;
+        while argument_index < ArrayLength(call.argument_nodes) {
+            let parameter_type: Option<String> =
+                SemanticAstFunctionParamTypeAt(
+                    signatures, UnwrapOption(signature_index), argument_index
+                );
+            let parameter_mode: Option<Int> =
+                SemanticAstFunctionParamModeAt(
+                    signatures, UnwrapOption(signature_index), argument_index
+                );
+            let argument_place: Option<Int> = SemanticExpressionGraphPlaceKind(
+                graph, call.argument_nodes[argument_index]
+            );
+            if !IsSome(parameter_type) || !IsSome(parameter_mode) ||
+                !IsSome(argument_place) {
+                return SemanticAstNamedValueBoundaryVerdictError(
+                    "ast_artifact_invalid",
+                    SemanticError1(
+                        "ast_artifact_invalid", "owner",
+                        "SemanticAstNamedValueBoundaryVerdict"
+                    ),
+                    call_node, argument_index
+                );
+            }
+            let mode: Int = UnwrapOption(parameter_mode);
+            if mode != 0 &&
+                SemanticAstNamedValueBoundaryTracksType(
+                    UnwrapOption(parameter_type)
+                ) && UnwrapOption(argument_place) ==
+                    SemanticExpressionPlaceValue() {
+                return SemanticAstNamedValueBoundaryVerdictError(
+                    "named_value_boundary_argument_required",
+                    SemanticError3(
+                        "named_value_boundary_argument_required",
+                        "callee", UnwrapOption(target_name),
+                        "parameter_type", UnwrapOption(parameter_type),
+                        "mode", SemanticAstNamedValueBoundaryModeName(mode)
+                    ),
+                    call_node, argument_index
+                );
+            }
+            argument_index = argument_index + 1;
+        }
+        call_node = call_node + 1;
+    }
+    return SemanticAstNamedValueBoundaryVerdictOk();
+}

@@ -377,7 +377,10 @@ SENTINEL_MAX=23
 # 4493 -> 4501 (2026-08-29): the LLVM read-only ArrayString parameter load now
 # receives the root projection as Option evidence and returns explicit invalid
 # results when the projection is missing or fails the fact/target cross-seal.
-RESULT_USE_MIN=4501
+# 4501 -> 4509 (2026-08-29): named ArrayString boundary admission now joins
+# parameter type/mode and expression-place rows as explicit Option evidence and
+# fails closed when a carried fact is absent.
+RESULT_USE_MIN=4509
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

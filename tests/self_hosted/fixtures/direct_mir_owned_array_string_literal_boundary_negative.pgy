@@ -1,0 +1,8 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void {
+    ReleaseOwnedArray(["fresh"]);
+    Log("unreachable");
+}
