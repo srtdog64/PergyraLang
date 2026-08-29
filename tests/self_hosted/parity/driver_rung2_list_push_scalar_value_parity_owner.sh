@@ -20,8 +20,8 @@ pgy_selfhost_verify_driver_rung2_list_push_scalar_value() {
     out="$missing_edge.out"
     err="$missing_edge.err"
     pgy_replace_first_literal "$self_mir_json" "$missing_edge" \
-        '"kind":"multiply","text":"i * i","call_target_kind":"none","call_target_name":"","call_target_syntax_id":0,"runtime_call_abi_id":0,"binding_kind":"none","binding_ordinal":null,"left":4,"right":5' \
-        '"kind":"multiply","text":"i * i","call_target_kind":"none","call_target_name":"","call_target_syntax_id":0,"runtime_call_abi_id":0,"binding_kind":"none","binding_ordinal":null,"left":4,"right":null'
+        '"kind":"multiply","text":"i * i","call_target_kind":"none","call_target_name":"","call_target_syntax_id":0,"runtime_call_abi_id":0,"binding_syntax_id":0,"binding_kind":"none","binding_ordinal":null,"left":4,"right":5' \
+        '"kind":"multiply","text":"i * i","call_target_kind":"none","call_target_name":"","call_target_syntax_id":0,"runtime_call_abi_id":0,"binding_syntax_id":0,"binding_kind":"none","binding_ordinal":null,"left":4,"right":null'
     if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$missing_edge")" \
         >"$out" 2>"$err"); then
