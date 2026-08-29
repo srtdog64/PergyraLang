@@ -31,10 +31,13 @@ percentage by themselves.
   exclusive heavy and Markdown steps. The Markdown path runs eight exact
   scripts without installing LLVM/Coq. The CI-profile gate and all eight
   scripts pass locally.
-- Publication boundary: commit and push the workflow/test contract together,
-  then require exact-head CI GREEN. The current docs-only run is superseded by
-  the repository concurrency owner after push. No semantic successor rung is
-  open while this CI lease is active.
+- Full-path evidence: implementation `16d49173` is on `origin/main`; exact-head
+  run `33231503191` completed GREEN 30/30. `build-linux` passed in 22m05s and
+  full self-host in 35m36s.
+- Publication boundary: this Markdown-only status commit is the decisive
+  remote probe. Its required `build-linux` job must skip dependency installation
+  and `make ci-push-linux`, run the eight-script Markdown contract, and finish
+  GREEN. No semantic successor rung is open while this CI lease is active.
 
 ## No active self-host implementation - successor admission audit complete
 

@@ -8,15 +8,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE CI lease — Markdown-only Linux contract split
 
-- Exact base `244efe54367ed42a419a38f3a6aba00a8ba3f680` is on
-  `origin/main`. Its docs-only run `33231326817` correctly skipped nine
-  full-only jobs but still launched unconditional `build-linux`.
+- Implementation `16d491732d6b2fb682f199af13705131b2cf8a44` is on
+  `origin/main`; exact-head run `33231503191` completed GREEN 30/30. Its
+  non-Markdown path retained the full matrix; `build-linux` passed in 22m05s
+  and full self-host in 35m36s.
 - `scripts/ci_change_scope_owner.sh` remains the sole scope owner. The required
   `build-linux` job now selects either the existing full Linux target or an
   eight-script Markdown contract; unknown base and empty diff remain full.
-- Local CI-profile and all Markdown contract scripts are GREEN. The primary
-  task alone owns workflow/test edits, commit, push, and exact-head remote
-  interpretation. No semantic implementation lease is open in parallel.
+- Local CI-profile and all Markdown contract scripts are GREEN. This
+  Markdown-only status commit is the remote step-selection probe. The primary
+  task alone owns its exact-head interpretation; no semantic implementation
+  lease is open in parallel.
 
 ## NO ACTIVE implementation lease — successor admission audit complete
 
