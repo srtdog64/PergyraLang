@@ -136,16 +136,37 @@ def drift_action_graph(doc):
 def drift_zone_slot(doc):
     zone = next(row for row in doc["decls"] if row["name"] == "OrderZone")
     zone["fields"][0]["field_kind"] = "field"
+def direct_calls(doc, name):
+    return [
+        node
+        for row in doc["routines"]
+        for block in row["blocks"]
+        for instruction in block["instructions"]
+        for graph_name in ("expr0_graph", "expr1_graph")
+        for graph in [instruction.get(graph_name)]
+        if graph is not None
+        for node in graph["nodes"]
+        if node.get("call_target_kind") == "direct"
+        and node.get("call_target_name") == name
+    ]
+def crosswire_observability_id(doc):
+    targets = direct_calls(doc, "IntentLastName")
+    donors = direct_calls(doc, "IntentLastStepCount")
+    if len(targets) != 1 or len(donors) != 1:
+        raise SystemExit("composite observability mutation anchor drifted")
+    targets[0]["runtime_call_abi_id"] = donors[0]["runtime_call_abi_id"]
 for name, mutation in (
     ("duplicate-mode", duplicate_mode),
     ("missing-compensation", remove_compensation),
     ("action-graph-drift", drift_action_graph),
     ("zone-slot-drift", drift_zone_slot),
+    ("observability-id-crosswire", crosswire_observability_id),
 ):
     write(name, mutation)
 PY
 
-for negative in duplicate-mode missing-compensation action-graph-drift zone-slot-drift; do
+for negative in duplicate-mode missing-compensation action-graph-drift \
+    zone-slot-drift observability-id-crosswire; do
     artifact="$WORK_DIR/$negative.ll"
     rm -f "$artifact"
     if (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm \
@@ -154,6 +175,14 @@ for negative in duplicate-mode missing-compensation action-graph-drift zone-slot
         fail "$negative unexpectedly projected"
     fi
     [[ ! -e "$artifact" ]] || fail "$negative published an artifact"
+    if [[ "$negative" == observability-id-crosswire ]]; then
+        grep -Fq 'direct MIR composite intent Main log graph is invalid' \
+            "$WORK_DIR/$negative.out" "$WORK_DIR/$negative.err" ||
+            fail "$negative did not fail at the observability receipt"
+        ! grep -Fq 'scalar-program-route' "$WORK_DIR/$negative.out" \
+            "$WORK_DIR/$negative.err" ||
+            fail "$negative fell through to scalar"
+    fi
 done
 
-echo "[$LABEL] success/failure parity and four no-artifact negatives: PASS"
+echo "[$LABEL] success/failure parity and five no-artifact negatives: PASS"

@@ -1,21 +1,21 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-29 intent DIR receipt publication
+## Active self-host context - 2026-08-29 intent observability ABI publication
 
-- `selfhost.intent_declaration_rows` now reaches the final source-C consumer
-  through one artifact-epoch-bound `SelfDirIntentFacts` receipt. The emitter
-  no longer reopens intent AST children, reparses step headers, or rebuilds
-  compensation arrays. Direct-MIR remains an explicit plan-owned lane, not a
-  fallback.
-- Action execution consumes the exact `on` receiver while `who` remains a
-  separate, multi-row observability attribution. Missing source facts, ten
-  crossed row/range mutations, and one artifact-epoch mismatch fail codegen
-  admission.
-- Fresh installed-driver source/MIR/public parity, component/hard contracts,
-  root compile, SoT and progress gates are local green. Census is `53/34/1`,
-  hard closure 60.2%, migration 79.8%, integrated 83% (81-85%), strict beta
-  83%, and hard replacement 75%. Exact-head remote CI is the publication
-  falsifier.
+- `abi.intent_observability_rows` now reaches semantic source-C, nested
+  direct-MIR C/LLVM, and composite direct-MIR LLVM through the carried
+  `RuntimeCallAbiId`. The append-only common registry remains the sole row
+  owner; emission no longer reopens ABI identity from source spelling.
+- Semantic and MIR admission cross-seal source identity, shape, and ID. Zero,
+  valid-foreign, forged, and mixed identities fail before C, LLVM, object, or
+  executable publication. The raw runtime rewrite owner cannot act as an
+  observability compatibility fallback.
+- Fresh installed-driver public/native C/LLVM, semantic/direct identity,
+  nested source/direct C+LLVM with twelve no-artifact negatives, composite
+  LLVM with five no-artifact negatives, and the exact old-read registry
+  ratchet are local green. Census is `54/33/1`, hard closure 61.4%, migration
+  80.4%, integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
+  Exact-head remote CI is the publication falsifier; no successor rung is open.
 
 ## Completed self-host context - 2026-08-29 public formatter substitution
 

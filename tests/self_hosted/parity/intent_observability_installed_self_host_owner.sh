@@ -94,9 +94,18 @@ cmp -s "$WORK_DIR/expected" "$WORK_DIR/installed-llvm.run" ||
     fail "installed self-host LLVM lost intent-observability arity carriage"
 cmp -s "$WORK_DIR/expected" "$WORK_DIR/native-llvm.run" ||
     fail "native LLVM oracle disagrees with the registry-owned runtime row"
-grep -Fq 'IntentObservabilityAbiRowForSource(source_name)' \
+! grep -Fq 'IntentObservabilityAbiRowForSource(' \
     "$ROOT_DIR/src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" ||
-    fail "C runtime rewrite does not consume the registry row lookup"
+    fail "C runtime rewrite reintroduced observability source lookup"
+grep -Fq 'SemanticExpressionGraphRuntimeCallAbiId(graph, view.call_node)' \
+    "$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" ||
+    fail "semantic C emitter stopped consuming the carried ABI ID"
+grep -Fq 'IntentObservabilityAbiRowForCarriedIdentity(' \
+    "$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" ||
+    fail "semantic C emitter stopped cross-sealing the carried ABI ID"
+! grep -Fq 'IntentObservabilityAbiRowForSource(' \
+    "$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" ||
+    fail "semantic C emitter reintroduced source-name ABI lookup"
 grep -Fq 'CodegenUsageBuiltinGroupIntentObservability()' \
     "$ROOT_DIR/src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" ||
     fail "codegen usage receipt omitted intent observability"

@@ -93,6 +93,17 @@ func IntentObservabilityAbiRowForId(
     return IntentObservabilityAbiRow(false, 0, "", "", -1, "", "");
 }
 
+func IntentObservabilityAbiRowForCarriedIdentity(
+    runtime_call_abi_id: Int, source_name: String
+) -> IntentObservabilityAbiRow {
+    let row: IntentObservabilityAbiRow =
+        IntentObservabilityAbiRowForId(runtime_call_abi_id);
+    if !row.valid || row.source_name != source_name {
+        return IntentObservabilityAbiRow(false, 0, "", "", -1, "", "");
+    }
+    return row;
+}
+
 func IntentObservabilityAbiSignatureRows() -> Array<String> {
     let rows: Array<String> = [];
     let i: Int = 0;

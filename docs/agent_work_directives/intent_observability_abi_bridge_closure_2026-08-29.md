@@ -1,10 +1,8 @@
 # Intent observability ABI BRIDGE closure — 2026-08-29
 
-Status: `WAITING` (candidate base is the exact GREEN repair successor of
-`f617ee15`; runs `33209375173` and `33213561874` exposed successive bootstrap
-integration failures, while run `33218013637` proved full bootstrap GREEN and
-left only the stale likeness floor in `build-linux`; release only after that
-ratchet repair's replacement exact-head CI is GREEN)
+Status: `ACTIVE — IMPLEMENTED LOCALLY, PUBLICATION PENDING` (exact base
+`e9633bbf3102497d065d78d722a75f1676963271`; replacement run `33220229230`
+completed GREEN 30/30 and released the sole implementation lease)
 
 This directive coordinates the next candidate rung. It is not semantic
 authority, a registry verdict, progress evidence, or permission to overlap the
@@ -85,5 +83,22 @@ definition, SoT registry, and executable gates remain authoritative.
   than rebuilding the compiler per fixture.
 - The three 2026-08-29 agent audits are `OBSERVATIONS` and this file is an
   `IMPLEMENTATION CANDIDATE`. Neither proves readiness, closure, or progress.
-  The primary task must recheck the exact CI-released tree and first demonstrate
-  a red valid-ID crosswire before changing production code.
+  The primary task rechecked the exact CI-released tree and first demonstrated
+  a red valid-ID crosswire before changing production code; the observed local
+  results below, not the directive itself, support the current verdict.
+
+## Local integration evidence
+
+- The valid-ID crosswire was first observed RED in composite LLVM while source
+  spelling and call shape stayed fixed. Production then moved semantic C,
+  nested C/LLVM, and composite LLVM to carried-ID projection.
+- Generated projection and registry old-read checks pass. Installed
+  public/native C/LLVM passes. Semantic/direct identity mutations pass; nested
+  source/direct C plus LLVM reports twelve no-artifact negatives; composite
+  LLVM reports five no-artifact negatives.
+- The registry row is locally `CLOSED`, reducing the census to
+  `CLOSED=54 BRIDGE=33 ACTIVE=1`. This remains unpublished evidence until the
+  tracked patch is committed, pushed, and replacement exact-head CI is GREEN.
+- Broad component inventory exceeded its static budget and was stopped after
+  90 seconds without output. It is explicitly not claimed GREEN; the focused
+  row falsifiers and remote integration matrix own the remaining evidence.

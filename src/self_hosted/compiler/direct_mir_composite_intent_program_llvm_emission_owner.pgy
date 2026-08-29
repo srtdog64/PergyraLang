@@ -783,15 +783,15 @@ func DirectMirCompositeIntentProgramEmitLlvm(
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();
     let rows: Array<IntentObservabilityAbiRow> = [
-        IntentObservabilityAbiRowForSource("IntentLastName"),
-        IntentObservabilityAbiRowForSource("IntentLastStepCount"),
-        IntentObservabilityAbiRowForSource("IntentLastFailed"),
-        IntentObservabilityAbiRowForSource("IntentHistoryCount"),
-        IntentObservabilityAbiRowForSource("IntentHistoryStepName"),
-        IntentObservabilityAbiRowForSource("IntentHistoryStepPhase"),
-        IntentObservabilityAbiRowForSource("IntentHistoryStepParticipant"),
-        IntentObservabilityAbiRowForSource("IntentHistoryStepOk"),
-        IntentObservabilityAbiRowForSource("IntentLastTrace")
+        IntentObservabilityAbiRowForId(plan.main.runtime_call_abi_ids[0]),
+        IntentObservabilityAbiRowForId(plan.main.runtime_call_abi_ids[1]),
+        IntentObservabilityAbiRowForId(plan.main.runtime_call_abi_ids[2]),
+        IntentObservabilityAbiRowForId(plan.main.runtime_call_abi_ids[3]),
+        IntentObservabilityAbiRowForId(plan.main.runtime_call_abi_ids[5]),
+        IntentObservabilityAbiRowForId(plan.main.runtime_call_abi_ids[6]),
+        IntentObservabilityAbiRowForId(plan.main.runtime_call_abi_ids[7]),
+        IntentObservabilityAbiRowForId(plan.main.runtime_call_abi_ids[8]),
+        IntentObservabilityAbiRowForId(plan.main.runtime_call_abi_ids[9])
     ];
     let subject_type: String = CompilerSymbolCIdentifier(
         plan.graph.subject_type_name

@@ -62,7 +62,8 @@ cmp -s "$WORK_DIR/c.run" "$WORK_DIR/expected.run" ||
     c_fail "shared-plan C execution differs from the exact nine-line contract"
 
 for negative in missing-inner-priority priority-graph-drift \
-    duplicate-source-identity method-owner-crosswire action-name-crosswire; do
+    duplicate-source-identity method-owner-crosswire action-name-crosswire \
+    observability-id-crosswire; do
     for route in source direct; do
         artifact_rel="$WORK_REL/$negative.$route.c"
         artifact="$ROOT_DIR/$artifact_rel"
@@ -89,6 +90,7 @@ for negative in missing-inner-priority priority-graph-drift \
             duplicate-source-identity) receipt="MIR machine-layer facts are missing or invalid" ;;
             method-owner-crosswire) receipt="MIR machine-layer facts are missing or invalid" ;;
             action-name-crosswire) receipt="direct MIR nested intent callable identity is stale" ;;
+            observability-id-crosswire) receipt="direct MIR nested intent executable graph is invalid" ;;
         esac
         grep -Fq "$receipt" "$WORK_DIR/$negative.$route.out" \
             "$WORK_DIR/$negative.$route.err" ||
@@ -124,4 +126,4 @@ shared = "CompileAdmittedDirectMirNestedIntentProgramForTargetIfClaimed"
 assert multi.index(shared) < multi.index("DirectMirScalarProgramRouteAdmissionFromAdmitted")
 PY
 
-echo "[$C_LABEL] LLVM parity plus byte-identical source/direct C, exact runtime, and ten no-artifact negatives: PASS"
+echo "[$C_LABEL] LLVM parity plus byte-identical source/direct C, exact runtime, and twelve no-artifact negatives: PASS"

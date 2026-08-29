@@ -364,7 +364,10 @@ SENTINEL_MAX=23
 # rejects missing/crossed rows before emission and carries admitted ranges to
 # the consumer. This delayed baseline repair records removal of the old read,
 # not a loss of errors-as-data behavior. Keep the surviving corpus monotonic.
-RESULT_USE_MIN=4476
+# 4476 -> 4479 (2026-08-29): closing abi.intent_observability_rows added the
+# carried-ID lookup result and explicit semantic/nested/composite cross-seal
+# failures while deleting emitter-side source-name ABI reconstruction.
+RESULT_USE_MIN=4479
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

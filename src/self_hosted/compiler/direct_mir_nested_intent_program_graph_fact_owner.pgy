@@ -31,6 +31,7 @@ struct DirectMirNestedIntentProgramGraphFact {
     let zone_alias: String;
     let initial_value: Int;
     let method_delta: Int;
+    let method_runtime_call_abi_ids: Array<Int>;
     let method_log_literals: Array<String>;
     let main_log_literals: Array<String>;
 }
@@ -56,6 +57,8 @@ func DirectMirNestedIntentProgramGraphFactDigest(
     hash = DirectMirCfgHashString(hash, fact.zone_alias);
     hash = DirectMirCfgHashInt(hash, fact.initial_value);
     hash = DirectMirCfgHashInt(hash, fact.method_delta);
+    hash = DirectMirScalarCfgHashInts(
+        hash, fact.method_runtime_call_abi_ids);
     let row: Int = 0;
     while row < ArrayLength(fact.method_log_literals) {
         hash = DirectMirCfgHashString(hash, fact.method_log_literals[row]);
@@ -87,6 +90,7 @@ func DirectMirNestedIntentProgramGraphFactReady(
         !IsIdentifier(fact.zone_alias) ||
         fact.subject_type_name == fact.zone_type_name ||
         fact.outer_name == fact.inner_name || fact.method_delta == 0 ||
+        ArrayLength(fact.method_runtime_call_abi_ids) != 7 ||
         ArrayLength(fact.method_log_literals) != 7 ||
         ArrayLength(fact.main_log_literals) != 2 {
         return false;
@@ -102,6 +106,40 @@ func DirectMirNestedIntentProgramGraphFactReady(
             prior = prior + 1;
         }
         row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(fact.method_runtime_call_abi_ids) {
+        if fact.method_runtime_call_abi_ids[row] <= 0 { return false; }
+        row = row + 1;
+    }
+    if fact.method_runtime_call_abi_ids[4] !=
+            fact.method_runtime_call_abi_ids[1] ||
+        fact.method_runtime_call_abi_ids[5] !=
+            fact.method_runtime_call_abi_ids[2] ||
+        fact.method_runtime_call_abi_ids[6] !=
+            fact.method_runtime_call_abi_ids[3] {
+        return false;
+    }
+    let active_count: IntentObservabilityAbiRow =
+        IntentObservabilityAbiRowForId(
+            fact.method_runtime_call_abi_ids[0]);
+    let active_name: IntentObservabilityAbiRow =
+        IntentObservabilityAbiRowForId(
+            fact.method_runtime_call_abi_ids[1]);
+    let active_priority: IntentObservabilityAbiRow =
+        IntentObservabilityAbiRowForId(
+            fact.method_runtime_call_abi_ids[2]);
+    let active_concurrent: IntentObservabilityAbiRow =
+        IntentObservabilityAbiRowForId(
+            fact.method_runtime_call_abi_ids[3]);
+    if !active_count.valid ||
+        active_count.source_name != "IntentActiveCount" ||
+        !active_name.valid || active_name.source_name != "IntentActiveName" ||
+        !active_priority.valid ||
+        active_priority.source_name != "IntentActivePriority" ||
+        !active_concurrent.valid ||
+        active_concurrent.source_name != "IntentActiveConcurrent" {
+        return false;
     }
     return fact.declaration_syntax_ids[0] > 0 &&
         fact.declaration_syntax_ids[1] > 0 &&
@@ -216,13 +254,24 @@ func DirectMirNestedIntentProgramIntentEdge(
 }
 
 func DirectMirNestedIntentProgramMethodLogLiteral(
-    ref sequence: MirExpressionGraphSequence, source_name: String,
-    ordinal: Int, stringify: Bool
+    ref sequence: MirExpressionGraphSequence, ordinal: Int, stringify: Bool,
+    inout runtime_call_abi_ids: Array<Int>
 ) -> Option<String> {
-    let abi: IntentObservabilityAbiRow =
-        IntentObservabilityAbiRowForSource(source_name);
+    if !sequence.ok { return None; }
+    let accessor_node: Int = -1;
+    let accessor_count: Int = 0;
+    let row: Int = 0;
+    while row < sequence.ready_node_count {
+        if sequence.arena.identities.runtime_call_abi_ids[row] > 0 {
+            accessor_node = row;
+            accessor_count = accessor_count + 1;
+        }
+        row = row + 1;
+    }
+    if accessor_count != 1 || accessor_node < 0 { return None; }
+    let source_name: String =
+        sequence.arena.call_target_names[accessor_node];
     let node_count: Int = 6;
-    let accessor_node: Int = 2;
     let ordinal_node: Int = 3;
     let final_argument: Int = 4;
     if source_name == "IntentActiveCount" {
@@ -232,7 +281,7 @@ func DirectMirNestedIntentProgramMethodLogLiteral(
         node_count = 9; accessor_node = 4; ordinal_node = 5;
         final_argument = 7;
     }
-    if !abi.valid || !sequence.ok || sequence.ready_node_count != node_count ||
+    if sequence.ready_node_count != node_count ||
         ArrayLength(sequence.roots) != 1 ||
         sequence.roots[0] != node_count - 1 ||
         sequence.arena.topology.node_kinds[0] !=
@@ -247,10 +296,16 @@ func DirectMirNestedIntentProgramMethodLogLiteral(
         sequence.arena.call_target_kinds[accessor_node] !=
             SemanticCallTargetDirect() ||
         sequence.arena.call_target_names[accessor_node] != source_name ||
-        sequence.arena.identities.runtime_call_abi_ids[accessor_node] !=
-            abi.runtime_call_abi_id {
+        sequence.arena.identities.runtime_call_abi_ids[accessor_node] <= 0 {
         return None;
     }
+    let runtime_call_abi_id: Int =
+        sequence.arena.identities.runtime_call_abi_ids[accessor_node];
+    let abi: IntentObservabilityAbiRow =
+        IntentObservabilityAbiRowForCarriedIdentity(
+            runtime_call_abi_id,
+            sequence.arena.call_target_names[accessor_node]);
+    if !abi.valid { return None; }
     if ordinal_node >= 0 &&
         (sequence.arena.topology.node_kinds[ordinal_node] !=
             AstExpressionNodeIntegerLiteral() ||
@@ -261,6 +316,7 @@ func DirectMirNestedIntentProgramMethodLogLiteral(
     let literal: Option<String> = DirectMirAsciiLiteralContent(
         sequence.arena.node_texts[0]);
     if !IsSome(literal) { return None; }
+    ArrayPush(runtime_call_abi_ids, runtime_call_abi_id);
     return literal;
 }
 
@@ -376,7 +432,8 @@ func DirectMirNestedIntentProgramMainFacts(
 
 func DirectMirNestedIntentProgramMethodFacts(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref route: DirectMirNestedIntentProgramRouteFact, subject_field: String
+    ref route: DirectMirNestedIntentProgramRouteFact, subject_field: String,
+    inout runtime_call_abi_ids: Array<Int>
 ) -> Array<String> {
     let result: Array<String> = [];
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
@@ -408,10 +465,6 @@ func DirectMirNestedIntentProgramMethodFacts(
     }
     ArrayPush(result, ToString(
         DirectMirLegacyIntentProgramCanonicalInteger(value, 1)));
-    let sources: Array<String> = [
-        "IntentActiveCount", "IntentActiveName", "IntentActivePriority",
-        "IntentActiveConcurrent", "IntentActiveName",
-        "IntentActivePriority", "IntentActiveConcurrent"];
     let row: Int = 0;
     while row < 7 {
         let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
@@ -428,7 +481,7 @@ func DirectMirNestedIntentProgramMethodFacts(
         let stringify: Bool = row != 1 && row != 4;
         let literal: Option<String> =
             DirectMirNestedIntentProgramMethodLogLiteral(
-                sequence, sources[row], ordinal, stringify);
+                sequence, ordinal, stringify, runtime_call_abi_ids);
         if !instruction.valid || instruction.name != "stmt" ||
             instruction.arg0 != "Log" || !IsSome(literal) {
             while ArrayLength(result) > 0 { ArrayPop(result); }
@@ -494,9 +547,11 @@ func DirectMirNestedIntentProgramGraphFactFromAdmitted(
     }
     let main: Array<String> = DirectMirNestedIntentProgramMainFacts(
         admitted, route, subject_type, zone_type, outer_name, fields[0]);
+    let method_runtime_call_abi_ids: Array<Int> = [];
     let method: Array<String> = DirectMirNestedIntentProgramMethodFacts(
-        admitted, route, fields[0]);
+        admitted, route, fields[0], method_runtime_call_abi_ids);
     if ArrayLength(main) != 5 || ArrayLength(method) != 8 ||
+        ArrayLength(method_runtime_call_abi_ids) != 7 ||
         inner_edge.receiver_alias != main[0] {
         Die("direct MIR nested intent executable graph is invalid");
     }
@@ -521,7 +576,8 @@ func DirectMirNestedIntentProgramGraphFactFromAdmitted(
             true, 0, route.main_row, route.method_row, outer_row, inner_row,
             routine_ids, declaration_ids, subject_type, zone_type, fields[0],
             fields[1], method_name, outer_name, inner_name, main[0], main[1],
-            ToInt(main[2]), ToInt(method[0]), method_literals, main_literals);
+            ToInt(main[2]), ToInt(method[0]), method_runtime_call_abi_ids,
+            method_literals, main_literals);
     let sealed: DirectMirNestedIntentProgramGraphFact =
         DirectMirNestedIntentProgramGraphFact(
             source.valid, DirectMirNestedIntentProgramGraphFactDigest(source),
@@ -532,6 +588,7 @@ func DirectMirNestedIntentProgramGraphFactFromAdmitted(
             source.zone_field_name, source.method_name, source.outer_name,
             source.inner_name, source.subject_alias, source.zone_alias,
             source.initial_value, source.method_delta,
+            source.method_runtime_call_abi_ids,
             source.method_log_literals, source.main_log_literals);
     if !DirectMirNestedIntentProgramGraphFactReady(sealed) {
         Die("direct MIR nested intent graph receipt is invalid");

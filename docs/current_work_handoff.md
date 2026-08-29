@@ -18,7 +18,54 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - intent declaration rows CI-ratchet repair publication
+## Active self-host context - intent observability ABI carried-ID publication
+
+- Objective card: close the existing `abi.intent_observability_rows` BRIDGE on
+  every reached self-host emission lane. Priority is canonical ID carriage,
+  admission-time source/shape/ID cross-seal, semantic and direct-MIR consumer
+  migration, no-artifact failure, old-read deletion, then registry publication.
+  `src/common/intent_observability_abi.def` owns the append-only row identity;
+  semantic expression facts and admitted MIR nodes own the carried
+  `RuntimeCallAbiId`.
+- Last legitimate consumers: semantic source-C direct-call emission, nested
+  intent source/direct C and LLVM projection, and composite intent LLVM
+  projection. Emitter-side `RowForSource`, fixed source-name arrays, arity or
+  sorted-position identity, raw-text rewrite fallback, zero IDs, and a valid ID
+  belonging to another row are forbidden.
+- Published basis: exact base
+  `e9633bbf3102497d065d78d722a75f1676963271` is on `origin/main`; replacement
+  run `33220229230` completed GREEN 30/30 and released this sole executable
+  rung. The released census was `CLOSED=53 BRIDGE=34 ACTIVE=1`.
+- Implemented result: generated `IntentObservabilityAbiRowForCarriedIdentity`
+  resolves by stable ID and cross-seals the source identity. Semantic source-C
+  consumes `SemanticExpressionGraphRuntimeCallAbiId`; nested and composite
+  direct-MIR plans seal the actual call-node IDs and their emitters project
+  only those carried IDs. Raw runtime rewrite has no observability ABI branch.
+  The only remaining self-host source-name lookups are the generated lookup
+  itself, semantic AST identity production, and scalar signature admission;
+  an exact allowlist ratchets those producer boundaries.
+- Failure contract: zero and valid-foreign same-shape IDs, forged non-row IDs,
+  name/ID mismatch, syntax conflict, crossed nested owner/action identities,
+  and crossed composite call identities all fail before C, LLVM, object, or
+  executable publication. The gates require the owned diagnostic and reject
+  scalar-route or raw-rewrite re-entry.
+- Observed local evidence: generated projection check and ABI registry probe
+  are GREEN. Fresh installed public/native C/LLVM execution is GREEN. Semantic
+  and direct C/LLVM identity mutation is GREEN; nested source/direct C plus
+  LLVM parity reports twelve no-artifact negatives; composite LLVM reports
+  five no-artifact negatives. The registry now reports
+  `CLOSED=54 BRIDGE=33 ACTIVE=1`, hard closure 61.4%, and migration 80.4%.
+- Verification boundary: the broad local component inventory exceeded the
+  static budget and was stopped after 90 seconds without output; it is not
+  claimed GREEN. Narrow executable and static falsifiers own the local row
+  verdict. Publish this one closure, then require replacement exact-head CI
+  GREEN before choosing or delegating any `BRIDGE=33 -> 32` successor.
+- Exact worktree state before publication: base `e9633bbf`, dirty only in the
+  tracked files of this ABI closure plus protected untracked
+  `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/`. Those
+  untracked paths remain outside inspection, edit, and staging scope.
+
+## Completed self-host context - intent declaration rows CI-ratchet repair publication
 
 - Objective card: close existing authority `selfhost.intent_declaration_rows`
   on the real installed/public source-C path. Stable semantic intent identity
@@ -89,10 +136,9 @@ percentage by themselves.
   repaired likeness scorecard and the six remaining `test-all` gates after it
   are locally GREEN. The broad `self-host-preparation-contract` aggregate is
   not claimed locally; replacement exact-head CI owns that evidence.
-- Publication boundary: publish the one-file ratchet repair plus this handoff
-  refresh, and require replacement exact-head CI
-  GREEN before releasing the next `BRIDGE=34 -> 33` rung. The waiting candidate
-  is `abi.intent_observability_rows`; it may not overlap this repair.
+- Publication result: ratchet repair `e9633bbf` is on `origin/main`; exact-head
+  run `33220229230` completed GREEN 30/30. This released
+  `abi.intent_observability_rows` as the sole `BRIDGE=34 -> 33` successor.
 - Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
   `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
 

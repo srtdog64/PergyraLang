@@ -124,6 +124,22 @@ def crosswire_action_name(doc):
     for node in row["expr0_graph"]["nodes"]:
         node["text"] = node["text"].replace("InnerPriority", "OuterPriority")
         if node["call_target_name"] == "InnerPriority": node["call_target_name"] = "OuterPriority"
+def crosswire_observability_id(doc):
+    calls = [
+        node
+        for block in routine(doc, "Capture")["blocks"]
+        for instruction in block["instructions"]
+        for graph_name in ("expr0_graph", "expr1_graph")
+        for graph in [instruction.get(graph_name)]
+        if graph is not None
+        for node in graph["nodes"]
+        if node.get("call_target_kind") == "direct"
+    ]
+    targets = [node for node in calls if node.get("call_target_name") == "IntentActiveName"]
+    donors = [node for node in calls if node.get("call_target_name") == "IntentActivePriority"]
+    if len(targets) != 2 or len(donors) != 2:
+        raise SystemExit("nested observability mutation anchor drifted")
+    targets[0]["runtime_call_abi_id"] = donors[0]["runtime_call_abi_id"]
 for name, mutation in (
     ("missing-inner-priority", missing_inner_priority),
     ("priority-graph-drift", drift_priority_graph),
@@ -131,11 +147,13 @@ for name, mutation in (
     ("method-owner-crosswire", crosswire_method_owner),
     ("receiver-source-identity-zero", zero_receiver_source_identity),
     ("action-name-crosswire", crosswire_action_name),
+    ("observability-id-crosswire", crosswire_observability_id),
 ):
     write(name, mutation)
 PY
 for negative in missing-inner-priority priority-graph-drift duplicate-source-identity \
-    method-owner-crosswire receiver-source-identity-zero action-name-crosswire; do
+    method-owner-crosswire receiver-source-identity-zero action-name-crosswire \
+    observability-id-crosswire; do
     artifact="$WORK_DIR/$negative.ll"
     rm -f "$artifact"
     if (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm \
@@ -151,6 +169,7 @@ for negative in missing-inner-priority priority-graph-drift duplicate-source-ide
         method-owner-crosswire) receipt="MIR machine-layer facts are missing or invalid" ;;
         receiver-source-identity-zero) receipt="direct MIR nested intent implicit receiver is invalid" ;;
         action-name-crosswire) receipt="direct MIR nested intent callable identity is stale" ;;
+        observability-id-crosswire) receipt="direct MIR nested intent executable graph is invalid" ;;
     esac
     grep -Fq "$receipt" "$WORK_DIR/$negative.out" "$WORK_DIR/$negative.err" ||
         fail "$negative did not fail at its owned boundary"

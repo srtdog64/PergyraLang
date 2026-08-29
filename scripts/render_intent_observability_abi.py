@@ -138,6 +138,17 @@ def render_projection(rows: list[IntentObservabilityAbiRow]) -> str:
         "    return IntentObservabilityAbiRow(false, 0, \"\", \"\", -1, \"\", \"\");",
         "}",
         "",
+        "func IntentObservabilityAbiRowForCarriedIdentity(",
+        "    runtime_call_abi_id: Int, source_name: String",
+        ") -> IntentObservabilityAbiRow {",
+        "    let row: IntentObservabilityAbiRow =",
+        "        IntentObservabilityAbiRowForId(runtime_call_abi_id);",
+        "    if !row.valid || row.source_name != source_name {",
+        "        return IntentObservabilityAbiRow(false, 0, \"\", \"\", -1, \"\", \"\");",
+        "    }",
+        "    return row;",
+        "}",
+        "",
     ])
     lines.extend([
         "func IntentObservabilityAbiSignatureRows() -> Array<String> {",

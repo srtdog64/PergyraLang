@@ -253,10 +253,14 @@ func DirectMirNestedIntentProgramEmitC(
     let formatted_print: CompilerRuntimeCallAbiFact =
         CompilerRuntimeCallAbiFormattedPrintFact();
     let rows: Array<IntentObservabilityAbiRow> = [
-        IntentObservabilityAbiRowForSource("IntentActiveCount"),
-        IntentObservabilityAbiRowForSource("IntentActiveName"),
-        IntentObservabilityAbiRowForSource("IntentActivePriority"),
-        IntentObservabilityAbiRowForSource("IntentActiveConcurrent")];
+        IntentObservabilityAbiRowForId(
+            plan.graph.method_runtime_call_abi_ids[0]),
+        IntentObservabilityAbiRowForId(
+            plan.graph.method_runtime_call_abi_ids[1]),
+        IntentObservabilityAbiRowForId(
+            plan.graph.method_runtime_call_abi_ids[2]),
+        IntentObservabilityAbiRowForId(
+            plan.graph.method_runtime_call_abi_ids[3])];
     if !DirectMirNestedIntentCAbiReady(formatted_print, rows) {
         Die("direct MIR nested intent C runtime ABI is invalid");
     }

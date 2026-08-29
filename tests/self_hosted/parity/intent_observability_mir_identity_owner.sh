@@ -97,7 +97,7 @@ for producer in self native; do
   done
 done
 
-for mutation in missing mismatch forged-non-observability syntax-conflict; do
+for mutation in missing-zero valid-crosswire forged-non-observability syntax-conflict; do
     python "$MUTATE" "$WORK_DIR/source.mir.json" "$mutation" \
         "$WORK_DIR/$mutation.mir.json"
     for backend in c llvm; do
@@ -114,6 +114,23 @@ for mutation in missing mismatch forged-non-observability syntax-conflict; do
             "$WORK_DIR/$mutation.$backend.err" ||
             fail "$backend emitted no owned diagnostic for $mutation"
     done
+done
+
+for mutation in missing-zero valid-crosswire; do
+    output="$WORK_DIR/$mutation.semantic.c"
+    rm -f "$output"
+    if (cd "$ROOT_DIR" && "$DRIVER" --mir-json \
+        "$WORK_REL/$mutation.mir.json" -o \
+        "$WORK_REL/$mutation.semantic.c") \
+        >"$WORK_DIR/$mutation.semantic.out" \
+        2>"$WORK_DIR/$mutation.semantic.err"; then
+        fail "semantic C accepted $mutation runtime ABI identity"
+    fi
+    [[ ! -e "$output" ]] || fail "semantic C published $mutation output"
+    grep -Fq 'semantic carried expression identity mismatch:' \
+        "$WORK_DIR/$mutation.semantic.out" \
+        "$WORK_DIR/$mutation.semantic.err" ||
+        fail "semantic C emitted no owned diagnostic for $mutation"
 done
 
 echo "[$LABEL] native/self MIR -> direct C/LLVM stable ABI identity PASS"

@@ -12,6 +12,7 @@ import "../mir_lower/intent_priority_projection_owner.pgy";
 import "../mir_lower/intent_phase_projection_owner.pgy";
 import "../mir_lower/intent_cleanup_contract_owner.pgy";
 import "../mir_lower/intent_action_contract_owner.pgy";
+import "../lib/intent_observability_abi_projection_owner.pgy";
 
 struct DirectMirCompositeIntentMainFact {
     let subject_alias: String;
@@ -20,6 +21,7 @@ struct DirectMirCompositeIntentMainFact {
     let loop_alias: String;
     let initial_values: Array<Int>;
     let log_literals: Array<String>;
+    let runtime_call_abi_ids: Array<Int>;
 }
 
 struct DirectMirCompositeIntentProgramPlan {
@@ -47,6 +49,35 @@ struct DirectMirCompositeIntentProgramPlan {
     let step_thresholds: Array<Int>;
     let aggregate_intent_row: Int;
     let root_intent_row: Int;
+}
+
+func DirectMirCompositeIntentObservabilitySequenceReady(
+    runtime_call_abi_ids: Array<Int>
+) -> Bool {
+    if ArrayLength(runtime_call_abi_ids) != 10 { return false; }
+    return IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[0]).source_name == "IntentLastName" &&
+        IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[1]).source_name == "IntentLastStepCount" &&
+        IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[2]).source_name == "IntentLastFailed" &&
+        IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[3]).source_name == "IntentHistoryCount" &&
+        IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[4]).source_name == "IntentHistoryCount" &&
+        IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[5]).source_name ==
+                "IntentHistoryStepName" &&
+        IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[6]).source_name ==
+                "IntentHistoryStepPhase" &&
+        IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[7]).source_name ==
+                "IntentHistoryStepParticipant" &&
+        IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[8]).source_name == "IntentHistoryStepOk" &&
+        IntentObservabilityAbiRowForId(
+            runtime_call_abi_ids[9]).source_name == "IntentLastTrace";
 }
 
 func DirectMirCompositeIntentProgramPlanSchema() -> String {
@@ -77,6 +108,8 @@ func DirectMirCompositeIntentProgramPlanDigest(
         hash = DirectMirCfgHashString(hash, plan.main.log_literals[row]);
         row = row + 1;
     }
+    hash = DirectMirScalarCfgHashInts(
+        hash, plan.main.runtime_call_abi_ids);
     row = 0;
     while row < ArrayLength(plan.intent_names) {
         hash = DirectMirCfgHashString(hash, plan.intent_names[row]);
@@ -128,7 +161,10 @@ func DirectMirCompositeIntentProgramPlanReady(
         !IsIdentifier(plan.main.loop_alias) ||
         ArrayLength(plan.main.zone_aliases) != 3 ||
         ArrayLength(plan.main.initial_values) != 3 ||
-        ArrayLength(plan.main.log_literals) != 16 || intent_count != 5 ||
+        ArrayLength(plan.main.log_literals) != 16 ||
+        !DirectMirCompositeIntentObservabilitySequenceReady(
+            plan.main.runtime_call_abi_ids) ||
+        intent_count != 5 ||
         ArrayLength(plan.intent_step_starts) != intent_count ||
         ArrayLength(plan.intent_step_counts) != intent_count ||
         ArrayLength(plan.intent_priorities) != intent_count ||
@@ -147,10 +183,19 @@ func DirectMirCompositeIntentProgramPlanReady(
         plan.aggregate_intent_row == plan.root_intent_row {
         return false;
     }
+    let row: Int = 0;
+    while row < ArrayLength(plan.main.runtime_call_abi_ids) {
+        if plan.main.runtime_call_abi_ids[row] <= 0 { return false; }
+        row = row + 1;
+    }
+    if plan.main.runtime_call_abi_ids[3] !=
+            plan.main.runtime_call_abi_ids[4] {
+        return false;
+    }
     let leaf_count: Int = 0;
     let aggregate_count: Int = 0;
     let root_count: Int = 0;
-    let row: Int = 0;
+    row = 0;
     while row < intent_count {
         if !IsIdentifier(plan.intent_names[row]) ||
             !IsIdentifier(plan.intent_subject_aliases[row]) ||
@@ -342,16 +387,46 @@ func DirectMirCompositeIntentCarrierCountAt(
     return count;
 }
 
+func DirectMirCompositeIntentAppendObservabilityIds(
+    ref sequence: MirExpressionGraphSequence,
+    inout runtime_call_abi_ids: Array<Int>
+) -> Bool {
+    if !sequence.ok { return false; }
+    let row: Int = 0;
+    while row < sequence.ready_node_count {
+        let runtime_call_abi_id: Int =
+            sequence.arena.identities.runtime_call_abi_ids[row];
+        if runtime_call_abi_id > 0 {
+            let abi: IntentObservabilityAbiRow =
+                IntentObservabilityAbiRowForCarriedIdentity(
+                    runtime_call_abi_id,
+                    sequence.arena.call_target_names[row]);
+            if sequence.arena.topology.node_kinds[row] !=
+                    AstExpressionNodeCall() ||
+                sequence.arena.call_target_kinds[row] !=
+                    SemanticCallTargetDirect() || !abi.valid {
+                return false;
+            }
+            ArrayPush(runtime_call_abi_ids, runtime_call_abi_id);
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
 func DirectMirCompositeIntentAppendMainLiterals(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     global_row: Int,
-    inout literals: Array<String>
+    inout literals: Array<String>,
+    inout runtime_call_abi_ids: Array<Int>
 ) -> Bool {
     let sequence: MirExpressionGraphSequence =
         DirectMirLegacyIntentProgramExpressionSequence(
             admitted.routines, global_row, 0
         );
-    if !sequence.ok || ArrayLength(sequence.roots) != 1 {
+    if !sequence.ok || ArrayLength(sequence.roots) != 1 ||
+        !DirectMirCompositeIntentAppendObservabilityIds(
+            sequence, runtime_call_abi_ids) {
         return false;
     }
     let prior_count: Int = ArrayLength(literals);
@@ -380,6 +455,7 @@ func DirectMirCompositeIntentMainFactFromAdmitted(
     let zones: Array<String> = [];
     let initial_values: Array<Int> = [];
     let literals: Array<String> = [];
+    let runtime_call_abi_ids: Array<Int> = [];
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, route.main_row
     );
@@ -485,7 +561,7 @@ func DirectMirCompositeIntentMainFactFromAdmitted(
             admitted.routines, route.main_row, 0, row
         );
         if !DirectMirCompositeIntentAppendMainLiterals(
-                admitted, global, literals
+                admitted, global, literals, runtime_call_abi_ids
             ) {
             Die("direct MIR composite intent Main log graph is invalid");
         }
@@ -494,19 +570,30 @@ func DirectMirCompositeIntentMainFactFromAdmitted(
     let history_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
         admitted.routines, route.main_row, 2, 0
     );
+    let loop_condition_global: Int =
+        MirProgramRoutineIndexGlobalInstructionRow(
+            admitted.routines, route.main_row, 1, 1);
+    let loop_condition: MirExpressionGraphSequence =
+        DirectMirLegacyIntentProgramExpressionSequence(
+            admitted.routines, loop_condition_global, 0);
+    if !DirectMirCompositeIntentAppendObservabilityIds(
+            loop_condition, runtime_call_abi_ids) {
+        Die("direct MIR composite intent Main loop ABI identity is invalid");
+    }
     let trace_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
         admitted.routines, route.main_row, 3, 0
     );
     if !DirectMirCompositeIntentAppendMainLiterals(
-            admitted, history_global, literals
+            admitted, history_global, literals, runtime_call_abi_ids
         ) || !DirectMirCompositeIntentAppendMainLiterals(
-            admitted, trace_global, literals
-        ) || ArrayLength(literals) != 16 {
+            admitted, trace_global, literals, runtime_call_abi_ids
+        ) || ArrayLength(literals) != 16 ||
+        ArrayLength(runtime_call_abi_ids) != 10 {
         Die("direct MIR composite intent Main literal inventory is invalid");
     }
     return DirectMirCompositeIntentMainFact(
         subject_alias, zones, result_alias, loop_alias, initial_values,
-        literals
+        literals, runtime_call_abi_ids
     );
 }
 

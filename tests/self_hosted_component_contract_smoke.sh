@@ -2840,7 +2840,7 @@ reject_regex_under "src/semantic" \
     "semantic_record_capability\(ctx, PGY_CAP"
 require_text "Makefile" "builtin-capability-registry-test-smoke:"
 require_file "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy"
-require_max_lines "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" 140
+require_max_lines "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" 150
 require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
     "struct IntentObservabilityAbiRow"
 require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
@@ -2849,6 +2849,8 @@ require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy"
     "func IntentObservabilityAbiRowForSource"
 require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
     "func IntentObservabilityAbiRowForId"
+require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
+    "func IntentObservabilityAbiRowForCarriedIdentity"
 require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
     "IntentObservabilityAbiRowAt(-1).valid"
 require_text "src/self_hosted/lib/intent_observability_abi_projection_owner.pgy" \
@@ -2861,8 +2863,16 @@ require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
     'import "../lib/intent_observability_abi_projection_owner.pgy";'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
     "IntentObservabilityAbiSignatureRows()"
-require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
-    "IntentObservabilityAbiRowForSource(source_name)"
+reject_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
+    "IntentObservabilityAbiRowForSource("
+reject_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
+    "IntentObservabilityAbi"
+reject_regex_under "src/self_hosted/codegen/emission" \
+    'IntentObservabilityAbiRowForSource\('
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "SemanticExpressionGraphRuntimeCallAbiId(graph, view.call_node)"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "IntentObservabilityAbiRowForCarriedIdentity("
 reject_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" \
     '"IntentHistoryCount"'
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
@@ -7473,7 +7483,7 @@ require_text "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" \
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     'uses_str || uses_array || uses_io'
 require_file "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh"
-require_max_lines "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh" 145
+require_max_lines "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh" 160
 require_text "Makefile" "self-host-intent-observability-runtime-test-smoke: self-host-compiler"
 require_file "tests/self_hosted/parity/direct_mir_legacy_intent_program_llvm_owner.sh"
 require_max_lines "tests/self_hosted/parity/direct_mir_legacy_intent_program_llvm_owner.sh" 190
@@ -7483,7 +7493,7 @@ require_text "Makefile" \
 require_text ".github/workflows/ci.yml" \
     "self-host-direct-mir-legacy-intent-program-llvm-test-smoke"
 require_file "tests/self_hosted/parity/direct_mir_composite_intent_program_llvm_owner.sh"
-require_max_lines "tests/self_hosted/parity/direct_mir_composite_intent_program_llvm_owner.sh" 170
+require_max_lines "tests/self_hosted/parity/direct_mir_composite_intent_program_llvm_owner.sh" 200
 require_text "Makefile" \
     "self-host-direct-mir-composite-intent-program-llvm-test-smoke: \$(PGY) self-host-compiler"
 require_text ".github/workflows/ci.yml" \
@@ -7491,7 +7501,7 @@ require_text ".github/workflows/ci.yml" \
 require_text ".github/workflows/self_host_parity.yml" \
     "self-host-direct-mir-composite-intent-program-llvm-test-smoke"
 require_file "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh"
-require_max_lines "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh" 160
+require_max_lines "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh" 190
 require_file "tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh"
 require_max_lines "tests/self_hosted/parity/direct_mir_nested_intent_program_c_owner.sh" 220
 require_text "tests/self_hosted/parity/direct_mir_nested_intent_program_llvm_owner.sh" \
@@ -7510,7 +7520,7 @@ while IFS='|' read -r composite_intent_owner composite_intent_cap; do
 done <<'COMPOSITE_INTENT_OWNERS'
 direct_mir_composite_intent_program_route_fact_owner.pgy|170
 direct_mir_composite_intent_program_graph_fact_owner.pgy|350
-direct_mir_composite_intent_program_plan_owner.pgy|800
+direct_mir_composite_intent_program_plan_owner.pgy|900
 direct_mir_composite_intent_program_llvm_emission_owner.pgy|860
 direct_mir_composite_intent_program_projection_owner.pgy|40
 COMPOSITE_INTENT_OWNERS
@@ -7528,6 +7538,23 @@ direct_mir_nested_intent_program_llvm_emission_owner.pgy|360
 direct_mir_nested_intent_program_projection_owner.pgy|40
 driver_rung2_nested_intent_c_substitution_owner.pgy|50
 NESTED_INTENT_OWNERS
+require_text \
+    "src/self_hosted/compiler/direct_mir_composite_intent_program_plan_owner.pgy" \
+    "runtime_call_abi_ids: Array<Int>"
+require_text \
+    "src/self_hosted/compiler/direct_mir_nested_intent_program_graph_fact_owner.pgy" \
+    "method_runtime_call_abi_ids: Array<Int>"
+for carried_consumer in \
+    direct_mir_nested_intent_program_graph_fact_owner.pgy \
+    direct_mir_nested_intent_program_c_emission_owner.pgy \
+    direct_mir_nested_intent_program_llvm_emission_owner.pgy \
+    direct_mir_composite_intent_program_plan_owner.pgy \
+    direct_mir_composite_intent_program_llvm_emission_owner.pgy; do
+    require_text "src/self_hosted/compiler/$carried_consumer" \
+        "IntentObservabilityAbiRowForId("
+    reject_text "src/self_hosted/compiler/$carried_consumer" \
+        "IntentObservabilityAbiRowForSource("
+done
 require_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
     '    let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);
@@ -7550,9 +7577,13 @@ require_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh
 reject_text "tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh" \
     "PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS0="
 require_file "tests/self_hosted/parity/intent_observability_mir_identity_owner.sh"
-require_max_lines "tests/self_hosted/parity/intent_observability_mir_identity_owner.sh" 120
+require_max_lines "tests/self_hosted/parity/intent_observability_mir_identity_owner.sh" 145
 require_file "tests/self_hosted/parity/intent_observability_mir_identity_mutations.py"
 require_max_lines "tests/self_hosted/parity/intent_observability_mir_identity_mutations.py" 90
+require_text "tests/self_hosted/parity/intent_observability_mir_identity_mutations.py" \
+    'mode == "missing-zero"'
+require_text "tests/self_hosted/parity/intent_observability_mir_identity_mutations.py" \
+    'mode == "valid-crosswire"'
 require_text "Makefile" \
     "self-host-intent-observability-mir-identity-test-smoke: self-host-compiler"
 require_text ".github/workflows/self_host_parity.yml" \

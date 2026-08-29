@@ -56,10 +56,10 @@ def main():
         return
     if len(sys.argv) != 4:
         raise SystemExit("mutation mode requires an output")
-    if mode == "missing":
-        unique_call(document, "IntentHistoryCount").pop("runtime_call_abi_id")
-    elif mode == "mismatch":
-        unique_call(document, "IntentHistoryCount")["runtime_call_abi_id"] = 1
+    if mode == "missing-zero":
+        unique_call(document, "IntentHistoryCount")["runtime_call_abi_id"] = 0
+    elif mode == "valid-crosswire":
+        unique_call(document, "IntentHistoryCount")["runtime_call_abi_id"] = 2
     elif mode == "forged-non-observability":
         unique_call(document, "ToString")["runtime_call_abi_id"] = 25
     elif mode == "syntax-conflict":

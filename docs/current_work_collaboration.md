@@ -6,7 +6,43 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — intent declaration rows CI-ratchet repair publication
+## ACTIVE lease — intent observability ABI carried-identity closure
+
+- Objective card: migrate every reached self-host emitter-side consumer of
+  `abi.intent_observability_rows` from source-name reconstruction to the
+  carried `RuntimeCallAbiId`, delete the old reads, and close that existing
+  registry row. The admitted semantic graph and direct-MIR receipts carry the
+  ID; `src/common/intent_observability_abi.def` remains the sole ABI owner.
+- Exact base: `e9633bbf3102497d065d78d722a75f1676963271` is on
+  `origin/main`; CI run `33220229230` completed GREEN 30/30. The released
+  census is `CLOSED=53 BRIDGE=34 ACTIVE=1`.
+- Last consumers: semantic source-C direct-call emission, nested intent C/LLVM
+  projection, and composite intent LLVM projection. All three families must
+  migrate in this one lease before the row may become `CLOSED`.
+- Forbidden fallback: emitter-side `RowForSource`, raw runtime-call rewriting
+  of observability calls, reconstructing identity from source spelling or
+  arity, accepting zero or a foreign valid ID, or publishing the registry
+  verdict before missing/crosswire no-artifact gates pass.
+- Integration boundary: the primary task alone owns the shared generated row
+  projection, common gates, registry/progress/handoff documents, staging,
+  commit, push, and CI interpretation. The focused falsifier holds source name
+  and call shape fixed while replacing the carried ID with another valid row.
+- Local implementation result: semantic source-C, nested source/direct C plus
+  LLVM, and composite LLVM now project the ABI row only from the carried ID.
+  The direct-MIR plans seal actual call-node IDs, emission-wide static gates
+  reject `RowForSource`, and raw runtime rewrite cannot reopen the ABI. The
+  registry row is locally `CLOSED`; census is
+  `CLOSED=54 BRIDGE=33 ACTIVE=1`.
+- Local execution evidence: installed public/native C/LLVM, semantic/direct
+  identity mutations, nested parity with twelve no-artifact negatives,
+  composite parity with five no-artifact negatives, and the ABI registry probe
+  are GREEN. Broad component inventory exceeded the 60-second static budget
+  and was stopped after 90 seconds without output, so it is not claimed GREEN.
+- Publication boundary: stage only this lease's tracked files, commit and push,
+  then require replacement exact-head CI GREEN. No successor implementation or
+  parallel publication lease opens before that result.
+
+## DONE lease — intent declaration rows CI-ratchet repair publication
 
 - Objective card: preserve the published closure of
   `selfhost.intent_declaration_rows` while repairing the exact Pergyra-built
@@ -59,10 +95,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   range, digest, artifact, and signature facts remain fail-closed at the DIR
   receipt boundary. The primary task owns the evidence-backed floor repair to
   4476; restoring the old read or adding count-only wrappers is forbidden.
-- Publication boundary: the primary task alone owns documentation, explicit
-  staging, ratchet repair commit, push, and replacement exact-head CI. The
-  waiting `abi.intent_observability_rows` candidate remains read-only until
-  that CI is GREEN.
+- Publication result: ratchet repair `e9633bbf` is on `origin/main`; exact-head
+  CI run `33220229230` completed GREEN 30/30. The lease is released to
+  `abi.intent_observability_rows` at `CLOSED=53 BRIDGE=34 ACTIVE=1`.
 
 ## DONE lease — public `pgy fmt` Pergyra token/layout substitution
 

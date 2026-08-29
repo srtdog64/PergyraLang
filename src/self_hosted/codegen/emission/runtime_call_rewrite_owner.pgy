@@ -11,14 +11,7 @@ import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "../runtime_abi/text_builder_runtime_owner.pgy";
-import "../../lib/intent_observability_abi_projection_owner.pgy";
-
 func RuntimeCallCName(source_name: String) -> Option<String> {
-    let intent_observability: IntentObservabilityAbiRow =
-        IntentObservabilityAbiRowForSource(source_name);
-    if intent_observability.valid {
-        return Some(intent_observability.runtime_name);
-    }
     if source_name == "AllocatorSystem" {
         return Some(TextBuilderRuntimeCAllocatorSystemFn());
     }

@@ -2,19 +2,20 @@
 
 마지막 업데이트: 2026-08-29
 
-`selfhost.intent_declaration_rows`는 이제 기존 BRIDGE를 실제로 닫았다.
-DIR producer가 intent 선언·참여자·step·보상·transition 전체와 typed artifact
-epoch를 한 번 봉인하고, source-C codegen은 이 receipt와 admitted signature만
-검증한다. 최종 emitter의 AST child walk, step-header 재파싱, compensation 재구성은
-삭제됐다. Action 실행은 `on`의 exact receiver를 사용하고, `who`는 다중 행을
-보존하는 observability attribution으로 분리됐다. Fresh installed driver에서
-source-C/MIR-to-C/public parity와 11개 missing/crossed/epoch negative가 통과했고,
-component/hard contract, root self-host compile, SoT/progress gate도 green이다.
-따라서 현재 census는 `CLOSED=53 BRIDGE=34 ACTIVE=1`, hard closure
-`53/88 = 60.2%`, migration `79.8%`다. 통합 진행도는 증거 가중치상 **83%**
-(81~85%), strict beta 83%, hard replacement 75%를 유지한다. 이제 `35`가 표에서만
-아니라 실제 최종 consumer 치환으로 `34`가 됐다. Exact-head CI가 남은 publication
-falsifier다.
+`abi.intent_observability_rows`는 이제 기존 BRIDGE를 실제로 닫았다. Append-only
+registry가 `RuntimeCallAbiId`와 source/runtime 이름, parameter shape, result kind를
+소유하고, semantic expression과 admitted MIR가 그 ID를 운반한다. Semantic
+source-C, nested direct-MIR C/LLVM, composite direct-MIR LLVM의 마지막 emitter들은
+모두 carried ID로만 row를 조회한다. 이름 기반 조회는 admission producer와 scalar
+signature admission에만 남고 emission 전체 및 raw runtime rewrite에서는 금지된다.
+Zero ID와 같은 shape의 다른 유효 ID, forged ID, mixed identity는 artifact 생성 전에
+실패한다. Fresh installed driver의 public/native C/LLVM, semantic/direct identity,
+nested source/direct C+LLVM 12개 negative, composite LLVM 5개 negative와 registry
+old-read ratchet이 모두 green이다. 따라서 현재 census는
+`CLOSED=54 BRIDGE=33 ACTIVE=1`, hard closure `54/88 = 61.4%`, migration
+`80.4%`다. 통합 진행도는 증거 가중치상 **83%** (81~85%), strict beta 83%, hard
+replacement 75%를 유지한다. 새 authority를 추가한 것이 아니라 실제 기존 BRIDGE가
+`34 -> 33`으로 줄었다. Exact-head CI가 남은 publication falsifier다.
 
 `pgy fmt SOURCE [--check|--write]`의 native lexer/parser/layout 경로는
 로컬 트리에서 Pergyra 구현으로 치환됐다. `lexer/scan_owner.pgy`가 한 번 생성한

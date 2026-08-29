@@ -2,8 +2,13 @@
 set -euo pipefail
 
 # CLOSED fallback identities: native_literal_observability_table,
-# selfhost_literal_observability_signature_table, stale_selfhost_projection.
-# BRIDGE fallback ratchet: native_backend_source_name_abi_lookup.
+# selfhost_literal_observability_signature_table, stable_id_from_sorted_index,
+# argument_kind_from_count, parallel_scalar_observability_projection,
+# stale_selfhost_projection, unknown_observability_success,
+# mir_runtime_call_abi_name_reconstruction,
+# native_backend_source_name_abi_lookup, emitter_source_name_abi_lookup,
+# missing_carried_runtime_call_abi_success,
+# valid_foreign_runtime_call_abi_success, forged_runtime_call_abi_success.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REGISTRY="$ROOT_DIR/src/common/intent_observability_abi.def"
@@ -108,6 +113,8 @@ assert "func IntentObservabilityAbiRowForSource(" in projection
 assert "if row.source_name == source_name { return row; }" in projection
 assert "func IntentObservabilityAbiRowForId(" in projection
 assert "if row.runtime_call_abi_id == runtime_call_abi_id { return row; }" in projection
+assert "func IntentObservabilityAbiRowForCarriedIdentity(" in projection
+assert "row.source_name != source_name" in projection
 assert "runtime_call_abi_id != i + 1" not in projection
 for retired in (
     "IntentObservabilityAbiStableIdAt",
@@ -120,8 +127,8 @@ for retired in (
     assert retired not in projection
 PY
 
-if [[ "$(wc -l < "$PROJECTION" | tr -d ' ')" -gt 140 ]]; then
-    echo "[intent-observability-abi] row projection exceeds 140 lines" >&2
+if [[ "$(wc -l < "$PROJECTION" | tr -d ' ')" -gt 150 ]]; then
+    echo "[intent-observability-abi] row projection exceeds 150 lines" >&2
     exit 1
 fi
 if grep -Fq 'list(range(1, len(rows) + 1))' \
@@ -156,6 +163,32 @@ grep -Fq 'import "../lib/intent_observability_abi_projection_owner.pgy";' \
     "$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
 grep -Fq 'IntentObservabilityAbiSignatureRows()' \
     "$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
+grep -Fq 'IntentObservabilityAbiRowForCarriedIdentity(' \
+    "$ROOT_DIR/src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
+if grep -Fq 'IntentObservabilityAbiRowForSource(' \
+        "$ROOT_DIR/src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy"; then
+    echo "[intent-observability-abi] self-host emitter source lookup returned" >&2
+    exit 1
+fi
+row_for_source_owners="$(
+    grep -R -l --include='*.pgy' 'IntentObservabilityAbiRowForSource(' \
+        "$ROOT_DIR/src/self_hosted" |
+        sed "s|$ROOT_DIR/||" | sort
+)"
+expected_row_for_source_owners="$(printf '%s\n' \
+    src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy \
+    src/self_hosted/lib/intent_observability_abi_projection_owner.pgy \
+    src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy | sort)"
+if [[ "$row_for_source_owners" != "$expected_row_for_source_owners" ]]; then
+    echo "[intent-observability-abi] RowForSource owner allowlist drifted" >&2
+    printf '%s\n' "$row_for_source_owners" >&2
+    exit 1
+fi
+if grep -Fq 'IntentObservabilityAbi' \
+        "$ROOT_DIR/src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy"; then
+    echo "[intent-observability-abi] raw runtime rewrite regained ABI access" >&2
+    exit 1
+fi
 
 if grep -Fq '"IntentHistoryCount"' \
         "$ROOT_DIR/src/common/intent_observability_abi.c"; then
