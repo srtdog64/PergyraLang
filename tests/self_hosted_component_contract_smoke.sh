@@ -21331,9 +21331,34 @@ require_function_text \
     "func DirectMirScalarProgramCProcessArgsBlock(" \
     "memcpy(owned, source, length + 1)"
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_process_args_materialization_owner.pgy" \
+    "func DirectMirScalarProgramCProcessArgsBlock(" \
+    "DirectMirScalarProgramArrayStringAbiProjectionReadyForFact("
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_process_args_materialization_owner.pgy" \
     "func DirectMirScalarProgramLlvmProcessArgsBlock(" \
     "%copied = call ptr @memcpy"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_process_args_materialization_owner.pgy" \
+    "func DirectMirScalarProgramLlvmProcessArgsBlock(" \
+    "projection.storage.align"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_process_args_materialization_owner.pgy" \
+    "%array = alloca %pgy.array.string, align 8"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_process_args_materialization_owner.pgy" \
+    "store %pgy.array.string zeroinitializer, ptr %array, align 8"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_process_args_materialization_owner.pgy" \
+    "%result = load %pgy.array.string, ptr %array, align 8"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_materialization_owner.pgy" \
+    "func DirectMirScalarProgramCStringCollectionMaterialization(" \
+    "DirectMirScalarProgramCProcessArgsBlock(plan, runtime, projection)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringCollectionMaterialization(" \
+    "DirectMirScalarProgramLlvmProcessArgsBlock(plan, runtime, abi)"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy" \
     "func DirectMirScalarProgramExprDirWalk() -> Int { return 95; }"

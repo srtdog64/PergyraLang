@@ -33,6 +33,15 @@ def mutate(document, mode):
         ]
     elif mode == "outer-target-syntax":
         outer_call["call_target_syntax_id"] = 0
+    elif mode == "array-layout-align":
+        array_param = next(
+            param
+            for routine in changed["routines"]
+            for param in routine["params"]
+            if param.get("abi_type_name") == "Array<String>"
+            and param.get("abi_layout_required") is True
+        )
+        array_param["abi_layout"]["align"] = 16
     else:
         raise ValueError(mode)
     return changed

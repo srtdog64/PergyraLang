@@ -47,6 +47,25 @@ grep -Fq 'memcpy(owned, source, length + 1)' "$C_RUNTIME" ||
     fail "C Args does not own copied argument strings"
 grep -Fq '%copied = call ptr @memcpy' "$LLVM_RUNTIME" ||
     fail "LLVM Args does not own copied argument strings"
+# Process Args consumes projected ArrayString storage alignment and rejects layout drift.
+grep -Fq 'DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(' "$C_RUNTIME" ||
+    fail "C Args does not validate the ArrayString target projection"
+grep -Fq 'DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(' "$LLVM_RUNTIME" ||
+    fail "LLVM Args does not validate the ArrayString target projection"
+grep -Fq 'projection.storage.align' "$LLVM_RUNTIME" ||
+    fail "LLVM Args does not consume projected ArrayString storage alignment"
+! grep -Fq '%array = alloca %pgy.array.string, align 8' "$LLVM_RUNTIME" ||
+    fail "LLVM Args restored literal ArrayString alloca alignment"
+! grep -Fq 'store %pgy.array.string zeroinitializer, ptr %array, align 8' "$LLVM_RUNTIME" ||
+    fail "LLVM Args restored literal ArrayString store alignment"
+! grep -Fq '%result = load %pgy.array.string, ptr %array, align 8' "$LLVM_RUNTIME" ||
+    fail "LLVM Args restored literal ArrayString load alignment"
+grep -Fq 'DirectMirScalarProgramCProcessArgsBlock(plan, runtime, projection)' \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_materialization_owner.pgy" ||
+    fail "C Args projection is not carried from the collection materializer"
+grep -Fq 'DirectMirScalarProgramLlvmProcessArgsBlock(plan, runtime, abi)' \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy" ||
+    fail "LLVM Args projection is not carried from the collection materializer"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
@@ -101,7 +120,8 @@ for backend in c llvm; do
         fail "$backend runtime output drifted"
 done
 
-for mutation in args-target-name args-target-syntax outer-target-syntax; do
+for mutation in args-target-name args-target-syntax outer-target-syntax \
+    array-layout-align; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

@@ -18,6 +18,38 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context - ArrayString process Args target projection
+
+- Exact base is `3beff662f2f536ba2bb45f1ab056584f2d5158b1` on
+  `origin/main`; the tracked worktree contains one active implementation
+  candidate. The primary task owns the sole implementation lease.
+- Objective: the production scalar C and LLVM process-Args adapters consume
+  the existing target-qualified ArrayString projection. LLVM deletes its three
+  ArrayString storage-alignment literals for alloca, initialization, and
+  result load; C also cross-seals its target before using the projected storage
+  owner's private `pgy_as` API.
+- Fact owner and last consumers: `DirectMirArrayStringCapturedAbiReady` owns
+  admitted layout identity, `DirectMirScalarProgramArrayStringAbiFact` carries
+  it, and `DirectMirScalarProgramArrayStringAbiProjectionReadyForFact` owns the
+  cross-seal. The reached last consumers are the C/LLVM process-Args adapters.
+- Forbidden fallback: Args without projection carriage, LLVM ArrayString
+  storage `align 8` literals, adapter-local projection, type-name lookup,
+  missing/drifted ABI acceptance, or changes to argc/argv capture and copied-
+  string ownership.
+- Local evidence: current-source DRV-2 is installed; native-oracle emission
+  completed with zero errors and three known redundant-`who` warnings. Focused
+  C/LLVM Args execution and four negative mutations pass. The full component
+  contract, SoT edge/live adequacy, single-owner, hard-contract, likeness
+  `4493/4493`, and documentation gates are green; local Coq/Rocq is a declared
+  skip. LLVM Args is 29/30 lines and no owner cap was raised.
+- Registry census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`; parameter binding,
+  value-result transfer, owned return, mutation, cleanup, and other expression
+  materializers still prevent whole-row closure.
+- Next falsifier is exact-head full CI after an explicit implementation commit
+  and push. Do not open another semantic rung before that result.
+- Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
+  `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
+
 ## No active self-host implementation - ArrayString C DirWalk target projection published
 
 - Exact implementation base was

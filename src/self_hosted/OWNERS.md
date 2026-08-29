@@ -3229,8 +3229,11 @@ inventory must not become a second fact-family owner registry.
   `direct_mir_scalar_program_llvm_process_args_materialization_owner.pgy`
   -- target materialization of the sealed `host-io/args` receipt. They capture
   the entrypoint argc/argv carrier and duplicate every published argument
-  String into the returned `Array<String>` backing. They do not own the Args
-  spelling, signature, runtime symbol, or call-target identity.
+  String into the returned `Array<String>` backing. Both adapters cross-seal
+  the carried target-qualified ArrayString projection; LLVM derives its
+  aggregate storage alignment from that projection. They do not own the Args
+  spelling, signature, runtime symbol, call-target identity, layout, or copied-
+  String ownership policy.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy`
   and
   `direct_mir_scalar_program_llvm_dir_walk_materialization_owner.pgy`

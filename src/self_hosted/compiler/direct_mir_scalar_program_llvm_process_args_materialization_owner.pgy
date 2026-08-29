@@ -1,21 +1,30 @@
 // LLVM materialization for the sealed host-io Args runtime receipt.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 
 func DirectMirScalarProgramLlvmProcessArgsBlock(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    ref plan: DirectMirScalarCfgGraphPlan, ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref projection: DirectMirArrayStringAbiProjection
 ) -> String {
     if plan.program.runtime_abi.process_args_id == 0 { return ""; }
     if !runtime.process_args.ok || runtime.process_args.domain != "host-io" ||
-        runtime.process_args.operation != "args" {
+        runtime.process_args.operation != "args" ||
+        !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            plan.program.array_string_abi, projection, CompilerTargetCpuLlvmProjection()) {
         Die("direct MIR scalar LLVM process-args ABI is invalid");
     }
-    let output: String =
-        "@pgy.selfhost.argc = internal global i32 0\n@pgy.selfhost.argv = internal global ptr null\n";
+    let output: String = "@pgy.selfhost.argc = internal global i32 0\n@pgy.selfhost.argv = internal global ptr null\n";
     output = Concat(output, Concat("define internal %pgy.array.string @",
         Concat(runtime.process_args.symbol, "() {\nentry:\n")));
-    output = Concat(output,
-        "  %array = alloca %pgy.array.string, align 8\n  store %pgy.array.string zeroinitializer, ptr %array, align 8\n  %argc = load i32, ptr @pgy.selfhost.argc, align 4\n  %argv = load ptr, ptr @pgy.selfhost.argv, align 8\n  br label %loop\n\nloop:\n  %index = phi i32 [ 1, %entry ], [ %next, %body ]\n  %more = icmp slt i32 %index, %argc\n  br i1 %more, label %body, label %done\n\nbody:\n  %index64 = sext i32 %index to i64\n  %slot = getelementptr inbounds ptr, ptr %argv, i64 %index64\n  %source = load ptr, ptr %slot, align 8\n  %length = call i64 @strlen(ptr %source)\n  %size = add i64 %length, 1\n  %owned = call ptr @malloc(i64 %size)\n  %copied = call ptr @memcpy(ptr %owned, ptr %source, i64 %size)\n  call void @pgy_as_push(ptr %array, ptr %owned)\n  %next = add i32 %index, 1\n  br label %loop\n\ndone:\n  %result = load %pgy.array.string, ptr %array, align 8\n  ret %pgy.array.string %result\n}\n\n");
+    let storage_align: String = ToString(projection.storage.align);
+    output = Concat(output, Concat(
+        "  %array = alloca %pgy.array.string, align ", storage_align));
+    output = Concat(output, Concat(
+        "\n  store %pgy.array.string zeroinitializer, ptr %array, align ",
+        Concat(storage_align,
+        "\n  %argc = load i32, ptr @pgy.selfhost.argc, align 4\n  %argv = load ptr, ptr @pgy.selfhost.argv, align 8\n  br label %loop\n\nloop:\n  %index = phi i32 [ 1, %entry ], [ %next, %body ]\n  %more = icmp slt i32 %index, %argc\n  br i1 %more, label %body, label %done\n\nbody:\n  %index64 = sext i32 %index to i64\n  %slot = getelementptr inbounds ptr, ptr %argv, i64 %index64\n  %source = load ptr, ptr %slot, align 8\n  %length = call i64 @strlen(ptr %source)\n  %size = add i64 %length, 1\n  %owned = call ptr @malloc(i64 %size)\n  %copied = call ptr @memcpy(ptr %owned, ptr %source, i64 %size)\n  call void @pgy_as_push(ptr %array, ptr %owned)\n  %next = add i32 %index, 1\n  br label %loop\n\ndone:\n  %result = load %pgy.array.string, ptr %array, align ")));
+    output = Concat(output, Concat(storage_align,
+        "\n  ret %pgy.array.string %result\n}\n\n"));
     return output;
 }

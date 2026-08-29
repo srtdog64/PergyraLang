@@ -76,8 +76,11 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
         output = Concat(output,
             DirectMirScalarProgramLlvmStringArrayDropBlock(abi));
     }
-    output = Concat(output,
-        DirectMirScalarProgramLlvmProcessArgsBlock(plan, runtime));
+    if plan.program.runtime_abi.process_args_id != 0 {
+        let abi: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
+        output = Concat(output,
+            DirectMirScalarProgramLlvmProcessArgsBlock(plan, runtime, abi));
+    }
     output = Concat(output,
         DirectMirScalarProgramLlvmDirWalkBlock(plan, runtime));
     output = Concat(output,

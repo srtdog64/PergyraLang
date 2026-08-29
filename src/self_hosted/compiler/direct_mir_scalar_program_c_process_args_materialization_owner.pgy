@@ -1,16 +1,21 @@
 // C materialization for the sealed host-io Args runtime receipt.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 
 func DirectMirScalarProgramCProcessArgsBlock(
     ref plan: DirectMirScalarCfgGraphPlan,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref projection: DirectMirArrayStringAbiProjection
 ) -> String {
     if plan.program.runtime_abi.process_args_id == 0 { return ""; }
     if !runtime.process_args.ok || runtime.process_args.domain != "host-io" ||
         runtime.process_args.operation != "args" ||
-        runtime.process_args.symbol != HostIORuntimeCArgsFn() {
+        runtime.process_args.symbol != HostIORuntimeCArgsFn() ||
+        !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            plan.program.array_string_abi, projection,
+            CompilerTargetCpuCProjection()) {
         Die("direct MIR scalar C process-args ABI is invalid");
     }
     let argc_name: String = HostIORuntimeCArgcGlobal();

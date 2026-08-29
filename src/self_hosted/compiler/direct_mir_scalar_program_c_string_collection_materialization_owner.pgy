@@ -53,8 +53,12 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
         output = Concat(output, DirectMirScalarProgramCStringArrayStorageBlock(
             plan.program.array_string_abi, projection));
     }
-    output = Concat(output,
-        DirectMirScalarProgramCProcessArgsBlock(plan, runtime));
+    if plan.program.runtime_abi.process_args_id != 0 {
+        let projection: DirectMirArrayStringAbiProjection =
+            UnwrapOption(projection_opt);
+        output = Concat(output,
+            DirectMirScalarProgramCProcessArgsBlock(plan, runtime, projection));
+    }
     if plan.program.runtime_abi.dir_walk_id != 0 {
         let projection: DirectMirArrayStringAbiProjection =
             UnwrapOption(projection_opt);

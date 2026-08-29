@@ -6,6 +6,21 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — ArrayString process Args target projection
+
+- Exact base is `3beff662f2f536ba2bb45f1ab056584f2d5158b1` on
+  `origin/main`. The primary task is the sole integration owner.
+- Objective: C/LLVM process-Args adapters consume their carried ArrayString
+  target projection, and the LLVM adapter replaces repeated ArrayString
+  storage-alignment literals with the projected value.
+- Integration gate: the Args nested direct-call program executes C/LLVM and
+  rejects call identity plus layout-align drift without artifacts; the
+  component contract rejects Args without projection carriage/readiness and
+  the old LLVM storage alignment literals. See
+  `docs/agent_work_directives/array_string_process_args_projection_2026-08-29.md`.
+- Other ArrayString consumers are outside this lease. Census remains
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`; no whole-row closure is claimed.
+
 ## NO ACTIVE implementation lease — ArrayString C DirWalk target projection published
 
 - Exact base is `568c7b07292ee4ddee4e573b4f1ec1db2d2e9f27` on
