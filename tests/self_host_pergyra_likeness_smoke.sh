@@ -372,7 +372,9 @@ SENTINEL_MAX=23
 # 4480 -> 4486 (2026-08-29): the returned-call ABI cross-seal is now a named
 # fail-closed owner returning Option evidence instead of collection-local
 # validation branches.
-RESULT_USE_MIN=4486
+# 4486 -> 4493 (2026-08-29): scalar-program ArrayString target projection
+# carriage makes canonical absence and target-bound consumption explicit.
+RESULT_USE_MIN=4493
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

@@ -6,6 +6,23 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — ArrayString scalar preamble target projection
+
+- Exact base is `9619f9078fe5795a4e97a7bace64a8f039b62fe7` on
+  `origin/main`. The primary task is the sole integration owner.
+- Objective: the production scalar-program C/LLVM collection preambles derive
+  one target-qualified ArrayString ABI projection from the carried program
+  fact and stop reconstructing storage size, offsets, aggregate spelling, and
+  field indices locally.
+- The private `pgy_as` and public `PgyArray_String` type-name boundary does not
+  move. Other ArrayString consumer families are out of scope, so the registry
+  census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Integration gate: the mixed two-ArrayString/two-ArrayInt value-result program
+  executes in C and LLVM, a complete ArrayInt row-plus-ID crosswire fails with
+  no artifact, and the structural ratchet rejects old scalar-preamble layout
+  literals. See
+  `docs/agent_work_directives/array_string_scalar_preamble_projection_2026-08-29.md`.
+
 ## DONE CI lease — Markdown-only Linux contract split
 
 - Implementation `16d491732d6b2fb682f199af13705131b2cf8a44` is on

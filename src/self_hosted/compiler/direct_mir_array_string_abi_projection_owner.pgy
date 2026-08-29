@@ -8,6 +8,9 @@ struct DirectMirArrayStringAbiProjection {
     let valid: Bool;
     let target_projection: String;
     let target_capability_fingerprint: Int;
+    let abi_layout_id: Int;
+    let element_size: Int;
+    let element_align: Int;
     let storage: DirectMirArrayStorageAbiProjection;
     let c_element_type: String;
     let c_length_type: String;
@@ -33,6 +36,8 @@ func DirectMirArrayStringAbiProjectionReadyFor(
         !DirectMirArrayStorageAbiProjectionReadyFor(
             projection.storage, expected_target
         ) || projection.target_projection != expected_target ||
+        projection.abi_layout_id <= 0 || projection.element_size != 8 ||
+        projection.element_align != 8 ||
         projection.target_capability_fingerprint !=
             CompilerTargetCapabilityFingerprint() {
         return false;
@@ -91,19 +96,20 @@ func DirectMirArrayStringAbiProjectionFromCanonicalLayout(
     let projection: DirectMirArrayStringAbiProjection =
         DirectMirArrayStringAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
-            storage, "", "", "", "", "", "", -1, -1, -1, -1
+            abi_layout_id, 8, 8, storage, "", "", "", "", "", "",
+            -1, -1, -1, -1
         );
     if is_c {
         projection = DirectMirArrayStringAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
-            storage, "char *", storage.c_length_type,
+            abi_layout_id, 8, 8, storage, "char *", storage.c_length_type,
             DirectMirArrayStringPublicCValueType(), "", "", "",
             -1, -1, -1, -1
         );
     } else {
         projection = DirectMirArrayStringAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
-            storage, "", "", "", "ptr", "i64",
+            abi_layout_id, 8, 8, storage, "", "", "", "ptr", "i64",
             storage.llvm_aggregate_type, storage.data_index,
             storage.length_index, storage.capacity_index,
             storage.allocator_index

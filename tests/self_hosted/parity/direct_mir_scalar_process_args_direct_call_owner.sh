@@ -18,7 +18,7 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_process_args_direct_call_mutations.py"
 
-KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
+KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy"
 SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_builtin_signature_owner.pgy"
 REQUIREMENT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy"
 C_SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy"

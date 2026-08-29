@@ -262,9 +262,8 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmTwoIntNominalPreamble(
             plan.program.nominal_abi, target));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmStringCollectionMaterialization(
-            plan, runtime));
+    let array_string_projection: Option<DirectMirArrayStringAbiProjection> = DirectMirScalarProgramArrayStringAbiProjectionFromFact(plan.program.array_string_abi, target);
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmStringCollectionMaterialization(plan, runtime, array_string_projection));
     let array_bool_get_required: Bool =
         DirectMirScalarProgramExpressionContainsKind(
             plan.program.expressions,

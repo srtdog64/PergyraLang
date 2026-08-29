@@ -24,7 +24,7 @@ command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
 grep -Fq 'func DirectMirScalarProgramExprDirWalk() -> Int { return 95; }' \
-    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" ||
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy" ||
     fail "DirWalk expression identity is missing"
 grep -Fq '"host-io", "dir-walk"' \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy" ||

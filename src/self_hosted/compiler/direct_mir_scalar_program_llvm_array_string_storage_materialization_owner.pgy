@@ -1,0 +1,139 @@
+// Target-projected LLVM storage operations for the scalar-program
+// Array<String> carrier.
+
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+
+func DirectMirScalarProgramLlvmOwnedStringArrayPushBlock() -> String { return Concat("define internal void @", Concat(CollectionRuntimeCOwnedStringPushFn(), "(ptr %array, ptr %value) {\nentry:\n  %source.length = call i64 @strlen(ptr %value)\n  %owned.size = add i64 %source.length, 1\n  %owned = call ptr @malloc(i64 %owned.size)\n  %copied = call ptr @memcpy(ptr %owned, ptr %value, i64 %owned.size)\n  call void @pgy_as_push(ptr %array, ptr %owned)\n  ret void\n}\n\n")); }
+func DirectMirScalarProgramLlvmStringArrayPushBlock(
+    symbol: String, ref abi: DirectMirArrayStringAbiProjection
+) -> String {
+    if !DirectMirArrayStringAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR scalar program LLVM Array<String> push ABI is invalid");
+    }
+    let output: String = Concat("define internal void @", Concat(symbol,
+        "(ptr %array, ptr %value) {\nentry:\n"));
+    output = Concat(output, Concat(
+        "  %data.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 ",
+        Concat(ToString(abi.data_index), "\n")));
+    output = Concat(output, Concat(
+        "  %length.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 ",
+        Concat(ToString(abi.length_index), "\n")));
+    output = Concat(output, Concat(
+        "  %capacity.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 ",
+        Concat(ToString(abi.capacity_index), "\n")));
+    output = Concat(output, Concat(
+        "  %length = load i64, ptr %length.ptr, align ",
+        Concat(ToString(abi.element_align), "\n  %capacity = load i64, ptr %capacity.ptr, align ")));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  %full = icmp eq i64 %length, %capacity\n  br i1 %full, label %grow, label %append\n\ngrow:\n  %empty = icmp eq i64 %capacity, 0\n  %doubled = mul i64 %capacity, 2\n  %next.capacity = select i1 %empty, i64 4, i64 %doubled\n  %bytes = mul i64 %next.capacity, "));
+    output = Concat(output, Concat(ToString(abi.element_size),
+        "\n  %old.data = load ptr, ptr %data.ptr, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  %next.data = call ptr @realloc(ptr %old.data, i64 %bytes)\n  %failed = icmp eq ptr %next.data, null\n  br i1 %failed, label %abort, label %grown\n\nabort:\n  call void @abort()\n  unreachable\n\ngrown:\n  store ptr %next.data, ptr %data.ptr, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  store i64 %next.capacity, ptr %capacity.ptr, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  br label %append\n\nappend:\n  %data = load ptr, ptr %data.ptr, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  %slot = getelementptr inbounds ptr, ptr %data, i64 %length\n  store ptr %value, ptr %slot, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  %next.length = add i64 %length, 1\n  store i64 %next.length, ptr %length.ptr, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  ret void\n}\n\n"));
+    return output;
+}
+func DirectMirScalarProgramLlvmStringArrayAccessBlocks(
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref abi: DirectMirArrayStringAbiProjection
+) -> String {
+    if !DirectMirArrayStringAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR scalar program LLVM Array<String> access ABI is invalid");
+    }
+    let output: String = "";
+    if runtime.array_string_length.ok {
+        output = Concat(output, Concat("define internal i64 @",
+            Concat(runtime.array_string_length.symbol,
+            Concat("(%pgy.array.string %array) {\nentry:\n  %length = extractvalue %pgy.array.string %array, ",
+            Concat(ToString(abi.length_index),
+            "\n  ret i64 %length\n}\n\n")))));
+    }
+    if runtime.array_string_get.ok {
+        output = Concat(output, Concat("define internal ptr @",
+            Concat(runtime.array_string_get.symbol,
+            Concat("(%pgy.array.string %array, i64 %index) {\nentry:\n  %data = extractvalue %pgy.array.string %array, ",
+            Concat(ToString(abi.data_index), Concat(
+            "\n  %slot = getelementptr inbounds ptr, ptr %data, i64 %index\n  %value = load ptr, ptr %slot, align ",
+            Concat(ToString(abi.element_align),
+            "\n  ret ptr %value\n}\n\n")))))));
+    }
+    return output;
+}
+func DirectMirScalarProgramLlvmStringArrayDropBlock(
+    ref abi: DirectMirArrayStringAbiProjection
+) -> String {
+    if !DirectMirArrayStringAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR scalar program LLVM Array<String> drop ABI is invalid");
+    }
+    let fields: String = Concat(
+        "  %data.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 ",
+        Concat(ToString(abi.data_index), Concat(
+        "\n  %length.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 ",
+        Concat(ToString(abi.length_index), Concat(
+        "\n  %capacity.ptr = getelementptr inbounds %pgy.array.string, ptr %array, i32 0, i32 ",
+        Concat(ToString(abi.capacity_index), "\n"))))));
+    let output: String = Concat("define internal void @", Concat(
+        CollectionRuntimeCOwnedStringDropFn(), Concat(
+        "(ptr %array) {\nentry:\n", fields)));
+    output = Concat(output, Concat(
+        "  %data = load ptr, ptr %data.ptr, align ",
+        Concat(ToString(abi.element_align),
+        "\n  %length = load i64, ptr %length.ptr, align ")));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  br label %loop\n\nloop:\n  %index = phi i64 [ 0, %entry ], [ %next, %body ]\n  %more = icmp ult i64 %index, %length\n  br i1 %more, label %body, label %done\n\nbody:\n  %slot = getelementptr inbounds ptr, ptr %data, i64 %index\n  %value = load ptr, ptr %slot, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  call void @free(ptr %value)\n  %next = add i64 %index, 1\n  br label %loop\n\ndone:\n  call void @free(ptr %data)\n  store ptr null, ptr %data.ptr, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  store i64 0, ptr %length.ptr, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  store i64 0, ptr %capacity.ptr, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  ret void\n}\n\n"));
+    output = Concat(output, Concat("define internal void @", Concat(
+        CollectionRuntimeCDropStorageFn(2), Concat(
+        "(ptr %array) {\nentry:\n", fields))));
+    output = Concat(output, Concat(
+        "  %data = load ptr, ptr %data.ptr, align ",
+        Concat(ToString(abi.element_align),
+        "\n  call void @free(ptr %data)\n  store ptr null, ptr %data.ptr, align ")));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  store i64 0, ptr %length.ptr, align "));
+    output = Concat(output, Concat(ToString(abi.element_align),
+        "\n  store i64 0, ptr %capacity.ptr, align "));
+    return Concat(output, Concat(ToString(abi.element_align),
+        "\n  ret void\n}\n\n"));
+}
+
+func DirectMirScalarProgramLlvmStringSplitBlock(
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref abi: DirectMirArrayStringAbiProjection
+) -> String {
+    if !DirectMirArrayStringAbiProjectionReadyFor(
+            abi, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR scalar program LLVM StringSplit ABI is invalid");
+    }
+    let output: String = Concat("define internal %pgy.array.string @",
+        Concat(runtime.string_split.symbol,
+        "(ptr %source, ptr %separator) {\nentry:\n  %array = alloca %pgy.array.string, align "));
+    output = Concat(output, Concat(ToString(abi.storage.align),
+        "\n  store %pgy.array.string zeroinitializer, ptr %array, align "));
+    output = Concat(output, Concat(ToString(abi.storage.align),
+        "\n  %separator.length = call i64 @strlen(ptr %separator)\n  %separator.empty = icmp eq i64 %separator.length, 0\n  br i1 %separator.empty, label %single, label %loop.entry\n\nsingle:\n  %single.length = call i64 @strlen(ptr %source)\n  %single.size = add i64 %single.length, 1\n  %single.part = call ptr @malloc(i64 %single.size)\n  %single.copied = call ptr @memcpy(ptr %single.part, ptr %source, i64 %single.size)\n  call void @pgy_as_push(ptr %array, ptr %single.part)\n  br label %done\n\nloop.entry:\n  br label %loop\n\nloop:\n  %start = phi ptr [ %source, %loop.entry ], [ %next.start, %found ]\n  %match = call ptr @strstr(ptr %start, ptr %separator)\n  %missing = icmp eq ptr %match, null\n  br i1 %missing, label %last, label %found\n\nfound:\n  %match.int = ptrtoint ptr %match to i64\n  %start.int = ptrtoint ptr %start to i64\n  %part.length = sub i64 %match.int, %start.int\n  %part.size = add i64 %part.length, 1\n  %part = call ptr @malloc(i64 %part.size)\n  %copied = call ptr @memcpy(ptr %part, ptr %start, i64 %part.length)\n  %part.nul = getelementptr inbounds i8, ptr %part, i64 %part.length\n  store i8 0, ptr %part.nul, align 1\n  call void @pgy_as_push(ptr %array, ptr %part)\n  %next.start = getelementptr inbounds i8, ptr %match, i64 %separator.length\n  br label %loop\n\nlast:\n  %last.length = call i64 @strlen(ptr %start)\n  %last.size = add i64 %last.length, 1\n  %last.part = call ptr @malloc(i64 %last.size)\n  %last.copied = call ptr @memcpy(ptr %last.part, ptr %start, i64 %last.size)\n  call void @pgy_as_push(ptr %array, ptr %last.part)\n  br label %done\n\ndone:\n  %result = load %pgy.array.string, ptr %array, align "));
+    output = Concat(output, Concat(ToString(abi.storage.align),
+        "\n  ret %pgy.array.string %result\n}\n\n"));
+    return output;
+}

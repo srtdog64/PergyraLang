@@ -50,6 +50,11 @@ def main():
     elif kind == "cross-family-layout":
         params[2]["abi_layout_id"] = params[0]["abi_layout_id"]
         params[3]["abi_layout_id"] = params[0]["abi_layout_id"]
+    elif kind == "cross-family-layout-row":
+        params[0]["abi_layout_id"] = params[2]["abi_layout_id"]
+        params[0]["abi_layout"] = params[2]["abi_layout"]
+        params[1]["abi_layout_id"] = params[2]["abi_layout_id"]
+        params[1]["abi_layout"] = params[2]["abi_layout"]
     elif kind == "string-carriage":
         params[7]["carriage"] = "readonly-ref"
     elif kind == "unknown-return-type":

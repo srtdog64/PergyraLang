@@ -1,0 +1,77 @@
+// Target-projected C storage materialization for the private scalar-program
+// Array<String> carrier. Public PgyArray_String naming remains a separate ABI.
+
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "../codegen/runtime_abi/collection_runtime_owner.pgy";
+
+func DirectMirScalarProgramCStringArrayOwnedSingleFn() -> String {
+    return "pgy_as_owned_single";
+}
+func DirectMirScalarProgramCStringArrayValuesFn() -> String { return "pgy_as_from_values"; }
+
+func DirectMirScalarProgramCStringArrayProjectionReady(
+    ref abi: DirectMirScalarProgramArrayStringAbiFact,
+    ref projection: DirectMirArrayStringAbiProjection
+) -> Bool {
+    return DirectMirScalarProgramArrayStringAbiFactReady(abi) &&
+        DirectMirArrayStringAbiProjectionReadyFor(
+            projection, CompilerTargetCpuCProjection()) &&
+        projection.abi_layout_id == abi.layout_id &&
+        projection.storage.size == abi.size &&
+        projection.storage.align == abi.align &&
+        projection.storage.data_offset == abi.data_offset &&
+        projection.storage.length_offset == abi.length_offset &&
+        projection.storage.capacity_offset == abi.capacity_offset &&
+        projection.storage.allocator_offset == abi.allocator_offset;
+}
+
+func DirectMirScalarProgramCStringArrayStorageBlock(
+    ref abi: DirectMirScalarProgramArrayStringAbiFact,
+    ref projection: DirectMirArrayStringAbiProjection
+) -> String {
+    if !DirectMirScalarProgramCStringArrayProjectionReady(abi, projection) {
+        return "";
+    }
+    let type_name: String = CompilerAbiLayoutArrayStringCValueType();
+    let storage: DirectMirArrayStorageAbiProjection = projection.storage;
+    let output: String = "typedef struct { const char **";
+    output = Concat(output, storage.data_field);
+    output = Concat(output, Concat("; ", storage.c_length_type));
+    output = Concat(output, Concat(" ", storage.length_field));
+    output = Concat(output, Concat("; ", storage.c_length_type));
+    output = Concat(output, Concat(" ", storage.capacity_field));
+    output = Concat(output, Concat("; void *", storage.allocator_field));
+    output = Concat(output, Concat("; } ", Concat(type_name, ";\n")));
+    output = Concat(output, Concat("_Static_assert(sizeof(pgy_as) == ",
+        Concat(ToString(storage.size), ", \"Array<String> size\");\n")));
+    output = Concat(output, Concat("_Static_assert(_Alignof(pgy_as) == ",
+        Concat(ToString(storage.align), ", \"Array<String> align\");\n")));
+    output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
+        Concat(storage.data_field, Concat(") == ", Concat(
+        ToString(storage.data_offset), ", \"Array<String> data\");\n")))));
+    output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
+        Concat(storage.length_field, Concat(") == ", Concat(
+        ToString(storage.length_offset), ", \"Array<String> length\");\n")))));
+    output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
+        Concat(storage.capacity_field, Concat(") == ", Concat(
+        ToString(storage.capacity_offset), ", \"Array<String> capacity\");\n")))));
+    output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
+        Concat(storage.allocator_field, Concat(") == ", Concat(
+        ToString(storage.allocator_offset),
+        ", \"Array<String> allocator\");\n\n")))));
+    output = Concat(output,
+        "static pgy_as pgy_as_new(void) { pgy_as a = {NULL, 0, 0, NULL}; return a; }\nstatic void pgy_as_push(pgy_as *a, const char *v) {\n    if (a->length == a->capacity) { size_t n = a->capacity ? a->capacity * 2 : 4; const char **p = (const char **)realloc(a->data, n * sizeof(const char *)); if (p == NULL) abort(); a->data = p; a->capacity = n; }\n    a->data[a->length++] = v;\n}\n");
+    output = Concat(output, Concat("static void ", Concat(CollectionRuntimeCOwnedStringPushFn(), "(pgy_as *a, const char *v) { const char *source = v != NULL ? v : \"\"; size_t n = strlen(source); char *owned = (char *)malloc(n + 1); if (owned == NULL) abort(); memcpy(owned, source, n + 1); pgy_as_push(a, owned); }\n")));
+    output = Concat(output, Concat("static pgy_as ", Concat(DirectMirScalarProgramCStringArrayValuesFn(), "(const char **v, size_t n) { pgy_as a = pgy_as_new(); for (size_t i = 0; i < n; i++) pgy_as_push(&a, v[i]); return a; }\n")));
+    output = Concat(output, Concat("static pgy_as ", Concat(
+        DirectMirScalarProgramCStringArrayOwnedSingleFn(), Concat(
+        "(const char *v) { pgy_as a = pgy_as_new(); ", Concat(
+        CollectionRuntimeCPushFn(2), "(&a, v); return a; }\n")))));
+    output = Concat(output,
+        "static long long pgy_as_len(pgy_as a) { return (long long)a.length; }\nstatic const char *pgy_as_get(pgy_as a, long long i) { return a.data[(size_t)i]; }\n");
+    output = Concat(output, Concat("static void ", Concat(
+        CollectionRuntimeCOwnedStringDropFn(),
+        "(pgy_as *a) { if (a == NULL) return; for (size_t i = 0; i < a->length; i++) free((void *)a->data[i]); free(a->data); a->data = NULL; a->length = 0; a->capacity = 0; }\n\n")));
+    output = Concat(output, Concat("static void ", Concat(CollectionRuntimeCDropStorageFn(2), "(pgy_as *a) { if (a == NULL) return; free(a->data); a->data = NULL; a->length = 0; a->capacity = 0; }\n\n")));
+    return output;
+}

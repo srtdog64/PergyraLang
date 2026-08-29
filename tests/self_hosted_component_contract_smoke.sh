@@ -21237,9 +21237,45 @@ require_function_text \
     "func DirectMirScalarProgramLlvmExpressionAt(" \
     "DirectMirScalarProgramArrayStringLiteralOwnsElements("
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_materialization_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy" \
     "func DirectMirScalarProgramCStringArrayStorageBlock(" \
     "DirectMirScalarProgramCStringArrayOwnedSingleFn()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_projection_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringAbiProjectionFromFact(" \
+    "return Some(projection);"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
+    "func DirectMirScalarCfgEmitProgramC(" \
+    "DirectMirScalarProgramArrayStringAbiProjectionFromFact("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgEmitProgramLlvm(" \
+    "DirectMirScalarProgramArrayStringAbiProjectionFromFact("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy" \
+    "func DirectMirScalarProgramCStringArrayStorageBlock(" \
+    "projection.storage"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringCollectionMaterialization(" \
+    "abi.llvm_aggregate_type"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_storage_materialization_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringArrayPushBlock(" \
+    "ToString(abi.data_index)"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy" \
+    "typedef struct { const char **data; size_t length; size_t capacity; void *allocator; }"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy" \
+    "%pgy.array.string = type { ptr, i64, i64, ptr }"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_storage_materialization_owner.pgy" \
+    "%pgy.array.string = type { ptr, i64, i64, ptr }"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_storage_materialization_owner.pgy" \
+    'i32 0, i32 0\n'
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExprArrayStringDropOwned() -> Int { return 93; }"

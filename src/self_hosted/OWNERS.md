@@ -3921,6 +3921,17 @@ inventory must not become a second fact-family owner registry.
   `PgyArray_String`; `CompilerAbiLayoutArrayStringCValueType()` and its
   three-field `pgy_as` spelling remain private to self-codegen/runtime carriage
   and cannot own this direct projection.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_projection_owner.pgy`
+  -- binds the carried scalar-program ArrayString ABI fact to exactly one
+  selected-target projection, with canonical absence represented as `None`.
+  The C/LLVM emission roots derive this receipt once per semantic program.
+- `direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy`
+  and
+  `direct_mir_scalar_program_llvm_array_string_storage_materialization_owner.pgy`
+  -- final scalar collection-preamble consumers for the private `pgy_as` and
+  named LLVM carrier. They consume projected size, alignment, field names,
+  aggregate spelling, element size/alignment, and field indices; they do not
+  merge the private carrier name with public `PgyArray_String`.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_fact_owner.pgy`,
   `direct_mir_scalar_cfg_foreach_set_owner.pgy`, and
   `direct_mir_scalar_cfg_foreach_append_owner.pgy` -- immutable target-neutral

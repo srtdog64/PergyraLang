@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Bool with two ArrayString/two ArrayInt copyouts, backends and negatives.
+# one carried target projection owns scalar preamble C/LLVM storage and complete cross-family row rejection
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -99,7 +100,7 @@ for mutation in interleaved-array-string-carriage interleaved-array-int-abi \
     array-string-type array-string-carriage array-string-abi \
     array-string-layout-mismatch array-int-type array-int-carriage \
     array-int-abi array-int-layout-mismatch cross-family-layout \
-    string-carriage unknown-return-type; do
+    cross-family-layout-row string-carriage unknown-return-type; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Runtime String/Array<String> expressions through one typed scalar GraphPlan.
+# target-projected scalar storage executes String/Array<String> builtins in C and LLVM
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -54,7 +55,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "035EE7F341BC388E2B1CB2F36D6792FEC1DDF7C4D7433B10B8DEDED6E0648E97" ]] ||
+[[ "$mir_sha" == "D0659D59A93093D653EDC010410E651E106BFAB166C51079D64346D6114B2C33" ]] ||
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_collection_builtin_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"

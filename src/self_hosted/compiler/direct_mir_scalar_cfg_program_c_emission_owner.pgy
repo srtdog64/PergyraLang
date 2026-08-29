@@ -244,8 +244,8 @@ func DirectMirScalarCfgEmitProgramC(
     if DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) {
         TextBuilderAppend(output, DirectMirScalarProgramCArrayPushMaterialization(CollectionRuntimeCPushFn(4), CompilerAbiLayoutArrayBoolCValueType(), "bool"));
     }
-    TextBuilderAppend(output,
-        DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime));
+    let array_string_projection: Option<DirectMirArrayStringAbiProjection> = DirectMirScalarProgramArrayStringAbiProjectionFromFact(plan.program.array_string_abi, target);
+    TextBuilderAppend(output, DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime, array_string_projection));
     TextBuilderAppend(output, DirectMirScalarProgramCTwoIntNominalPreamble(
         plan.program.nominal_abi, target));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordPreamble(
