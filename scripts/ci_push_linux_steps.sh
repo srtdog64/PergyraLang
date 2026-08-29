@@ -6,6 +6,7 @@ run 'make CC="$CI_LINUX_CC" self-host-compiler'
 export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
 
 run 'make self-host-llvm-option-member-assignment-context-test-smoke'
+run 'make self-host-llvm-intent-value-argument-abi-test-smoke'
 run 'make self-host-callable-parameter-identity-replacement-test-smoke'
 
 run 'make build-source-inventory-test-smoke'

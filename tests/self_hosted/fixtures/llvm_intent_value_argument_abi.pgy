@@ -1,0 +1,46 @@
+enum IntentValueRequest {
+    IntentValueIdle,
+    IntentValuePayload(Int),
+}
+
+subject IntentValueWorker {
+    let mut observed: Int;
+
+    action Touch(self) -> Bool
+        within IntentValueZone
+        authorized by self {
+        observed = observed + 1;
+        return true;
+    }
+}
+
+zone IntentValueZone {
+    subject slot worker: IntentValueWorker
+    authority worker
+}
+
+intent DeliverIntentValue(
+    intent_zone: IntentValueZone,
+    intent_worker: IntentValueWorker,
+    request: IntentValueRequest
+) {
+    step Touch {
+        using: intent_zone;
+        on action_succeeded: intent_worker.Touch();
+        expect: action_succeeded;
+    }
+    success: intent_worker.observed == 1;
+    failure: false;
+}
+
+func Main() -> Void {
+    let intent_zone: IntentValueZone =
+        IntentValueZone(IntentValueWorker(0));
+    let intent_worker: IntentValueWorker = Clone(intent_zone.worker);
+    let request: IntentValueRequest = IntentValuePayload(41);
+    let completed: Bool = DeliverIntentValue(
+        intent_zone, intent_worker, request
+    );
+    Log(ToString(completed));
+    Log(intent_worker.observed);
+}

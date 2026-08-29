@@ -6,6 +6,30 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## RETIRED lease — LLVM intent value-argument ABI blocker removed
+
+- Implemented from exact local base `fa09d02c`.
+- Reproduced blocker: the filtered production LLVM driver reaches verification,
+  then passes `%request` as `ptr` to `CompilePergyraCArtifact` even though the
+  final `%DriverSourceCRequest` parameter is declared by value.
+- Fact owner: the ordered MIR intent binding row kind and type. Pointer-self
+  addressing is participant-only; a `value` row keeps the declared by-value
+  ABI even when its nominal type is a data-bearing enum.
+- Result: the existing LLVM call loop now runs nominal pointer-self policy only
+  after the ordered binding row identifies a participant. The data-bearing
+  enum value fixture passes exact C/LLVM `true` / `1` behavior.
+- Forbidden: name/type allowlists, post-hoc pointer repair, generic indirect
+  value passing, Pergyra source workarounds, other LLVM gaps, and unrelated SoT
+  work.
+- Objective card and integration boundary:
+  `docs/agent_work_directives/llvm_intent_value_argument_abi_2026-08-30.md`.
+- Production integration passed for the LLVM-built compiler driver filtered to
+  `list_ops`: `backends=1 body_fixtures=0 mir_fixtures=1`. There is no active
+  implementation lease after this bounded result; the next lease must name a
+  newly reached production falsifier or direct C bypass.
+- This is executable bootstrap parity and does not claim a hard `SUBSTITUTING`
+  numerator, census, percentage, or decompilation-target change.
+
 ## RETIRED lease — LLVM Option member-assignment context blocker removed
 
 - Implemented from exact base

@@ -281,6 +281,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (args != NULL) {
             for (size_t i = 0; i < argc; i++) {
                 const char *type_name = NULL;
+                bool participant_binding = false;
                 bool pointer_self = false;
                 ASTNode *arg_node = ast_call_argument(node, i);
 
@@ -297,6 +298,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         }
                         if (intent_binding_metadata_view_row_is_kind(
                                 &binding_metadata, i, "participant")) {
+                            participant_binding = true;
                             type_name = intent_binding_metadata_view_type_at(
                                 &binding_metadata, i);
                         } else if (intent_binding_metadata_view_row_is_kind(
@@ -316,6 +318,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     if (!mir_only_intent && i < binding_count) {
                         ASTNode *binding_type = NULL;
                         if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+                            participant_binding = true;
                             if (ast_intent_involves_subject_type(binding) != NULL
                                 && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
                                 binding_type = ast_intent_involves_subject_type(binding);
@@ -327,15 +330,21 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         (void) binding_type;
                     }
                 }
-                pointer_self = llvm_type_name_uses_pointer_self(ctx, type_name);
-                if (!pointer_self && type_name != NULL) {
-                    ASTNode *host_decl =
-                        llvm_find_host_decl_in_active_inventory(ctx,
-                            type_name);
-                    if (host_decl != NULL
-                        && !(host_decl->type == AST_CLASS_DECL
-                             && ast_class_is_struct(host_decl))) {
-                        pointer_self = true;
+                /* Ordered binding kind owns the call ABI. Nominal pointer-self
+                 * policy may refine participant addressing, but a value row
+                 * remains by-value even when its type is a data-bearing enum. */
+                if (participant_binding) {
+                    pointer_self =
+                        llvm_type_name_uses_pointer_self(ctx, type_name);
+                    if (!pointer_self && type_name != NULL) {
+                        ASTNode *host_decl =
+                            llvm_find_host_decl_in_active_inventory(ctx,
+                                type_name);
+                        if (host_decl != NULL
+                            && !(host_decl->type == AST_CLASS_DECL
+                                 && ast_class_is_struct(host_decl))) {
+                            pointer_self = true;
+                        }
                     }
                 }
                 if (pointer_self) {

@@ -3854,6 +3854,12 @@ self-host-llvm-option-member-assignment-context-test-smoke: $(PGY)
 
 .PHONY: self-host-llvm-option-member-assignment-context-test-smoke
 
+self-host-llvm-intent-value-argument-abi-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
+		tests/self_hosted/parity/llvm_intent_value_argument_abi_owner.sh
+
+.PHONY: self-host-llvm-intent-value-argument-abi-test-smoke
+
 self-host-generic-default-contract-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/generic_default_contracts_parser_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_rung2_generic_default_contract_parity.sh

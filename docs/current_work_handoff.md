@@ -18,6 +18,41 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Latest self-host bootstrap result — LLVM intent value ABI passes list_ops
+
+- Exact implementation base: `fa09d02c`. Published ancestor is
+  `e19b15b2647664e4208f7d97e490318085f652d6` on `origin/main`.
+- Production entrypoint: native LLVM compilation of the import-composed
+  `driver_rung2_main.pgy` compiler driver, filtered to `list_ops`.
+- Removed falsifier: LLVM no longer supplies a `ptr` `%request` for the
+  declared by-value `%DriverSourceCRequest` parameter of
+  `CompilePergyraCArtifact`.
+- Fact owner: ordered `IntentBindingMetadataView` kind plus type. The forward
+  declaration already makes only participant rows pointer-shaped; the call
+  argument consumer must preserve that same distinction.
+- Last consumer: the LLVM intent call-argument loop immediately before the
+  registered function call.
+- Forbidden fallback: request/enum special cases, generic pointer loads,
+  indirect-passing all nominal values, AST reconstruction beside MIR, compiler
+  source workaround, or C-backend substitution.
+- Green focused gate: exact C/LLVM `true` / `1` execution parity for a
+  participant plus data-bearing enum value and a structural participant-only
+  pointer-self ratchet.
+- Green production gate: the LLVM-built import-composed driver filtered to
+  `list_ops` reports producer-first source/MIR parity with
+  `backends=1 body_fixtures=0 mir_fixtures=1`.
+- Explicit omission: `self-host-component-contract-test-smoke` was interrupted
+  at the five-minute focused budget after its nested source-MIR action ratchet
+  passed. The parent gate did not complete and must not be reported green;
+  merge CI owns the broader rerun.
+- Objective card:
+  `docs/agent_work_directives/llvm_intent_value_argument_abi_2026-08-30.md`.
+- No implementation lease remains active after this bounded result. The next
+  session must choose the next reached production falsifier or direct C bypass,
+  not reopen arbitrary SoT cleanup or assume the unrun 284-row matrix is green.
+- This changes neither hard substitution progress, SoT census, official project
+  percentage, nor the C++-class decompilation-hardness release target.
+
 ## Latest bounded result — LLVM Option member context fixed; intent value ABI next
 
 - Exact base: `e19b15b2647664e4208f7d97e490318085f652d6` on
