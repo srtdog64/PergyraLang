@@ -45,6 +45,13 @@ percentage by themselves.
   test opt-out. Default package check/build/run routes already consume the
   installed MIR/C/LLVM owners and are guarded against native retry. It is not a
   newly found production C bypass and must not be deleted as if it were one.
+- Gate repair plus the preceding handoff were published at exact HEAD
+  `e4fad5937744f0801904c009c2dfc72dbc72673a`. Exact-head CI run
+  `33280421585` completed GREEN 30/30: full self-host 39m39s, build-linux
+  26m55s, sanitizers 11m49s, codegen bootstrap 8m56s, Windows 8m49s, backend
+  toolchain 9m06s, and backend comparison 20/20. The broad selection is an
+  observed consequence of the current Markdown-only-versus-full classifier;
+  changing that CI policy is a separate rung, not part of this gate repair.
 - No successor implementation lease is inferred from these green fixtures.
   The next implementation rung still requires a freshly reproduced production
   falsifier or direct C bypass, an existing complete Pergyra fact owner, its
