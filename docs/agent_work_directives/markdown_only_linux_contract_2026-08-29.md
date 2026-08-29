@@ -1,8 +1,9 @@
 # Markdown-only Linux contract split — 2026-08-29
 
-Status: `ACTIVE — FULL PATH GREEN, MARKDOWN-ONLY REMOTE PROBE PENDING`
-(implementation `16d491732d6b2fb682f199af13705131b2cf8a44` is on
-`origin/main`; exact-head run `33231503191` completed GREEN 30/30)
+Status: `DONE — FULL AND MARKDOWN PATHS PUBLISHED GREEN` (implementation
+`16d491732d6b2fb682f199af13705131b2cf8a44` is on `origin/main`; full-path run
+`33231503191` completed GREEN 30/30; Markdown probe run `33233004119`
+completed SUCCESS with two jobs successful and nine skipped)
 
 This directive coordinates one CI feedback repair. It is not compiler semantic
 authority or substitution progress.
@@ -40,6 +41,7 @@ authority or substitution progress.
 - The CI-profile gate and all eight Markdown contract scripts are GREEN
   locally. The non-Markdown implementation run completed GREEN 30/30;
   `build-linux` passed in 22m05s and full self-host in 35m36s. This
-  Markdown-only status commit is the decisive remote probe: dependency
-  installation and `make ci-push-linux` must skip while the eight-script
-  contract succeeds.
+  Markdown-only status commit was the decisive remote probe. Its `build-linux`
+  job completed in 14 seconds: dependency installation and
+  `make ci-push-linux` were skipped, and the eight-script Markdown contract
+  succeeded. The lease is released.

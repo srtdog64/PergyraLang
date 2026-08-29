@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active CI context - Markdown-only Linux contract split
+## Completed CI context - Markdown-only Linux contract split
 
 - Objective: preserve `build-linux` as the mandatory check but make a
   classifier-proven Markdown-only push execute only documentation, SoT,
@@ -34,10 +34,11 @@ percentage by themselves.
 - Full-path evidence: implementation `16d49173` is on `origin/main`; exact-head
   run `33231503191` completed GREEN 30/30. `build-linux` passed in 22m05s and
   full self-host in 35m36s.
-- Publication boundary: this Markdown-only status commit is the decisive
-  remote probe. Its required `build-linux` job must skip dependency installation
-  and `make ci-push-linux`, run the eight-script Markdown contract, and finish
-  GREEN. No semantic successor rung is open while this CI lease is active.
+- Markdown-path evidence: probe run `33233004119` completed SUCCESS with two
+  jobs successful and nine skipped. Required `build-linux` finished in 14
+  seconds; dependency installation and `make ci-push-linux` were skipped, and
+  the eight-script Markdown contract passed. The CI lease is released. No
+  semantic successor rung is currently open.
 
 ## No active self-host implementation - successor admission audit complete
 
