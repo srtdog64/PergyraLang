@@ -5,6 +5,7 @@
 import "../mir_lower/expression_graph_sequence_owner.pgy";
 import "../mir_lower/program_instruction_expression_index_owner.pgy";
 import "direct_mir_array_literal_spine_owner.pgy";
+import "direct_mir_scalar_int_literal_domain_owner.pgy";
 import "../codegen/text/text_owner.pgy";
 
 func DirectMirArrayIntGraphFromExpressionFact(
@@ -34,7 +35,7 @@ func DirectMirArrayIntLiteralElements(
     let row: Int = 0;
     while row < ArrayLength(nodes) {
         let literal: String = sequence.arena.node_texts[nodes[row]];
-        if literal == "" ||
+        if !DirectMirScalarIntLiteralInRange(literal) ||
             ToString(ToInt(literal)) != literal {
             Die("direct MIR Array<Int> element or spine fact is invalid");
         }
@@ -129,7 +130,9 @@ func DirectMirArrayIntIndexGraphIndices(
     }
     let left: String = sequence.arena.node_texts[3];
     let right: String = sequence.arena.node_texts[6];
-    if left == "" || right == "" || ToString(ToInt(left)) != left ||
+    if !DirectMirScalarIntLiteralInRange(left) ||
+        !DirectMirScalarIntLiteralInRange(right) ||
+        ToString(ToInt(left)) != left ||
         ToString(ToInt(right)) != right {
         Die("direct MIR Array<Int> index literal is not canonical");
     }

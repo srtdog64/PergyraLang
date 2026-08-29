@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # One returned Array<Int> producer receipt feeds nested/sequential foreach CFG.
+# Registry forbidden-fallback inventory exercised below: call_text_reparse,
+# repeated_return_collection_materialization, hoisted_call_abi_ignored,
+# hoisted_call_as_local_literal.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -67,6 +70,8 @@ def short(d):
       {"kind":"array_element","text":"[4, 5]","call_target_kind":"none","call_target_name":"","left":2,"right":3}]
 write("graph-short",short)
 write("bad-producer-abi",lambda d:rows(d)[1]["blocks"][0]["instructions"][0]["abi_layout"]["fields"][1].__setitem__("offset",16))
+write("bad-call-abi",lambda d:rows(d)[0]["blocks"][0]["instructions"][1]["abi_layout"]["fields"][1].__setitem__("offset",16))
+write("bad-call-abi-id",lambda d:rows(d)[0]["blocks"][0]["instructions"][1].__setitem__("abi_layout_id",rows(d)[0]["blocks"][0]["instructions"][1]["abi_layout_id"]+1))
 write("bad-call-target",lambda d:rows(d)[0]["blocks"][0]["instructions"][1]["expr0_graph"]["nodes"][1].__setitem__("call_target_name","MissingValues"))
 write("bad-call-leaf",lambda d:rows(d)[0]["blocks"][0]["instructions"][1]["expr0_graph"]["nodes"][0].__setitem__("text","OtherValues"))
 write("bad-call-local-ref",lambda d:rows(d)[0]["blocks"][0]["instructions"][1]["expr0_local_refs"].append({"node":0,"ref":"iteration:999:0"}))
@@ -87,7 +92,7 @@ for target in c llvm; do
     project routine-permuted routine-permuted "$target" "$suffix" || fail "$target rejected routine permutation"
     project graph-short graph-short "$target" "$suffix" || fail "$target rejected graph-owned return"
     cmp -s "$WORK_DIR/base.$suffix" "$WORK_DIR/routine-permuted.$suffix" || fail "$target routine order changed artifact"
-    for bad in bad-producer-abi bad-call-target bad-call-leaf bad-call-local-ref bad-hoist bad-result-name bad-local-ref; do
+    for bad in bad-producer-abi bad-call-abi bad-call-abi-id bad-call-target bad-call-leaf bad-call-local-ref bad-hoist bad-result-name bad-local-ref; do
         if project "$bad" "$bad" "$target" "$suffix"; then fail "$target accepted $bad"; fi
         [[ ! -s "$WORK_DIR/$bad.$suffix" ]] || fail "$target published $bad"
         grep -Eq 'direct MIR (returned Array<Int> foreach|scalar CFG|Array<Int> return)' "$WORK_DIR/$bad.$target.out" "$WORK_DIR/$bad.$target.err" || fail "$target lost owned diagnostic for $bad"

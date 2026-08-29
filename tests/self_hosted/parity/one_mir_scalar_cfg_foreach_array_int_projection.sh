@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 # One collection receipt drives both scalar CFG backends without source replay.
+# Registry forbidden-fallback inventory exercised below:
+# typed_iterable_mismatch_as_range, backend_collection_protocol_reconstruction,
+# backend_element_type_reconstruction, raw_expr0_array_read,
+# call_text_reparse, repeated_return_collection_materialization,
+# range_owner_foreign_local_ref_claim, capacity_as_length,
+# hardcoded_element_count, collection_in_scalar_local_inventory,
+# block_count_route, source_local_type_route, claimed_invalid_legacy_retry,
+# int_literal_post_parse_wrap_admission, hoisted_call_abi_ignored,
+# hoisted_call_as_local_literal.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

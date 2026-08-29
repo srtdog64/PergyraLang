@@ -6,7 +6,42 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — intent observability ABI carried-identity closure
+## ACTIVE lease — scalar CFG foreach receipt BRIDGE closure
+
+- Objective card: close only
+  `projection.direct_mir_scalar_cfg_foreach_receipt`. The existing signed Int32
+  literal-domain owner must reject overflow before `ToInt`; the returned-call
+  collection owner must admit and cross-seal the carried ArrayInt ABI with the
+  producer receipt; valid call roots must not fall through to local-literal
+  decoding. Success is `CLOSED=55 BRIDGE=32 ACTIVE=1`, not a new row.
+- Exact base: `d7b785757a6acc7f2e08f54c31731384388294d6` is on
+  `origin/main`; run `33224632130` completed GREEN 30/30. The released census
+  was `54/33/1`.
+- Fact owners: `DirectMirScalarIntLiteralInRange`,
+  `MirCapturedRequiredAbiLayoutRowAdmission`,
+  `DirectMirArrayIntProducerFact`, and the LoopSyntaxId-keyed
+  `DirectMirScalarCfgForEachFact`. C/LLVM foreach emitters are the last
+  consumers.
+- Forbidden fallback: numeric conversion before representability, wrapped
+  overflow acceptance, ignored call-site ABI, producer-only ABI trust,
+  direct-call-as-local-literal decoding, raw `expr0` reconstruction, or legacy
+  range/return/Option retry.
+- Local evidence: the original overflow falsifier was RED because C emitted
+  `-2147483648`. After owner-side repair, a fresh installed DRV-2 passes local
+  ArrayInt, returned ArrayInt, and mixed Int/String foreach C/LLVM gates. The
+  returned gate includes call-layout and call-ID mutations. SoT edge is GREEN
+  at 88 authorities / 182 carriers / `55/32/1`; hard contract, docs/progress,
+  and likeness 4480/4480 are GREEN. Coq execution is a declared local skip.
+- Integration boundary: the primary task alone owns shared documents,
+  registry state, staging, commit, push, and exact-head CI interpretation.
+  Candidate-audit agents are read-only. No other BRIDGE implementation track
+  is open.
+- Publication boundary: stage only the named tracked files, commit and push,
+  then require replacement exact-head CI GREEN before releasing this lease.
+  Supplementary ArrayInt/array-return gates are not claimed because unchanged
+  pre-base owners hit stale 175/160 and 110/80 line caps before behavior.
+
+## DONE lease — intent observability ABI carried-identity closure
 
 - Objective card: migrate every reached self-host emitter-side consumer of
   `abi.intent_observability_rows` from source-name reconstruction to the
@@ -41,6 +76,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Publication boundary: stage only this lease's tracked files, commit and push,
   then require replacement exact-head CI GREEN. No successor implementation or
   parallel publication lease opens before that result.
+- Publication result: implementation `d7b78575` is on `origin/main`; exact-head
+  run `33224632130` completed GREEN 30/30, including build-linux, full self-host,
+  Rocq, sanitizers, all platforms, and backend 20/20. The lease is released at
+  `CLOSED=54 BRIDGE=33 ACTIVE=1`.
 
 ## DONE lease — intent declaration rows CI-ratchet repair publication
 

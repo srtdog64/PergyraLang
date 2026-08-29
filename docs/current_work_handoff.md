@@ -18,52 +18,72 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - intent observability ABI carried-ID publication
+## Active self-host context - scalar CFG foreach receipt publication
 
-- Objective card: close the existing `abi.intent_observability_rows` BRIDGE on
-  every reached self-host emission lane. Priority is canonical ID carriage,
-  admission-time source/shape/ID cross-seal, semantic and direct-MIR consumer
-  migration, no-artifact failure, old-read deletion, then registry publication.
-  `src/common/intent_observability_abi.def` owns the append-only row identity;
-  semantic expression facts and admitted MIR nodes own the carried
-  `RuntimeCallAbiId`.
-- Last legitimate consumers: semantic source-C direct-call emission, nested
-  intent source/direct C and LLVM projection, and composite intent LLVM
-  projection. Emitter-side `RowForSource`, fixed source-name arrays, arity or
-  sorted-position identity, raw-text rewrite fallback, zero IDs, and a valid ID
-  belonging to another row are forbidden.
+- Objective card: close only
+  `projection.direct_mir_scalar_cfg_foreach_receipt`. Priority is lexical
+  signed Int32 admission before numeric conversion, exact returned call ABI
+  carriage, producer/call cross-seal, wrong-route failure before literal
+  decoding, C/LLVM no-artifact negatives, old-path ratchet, then registry
+  publication. No new authority row or wider collection family is admitted.
+- Fact owners: `DirectMirScalarIntLiteralInRange` owns representable Int32
+  spelling; `MirCapturedRequiredAbiLayoutRowAdmission` plus
+  `DirectMirArrayIntCapturedAbiReady` own the call-site ArrayInt ABI;
+  `DirectMirArrayIntProducerFact` owns returned elements/storage; the final
+  execution receipt remains keyed by `LoopSyntaxId`.
+- Last legitimate consumers: scalar-CFG foreach C and LLVM emitters for local
+  ArrayInt/ArrayString and pure no-parameter returned ArrayInt. Conversion
+  before range admission, wrapped overflow, ignored call ABI, producer-only
+  ABI trust, call-as-local-literal decoding, raw `expr0`, and legacy
+  range/return/Option retry are forbidden. Other effectful producers and
+  element ABIs remain separately declared rungs, not missing facts in this
+  bounded row.
 - Published basis: exact base
-  `e9633bbf3102497d065d78d722a75f1676963271` is on `origin/main`; replacement
-  run `33220229230` completed GREEN 30/30 and released this sole executable
-  rung. The released census was `CLOSED=53 BRIDGE=34 ACTIVE=1`.
-- Implemented result: generated `IntentObservabilityAbiRowForCarriedIdentity`
-  resolves by stable ID and cross-seals the source identity. Semantic source-C
-  consumes `SemanticExpressionGraphRuntimeCallAbiId`; nested and composite
-  direct-MIR plans seal the actual call-node IDs and their emitters project
-  only those carried IDs. Raw runtime rewrite has no observability ABI branch.
-  The only remaining self-host source-name lookups are the generated lookup
-  itself, semantic AST identity production, and scalar signature admission;
-  an exact allowlist ratchets those producer boundaries.
-- Failure contract: zero and valid-foreign same-shape IDs, forged non-row IDs,
-  name/ID mismatch, syntax conflict, crossed nested owner/action identities,
-  and crossed composite call identities all fail before C, LLVM, object, or
-  executable publication. The gates require the owned diagnostic and reject
-  scalar-route or raw-rewrite re-entry.
-- Observed local evidence: generated projection check and ABI registry probe
-  are GREEN. Fresh installed public/native C/LLVM execution is GREEN. Semantic
-  and direct C/LLVM identity mutation is GREEN; nested source/direct C plus
-  LLVM parity reports twelve no-artifact negatives; composite LLVM reports
-  five no-artifact negatives. The registry now reports
-  `CLOSED=54 BRIDGE=33 ACTIVE=1`, hard closure 61.4%, and migration 80.4%.
-- Verification boundary: the broad local component inventory exceeded the
-  static budget and was stopped after 90 seconds without output; it is not
-  claimed GREEN. Narrow executable and static falsifiers own the local row
-  verdict. Publish this one closure, then require replacement exact-head CI
-  GREEN before choosing or delegating any `BRIDGE=33 -> 32` successor.
-- Exact worktree state before publication: base `e9633bbf`, dirty only in the
-  tracked files of this ABI closure plus protected untracked
-  `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/`. Those
-  untracked paths remain outside inspection, edit, and staging scope.
+  `d7b785757a6acc7f2e08f54c31731384388294d6` is on `origin/main`; exact-head
+  run `33224632130` completed GREEN 30/30. The released census was
+  `CLOSED=54 BRIDGE=33 ACTIVE=1`.
+- Reached falsifiers: the current installed C path first accepted
+  `2147483648` as `-2147483648`. After lexical admission was added, a fresh
+  DRV-2 exposed the old returned-call consumer rule requiring empty ABI even
+  though current MIR carries a complete ArrayInt row. Both were real
+  executable defects; the row was not changed by status-only editing.
+- Implemented result: ArrayInt elements and indices must pass the existing
+  lexical domain before `ToInt`. Hoisted call results admit their carried ABI
+  and match ID, size, alignment, and all four offsets with the producer fact.
+  A call root fails the local route instead of falling into literal decoding.
+  The focused returned gate adds call-layout and call-ID mutations.
+- Observed local evidence: one fresh installed DRV-2 (6,447,592 bytes,
+  SHA-256 `7A3F207FEC13EDFDFF32A52941C7C378F0F2F42A38B069541531D0BC913F534E`)
+  passes local ArrayInt, returned ArrayInt, and mixed Int/String foreach C/LLVM
+  gates. Overflow, producer/call ABI, call identity, false-hoist, LocalRef, and
+  CFG mutations fail without artifacts. SoT edge is GREEN at 88 authorities /
+  182 carriers / `CLOSED=55 BRIDGE=32 ACTIVE=1`; hard closure is 62.5% and
+  migration is 81.0%. Documentation, progress metric, hard contract, and
+  likeness 4480/4480 are GREEN. Coq/Rocq execution is a declared local skip;
+  its live owner/consumer and negative checks pass.
+- Verification boundary: stage only this rung's tracked files, commit and push,
+  then require replacement exact-head CI GREEN. The broad local component
+  inventory is not rerun; the previous 90-second budget overrun is not claimed
+  GREEN. Supplementary ArrayInt and array-return gates stop before behavior on
+  unchanged pre-base owner line caps (175/160 and 110/80), so they are not
+  claimed GREEN and their unrelated caps are not loosened here. No successor
+  implementation or parallel publication lease opens before the remote result.
+- Exact worktree basis: HEAD equals `origin/main` at `d7b78575`; dirty tracked
+  files belong to this closure plus the prior closure's publication-document
+  refresh. Protected untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging scope.
+
+## Completed self-host context - intent observability ABI carried-ID publication
+
+- Implementation `d7b78575` is on `origin/main`; exact-head run
+  `33224632130` completed GREEN 30/30. The common append-only ABI registry owns
+  row identity, semantic/direct-MIR facts carry `RuntimeCallAbiId`, and reached
+  semantic C plus nested/composite C/LLVM consumers no longer reconstruct it
+  from source spelling.
+- Zero, foreign-valid, forged, and mixed identities fail before artifact
+  publication. The published census is `CLOSED=54 BRIDGE=33 ACTIVE=1`; the
+  successor audit opened only the foreach receipt rung above.
 
 ## Completed self-host context - intent declaration rows CI-ratchet repair publication
 

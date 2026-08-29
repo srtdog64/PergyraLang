@@ -1,8 +1,7 @@
 # Intent observability ABI BRIDGE closure — 2026-08-29
 
-Status: `ACTIVE — IMPLEMENTED LOCALLY, PUBLICATION PENDING` (exact base
-`e9633bbf3102497d065d78d722a75f1676963271`; replacement run `33220229230`
-completed GREEN 30/30 and released the sole implementation lease)
+Status: `DONE — PUBLISHED GREEN` (implementation `d7b78575`; exact-head run
+`33224632130` completed GREEN 30/30)
 
 This directive coordinates the next candidate rung. It is not semantic
 authority, a registry verdict, progress evidence, or permission to overlap the
@@ -87,7 +86,7 @@ definition, SoT registry, and executable gates remain authoritative.
   a red valid-ID crosswire before changing production code; the observed local
   results below, not the directive itself, support the current verdict.
 
-## Local integration evidence
+## Integration and publication evidence
 
 - The valid-ID crosswire was first observed RED in composite LLVM while source
   spelling and call shape stayed fixed. Production then moved semantic C,
@@ -97,8 +96,9 @@ definition, SoT registry, and executable gates remain authoritative.
   source/direct C plus LLVM reports twelve no-artifact negatives; composite
   LLVM reports five no-artifact negatives.
 - The registry row is locally `CLOSED`, reducing the census to
-  `CLOSED=54 BRIDGE=33 ACTIVE=1`. This remains unpublished evidence until the
-  tracked patch is committed, pushed, and replacement exact-head CI is GREEN.
+  `CLOSED=54 BRIDGE=33 ACTIVE=1`. Commit `d7b78575` is on `origin/main`; its
+  exact-head run `33224632130` completed GREEN 30/30, so this verdict is
+  published and the lease is released.
 - Broad component inventory exceeded its static budget and was stopped after
-  90 seconds without output. It is explicitly not claimed GREEN; the focused
-  row falsifiers and remote integration matrix own the remaining evidence.
+  90 seconds without output and is not claimed locally. The remote build-linux,
+  full self-host, Rocq, sanitizer, platform, and backend 20/20 jobs are GREEN.

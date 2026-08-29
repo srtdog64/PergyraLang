@@ -86,10 +86,34 @@ func DirectMirScalarCfgForEachCollectionFromOwners(
         );
     if collection_hoisted {
         if !DirectMirArrayIntProducerFactReady(producer) ||
-            declaration.abi_type_name != "" ||
+            declaration.abi_type_name != CompilerAbiLayoutArrayIntTypeName() ||
             !declaration.abi_type_value_ready ||
             DirectMirArrayReturnProducerName(graph) !=
                 producer.routine_name {
+            return invalid;
+        }
+        let returned_abi_opt: Option<MirAbiLayoutRowCapture> =
+            MirCapturedRequiredAbiLayoutRowAdmission(
+                admitted.routines.source_json, declaration.abi_type_name,
+                declaration.abi_type_value_ready, declaration.abi_type_start,
+                declaration.abi_type_end, declaration.abi_layout_id_start,
+                declaration.abi_layout_id_end,
+                declaration.abi_layout_required_start,
+                declaration.abi_layout_required_end,
+                declaration.abi_layout_start, declaration.abi_layout_end
+            );
+        if !IsSome(returned_abi_opt) { return invalid; }
+        let returned_abi: MirAbiLayoutRowCapture =
+            UnwrapOption(returned_abi_opt);
+        if !DirectMirArrayIntCapturedAbiReady(returned_abi) ||
+            MirAbiLayoutIdFromCapture(returned_abi) !=
+                producer.abi_layout_id ||
+            ToInt(returned_abi.size_text) != producer.abi_size ||
+            ToInt(returned_abi.align_text) != producer.abi_align ||
+            ToInt(returned_abi.field_offsets[0]) != producer.data_offset ||
+            ToInt(returned_abi.field_offsets[1]) != producer.length_offset ||
+            ToInt(returned_abi.field_offsets[2]) != producer.capacity_offset ||
+            ToInt(returned_abi.field_offsets[3]) != producer.allocator_offset {
             return invalid;
         }
         let elements: Array<Int> = [];
@@ -101,15 +125,25 @@ func DirectMirScalarCfgForEachCollectionFromOwners(
         let returned: DirectMirScalarCfgForEachCollectionFact =
             DirectMirScalarCfgForEachCollectionFact(
                 true, producer.storage_identity, elements,
-                producer.abi_layout_id, producer.abi_size,
-                producer.abi_align, producer.data_offset,
-                producer.length_offset, producer.capacity_offset,
-                producer.allocator_offset
+                MirAbiLayoutIdFromCapture(returned_abi),
+                ToInt(returned_abi.size_text),
+                ToInt(returned_abi.align_text),
+                ToInt(returned_abi.field_offsets[0]),
+                ToInt(returned_abi.field_offsets[1]),
+                ToInt(returned_abi.field_offsets[2]),
+                ToInt(returned_abi.field_offsets[3])
             );
         if !DirectMirScalarCfgForEachCollectionFactReady(returned) {
             return invalid;
         }
         return returned;
+    }
+    if graph.ok && ArrayLength(graph.roots) == 1 &&
+        graph.roots[0] >= 0 &&
+        graph.roots[0] < ArrayLength(graph.arena.topology.node_kinds) &&
+        graph.arena.topology.node_kinds[graph.roots[0]] ==
+            AstExpressionNodeCall() {
+        return invalid;
     }
     if declaration.abi_type_name != CompilerAbiLayoutArrayIntTypeName() {
         return invalid;

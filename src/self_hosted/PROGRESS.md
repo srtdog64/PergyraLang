@@ -1,6 +1,25 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-29 intent observability ABI publication
+## Active self-host context - 2026-08-29 foreach receipt BRIDGE closure
+
+- `projection.direct_mir_scalar_cfg_foreach_receipt` is locally `CLOSED`. The
+  original current-driver falsifier was RED: an ArrayInt element spelled
+  `2147483648` passed C projection as `-2147483648` because conversion wrapped
+  before the post-parse range check.
+- ArrayInt element and index admission now use the existing lexical signed
+  Int32 domain owner before `ToInt`. Returned call-result collections admit
+  their carried ArrayInt ABI and match ID, size, alignment, and four offsets
+  against the producer receipt. A direct-call root cannot retry as a local
+  literal.
+- A fresh installed DRV-2 passes local ArrayInt, returned ArrayInt, and mixed
+  Int/String foreach C/LLVM execution. Overflow, producer/call layout,
+  call-ID, false-hoist, identity, and CFG mutations fail with no artifact.
+  SoT edge reports 88 authorities / 182 carriers / `55/32/1`; hard closure is
+  62.5% and migration is 81.0%. Integrated progress remains conservatively
+  83% (81-85%) until exact-head CI publishes the change; strict beta is 83%
+  and hard replacement is 75%.
+
+## Completed self-host context - 2026-08-29 intent observability ABI publication
 
 - `abi.intent_observability_rows` now reaches semantic source-C, nested
   direct-MIR C/LLVM, and composite direct-MIR LLVM through the carried
@@ -15,7 +34,10 @@
   LLVM with five no-artifact negatives, and the exact old-read registry
   ratchet are local green. Census is `54/33/1`, hard closure 61.4%, migration
   80.4%, integrated 83% (81-85%), strict beta 83%, and hard replacement 75%.
-  Exact-head remote CI is the publication falsifier; no successor rung is open.
+  Implementation `d7b78575` exact-head run `33224632130` completed GREEN 30/30,
+  including build-linux, full self-host, and backend 20/20. The closure is
+  published. The successor candidate audit opened only the foreach receipt
+  rung above after reproducing its executable overflow failure.
 
 ## Completed self-host context - 2026-08-29 public formatter substitution
 

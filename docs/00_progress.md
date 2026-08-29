@@ -15,7 +15,24 @@ old-read ratchet이 모두 green이다. 따라서 현재 census는
 `CLOSED=54 BRIDGE=33 ACTIVE=1`, hard closure `54/88 = 61.4%`, migration
 `80.4%`다. 통합 진행도는 증거 가중치상 **83%** (81~85%), strict beta 83%, hard
 replacement 75%를 유지한다. 새 authority를 추가한 것이 아니라 실제 기존 BRIDGE가
-`34 -> 33`으로 줄었다. Exact-head CI가 남은 publication falsifier다.
+`34 -> 33`으로 줄었다. Implementation `d7b78575`의 exact-head CI run
+`33224632130`은 build-linux, full self-host, Rocq, sanitizer, platform 및 backend
+20/20을 포함해 GREEN 30/30으로 끝났고 이 closure는 published다.
+
+그다음 `projection.direct_mir_scalar_cfg_foreach_receipt`를 현재 실행으로 다시
+검증하자 상태만 고칠 수 없었다. `2147483648` 원소를 C가 `-2147483648`로 감아
+받아들이는 RED가 먼저 재현됐고, 최신 MIR가 반환 call-result local에 완전한
+ArrayInt ABI를 싣는데 consumer가 오히려 빈 ABI를 요구하는 stale seam도 드러났다.
+ArrayInt graph는 기존 signed Int32 spelling owner를 `ToInt`보다 먼저 소비하며,
+반환 collection owner는 call-site ABI의 ID/size/align/네 offset을 producer receipt와
+cross-seal한다. Call graph가 local literal decoder로 떨어지는 경로도 차단됐다.
+Fresh installed DRV-2의 local ArrayInt, returned ArrayInt, mixed Int/String foreach
+C/LLVM gate와 call ABI/ID, overflow, false-hoist no-artifact negatives가 GREEN이다.
+SoT edge는 88 authorities / 182 carriers / `CLOSED=55 BRIDGE=32 ACTIVE=1`을
+보고한다. Hard closure는 `55/88 = 62.5%`, migration은 `81.0%`다. 전체 통합
+진행도는 exact-head publication 전까지 보수적으로 **83%** (81~85%), strict beta
+83%, hard replacement 75%를 유지한다. 다음 publication falsifier는 이 scoped
+변경을 push한 exact-head CI다.
 
 `pgy fmt SOURCE [--check|--write]`의 native lexer/parser/layout 경로는
 로컬 트리에서 Pergyra 구현으로 치환됐다. `lexer/scan_owner.pgy`가 한 번 생성한
