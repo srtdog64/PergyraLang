@@ -6,6 +6,18 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE CI lease — Markdown-only Linux contract split
+
+- Exact base `244efe54367ed42a419a38f3a6aba00a8ba3f680` is on
+  `origin/main`. Its docs-only run `33231326817` correctly skipped nine
+  full-only jobs but still launched unconditional `build-linux`.
+- `scripts/ci_change_scope_owner.sh` remains the sole scope owner. The required
+  `build-linux` job now selects either the existing full Linux target or an
+  eight-script Markdown contract; unknown base and empty diff remain full.
+- Local CI-profile and all Markdown contract scripts are GREEN. The primary
+  task alone owns workflow/test edits, commit, push, and exact-head remote
+  interpretation. No semantic implementation lease is open in parallel.
+
 ## NO ACTIVE implementation lease — successor admission audit complete
 
 - Published basis: `e54ce620d49f79c3ab817ca9afeefd8b5a0310f7` is on

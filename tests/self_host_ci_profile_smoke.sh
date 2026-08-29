@@ -79,6 +79,25 @@ if ! grep -Fq 'needs: classify-changes' <<<"$build_linux_scope" ||
     echo "[self-host-ci-profile] build-linux must remain the mandatory Markdown contract gate" >&2
     exit 1
 fi
+if [[ "$(grep -Fc "if: needs.classify-changes.outputs.markdown_only != 'true'" <<<"$build_linux_scope")" != "2" ]] ||
+    [[ "$(grep -Fc "if: needs.classify-changes.outputs.markdown_only == 'true'" <<<"$build_linux_scope")" != "1" ]]; then
+    echo "[self-host-ci-profile] build-linux lost exclusive full/Markdown step selection" >&2
+    exit 1
+fi
+for markdown_gate in \
+    'bash tests/agent_boundary_sentinel_smoke.sh' \
+    'bash tests/object_action_boundary_contract_smoke.sh' \
+    'bash tests/documentation_quality_smoke.sh' \
+    'bash tests/post_selfhost_validation_manifest_smoke.sh' \
+    'bash tests/sot_authority_edge_smoke.sh' \
+    'bash tests/gate_sot_single_owner_smoke.sh' \
+    'bash tests/protocol_registry_smoke.sh' \
+    'bash tests/self_host_progress_metric_smoke.sh'; do
+    if ! grep -Fq "$markdown_gate" <<<"$build_linux_scope"; then
+        echo "[self-host-ci-profile] Markdown contract target lost: $markdown_gate" >&2
+        exit 1
+    fi
+done
 
 scope_tmp="$(mktemp -d)"
 trap 'rm -rf "$scope_tmp"' EXIT

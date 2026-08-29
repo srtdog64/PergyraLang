@@ -18,6 +18,24 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active CI context - Markdown-only Linux contract split
+
+- Objective: preserve `build-linux` as the mandatory check but make a
+  classifier-proven Markdown-only push execute only documentation, SoT,
+  protocol, and progress contracts. The exact changed-path classifier remains
+  the sole scope owner; unavailable base and empty diff stay fail-closed full.
+- Reached falsifier: docs-only commit `244efe54` caused nine full-only jobs to
+  skip but still launched unconditional dependency installation and
+  `make ci-push-linux` in run `33231326817`.
+- Implemented result: the required job keeps its stable name and has mutually
+  exclusive heavy and Markdown steps. The Markdown path runs eight exact
+  scripts without installing LLVM/Coq. The CI-profile gate and all eight
+  scripts pass locally.
+- Publication boundary: commit and push the workflow/test contract together,
+  then require exact-head CI GREEN. The current docs-only run is superseded by
+  the repository concurrency owner after push. No semantic successor rung is
+  open while this CI lease is active.
+
 ## No active self-host implementation - successor admission audit complete
 
 - Exact published basis is

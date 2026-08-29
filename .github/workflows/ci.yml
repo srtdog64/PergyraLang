@@ -45,6 +45,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Install dependencies
+        if: needs.classify-changes.outputs.markdown_only != 'true'
         # A degraded apt mirror must fail this step fast (rerunnable), not
         # hang silently until the job's whole hang budget cancels the job.
         # The Acquire hardening lives in apt.conf.d so the apt-get lines keep
@@ -57,7 +58,20 @@ jobs:
           sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
 
       - name: Run fast Linux push target
+        if: needs.classify-changes.outputs.markdown_only != 'true'
         run: make ci-push-linux
+
+      - name: Run Markdown contract target
+        if: needs.classify-changes.outputs.markdown_only == 'true'
+        run: |
+          bash tests/agent_boundary_sentinel_smoke.sh
+          bash tests/object_action_boundary_contract_smoke.sh
+          bash tests/documentation_quality_smoke.sh
+          bash tests/post_selfhost_validation_manifest_smoke.sh
+          bash tests/sot_authority_edge_smoke.sh
+          bash tests/gate_sot_single_owner_smoke.sh
+          bash tests/protocol_registry_smoke.sh
+          bash tests/self_host_progress_metric_smoke.sh
 
   sanitizers-linux:
     needs: classify-changes
