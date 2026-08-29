@@ -18,6 +18,42 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Latest bounded continuation — post-list_ops tail is green; no package bypass
+
+- Exact gate-repair checkpoint:
+  `b87260dc23f7076a565d0645676dc5057beb86a8`, based on published
+  `175fed904e42d89bd7c9246062d2bacee31a64eb`. Before the handoff-only refresh,
+  the only remaining uncommitted tracked path is this file; the protected
+  untracked paths `docs/compiler_architectures/`, `pgy-80135c2c/`, and
+  `pgy-91d769ec/` remain uninspected and untouched.
+- The current prebuilt LLVM driver was run against all nine manifest rows after
+  `list_ops`: `list_int_loop`, `for_in_list_int`, `list_push_get_loop`,
+  `list_shadow_scope_metadata`, `list_literal_context`,
+  `sequence_literal_list_queue`, `set_ops`, `set_literal_basic`, and
+  `loop_collect_distinct_set`. The first five passed together in 49 seconds and
+  the final four passed together in 42 seconds with producer-first source/MIR
+  parity. This is bounded discovery evidence, not a claim that an unrun local
+  284-row matrix passed.
+- The first discovery attempt stopped before executing `list_push_get_loop`.
+  Its negative mutation still matched the pre-`binding_syntax_id` expression
+  graph schema, so `pgy_replace_first_literal` failed closed. The focused
+  owner gate now includes the current zero-valued `binding_syntax_id` field in
+  both the before and after literals; it again proves that removing the
+  multiply right edge is rejected without an artifact.
+- Source audit confirms that `src/compiler/pkg.c` enters
+  `driver_run_pipeline` only behind the explicit `native_pipeline` bootstrap /
+  test opt-out. Default package check/build/run routes already consume the
+  installed MIR/C/LLVM owners and are guarded against native retry. It is not a
+  newly found production C bypass and must not be deleted as if it were one.
+- No successor implementation lease is inferred from these green fixtures.
+  The next implementation rung still requires a freshly reproduced production
+  falsifier or direct C bypass, an existing complete Pergyra fact owner, its
+  last orchestration consumer, and one focused executable gate.
+- This gate-schema repair changes neither hard `SUBSTITUTING` progress, the SoT
+  census, the 83% project forecast, nor the separately owned `C++-class` binary
+  reconstruction-resistance target. That target remains `OPEN` until its
+  cross-backend release-artifact gate is implemented and passes.
+
 ## Latest self-host bootstrap result — LLVM intent value ABI passes list_ops
 
 - Exact implementation checkpoint:
