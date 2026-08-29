@@ -20,8 +20,13 @@ percentage by themselves.
 
 ## Latest self-host bootstrap result — LLVM intent value ABI passes list_ops
 
-- Exact implementation base: `fa09d02c`. Published ancestor is
+- Exact implementation checkpoint:
+  `67fe8a85d034a43c2a72f87e71ea0bd5bf6ba78a`, based on the preceding Option
+  checkpoint `fa09d02c`. Published ancestor before this handoff refresh is
   `e19b15b2647664e4208f7d97e490318085f652d6` on `origin/main`.
+- Dirty-state observation at that checkpoint: no tracked changes; only the
+  protected untracked paths `docs/compiler_architectures/`, `pgy-80135c2c/`,
+  and `pgy-91d769ec/` remain and were not inspected, edited, or staged.
 - Production entrypoint: native LLVM compilation of the import-composed
   `driver_rung2_main.pgy` compiler driver, filtered to `list_ops`.
 - Removed falsifier: LLVM no longer supplies a `ptr` `%request` for the

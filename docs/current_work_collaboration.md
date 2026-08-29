@@ -8,7 +8,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## RETIRED lease — LLVM intent value-argument ABI blocker removed
 
-- Implemented from exact local base `fa09d02c`.
+- Implementation checkpoint:
+  `67fe8a85d034a43c2a72f87e71ea0bd5bf6ba78a`, from exact local base
+  `fa09d02c`.
 - Reproduced blocker: the filtered production LLVM driver reaches verification,
   then passes `%request` as `ptr` to `CompilePergyraCArtifact` even though the
   final `%DriverSourceCRequest` parameter is declared by value.
