@@ -48,8 +48,26 @@ it.
 - `tests/self_hosted_component_contract_smoke.sh` passed its full structural
   inventory. It now bans the retired scalar-preamble C struct literal, LLVM
   aggregate literal, and hard-coded data index, and tracks the new owners at
-  35/50, 77/90, and 139/160 lines. The existing collection orchestration owners
+  35/50, 76/90, and 139/160 lines. The existing collection orchestration owners
   are 77/110 and 112/115.
+
+## Reached CI falsifier and publication
+
+- Implementation `c554f007322407cff9b3336eee4e1dc2cdf04ed9` reached the
+  native-oracle emission in exact-head run `33235581429`. The compiler rejected
+  `let storage = projection.storage` because `projection` is a borrowed
+  boundary value and the new binding would extend its provenance. The
+  remaining TextBuilder diagnostics were downstream analysis fallout.
+- The repair does not change authority or ownership. The C storage materializer
+  consumes `projection.storage` directly inside the borrowed parameter scope.
+  A direct native-oracle C emission then completed with zero errors, and the
+  focused C/LLVM positive/negative gate, full component inventory, and
+  likeness `4493/4493` remained GREEN.
+- Repair `616f0ff892943f243914f32a1dd3940d10a3f6b2` is published on
+  `origin/main`. Exact-head run `33236522678` completed GREEN 30/30;
+  `build-linux` took 24m05s and full self-host took 26m52s. The run also
+  includes Rocq, sanitizers, Windows/macOS, codegen bootstrap, and backend
+  parity 20/20.
 
 ## Incidental stale-gate repair
 

@@ -18,6 +18,54 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## No active self-host implementation - ArrayString scalar preamble projection published
+
+- Objective: close one executable prerequisite of
+  `abi.mir_array_string_layout_projection`, not the whole registry row. The
+  production scalar-program C/LLVM collection preambles now derive one
+  target-qualified `DirectMirArrayStringAbiProjection` from the carried
+  `DirectMirScalarProgramArrayStringAbiFact` and consume that projection
+  instead of reconstructing four-field storage layout locally.
+- Fact owners and last consumers: admitted ArrayString layout identity remains
+  with `DirectMirArrayStringCapturedAbiReady`; the scalar-program fact carries
+  its receipt; the target projection owns C storage spelling and LLVM indices.
+  The reached last consumers are the scalar C/LLVM String collection preambles.
+  The private `pgy_as` and public `PgyArray_String` type-name boundary did not
+  move.
+- Forbidden fallback and falsifier: backend-local aggregate/offset/index
+  literals, type-string lookup, a second backend projection, and a complete
+  ArrayInt row-plus-ID under ArrayString type are rejected. The mixed two-
+  ArrayString/two-ArrayInt value-result gate executes C and LLVM and requires
+  the cross-family mutation to fail without an artifact. The component gate
+  ratchets the retired literal paths.
+- Reached CI falsifier: implementation `c554f007` reached the native-oracle
+  compiler in run `33235581429`. It rejected a local binding of
+  `projection.storage` because the borrowed projection subvalue would escape
+  into a longer-lived binding. The trailing TextBuilder diagnostics were
+  analysis fallout, not separate fixes.
+- Repair: `DirectMirScalarProgramCStringArrayStorageBlock` now consumes
+  `projection.storage` directly and does not transfer or extend the borrow.
+  Direct native-oracle C emission then completed with zero errors; focused
+  C/LLVM parity plus negatives, the full component inventory, and likeness
+  `4493/4493` are GREEN. Owner sizes are 35/50 for the program projection,
+  76/90 for C storage, 139/160 for LLVM storage, 77/110 for C orchestration,
+  and 112/115 for LLVM orchestration. No cap was raised.
+- Publication result: repair `616f0ff892943f243914f32a1dd3940d10a3f6b2`
+  is on `origin/main`; exact-head run `33236522678` completed GREEN 30/30.
+  `build-linux` passed in 24m05s and full self-host passed in 26m52s. Rocq,
+  sanitizers, all platforms, codegen bootstrap, and backend parity 20/20 are
+  included in that result.
+- Registry status remains `CLOSED=55 BRIDGE=32 ACTIVE=1`. LLVM StringJoin,
+  process/directory adapters, parameter binding, value-result transfer, owned
+  return, local mutation, cleanup, and other expression consumers remain
+  independent prerequisites. No successor implementation lease is open; do
+  not manufacture `56/31/1` from this bounded replacement.
+- Exact implementation basis is `616f0ff8` on `origin/main`. The only intended
+  tracked dirty state before the next publication is this coordination/audit
+  refresh. Protected untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging scope.
+
 ## Completed CI context - Markdown-only Linux contract split
 
 - Objective: preserve `build-linux` as the mandatory check but make a

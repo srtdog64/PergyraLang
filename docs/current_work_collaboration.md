@@ -6,10 +6,11 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — ArrayString scalar preamble target projection
+## NO ACTIVE implementation lease — ArrayString scalar preamble target projection published
 
-- Exact base is `9619f9078fe5795a4e97a7bace64a8f039b62fe7` on
-  `origin/main`. The primary task is the sole integration owner.
+- Exact implementation base was
+  `9619f9078fe5795a4e97a7bace64a8f039b62fe7` on `origin/main`. The primary
+  task remained the sole integration owner.
 - Objective: the production scalar-program C/LLVM collection preambles derive
   one target-qualified ArrayString ABI projection from the carried program
   fact and stop reconstructing storage size, offsets, aggregate spelling, and
@@ -22,6 +23,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   no artifact, and the structural ratchet rejects old scalar-preamble layout
   literals. See
   `docs/agent_work_directives/array_string_scalar_preamble_projection_2026-08-29.md`.
+- Publication result: implementation `c554f007` reached a borrowed-subvalue
+  lifetime falsifier in exact-head run `33235581429`. Repair `616f0ff8` keeps
+  `projection.storage` within the borrowed parameter boundary and is on
+  `origin/main`; replacement run `33236522678` completed GREEN 30/30. The
+  lease is released at `CLOSED=55 BRIDGE=32 ACTIVE=1`. No successor
+  implementation lease is open.
 
 ## DONE CI lease — Markdown-only Linux contract split
 

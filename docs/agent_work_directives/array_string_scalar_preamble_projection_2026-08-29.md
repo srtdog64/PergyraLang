@@ -1,6 +1,6 @@
 # ArrayString scalar preamble target projection — 2026-08-29
 
-Status: `ACTIVE — IMPLEMENTATION`
+Status: `DONE — PUBLISHED GREEN`
 
 Exact base: `9619f9078fe5795a4e97a7bace64a8f039b62fe7` on `origin/main`.
 
@@ -67,17 +67,23 @@ authority or progress evidence by itself.
   and rejects the complete ArrayInt row-plus-ID crosswire with no artifact.
   The String collection builtin, Args, and DirWalk C/LLVM gates are also GREEN.
 - The full component inventory is GREEN. C/LLVM orchestration owners are
-  77/110 and 112/115; the target-projection/storage owners are 35/50, 77/90,
+  77/110 and 112/115; the target-projection/storage owners are 35/50, 76/90,
   and 139/160. No cap was raised.
 - SoT edge is GREEN at 88 authorities, 182 carriers, and `55/32/1`. The
   likeness ratchet is GREEN at `result_use=4493/4493`. Local SoT adequacy
   declares the missing Coq/Rocq prover and still passes live binding and
   negative mutations; it does not claim the formal model executed.
-- Exact-head CI publication remains pending. The implementation lease stays
-  active until the pushed revision is GREEN.
+- First publication `c554f007` reached the native-oracle compiler in run
+  `33235581429`, which correctly rejected a local `storage` binding derived
+  from the borrowed `projection` parameter. The C materializer now consumes
+  `projection.storage` directly. Direct native-oracle emission then completed
+  with zero errors and the focused plus structural gates remained GREEN.
+- Repair `616f0ff892943f243914f32a1dd3940d10a3f6b2` is on `origin/main`.
+  Exact-head run `33236522678` completed GREEN 30/30, including full
+  self-host, Linux/Windows/macOS, sanitizers, Rocq, codegen bootstrap, and
+  backend parity 20/20. The implementation lease is released.
 
 ## Output classification
 
-Source and test edits are implementation candidates until the focused gate,
-registry/structural gates, installed-driver evidence, commit, push, and
-exact-head CI have been observed. The census remains `55/32/1`.
+This bounded prerequisite is published executable evidence. It does not own
+or imply whole-row closure. The census remains `55/32/1`.
