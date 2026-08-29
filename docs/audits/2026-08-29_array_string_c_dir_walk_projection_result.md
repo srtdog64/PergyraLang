@@ -1,6 +1,6 @@
 # ArrayString C DirWalk target projection result — 2026-08-29
 
-Status: `LOCAL IMPLEMENTATION CANDIDATE`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `568c7b07292ee4ddee4e573b4f1ec1db2d2e9f27` on
 `origin/main`.
@@ -57,4 +57,7 @@ binding, value-result transfer, owned return, mutation, cleanup, and other
 expression materializers still require consumer migration. No `56/31/1`
 closure is claimed.
 
-Commit, push, and exact-head CI remain the publication boundary.
+Implementation `067871d5e1697d5b8d3655057f625b203f938a46` is on
+`origin/main`. Exact-head run `33241239809` completed GREEN 30/30;
+`build-linux` passed in 24m36s, full self-host in 21m21s, and backend parity
+20/20. The bounded replacement is remotely published.

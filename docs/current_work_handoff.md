@@ -18,12 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context - ArrayString C DirWalk target projection
+## No active self-host implementation - ArrayString C DirWalk target projection published
 
-- Exact base is `568c7b07292ee4ddee4e573b4f1ec1db2d2e9f27` on
-  `origin/main`; the tracked worktree contains the one active implementation
-  candidate described below. The primary task owns the sole implementation
-  lease.
+- Exact implementation base was
+  `568c7b07292ee4ddee4e573b4f1ec1db2d2e9f27` on `origin/main`. The primary
+  task owned the sole implementation lease.
 - Objective: the production scalar C `DirWalk` adapter consumes the existing
   C-qualified ArrayString projection and no longer reconstructs its four-field
   layout positionally. One scalar-program readiness owner now cross-seals the
@@ -49,9 +48,12 @@ percentage by themselves.
   fallback. Census stays `CLOSED=55 BRIDGE=32 ACTIVE=1`; Args, parameter
   binding, value-result transfer, owned return, mutation, cleanup, and other
   expression materializers still prevent whole-row closure.
-- Next falsifier: exact-head full CI after an explicit implementation commit and
-  push. Do not open another semantic rung before that result. Protected
-  untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
+- Publication result: implementation
+  `067871d5e1697d5b8d3655057f625b203f938a46` is on `origin/main`; exact-head
+  run `33241239809` completed GREEN 30/30. `build-linux` passed in 24m36s,
+  full self-host passed in 21m21s, and backend parity passed 20/20. The lease
+  is released; no successor implementation lease is open.
+- Protected untracked `docs/compiler_architectures/`, `pgy-80135c2c/`, and
   `pgy-91d769ec/` remain outside inspection, edit, and staging scope.
 
 ## No active self-host implementation - ArrayString LLVM Join target projection published

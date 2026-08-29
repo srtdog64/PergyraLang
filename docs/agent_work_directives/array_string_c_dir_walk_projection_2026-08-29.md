@@ -1,6 +1,6 @@
 # ArrayString C DirWalk target projection — 2026-08-29
 
-Status: `ACTIVE — IMPLEMENTATION`
+Status: `PUBLISHED — REMOTE GREEN`
 
 Exact base: `568c7b07292ee4ddee4e573b4f1ec1db2d2e9f27` on `origin/main`.
 
@@ -83,5 +83,8 @@ evidence, commit, push, and exact-head CI are observed. The census remains
   99/115 for LLVM collection materialization, 24/25 for C DirWalk, and 80/110
   for C collection orchestration. No cap was raised.
 
-This remains an implementation candidate until commit, push, and exact-head
-CI are observed. `abi.mir_array_string_layout_projection` stays `BRIDGE`.
+Publication result: implementation
+`067871d5e1697d5b8d3655057f625b203f938a46` is on `origin/main`; exact-head
+run `33241239809` completed GREEN 30/30. `build-linux` passed in 24m36s and
+full self-host passed in 21m21s. Backend parity passed 20/20. The lease is
+released. `abi.mir_array_string_layout_projection` stays `BRIDGE`.

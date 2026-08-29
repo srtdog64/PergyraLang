@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — ArrayString C DirWalk target projection
+## NO ACTIVE implementation lease — ArrayString C DirWalk target projection published
 
 - Exact base is `568c7b07292ee4ddee4e573b4f1ec1db2d2e9f27` on
   `origin/main`. The primary task is the sole integration owner.
@@ -20,6 +20,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `docs/agent_work_directives/array_string_c_dir_walk_projection_2026-08-29.md`.
 - LLVM DirWalk and other ArrayString consumers are outside this lease. Census
   remains `CLOSED=55 BRIDGE=32 ACTIVE=1`; no whole-row closure is claimed.
+- Publication result: implementation
+  `067871d5e1697d5b8d3655057f625b203f938a46` is on `origin/main`; exact-head
+  run `33241239809` completed GREEN 30/30. `build-linux` passed in 24m36s,
+  full self-host passed in 21m21s, and backend parity passed 20/20. The lease
+  is released; no successor implementation lease is open.
 
 ## NO ACTIVE implementation lease — ArrayString LLVM Join target projection published
 
