@@ -24,10 +24,14 @@ pgy_selfhost_verify_driver_rung2_nested_coalesce() {
     local fact target_count
     [[ "$base" == "nested_coalesce_chain" ]] || return 0
 
+    if ! grep -Eq '"name":"fallback","source_syntax_id":[1-9][0-9]*,"type":"Int","carriage":"value"' \
+        "$self_mir_json"; then
+        echo "[self-host-parity:driver-rung2] $backend nested-coalesce parameter row drifted" >&2
+        exit 1
+    fi
     for fact in \
         '"name":"HalvedIfPositive","kind":"function"' \
         '"return":"Option<Int>"' \
-        '"name":"fallback","type":"Int"' \
         '"kind":"coalesce","text":"HalvedIfPositive(n) ?? fallback"' \
         '"kind":"coalesce","text":"HalvedIfPositive(first) ?? fallback"' \
         '"name":"first","type":"Int"' \

@@ -24,10 +24,14 @@ pgy_selfhost_verify_driver_rung2_collection_option_coalesce_loop() {
     local fact row kind target expected actual
     [[ "$base" == "coalesce_accumulate_loop" ]] || return 0
 
+    if ! grep -Eq '"name":"arr","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"' \
+        "$self_mir_json"; then
+        echo "[self-host-parity:driver-rung2] $backend collection/Option/coalesce parameter row drifted" >&2
+        exit 1
+    fi
     for fact in \
         '"name":"ParityVal","kind":"function"' \
         '"return":"Option<Int>"' \
-        '"name":"arr","type":"Array<Int>","carriage":"value"' \
         '"kind":"index","text":"arr[i]"' \
         '"kind":"coalesce","text":"ParityVal(arr[i]) ?? (-1)"' \
         '"kind":"add","text":"total + (ParityVal(arr[i]) ?? (-1))"' \

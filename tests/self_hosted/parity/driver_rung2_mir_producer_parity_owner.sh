@@ -144,15 +144,15 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_else_if_graph \
             "$backend" "$base" "$self_mir_json"
         if [[ "$base" == "param_carriage" ]]; then
-            grep -Fq '"name":"pair","type":"Pair","carriage":"readonly-ref","resource":"none","pass":"indirect"' "$self_mir_json" || {
+            grep -Eq '"name":"pair","source_syntax_id":[1-9][0-9]*,"type":"Pair","carriage":"readonly-ref","resource":"none","pass":"indirect"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend readonly-ref aggregate ABI fact drifted" >&2
                 exit 1
             }
-            grep -Fq '"name":"value","type":"Int","carriage":"value-result","resource":"none","pass":"direct"' "$self_mir_json" || {
+            grep -Eq '"name":"value","source_syntax_id":[1-9][0-9]*,"type":"Int","carriage":"value-result","resource":"none","pass":"direct"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend value-result ABI fact drifted" >&2
                 exit 1
             }
-            grep -Fq '"name":"values","type":"Array<Int>","carriage":"owner-handle","resource":"none","pass":"direct"' "$self_mir_json" || {
+            grep -Eq '"name":"values","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"owner-handle","resource":"none","pass":"direct"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend owner-handle ABI fact drifted" >&2
                 exit 1
             }

@@ -21,14 +21,18 @@ pgy_selfhost_collection_enum_reject_mutation() {
 
 pgy_selfhost_verify_driver_rung2_collection_enum_match_loop() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
-    local fact row kind target expected actual
+    local fact row kind target expected actual mutation_from mutation_to
     [[ "$base" == "array_match_action_sim" ]] || return 0
 
+    if ! grep -Eq '"name":"prices","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"' \
+        "$self_mir_json"; then
+        echo "[self-host-parity:driver-rung2] $backend collection/enum parameter row drifted" >&2
+        exit 1
+    fi
     for fact in \
         '"kind":"enum","nominal_kind":"enum","name":"Action"' \
         '"variants":[{"name":"Buy","param_count":0,"param_types":[]},{"name":"Sell","param_count":0,"param_types":[]},{"name":"Hold","param_count":0,"param_types":[]}' \
         '"name":"DecideOf","kind":"function"' '"return":"Action"' \
-        '"name":"prices","type":"Array<Int>","carriage":"value"' \
         '"kind":"index","text":"prices[i]"' \
         '"match_patterns":["Buy"],"match_variant":null' \
         '"match_patterns":["Sell"],"match_variant":null' \
@@ -70,7 +74,10 @@ pgy_selfhost_verify_driver_rung2_collection_enum_match_loop() {
     pgy_selfhost_collection_enum_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
         loop-phi '"uses":["cash.1","cash.23"]' '"uses":["cash.1"]' \
         "MIR phi facts are missing or inconsistent: Simulate"
+    mutation_from="$(grep -Eo '"name":"prices","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"' \
+        "$self_mir_json" | head -n 1)"
+    mutation_to="${mutation_from/\"type\":\"Array<Int>\"/\"type\":\"Array<String>\"}"
     pgy_selfhost_collection_enum_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
-        array-element-type '"name":"prices","type":"Array<Int>","carriage":"value"' '"name":"prices","type":"Array<String>","carriage":"value"' \
+        array-element-type "$mutation_from" "$mutation_to" \
         "Code: let_type_mismatch"
 }

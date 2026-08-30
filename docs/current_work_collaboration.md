@@ -6,6 +6,28 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## NO ACTIVE implementation lease — 284-row DRV-2 discovery is green
+
+- Discovery started from exact tracked base
+  `e7fe0255f8f2d8668cdc50fd8f9622fe8a8aae03`, then used one installed
+  Pergyra-built driver with SHA-256
+  `0A24A1F3969043FAF2C2B79FA7B3EDCB70CF4C707620DCD41A1E5EADF466A8DA`.
+- All 284 rows of the Pergyra-owned MIR fixture manifest were executed through
+  the hard producer-first source/MIR parity lane in bounded filtered batches.
+  Every batch passed after repairing eight gate-owner scripts that still
+  matched the pre-`source_syntax_id` parameter-row schema.
+- Edit scope is limited to those eight parity-owner scripts plus this ledger
+  and the current handoff. The protected untracked paths
+  `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/` remain
+  outside inspection, edit, and staging scope.
+- This is gate-schema repair and corpus evidence, not a compiler
+  implementation lease. It changes neither hard substitution, the
+  `55/32/1` census, the 83% forecast, nor the open binary reconstruction target.
+- No successor implementation work may be inferred from the green corpus. A
+  new lease requires a fresh production falsifier or direct C bypass and a new
+  objective card naming the existing owner, last consumer, forbidden fallback,
+  and one integration gate.
+
 ## RETIRED publication lease — ArrayString value-result consumes target projection
 
 - Implementation checkpoint:

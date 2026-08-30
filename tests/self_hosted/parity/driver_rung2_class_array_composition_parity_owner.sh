@@ -32,30 +32,32 @@ pgy_selfhost_class_array_reject_missing_target() {
 
 pgy_selfhost_verify_driver_rung2_class_array_composition() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
-    local fact row kind target expected actual
-    local -a facts target_rows
+    local fact row kind target expected actual mutation_from mutation_to
+    local -a facts parameter_rows target_rows
     case "$base" in
         class_with_array_param)
             facts=(
                 '"name":"FillArr","kind":"function"' '"return":"Array<Int>"'
-                '"name":"slot","type":"Slot2","carriage":"value"'
-                '"name":"arr","type":"Array<Int>","carriage":"value"'
                 '"kind":"phi","name":"arr","result":"arr.3"' '"uses":["arr.1","arr.6"]'
                 '"kind":"phi","name":"total","result":"total.3"' '"uses":["total.1","total.6"]'
                 '"kind":"member_access","text":"slot.id"' '"kind":"member_access","text":"slot.mark"'
                 '"expr1":"arr[i]","expr1_graph":{"root":2')
+            parameter_rows=(
+                '"name":"slot","source_syntax_id":[1-9][0-9]*,"type":"Slot2","carriage":"value"'
+                '"name":"arr","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"')
             target_rows=(direct:FillArr:1 direct:SumWith:4 direct:Slot2:4)
             ;;
         class_param_method_arr)
             facts=(
                 '"name":"Worth","kind":"method","source_syntax_id":5,'
                 '"receiver_carriage":"value","owner":"Bag2"'
-                '"name":"rate","type":"Int","carriage":"value"'
-                '"name":"rates","type":"Array<Int>","carriage":"value"'
                 '"kind":"phi","name":"total","result":"total.4"' '"uses":["total.1","total.7"]'
                 '"kind":"member_access","text":"bag.Worth"'
                 '"kind":"index","text":"rates[i]"'
                 '"kind":"call_argument","text":"bag.Worth(rates[i])"')
+            parameter_rows=(
+                '"name":"rate","source_syntax_id":[1-9][0-9]*,"type":"Int","carriage":"value"'
+                '"name":"rates","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"')
             target_rows=(direct:Bag2:1 member:Bag2_Worth:1 direct:TotalWorth:4)
             ;;
         *) return 0 ;;
@@ -64,6 +66,12 @@ pgy_selfhost_verify_driver_rung2_class_array_composition() {
     for fact in "${facts[@]}"; do
         grep -Fq "$fact" "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend class/array fact drifted: $fact" >&2
+            exit 1
+        }
+    done
+    for row in "${parameter_rows[@]}"; do
+        grep -Eq "$row" "$self_mir_json" || {
+            echo "[self-host-parity:driver-rung2] $backend class/array parameter row drifted: $row" >&2
             exit 1
         }
     done
@@ -83,15 +91,21 @@ pgy_selfhost_verify_driver_rung2_class_array_composition() {
         pgy_selfhost_class_array_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
             index-target-graph '"expr1":"arr[i]","expr1_graph":{' '"expr1":"arr[i]","expr1_graph_removed":{' \
             "MIR instruction expression graph is missing or invalid"
+        mutation_from="$(grep -Eo '"name":"arr","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"' \
+            "$self_mir_json" | head -n 1)"
+        mutation_to="${mutation_from/\"type\":\"Array<Int>\"/\"type\":\"Unknown\"}"
         pgy_selfhost_class_array_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
-            array-param-type '"name":"arr","type":"Array<Int>","carriage":"value"' '"name":"arr","type":"Unknown","carriage":"value"' \
+            array-param-type "$mutation_from" "$mutation_to" \
             "Code: assignment_type_unresolved"
     else
         pgy_selfhost_class_array_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
             index-kind '"kind":"index","text":"rates[i]"' '"kind":"leaf","text":"rates[i]"' \
             "MIR instruction expression graph is missing or invalid"
+        mutation_from="$(grep -Eo '"name":"rates","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"' \
+            "$self_mir_json" | head -n 1)"
+        mutation_to="${mutation_from/\"type\":\"Array<Int>\"/\"type\":\"Array<String>\"}"
         pgy_selfhost_class_array_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
-            array-element-type '"name":"rates","type":"Array<Int>","carriage":"value"' '"name":"rates","type":"Array<String>","carriage":"value"' \
+            array-element-type "$mutation_from" "$mutation_to" \
             "Code: call_arg_type_mismatch"
     fi
 }

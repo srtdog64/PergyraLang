@@ -27,12 +27,16 @@ pgy_selfhost_verify_driver_rung2_nominal_builtin_collision() {
     local fact row kind target expected actual missing_return
     [[ "$base" == "class_user_box" ]] || return 0
 
+    if ! grep -Eq '"name":"self","source_syntax_id":[1-9][0-9]*,"type":null,"carriage":"value"' \
+        "$self_mir_json"; then
+        echo "[self-host-parity:driver-rung2] $backend nominal self parameter row drifted" >&2
+        exit 1
+    fi
     for fact in \
         '"kind":"class","nominal_kind":"class","name":"Box"' \
         '"name":"WithWeight","kind":"method"' \
         '"name":"Heavy","kind":"method"' \
         '"name":"New","kind":"function"' \
-        '"name":"self","type":null,"carriage":"value"' \
         '"owner":"Box"' \
         '"kind":"member_access","text":"New(4).WithWeight(0).weight"' \
         '"kind":"member_access","text":"New(5).WithWeight(75).label"'; do

@@ -18,6 +18,55 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Latest bounded continuation — current prebuilt DRV-2 passes all 284 MIR manifest rows
+
+- Exact tracked base before this gate repair is
+  `e7fe0255f8f2d8668cdc50fd8f9622fe8a8aae03`, equal to `origin/main` at the
+  start of the continuation. The installed `bin/pgy-self-driver.exe` used for
+  every discovery batch has SHA-256
+  `0A24A1F3969043FAF2C2B79FA7B3EDCB70CF4C707620DCD41A1E5EADF466A8DA`.
+- Production entrypoint: the installed Pergyra-built driver under
+  `PGY_SELFHOST_DRIVER_BACKENDS=hard`, consuming the Pergyra-owned
+  `DriverRung2MirFixtureRows` manifest. Manifest source lines 9-292 contain
+  exactly 284 entries. Lines 9-135, 136-255, 256-260, 261-265, 266-282, and
+  283-292 were executed in bounded filtered batches; every completed batch
+  reported producer-first source/MIR parity with the requested fixture count.
+  This is one-backend hard-lane evidence, not a claim that every CI backend
+  matrix or the full component contract ran locally.
+- The discovery initially stopped at nine fixtures because eight parity-owner
+  scripts still assumed the old parameter-row adjacency
+  `name -> type`. Current owner output correctly publishes
+  `name -> source_syntax_id -> type`. The repaired gates now require a positive
+  source syntax identity and preserve it when mutating parameter types. Covered
+  fixtures are `class_method_enum_classify`, `class_user_box`,
+  `class_with_array_param`, `class_param_method_arr`,
+  `array_match_action_sim`, `coalesce_accumulate_loop`,
+  `coalesce_in_if_condition`, `nested_coalesce_chain`, and `param_carriage`.
+- The `param_carriage` inspection confirmed that semantics did not drift:
+  `Pair` remains `readonly-ref`/`indirect`, `Int` remains
+  `value-result`/`direct`, and `Array<Int>` remains
+  `owner-handle`/`direct`. The stops were test-schema drift, not a compiler ABI
+  mismatch or a native/self execution split.
+- One `worker pool inactive; task runs inline (serial)` warning was observed
+  while running lines 104-108. `pgy_parallel_spawn.h` deliberately emits this
+  warning for the documented observable serial fallback. It did not change
+  source/MIR parity and does not open an unrelated runtime implementation rung.
+- `bash -n` over every edited shell owner and `git diff --check` are green.
+  `self_host_hard_contract_smoke.sh`, `sot_authority_edge_smoke.sh`, and
+  `gate_sot_single_owner_smoke.sh` are green; the authority census remains
+  `CLOSED=55 / BRIDGE=32 / ACTIVE=1`.
+- The attached 2026-08-30 architecture review observed older checkpoints
+  `175fed90` / `67fe8a85`. Its expected-type, expression-place,
+  `CallArgumentPlan`, and keyed-query proposals remain design input, not
+  current executable authority. This complete corpus run produced no fresh
+  compiler falsifier that would justify opening a generic query layer or a new
+  contextual special case.
+- No hard `SUBSTITUTING` numerator, SoT census, 83% project forecast, or
+  C++-class reconstruction-resistance status changes. There is no successor
+  implementation lease: the next rung still requires a freshly reproduced
+  production failure or direct C bypass outside this now-green corpus, its
+  existing fact owner, last consumer, forbidden fallback, and focused gate.
+
 ## Published — ArrayString value-result target projection is CI green
 
 - Exact implementation checkpoint:

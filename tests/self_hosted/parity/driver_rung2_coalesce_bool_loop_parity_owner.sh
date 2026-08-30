@@ -24,10 +24,14 @@ pgy_selfhost_verify_driver_rung2_coalesce_bool_loop() {
     local fact
     [[ "$base" == "coalesce_in_if_condition" ]] || return 0
 
+    if ! grep -Eq '"name":"arr","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"' \
+        "$self_mir_json"; then
+        echo "[self-host-parity:driver-rung2] $backend coalesce-bool-loop parameter row drifted" >&2
+        exit 1
+    fi
     for fact in \
         '"name":"MaybeFlag","kind":"function"' \
         '"return":"Option<Bool>"' \
-        '"name":"arr","type":"Array<Int>","carriage":"value"' \
         '"kind":"index","text":"arr[i]"' \
         '"kind":"coalesce","text":"MaybeFlag(arr[i]) ?? false"' \
         '"kind":"phi","name":"count","result":"count.3"' \

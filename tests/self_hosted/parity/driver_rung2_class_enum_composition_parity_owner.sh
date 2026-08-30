@@ -72,10 +72,14 @@ pgy_selfhost_verify_driver_rung2_class_enum_composition() {
         patterns=(Zero Small Big Negative)
         targets=(Counter_IsZero Counter_IsBig Counter_IsPos Classify)
         first_variant=Zero
+        if ! grep -Eq '"name":"c","source_syntax_id":[1-9][0-9]*,"type":"Counter","carriage":"value"' \
+            "$self_mir_json"; then
+            echo "[self-host-parity:driver-rung2] $backend class-to-enum parameter row drifted" >&2
+            exit 1
+        fi
         for fact in \
             '"name":"Classify","kind":"function"' \
             '"return":"Verdict"' \
-            '"name":"c","type":"Counter","carriage":"value"' \
             '"kind":"member_access","text":"c.value"'; do
             grep -Fq "$fact" "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend class-to-enum fact drifted: $fact" >&2
