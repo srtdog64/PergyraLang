@@ -1,6 +1,6 @@
 # Fixed-Point Driver Reuse — 2026-08-30
 
-Status: `IMPLEMENTED — FIRST EXACT CI GREEN; CC-ALIAS FIX PENDING CI`
+Status: `FUNCTIONAL CI GREEN — PUSH FOCUSED-GATE WIRING PENDING CI`
 
 Exact base: `3a0c78943f4fa4804731df304f416de8092e7624` on
 `origin/main`.
@@ -150,3 +150,25 @@ negative receipt gate. It changes neither 88 authorities / 183 carriers /
   The focused alias gate plus current component, hard, and build-source
   inventory contracts are GREEN. A second exact CI run is the next falsifier;
   `build-linux` must show one ordinary emit and a later pre-emission reuse.
+
+## Second exact-head CI and final wiring residual
+
+- Alias-normalization commit `d3cf4e9e22e22d480c763d2e8760f56a7209b5e5`
+  is on `origin/main`. Exact run `33317553455` is GREEN 30/30. In
+  `build-linux`, the log now has exactly one ordinary typed-source emit at
+  `14:48:15.222Z`, one installed driver at `14:53:02.176Z`, and one
+  pre-emission reuse at `14:57:35.231Z`; the previous second 3-5 minute emit is
+  absent. The job took 23m33s, so the semantic operation count—not one noisy
+  wall-time sample—is the acceptance evidence.
+- Full self-host remained correct: one 172,273-line fixed point at
+  `15:16:29.289Z`, one receipt adoption 0.55s later, one installation, and zero
+  ordinary emits. It completed in 35m13s, still 2m37s below the original
+  37m50s baseline while showing ordinary runner variance from the first
+  receipt run's 32m39s.
+- A log census found the focused mutation gate absent from the actual push
+  step list. It had been added to full-platform `ci_linux_steps.sh`, while
+  `ci-push-linux` owns `ci_push_linux_steps.sh`. The active final wiring adds
+  the gate to the push list and makes build-source inventory require both
+  lists. Focused receipt mutation and build-source inventory gates are GREEN;
+  one final exact CI run must show the focused PASS line before retiring the
+  lease. This wiring correction changes no compiler artifact or SoT status.

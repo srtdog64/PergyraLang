@@ -69,6 +69,19 @@ percentage by themselves.
   Current focused, component, hard, and inventory gates are GREEN. The next
   falsifier is a second exact CI with one `build-linux` emit followed by one
   `reusing source-graph fingerprinted driver before emission` line.
+- The alias repair is published as
+  `d3cf4e9e22e22d480c763d2e8760f56a7209b5e5`; exact run `33317553455` is
+  GREEN 30/30. `build-linux` now has exactly one emit, one install, and one
+  later pre-emission reuse. Full self-host again has one 172,273-line fixed
+  point, one adoption 0.55s later, one install, and zero ordinary emits.
+- The remaining dirty edit is CI evidence wiring only. Log census showed the
+  focused mutation gate absent because `ci-push-linux` executes
+  `scripts/ci_push_linux_steps.sh`, not the already-edited full-platform list.
+  The gate is now in both lists and build-source inventory ratchets both.
+  Focused and inventory gates are GREEN. Next falsifier: publish this two-file
+  wiring correction and require exact push CI to contain
+  `[self-host-driver-fixed-point-receipt-smoke] PASS`; then refresh this card
+  and retire the lease without changing SoT counts or the 83% forecast.
 
 ## Published — ArrayString literal target projection is CI green
 

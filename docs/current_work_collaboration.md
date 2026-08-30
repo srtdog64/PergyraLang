@@ -40,6 +40,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   identity to executable content, dump version, and target triple; local
   aliases now produce one exact prebuild key. Focused/component/hard/inventory
   gates are GREEN, but the lease remains active through the second exact CI.
+- Commit `d3cf4e9e22e22d480c763d2e8760f56a7209b5e5` is published and exact
+  run `33317553455` is GREEN 30/30. `build-linux` now proves exactly one emit,
+  one install, and one later pre-emission reuse; full self-host again proves
+  one fixed point, one adoption, and zero ordinary emits.
+- Log inspection also falsified the claimed focused-gate wiring: the full
+  Linux list contained it, but the push job executes `ci_push_linux_steps.sh`.
+  The active final edit adds the gate to that actual list and ratchets both
+  lists in build-source inventory. Its focused and inventory gates are GREEN;
+  the lease remains active only through exact CI publication of that PASS.
 
 ## DONE lease — ArrayString literal target projection published
 

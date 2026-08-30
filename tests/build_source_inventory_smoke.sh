@@ -570,6 +570,8 @@ if ! grep -Fq 'backend-compare-linux:' "$ROOT_DIR/.github/workflows/ci.yml" \
 fi
 if ! grep -Fq 'self-host-driver-fixed-point-receipt-test-smoke' \
     "$ROOT_DIR/scripts/ci_linux_steps.sh" \
+    || ! grep -Fq 'self-host-driver-fixed-point-receipt-test-smoke' \
+    "$ROOT_DIR/scripts/ci_push_linux_steps.sh" \
     || ! grep -Fq 'PGY_SELFHOST_FIXED_POINT_DRIVER_C="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.c"' \
     "$ROOT_DIR/.github/workflows/ci.yml" \
     || ! grep -Fq 'PGY_SELFHOST_FIXED_POINT_DRIVER_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.fixed-point.receipt"' \
