@@ -19,6 +19,7 @@ compiler_compile_link_self_host_c_artifact(const char *input_c_path,
     double phase_start;
     CompilerResult *result;
     PgyCCompilerSelection cc_selection;
+    const char *release_artifact_flag;
 
     if (input_c_path == NULL || output_binary_path == NULL
         || !pgy_path_is_safe(input_c_path)
@@ -53,12 +54,9 @@ compiler_compile_link_self_host_c_artifact(const char *input_c_path,
     compile_link_argv[argc++] = PGY_CFLAGS_THREAD_FLAG;
     compile_link_argv[argc++] =
         opt_profile == PGY_OPT_RELEASE ? "-O3" : "-O0";
-    {
-        const char *release_artifact_flag =
-            compiler_release_artifact_link_flag(opt_profile);
-        if (release_artifact_flag != NULL)
-            compile_link_argv[argc++] = release_artifact_flag;
-    }
+    release_artifact_flag = compiler_release_artifact_link_flag(opt_profile);
+    if (release_artifact_flag != NULL)
+        compile_link_argv[argc++] = release_artifact_flag;
     compile_link_argv[argc++] = "-fwrapv";
     compile_link_argv[argc++] = "-fno-strict-aliasing";
 #if !defined(_WIN32) && !defined(__APPLE__)
@@ -112,6 +110,7 @@ compiler_compile_link_self_host_llvm_artifact(
     char *runtime_obj_path;
     bool compiled_runtime = false;
     const char *runtime_error = NULL;
+    const char *release_artifact_flag;
 
     if (input_llvm_path == NULL || output_binary_path == NULL
         || !pgy_path_is_safe(input_llvm_path)
@@ -143,12 +142,9 @@ compiler_compile_link_self_host_llvm_artifact(
     compile_link_argv[argc++] = runtime_obj_path;
     compile_link_argv[argc++] =
         opt_profile == PGY_OPT_RELEASE ? "-O3" : "-O0";
-    {
-        const char *release_artifact_flag =
-            compiler_release_artifact_link_flag(opt_profile);
-        if (release_artifact_flag != NULL)
-            compile_link_argv[argc++] = release_artifact_flag;
-    }
+    release_artifact_flag = compiler_release_artifact_link_flag(opt_profile);
+    if (release_artifact_flag != NULL)
+        compile_link_argv[argc++] = release_artifact_flag;
 #if !defined(_WIN32) && !defined(__APPLE__)
     compile_link_argv[argc++] = "-fopenmp";
 #endif
