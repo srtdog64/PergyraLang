@@ -1,4 +1,5 @@
 #include "compiler_internal.h"
+#include "compiler_release_artifact_policy.h"
 #include "compiler_toolchain.h"
 
 #include <stdio.h>
@@ -52,6 +53,12 @@ compiler_compile_link_self_host_c_artifact(const char *input_c_path,
     compile_link_argv[argc++] = PGY_CFLAGS_THREAD_FLAG;
     compile_link_argv[argc++] =
         opt_profile == PGY_OPT_RELEASE ? "-O3" : "-O0";
+    {
+        const char *release_artifact_flag =
+            compiler_release_artifact_link_flag(opt_profile);
+        if (release_artifact_flag != NULL)
+            compile_link_argv[argc++] = release_artifact_flag;
+    }
     compile_link_argv[argc++] = "-fwrapv";
     compile_link_argv[argc++] = "-fno-strict-aliasing";
 #if !defined(_WIN32) && !defined(__APPLE__)
@@ -136,6 +143,12 @@ compiler_compile_link_self_host_llvm_artifact(
     compile_link_argv[argc++] = runtime_obj_path;
     compile_link_argv[argc++] =
         opt_profile == PGY_OPT_RELEASE ? "-O3" : "-O0";
+    {
+        const char *release_artifact_flag =
+            compiler_release_artifact_link_flag(opt_profile);
+        if (release_artifact_flag != NULL)
+            compile_link_argv[argc++] = release_artifact_flag;
+    }
 #if !defined(_WIN32) && !defined(__APPLE__)
     compile_link_argv[argc++] = "-fopenmp";
 #endif

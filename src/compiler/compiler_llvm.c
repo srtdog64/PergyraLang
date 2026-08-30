@@ -1,4 +1,5 @@
 #include "compiler_internal.h"
+#include "compiler_release_artifact_policy.h"
 #include "compiler_toolchain.h"
 #include "verified_projection_plan.h"
 
@@ -241,6 +242,8 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     }
 
     const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
+    const char *release_artifact_flag =
+        compiler_release_artifact_link_flag(opt_profile);
     PgyCCompilerSelection cc_selection;
     if (!pgy_select_c_compiler(&cc_selection))
         return compiler_error("Unable to detect C compiler");
@@ -284,6 +287,8 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
             link_argv[link_argc++] = cc_target;
         link_argv[link_argc++] = "-std=c11";
         link_argv[link_argc++] = opt_flag;
+        if (release_artifact_flag != NULL)
+            link_argv[link_argc++] = release_artifact_flag;
         link_argv[link_argc++] = PGY_CFLAGS_THREAD_FLAG;
         link_argv[link_argc++] = "-mconsole";
         link_argv[link_argc++] = "-DPGY_LLVM_ENABLED";
@@ -309,6 +314,8 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
             link_argv[link_argc++] = cc_target;
         link_argv[link_argc++] = "-std=c11";
         link_argv[link_argc++] = opt_flag;
+        if (release_artifact_flag != NULL)
+            link_argv[link_argc++] = release_artifact_flag;
         if (opt_profile == PGY_OPT_RELEASE) {
             link_argv[link_argc++] = "-march=native";
             link_argv[link_argc++] = "-mtune=native";

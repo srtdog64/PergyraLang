@@ -1,4 +1,5 @@
 #include "compiler_internal.h"
+#include "compiler_release_artifact_policy.h"
 #include "compiler_toolchain.h"
 #include "path_utils.h"
 #include "verified_projection_plan.h"
@@ -221,6 +222,8 @@ compiler_build_native(const CompilerIRBundle *bundle,
     }
 
     const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
+    const char *release_artifact_flag =
+        compiler_release_artifact_link_flag(opt_profile);
     const char *intent_observability_flag =
         uses_intent_observability
             ? "-DPGY_INTENT_OBSERVABILITY_ENABLED=1"
@@ -307,6 +310,8 @@ compiler_build_native(const CompilerIRBundle *bundle,
         link_argv[li++] = "-std=c11";
         link_argv[li++] = "-Wall";
         link_argv[li++] = opt_flag;
+        if (release_artifact_flag != NULL)
+            link_argv[li++] = release_artifact_flag;
         link_argv[li++] = PGY_CFLAGS_THREAD_FLAG;
         link_argv[li++] = output_obj_path;
         if (runtime_obj_path != NULL)
@@ -360,6 +365,8 @@ compiler_build_native(const CompilerIRBundle *bundle,
         lnk[lc++] = "-std=c11";
         lnk[lc++] = "-Wall";
         lnk[lc++] = opt_flag;
+        if (release_artifact_flag != NULL)
+            lnk[lc++] = release_artifact_flag;
 #ifndef __APPLE__
         lnk[lc++] = "-fopenmp";
         if (compiler_should_use_lld())

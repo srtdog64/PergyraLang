@@ -6,6 +6,22 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — shared release primary debug-section hygiene
+
+- Exact base is `5a9c34d3d946e4e5f103822253ae7da9c029a46f`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit and
+  publication owner for this rung.
+- Fresh production falsifier: current `--opt=release` hello executables from
+  both C and LLVM retain nine DWARF section families. Stripped temporary copies
+  preserve output and exit state while removing the ordinary symbol table.
+- Objective: one typed release policy at the final artifact boundary must strip
+  native C, native LLVM, self-host C, and self-host LLVM primary executables.
+  It must not affect the developer profile or invent backend-specific policy.
+- Exact objective card, consumers, forbidden fallbacks, gate, and budget:
+  `docs/agent_work_directives/release_primary_debug_section_hygiene_2026-08-30.md`.
+- This is release hygiene, not self-host substitution or SoT census progress.
+  The full C++-class target remains open after this bounded rung.
+
 ## NO ACTIVE implementation lease — LLVM large aggregate return stack policy published
 
 - Exact base is `f2aff7aba86ce2594e62eef251c089b0b38ca1ad`, equal to
