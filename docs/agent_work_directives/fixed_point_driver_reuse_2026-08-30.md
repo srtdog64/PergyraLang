@@ -1,6 +1,6 @@
 # Fixed-Point Driver Reuse — 2026-08-30
 
-Status: `FUNCTIONAL CI GREEN — PUSH FOCUSED-GATE WIRING PENDING CI`
+Status: `COMPLETE — EXACT CI GREEN`
 
 Exact base: `3a0c78943f4fa4804731df304f416de8092e7624` on
 `origin/main`.
@@ -167,8 +167,28 @@ negative receipt gate. It changes neither 88 authorities / 183 carriers /
   receipt run's 32m39s.
 - A log census found the focused mutation gate absent from the actual push
   step list. It had been added to full-platform `ci_linux_steps.sh`, while
-  `ci-push-linux` owns `ci_push_linux_steps.sh`. The active final wiring adds
-  the gate to the push list and makes build-source inventory require both
-  lists. Focused receipt mutation and build-source inventory gates are GREEN;
-  one final exact CI run must show the focused PASS line before retiring the
-  lease. This wiring correction changes no compiler artifact or SoT status.
+  `ci-push-linux` owns `ci_push_linux_steps.sh`. The final wiring added the gate
+  to the push list and made build-source inventory require both lists. Focused
+  receipt mutation and build-source inventory gates were GREEN before
+  publication. This wiring correction changed no compiler artifact or SoT
+  status.
+
+## Final exact-head CI receipt
+
+- Wiring commit `8011114738bd82eb3f680cfc74149a99c8ddac4e` is on
+  `origin/main`. Exact run `33319423595` is GREEN 30/30 at that revision.
+- `build-linux` completed in 24m20s. Its log contains exactly one
+  `[self-host-driver-fixed-point-receipt-smoke] PASS`, one ordinary typed-source
+  driver emission, one installed driver, and one later
+  `reusing source-graph fingerprinted driver before emission` line. The focused
+  negative gate therefore runs on the actual push path, and the second ordinary
+  compiler-scale emission remains absent.
+- Full self-host completed in 28m34s. It has exactly one 172,273-line
+  `gen2 == gen3` fixed point at `15:50:27.723Z`, one receipt-bound adoption at
+  `15:50:28.209Z`, one installed driver, and zero ordinary typed-source driver
+  emissions. The fixed-point-to-adoption gap is 0.49s.
+- The acceptance evidence is the preserved fixed point, fail-closed receipt
+  gate, and removed repeated operation. Runner wall time is supporting evidence,
+  not a new semantic or cache authority. This rung changes neither 88
+  authorities / 183 carriers / `CLOSED=55 BRIDGE=32 ACTIVE=1` nor the 83%
+  project forecast.

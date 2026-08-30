@@ -1,12 +1,12 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-08-30 (Asia/Seoul)
+Updated: 2026-08-31 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — fixed-point driver reuse
+## DONE lease — fixed-point driver reuse published
 
 - Exact base is `3a0c78943f4fa4804731df304f416de8092e7624`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit and
@@ -46,9 +46,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   one fixed point, one adoption, and zero ordinary emits.
 - Log inspection also falsified the claimed focused-gate wiring: the full
   Linux list contained it, but the push job executes `ci_push_linux_steps.sh`.
-  The active final edit adds the gate to that actual list and ratchets both
-  lists in build-source inventory. Its focused and inventory gates are GREEN;
-  the lease remains active only through exact CI publication of that PASS.
+  Commit `8011114738bd82eb3f680cfc74149a99c8ddac4e` adds the gate to that
+  actual list and ratchets both lists in build-source inventory.
+- Final exact run `33319423595` is GREEN 30/30 at that commit. `build-linux`
+  completed in 24m20s and proves the focused PASS, one ordinary emit, one
+  install, and one pre-emission reuse. Full self-host completed in 28m34s and
+  proves one 172,273-line fixed point, one receipt adoption 0.49s later, one
+  install, and zero ordinary emits. The lease is retired without changing SoT
+  counts or the 83% forecast.
 
 ## DONE lease — ArrayString literal target projection published
 

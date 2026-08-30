@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-30 (Asia/Seoul)
+Updated: 2026-08-31 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — fixed-point driver reuse
+## Published — fixed-point driver reuse is exact-CI green
 
 - Exact base is `3a0c78943f4fa4804731df304f416de8092e7624`, equal to
   `origin/main` when this rung opened. Protected unrelated untracked paths
@@ -49,12 +49,10 @@ percentage by themselves.
   candidate admission took 17 seconds and passed the existing source/manifest
   smokes. The old post-emission stamp read was deleted because it did not bind
   output content and therefore could not mint the stronger receipt.
-- The worktree remains intentionally dirty for this unpublished rung. The next
-  falsifier is commit/push followed by exact-head CI: the full self-host job
-  must stay GREEN, its follow-up installed-driver targets must adopt the fixed-
-  point candidate without another full emission, and the build-linux repeated
-  ordinary call must hit the pre-emission receipt. Do not open another SoT
-  consumer migration while this execution rung is active.
+- The implementation is published. Its exact-head falsifiers required the full
+  self-host job to adopt the fixed-point candidate without another full
+  emission and the repeated ordinary build-linux call to hit the pre-emission
+  receipt. Both claims now have exact pushed CI evidence below.
 - The first implementation is now published as
   `5ddecfc6b0a267ad70334f3ea1f705198e5fb6ec`. Exact run `33314947343` is
   GREEN 30/30. Full self-host completed in 32m39s versus the prior 37m50s;
@@ -63,7 +61,7 @@ percentage by themselves.
 - `build-linux` remained a reached residual rather than a hidden success: it
   emitted twice because its two Make calls used `/usr/bin/cc` and `gcc` for the
   same GCC executable, while prebuild v1 treated the alias-dependent version
-  heading as identity. The dirty successor normalizes compiler identity to
+  heading as identity. The published successor normalizes compiler identity to
   executable content, dump version, and target triple; both aliases now yield
   exact key `813e43825fb7a4d6af146d34db1df54d9cb5540f00bf8c51eaa69b09e70eb795`.
   Current focused, component, hard, and inventory gates are GREEN. The next
@@ -74,14 +72,25 @@ percentage by themselves.
   GREEN 30/30. `build-linux` now has exactly one emit, one install, and one
   later pre-emission reuse. Full self-host again has one 172,273-line fixed
   point, one adoption 0.55s later, one install, and zero ordinary emits.
-- The remaining dirty edit is CI evidence wiring only. Log census showed the
+- The final edit was CI evidence wiring only. Log census showed the
   focused mutation gate absent because `ci-push-linux` executes
   `scripts/ci_push_linux_steps.sh`, not the already-edited full-platform list.
-  The gate is now in both lists and build-source inventory ratchets both.
-  Focused and inventory gates are GREEN. Next falsifier: publish this two-file
-  wiring correction and require exact push CI to contain
-  `[self-host-driver-fixed-point-receipt-smoke] PASS`; then refresh this card
-  and retire the lease without changing SoT counts or the 83% forecast.
+  Commit `8011114738bd82eb3f680cfc74149a99c8ddac4e` puts the gate in both
+  lists and makes build-source inventory ratchet both.
+- Final exact run `33319423595` is GREEN 30/30 at `80111147`. `build-linux`
+  completed in 24m20s and contains exactly one focused receipt PASS, one
+  ordinary DRV-2 emit, one install, and one later pre-emission reuse. Full
+  self-host completed in 28m34s and contains exactly one 172,273-line fixed
+  point at `15:50:27.723Z`, one receipt adoption at `15:50:28.209Z`, one
+  install, and zero ordinary emits. The 0.49s adoption gap proves the follow-up
+  installed-driver boundary consumes the admitted fixed-point artifact rather
+  than re-emitting it.
+- This rung is complete and its collaboration lease is retired. It changes no
+  compiler semantic authority, SoT row, or project percentage: 88 authorities
+  / 183 carriers / `CLOSED=55 BRIDGE=32 ACTIVE=1`, project forecast 83%.
+  There is no inferred successor implementation lease. The next rung must
+  start from a freshly reached production C bypass, its existing Pergyra owner,
+  last orchestration consumer, and one executable falsifier before edits begin.
 
 ## Published — ArrayString literal target projection is CI green
 
