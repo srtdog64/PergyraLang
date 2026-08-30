@@ -23,30 +23,16 @@ func DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(
             let aggregate: String = projection.llvm_aggregate_type;
             let storage_align: String = ToString(projection.storage.align);
             let spelling: String = ToString(parameter);
-            output = Concat(output, "  %pgy.param.");
-            output = Concat(output, spelling);
-            output = Concat(output, ".local = alloca ");
-            output = Concat(output, aggregate);
-            output = Concat(output, ", align ");
-            output = Concat(output, storage_align);
-            output = Concat(output, "\n");
-            output = Concat(output, "  %pgy.param.");
-            output = Concat(output, spelling);
-            output = Concat(output, ".copyin = load ");
-            output = Concat(output, aggregate);
-            output = Concat(output, ", ptr %pgy.param.");
-            output = Concat(output, spelling);
-            output = Concat(output, ".mutref, align ");
-            output = Concat(output, storage_align);
-            output = Concat(output, "\n  store ");
-            output = Concat(output, aggregate);
-            output = Concat(output, " %pgy.param.");
-            output = Concat(output, spelling);
-            output = Concat(output, ".copyin, ptr %pgy.param.");
-            output = Concat(output, spelling);
-            output = Concat(output, ".local, align ");
-            output = Concat(output, storage_align);
-            output = Concat(output, "\n");
+            let prefix: String = Concat("  %pgy.param.", spelling);
+            output = Concat(output, Concat(prefix, Concat(".local = alloca ",
+                Concat(aggregate, Concat(", align ", Concat(storage_align, "\n"))))));
+            output = Concat(output, Concat(prefix, Concat(".copyin = load ",
+                Concat(aggregate, Concat(", ptr %pgy.param.", Concat(spelling,
+                Concat(".mutref, align ", Concat(storage_align, "\n"))))))));
+            output = Concat(output, Concat("  store ", Concat(aggregate,
+                Concat(" %pgy.param.", Concat(spelling, Concat(
+                ".copyin, ptr %pgy.param.", Concat(spelling, Concat(
+                ".local, align ", Concat(storage_align, "\n")))))))));
         }
         parameter = parameter + 1;
     }
@@ -73,27 +59,15 @@ func DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
             let aggregate: String = projection.llvm_aggregate_type;
             let storage_align: String = ToString(projection.storage.align);
             let spelling: String = ToString(parameter);
-            output = Concat(output, "  %pgy.param.");
-            output = Concat(output, spelling);
-            output = Concat(output, ".copyout.");
-            output = Concat(output, ToString(exit_block));
-            output = Concat(output, " = load ");
-            output = Concat(output, aggregate);
-            output = Concat(output, ", ptr %pgy.param.");
-            output = Concat(output, spelling);
-            output = Concat(output, ".local, align ");
-            output = Concat(output, storage_align);
-            output = Concat(output, "\n  store ");
-            output = Concat(output, aggregate);
-            output = Concat(output, " %pgy.param.");
-            output = Concat(output, spelling);
-            output = Concat(output, ".copyout.");
-            output = Concat(output, ToString(exit_block));
-            output = Concat(output, ", ptr %pgy.param.");
-            output = Concat(output, spelling);
-            output = Concat(output, ".mutref, align ");
-            output = Concat(output, storage_align);
-            output = Concat(output, "\n");
+            let prefix: String = Concat("  %pgy.param.", spelling);
+            let copyout: String = Concat(".copyout.", ToString(exit_block));
+            output = Concat(output, Concat(prefix, Concat(copyout, Concat(
+                " = load ", Concat(aggregate, Concat(", ptr %pgy.param.",
+                Concat(spelling, Concat(".local, align ", Concat(storage_align, "\n")))))))));
+            output = Concat(output, Concat("  store ", Concat(aggregate,
+                Concat(" %pgy.param.", Concat(spelling, Concat(copyout,
+                Concat(", ptr %pgy.param.", Concat(spelling, Concat(
+                ".mutref, align ", Concat(storage_align, "\n"))))))))));
         }
         parameter = parameter + 1;
     }

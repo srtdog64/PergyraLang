@@ -64,9 +64,8 @@ func DirectMirScalarCfgProgramLlvmRoutine(
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(
             plan, routine));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(
-            plan, routine, array_string_projection));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(
+        plan, routine, array_string_projection));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordValueResultCopyIn(
             plan, routine));

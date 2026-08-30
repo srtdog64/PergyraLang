@@ -1,5 +1,4 @@
 // C copy and mutation boundary for admitted Array<String> value-result formals.
-
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 
@@ -16,9 +15,8 @@ func DirectMirScalarProgramCArrayStringValueResultCopyIn(
                 "direct MIR C Array<String> value-result projection is missing"); }
             let projection: DirectMirArrayStringAbiProjection =
                 UnwrapOption(array_string_projection);
-            let carrier_type: String =
-                DirectMirScalarProgramCArrayStringCarrierType(
-                    plan.program.array_string_abi, projection);
+            let carrier_type: String = DirectMirScalarProgramCArrayStringCarrierType(
+                plan.program.array_string_abi, projection);
             output = Concat(output, "    ");
             output = Concat(output, carrier_type);
             output = Concat(output, " pgy_param_");
@@ -31,7 +29,6 @@ func DirectMirScalarProgramCArrayStringValueResultCopyIn(
     }
     return output;
 }
-
 func DirectMirScalarProgramCArrayStringValueResultCopyOut(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>
@@ -59,7 +56,6 @@ func DirectMirScalarProgramCArrayStringValueResultCopyOut(
     }
     return output;
 }
-
 func DirectMirScalarProgramCArrayStringValueResultPush(
     ref plan: DirectMirScalarCfgGraphPlan,
     routine: Int, parameter: Int, value: String
