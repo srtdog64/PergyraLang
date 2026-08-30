@@ -294,7 +294,8 @@ func DirectMirScalarCfgEmitProgramC(
         DirectMirScalarProgramCArrayBoolPopulatedLiteralMaterialization(
             plan));
     TextBuilderAppend(output,
-        DirectMirScalarProgramCLocalArraySetMaterialization(plan, target));
+        DirectMirScalarProgramCLocalArraySetMaterialization(
+            plan, array_string_projection, target));
     routine = 0;
     while routine < ArrayLength(plan.routines.roles) {
         TextBuilderAppend(output, DirectMirScalarCfgProgramCRoutine(

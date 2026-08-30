@@ -8,7 +8,6 @@ import "direct_mir_scalar_program_llvm_option_int_try_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_assignment_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
-
 func DirectMirScalarCfgProgramLlvmOperation(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
@@ -38,7 +37,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
     let expression_row: Int = plan.program.operation_expression_rows[operation];
     if DirectMirScalarProgramArrayPopKind(kind) {
         return DirectMirScalarProgramLlvmArrayMutation(
-            plan, routine, operation, "", "");
+            plan, routine, operation, "", "", array_string_projection);
     }
     if DirectMirScalarProgramArraySetKind(kind) {
         let index: DirectMirScalarProgramLlvmExpression =
@@ -88,7 +87,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
                     index.value, value.type_name, value.value, target));
         }
         return Concat(output, DirectMirScalarProgramLlvmArrayMutation(
-            plan, routine, operation, index.value, value.value));
+            plan, routine, operation, index.value, value.value, array_string_projection));
     }
     let expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
@@ -129,7 +128,8 @@ func DirectMirScalarCfgProgramLlvmOperation(
     }
     if DirectMirScalarProgramArrayPushKind(kind) {
         return Concat(output, DirectMirScalarProgramLlvmArrayMutation(
-            plan, routine, operation, "", expression.value));
+            plan, routine, operation, "", expression.value,
+            array_string_projection));
     }
     if kind == DirectMirScalarCfgOpExpressionDefinition() {
         let result: Int = plan.operation_result_values[operation];

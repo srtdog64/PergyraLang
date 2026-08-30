@@ -3,6 +3,7 @@ import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir_scalar_program_array_string_parameter_mutation_policy_owner.pgy";
+import "direct_mir_scalar_program_array_string_mutation_projection_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
@@ -29,6 +30,7 @@ func DirectMirScalarProgramCArrayPushMaterialization(
 }
 func DirectMirScalarProgramCLocalArraySetMaterialization(
     ref plan: DirectMirScalarCfgGraphPlan,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     ref target: CompilerTargetProjectionFact
 ) -> String {
     let int_set: Bool = false; let string_set: Bool = false; let bool_set: Bool = false;
@@ -63,14 +65,9 @@ func DirectMirScalarProgramCLocalArraySetMaterialization(
             "long long", "length"));
     }
     if string_set {
-        if !DirectMirScalarProgramArrayStringAbiFactReady(
-                plan.program.array_string_abi) {
-            Die("direct MIR C local Array<String> set ABI is invalid");
-        }
-        output = Concat(output, CollectionRuntimeCGuardedSetWithLength(
-            CollectionRuntimeCSetFn(2),
-            CompilerAbiLayoutArrayStringCValueType(),
-            "const char *", "length"));
+        output = Concat(output,
+            DirectMirScalarProgramCArrayStringSetMaterialization(
+                plan.program.array_string_abi, array_string_projection));
     }
     if bool_set {
         output = Concat(output, CollectionRuntimeCGuardedSetWithLength(

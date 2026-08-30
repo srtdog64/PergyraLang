@@ -18,6 +18,46 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — ArrayString mutation target projection
+
+- Exact base is `a8f255cb47e8ff565521c7f4c084e77667d257bb`, equal to
+  `origin/main` when the rung opened. The worktree contains only this rung's
+  tracked source, gate, registry, and coordination changes plus protected
+  unrelated untracked paths that remain outside inspection and staging.
+- Production entrypoint is installed
+  `pgy-self-driver --mir-json-backend=c|llvm` over the local/value-result
+  ArrayString Push/Set/Pop program. The fresh falsifier was behavioral GREEN
+  while C Set still read the global carrier and LLVM Set/Pop locally spelled
+  the aggregate, indices, and alignment beside the admitted target projection.
+- `DirectMirScalarProgramArrayStringAbiFact` remains the admitted program fact;
+  `DirectMirArrayStringAbiProjection` owns the selected-target C carrier, LLVM
+  aggregate, field indices, and storage alignment. The new responsibility owner
+  only materializes String Set/Pop from that carried projection. It does not
+  create another ABI authority or projection below the emission root.
+- C Set now consumes the projection supplied by the C emission root. LLVM Set
+  and Pop consume the projection supplied by the LLVM emission/operation root.
+  Direct global C-carrier lookup in the mutation consumer and literal
+  `%pgy.array.string`/alignment in LLVM String mutation are structurally
+  rejected. Other collection families and ArrayString return, cleanup,
+  conditional/multiple move, and fresh-result ownership remain separate rungs.
+- Fresh current-source installed DRV-2 SHA-256 is
+  `10EB93502E8A941E4F1D8BF9AED2C8D27B0A9435EEE348F3B0375FF42DDECB53`.
+  The focused local/value-result C/LLVM mutation gate is GREEN. The full
+  component contract, hard substitution contract, SoT authority edge, Gate
+  single-owner, and protocol registry are GREEN. Owner caps remain shrink-only:
+  C mutation 167/170, LLVM mutation 135/135, new projection materializer 85/85,
+  and focused gate 200/200.
+- SoT evidence is now 88 authorities and 183 derived fact carriers while the
+  census remains `CLOSED=55 BRIDGE=32 ACTIVE=1`. This is one reached executable
+  consumer migration inside `abi.mir_array_string_layout_projection`, not a
+  row closure, hard `SUBSTITUTING` increment, or percentage change. Project
+  forecast remains 83%.
+- Objective card:
+  `docs/agent_work_directives/array_string_mutation_target_projection_2026-08-30.md`.
+  Commit, push, and exact-head remote CI are the remaining publication
+  falsifiers. Do not open a successor implementation rung before this result
+  is published or rejected.
+
 ## Published — release primary debug sections are CI green
 
 - Exact implementation checkpoint:

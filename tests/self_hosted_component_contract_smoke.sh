@@ -19929,6 +19929,14 @@ require_function_text \
     "CompilerAbiLayoutArrayBoolCValueType()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_mutation_owner.pgy" \
+    "func DirectMirScalarProgramCLocalArraySetMaterialization(" \
+    "DirectMirScalarProgramCArrayStringSetMaterialization("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_mutation_owner.pgy" \
+    "func DirectMirScalarProgramCLocalArraySetMaterialization(" \
+    "CompilerAbiLayoutArrayStringCValueType()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_mutation_owner.pgy" \
     "func DirectMirScalarProgramCArrayMutation(" \
     "CollectionRuntimeCSetFn(4)"
 require_function_text \
@@ -19947,6 +19955,30 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
     "func DirectMirScalarProgramLlvmLocalArraySetMaterialization(" \
     "define internal void @pgy_ab_set"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLocalArraySetMaterialization(" \
+    "DirectMirScalarProgramLlvmArrayStringSetMaterialization("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayMutation(" \
+    "DirectMirScalarProgramLlvmArrayStringPop("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayMutation(" \
+    '"%pgy.array.string"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_mutation_projection_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringSetMaterialization(" \
+    "projection.llvm_aggregate_type"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_mutation_projection_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringPop(" \
+    "projection.length_index"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_mutation_projection_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringSetMaterialization(" \
+    "%pgy.array.string"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
     "func DirectMirScalarProgramLlvmArrayMutation(" \

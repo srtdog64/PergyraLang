@@ -322,7 +322,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
             plan, runtime, formatted_print));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLocalArraySetMaterialization(
-            plan));
+            plan, array_string_projection));
     TextBuilderAppend(output, "\ndeclare i32 @");
     TextBuilderAppend(output, formatted_print.symbol);
     TextBuilderAppend(output, "(ptr, ...)\n");

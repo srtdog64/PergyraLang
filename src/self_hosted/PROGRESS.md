@@ -1,6 +1,24 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-29 foreach receipt BRIDGE closure
+## Active self-host context - 2026-08-30 ArrayString mutation target projection
+
+- Installed direct-MIR local/value-result ArrayString Set/Pop had stable C/LLVM
+  behavior but retained a split ABI authority: C Set reopened the global
+  carrier, while LLVM Set/Pop spelled the aggregate, indices, and alignment in
+  their mutation owner. The scalar-program roots already carried the admitted
+  target projection, so no new fact or syntax was required.
+- C Set and LLVM Set/Pop now consume that carried projection through one named
+  mutation materializer. Component ratchets reject the retired reads. A fresh
+  current-source installed DRV-2 passes the focused C/LLVM mutation gate, the
+  full component contract, hard contract, SoT edge, Gate single-owner, and
+  protocol registry. Owner and gate caps were not raised.
+- SoT edge reports 88 authorities / 183 carriers / `55/32/1`. This is a real
+  executable consumer migration inside the existing ArrayString ABI BRIDGE,
+  but it does not close the whole row or increment hard replacement. Integrated
+  progress therefore remains 83% (81-85%), strict beta 83%, and hard
+  replacement 75%. Exact-head remote CI is the publication falsifier.
+
+## Completed self-host context - 2026-08-29 foreach receipt BRIDGE closure
 
 - `projection.direct_mir_scalar_cfg_foreach_receipt` is locally `CLOSED`. The
   original current-driver falsifier was RED: an ArrayInt element spelled
@@ -16,8 +34,9 @@
   call-ID, false-hoist, identity, and CFG mutations fail with no artifact.
   SoT edge reports 88 authorities / 182 carriers / `55/32/1`; hard closure is
   62.5% and migration is 81.0%. Integrated progress remains conservatively
-  83% (81-85%) until exact-head CI publishes the change; strict beta is 83%
-  and hard replacement is 75%.
+  83% (81-85%); strict beta is 83% and hard replacement is 75%. Repair
+  `e54ce620d49f79c3ab817ca9afeefd8b5a0310f7` is published, and exact-head run
+  `33229419440` completed GREEN 30/30.
 
 ## Completed self-host context - 2026-08-29 intent observability ABI publication
 
