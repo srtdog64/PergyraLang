@@ -34,6 +34,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   explicit `Clone` identity lifecycle. Focused, component, compiler-world,
   hard, SoT-edge, inventory, documentation, and agent sentinel gates are
   green. Publication and exact CI remain pending; the lease is not retired.
+- Implementation `4e787b05f794ef03183128e0533db2e69d996707` is on
+  `origin/main`, and push run `33335932435` is green 30/30. Log audit proved
+  the focused zone gate was absent from the actual Linux step lists, however;
+  this lease therefore remains active while the existing Make target is wired
+  into both push and full Linux CI and an exact rerun observes its PASS output.
 
 ## DONE lease — generated zone resource lifecycle published
 

@@ -121,3 +121,11 @@ substitution progress.
 - `tests/test_inc_size_smoke.sh` still reports the pre-existing, unmodified
   `src/parser/ast_expr_control_accessors.c` at 725/699. This rung does not edit
   that owner or claim the broader size gate green.
+- Implementation commit `4e787b05f794ef03183128e0533db2e69d996707`
+  is published. Push run `33335932435` is green 30/30, including a 172,527-line
+  `gen2 == gen3` fixed point and receipt-bound DRV-2 adoption. Post-run log
+  audit found that the focused zone gate was not in the actual Linux push or
+  full step lists, so that run is not the final executable CI witness for this
+  rung. The active follow-up wires the existing Make target into both lists
+  and ratchets that wiring in build-source inventory; exact rerun remains
+  pending.

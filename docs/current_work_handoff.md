@@ -49,8 +49,13 @@ percentage by themselves.
   unmodified `src/parser/ast_expr_control_accessors.c` at 725/699.
 - Objective and exact scope are fixed in
   `docs/agent_work_directives/zone_value_carriage_semantic_admission_2026-08-31.md`.
-  Next executable action is diff review, publication, and exact pushed CI.
-  Keep the collaboration lease active until that exact run is observed green.
+  Implementation `4e787b05f794ef03183128e0533db2e69d996707` is published,
+  and push run `33335932435` is green 30/30 with a 172,527-line fixed point and
+  receipt-bound DRV-2 adoption. Post-run log audit found no focused zone-gate
+  execution in the actual Linux step lists. The current follow-up wires the
+  existing Make target into both lists and ratchets that wiring; publish it
+  and require an exact rerun with the focused PASS in `build-linux` before
+  retiring the collaboration lease.
 
 ## Published — generated zone resource lifecycle is exact-CI green
 
