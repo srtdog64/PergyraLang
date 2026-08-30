@@ -18,12 +18,13 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — ArrayString literal target projection
+## Published — ArrayString literal target projection is CI green
 
-- Exact base is `79b70e5c007877bb85668dd5790c2b30cb1c5a47`, equal to
-  `origin/main` when this rung opened. The tracked worktree contains only this
-  rung's source, gate, registry, and coordination changes; protected unrelated
-  untracked paths remain outside inspection and staging.
+- Exact implementation checkpoint is
+  `50e2c4cf90ab3b53c4e9fb6a0026df3f1bfe6b47`, based on exact published base
+  `79b70e5c007877bb85668dd5790c2b30cb1c5a47`. It is on `origin/main`. The
+  worktree is clean except protected unrelated untracked paths that remain
+  outside inspection and staging.
 - Production entrypoints are installed
   `pgy-self-driver --mir-json-backend=c|llvm` over the owned ArrayString return
   and nested/mixed ArrayString literal fixtures. The former reached C empty
@@ -60,9 +61,17 @@ percentage by themselves.
   forecast remains 83%.
 - Objective card:
   `docs/agent_work_directives/array_string_literal_target_projection_2026-08-30.md`.
-  Commit, push, and exact-head remote CI are the remaining publication
-  falsifiers. Do not open a successor rung before this result is published or
-  rejected.
+- Exact-head run `33310231316` completed GREEN 30/30 in 38m11s. `build-linux`
+  completed in 23m04s and observed build-source inventory, the full component
+  contract, hard substitution contract, and SoT edge at 88 authorities / 183
+  carriers / `55/32/1`. Full self-host completed in 37m50s; codegen fixed
+  point completed in 5m14s; backend comparison was GREEN 20/20. The focused
+  literal behavior gates are the separately observed local exact-source
+  evidence.
+- This publication closes the literal consumer prerequisite, not the entire
+  ArrayString ABI BRIDGE. No successor implementation rung is open. The next
+  task must reproduce a fresh executable falsifier and fix a new objective
+  card before editing another consumer.
 
 ## Published — ArrayString mutation target projection is CI green
 

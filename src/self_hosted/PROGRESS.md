@@ -1,6 +1,6 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-30 ArrayString literal target projection
+## Completed self-host context - 2026-08-30 ArrayString literal target projection
 
 - Installed C empty and LLVM populated ArrayString literal expressions had
   stable behavior but reopened target spelling below the root-carried ABI
@@ -18,8 +18,10 @@
 - SoT edge remains 88 authorities / 183 carriers / `55/32/1`. This is a real
   executable consumer migration inside the existing ArrayString ABI BRIDGE,
   not whole-row closure or hard replacement. Integrated progress remains 83%
-  (81-85%), strict beta 83%, and hard replacement 75%. Exact-head remote CI is
-  the publication falsifier.
+  (81-85%), strict beta 83%, and hard replacement 75%. Implementation
+  `50e2c4cf` is published; exact-head run `33310231316` completed GREEN 30/30
+  in 38m11s, including fast Linux in 23m04s, full self-host in 37m50s, codegen
+  fixed point in 5m14s, and backend comparison 20/20.
 
 ## Completed self-host context - 2026-08-30 ArrayString mutation target projection
 

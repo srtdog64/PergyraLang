@@ -1,6 +1,6 @@
 # ArrayString Literal Target Projection — 2026-08-30
 
-Status: `IMPLEMENTATION COMPLETE — PUBLICATION CI PENDING`
+Status: `PUBLISHED — EXACT-HEAD CI GREEN`
 
 Exact base: `79b70e5c007877bb85668dd5790c2b30cb1c5a47` on
 `origin/main`.
@@ -110,5 +110,11 @@ resistance target.
   contract, hard contract, SoT edge, Gate single-owner, protocol registry, and
   build-source inventory are GREEN at 88 authorities / 183 carriers /
   `CLOSED=55 BRIDGE=32 ACTIVE=1`.
-- Publication remains pending exact-head remote CI. No row status or project
-  percentage changed in this prerequisite migration.
+- Implementation `50e2c4cf90ab3b53c4e9fb6a0026df3f1bfe6b47` is on
+  `origin/main`. Exact-head run `33310231316` completed GREEN 30/30 in 38m11s:
+  `build-linux` completed in 23m04s, full self-host in 37m50s, codegen fixed
+  point in 5m14s, and backend comparison passed 20/20. The `build-linux` log
+  observed build-source inventory, the component contract, hard contract, and
+  SoT edge at 88 authorities / 183 carriers / `55/32/1`; the focused literal
+  behavior gates remain the separately observed local exact-source evidence.
+  No row status or project percentage changed in this prerequisite migration.

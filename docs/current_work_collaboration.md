@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — ArrayString literal target projection
+## DONE lease — ArrayString literal target projection published
 
 - Exact base is `79b70e5c007877bb85668dd5790c2b30cb1c5a47`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit and
@@ -25,8 +25,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   projection now owns that missing fact separately. Fresh DRV-2 SHA-256 is
   `19387F164F173A96E44E4DCBD2B8B94915B43593BA8FC8489F8486FEF492221E`.
   Both focused production gates plus component/hard/SoT/inventory contracts
-  are GREEN at 88 authorities / 183 carriers / `55/32/1`. The primary task
-  retains the lease through commit, push, and exact-head CI.
+  are GREEN at 88 authorities / 183 carriers / `55/32/1`.
+- Implementation `50e2c4cf90ab3b53c4e9fb6a0026df3f1bfe6b47` is on
+  `origin/main`. Exact-head run `33310231316` completed GREEN 30/30 in 38m11s,
+  including `build-linux` in 23m04s, full self-host in 37m50s, codegen fixed
+  point in 5m14s, and backend comparison 20/20. The lease is retired; no
+  successor implementation rung is implied by this receipt.
 
 ## DONE lease — ArrayString mutation target projection published
 
