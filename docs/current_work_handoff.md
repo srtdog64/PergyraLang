@@ -55,6 +55,12 @@ percentage by themselves.
   `self_host_hard_contract_smoke.sh`, `sot_authority_edge_smoke.sh`, and
   `gate_sot_single_owner_smoke.sh` are green; the authority census remains
   `CLOSED=55 / BRIDGE=32 / ACTIVE=1`.
+- Gate repair plus this evidence was published at exact code checkpoint
+  `61f8b8a622848f9fd7590d22f9b364a6ffecae5d`. Exact-head CI run
+  `33290746896` completed GREEN 30/30 in 32m40s: full self-host 32m20s,
+  build-linux 21m34s, sanitizers 12m47s, codegen bootstrap 6m56s, Windows
+  7m11s, macOS 2m12s, backend toolchain 9m15s, Rocq 9 3m09s, TSan 14s, and
+  backend comparison 20/20.
 - The attached 2026-08-30 architecture review observed older checkpoints
   `175fed90` / `67fe8a85`. Its expected-type, expression-place,
   `CallArgumentPlan`, and keyed-query proposals remain design input, not

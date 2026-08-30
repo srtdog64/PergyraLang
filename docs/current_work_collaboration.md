@@ -16,6 +16,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   the hard producer-first source/MIR parity lane in bounded filtered batches.
   Every batch passed after repairing eight gate-owner scripts that still
   matched the pre-`source_syntax_id` parameter-row schema.
+- The repair is published at exact code checkpoint
+  `61f8b8a622848f9fd7590d22f9b364a6ffecae5d`. Exact-head CI run
+  `33290746896` is GREEN 30/30: full self-host and build-linux passed in
+  32m20s and 21m34s, and backend comparison passed 20/20.
 - Edit scope is limited to those eight parity-owner scripts plus this ledger
   and the current handoff. The protected untracked paths
   `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/` remain
