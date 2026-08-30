@@ -16,11 +16,12 @@ tobject SemanticAstBodyTypeBundleAdmissionReceipt {
     iteration_count: Int;
     assignment_count: Int;
     statement_count: Int;
+    zone_fresh_identity_count: Int;
     generic_count: Int;
 }
 
 func SemanticAstBodyTypeBundleAdmissionSchema() -> String {
-    return "pgy.semantic-body-type-bundle-admission.v1";
+    return "pgy.semantic-body-type-bundle-admission.v2";
 }
 
 func SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(
@@ -41,6 +42,7 @@ func SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(
         ArrayLength(bundle.iteration_types.node_ids),
         ArrayLength(bundle.assignment_types.node_ids),
         ArrayLength(bundle.statement_types.node_ids),
+        ArrayLength(bundle.zone_carriage.fresh_local_node_ids),
         ArrayLength(bundle.generic_specializations.call_node_ids)
     );
 }
@@ -71,6 +73,8 @@ func SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
             ArrayLength(bundle.assignment_types.node_ids) &&
         receipt.statement_count ==
             ArrayLength(bundle.statement_types.node_ids) &&
+        receipt.zone_fresh_identity_count ==
+            ArrayLength(bundle.zone_carriage.fresh_local_node_ids) &&
         receipt.generic_count ==
             ArrayLength(bundle.generic_specializations.call_node_ids);
 }

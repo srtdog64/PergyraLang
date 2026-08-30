@@ -18,6 +18,40 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — zone value carriage semantic admission
+
+- Exact tracked base is `5a2a95c0dfdd956bbecdd7398874cb7c312d6386`, equal
+  to `origin/main` when this rung opened. The worktree has the one active
+  implementation lease plus protected unrelated untracked paths listed in the
+  collaboration ledger; do not inspect, edit, or stage those paths.
+- Production entrypoint is current-source
+  `pgy-self-driver --emit-c-artifact-verified SOURCE OUTPUT`. The deleted
+  bypass accepted named local zone copy and reassignment in semantics, then
+  emitted thread-safe-only C `#error` decisions.
+- `SemanticAstZoneValueCarriageVerdictFromAdmittedFacts` now owns that
+  target-neutral admission. It carries admitted fresh local node IDs through
+  the body bundle, v2 receipt, and codegen view. `EmitStmtList` consumes the
+  carried row and no longer reconstructs constructor/nominal-kind policy.
+- Direct construction and the existing explicit one-argument `Clone`
+  ownership boundary remain admitted. Named local copy and every zone
+  reassignment fail closed before artifact publication; by-value and embedded
+  zone transfer remain outside this rung and the registry row stays `ACTIVE`.
+- Rebuilt installed DRV-2 SHA-256 is
+  `18B60B93C8B5B324F3D98337F027921E57D0DF2392F75C45E6AC37E02ABC9D33`.
+  Both production negatives exit 1 with stable codes and no C artifact.
+  Lifecycle execution is exact `7 / 11 / 13 / 17 / 19 / 23` in single and
+  thread-safe modes with seven lock initializations, thirteen destroy sites,
+  and `Clone` init/destroy.
+- Focused current-source parity, component, compiler-world, hard-contract,
+  SoT-edge, build inventory, documentation, and agent-sentinel gates are
+  local green. SoT census remains 88/183 and `55/32/1`.
+  `tests/test_inc_size_smoke.sh` retains an unrelated baseline failure for the
+  unmodified `src/parser/ast_expr_control_accessors.c` at 725/699.
+- Objective and exact scope are fixed in
+  `docs/agent_work_directives/zone_value_carriage_semantic_admission_2026-08-31.md`.
+  Next executable action is diff review, publication, and exact pushed CI.
+  Keep the collaboration lease active until that exact run is observed green.
+
 ## Published — generated zone resource lifecycle is exact-CI green
 
 - Exact tracked base is `d8debe30c169d98411d57d4e66af7f2506b7970e`, equal

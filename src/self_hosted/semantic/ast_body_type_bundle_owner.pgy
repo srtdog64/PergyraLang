@@ -14,12 +14,14 @@ import "ast_iteration_graph_root_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_body_type_bundle_readiness_owner.pgy";
 import "ast_named_value_boundary_verdict_owner.pgy";
+import "ast_zone_value_carriage_verdict_owner.pgy";
 struct SemanticAstBodyTypeBundle {
     verdict: SemanticAstBodyVerdict;
     initializer_types: SemanticAstInitializerTypeFacts;
     iteration_types: SemanticAstIterationTypeFacts;
     assignment_types: SemanticAstAssignmentTypeFacts;
     statement_types: SemanticAstStatementTypeFacts;
+    zone_carriage: SemanticAstZoneValueCarriageVerdict;
     generic_specializations: SemanticAstGenericSpecializationFacts;
 }
 func SemanticAstBodyTypeBundleAdmissionError(
@@ -34,6 +36,9 @@ func SemanticAstBodyTypeBundleAdmissionError(
         SemanticAstIterationTypeStructuralError(artifact),
         SemanticAstAssignmentTypeStructuralError(artifact, "BodyAnalysisAdmission"),
         SemanticAstStatementTypeStructuralError(artifact, "BodyAnalysisAdmission"),
+        SemanticAstZoneValueCarriageVerdictError(
+            "body_analysis_admission", message, -1
+        ),
         SemanticAstGenericSpecializationError(
             "body_analysis_admission", message,
             empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
@@ -127,6 +132,14 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             analysis.expression_surfaces.expression_graph
         );
     SemanticAstBodyTypeStage(observe_pressure, "named-boundary:done");
+    SemanticAstBodyTypeStage(observe_pressure, "zone-carriage:start");
+    let zone_carriage: SemanticAstZoneValueCarriageVerdict =
+        SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(
+            artifact, analysis.constructors, analysis.local_bindings,
+            initializer_types, analysis.assignments, assignment_types,
+            analysis.expression_surfaces
+        );
+    SemanticAstBodyTypeStage(observe_pressure, "zone-carriage:done");
     SemanticAstBodyTypeStage(observe_pressure, "generic:start");
     let generic_specializations: SemanticAstGenericSpecializationFacts =
         SemanticAstGenericSpecializationFactsFromAdmittedBody(
@@ -165,6 +178,12 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             named_boundary.diagnostic_message,
             named_boundary.call_node_id
         );
+    } else if verdict.ok && !zone_carriage.ok {
+        verdict = SemanticAstBodyVerdictError(
+            zone_carriage.diagnostic_code,
+            zone_carriage.diagnostic_message,
+            zone_carriage.syntax_node_id
+        );
     } else if verdict.ok && !generic_specializations.ok {
         verdict = SemanticAstBodyVerdictError(
             generic_specializations.diagnostic_code,
@@ -201,7 +220,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     return SemanticAstBodyTypeBundle(
         verdict,
         initializer_types, iteration_types, assignment_types, statement_types,
-        generic_specializations
+        zone_carriage, generic_specializations
     );
 }
 func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(

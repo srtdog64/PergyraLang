@@ -480,12 +480,15 @@ require_file \
     "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" 210
+require_file \
+    "tests/self_hosted/parity/domain_runtime_zone_value_carriage_admission_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/domain_runtime_zone_value_carriage_admission_owner.sh" 80
 for zone_sync_gate_term in \
     "compare_zone_bijection" \
     "PGY_ZONE_THREADSAFE" \
     "PGY_ZONE_LOCK_INIT(&counter);" \
-    "Pergyra zone local copy requires an admitted transfer plan" \
-    "Pergyra zone reassignment requires an admitted transfer plan" \
+    "domain_runtime_zone_value_carriage_admission_owner.sh" \
     "PGY_FRONTIER_REASON_ZONE_OVERFLOW" \
     "nonzero domain runtime zone topology is not executable in self-host C"; do
     require_text \
@@ -509,17 +512,37 @@ reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "struct CodegenStatementBlockEmission"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
-    "func CodegenFreshZoneLocal("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
-    'let zone_local: Bool = local_nominal_kind == "zone";'
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
-    'local_type, local_nominal_kind, let_graph'
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'PGY_ZONE_LOCK_INIT(&'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'PGY_ZONE_LOCK_DESTROY(&'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'EndsWith(type_name, "Zone")'
+require_file \
+    "src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy" 240
+require_text \
+    "src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy" \
+    "func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts("
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "SemanticAstZoneValueCarriageVerdictFromAdmittedFacts("
+require_text \
+    "src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy" \
+    "fresh_local_node_ids: Array<Int>"
+require_text \
+    "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
+    "func CodegenSemanticZoneLocalFresh("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "CodegenSemanticZoneLocalFresh(body_types, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "func CodegenFreshZoneLocal("
+require_text \
+    "src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy" \
+    "zone_fresh_identity_count: Int"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'Pergyra zone local copy requires an admitted transfer plan'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'Pergyra zone reassignment requires an admitted transfer plan'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'Pergyra zone by-value parameter requires an admitted transfer plan'
 require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
@@ -3058,7 +3081,7 @@ require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manif
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 34"
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 36"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"

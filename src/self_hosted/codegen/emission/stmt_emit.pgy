@@ -36,33 +36,10 @@ import "result_let_emit_owner.pgy";
 import "tagged_enum_match_owner.pgy";
 import "option_match_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
-import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 
 struct CodegenStatementBlockEmission {
     body: String;
     scope_cleanup: String;
-}
-
-func CodegenFreshZoneLocal(
-    type_name: String,
-    nominal_kind: String,
-    graph: SemanticExpressionGraphView
-) -> Bool {
-    if nominal_kind != "zone" { return false; }
-    if !graph.ok { return false; }
-    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-        graph.graph, graph.root_id
-    );
-    if !call.ok { return false; }
-    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
-        graph.graph, call.call_node
-    );
-    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
-        graph.graph, call.call_node
-    );
-    return IsSome(target_kind) && IsSome(target_name) &&
-        UnwrapOption(target_kind) == SemanticCallTargetDirect() &&
-        UnwrapOption(target_name) == type_name;
 }
 
 func EmitLet(
@@ -248,12 +225,8 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenSemanticLocalBindingDeclaredTypeOrDie(
                     local_bindings, idx
                 );
-            let local_nominal_kind: String =
-                LookupKindType(env, local_type, "nk");
-            let zone_local: Bool = local_nominal_kind == "zone";
-            let fresh_zone_local: Bool = CodegenFreshZoneLocal(
-                local_type, local_nominal_kind, let_graph
-            );
+            let fresh_zone_local: Bool =
+                CodegenSemanticZoneLocalFresh(body_types, idx);
             if CodegenSemanticExpressionGraphIsTry(let_graph) {
                 emitted_let = EmitTryLet(
                     local_bindings, arena, idx, let_graph, statement_env, env,
@@ -263,12 +236,6 @@ func EmitStmtList(count: Int, arena: AstArena,
                     local_bindings, arena, idx, statement_env, env, let_graph);
             }
             CodegenTypeEnvStateAdoptAfterLastConsumer(env_state, statement_env);
-            if zone_local && !fresh_zone_local {
-                ArrayPush(result, Concat(
-                    pad,
-                    "#ifdef PGY_ZONE_THREADSAFE\n#error \"Pergyra zone local copy requires an admitted transfer plan\"\n#endif\n"
-                ));
-            }
             ArrayPush(result, CodegenPrefixOwnedStatementLine(emitted_let, pad, "", "\n"));
             if fresh_zone_local {
                 let local_name: String =
@@ -305,12 +272,6 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenSemanticAssignmentTargetTypeOrDie(
                     body_types.assignment_types, idx
                 );
-            if LookupKindType(env, assignment_target_type, "nk") == "zone" {
-                ArrayPush(result, Concat(
-                    pad,
-                    "#ifdef PGY_ZONE_THREADSAFE\n#error \"Pergyra zone reassignment requires an admitted transfer plan\"\n#endif\n"
-                ));
-            }
             let emitted_assignment: String = EmitAssign(
                 assignments, idx,
                 CodegenSemanticAssignmentExpectedTypeOrDie(

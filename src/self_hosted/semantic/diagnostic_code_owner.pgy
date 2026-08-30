@@ -12,6 +12,8 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "binop_type_mismatch",
         "call_arg_type_mismatch",
         "named_value_boundary_argument_required",
+        "zone_value_copy_requires_transfer",
+        "zone_value_reassignment_requires_transfer",
         "builtin_arg_type_mismatch",
         "option_concrete_type_required",
         "value_param_collection_mutation",

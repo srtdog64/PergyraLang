@@ -55,6 +55,10 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !bundle.iteration_types.ok { return "iteration_types"; }
     if !bundle.assignment_types.ok { return "assignment_types"; }
     if !bundle.statement_types.ok { return "statement_types"; }
+    if !SemanticAstZoneValueCarriageVerdictRowsReady(
+        artifact, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types, bundle.zone_carriage
+    ) { return "zone_value_carriage_rows"; }
     if !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
         bundle.generic_specializations, analysis.expression_surfaces
     ) { return "generic_specializations"; }

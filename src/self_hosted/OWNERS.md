@@ -475,6 +475,11 @@ inventory must not become a second fact-family owner registry.
   for canonical `Array<T>` named-value boundaries. It consumes the Array shape
   owner instead of maintaining an element-type allowlist; MIR and backends may
   not reconstruct or defer this source-semantic rejection.
+- `src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy` --
+  target-neutral admission for local zone value carriage. It joins admitted
+  nominal kind, initializer/assignment types, and resolved direct-constructor
+  identity; C emission may own hidden lock lifecycle but may not defer copy or
+  reassignment policy to a thread-safe preprocessor branch.
 - `src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy` and
   `src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy`
   -- final source-syntax call target IDs, exact declared-callee binding IDs on

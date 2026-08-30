@@ -6,6 +6,35 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — zone value carriage semantic admission
+
+- Exact base is `5a2a95c0dfdd956bbecdd7398874cb7c312d6386`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit and
+  publication owner for this semantic-admission rung.
+- Fresh current-source production falsifier: both named local zone copy and
+  zone reassignment exit zero through `--emit-c-artifact-verified`; only the
+  generated C contains a thread-safe `#error` decision.
+- Objective, fact owners, last consumer, forbidden fallbacks, edit scope, and
+  focused gate are fixed in
+  `docs/agent_work_directives/zone_value_carriage_semantic_admission_2026-08-31.md`.
+- No parallel implementation scope is open. Parameter/return carriage,
+  embedded zones, move syntax, fixed lifetimes, and unrelated SoT rows remain
+  outside this lease.
+- The lease remains active through semantic-owner implementation, backend
+  bypass deletion, focused and integration evidence, publication, and exact
+  CI. Its completion does not by itself change the SoT census or 83% forecast.
+- Local implementation and integration are green. The semantic verdict owns
+  copy/reassignment admission and carries its admitted fresh-local rows to
+  codegen; the two C-backend policy branches are deleted. Rebuilt production
+  DRV-2 SHA-256 is
+  `18B60B93C8B5B324F3D98337F027921E57D0DF2392F75C45E6AC37E02ABC9D33`.
+- Production negatives exit 1 with stable codes and no C artifact. The
+  positive lifecycle executes exact `7 / 11 / 13 / 17 / 19 / 23` in both
+  modes with seven lock initializations, thirteen destroy sites, and the
+  explicit `Clone` identity lifecycle. Focused, component, compiler-world,
+  hard, SoT-edge, inventory, documentation, and agent sentinel gates are
+  green. Publication and exact CI remain pending; the lease is not retired.
+
 ## DONE lease — generated zone resource lifecycle published
 
 - Exact base is `d8debe30c169d98411d57d4e66af7f2506b7970e`, equal to

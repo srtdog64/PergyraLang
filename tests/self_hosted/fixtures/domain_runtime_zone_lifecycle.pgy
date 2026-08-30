@@ -48,6 +48,12 @@ func ReadContinue() -> Int {
     return result;
 }
 
+func ReadClone() -> Int {
+    let original: CounterZone = CounterZone(Player(23));
+    let cloned: CounterZone = Clone(original);
+    return cloned.Value();
+}
+
 func Main() -> Void {
     let counter: CounterZone = CounterZone(Player(7));
     Log(counter.Value());
@@ -55,4 +61,5 @@ func Main() -> Void {
     Log(ReadNested(true));
     Log(ReadBreak());
     Log(ReadContinue());
+    Log(ReadClone());
 }
