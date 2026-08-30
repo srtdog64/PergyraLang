@@ -37,6 +37,7 @@ PREBUILD_STAMP="$BUILD_DIR/driver.source-graph.build.key"
 PREBUILD_KEY_INPUT="$BUILD_DIR/driver.source-graph.build.key.input"
 SOURCE_GRAPH_KEY_INPUT="$BUILD_DIR/driver.source-graph.input"
 OUTPUT_RECEIPT="$BUILD_DIR/driver.output.receipt"
+CC_FINGERPRINT_KEY_INPUT="$BUILD_DIR/driver.cc-fingerprint.input"
 RUNTIME_HEADER_KEY_INPUT="$BUILD_DIR/driver.runtime-headers.build.key.input"
 SMOKE_OUT="$BUILD_DIR/driver.smoke.c"
 MANIFEST_SOURCE="$BUILD_DIR/machine-layer-manifest.json"
@@ -92,7 +93,8 @@ grep -Fq '"schema":"pgy.machine-layer.declaration.v1"' "$MANIFEST_SOURCE" ||
     fail "native machine manifest owner emitted an invalid artifact"
 
 runtime_header_fingerprint="$(pgy_selfhost_driver_runtime_header_fingerprint "$ROOT_DIR" "$RUNTIME_HEADER_KEY_INPUT")" || fail "runtime-header fingerprint failed"
-prebuild_key="$(pgy_selfhost_driver_installer_prebuild_key "$ROOT_DIR" "$CODEGEN_BIN" "$MANIFEST_SOURCE" "$runtime_header_fingerprint" "$OUTPUT_KEY" "${PGY_SELFHOST_CC_PROFILE:-release}" "${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[*]}" "$($CC --version 2>/dev/null | head -1)" "${BASH_SOURCE[0]}" "$PREBUILD_KEY_INPUT" "$SOURCE_GRAPH_KEY_INPUT")" || fail "source-graph build key failed"
+cc_fingerprint="$(pgy_selfhost_driver_c_compiler_fingerprint "$CC" "$CC_FINGERPRINT_KEY_INPUT")" || fail "C compiler fingerprint failed"
+prebuild_key="$(pgy_selfhost_driver_installer_prebuild_key "$ROOT_DIR" "$CODEGEN_BIN" "$MANIFEST_SOURCE" "$runtime_header_fingerprint" "$OUTPUT_KEY" "${PGY_SELFHOST_CC_PROFILE:-release}" "${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[*]}" "$cc_fingerprint" "${BASH_SOURCE[0]}" "$PREBUILD_KEY_INPUT" "$SOURCE_GRAPH_KEY_INPUT")" || fail "source-graph build key failed"
 
 FIXED_POINT_C="${PGY_SELFHOST_FIXED_POINT_DRIVER_C:-}"
 FIXED_POINT_GEN3_C="${PGY_SELFHOST_FIXED_POINT_DRIVER_GEN3_C:-}"

@@ -30,6 +30,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   install versus 15 seconds for the identical pre-emission reuse, and 17
   seconds for receipt-bound exact-candidate admission. These timings do not
   replace the pending exact pushed CI receipt; the lease remains active.
+- Commit `5ddecfc6b0a267ad70334f3ea1f705198e5fb6ec` is published and exact
+  run `33314947343` is GREEN 30/30. Full self-host improved from 37m50s to
+  32m39s; its log has one fixed point, one receipt adoption 0.47s later, and
+  zero duplicate installed-driver emissions.
+- The same run reached one residual in `build-linux`: `CC=/usr/bin/cc` then
+  `CC=gcc` named the same GCC binary differently, so v1's raw version string
+  caused a false cache miss and two emits. The active edit normalizes compiler
+  identity to executable content, dump version, and target triple; local
+  aliases now produce one exact prebuild key. Focused/component/hard/inventory
+  gates are GREEN, but the lease remains active through the second exact CI.
 
 ## DONE lease — ArrayString literal target projection published
 

@@ -92,11 +92,27 @@ fi
 write_clean_inputs
 printf '{"schema":"test"}\n' >"$BUILD_DIR/manifest.json"
 printf 'installer-owner-v1\n' >"$BUILD_DIR/installer.sh"
-key_one="$(pgy_selfhost_driver_installer_prebuild_key "$CASE_ROOT" "$CODEGEN" "$BUILD_DIR/manifest.json" runtime-v1 output-v1 release '-O3 -fwrapv' cc-v1 "$BUILD_DIR/installer.sh" "$BUILD_DIR/key-one.input" "$BUILD_DIR/graph-one.input")"
-key_two="$(pgy_selfhost_driver_installer_prebuild_key "$CASE_ROOT" "$CODEGEN" "$BUILD_DIR/manifest.json" runtime-v1 output-v1 release '-O3 -fwrapv' cc-v1 "$BUILD_DIR/installer.sh" "$BUILD_DIR/key-two.input" "$BUILD_DIR/graph-two.input")"
+key_one="$(pgy_selfhost_driver_installer_prebuild_key "$CASE_ROOT" "$CODEGEN" "$BUILD_DIR/manifest.json" runtime-v1 output-v1 release '-O3 -fwrapv' cc-fingerprint-v1 "$BUILD_DIR/installer.sh" "$BUILD_DIR/key-one.input" "$BUILD_DIR/graph-one.input")"
+key_two="$(pgy_selfhost_driver_installer_prebuild_key "$CASE_ROOT" "$CODEGEN" "$BUILD_DIR/manifest.json" runtime-v1 output-v1 release '-O3 -fwrapv' cc-fingerprint-v1 "$BUILD_DIR/installer.sh" "$BUILD_DIR/key-two.input" "$BUILD_DIR/graph-two.input")"
 [[ "$key_one" == "$key_two" ]] || fail "identical prebuild inputs changed key"
 printf 'func A() -> Int { return 3; }\n' >"$GRAPH_DIR/a.pgy"
-key_three="$(pgy_selfhost_driver_installer_prebuild_key "$CASE_ROOT" "$CODEGEN" "$BUILD_DIR/manifest.json" runtime-v1 output-v1 release '-O3 -fwrapv' cc-v1 "$BUILD_DIR/installer.sh" "$BUILD_DIR/key-three.input" "$BUILD_DIR/graph-three.input")"
+key_three="$(pgy_selfhost_driver_installer_prebuild_key "$CASE_ROOT" "$CODEGEN" "$BUILD_DIR/manifest.json" runtime-v1 output-v1 release '-O3 -fwrapv' cc-fingerprint-v1 "$BUILD_DIR/installer.sh" "$BUILD_DIR/key-three.input" "$BUILD_DIR/graph-three.input")"
 [[ "$key_one" != "$key_three" ]] || fail "source mutation did not change prebuild key"
+write_clean_inputs
+key_four="$(pgy_selfhost_driver_installer_prebuild_key "$CASE_ROOT" "$CODEGEN" "$BUILD_DIR/manifest.json" runtime-v1 output-v1 release '-O3 -fwrapv' cc-fingerprint-v2 "$BUILD_DIR/installer.sh" "$BUILD_DIR/key-four.input" "$BUILD_DIR/graph-four.input")"
+[[ "$key_one" != "$key_four" ]] || fail "compiler mutation did not change prebuild key"
+
+if command -v cc >/dev/null 2>&1 && command -v gcc >/dev/null 2>&1 \
+    && command -v readlink >/dev/null 2>&1; then
+    cc_resolved="$(readlink -f "$(command -v cc)" 2>/dev/null || true)"
+    gcc_resolved="$(readlink -f "$(command -v gcc)" 2>/dev/null || true)"
+    if [[ -n "$cc_resolved" && -n "$gcc_resolved" ]] \
+        && [[ "$(pgy_selfhost_driver_receipt_hash_file "$cc_resolved")" == \
+        "$(pgy_selfhost_driver_receipt_hash_file "$gcc_resolved")" ]]; then
+        cc_fingerprint="$(pgy_selfhost_driver_c_compiler_fingerprint cc "$BUILD_DIR/cc.input")"
+        gcc_fingerprint="$(pgy_selfhost_driver_c_compiler_fingerprint gcc "$BUILD_DIR/gcc.input")"
+        [[ "$cc_fingerprint" == "$gcc_fingerprint" ]] || fail "one compiler through cc/gcc aliases changed fingerprint"
+    fi
+fi
 
 echo "[self-host-driver-fixed-point-receipt-smoke] PASS"

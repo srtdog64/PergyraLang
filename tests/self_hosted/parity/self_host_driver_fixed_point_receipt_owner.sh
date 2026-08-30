@@ -180,6 +180,37 @@ pgy_selfhost_driver_validate_fixed_point_receipt() {
         pgy_selfhost_driver_receipt_error "fixed-point receipt is stale or malformed"
 }
 
+pgy_selfhost_driver_c_compiler_fingerprint() {
+    local cc="$1"
+    local fingerprint_input="$2"
+    local compiler_path
+    local resolved_path
+    local resolved_candidate
+    local compiler_hash
+    local compiler_version
+    local compiler_target
+
+    compiler_path="$(command -v "$cc")" || {
+        pgy_selfhost_driver_receipt_error "C compiler is not resolvable: $cc"
+        return 1
+    }
+    resolved_path="$compiler_path"
+    if command -v readlink >/dev/null 2>&1; then
+        resolved_candidate="$(readlink -f "$compiler_path" 2>/dev/null || true)"
+        [[ -z "$resolved_candidate" ]] || resolved_path="$resolved_candidate"
+    fi
+    compiler_hash="$(pgy_selfhost_driver_receipt_hash_file "$resolved_path")" || return 1
+    compiler_version="$("$cc" -dumpfullversion -dumpversion 2>/dev/null || "$cc" -dumpversion 2>/dev/null)" || return 1
+    compiler_target="$("$cc" -dumpmachine 2>/dev/null)" || return 1
+    printf '%s\n' \
+        'schema=pgy.selfhost.c-compiler-fingerprint.v1' \
+        "executable=$compiler_hash" \
+        "version=$compiler_version" \
+        "target=$compiler_target" \
+        >"$fingerprint_input" || return 1
+    pgy_selfhost_driver_receipt_hash_file "$fingerprint_input"
+}
+
 pgy_selfhost_driver_installer_prebuild_key() {
     local root_dir="$1"
     local codegen_seed="$2"
@@ -201,7 +232,7 @@ pgy_selfhost_driver_installer_prebuild_key() {
     installer_owner_hash="$(pgy_selfhost_driver_receipt_hash_file "$installer_owner")" || return 1
     receipt_owner_hash="$(pgy_selfhost_driver_receipt_hash_file "${BASH_SOURCE[0]}")" || return 1
     printf '%s\n' \
-        'schema=pgy.selfhost.driver-installer-prebuild.v1' \
+        'schema=pgy.selfhost.driver-installer-prebuild.v2' \
         "source_graph=$source_graph_hash" \
         "codegen_seed=$codegen_seed_hash" \
         "machine_manifest=$machine_manifest_hash" \
@@ -209,7 +240,7 @@ pgy_selfhost_driver_installer_prebuild_key() {
         "output=$output_key" \
         "cc_profile=$cc_profile" \
         "cc_flags=$cc_flags" \
-        "cc=$cc_identity" \
+        "cc_fingerprint=$cc_identity" \
         "installer_owner=$installer_owner_hash" \
         "receipt_owner=$receipt_owner_hash" \
         >"$key_input" || return 1

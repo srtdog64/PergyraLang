@@ -55,6 +55,20 @@ percentage by themselves.
   point candidate without another full emission, and the build-linux repeated
   ordinary call must hit the pre-emission receipt. Do not open another SoT
   consumer migration while this execution rung is active.
+- The first implementation is now published as
+  `5ddecfc6b0a267ad70334f3ea1f705198e5fb6ec`. Exact run `33314947343` is
+  GREEN 30/30. Full self-host completed in 32m39s versus the prior 37m50s;
+  fixed point at `14:16:12.279Z` was followed by receipt adoption at
+  `14:16:12.749Z`, with zero ordinary driver emission in that job.
+- `build-linux` remained a reached residual rather than a hidden success: it
+  emitted twice because its two Make calls used `/usr/bin/cc` and `gcc` for the
+  same GCC executable, while prebuild v1 treated the alias-dependent version
+  heading as identity. The dirty successor normalizes compiler identity to
+  executable content, dump version, and target triple; both aliases now yield
+  exact key `813e43825fb7a4d6af146d34db1df54d9cb5540f00bf8c51eaa69b09e70eb795`.
+  Current focused, component, hard, and inventory gates are GREEN. The next
+  falsifier is a second exact CI with one `build-linux` emit followed by one
+  `reusing source-graph fingerprinted driver before emission` line.
 
 ## Published — ArrayString literal target projection is CI green
 

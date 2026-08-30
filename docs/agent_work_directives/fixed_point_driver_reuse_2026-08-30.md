@@ -1,6 +1,6 @@
 # Fixed-Point Driver Reuse — 2026-08-30
 
-Status: `IMPLEMENTED — LOCAL GATES GREEN; EXACT-HEAD CI PENDING`
+Status: `IMPLEMENTED — FIRST EXACT CI GREEN; CC-ALIAS FIX PENDING CI`
 
 Exact base: `3a0c78943f4fa4804731df304f416de8092e7624` on
 `origin/main`.
@@ -127,3 +127,26 @@ negative receipt gate. It changes neither 88 authorities / 183 carriers /
   receipt. The next integration falsifier is the exact pushed CI job: it must
   remain GREEN and show no second installed-driver emission after the full
   fixed point. No SoT row or project percentage changes in this rung.
+
+## First exact-head CI and reached residual
+
+- Implementation commit `5ddecfc6b0a267ad70334f3ea1f705198e5fb6ec`
+  is on `origin/main`. Exact run `33314947343` is GREEN 30/30. The full
+  self-host job fell from 37m50s to 32m39s. Its log proves one 172,273-line
+  `gen2 == gen3` result at `14:16:12.279Z`, one receipt-bound candidate
+  adoption at `14:16:12.749Z`, one installed driver, and zero ordinary
+  typed-source driver emissions. The fixed-point-to-adoption gap was 0.47s.
+- That run falsified the broader ordinary-reuse claim in `build-linux`: the
+  installed driver still emitted twice. The first dependency invoked the same
+  Ubuntu GCC through `CC=/usr/bin/cc`; the second invoked it through `CC=gcc`.
+  The v1 prebuild key hashed the alias-dependent `--version` first line, so a
+  spelling change impersonated a toolchain change.
+- The reached repair replaces that string with
+  `pgy.selfhost.c-compiler-fingerprint.v1`: resolved executable content,
+  `-dumpfullversion/-dumpversion`, and target triple. Prebuild schema v2 carries
+  that fingerprint. Local `cc` and `gcc` now produce the same compiler
+  fingerprint and the same full prebuild key
+  `813e43825fb7a4d6af146d34db1df54d9cb5540f00bf8c51eaa69b09e70eb795`.
+  The focused alias gate plus current component, hard, and build-source
+  inventory contracts are GREEN. A second exact CI run is the next falsifier;
+  `build-linux` must show one ordinary emit and a later pre-emission reuse.

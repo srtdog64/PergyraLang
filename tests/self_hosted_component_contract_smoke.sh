@@ -9149,10 +9149,10 @@ require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
 require_max_lines "tests/self_hosted/parity/self_host_compiler_build.sh" 220
 require_file "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" 255
+    "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" 285
 require_file "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh"
 require_max_lines \
-    "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" 110
+    "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" 125
 require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/fixture/silent_self_host_driver.c"
@@ -9551,7 +9551,17 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
 require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
     'schema=pgy.selfhost.driver-fixed-point-receipt.v1'
 require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
-    'schema=pgy.selfhost.driver-installer-prebuild.v1'
+    'schema=pgy.selfhost.driver-installer-prebuild.v2'
+require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
+    'schema=pgy.selfhost.c-compiler-fingerprint.v1'
+require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
+    'readlink -f "$compiler_path"'
+require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
+    '"$cc" -dumpfullversion -dumpversion'
+require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
+    '"$cc" -dumpmachine'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'pgy_selfhost_driver_c_compiler_fingerprint'
 require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" \
     'require_rejected source-graph'
 require_text "Makefile" "self-host-driver-fixed-point-receipt-test-smoke:"
