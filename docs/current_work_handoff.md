@@ -18,6 +18,43 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active publication — ArrayString value-result target projection is local green
+
+- Exact implementation checkpoint:
+  `4a66f127f906a8514ac780b0afac5539169d7a37`, based on published exact base
+  `660943081ce73c4e1ac8b645e38998ab34a1f348`. Before this handoff refresh the
+  tracked tree is clean; protected untracked paths `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain uninspected and untouched.
+- Production entrypoint: installed `pgy-self-driver --mir-json-backend=c|llvm`
+  projection of the mixed ArrayString/ArrayInt value-result program.
+- Removed bypass: C value-result copy-in no longer spells `pgy_as` locally;
+  LLVM copy-in/out no longer spell `%pgy.array.string` or `align 8`; the C
+  callable signature no longer reads the global ArrayString carrier directly.
+- Fact owner: the admitted `DirectMirScalarProgramArrayStringAbiFact` plus one
+  target-qualified `DirectMirArrayStringAbiProjection`. The target-checked
+  `DirectMirScalarProgramCArrayStringCarrierType` preserves the private
+  `pgy_as` carrier separately from public `PgyArray_String`.
+- A fresh Pergyra-built DRV-2 installed successfully. The focused mixed
+  value-result gate passed C/LLVM runtime parity, early/final copy-out, and all
+  artifact-negative mutations in 12 seconds. The four-routine scalar control
+  passed without an ArrayString projection in 5 seconds.
+- `self_host_hard_contract_smoke.sh`, `sot_authority_edge_smoke.sh`, and
+  `gate_sot_single_owner_smoke.sh` passed. The full component contract emitted
+  no failure before exceeding the local static budget and being interrupted;
+  it is explicitly not reported green and remains a publication-CI gate.
+- Registry row `abi.mir_array_string_layout_projection` remains `BRIDGE` while
+  its residual list no longer includes value-result transfer. Census remains
+  `CLOSED=55 / BRIDGE=32 / ACTIVE=1`; hard substitution and the 83% project
+  forecast do not change.
+- The release reconstruction target is now explicitly marked an approved
+  product goal: optimized, stripped Pergyra releases must be no easier to
+  reconstruct than a same-toolchain C++ baseline. Its acceptance gate remains
+  open, so current binaries are not claimed to meet that goal.
+- Objective card:
+  `docs/agent_work_directives/array_string_value_result_target_projection_2026-08-30.md`.
+  No successor implementation rung is inferred until publication CI is green
+  and one remaining production falsifier is freshly reproduced.
+
 ## Latest bounded continuation — post-list_ops tail is green; no package bypass
 
 - Exact gate-repair checkpoint:

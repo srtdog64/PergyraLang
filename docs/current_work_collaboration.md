@@ -6,10 +6,11 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — ArrayString value-result consumes target projection
+## ACTIVE publication lease — ArrayString value-result consumes target projection
 
-- Exact base: `660943081ce73c4e1ac8b645e38998ab34a1f348` on
-  `origin/main`.
+- Implementation checkpoint:
+  `4a66f127f906a8514ac780b0afac5539169d7a37`, based on exact base
+  `660943081ce73c4e1ac8b645e38998ab34a1f348`.
 - Production entrypoint: installed direct-MIR C/LLVM projection of the mixed
   ArrayString/ArrayInt value-result program.
 - Reproduced direct bypass: the emission root derives one target-qualified
@@ -23,6 +24,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `docs/agent_work_directives/array_string_value_result_target_projection_2026-08-30.md`.
 - This is one prerequisite implementation lease. It does not close the whole
   ABI row, change `55/32/1`, or admit unrelated ArrayString work.
+- Local DRV-2 rebuild, focused C/LLVM parity plus negatives, a no-ArrayString
+  control, hard contract, SoT edge, and single Gate-SoT checks are green. Full
+  component-contract execution exceeded the local budget and was interrupted;
+  it is not counted green and remains owned by publication CI.
 
 ## RETIRED lease — LLVM intent value-argument ABI blocker removed
 

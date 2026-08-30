@@ -1,6 +1,6 @@
 # ArrayString value-result target projection — 2026-08-30
 
-Status: `ACTIVE IMPLEMENTATION`
+Status: `LOCAL GREEN — IMPLEMENTATION COMMITTED — PUBLICATION PENDING`
 
 Exact base: `660943081ce73c4e1ac8b645e38998ab34a1f348` on
 `origin/main`.
@@ -76,3 +76,16 @@ percentage, or make a second ArrayString layout owner.
 The intended output is one executable prerequisite delta. Even when green, it
 does not by itself decrement `BRIDGE=32`, increase hard `SUBSTITUTING`, or close
 the C++-class binary reconstruction-resistance target.
+
+## Local result
+
+- Implementation checkpoint:
+  `4a66f127f906a8514ac780b0afac5539169d7a37`.
+- A fresh Pergyra-built DRV-2 was installed from the typed source graph.
+- The focused mixed ArrayString/ArrayInt value-result gate passed C/LLVM
+  runtime parity and all artifact-negative mutations.
+- The four-routine scalar control passed with no ArrayString projection,
+  proving canonical `None` remains accepted when no ArrayString row exists.
+- Hard contract, SoT authority edge, and single Gate-SoT checks passed. The
+  full component contract was interrupted after exceeding the local static
+  budget and is not reported green; publication CI owns its full execution.
