@@ -2440,7 +2440,12 @@ llvm-test-dir:
 llvm-test-hir:
 	$(MAKE) LLVM_ENABLED=1 test-hir
 
-llvm-test-smoke:
+llvm-large-aggregate-return-stack-test-smoke:
+	"$(BASH)" tests/llvm_large_aggregate_return_stack_smoke.sh
+
+.PHONY: llvm-large-aggregate-return-stack-test-smoke
+
+llvm-test-smoke: llvm-large-aggregate-return-stack-test-smoke
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/llvm_smoke.sh
 

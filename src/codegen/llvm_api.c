@@ -143,6 +143,41 @@ llvm_add_fn_attr(LLVMGenCtx *ctx, LLVMValueRef fn, unsigned kind)
             LLVMCreateEnumAttribute(ctx->context, kind, 0));
 }
 
+/* A multi-kilobyte value-return aggregate can make mutually recursive callers
+ * retain several copies after aggressive inlining.  Keep that value boundary
+ * intact so nested lowering does not multiply the caller's native stack frame.
+ * This is a target-layout optimization policy, not a source ABI or syntax
+ * choice. */
+#define PGY_LLVM_LARGE_AGGREGATE_RETURN_BYTES 2048u
+
+static bool
+llvm_function_returns_large_aggregate(LLVMGenCtx *ctx, LLVMValueRef fn)
+{
+    LLVMTargetDataRef layout;
+    LLVMTypeRef fn_type;
+    LLVMTypeRef return_type;
+    LLVMTypeKind kind;
+
+    if (ctx == NULL || ctx->module == NULL || fn == NULL
+        || LLVMIsDeclaration(fn))
+        return false;
+    layout = LLVMGetModuleDataLayout(ctx->module);
+    if (layout == NULL)
+        return false;
+    fn_type = LLVMGlobalGetValueType(fn);
+    if (fn_type == NULL)
+        return false;
+    return_type = LLVMGetReturnType(fn_type);
+    kind = return_type != NULL
+        ? LLVMGetTypeKind(return_type) : LLVMVoidTypeKind;
+    if (kind != LLVMStructTypeKind && kind != LLVMArrayTypeKind)
+        return false;
+    if (kind == LLVMStructTypeKind && LLVMIsOpaqueStruct(return_type))
+        return false;
+    return LLVMABISizeOfType(layout, return_type)
+        >= PGY_LLVM_LARGE_AGGREGATE_RETURN_BYTES;
+}
+
 static bool
 llvm_module_has_runtime_call_use(LLVMGenCtx *ctx, const char *fn_name)
 {
@@ -314,6 +349,8 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
             llvm_add_fn_attr(ctx, fn, noinline_kind);
             llvm_add_fn_attr(ctx, fn, optnone_kind);
         }
+        if (llvm_function_returns_large_aggregate(ctx, fn))
+            llvm_add_fn_attr(ctx, fn, noinline_kind);
         /*
          * Memory-effect attributes apply only to declarations (the external
          * runtime), never to user definitions that might shadow a builtin name

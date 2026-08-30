@@ -11,6 +11,7 @@ run 'make self-host-callable-parameter-identity-replacement-test-smoke'
 
 run 'make build-source-inventory-test-smoke'
 run 'make ci-step-runner-test-smoke'
+run 'make llvm-large-aggregate-return-stack-test-smoke'
 run 'make grammar-cheatsheet-contract-test-smoke'
 run 'make grammar-examples-compile-test-smoke'
 run 'make source-utf8-test-smoke'

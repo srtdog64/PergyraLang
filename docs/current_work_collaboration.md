@@ -6,6 +6,35 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE publication lease — LLVM large aggregate return stack policy
+
+- Exact base is `f2aff7aba86ce2594e62eef251c089b0b38ca1ad`, equal to
+  `origin/main` when this lease opened. The primary task is the sole integration
+  and publication owner for this rung.
+- Reproduced production falsifier: a fresh current-source LLVM-built DRV-2
+  exits with Windows `0xC00000FD` while canonicalizing
+  `dish_result_collect` and `class_method_result_loop`. The block lowerer owns
+  a 221,912-byte frame and reaches eleven nested entries under the ordinary
+  2 MiB executable stack.
+- Objective: preserve LLVM function boundaries for target-layout aggregate
+  returns of at least 2,048 bytes so recursive callers do not multiply several
+  3,000-byte `SelfMirRoutineBuild` copies. Function/fixture/type allowlists,
+  stack-reserve increases, the C driver, and global threshold toggles are
+  forbidden.
+- Fresh repaired LLVM driver SHA-256 is
+  `3F3EDF13D6E240E2BC80572492DC6D5132B8CB5B1ABEBC1D6004F06B87F71120`.
+  Its block frame is 36,376 bytes. Both reached fixtures, corpus rows 243-284,
+  and controls 1/100/200 pass through the same binary.
+- The focused static gate, Make/fast-push wiring, CI step-runner contract, build
+  source inventory, incremental LLVM build, and diff checks are green. The
+  broad performance contract has a separate pre-existing diagnostic-literal
+  failure and is not recorded as green.
+- Exact owner card and bounded evidence:
+  `docs/agent_work_directives/llvm_self_mir_block_stack_frame_2026-08-30.md`.
+  This is an executable LLVM self-host prerequisite, not a hard substitution
+  increment. Census remains `55/32/1`, project forecast remains 83%, and the
+  binary reconstruction target remains open.
+
 ## NO ACTIVE implementation lease — 284-row DRV-2 discovery is green
 
 - Discovery started from exact tracked base
