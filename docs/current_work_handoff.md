@@ -18,6 +18,47 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Implementation complete, publication pending — release primary debug sections
+
+- Exact implementation checkpoint:
+  `477ada2202c019581e7d835d2f332d75a194991d`, based on exact published base
+  `5a9c34d3d946e4e5f103822253ae7da9c029a46f`.
+- Fresh falsifier: current C- and LLVM-backed `examples/hello.pgy --opt=release`
+  executables each retained nine DWARF section families. The C
+  artifact was 126,881 bytes and the LLVM artifact 453,335 bytes before an
+  explicit strip probe.
+- Fact owner: `compiler_release_artifact_link_flag(PgyOptProfile)` owns one
+  final-link decision for native C, native LLVM, self-host C, and self-host
+  LLVM. Developer builds receive no strip flag; release builds receive the
+  platform driver spelling. None of the four consumers spells its own strip
+  policy.
+- Focused Windows/MSYS evidence is green for all four release paths: no debug
+  sections, no ordinary symbol table, expected stdout, and exit zero. Sizes are
+  self-host C 17,408, self-host LLVM 262,144, native C 110,080, and native LLVM
+  256,512 bytes. The same-target optimized/stripped C++ hello is 17,408 bytes.
+  The explicit native developer debug lane retains DWARF, and an injected
+  `-g` artifact makes the inspector fail.
+- Green local gates: full LLVM-enabled `make all` including installed self-host
+  refresh, `release-primary-debug-section-hygiene-test-smoke`, build source
+  inventory, CI step runner, debug hygiene, documentation quality, shell
+  syntax, and `git diff --check`.
+- `production-c-size-test-smoke` was attempted and fails on the pre-existing
+  unrelated `src/parser/ast_expr_control_accessors.c` count of 725 lines versus
+  its 699-line cap. This release change does not touch that file and does not
+  claim the broad gate green.
+- During gate construction, an absolute Windows source path sent to the
+  installed source-LLVM intent failed with code 1 while the repository-relative
+  spelling succeeded. This is a freshly observed path-protocol candidate only;
+  it is not investigated or opened while this publication lease is active.
+- The complete C++-class reconstruction-resistance target remains OPEN: the
+  cross-platform matrix, workspace/path and private-identifier residue,
+  high-level IR/evidence residue, explicit debug sidecar usability, and full
+  leakage-class comparison are not closed by this primary-strip rung. SoT
+  census remains `CLOSED=55 / BRIDGE=32 / ACTIVE=1`, hard substitution does not
+  increment, and the project forecast remains 83%.
+- Objective card:
+  `docs/agent_work_directives/release_primary_debug_section_hygiene_2026-08-30.md`.
+
 ## Published — LLVM large aggregate return stack policy is CI green
 
 - Exact implementation checkpoint:

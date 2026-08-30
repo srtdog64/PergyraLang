@@ -1,6 +1,6 @@
 # Release Primary Debug-Section Hygiene — 2026-08-30
 
-Status: `ACTIVE IMPLEMENTATION LEASE`
+Status: `IMPLEMENTATION COMPLETE — PUBLICATION CI PENDING`
 
 Exact base revision: `5a9c34d3d946e4e5f103822253ae7da9c029a46f`
 
@@ -60,3 +60,19 @@ the LLVM artifact 453,335 bytes. Stripped temporary copies were 17,408 and
 This is a release-hygiene rung. It does not increment hard self-host
 `SUBSTITUTING` progress or change the `CLOSED=55 / BRIDGE=32 / ACTIVE=1`
 census. The complete reconstruction-resistance acceptance gate stays open.
+
+## Implementation checkpoint
+
+- Exact implementation revision:
+  `477ada2202c019581e7d835d2f332d75a194991d`.
+- The shared policy owner returns no flag for developer builds, `-s` for ELF/PE
+  release links, and the Darwin driver equivalent `-Wl,-S,-x` for Mach-O.
+- All four final link consumers use the owner; the focused gate rejects local
+  strip flag reconstruction in those consumers.
+- Local focused evidence is green for self-host C, self-host LLVM, explicit
+  native C, and explicit native LLVM. All four stripped primaries execute with
+  the expected output. The explicit native developer debug lane retains DWARF,
+  and an injected `-g` artifact is detected.
+- Local same-target C++ comparison sizes were 17,408 bytes for self-host C,
+  262,144 for self-host LLVM, 110,080 for native C, 256,512 for native LLVM,
+  and 17,408 for the optimized/stripped C++ baseline.

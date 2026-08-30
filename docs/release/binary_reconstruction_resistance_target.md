@@ -1,6 +1,6 @@
 # Binary Reconstruction Resistance Target
 
-Status: `APPROVED RELEASE TARGET — ACCEPTANCE GATE OPEN — NOT AN ACTIVE IMPLEMENTATION RUNG`
+Status: `APPROVED RELEASE TARGET — ACCEPTANCE GATE OPEN — PRIMARY STRIP RUNG IMPLEMENTED`
 
 Updated: 2026-08-30 (Asia/Seoul)
 
@@ -107,7 +107,7 @@ behavioral parity are the stable acceptance boundary.
 
 ## Current observation
 
-The 2026-08-30 probe is evidence of an open target, not closure:
+The first 2026-08-30 probe established the open target:
 
 - the public driver defaults to `--opt=release`, and C/LLVM host compilation
   selects `-O3`;
@@ -116,17 +116,35 @@ The 2026-08-30 probe is evidence of an open target, not closure:
   `Main` spelling or Pergyra domain structure;
 - public C- and LLVM-backed release executables did not contain the
   `hello.pgy` path in the observed probe;
-- both executables still contained debug sections contributed by the linked
-  toolchain/runtime, readable `pgy_*` runtime symbols remain, and the compiler
-  owns no final artifact strip policy;
+- both executables contained debug sections contributed by the linked
+  toolchain/runtime, readable `pgy_*` runtime symbols remained, and the compiler
+  owned no final artifact strip policy;
 - the native libLLVM path can create full DIBuilder line/function metadata
   when a MIR source path is present, while the public self-host LLVM route has
   a different emission shape. The future policy must close that path split.
 
-Therefore current Pergyra is optimized and loses substantial source shape,
-but C++-class release reconstruction resistance is not yet proven. Opening
-this target does not change the SoT census, strict beta percentage, integrated
-project forecast, or current self-host substitution progress.
+Implementation checkpoint `477ada2202c019581e7d835d2f332d75a194991d`
+closes that first primary-strip sub-rung:
+
+- one typed final-link policy is consumed by native C, native LLVM, self-host C,
+  and self-host LLVM;
+- local Windows/MSYS release primaries from all four paths have no debug
+  sections or ordinary symbol table and preserve hello behavior;
+- the explicit developer debug lane retains DWARF;
+- an injected debug-bearing artifact is rejected; and
+- a same-target optimized/stripped C++ hello is compared in the focused gate.
+
+This does **not** close the complete target. Cross-platform evidence,
+workspace/source/temp path and private-identifier residue, high-level
+IR/evidence residue, explicit debug sidecar usability, public-export
+allowlisting, and the full negative leakage matrix remain open. The historical
+observation that readable `pgy_*` symbols existed is superseded only for the
+ordinary symbol table of the newly rebuilt primary artifacts; required dynamic
+or public ABI names remain governed by the acceptance contract.
+
+Therefore C++-class release reconstruction resistance is still unproven. This
+bounded improvement does not change the SoT census, strict beta percentage,
+integrated project forecast, or current self-host substitution progress.
 
 ## Explicit non-goals
 
