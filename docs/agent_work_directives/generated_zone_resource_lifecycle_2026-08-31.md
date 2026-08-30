@@ -1,6 +1,6 @@
 # Generated Zone Resource Lifecycle — 2026-08-31
 
-Status: `IMPLEMENTATION COMPLETE — LOCAL GREEN; PUBLICATION PENDING`
+Status: `IMPLEMENTATION COMPLETE — PUBLISHED / EXACT CI GREEN`
 
 Exact base: `d8debe30c169d98411d57d4e66af7f2506b7970e`, equal to
 `origin/main` when this rung opened.
@@ -98,9 +98,27 @@ authority.
   16.46 seconds. This is bounded performance evidence and does not justify a
   cache or a new query architecture.
 
+## Publication and exact CI
+
+- Implementation commit `ab6a6e53527af075539bc9a60a67e6449027c07a` and the
+  required generated-inventory refresh
+  `351fc0ce3e14f6e071e2b287e6a49f580f8f9591` are published on
+  `origin/main`.
+- Exact-head workflow-dispatch run `33329854769` is GREEN 30/30 at
+  `351fc0ce3e14f6e071e2b287e6a49f580f8f9591`. `build-linux` completed in
+  23m52s, the codegen fixed-point job in 8m44s, sanitizers in 12m43s, and the
+  full self-host fixed point plus policy-corpus census in 29m29s. Windows,
+  macOS, Rocq, TSan, the shared backend toolchain, and all twenty backend
+  shards are also GREEN.
+- The full self-host log proves `gen2 == gen3` at 172,374 generated C lines,
+  receipt-bound driver adoption 0.43 seconds later, one installed DRV-2, and
+  the existing policy-corpus census. This publication closes only this reached
+  generated-resource lifecycle rung.
+
 ## Output classification
 
 The output is an implementation candidate for one hidden C resource boundary.
 It does not change 88 authorities / 183 carriers / `CLOSED=55 BRIDGE=32 ACTIVE=1`
 or the 83% project forecast. A green manual harness is supporting ABI evidence,
-not generated-lifecycle evidence. Publication and exact CI remain pending.
+not generated-lifecycle evidence. Publication and exact CI are complete; no
+successor implementation rung is implied by this receipt.

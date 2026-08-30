@@ -18,12 +18,14 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## ACTIVE — generated zone resource lifecycle is local-candidate green
+## Published — generated zone resource lifecycle is exact-CI green
 
 - Exact tracked base is `d8debe30c169d98411d57d4e66af7f2506b7970e`, equal
-  to `origin/main` when this rung opened. The worktree is dirty with this scoped
-  implementation; protected unrelated untracked paths remain outside
-  inspection, edit, and staging.
+  to `origin/main` when this rung opened. Implementation
+  `ab6a6e53527af075539bc9a60a67e6449027c07a` and generated-inventory refresh
+  `351fc0ce3e14f6e071e2b287e6a49f580f8f9591` are on `origin/main`.
+  Protected unrelated untracked paths remain outside inspection, edit, and
+  staging.
 - Production entrypoint is current-source
   `pgy-self-driver --emit-c-artifact-verified`. The deleted bypass was a fresh
   local zone compound literal whose generated `*_sync(self)` reached an
@@ -50,9 +52,18 @@ percentage by themselves.
 - Objective and exact scope live in
   `docs/agent_work_directives/generated_zone_resource_lifecycle_2026-08-31.md`.
   Focused, component, hard contract, build-source inventory, documentation,
-  agent sentinel, and SoT edge gates are local green. Next required evidence
-  is a scoped commit and push, then exact CI. Counts remain 88/183 with
-  `CLOSED=55 BRIDGE=32 ACTIVE=1`; the integrated 83% forecast is unchanged.
+  agent sentinel, and SoT edge gates are local green.
+- Exact-head workflow-dispatch run `33329854769` is GREEN 30/30 at
+  `351fc0ce3e14f6e071e2b287e6a49f580f8f9591`. `build-linux` completed in
+  23m52s, codegen fixed point in 8m44s, sanitizers in 12m43s, and full
+  self-host in 29m29s; Windows, macOS, Rocq, TSan, the shared backend
+  toolchain, and all twenty backend shards are GREEN.
+- Full self-host proves one 172,374-line `gen2 == gen3` result at
+  `19:34:14.253Z`, receipt-bound adoption at `19:34:14.683Z`, and one installed
+  DRV-2. This reached lifecycle rung and its collaboration lease are retired.
+  Counts remain 88/183 with `CLOSED=55 BRIDGE=32 ACTIVE=1`; the integrated 83%
+  forecast is unchanged. No successor implementation rung is inferred; resume
+  from a freshly reached production bypass and executable falsifier.
 
 ## Published — canonical MIR constructor-fact carriage is exact-CI green
 

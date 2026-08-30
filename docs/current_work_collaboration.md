@@ -6,10 +6,10 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — generated zone resource lifecycle
+## DONE lease — generated zone resource lifecycle published
 
 - Exact base is `d8debe30c169d98411d57d4e66af7f2506b7970e`, equal to
-  `origin/main` when this lease opened. The primary task is the sole edit and
+  `origin/main` when this lease opened. The primary task was the sole edit and
   publication owner for this source-to-C resource boundary.
 - The baseline installed-driver probe emitted a fresh `CounterZone` local with
   zero lock init/destroy operations: it printed `7` single-threaded and panicked
@@ -30,9 +30,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   executable SHA-256 is
   `510ae50426c4f2e26214824d9cb5948bf03741971a34b341a80d3ba96dc3f46a`.
 - Focused, component, hard contract, build-source inventory, documentation,
-  agent sentinel, and SoT edge gates are local green. The lease remains active
-  through publication and exact CI. It changes no SoT census or progress
-  percentage by itself.
+  agent sentinel, and SoT edge gates are local green. Implementation commit
+  `ab6a6e53527af075539bc9a60a67e6449027c07a` and generated-inventory commit
+  `351fc0ce3e14f6e071e2b287e6a49f580f8f9591` are published.
+- Exact-head workflow-dispatch run `33329854769` is GREEN 30/30 at
+  `351fc0ce3e14f6e071e2b287e6a49f580f8f9591`: `build-linux` 23m52s,
+  codegen fixed point 8m44s, sanitizers 12m43s, and full self-host 29m29s.
+  Full self-host proves a 172,374-line `gen2 == gen3` result followed 0.43
+  seconds later by receipt-bound adoption and one installed DRV-2. The lease
+  is retired with SoT census and project percentage unchanged.
 
 ## DONE lease — canonical MIR constructor-fact carriage published
 
