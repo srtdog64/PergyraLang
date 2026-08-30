@@ -3,7 +3,6 @@
 
 import "direct_mir_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
-
 func DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
     ref fact: DirectMirScalarProgramArrayStringAbiFact,
     ref projection: DirectMirArrayStringAbiProjection, expected_target: String
@@ -17,7 +16,6 @@ func DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
         projection.storage.capacity_offset == fact.capacity_offset &&
         projection.storage.allocator_offset == fact.allocator_offset;
 }
-
 func DirectMirScalarProgramCArrayStringCarrierType(
     ref fact: DirectMirScalarProgramArrayStringAbiFact,
     ref projection: DirectMirArrayStringAbiProjection
@@ -28,7 +26,6 @@ func DirectMirScalarProgramCArrayStringCarrierType(
     }
     return CompilerAbiLayoutArrayStringCValueType();
 }
-
 func DirectMirScalarProgramArrayStringAbiProjectionFromFact(
     ref fact: DirectMirScalarProgramArrayStringAbiFact,
     target: CompilerTargetProjectionFact
