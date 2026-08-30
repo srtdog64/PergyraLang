@@ -1,6 +1,6 @@
 # ArrayString Mutation Target Projection — 2026-08-30
 
-Status: `IMPLEMENTATION COMPLETE — PUBLICATION CI PENDING`
+Status: `PUBLISHED — EXACT-HEAD CI GREEN`
 
 Exact base: `a8f255cb47e8ff565521c7f4c084e77667d257bb` on
 `origin/main`.
@@ -89,5 +89,9 @@ target.
   structural contract, hard substitution contract, SoT authority edge, Gate
   single-owner, and protocol registry are GREEN. SoT evidence is 88
   authorities, 183 derived carriers, and `CLOSED=55 BRIDGE=32 ACTIVE=1`.
-- Publication remains pending exact-head remote CI. No row status or project
-  percentage changed in this prerequisite migration.
+- Implementation `d0b40821da73df7714de7e5bcbd7ccc572483dcc` is on
+  `origin/main`. Exact-head run `33306318796` completed GREEN 30/30 in 40m22s;
+  `build-linux` was GREEN in 28m09s, full self-host in 40m04s, and codegen
+  fixed point in 8m50s. The Linux log observed the component contract, hard
+  contract, and SoT edge at 88 authorities / 183 carriers / `55/32/1`.
+  No row status or project percentage changed in this prerequisite migration.

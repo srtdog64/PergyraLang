@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — ArrayString mutation target projection
+## DONE lease — ArrayString mutation target projection published
 
 - Exact base is `a8f255cb47e8ff565521c7f4c084e77667d257bb`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit and
@@ -24,7 +24,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `10EB93502E8A941E4F1D8BF9AED2C8D27B0A9435EEE348F3B0375FF42DDECB53`;
   focused C/LLVM mutation parity, the full component contract, hard contract,
   and SoT edge are GREEN at 88 authorities / 183 carriers / `55/32/1`.
-  The primary task retains the lease through commit, push, and exact-head CI.
+- Implementation `d0b40821da73df7714de7e5bcbd7ccc572483dcc` is on
+  `origin/main`. Exact-head run `33306318796` completed GREEN 30/30 in 40m22s,
+  including `build-linux` in 28m09s and full self-host in 40m04s. No active
+  implementation lease or successor rung is implied by this receipt.
 
 ## NO ACTIVE implementation lease — shared release primary debug-section hygiene published
 

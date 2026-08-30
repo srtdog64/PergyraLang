@@ -18,12 +18,13 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — ArrayString mutation target projection
+## Published — ArrayString mutation target projection is CI green
 
-- Exact base is `a8f255cb47e8ff565521c7f4c084e77667d257bb`, equal to
-  `origin/main` when the rung opened. The worktree contains only this rung's
-  tracked source, gate, registry, and coordination changes plus protected
-  unrelated untracked paths that remain outside inspection and staging.
+- Exact implementation checkpoint is
+  `d0b40821da73df7714de7e5bcbd7ccc572483dcc`, based on exact published base
+  `a8f255cb47e8ff565521c7f4c084e77667d257bb`. It is on `origin/main`. The
+  worktree is clean except protected unrelated untracked paths that remain
+  outside inspection and staging.
 - Production entrypoint is installed
   `pgy-self-driver --mir-json-backend=c|llvm` over the local/value-result
   ArrayString Push/Set/Pop program. The fresh falsifier was behavioral GREEN
@@ -54,9 +55,15 @@ percentage by themselves.
   forecast remains 83%.
 - Objective card:
   `docs/agent_work_directives/array_string_mutation_target_projection_2026-08-30.md`.
-  Commit, push, and exact-head remote CI are the remaining publication
-  falsifiers. Do not open a successor implementation rung before this result
-  is published or rejected.
+- Exact-head run `33306318796` completed GREEN 30/30 in 40m22s. `build-linux`
+  completed in 28m09s and its log observed build-source inventory, the full
+  component contract, hard substitution contract, and SoT edge at 88
+  authorities / 183 carriers / `55/32/1`. Full self-host completed in 40m04s;
+  codegen fixed point completed in 8m50s; backend comparison was GREEN 20/20.
+- This publication closes the mutation consumer prerequisite, not the entire
+  ArrayString ABI BRIDGE. No successor implementation rung is open. The next
+  task must reproduce a fresh executable falsifier and fix a new objective
+  card before editing another consumer.
 
 ## Published — release primary debug sections are CI green
 

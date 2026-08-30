@@ -1,6 +1,6 @@
 # Self-Host Progress
 
-## Active self-host context - 2026-08-30 ArrayString mutation target projection
+## Completed self-host context - 2026-08-30 ArrayString mutation target projection
 
 - Installed direct-MIR local/value-result ArrayString Set/Pop had stable C/LLVM
   behavior but retained a split ABI authority: C Set reopened the global
@@ -16,7 +16,9 @@
   executable consumer migration inside the existing ArrayString ABI BRIDGE,
   but it does not close the whole row or increment hard replacement. Integrated
   progress therefore remains 83% (81-85%), strict beta 83%, and hard
-  replacement 75%. Exact-head remote CI is the publication falsifier.
+  replacement 75%. Implementation `d0b40821` is published; exact-head run
+  `33306318796` completed GREEN 30/30 in 40m22s, including fast Linux in
+  28m09s, full self-host in 40m04s, and backend comparison 20/20.
 
 ## Completed self-host context - 2026-08-29 foreach receipt BRIDGE closure
 
