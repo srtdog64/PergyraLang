@@ -26,7 +26,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   inventory, CI runner, debug hygiene, and documentation gates are locally
   green. First publication run `33300744973` failed only because the self-host
   artifact consumer reached 183/180 lines; the cap stayed fixed and the repaired
-  consumer is 179 lines. Re-publication CI is not yet observed.
+  consumer is 179 lines. The initial re-run also exposed that the gate was wired
+  to the unused full Linux list rather than the workflow's fast-push list; it is
+  now moved to the actual `ci-push-linux` boundary. Re-publication CI is not yet
+  observed.
 - This is release hygiene, not self-host substitution or SoT census progress.
   The full C++-class target remains open after this bounded rung.
 

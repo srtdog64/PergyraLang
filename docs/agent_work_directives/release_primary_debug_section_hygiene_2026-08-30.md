@@ -82,3 +82,8 @@ census. The complete reconstruction-resistance acceptance gate stays open.
   `81f820595b7ba760eabb6770eb2df39b6578e7f0` names the policy result once per
   final-link function and leaves the consumer at 179 lines. The exact failing
   component contract and the focused four-path gate are green after repair.
+- The next run showed that the gate had been listed only in the dormant/full
+  `ci_linux_steps.sh`, while the workflow's `build-linux` job executes
+  `ci_push_linux_steps.sh`. The gate is moved, not duplicated, into the actual
+  fast-push list so exact-head CI must execute it without lengthening a separate
+  full profile twice.

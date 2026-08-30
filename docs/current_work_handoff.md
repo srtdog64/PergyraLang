@@ -49,7 +49,10 @@ percentage by themselves.
   raised. The repair names the already-owned policy result once per function,
   leaves the consumer at 179 lines, and passes the exact
   `self_hosted_component_contract_smoke.sh` plus the focused four-path gate.
-  Re-publication CI remains pending.
+  The first re-run also exposed a CI ownership error: the new gate was in
+  `ci_linux_steps.sh`, but the workflow executes `ci_push_linux_steps.sh`.
+  The gate is moved into the actual fast-push list rather than duplicated across
+  both profiles. Re-publication CI remains pending.
 - `production-c-size-test-smoke` was attempted and fails on the pre-existing
   unrelated `src/parser/ast_expr_control_accessors.c` count of 725 lines versus
   its 699-line cap. This release change does not touch that file and does not

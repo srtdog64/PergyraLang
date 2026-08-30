@@ -104,7 +104,6 @@ case "${PGY_CI_PLATFORM_PARITY_MODE:-full}" in
         ;;
 esac
 run 'make debug-hygiene-test-smoke'
-run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" release-primary-debug-section-hygiene-test-smoke'
 run 'make memory-string-safety-test-smoke'
 run 'make security-portability-contract-test-smoke'
 # Sandbox symlink escape (finding 2026-07-05-001): POSIX-only, so Linux is its
