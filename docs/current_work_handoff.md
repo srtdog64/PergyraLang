@@ -18,12 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active publication — LLVM large aggregate return stack policy
+## Published — LLVM large aggregate return stack policy is CI green
 
 - Exact implementation checkpoint:
   `5e1881cc537c837d122d1cc9a36bea659aafe379`, based on exact published base
-  `f2aff7aba86ce2594e62eef251c089b0b38ca1ad`. Push and exact-head CI remain
-  pending at this snapshot.
+  `f2aff7aba86ce2594e62eef251c089b0b38ca1ad`; handoff publication checkpoint is
+  `10ce32d8a1e4dc77f4f787cd8250c0fa5f3d7114`.
 - Production entrypoint: a fresh current-source LLVM-built
   `driver_rung2_main.pgy --canonicalize-oracle-mir-json`, reused through the
   hard prebuilt-driver parity slot. The installed C-built driver remains only
@@ -70,6 +70,13 @@ percentage by themselves.
   `SUBSTITUTING` progress. Census remains `CLOSED=55 / BRIDGE=32 / ACTIVE=1`,
   project forecast remains 83%, and the C++-class reconstruction target remains
   open.
+- Exact-head CI run `33297665731` completed GREEN 30/30 in 41m28s: full
+  self-host 41m10s, fast Linux 21m41s, sanitizers 12m43s, codegen bootstrap
+  8m36s, Windows 7m01s, macOS 2m16s, backend toolchain 11m02s, Rocq 9 1m45s,
+  TSan 15s, and backend comparison 20/20. The new focused stack-policy gate ran
+  in fast Linux and the LLVM code path passed Windows plus codegen fixed point.
+  The publication lease is retired; no successor implementation rung is
+  inferred from this green result.
 
 ## Latest bounded continuation — current prebuilt DRV-2 passes all 284 MIR manifest rows
 

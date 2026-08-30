@@ -6,14 +6,14 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE publication lease — LLVM large aggregate return stack policy
+## NO ACTIVE implementation lease — LLVM large aggregate return stack policy published
 
 - Exact base is `f2aff7aba86ce2594e62eef251c089b0b38ca1ad`, equal to
   `origin/main` when this lease opened. The primary task is the sole integration
   and publication owner for this rung.
 - Implementation checkpoint is
-  `5e1881cc537c837d122d1cc9a36bea659aafe379`; push and exact-head CI are still
-  pending, so the publication lease remains active.
+  `5e1881cc537c837d122d1cc9a36bea659aafe379`; handoff publication checkpoint is
+  `10ce32d8a1e4dc77f4f787cd8250c0fa5f3d7114`.
 - Reproduced production falsifier: a fresh current-source LLVM-built DRV-2
   exits with Windows `0xC00000FD` while canonicalizing
   `dish_result_collect` and `class_method_result_loop`. The block lowerer owns
@@ -37,6 +37,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   This is an executable LLVM self-host prerequisite, not a hard substitution
   increment. Census remains `55/32/1`, project forecast remains 83%, and the
   binary reconstruction target remains open.
+- Exact-head CI run `33297665731` is GREEN 30/30: full self-host 41m10s,
+  fast Linux 21m41s, sanitizers 12m43s, codegen bootstrap 8m36s, Windows
+  7m01s, macOS 2m16s, backend toolchain 11m02s, Rocq 9 1m45s, TSan 15s,
+  and backend comparison 20/20. The publication lease is retired; no successor
+  implementation rung is inferred from this green result.
 
 ## NO ACTIVE implementation lease — 284-row DRV-2 discovery is green
 

@@ -1,6 +1,6 @@
 # LLVM self-MIR block stack frame — 2026-08-30
 
-Status: `IMPLEMENTATION COMMITTED — CI PENDING`
+Status: `PUBLISHED — CI GREEN`
 
 Exact base: `f2aff7aba86ce2594e62eef251c089b0b38ca1ad` on
 `origin/main`.
@@ -130,3 +130,7 @@ target remains open.
 
 Implementation checkpoint:
 `5e1881cc537c837d122d1cc9a36bea659aafe379`.
+
+Publication checkpoint:
+`10ce32d8a1e4dc77f4f787cd8250c0fa5f3d7114`. Exact-head CI run
+`33297665731` completed GREEN 30/30; the publication lease is retired.
