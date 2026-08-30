@@ -1,6 +1,6 @@
 # LLVM self-MIR block stack frame — 2026-08-30
 
-Status: `IMPLEMENTATION COMPLETE — PUBLICATION PENDING`
+Status: `IMPLEMENTATION COMMITTED — CI PENDING`
 
 Exact base: `f2aff7aba86ce2594e62eef251c089b0b38ca1ad` on
 `origin/main`.
@@ -127,3 +127,6 @@ This is executable LLVM self-host prerequisite closure, not a new hard
 `SUBSTITUTING` numerator. The SoT census remains `CLOSED=55 / BRIDGE=32 /
 ACTIVE=1`, the project forecast remains 83%, and the C++-class reconstruction
 target remains open.
+
+Implementation checkpoint:
+`5e1881cc537c837d122d1cc9a36bea659aafe379`.

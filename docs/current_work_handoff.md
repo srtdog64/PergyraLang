@@ -18,6 +18,59 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active publication — LLVM large aggregate return stack policy
+
+- Exact implementation checkpoint:
+  `5e1881cc537c837d122d1cc9a36bea659aafe379`, based on exact published base
+  `f2aff7aba86ce2594e62eef251c089b0b38ca1ad`. Push and exact-head CI remain
+  pending at this snapshot.
+- Production entrypoint: a fresh current-source LLVM-built
+  `driver_rung2_main.pgy --canonicalize-oracle-mir-json`, reused through the
+  hard prebuilt-driver parity slot. The installed C-built driver remains only
+  a control.
+- Reproduced falsifier: `dish_result_collect` and
+  `class_method_result_loop` exit with Windows `0xC00000FD`. GDB reaches
+  `___chkstk_ms`; `SelfMirLowerBlockFromArtifact` owns a 221,912-byte frame,
+  `SelfMirLowerIfFromArtifact` owns 117,752 bytes, and eleven nested block
+  entries consume about 1.36 MiB before the 2 MiB process stack overflows.
+- Fact owner and repair: LLVM target layout reports the returned
+  `SelfMirRoutineBuild` ABI as exactly 3,000 bytes. Defined struct/array returns
+  of at least 2,048 bytes now retain a `noinline` value boundary before O2/O3.
+  Ordinary returns keep the normal pipeline. The owner contains no
+  function/fixture/type allowlist, environment toggle, global inliner threshold,
+  C-driver substitution, or PE stack-reserve increase.
+- Fresh repaired LLVM driver SHA-256:
+  `3F3EDF13D6E240E2BC80572492DC6D5132B8CB5B1ABEBC1D6004F06B87F71120`.
+  Final frames are block 36,376 bytes, if 66,776 bytes, and tracked statement
+  90,968 bytes. The two reached fixtures pass together with this binary.
+- The same binary passes corpus rows 243-284, including every reached failure
+  and formerly unexecuted tail row, plus representative controls 1/100/200.
+  Rows 1-242 were already green on the preceding current-source LLVM driver.
+  A second one-binary 284-row run was not repeated because its projected wall
+  time exceeds the 30-minute integration-shard budget; no such exact-binary
+  full-matrix claim is made.
+- Green local gates: incremental `LLVM_ENABLED=1` compiler build, focused
+  two-fixture parity, 42-row resumed corpus, three controls,
+  `llvm_large_aggregate_return_stack_smoke.sh`, its Make target,
+  `ci_step_runner_smoke.sh`, `build_source_inventory_smoke.sh`, shell syntax,
+  and `git diff --check`.
+- The broad `perf_contract_smoke.sh` was attempted but its pre-existing line
+  4060 literal requirement for `could not lower print argument` fails before
+  this new policy gate. That unrelated diagnostic spelling was not revived;
+  the new policy has a focused gate in fast Linux push and as an
+  `llvm-test-smoke` prerequisite.
+- The attached architecture review's `Full current 284-row LLVM matrix after
+  latest fix: Not claimed` line is partly superseded: the previous 284-row
+  installed-driver corpus remains published, and the new LLVM-built binary now
+  closes its failing/tail interval. The review's contextual-type/query
+  proposals remain design input and do not authorize a generic query layer.
+- Objective card:
+  `docs/agent_work_directives/llvm_self_mir_block_stack_frame_2026-08-30.md`.
+  This is executable LLVM self-host prerequisite closure, not hard
+  `SUBSTITUTING` progress. Census remains `CLOSED=55 / BRIDGE=32 / ACTIVE=1`,
+  project forecast remains 83%, and the C++-class reconstruction target remains
+  open.
+
 ## Latest bounded continuation — current prebuilt DRV-2 passes all 284 MIR manifest rows
 
 - Exact tracked base before this gate repair is

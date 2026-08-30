@@ -11,6 +11,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Exact base is `f2aff7aba86ce2594e62eef251c089b0b38ca1ad`, equal to
   `origin/main` when this lease opened. The primary task is the sole integration
   and publication owner for this rung.
+- Implementation checkpoint is
+  `5e1881cc537c837d122d1cc9a36bea659aafe379`; push and exact-head CI are still
+  pending, so the publication lease remains active.
 - Reproduced production falsifier: a fresh current-source LLVM-built DRV-2
   exits with Windows `0xC00000FD` while canonicalizing
   `dish_result_collect` and `class_method_result_loop`. The block lowerer owns
