@@ -1,6 +1,6 @@
 # ArrayString value-result target projection — 2026-08-30
 
-Status: `LOCAL GREEN — IMPLEMENTATION COMMITTED — PUBLICATION PENDING`
+Status: `PUBLISHED — CI GREEN`
 
 Exact base: `660943081ce73c4e1ac8b645e38998ab34a1f348` on
 `origin/main`.
@@ -89,3 +89,27 @@ the C++-class binary reconstruction-resistance target.
 - Hard contract, SoT authority edge, and single Gate-SoT checks passed. The
   full component contract was interrupted after exceeding the local static
   budget and is not reported green; publication CI owns its full execution.
+
+## Publication result
+
+- Implementation checkpoint:
+  `4a66f127f906a8514ac780b0afac5539169d7a37`; final structural-cap repair:
+  `7a61294ac752aad6ef0fdb4d44f5f2e7b03207a7`.
+- The first publication attempts exposed shrink-only owner caps rather than a
+  semantic failure: the projection owner was `53/50`, followed by the C
+  value-result owner at `74/70`. The final repair kept every cap unchanged and
+  compressed only blank lines, wrapping, and equivalent string assembly.
+- The final affected owner counts are C emission `309/310`, C signature
+  `155/155`, LLVM emission `360/360`, projection `50/50`, C value-result
+  `70/70`, and LLVM value-result `88/90`. A fresh typed-source DRV-2 rebuilt
+  and installed after that repair; focused mixed C/LLVM parity plus negatives
+  and the no-ArrayString control both passed again.
+- Exact-head CI run `33286454027` completed GREEN 30/30. `build-linux` passed
+  in 27m26s, including the full component/Markdown contracts that exceeded
+  the local budget; full self-host passed in 41m06s, sanitizers in 12m46s,
+  codegen bootstrap in 8m42s, Windows in 9m06s, backend toolchain in 11m13s,
+  and backend comparison 20/20.
+- Publication changes neither the `CLOSED=55 / BRIDGE=32 / ACTIVE=1` census,
+  hard `SUBSTITUTING` progress, nor the 83% project forecast. The separately
+  approved C++-class binary reconstruction-resistance target remains an open
+  acceptance gate and is not claimed as current binary behavior.

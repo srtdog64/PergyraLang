@@ -6,11 +6,12 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE publication lease — ArrayString value-result consumes target projection
+## RETIRED publication lease — ArrayString value-result consumes target projection
 
 - Implementation checkpoint:
   `4a66f127f906a8514ac780b0afac5539169d7a37`, based on exact base
-  `660943081ce73c4e1ac8b645e38998ab34a1f348`.
+  `660943081ce73c4e1ac8b645e38998ab34a1f348`; final structural-cap repair:
+  `7a61294ac752aad6ef0fdb4d44f5f2e7b03207a7`.
 - Production entrypoint: installed direct-MIR C/LLVM projection of the mixed
   ArrayString/ArrayInt value-result program.
 - Reproduced direct bypass: the emission root derives one target-qualified
@@ -24,10 +25,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `docs/agent_work_directives/array_string_value_result_target_projection_2026-08-30.md`.
 - This is one prerequisite implementation lease. It does not close the whole
   ABI row, change `55/32/1`, or admit unrelated ArrayString work.
-- Local DRV-2 rebuild, focused C/LLVM parity plus negatives, a no-ArrayString
-  control, hard contract, SoT edge, and single Gate-SoT checks are green. Full
-  component-contract execution exceeded the local budget and was interrupted;
-  it is not counted green and remains owned by publication CI.
+- A fresh post-repair typed-source DRV-2 rebuild, focused C/LLVM parity plus
+  negatives, the no-ArrayString control, hard contract, SoT edge, and single
+  Gate-SoT checks are green. Exact-head CI run `33286454027` is GREEN 30/30:
+  full component/Markdown contracts passed in the 27m26s Linux job, full
+  self-host in 41m06s, and backend comparison 20/20.
+- The lease is released. No successor implementation lease is inferred until
+  a remaining production falsifier or direct C bypass is freshly reproduced.
+  Census remains `55/32/1`, project forecast remains 83%, and the approved
+  C++-class binary reconstruction target remains unproven with its acceptance
+  gate open.
 
 ## RETIRED lease — LLVM intent value-argument ABI blocker removed
 
