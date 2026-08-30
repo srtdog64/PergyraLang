@@ -3987,7 +3987,8 @@ self-host-domain-runtime-assignment-test-smoke: $(PGY)
 		tests/self_hosted/parity/domain_runtime_assignment_execution_owner.sh
 
 self-host-domain-runtime-zone-sync-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" \
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" \
 		tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh
 
 self-host-mir-cfg-graph-query-test-smoke: $(PGY)

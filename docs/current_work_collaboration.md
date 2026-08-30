@@ -39,6 +39,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   the focused zone gate was absent from the actual Linux step lists, however;
   this lease therefore remains active while the existing Make target is wired
   into both push and full Linux CI and an exact rerun observes its PASS output.
+- Wiring run `33337733639` is 29/30: full self-host and all 20 backend shards
+  are green, while `build-linux` failed only because the focused script chose
+  `bin/pgy-self-driver.exe` instead of the exported
+  `PGY_SELF_DRIVER_BIN`. The active repair consumes that standard variable,
+  passes the Makefile's OS-specific driver path explicitly, and locally passes
+  the exact Make target from a fresh codegen build. The lease remains active
+  through another exact run.
 
 ## DONE lease — generated zone resource lifecycle published
 

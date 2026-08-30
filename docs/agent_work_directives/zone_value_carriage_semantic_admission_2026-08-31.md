@@ -129,3 +129,11 @@ substitution progress.
   rung. The active follow-up wires the existing Make target into both lists
   and ratchets that wiring in build-source inventory; exact rerun remains
   pending.
+- Wiring run `33337733639` reached 29/30 green, including full self-host and
+  backend compare 20/20, but `build-linux` exposed a portable-driver-path bug:
+  the focused script ignored the established `PGY_SELF_DRIVER_BIN` and tried
+  the Windows-only `bin/pgy-self-driver.exe`. The current repair makes the
+  script consume the standard variable, makes the Make target pass the
+  OS-specific `SELF_HOST_DRIVER`, and adds a component ratchet. The exact Make
+  target is locally green from a fresh codegen build; another exact CI run is
+  still required.

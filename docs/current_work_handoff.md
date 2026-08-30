@@ -56,6 +56,13 @@ percentage by themselves.
   existing Make target into both lists and ratchets that wiring; publish it
   and require an exact rerun with the focused PASS in `build-linux` before
   retiring the collaboration lease.
+- Wiring run `33337733639` reached 29/30 green but failed `build-linux` at the
+  focused gate with exit 127 because its script ignored the established
+  `PGY_SELF_DRIVER_BIN` and tried the Windows-only `.exe` default on Linux.
+  Current worktree repair consumes the standard variable, passes
+  `SELF_HOST_DRIVER` from the Make target, and ratchets the connection. The
+  exact Make target is locally green from a fresh codegen build; publish this
+  repair and rerun exact CI.
 
 ## Published — generated zone resource lifecycle is exact-CI green
 

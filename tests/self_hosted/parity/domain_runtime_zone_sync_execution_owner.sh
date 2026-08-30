@@ -4,7 +4,14 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/domain-runtime-zone-sync}"
 PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy.exe}"
-SELF_DRIVER="${PGY_SELFHOST_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver.exe}"
+SELF_DRIVER="${PGY_SELFHOST_DRIVER_BIN:-${PGY_SELF_DRIVER_BIN:-}}"
+if [[ -z "$SELF_DRIVER" ]]; then
+    if [[ -x "$ROOT_DIR/bin/pgy-self-driver.exe" ]]; then
+        SELF_DRIVER="$ROOT_DIR/bin/pgy-self-driver.exe"
+    else
+        SELF_DRIVER="$ROOT_DIR/bin/pgy-self-driver"
+    fi
+fi
 CODEGEN_BIN="${PGY_SELFHOST_PREBUILT_CODEGEN:-$BUILD_DIR/codegen.exe}"
 CC_BIN="${CC:-gcc}"
 

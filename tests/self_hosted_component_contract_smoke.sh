@@ -534,6 +534,9 @@ require_text \
     "func CodegenSemanticZoneLocalFresh("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "CodegenSemanticZoneLocalFresh(body_types, idx)"
+require_text \
+    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
+    'PGY_SELFHOST_DRIVER_BIN:-${PGY_SELF_DRIVER_BIN:-}'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func CodegenFreshZoneLocal("
 require_text \
