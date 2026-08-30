@@ -1,6 +1,6 @@
 # Binary Reconstruction Resistance Target
 
-Status: `APPROVED RELEASE TARGET — ACCEPTANCE GATE OPEN — PRIMARY STRIP RUNG IMPLEMENTED`
+Status: `APPROVED RELEASE TARGET — ACCEPTANCE GATE OPEN — PRIMARY STRIP RUNG PUBLISHED`
 
 Updated: 2026-08-30 (Asia/Seoul)
 
@@ -134,6 +134,13 @@ that first primary-strip sub-rung locally:
 - the explicit developer debug lane retains DWARF;
 - an injected debug-bearing artifact is rejected; and
 - a same-target optimized/stripped C++ hello is compared in the focused gate.
+
+Exact-head revision `4354b73887173d285099fe9a4c83bac2a22b01a9` published
+this bounded rung in CI run `33302709643`, GREEN with 30/30 jobs. The Linux
+fast-push log executed the focused gate as step 10 and observed stripped,
+behavior-preserving primaries sized 14,392 bytes (self-host C), 277,656
+(self-host LLVM), 112,840 (native C), and 269,256 (native LLVM), against a
+14,472-byte same-toolchain optimized/stripped C++ hello.
 
 This does **not** close the complete target. Cross-platform evidence,
 workspace/source/temp path and private-identifier residue, high-level

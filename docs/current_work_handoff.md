@@ -18,12 +18,13 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Implementation complete, publication pending — release primary debug sections
+## Published — release primary debug sections are CI green
 
 - Exact implementation checkpoint:
   `477ada2202c019581e7d835d2f332d75a194991d`, based on exact published base
   `5a9c34d3d946e4e5f103822253ae7da9c029a46f`; structural-cap repair checkpoint:
-  `81f820595b7ba760eabb6770eb2df39b6578e7f0`.
+  `81f820595b7ba760eabb6770eb2df39b6578e7f0`; exact CI-wiring and publication
+  revision: `4354b73887173d285099fe9a4c83bac2a22b01a9`.
 - Fresh falsifier: current C- and LLVM-backed `examples/hello.pgy --opt=release`
   executables each retained nine DWARF section families. The C
   artifact was 126,881 bytes and the LLVM artifact 453,335 bytes before an
@@ -52,7 +53,13 @@ percentage by themselves.
   The first re-run also exposed a CI ownership error: the new gate was in
   `ci_linux_steps.sh`, but the workflow executes `ci_push_linux_steps.sh`.
   The gate is moved into the actual fast-push list rather than duplicated across
-  both profiles. Re-publication CI remains pending.
+  both profiles. Exact-head run `33302709643` completed GREEN with 30/30 jobs.
+  `build-linux` completed in 24m40s and its log ran the gate as
+  `ci-push-linux step 10`; the gate reported stripped, behavior-preserving
+  self-host/native C/LLVM primaries. The full self-host fixed point completed
+  GREEN in 40m11s. Linux focused sizes were self-host C 14,392, self-host LLVM
+  277,656, native C 112,840, native LLVM 269,256, and same-toolchain C++
+  14,472 bytes.
 - `production-c-size-test-smoke` was attempted and fails on the pre-existing
   unrelated `src/parser/ast_expr_control_accessors.c` count of 725 lines versus
   its 699-line cap. This release change does not touch that file and does not
@@ -69,6 +76,10 @@ percentage by themselves.
   increment, and the project forecast remains 83%.
 - Objective card:
   `docs/agent_work_directives/release_primary_debug_section_hygiene_2026-08-30.md`.
+- No successor implementation rung is opened by this publication receipt. The
+  next task must select one fresh executable falsifier after re-reading this
+  active card; it must not infer closure of the wider reconstruction-resistance
+  target or reopen generic SoT cleanup.
 
 ## Published — LLVM large aggregate return stack policy is CI green
 

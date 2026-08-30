@@ -1,6 +1,6 @@
 # Release Primary Debug-Section Hygiene — 2026-08-30
 
-Status: `STRUCTURAL CAP REPAIR COMPLETE — REPUBLICATION CI PENDING`
+Status: `IMPLEMENTATION COMPLETE — PUBLICATION CI GREEN`
 
 Exact base revision: `5a9c34d3d946e4e5f103822253ae7da9c029a46f`
 
@@ -87,3 +87,9 @@ census. The complete reconstruction-resistance acceptance gate stays open.
   `ci_push_linux_steps.sh`. The gate is moved, not duplicated, into the actual
   fast-push list so exact-head CI must execute it without lengthening a separate
   full profile twice.
+- Exact-head publication revision
+  `4354b73887173d285099fe9a4c83bac2a22b01a9` completed CI run
+  `33302709643` GREEN with 30/30 jobs. `build-linux` completed in 24m40s;
+  its log executed this gate as `ci-push-linux step 10` and reported stripped,
+  behavior-preserving self-host/native C/LLVM primaries. The full self-host
+  fixed-point job completed GREEN in 40m11s.

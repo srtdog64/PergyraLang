@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE publication lease — shared release primary debug-section hygiene
+## NO ACTIVE implementation lease — shared release primary debug-section hygiene published
 
 - Exact base is `5a9c34d3d946e4e5f103822253ae7da9c029a46f`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit and
@@ -28,10 +28,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   artifact consumer reached 183/180 lines; the cap stayed fixed and the repaired
   consumer is 179 lines. The initial re-run also exposed that the gate was wired
   to the unused full Linux list rather than the workflow's fast-push list; it is
-  now moved to the actual `ci-push-linux` boundary. Re-publication CI is not yet
-  observed.
+  now moved to the actual `ci-push-linux` boundary. Exact-head revision
+  `4354b73887173d285099fe9a4c83bac2a22b01a9` completed run `33302709643`
+  GREEN with 30/30 jobs. `build-linux` ran the new gate as step 10 and finished
+  in 24m40s; full self-host finished in 40m11s.
 - This is release hygiene, not self-host substitution or SoT census progress.
   The full C++-class target remains open after this bounded rung.
+- This lease is retired. No successor edit scope is inferred from the receipt;
+  the next task must select a fresh executable falsifier first.
 
 ## NO ACTIVE implementation lease — LLVM large aggregate return stack policy published
 
