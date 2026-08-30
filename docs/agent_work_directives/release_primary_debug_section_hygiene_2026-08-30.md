@@ -1,6 +1,6 @@
 # Release Primary Debug-Section Hygiene — 2026-08-30
 
-Status: `IMPLEMENTATION COMPLETE — PUBLICATION CI PENDING`
+Status: `STRUCTURAL CAP REPAIR COMPLETE — REPUBLICATION CI PENDING`
 
 Exact base revision: `5a9c34d3d946e4e5f103822253ae7da9c029a46f`
 
@@ -76,3 +76,9 @@ census. The complete reconstruction-resistance acceptance gate stays open.
 - Local same-target C++ comparison sizes were 17,408 bytes for self-host C,
   262,144 for self-host LLVM, 110,080 for native C, 256,512 for native LLVM,
   and 17,408 for the optimized/stripped C++ baseline.
+- First publication run `33300744973` exposed one structural-only failure:
+  `compiler_self_host_artifact.c` was 183 lines against its shrink-only 180-line
+  cap. The cap was not raised. Repair checkpoint
+  `81f820595b7ba760eabb6770eb2df39b6578e7f0` names the policy result once per
+  final-link function and leaves the consumer at 179 lines. The exact failing
+  component contract and the focused four-path gate are green after repair.

@@ -123,8 +123,9 @@ The first 2026-08-30 probe established the open target:
   when a MIR source path is present, while the public self-host LLVM route has
   a different emission shape. The future policy must close that path split.
 
-Implementation checkpoint `477ada2202c019581e7d835d2f332d75a194991d`
-closes that first primary-strip sub-rung:
+Implementation checkpoint `477ada2202c019581e7d835d2f332d75a194991d`, with
+structural-cap repair `81f820595b7ba760eabb6770eb2df39b6578e7f0`, closes
+that first primary-strip sub-rung locally:
 
 - one typed final-link policy is consumed by native C, native LLVM, self-host C,
   and self-host LLVM;

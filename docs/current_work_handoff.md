@@ -22,7 +22,8 @@ percentage by themselves.
 
 - Exact implementation checkpoint:
   `477ada2202c019581e7d835d2f332d75a194991d`, based on exact published base
-  `5a9c34d3d946e4e5f103822253ae7da9c029a46f`.
+  `5a9c34d3d946e4e5f103822253ae7da9c029a46f`; structural-cap repair checkpoint:
+  `81f820595b7ba760eabb6770eb2df39b6578e7f0`.
 - Fresh falsifier: current C- and LLVM-backed `examples/hello.pgy --opt=release`
   executables each retained nine DWARF section families. The C
   artifact was 126,881 bytes and the LLVM artifact 453,335 bytes before an
@@ -42,6 +43,13 @@ percentage by themselves.
   refresh, `release-primary-debug-section-hygiene-test-smoke`, build source
   inventory, CI step runner, debug hygiene, documentation quality, shell
   syntax, and `git diff --check`.
+- First publication run `33300744973` reached 28 green jobs and exposed one
+  implementation-local failure in `build-linux`: the self-host artifact
+  consumer was 183 lines against its shrink-only 180-line cap. The cap was not
+  raised. The repair names the already-owned policy result once per function,
+  leaves the consumer at 179 lines, and passes the exact
+  `self_hosted_component_contract_smoke.sh` plus the focused four-path gate.
+  Re-publication CI remains pending.
 - `production-c-size-test-smoke` was attempted and fails on the pre-existing
   unrelated `src/parser/ast_expr_control_accessors.c` count of 725 lines versus
   its 699-line cap. This release change does not touch that file and does not

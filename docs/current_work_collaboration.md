@@ -20,10 +20,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Exact objective card, consumers, forbidden fallbacks, gate, and budget:
   `docs/agent_work_directives/release_primary_debug_section_hygiene_2026-08-30.md`.
 - Implementation checkpoint is
-  `477ada2202c019581e7d835d2f332d75a194991d`. The four release paths, developer
+  `477ada2202c019581e7d835d2f332d75a194991d`; structural-cap repair checkpoint
+  is `81f820595b7ba760eabb6770eb2df39b6578e7f0`. The four release paths, developer
   debug retention, injected-debug negative, same-target C++ baseline, source
   inventory, CI runner, debug hygiene, and documentation gates are locally
-  green. Exact-head publication CI is not yet observed.
+  green. First publication run `33300744973` failed only because the self-host
+  artifact consumer reached 183/180 lines; the cap stayed fixed and the repaired
+  consumer is 179 lines. Re-publication CI is not yet observed.
 - This is release hygiene, not self-host substitution or SoT census progress.
   The full C++-class target remains open after this bounded rung.
 
