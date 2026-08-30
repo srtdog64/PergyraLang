@@ -9147,6 +9147,12 @@ require_file "src/compiler/compiler_transient_artifact_workspace.c"
 require_file "src/compiler/compiler_transient_artifact_workspace.h"
 require_file "tests/self_hosted/parity/self_host_compiler_build.sh"
 require_max_lines "tests/self_hosted/parity/self_host_compiler_build.sh" 220
+require_file "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" 255
+require_file "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh"
+require_max_lines \
+    "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" 110
 require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/fixture/silent_self_host_driver.c"
@@ -9534,6 +9540,21 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '"machine_manifest=$(hash_file "$MANIFEST_SOURCE")"'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '--emit-machine-manifest-verified'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'pgy_selfhost_driver_validate_fixed_point_receipt'
+reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'grep -Fxq "$build_key" "$STAMP"'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'reusing source-graph fingerprinted driver before emission'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'explicit fixed-point driver receipt was rejected'
+require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
+    'schema=pgy.selfhost.driver-fixed-point-receipt.v1'
+require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
+    'schema=pgy.selfhost.driver-installer-prebuild.v1'
+require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" \
+    'require_rejected source-graph'
+require_text "Makefile" "self-host-driver-fixed-point-receipt-test-smoke:"
 reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
@@ -16569,6 +16590,8 @@ require_file "tests/self_hosted/parity/driver_bootstrap.sh"
 # oracle is the native reference, and undeclared it delegated to the very
 # driver being bootstrapped.
 require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 305
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" \
+    'pgy_selfhost_driver_write_fixed_point_receipt'
 require_text "docs/131_ai_coding_atomic_units.md" \
     'Evidence Non-Equivalence Laws'
 require_text "docs/self_hosted/10_hard_self_host_contract.md" \
@@ -24032,6 +24055,8 @@ require_text "Makefile" \
     'self-host-driver-source-c-execution-action-test-smoke: $(PGY) self-host-compiler'
 require_text ".github/workflows/ci.yml" \
     'self-host-driver-source-c-execution-action-test-smoke'
+require_text ".github/workflows/ci.yml" \
+    'PGY_SELFHOST_FIXED_POINT_DRIVER_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.fixed-point.receipt"'
 require_text ".github/workflows/self_host_parity.yml" \
     'self-host-driver-source-c-execution-action-test-smoke'
 require_file "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"

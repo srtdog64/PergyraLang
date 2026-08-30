@@ -568,6 +568,15 @@ if ! grep -Fq 'backend-compare-linux:' "$ROOT_DIR/.github/workflows/ci.yml" \
     echo "[build-source-inventory] GitHub CI must keep full C/LLVM backend-compare shard matrix" >&2
     missing=1
 fi
+if ! grep -Fq 'self-host-driver-fixed-point-receipt-test-smoke' \
+    "$ROOT_DIR/scripts/ci_linux_steps.sh" \
+    || ! grep -Fq 'PGY_SELFHOST_FIXED_POINT_DRIVER_C="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.c"' \
+    "$ROOT_DIR/.github/workflows/ci.yml" \
+    || ! grep -Fq 'PGY_SELFHOST_FIXED_POINT_DRIVER_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.fixed-point.receipt"' \
+    "$ROOT_DIR/.github/workflows/ci.yml"; then
+    echo "[build-source-inventory] fixed-point driver reuse must stay receipt-gated in Linux CI" >&2
+    missing=1
+fi
 
 bash4_lint_dirs=(tests)
 if [[ -d "$ROOT_DIR/tests/self_hosted/parity" ]]; then

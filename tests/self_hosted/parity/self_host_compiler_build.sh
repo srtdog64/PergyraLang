@@ -8,6 +8,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh"
 pgy_prepend_windows_runtime_paths
 export PATH
 
@@ -32,6 +33,10 @@ C_RAW="$BUILD_DIR/driver.c.raw"
 C_NEXT="$BUILD_DIR/driver.c.next"
 STAMP="$BUILD_DIR/driver.build.key"
 KEY_INPUT="$BUILD_DIR/driver.build.key.input"
+PREBUILD_STAMP="$BUILD_DIR/driver.source-graph.build.key"
+PREBUILD_KEY_INPUT="$BUILD_DIR/driver.source-graph.build.key.input"
+SOURCE_GRAPH_KEY_INPUT="$BUILD_DIR/driver.source-graph.input"
+OUTPUT_RECEIPT="$BUILD_DIR/driver.output.receipt"
 RUNTIME_HEADER_KEY_INPUT="$BUILD_DIR/driver.runtime-headers.build.key.input"
 SMOKE_OUT="$BUILD_DIR/driver.smoke.c"
 MANIFEST_SOURCE="$BUILD_DIR/machine-layer-manifest.json"
@@ -64,17 +69,7 @@ fail() {
     exit 1
 }
 
-hash_file() {
-    if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum "$1" | cut -d' ' -f1
-        return
-    fi
-    if command -v shasum >/dev/null 2>&1; then
-        shasum -a 256 "$1" | cut -d' ' -f1
-        return
-    fi
-    fail "no SHA-256 tool is available"
-}
+hash_file() { pgy_selfhost_driver_receipt_hash_file "$1"; }
 
 mkdir -p "$BUILD_DIR" "$(dirname "$OUTPUT")"
 [[ -f "$ROOT_DIR/$DRIVER_SOURCE" ]] || fail "missing driver source"
@@ -96,36 +91,45 @@ fi
 grep -Fq '"schema":"pgy.machine-layer.declaration.v1"' "$MANIFEST_SOURCE" ||
     fail "native machine manifest owner emitted an invalid artifact"
 
-# The source pipeline owns declaration provenance. An AST-text detour loses
-# that fact and must fail closed for compiler-internal builtins, so emit the
-# current composed graph through the typed source-artifact route every time.
-echo "[self-host-compiler-build] emitting DRV-2 from typed source artifact"
-rm -f "$C_RAW" "$C_NEXT"
-if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
-    "$CODEGEN_BIN" --source "$DRIVER_SOURCE" >"$C_RAW"); then
-    fail "Pergyra-built codegen rejected the DRV-2 source graph"
-fi
-if ! tr -d '\r' <"$C_RAW" >"$C_NEXT"; then
-    fail "Pergyra-built codegen C normalization failed"
-fi
-rm -f "$C_RAW"
-if grep -q '^CODEGEN ERROR' "$C_NEXT"; then
-    grep '^CODEGEN ERROR' "$C_NEXT" | head -5 >&2
-    fail "DRV-2 is outside the Pergyra codegen subset"
-fi
-[[ -s "$C_NEXT" ]] || fail "Pergyra-built codegen emitted empty C"
+runtime_header_fingerprint="$(pgy_selfhost_driver_runtime_header_fingerprint "$ROOT_DIR" "$RUNTIME_HEADER_KEY_INPUT")" || fail "runtime-header fingerprint failed"
+prebuild_key="$(pgy_selfhost_driver_installer_prebuild_key "$ROOT_DIR" "$CODEGEN_BIN" "$MANIFEST_SOURCE" "$runtime_header_fingerprint" "$OUTPUT_KEY" "${PGY_SELFHOST_CC_PROFILE:-release}" "${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[*]}" "$($CC --version 2>/dev/null | head -1)" "${BASH_SOURCE[0]}" "$PREBUILD_KEY_INPUT" "$SOURCE_GRAPH_KEY_INPUT")" || fail "source-graph build key failed"
 
-runtime_header_fingerprint=none
-if pgy_selfhost_emitted_c_uses_runtime_headers "$C_NEXT"; then
-    : >"$RUNTIME_HEADER_KEY_INPUT"
-    while IFS= read -r runtime_header; do
-        runtime_header_key="${runtime_header#"$ROOT_DIR"/}"
-        printf '%s=%s\n' "$runtime_header_key" "$(hash_file "$runtime_header")" \
-            >>"$RUNTIME_HEADER_KEY_INPUT"
-    done < <(find "$ROOT_DIR/src/runtime" -type f -name '*.h' -print | LC_ALL=C sort)
-    runtime_header_fingerprint="$(hash_file "$RUNTIME_HEADER_KEY_INPUT")"
+FIXED_POINT_C="${PGY_SELFHOST_FIXED_POINT_DRIVER_C:-}"
+FIXED_POINT_GEN3_C="${PGY_SELFHOST_FIXED_POINT_DRIVER_GEN3_C:-}"
+FIXED_POINT_BIN="${PGY_SELFHOST_FIXED_POINT_DRIVER_BIN:-}"
+FIXED_POINT_RECEIPT="${PGY_SELFHOST_FIXED_POINT_DRIVER_RECEIPT:-}"
+candidate_output=""
+if [[ -n "${FIXED_POINT_C}${FIXED_POINT_GEN3_C}${FIXED_POINT_BIN}${FIXED_POINT_RECEIPT}" ]]; then
+    pgy_selfhost_driver_validate_fixed_point_receipt "$ROOT_DIR" "$CODEGEN_BIN" "$FIXED_POINT_C" "$FIXED_POINT_GEN3_C" "$FIXED_POINT_BIN" "$FIXED_POINT_RECEIPT" || fail "explicit fixed-point driver receipt was rejected"
+    pgy_require_runnable_binary_here "self-host-compiler-build" "$FIXED_POINT_BIN" || fail "fixed-point driver is not runnable here"
+    rm -f "$C_RAW" "$C_NEXT"
+    cp "$FIXED_POINT_C" "$C_NEXT"
+    candidate_output="$FIXED_POINT_BIN"
+    echo "[self-host-compiler-build] adopting receipt-bound fixed-point driver"
+elif [[ -x "$OUTPUT" && -f "$PREBUILD_STAMP" ]] \
+    && grep -Fxq "$prebuild_key" "$PREBUILD_STAMP" \
+    && pgy_selfhost_driver_validate_installed_artifact_receipt "$OUTPUT" "$OUTPUT_RECEIPT" \
+    && pgy_binary_is_runnable_here "$OUTPUT"; then
+    cp "$MANIFEST_SOURCE" "${MANIFEST_OUTPUT}.tmp"
+    mv -f "${MANIFEST_OUTPUT}.tmp" "$MANIFEST_OUTPUT"
+    echo "[self-host-compiler-build] reusing source-graph fingerprinted driver before emission"
+    exit 0
 else
-    rm -f "$RUNTIME_HEADER_KEY_INPUT"
+    # The typed source artifact remains the ordinary producer. The prebuild
+    # receipt only rejects an identical repeated compiler-scale operation.
+    echo "[self-host-compiler-build] emitting DRV-2 from typed source artifact"
+    rm -f "$C_RAW" "$C_NEXT"
+    if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
+        "$CODEGEN_BIN" --source "$DRIVER_SOURCE" >"$C_RAW"); then
+        fail "Pergyra-built codegen rejected the DRV-2 source graph"
+    fi
+    tr -d '\r' <"$C_RAW" >"$C_NEXT" || fail "Pergyra-built codegen C normalization failed"
+    rm -f "$C_RAW"
+    if grep -q '^CODEGEN ERROR' "$C_NEXT"; then
+        grep '^CODEGEN ERROR' "$C_NEXT" | head -5 >&2
+        fail "DRV-2 is outside the Pergyra codegen subset"
+    fi
+    [[ -s "$C_NEXT" ]] || fail "Pergyra-built codegen emitted empty C"
 fi
 
 printf '%s\n' \
@@ -140,32 +144,21 @@ printf '%s\n' \
     >"$KEY_INPUT"
 build_key="$(hash_file "$KEY_INPUT")"
 
-if [[ -x "$OUTPUT" && -f "$STAMP" ]] \
-    && grep -Fxq "$build_key" "$STAMP" \
-    && pgy_binary_is_runnable_here "$OUTPUT"; then
-    if [[ ! -f "$MANIFEST_OUTPUT" ]] ||
-        ! cmp -s "$MANIFEST_SOURCE" "$MANIFEST_OUTPUT"; then
-        cp "$MANIFEST_SOURCE" "${MANIFEST_OUTPUT}.tmp"
-        mv -f "${MANIFEST_OUTPUT}.tmp" "$MANIFEST_OUTPUT"
-    fi
-    rm -f "$C_NEXT"
-    echo "[self-host-compiler-build] reusing fingerprinted Pergyra-built driver"
-    exit 0
-fi
-
 mv -f "$C_NEXT" "$C_FILE"
 
 tmp_output="${OUTPUT}.tmp"
 rm -f "$tmp_output"
-compile_command=("$CC" -x c -std=c11)
-compile_command+=(${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]})
-if pgy_selfhost_emitted_c_uses_runtime_headers "$C_FILE"; then
-    compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
-fi
-compile_command+=("$C_FILE" -o "$tmp_output")
-if ! "${compile_command[@]}" >"$BUILD_DIR/driver.compile.log" 2>&1; then
-    tail -n 40 "$BUILD_DIR/driver.compile.log" >&2 || true
-    fail "emitted DRV-2 C failed to compile"
+if [[ -n "$candidate_output" ]]; then
+    cp "$candidate_output" "$tmp_output"
+else
+    compile_command=("$CC" -x c -std=c11)
+    compile_command+=(${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]})
+    pgy_selfhost_emitted_c_uses_runtime_headers "$C_FILE" && compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    compile_command+=("$C_FILE" -o "$tmp_output")
+    if ! "${compile_command[@]}" >"$BUILD_DIR/driver.compile.log" 2>&1; then
+        tail -n 40 "$BUILD_DIR/driver.compile.log" >&2 || true
+        fail "emitted DRV-2 C failed to compile"
+    fi
 fi
 
 smoke_rel="${SMOKE_OUT#"$ROOT_DIR"/}"
@@ -198,5 +191,11 @@ fi
 cp "$MANIFEST_SOURCE" "${MANIFEST_OUTPUT}.tmp"
 mv -f "${MANIFEST_OUTPUT}.tmp" "$MANIFEST_OUTPUT"
 mv -f "$tmp_output" "$OUTPUT"
-printf '%s\n' "$build_key" >"$STAMP"
+if [[ -n "$candidate_output" ]]; then
+    rm -f "$STAMP" "$PREBUILD_STAMP" "$OUTPUT_RECEIPT"
+else
+    printf '%s\n' "$build_key" >"$STAMP"
+    printf '%s\n' "$prebuild_key" >"$PREBUILD_STAMP"
+    pgy_selfhost_driver_write_installed_artifact_receipt "$OUTPUT" "$OUTPUT_RECEIPT"
+fi
 echo "[self-host-compiler-build] Pergyra-built DRV-2 installed: $OUTPUT"

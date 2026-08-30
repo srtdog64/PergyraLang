@@ -169,6 +169,10 @@ jobs:
         # Reuse one fixed-point build. A second bootstrap job duplicates the
         # compiler-scale text artifacts and can exceed the runner memory budget.
         run: |
+          PGY_SELFHOST_FIXED_POINT_DRIVER_C="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.c" \
+          PGY_SELFHOST_FIXED_POINT_DRIVER_GEN3_C="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen3.c" \
+          PGY_SELFHOST_FIXED_POINT_DRIVER_BIN="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.exe" \
+          PGY_SELFHOST_FIXED_POINT_DRIVER_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.fixed-point.receipt" \
           make self-host-driver-bootstrap-full-test-smoke \
             self-host-direct-mir-legacy-intent-program-llvm-test-smoke \
             self-host-direct-mir-composite-intent-program-llvm-test-smoke \

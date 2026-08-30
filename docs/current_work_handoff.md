@@ -18,6 +18,44 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — fixed-point driver reuse
+
+- Exact base is `3a0c78943f4fa4804731df304f416de8092e7624`, equal to
+  `origin/main` when this rung opened. Protected unrelated untracked paths
+  remain outside inspection, edit, and staging.
+- Fresh exact-head run `33310231316` completed GREEN but full self-host took
+  37m50s. Its full fixed point compiled and preflighted `driver_gen2`, proved
+  `driver_gen2.c == driver_gen3.c`, and then a phony `self-host-compiler`
+  dependency emitted/compiled the complete installed driver again for 4m43s.
+  `build-linux` separately emitted the installed driver twice at about four
+  minutes each.
+- The active objective is a build-evidence receipt, not semantic caching. One
+  content-addressed owner must bind the conservative current self-host source
+  graph, codegen seed, gen2/gen3 C equality, and gen2 binary. The installer may
+  reuse that exact candidate only after the existing source and machine-
+  manifest smokes; an explicitly supplied stale or malformed receipt fails
+  closed rather than regenerating silently.
+- Exact objective card:
+  `docs/agent_work_directives/fixed_point_driver_reuse_2026-08-30.md`.
+  Local implementation now writes the receipt only after bounded gen2
+  preflight and exact gen2/gen3 C equality. The installer binds the current
+  2,201-file self-host source graph, seed, machine manifest, runtime headers,
+  compile identity, output path, installer owner, and output content before
+  ordinary pre-emission reuse. Explicit fixed-point input is all-or-nothing
+  and never falls back to regeneration when invalid.
+- Current-source focused mutation, component, hard, and build-source inventory
+  gates are GREEN. An isolated development measurement reduced an identical
+  second ordinary install from the initial 374 seconds to 15 seconds; exact-
+  candidate admission took 17 seconds and passed the existing source/manifest
+  smokes. The old post-emission stamp read was deleted because it did not bind
+  output content and therefore could not mint the stronger receipt.
+- The worktree remains intentionally dirty for this unpublished rung. The next
+  falsifier is commit/push followed by exact-head CI: the full self-host job
+  must stay GREEN, its follow-up installed-driver targets must adopt the fixed-
+  point candidate without another full emission, and the build-linux repeated
+  ordinary call must hit the pre-emission receipt. Do not open another SoT
+  consumer migration while this execution rung is active.
+
 ## Published — ArrayString literal target projection is CI green
 
 - Exact implementation checkpoint is

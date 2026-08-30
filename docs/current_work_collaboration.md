@@ -6,6 +6,31 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — fixed-point driver reuse
+
+- Exact base is `3a0c78943f4fa4804731df304f416de8092e7624`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit and
+  publication owner for this performance rung.
+- Fresh execution blocker: exact-head run `33310231316` proved the full
+  `gen2 == gen3` fixed point and then spent another 4m43s emitting/compiling an
+  installed DRV-2 for fourteen seconds of follow-up gates. `build-linux` also
+  emitted the same driver twice at roughly four minutes each.
+- Objective, receipt owner, last consumer, forbidden fallbacks, edit scope,
+  gates, and budget are fixed in
+  `docs/agent_work_directives/fixed_point_driver_reuse_2026-08-30.md`.
+- No third ArrayString SoT-only implementation scope is open. This rung removes
+  a reached repeated compiler-scale operation and does not change SoT or
+  progress counts. The primary task retains the lease through exact-head CI.
+- Local implementation is complete. The fixed-point receipt owner, bootstrap
+  writer, fail-closed installer admission, pre-emission ordinary reuse key,
+  focused negative gate, and Linux CI wiring are present. The weaker old stamp
+  cache read is deleted rather than promoted into the new artifact receipt.
+- Current-source focused, component, hard, and build-source inventory gates are
+  GREEN. Development integration measured 374 seconds for a clean ordinary
+  install versus 15 seconds for the identical pre-emission reuse, and 17
+  seconds for receipt-bound exact-candidate admission. These timings do not
+  replace the pending exact pushed CI receipt; the lease remains active.
+
 ## DONE lease — ArrayString literal target projection published
 
 - Exact base is `79b70e5c007877bb85668dd5790c2b30cb1c5a47`, equal to

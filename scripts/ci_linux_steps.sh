@@ -45,6 +45,7 @@ run 'make self-host-llvm-intent-value-argument-abi-test-smoke'
 run 'make self-host-callable-parameter-identity-replacement-test-smoke'
 
 run 'make build-source-inventory-test-smoke'
+run 'make self-host-driver-fixed-point-receipt-test-smoke'
 run 'make ci-step-runner-test-smoke'
 run 'make grammar-cheatsheet-contract-test-smoke'
 run 'make grammar-examples-compile-test-smoke'

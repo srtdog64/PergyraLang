@@ -1088,8 +1088,16 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '"cc_profile=${PGY_SELFHOST_CC_PROFILE:-release}"'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '"cc_flags=${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[*]}"'
+require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
+    "find \"\$root_dir/src/runtime\" -type f -name '*.h'"
+require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh" \
+    "find src/self_hosted -type f -name '*.pgy'"
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
-    "find \"\$ROOT_DIR/src/runtime\" -type f -name '*.h'"
+    'pgy_selfhost_driver_installer_prebuild_key'
+require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
+    'pgy_selfhost_driver_validate_installed_artifact_receipt'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" \
+    'pgy_selfhost_driver_write_fixed_point_receipt'
 forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     '"codegen=$(hash_file "$CODEGEN_BIN")"'
 compiler_build_owner="$ROOT_DIR/tests/self_hosted/parity/self_host_compiler_build.sh"

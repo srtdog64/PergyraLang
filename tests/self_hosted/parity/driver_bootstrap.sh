@@ -19,6 +19,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -298,4 +299,5 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "$BUILD_DIR/driver_gen2.c" \
     "$BUILD_DIR/driver_gen3.c" "emitted_c"
 
+pgy_selfhost_driver_write_fixed_point_receipt "$ROOT_DIR" "$CODEGEN_BIN" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen3.c" "$BUILD_DIR/driver_gen2.exe" "$BUILD_DIR/driver_gen2.fixed-point.receipt"
 echo "[self-host-driver-bootstrap] integrated MIR-consumer fixpoint ok: gen2 == gen3 ($(wc -l < "$BUILD_DIR/driver_gen2.c") lines)"
