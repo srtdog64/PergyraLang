@@ -6,6 +6,24 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — ArrayString value-result consumes target projection
+
+- Exact base: `660943081ce73c4e1ac8b645e38998ab34a1f348` on
+  `origin/main`.
+- Production entrypoint: installed direct-MIR C/LLVM projection of the mixed
+  ArrayString/ArrayInt value-result program.
+- Reproduced direct bypass: the emission root derives one target-qualified
+  ArrayString projection, but C copy-in spells `pgy_as` locally and LLVM
+  copy-in/out spell `%pgy.array.string` plus `align 8` locally. The C callable
+  signature independently returns to the global ArrayString spelling.
+- Objective: pass the admitted projection to those last value-result consumers,
+  fail closed when it is absent or crossed, and ratchet the literal reads.
+- Fact owner, forbidden fallbacks, edit scope, and focused integration gate are
+  fixed in
+  `docs/agent_work_directives/array_string_value_result_target_projection_2026-08-30.md`.
+- This is one prerequisite implementation lease. It does not close the whole
+  ABI row, change `55/32/1`, or admit unrelated ArrayString work.
+
 ## RETIRED lease — LLVM intent value-argument ABI blocker removed
 
 - Implementation checkpoint:

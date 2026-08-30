@@ -1,16 +1,27 @@
 // C copy and mutation boundary for admitted Array<String> value-result formals.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 
 func DirectMirScalarProgramCArrayStringValueResultCopyIn(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
     let output: String = "";
     let parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, routine, parameter) {
-            output = Concat(output, "    pgy_as pgy_param_");
+            if !IsSome(array_string_projection) { Die(
+                "direct MIR C Array<String> value-result projection is missing"); }
+            let projection: DirectMirArrayStringAbiProjection =
+                UnwrapOption(array_string_projection);
+            let carrier_type: String =
+                DirectMirScalarProgramCArrayStringCarrierType(
+                    plan.program.array_string_abi, projection);
+            output = Concat(output, "    ");
+            output = Concat(output, carrier_type);
+            output = Concat(output, " pgy_param_");
             output = Concat(output, ToString(parameter));
             output = Concat(output, " = *pgy_param_");
             output = Concat(output, ToString(parameter));
@@ -22,13 +33,22 @@ func DirectMirScalarProgramCArrayStringValueResultCopyIn(
 }
 
 func DirectMirScalarProgramCArrayStringValueResultCopyOut(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
     let output: String = "";
     let parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, routine, parameter) {
+            if !IsSome(array_string_projection) { Die(
+                "direct MIR C Array<String> value-result projection is missing"); }
+            let projection: DirectMirArrayStringAbiProjection =
+                UnwrapOption(array_string_projection);
+            if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+                    plan.program.array_string_abi, projection,
+                    CompilerTargetCpuCProjection()) { Die(
+                "direct MIR C Array<String> value-result projection drifted"); }
             output = Concat(output, "    *pgy_param_");
             output = Concat(output, ToString(parameter));
             output = Concat(output, "_mutref = pgy_param_");

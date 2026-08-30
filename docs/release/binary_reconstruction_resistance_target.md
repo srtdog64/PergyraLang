@@ -1,12 +1,16 @@
 # Binary Reconstruction Resistance Target
 
-Status: `OPEN TARGET — NOT AN ACTIVE IMPLEMENTATION RUNG`
+Status: `APPROVED RELEASE TARGET — ACCEPTANCE GATE OPEN — NOT AN ACTIVE IMPLEMENTATION RUNG`
 
 Updated: 2026-08-30 (Asia/Seoul)
 
 This document owns the release-artifact reconstruction-resistance target. It
 does not claim that current binaries meet the target, and it does not make
 obfuscation a language semantic or a source-of-truth owner.
+
+This is an approved product goal, not a proposal. `OPEN` refers only to the
+missing acceptance evidence: until the cross-backend comparison gate closes,
+the project must report C++-class reconstruction resistance as unproven.
 
 ## Target
 

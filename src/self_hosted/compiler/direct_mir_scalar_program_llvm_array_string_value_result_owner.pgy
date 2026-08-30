@@ -1,32 +1,52 @@
 // LLVM copy and mutation boundary for admitted Array<String> value-result formals.
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 
 func DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
     let output: String = "";
     let parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, routine, parameter) {
+            if !IsSome(array_string_projection) { Die(
+                "direct MIR LLVM Array<String> value-result projection is missing"); }
+            let projection: DirectMirArrayStringAbiProjection =
+                UnwrapOption(array_string_projection);
+            if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+                    plan.program.array_string_abi, projection,
+                    CompilerTargetCpuLlvmProjection()) { Die(
+                "direct MIR LLVM Array<String> value-result projection drifted"); }
+            let aggregate: String = projection.llvm_aggregate_type;
+            let storage_align: String = ToString(projection.storage.align);
             let spelling: String = ToString(parameter);
             output = Concat(output, "  %pgy.param.");
             output = Concat(output, spelling);
-            output = Concat(output,
-                ".local = alloca %pgy.array.string, align 8\n");
+            output = Concat(output, ".local = alloca ");
+            output = Concat(output, aggregate);
+            output = Concat(output, ", align ");
+            output = Concat(output, storage_align);
+            output = Concat(output, "\n");
             output = Concat(output, "  %pgy.param.");
             output = Concat(output, spelling);
-            output = Concat(output,
-                ".copyin = load %pgy.array.string, ptr %pgy.param.");
+            output = Concat(output, ".copyin = load ");
+            output = Concat(output, aggregate);
+            output = Concat(output, ", ptr %pgy.param.");
             output = Concat(output, spelling);
-            output = Concat(output, ".mutref, align 8\n");
-            output = Concat(output,
-                "  store %pgy.array.string %pgy.param.");
+            output = Concat(output, ".mutref, align ");
+            output = Concat(output, storage_align);
+            output = Concat(output, "\n  store ");
+            output = Concat(output, aggregate);
+            output = Concat(output, " %pgy.param.");
             output = Concat(output, spelling);
             output = Concat(output, ".copyin, ptr %pgy.param.");
             output = Concat(output, spelling);
-            output = Concat(output, ".local, align 8\n");
+            output = Concat(output, ".local, align ");
+            output = Concat(output, storage_align);
+            output = Concat(output, "\n");
         }
         parameter = parameter + 1;
     }
@@ -34,30 +54,46 @@ func DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(
 }
 
 func DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, exit_block: Int,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
     let output: String = "";
     let parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, routine, parameter) {
+            if !IsSome(array_string_projection) { Die(
+                "direct MIR LLVM Array<String> value-result projection is missing"); }
+            let projection: DirectMirArrayStringAbiProjection =
+                UnwrapOption(array_string_projection);
+            if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+                    plan.program.array_string_abi, projection,
+                    CompilerTargetCpuLlvmProjection()) { Die(
+                "direct MIR LLVM Array<String> value-result projection drifted"); }
+            let aggregate: String = projection.llvm_aggregate_type;
+            let storage_align: String = ToString(projection.storage.align);
             let spelling: String = ToString(parameter);
             output = Concat(output, "  %pgy.param.");
             output = Concat(output, spelling);
             output = Concat(output, ".copyout.");
             output = Concat(output, ToString(exit_block));
-            output = Concat(output,
-                " = load %pgy.array.string, ptr %pgy.param.");
+            output = Concat(output, " = load ");
+            output = Concat(output, aggregate);
+            output = Concat(output, ", ptr %pgy.param.");
             output = Concat(output, spelling);
-            output = Concat(output, ".local, align 8\n");
-            output = Concat(output,
-                "  store %pgy.array.string %pgy.param.");
+            output = Concat(output, ".local, align ");
+            output = Concat(output, storage_align);
+            output = Concat(output, "\n  store ");
+            output = Concat(output, aggregate);
+            output = Concat(output, " %pgy.param.");
             output = Concat(output, spelling);
             output = Concat(output, ".copyout.");
             output = Concat(output, ToString(exit_block));
             output = Concat(output, ", ptr %pgy.param.");
             output = Concat(output, spelling);
-            output = Concat(output, ".mutref, align 8\n");
+            output = Concat(output, ".mutref, align ");
+            output = Concat(output, storage_align);
+            output = Concat(output, "\n");
         }
         parameter = parameter + 1;
     }

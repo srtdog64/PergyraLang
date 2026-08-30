@@ -10,6 +10,8 @@ func DirectMirScalarProgramCPayloadEnumPreamble(
     ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     int_c_type: String
 ) -> String {
     if !DirectMirScalarProgramReferencedEnumFactReady(fact) ||
@@ -58,7 +60,8 @@ func DirectMirScalarProgramCPayloadEnumPreamble(
                                     fact.variant_param_type_starts[variant] +
                                         parameter],
                                 int_c_type, nominal, logical_record,
-                                payload_free_enum, fact);
+                                payload_free_enum, fact, array_string_abi,
+                                array_string_projection);
                         if payload_type == "" {
                             Die("direct MIR scalar C enum payload type is unsupported");
                         }

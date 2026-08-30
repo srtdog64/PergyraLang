@@ -19258,6 +19258,34 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
     "DirectMirScalarProgramLlvmArrayStringValueResultCopyOut("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_value_result_owner.pgy" \
+    "func DirectMirScalarProgramCArrayStringValueResultCopyIn(" \
+    "DirectMirScalarProgramCArrayStringCarrierType("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_value_result_owner.pgy" \
+    '    pgy_as pgy_param_'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(" \
+    "projection.llvm_aggregate_type"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(" \
+    "projection.storage.align"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy" \
+    '%pgy.array.string'
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_value_result_owner.pgy" \
+    'align 8'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy" \
+    "func DirectMirScalarCfgProgramCTypeWithReferencedEnum(" \
+    "DirectMirScalarProgramCArrayStringCarrierType("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_signature_owner.pgy" \
+    'CompilerAbiLayoutArrayStringCValueType()'
 require_text "Makefile" \
     "self-host-direct-mir-scalar-array-string-value-result-void-test-smoke"
 require_text "Makefile" \

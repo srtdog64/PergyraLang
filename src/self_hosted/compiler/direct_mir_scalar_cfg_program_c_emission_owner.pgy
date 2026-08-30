@@ -34,11 +34,14 @@ func DirectMirScalarCfgProgramCRoutine(
     process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     int_line_format: String, string_line_format: String,
-    int_c_type: String, target: CompilerTargetProjectionFact
+    int_c_type: String,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    target: CompilerTargetProjectionFact
 ) -> String {
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
-    TextBuilderAppend(output, DirectMirScalarCfgProgramCSignature(plan, routine, int_c_type, false));
+    TextBuilderAppend(output, DirectMirScalarCfgProgramCSignature(
+        plan, routine, int_c_type, false, array_string_projection));
     TextBuilderAppend(output, " {\n");
     if routine == plan.routines.entrypoint_ordinal &&
         plan.program.runtime_abi.process_args_id != 0 {
@@ -49,7 +52,8 @@ func DirectMirScalarCfgProgramCRoutine(
     TextBuilderAppend(output,
         DirectMirScalarProgramCArrayBoolValueResultCopyIn(plan, routine));
     TextBuilderAppend(output,
-        DirectMirScalarProgramCArrayStringValueResultCopyIn(plan, routine));
+        DirectMirScalarProgramCArrayStringValueResultCopyIn(
+            plan, routine, array_string_projection));
     TextBuilderAppend(output,
         DirectMirScalarProgramCLogicalRecordValueResultCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyIn(plan, routine));
@@ -109,7 +113,7 @@ func DirectMirScalarCfgProgramCRoutine(
             } else {
                 TextBuilderAppend(output,
                     DirectMirScalarProgramCArrayStringValueResultCopyOut(
-                        plan, routine));
+                        plan, routine, array_string_projection));
                 TextBuilderAppend(output,
                     DirectMirScalarProgramCArrayIntValueResultCopyOut(
                         plan, routine));
@@ -134,7 +138,7 @@ func DirectMirScalarCfgProgramCRoutine(
                     plan, routine));
             TextBuilderAppend(output,
                 DirectMirScalarProgramCArrayStringValueResultCopyOut(
-                    plan, routine));
+                    plan, routine, array_string_projection));
             TextBuilderAppend(output,
                 DirectMirScalarProgramCLogicalRecordValueResultCopyOut(
                     plan, routine));
@@ -257,7 +261,7 @@ func DirectMirScalarCfgEmitProgramC(
     TextBuilderAppend(output, DirectMirScalarProgramCPayloadEnumPreamble(
         plan.program.referenced_enum, plan.program.nominal_abi,
         plan.program.logical_record, plan.program.payload_free_enum,
-        int_c_type));
+        plan.program.array_string_abi, array_string_projection, int_c_type));
     TextBuilderAppend(output,
         DirectMirScalarProgramCOptionResultPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarCfgStringCPreamble(
@@ -283,7 +287,7 @@ func DirectMirScalarCfgEmitProgramC(
     while routine < ArrayLength(plan.routines.roles) {
         if routine != plan.routines.entrypoint_ordinal {
             TextBuilderAppend(output, DirectMirScalarCfgProgramCSignature(
-                plan, routine, int_c_type, true));
+                plan, routine, int_c_type, true, array_string_projection));
         }
         routine = routine + 1;
     }
@@ -300,7 +304,8 @@ func DirectMirScalarCfgEmitProgramC(
     while routine < ArrayLength(plan.routines.roles) {
         TextBuilderAppend(output, DirectMirScalarCfgProgramCRoutine(
             plan, routine, formatted_print, process_exit, runtime,
-            int_line_format, string_line_format, int_c_type, target));
+            int_line_format, string_line_format, int_c_type,
+            array_string_projection, target));
         routine = routine + 1;
     }
     let program: String = TextBuilderFinish(output, output_allocator);

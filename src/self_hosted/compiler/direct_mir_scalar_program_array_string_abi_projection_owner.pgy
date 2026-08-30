@@ -18,6 +18,17 @@ func DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
         projection.storage.allocator_offset == fact.allocator_offset;
 }
 
+func DirectMirScalarProgramCArrayStringCarrierType(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    ref projection: DirectMirArrayStringAbiProjection
+) -> String {
+    if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            fact, projection, CompilerTargetCpuCProjection()) {
+        Die("direct MIR scalar program C Array<String> carrier projection drifted");
+    }
+    return CompilerAbiLayoutArrayStringCValueType();
+}
+
 func DirectMirScalarProgramArrayStringAbiProjectionFromFact(
     ref fact: DirectMirScalarProgramArrayStringAbiFact,
     target: CompilerTargetProjectionFact
