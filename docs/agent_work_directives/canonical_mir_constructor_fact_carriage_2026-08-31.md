@@ -1,6 +1,6 @@
 # Canonical MIR Constructor-Fact Carriage — 2026-08-31
 
-Status: `LOCAL IMPLEMENTATION GREEN — EXACT CI PENDING`
+Status: `COMPLETE — EXACT CI GREEN`
 
 Exact base: `d69ee85195eb6f300bcc421fdfa795e359ced9e2` on
 `origin/main`.
@@ -99,3 +99,20 @@ forecast.
   source delegates through the identity-policy wrapper. The last exact CI was
   green with this existing non-wired drift; it is not repaired or treated as
   evidence for this scoped rung.
+
+## Exact-head CI receipt
+
+- Implementation commit `fc378816a4eec7585afd66c62d6f1ad1304ea419` is on
+  `origin/main`. Exact run `33322634958` is GREEN 30/30 at that revision.
+- `build-linux` completed in 23m21s. Its log contains the component structural
+  inventory, hard substitution contract, and SoT edge success; the census is
+  exactly 88 authorities, 183 carriers, `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Codegen fixed point completed in 7m08s. Full self-host completed in 28m05s
+  with exactly one 172,273-line `gen2 == gen3` result at `16:58:20.906Z`, one
+  receipt-bound adoption at `16:58:21.328Z`, one installed driver, and zero
+  ordinary typed-source driver emissions. The fixed-point-to-adoption gap is
+  0.42s.
+- Windows, macOS, sanitizers, Rocq, all twenty backend shards, and the remaining
+  source-change jobs are GREEN. This closes the reached canonical consumer
+  migration without promoting the broader ACTIVE authority or changing the 83%
+  forecast.

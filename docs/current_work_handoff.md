@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — canonical MIR constructor-fact carriage
+## Published — canonical MIR constructor-fact carriage is exact-CI green
 
 - Exact base is `d69ee85195eb6f300bcc421fdfa795e359ced9e2`, equal to
   `origin/main` when this rung opened. Protected unrelated untracked paths
@@ -27,9 +27,10 @@ percentage by themselves.
   installed driver and is GREEN: exact C/LLVM 7, zero-declaration/rename/display
   artifact equality, literal 73, and 25 malformed negatives. The registry's
   stale `ability_decl exact-7` wording is not an active implementation queue.
-- Fresh production bypass: installed `--canonicalize-mir-json` reaches
+- The reached production bypass was installed `--canonicalize-mir-json`, which
+  reached
   `CanonicalizeMirArtifactWithAdmittedTopology` with one verified semantic/body
-  receipt, but that core reopens the AST through
+  receipt while that core still reopened the AST through
   `SemanticAstNominalConstructorFactsFromArtifact` immediately before exact
   declaration-field identity rebinding.
 - Objective card:
@@ -53,10 +54,20 @@ percentage by themselves.
   consumer: it expects the old direct body-bundle call rather than the current
   identity-policy wrapper. It is not acceptance evidence and was not widened
   into this scoped change.
-- Next falsifier: commit and push this exact source, then require full exact-head
-  CI—including component inventory, codegen fixed point, full self-host, and
-  backend/platform jobs—to stay GREEN. Do not open zone lifecycle or another
-  SoT consumer while this lease is active.
+- Implementation commit `fc378816a4eec7585afd66c62d6f1ad1304ea419` is on
+  `origin/main`. Exact run `33322634958` is GREEN 30/30. `build-linux` completed
+  in 23m21s with component inventory, hard contract, and SoT edge green;
+  codegen fixed point completed in 7m08s; full self-host completed in 28m05s.
+- Full self-host proves one 172,273-line `gen2 == gen3` result at
+  `16:58:20.906Z`, one receipt-bound adoption at `16:58:21.328Z`, one install,
+  and zero ordinary typed-source driver emissions. Windows, macOS, sanitizers,
+  Rocq, and all twenty backend shards are also GREEN.
+- This reached consumer migration is complete and its collaboration lease is
+  retired. The broader `selfhost.semantic_artifact_admission` authority remains
+  `ACTIVE`; no SoT census or 83% progress number changes. There is no inferred
+  successor lease. A next rung must start from another freshly reached
+  production bypass, existing owner/carrier, last consumer, and executable
+  falsifier rather than reviving the completed ability or canonical work.
 
 ## Published — fixed-point driver reuse is exact-CI green
 

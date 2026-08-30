@@ -6,13 +6,13 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — canonical MIR constructor-fact carriage
+## DONE lease — canonical MIR constructor-fact carriage published
 
 - Exact base is `d69ee85195eb6f300bcc421fdfa795e359ced9e2`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit and
   publication owner for this semantic-artifact consumer migration.
-- Production `--canonicalize-mir-json` already carries one admitted
-  `DriverRung2VerifiedFacts`, but its canonical core reopens the AST with
+- Production `--canonicalize-mir-json` already carried one admitted
+  `DriverRung2VerifiedFacts`, but its canonical core reopened the AST with
   `SemanticAstNominalConstructorFactsFromArtifact` immediately before exact
   declaration-field identity rebinding.
 - Objective, fact owner, last consumer, forbidden fallback, edit scope, and
@@ -23,7 +23,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   driver and remains GREEN with C/LLVM exact 7, zero-declaration/rename/display
   equality, literal 73, and 25 negative cases. The stale registry phrase is not
   being revived as a new implementation rung.
-- This lease does not change SoT counts or progress percentages. It remains
+- This lease does not change SoT counts or progress percentages. It remained
   active through carried-owner ratchet, executable canonical parity/negative
   evidence, publication, and exact CI.
 - Local implementation is GREEN. The canonical core consumes
@@ -31,8 +31,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   inventory reject the old AST reconstruction. Isolated current candidate
   SHA-256 is `e78be3776fd448e61403c696439b36e233fc59d6907b943555d0808f751693b3`.
   Public canonical byte/fixpoint parity, non-empty identity-epoch negatives,
-  hard contract, and SoT edge are GREEN. The lease remains active through
-  commit, push, and exact CI.
+  hard contract, and SoT edge are GREEN. The lease remained active until
+  commit, push, and exact CI completed.
+- Implementation commit `fc378816a4eec7585afd66c62d6f1ad1304ea419` is
+  published. Exact run `33322634958` is GREEN 30/30: `build-linux` 23m21s,
+  codegen fixed point 7m08s, and full self-host 28m05s. Full self-host proves
+  one 172,273-line fixed point, one receipt adoption 0.42s later, one install,
+  and zero ordinary emits. The lease is retired with SoT census and project
+  forecast unchanged.
 
 ## DONE lease — fixed-point driver reuse published
 
