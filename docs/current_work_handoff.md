@@ -18,6 +18,46 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — canonical MIR constructor-fact carriage
+
+- Exact base is `d69ee85195eb6f300bcc421fdfa795e359ced9e2`, equal to
+  `origin/main` when this rung opened. Protected unrelated untracked paths
+  remain outside inspection, edit, and staging.
+- The completed ability declaration falsifier was rerun through the current
+  installed driver and is GREEN: exact C/LLVM 7, zero-declaration/rename/display
+  artifact equality, literal 73, and 25 malformed negatives. The registry's
+  stale `ability_decl exact-7` wording is not an active implementation queue.
+- Fresh production bypass: installed `--canonicalize-mir-json` reaches
+  `CanonicalizeMirArtifactWithAdmittedTopology` with one verified semantic/body
+  receipt, but that core reopens the AST through
+  `SemanticAstNominalConstructorFactsFromArtifact` immediately before exact
+  declaration-field identity rebinding.
+- Objective card:
+  `docs/agent_work_directives/canonical_mir_constructor_fact_carriage_2026-08-31.md`.
+  Fact owner/carrier is `verified.analysis.constructors`; last consumer is
+  `CanonicalMirIdentityEpochRebindProgramFacts`; AST reconstruction, name-only
+  identity, empty defaults, and retry fallback are forbidden.
+- Local source now carries the admitted constructor rows directly. Both
+  canonical focused gates and the component inventory reject the old AST read;
+  the SoT registry declares the canonical consumer and negative without
+  changing `ACTIVE` status or census counts.
+- An isolated current-source build produced 164,145-line driver C with SHA-256
+  `b0965a89259a513a2ca9c3e419c45631b340210dc75934c55644d9a4cf67c719`
+  and candidate SHA-256
+  `e78be3776fd448e61403c696439b36e233fc59d6907b943555d0808f751693b3`.
+  The candidate passed installer-equivalent source and machine-manifest smokes,
+  public canonical byte/fixpoint parity, and the non-empty hosted-method plus
+  apply/link identity epoch with stale/wrong-kind field-ID negatives. Hard
+  contract and SoT edge are GREEN at 88/183 and `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- A supplemental non-wired analysis-admission script remains stale before this
+  consumer: it expects the old direct body-bundle call rather than the current
+  identity-policy wrapper. It is not acceptance evidence and was not widened
+  into this scoped change.
+- Next falsifier: commit and push this exact source, then require full exact-head
+  CI—including component inventory, codegen fixed point, full self-host, and
+  backend/platform jobs—to stay GREEN. Do not open zone lifecycle or another
+  SoT consumer while this lease is active.
+
 ## Published — fixed-point driver reuse is exact-CI green
 
 - Exact base is `3a0c78943f4fa4804731df304f416de8092e7624`, equal to

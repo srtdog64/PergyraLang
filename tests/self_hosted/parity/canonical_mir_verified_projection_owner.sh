@@ -38,6 +38,12 @@ if grep -Fq 'VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(' <<<"$ver
 fi
 [[ "$(grep -Fc 'DriverRung2MirProjectionFromVerifiedFactsObserved(' <<<"$canonical_projection")" -eq 1 ]] \
     || fail "canonical projection must consume exactly one verified receipt"
+grep -Fq 'verified.analysis.constructors' <<<"$canonical_projection" \
+    || fail "canonical projection lost the admitted constructor facts"
+if grep -Fq 'SemanticAstNominalConstructorFactsFromArtifact(' \
+    <<<"$canonical_projection"; then
+    fail "canonical projection reopened constructor facts from the AST"
+fi
 if grep -Eq 'DriverRung2MirProjectionFromAdmittedAnalysisObserved\(|VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved\(' \
     <<<"$canonical_projection"; then
     fail "canonical projection retained a semantic re-verification path"

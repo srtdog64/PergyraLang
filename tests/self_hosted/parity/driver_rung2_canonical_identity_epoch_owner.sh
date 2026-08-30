@@ -79,8 +79,12 @@ if grep -Fq -- 'SemanticAstNominalConstructorFactsFromArtifact(' \
     "$IDENTITY_OWNER"; then
     fail "canonical rebind reread the artifact after projection retirement"
 fi
+if grep -Fq -- 'SemanticAstNominalConstructorFactsFromArtifact(artifact)' \
+    "$EXECUTION_OWNER"; then
+    fail "canonical execution reopened constructor facts from the AST"
+fi
 constructor_line="$(grep -nF -- \
-    'SemanticAstNominalConstructorFactsFromArtifact(artifact)' \
+    'verified.analysis.constructors' \
     "$EXECUTION_OWNER" | head -1 | cut -d: -f1)"
 projection_line="$(grep -nF -- \
     'DriverRung2MirProjectionFromVerifiedFactsObserved(' \
@@ -91,7 +95,7 @@ rebind_line="$(grep -nF -- \
 [[ -n "$constructor_line" && -n "$projection_line" && -n "$rebind_line" && \
     "$constructor_line" -lt "$projection_line" && \
     "$projection_line" -lt "$rebind_line" ]] \
-    || fail "constructor facts must be captured before projection and consumed by rebind"
+    || fail "admitted constructor facts must be carried before projection and consumed by rebind"
 for term in \
     'admitted.domain_topology.layer_slot_source_syntax_ids[row]' \
     'admitted.domain_topology.target_slot_source_syntax_ids[row]' \

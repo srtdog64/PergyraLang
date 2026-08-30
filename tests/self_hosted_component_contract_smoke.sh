@@ -5995,6 +5995,10 @@ require_text "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" \
 require_function_text \
     "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
     "func CanonicalizeMirArtifactWithAdmittedTopology(" \
+    "verified.analysis.constructors"
+reject_function_text \
+    "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
+    "func CanonicalizeMirArtifactWithAdmittedTopology(" \
     "SemanticAstNominalConstructorFactsFromArtifact(artifact)"
 reject_function_text \
     "src/self_hosted/compiler/canonical_mir_identity_epoch_owner.pgy" \

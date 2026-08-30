@@ -6,6 +6,34 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — canonical MIR constructor-fact carriage
+
+- Exact base is `d69ee85195eb6f300bcc421fdfa795e359ced9e2`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit and
+  publication owner for this semantic-artifact consumer migration.
+- Production `--canonicalize-mir-json` already carries one admitted
+  `DriverRung2VerifiedFacts`, but its canonical core reopens the AST with
+  `SemanticAstNominalConstructorFactsFromArtifact` immediately before exact
+  declaration-field identity rebinding.
+- Objective, fact owner, last consumer, forbidden fallback, edit scope, and
+  focused gates are fixed in
+  `docs/agent_work_directives/canonical_mir_constructor_fact_carriage_2026-08-31.md`.
+  No parallel implementation scope is open on this single canonical consumer.
+- The completed ability exact-7 gate was rerun from the current installed
+  driver and remains GREEN with C/LLVM exact 7, zero-declaration/rename/display
+  equality, literal 73, and 25 negative cases. The stale registry phrase is not
+  being revived as a new implementation rung.
+- This lease does not change SoT counts or progress percentages. It remains
+  active through carried-owner ratchet, executable canonical parity/negative
+  evidence, publication, and exact CI.
+- Local implementation is GREEN. The canonical core consumes
+  `verified.analysis.constructors`; two existing gates and the component
+  inventory reject the old AST reconstruction. Isolated current candidate
+  SHA-256 is `e78be3776fd448e61403c696439b36e233fc59d6907b943555d0808f751693b3`.
+  Public canonical byte/fixpoint parity, non-empty identity-epoch negatives,
+  hard contract, and SoT edge are GREEN. The lease remains active through
+  commit, push, and exact CI.
+
 ## DONE lease — fixed-point driver reuse published
 
 - Exact base is `3a0c78943f4fa4804731df304f416de8092e7624`, equal to
