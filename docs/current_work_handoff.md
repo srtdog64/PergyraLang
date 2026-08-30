@@ -18,6 +18,52 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — ArrayString literal target projection
+
+- Exact base is `79b70e5c007877bb85668dd5790c2b30cb1c5a47`, equal to
+  `origin/main` when this rung opened. The tracked worktree contains only this
+  rung's source, gate, registry, and coordination changes; protected unrelated
+  untracked paths remain outside inspection and staging.
+- Production entrypoints are installed
+  `pgy-self-driver --mir-json-backend=c|llvm` over the owned ArrayString return
+  and nested/mixed ArrayString literal fixtures. The former reached C empty
+  literal materialization; a direct production probe of the latter passed
+  MIR generation, both projections, compilation, and identical runtime output
+  while LLVM populated literals still locally spelled their type and alignment.
+- `DirectMirScalarProgramArrayStringAbiFact` remains the admitted receipt.
+  `DirectMirArrayStringAbiProjection` now owns the C carrier, LLVM structural
+  aggregate, distinct LLVM named value type, and storage alignment. The C/LLVM
+  expression chains carry that root-derived receipt to the literal consumers;
+  they do not derive another projection below the emission root.
+- A first implementation used the structural aggregate as the LLVM literal
+  value type. Clang rejected the generated IR because
+  `{ ptr, i64, i64, ptr }` is not the named `%pgy.array.string` type despite an
+  identical body. The repair adds `llvm_value_type` to the projection, fixes it
+  in readiness, and makes both the type declaration and literal consumer use
+  it. This is a reached missing fact, not a compatibility alias.
+- C empty literal materialization no longer calls the global carrier lookup.
+  LLVM populated literal materialization contains no literal named type or
+  alignment. Component ratchets reject both old paths and prove the carried
+  consumer chain. The stale focused-gate copy of a 445-line cap was removed;
+  the central shrink-only 490-line expression-admission cap and every modified
+  owner cap remain unchanged.
+- Fresh exact-source installed DRV-2 SHA-256 is
+  `19387F164F173A96E44E4DCBD2B8B94915B43593BA8FC8489F8486FEF492221E`.
+  Owned-return lifecycle/ABI negatives, nested/mixed populated literal
+  C/LLVM parity/semantic negatives, the full component contract, hard
+  contract, SoT edge, Gate single-owner, protocol registry, and build-source
+  inventory are GREEN.
+- SoT evidence remains 88 authorities / 183 carriers /
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`. This is one executable literal-consumer
+  migration inside `abi.mir_array_string_layout_projection`, not a whole-row
+  closure, hard `SUBSTITUTING` increment, or percentage change. Project
+  forecast remains 83%.
+- Objective card:
+  `docs/agent_work_directives/array_string_literal_target_projection_2026-08-30.md`.
+  Commit, push, and exact-head remote CI are the remaining publication
+  falsifiers. Do not open a successor rung before this result is published or
+  rejected.
+
 ## Published — ArrayString mutation target projection is CI green
 
 - Exact implementation checkpoint is

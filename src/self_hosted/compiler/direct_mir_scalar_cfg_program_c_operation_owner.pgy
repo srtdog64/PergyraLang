@@ -15,17 +15,18 @@ func DirectMirScalarCfgProgramCOperation(
     process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     int_line_format: String, string_line_format: String,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
     let expression_row: Int = plan.program.operation_expression_rows[operation];
     if kind == DirectMirScalarCfgOpOptionIntTryDefinition() {
         return DirectMirScalarProgramCOptionIntTryDefinition(
-            plan, routine, operation, runtime, target);
+            plan, routine, operation, runtime, array_string_projection, target);
     }
     if kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() || kind == DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() {
         return DirectMirScalarProgramCLogicalRecordAssignment(
-            plan, routine, operation, runtime, target);
+            plan, routine, operation, runtime, array_string_projection, target);
     }
     if kind == DirectMirScalarCfgOpProcessExit() {
         if !CompilerRuntimeCallAbiProcessExitFactReady(process_exit) {
@@ -34,7 +35,7 @@ func DirectMirScalarCfgProgramCOperation(
         let value: String = DirectMirScalarProgramCExpressionAt(
             plan.program.expressions, expression_row, runtime,
             plan.program.logical_record, plan.program.referenced_enum,
-            plan.routines, routine, target);
+            plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
         return Concat("    ", Concat(process_exit.symbol, Concat(
             "((int)(", Concat(value, "));\n"))));
     }
@@ -42,7 +43,7 @@ func DirectMirScalarCfgProgramCOperation(
         return Concat("    ", Concat(DirectMirScalarProgramCExpressionAt(
             plan.program.expressions, expression_row, runtime,
             plan.program.logical_record, plan.program.referenced_enum,
-            plan.routines, routine, target), ";\n"));
+            plan.routines, routine, target, plan.program.array_string_abi, array_string_projection), ";\n"));
     }
     if kind == DirectMirScalarCfgOpArrayStringValueResultPush() {
         return DirectMirScalarProgramCArrayStringValueResultPush(
@@ -50,7 +51,7 @@ func DirectMirScalarCfgProgramCOperation(
             DirectMirScalarProgramCExpressionAt(
                 plan.program.expressions, expression_row, runtime,
                 plan.program.logical_record, plan.program.referenced_enum,
-                plan.routines, routine, target));
+                plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
     }
     if DirectMirScalarProgramLogicalRecordArrayMutationKind(kind) {
         let root: Int = plan.program.expressions.graph_roots[expression_row];
@@ -60,12 +61,13 @@ func DirectMirScalarCfgProgramCOperation(
                 plan.program.expressions,
                 plan.program.operation_secondary_expression_rows[operation],
                 runtime, plan.program.logical_record,
-                plan.program.referenced_enum, plan.routines, routine, target);
+                plan.program.referenced_enum, plan.routines, routine, target,
+                plan.program.array_string_abi, array_string_projection);
         }
         let value: String = DirectMirScalarProgramCExpressionAt(
             plan.program.expressions, expression_row, runtime,
             plan.program.logical_record, plan.program.referenced_enum,
-            plan.routines, routine, target);
+            plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
         return DirectMirScalarProgramCLogicalRecordArrayValueResultMutation(
             plan, routine, plan.operation_right_locals[operation], index,
             plan.program.expressions.node_types[root], value, target);
@@ -81,13 +83,15 @@ func DirectMirScalarCfgProgramCOperation(
                 plan.program.expressions,
                 plan.program.operation_secondary_expression_rows[operation],
                 runtime, plan.program.logical_record,
-                plan.program.referenced_enum, plan.routines, routine, target);
+                plan.program.referenced_enum, plan.routines, routine, target,
+                plan.program.array_string_abi, array_string_projection);
         }
         return DirectMirScalarProgramCArrayMutation(
             plan, routine, operation, index,
             DirectMirScalarProgramCExpressionAt(plan.program.expressions,
                 expression_row, runtime, plan.program.logical_record,
-                plan.program.referenced_enum, plan.routines, routine, target));
+                plan.program.referenced_enum, plan.routines, routine, target,
+                plan.program.array_string_abi, array_string_projection));
     }
     if kind == DirectMirScalarCfgOpExpressionDefinition() {
         let output: String = "    ";
@@ -97,7 +101,7 @@ func DirectMirScalarCfgProgramCOperation(
         output = Concat(output, DirectMirScalarProgramCExpressionAt(
             plan.program.expressions, expression_row, runtime,
             plan.program.logical_record, plan.program.referenced_enum,
-            plan.routines, routine, target));
+            plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
         return Concat(output, ";\n");
     }
     if kind != DirectMirScalarCfgOpExpressionLog() { return ""; }
@@ -111,6 +115,6 @@ func DirectMirScalarCfgProgramCOperation(
     output = Concat(output, DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, expression_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
-        plan.routines, routine, target));
+        plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
     return Concat(output, ");\n");
 }

@@ -19980,6 +19980,46 @@ reject_function_text \
     "func DirectMirScalarProgramLlvmArrayStringSetMaterialization(" \
     "%pgy.array.string"
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy" \
+    "func DirectMirScalarProgramCArrayStringLiteralExpression(" \
+    "DirectMirScalarProgramCArrayStringCarrierType("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy" \
+    "func DirectMirScalarProgramCArrayStringLiteralExpression(" \
+    "CompilerAbiLayoutArrayStringCValueType()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(" \
+    "projection.llvm_value_type"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(" \
+    "projection.storage.align"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(" \
+    "%pgy.array.string"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_literal_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(" \
+    "align 8"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_extended_expression_owner.pgy" \
+    "func DirectMirScalarProgramCExtendedExpression(" \
+    "array_string_abi, array_string_projection"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_builtin_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmBuiltinExpressionAt(" \
+    "array_string_projection"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_array_string_abi_projection_owner.pgy" \
+    "func DirectMirArrayStringAbiProjectionReadyFor(" \
+    "projection.llvm_value_type == DirectMirArrayStringLlvmValueType()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringCollectionMaterialization(" \
+    "abi.llvm_value_type"
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
     "func DirectMirScalarProgramLlvmArrayMutation(" \
     'symbol = "@pgy_ab_set"'

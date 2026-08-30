@@ -4,6 +4,7 @@ import "direct_mir_scalar_program_c_expression_owner.pgy";
 func DirectMirScalarProgramCLogicalRecordMemberRebind(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
@@ -46,6 +47,7 @@ func DirectMirScalarProgramCLogicalRecordMemberRebind(
     output = Concat(output, DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, expression_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
-        plan.routines, routine, target));
+        plan.routines, routine, target, plan.program.array_string_abi,
+        array_string_projection));
     return Concat(output, ";\n");
 }

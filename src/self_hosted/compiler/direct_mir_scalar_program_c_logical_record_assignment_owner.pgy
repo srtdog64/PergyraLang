@@ -5,6 +5,7 @@ import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy"
 func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
@@ -25,7 +26,8 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
     let values: Array<String> = DirectMirScalarProgramCExpressionValues(
         plan.program.expressions, target_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
-        plan.routines, routine, target);
+        plan.routines, routine, target, plan.program.array_string_abi,
+        array_string_projection);
     if root < start || array_node < start || index_node < start ||
         root - start >= ArrayLength(values) ||
         array_node - start >= ArrayLength(values) ||
@@ -67,7 +69,8 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
     let value: String = DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, value_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
-        plan.routines, routine, target);
+        plan.routines, routine, target, plan.program.array_string_abi,
+        array_string_projection);
     let stem: String = Concat("pgy_nested_set_", ToString(operation));
     let output: String = Concat("    long long ", stem);
     output = Concat(output, Concat("_index = (long long)(", index_value));
@@ -93,13 +96,14 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
 func DirectMirScalarProgramCLogicalRecordAssignment(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     if plan.operation_kinds[operation] ==
             DirectMirScalarCfgOpLogicalRecordMemberRebind() {
         return DirectMirScalarProgramCLogicalRecordMemberRebind(
-            plan, routine, operation, runtime, target);
+            plan, routine, operation, runtime, array_string_projection, target);
     }
     return DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
-        plan, routine, operation, runtime, target);
+        plan, routine, operation, runtime, array_string_projection, target);
 }

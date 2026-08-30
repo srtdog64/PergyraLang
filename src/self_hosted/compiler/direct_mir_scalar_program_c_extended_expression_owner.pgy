@@ -1,22 +1,23 @@
 // C dispatch for direct-call and StringReplace/math expression families.
-
 import "direct_mir_scalar_program_c_direct_call_expression_owner.pgy";
 import "direct_mir_scalar_program_c_case_math_expression_owner.pgy";
 import "direct_mir_scalar_program_c_array_string_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_c_array_int_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_c_array_int_populated_literal_expression_owner.pgy";
-
 func DirectMirScalarProgramCExtendedExpression(
     kind: Int, left: String, right: String, arguments: Array<String>,
     owns_array_string_elements: Bool, expression_row: Int, callable_ordinal: Int,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> Option<String> {
     let populated_literal: Option<String> =
         DirectMirScalarProgramCArrayIntPopulatedLiteralExpression(
             kind, expression_row, arguments);
     if IsSome(populated_literal) { return populated_literal; }
     let literal: Option<String> = DirectMirScalarProgramCArrayStringLiteralExpression(
-        kind, left, right, arguments, owns_array_string_elements);
+        kind, left, right, arguments, owns_array_string_elements,
+        array_string_abi, array_string_projection);
     if IsSome(literal) { return literal; }
     let int_literal: Option<String> = DirectMirScalarProgramCArrayIntEmptyLiteralExpression(kind);
     if IsSome(int_literal) { return int_literal; }

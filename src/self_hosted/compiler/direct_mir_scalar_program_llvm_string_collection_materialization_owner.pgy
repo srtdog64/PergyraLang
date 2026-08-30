@@ -46,8 +46,8 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
                 CompilerTargetCpuLlvmProjection()) {
             Die("direct MIR scalar program LLVM Array<String> projection drifted");
         }
-        output = Concat("%pgy.array.string = type ",
-            Concat(abi.llvm_aggregate_type, "\n"));
+        output = Concat(abi.llvm_value_type, Concat(" = type ",
+            Concat(abi.llvm_aggregate_type, "\n")));
     }
     if plan.program.runtime_abi.string_contains_id != 0 {
         output = Concat(output, Concat("define internal i1 @",

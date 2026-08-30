@@ -10,7 +10,6 @@ import "direct_mir_scalar_program_llvm_option_result_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_llvm_set_string_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy";
-
 func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     kind: Int, result: String, result_type: String,
     left: String, left_address: String, left_type: String,
@@ -22,7 +21,8 @@ func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     callable_ordinal: Int, callable_parameter_ordinal: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact, array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> DirectMirScalarProgramLlvmStringExpression {
     let artifact: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmCompilerArtifactExpressionAt(kind, result, left, right, runtime);
     if artifact.matched { return artifact; }
@@ -39,7 +39,8 @@ func DirectMirScalarProgramLlvmBuiltinExpressionAt(
     let literal: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(
             kind, result, left, right, arguments,
-            owns_array_string_elements);
+            owns_array_string_elements, array_string_abi,
+            array_string_projection);
     if literal.matched { return literal; }
     let int_populated_literal: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmArrayIntPopulatedLiteralExpressionAt(

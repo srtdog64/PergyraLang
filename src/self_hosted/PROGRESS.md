@@ -1,5 +1,26 @@
 # Self-Host Progress
 
+## Active self-host context - 2026-08-30 ArrayString literal target projection
+
+- Installed C empty and LLVM populated ArrayString literal expressions had
+  stable behavior but reopened target spelling below the root-carried ABI
+  projection. A direct nested/mixed production probe reproduced LLVM backing
+  allocations, zero stores, and loads with local named type and alignment.
+- The first projection-backed LLVM result exposed a real missing fact: its
+  structural aggregate was not interchangeable with the program's named
+  value type. `DirectMirArrayStringAbiProjection` now owns both identities;
+  the declaration and literal consumer share the named field, while C consumes
+  its cross-validated carrier. Old literal reads are structurally rejected.
+- Fresh exact-source DRV-2 passes owned-return lifecycle/ABI negatives and
+  nested/mixed populated literal C/LLVM parity/semantic negatives. Component,
+  hard, SoT, Gate, protocol, and source-inventory contracts are GREEN. All
+  shrink-only caps remain unchanged.
+- SoT edge remains 88 authorities / 183 carriers / `55/32/1`. This is a real
+  executable consumer migration inside the existing ArrayString ABI BRIDGE,
+  not whole-row closure or hard replacement. Integrated progress remains 83%
+  (81-85%), strict beta 83%, and hard replacement 75%. Exact-head remote CI is
+  the publication falsifier.
+
 ## Completed self-host context - 2026-08-30 ArrayString mutation target projection
 
 - Installed direct-MIR local/value-result ArrayString Set/Pop had stable C/LLVM

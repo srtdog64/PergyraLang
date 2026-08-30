@@ -6,6 +6,28 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — ArrayString literal target projection
+
+- Exact base is `79b70e5c007877bb85668dd5790c2b30cb1c5a47`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit and
+  publication owner for this rung.
+- Fresh production bypass: C empty literal materialization reopens the global
+  carrier, while an installed LLVM populated-literal artifact locally spells
+  its aggregate and alignment despite the root's carried target projection.
+- Objective, owner, consumers, forbidden fallbacks, edit scope, gates, and
+  budget are fixed in
+  `docs/agent_work_directives/array_string_literal_target_projection_2026-08-30.md`.
+- This is one prerequisite migration inside
+  `abi.mir_array_string_layout_projection`. It does not promise a BRIDGE or
+  progress increment and does not open a parallel implementation scope.
+- Local implementation is complete. A first structural-aggregate attempt was
+  rejected by Clang because the literal value required a named LLVM type; the
+  projection now owns that missing fact separately. Fresh DRV-2 SHA-256 is
+  `19387F164F173A96E44E4DCBD2B8B94915B43593BA8FC8489F8486FEF492221E`.
+  Both focused production gates plus component/hard/SoT/inventory contracts
+  are GREEN at 88 authorities / 183 carriers / `55/32/1`. The primary task
+  retains the lease through commit, push, and exact-head CI.
+
 ## DONE lease — ArrayString mutation target projection published
 
 - Exact base is `a8f255cb47e8ff565521c7f4c084e77667d257bb`, equal to

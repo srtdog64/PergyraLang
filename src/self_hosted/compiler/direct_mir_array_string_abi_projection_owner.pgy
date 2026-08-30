@@ -18,6 +18,7 @@ struct DirectMirArrayStringAbiProjection {
     let llvm_element_type: String;
     let llvm_length_type: String;
     let llvm_aggregate_type: String;
+    let llvm_value_type: String;
     let data_index: Int;
     let length_index: Int;
     let capacity_index: Int;
@@ -26,6 +27,9 @@ struct DirectMirArrayStringAbiProjection {
 
 func DirectMirArrayStringPublicCValueType() -> String {
     return "PgyArray_String";
+}
+func DirectMirArrayStringLlvmValueType() -> String {
+    return "%pgy.array.string";
 }
 
 func DirectMirArrayStringAbiProjectionReadyFor(
@@ -50,6 +54,7 @@ func DirectMirArrayStringAbiProjectionReadyFor(
             projection.llvm_element_type == "" &&
             projection.llvm_length_type == "" &&
             projection.llvm_aggregate_type == "" &&
+            projection.llvm_value_type == "" &&
             projection.data_index == projection.storage.data_index &&
             projection.length_index == projection.storage.length_index &&
             projection.capacity_index == projection.storage.capacity_index &&
@@ -62,6 +67,7 @@ func DirectMirArrayStringAbiProjectionReadyFor(
         projection.llvm_length_type == "i64" &&
         projection.llvm_aggregate_type ==
             projection.storage.llvm_aggregate_type &&
+        projection.llvm_value_type == DirectMirArrayStringLlvmValueType() &&
         projection.data_index == projection.storage.data_index &&
         projection.length_index == projection.storage.length_index &&
         projection.capacity_index == projection.storage.capacity_index &&
@@ -96,21 +102,22 @@ func DirectMirArrayStringAbiProjectionFromCanonicalLayout(
     let projection: DirectMirArrayStringAbiProjection =
         DirectMirArrayStringAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
-            abi_layout_id, 8, 8, storage, "", "", "", "", "", "",
+            abi_layout_id, 8, 8, storage, "", "", "", "", "", "", "",
             -1, -1, -1, -1
         );
     if is_c {
         projection = DirectMirArrayStringAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
             abi_layout_id, 8, 8, storage, "char *", storage.c_length_type,
-            DirectMirArrayStringPublicCValueType(), "", "", "",
+            DirectMirArrayStringPublicCValueType(), "", "", "", "",
             -1, -1, -1, -1
         );
     } else {
         projection = DirectMirArrayStringAbiProjection(
             true, target.projection, target.target_capability_fingerprint,
             abi_layout_id, 8, 8, storage, "", "", "", "ptr", "i64",
-            storage.llvm_aggregate_type, storage.data_index,
+            storage.llvm_aggregate_type, DirectMirArrayStringLlvmValueType(),
+            storage.data_index,
             storage.length_index, storage.capacity_index,
             storage.allocator_index
         );

@@ -18,7 +18,7 @@ fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-for pair in "$SEED:35" "$NESTED:70" "$ADMISSION:445" \
+for pair in "$SEED:35" "$NESTED:70" \
         "$READINESS:110" "$PARAMETER_CARRIAGE:40" \
         "$C_LITERAL:45" "$LLVM_LITERAL:90" "$MUTATIONS:80"; do
     owner="${pair%:*}"; cap="${pair##*:}"

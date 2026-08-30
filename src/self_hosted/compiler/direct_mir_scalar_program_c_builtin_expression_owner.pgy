@@ -11,7 +11,9 @@ func DirectMirScalarProgramCBuiltinExpression(
     left: String, right: String, arguments: Array<String>,
     owns_array_string_elements: Bool, expression_row: Int, callable_ordinal: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> Option<String> {
     let artifact: Option<String> =
         DirectMirScalarProgramCCompilerArtifactExpression(
@@ -29,7 +31,8 @@ func DirectMirScalarProgramCBuiltinExpression(
     if IsSome(set_string) { return set_string; }
     let extended: Option<String> = DirectMirScalarProgramCExtendedExpression(
         kind, left, right, arguments, owns_array_string_elements,
-        expression_row, callable_ordinal, runtime);
+        expression_row, callable_ordinal, runtime, array_string_abi,
+        array_string_projection);
     if IsSome(extended) { return extended; }
     let collection: Option<String> =
         DirectMirScalarProgramCStringCollectionExpression(

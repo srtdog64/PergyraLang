@@ -20,7 +20,8 @@ func DirectMirScalarProgramCExpressionValues(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int,
-    target: CompilerTargetProjectionFact
+    target: CompilerTargetProjectionFact, ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> Array<String> {
     let values: Array<String> = [];
     let start: Int = expressions.graph_starts[expression_row]; let count: Int =
@@ -172,7 +173,7 @@ func DirectMirScalarProgramCExpressionValues(
                     DirectMirScalarProgramArrayStringLiteralOwnsElements(
                         expressions, node, routines, routine),
                     node, expressions.node_callable_rows[node],
-                    runtime, logical_record);
+                    runtime, logical_record, array_string_abi, array_string_projection);
             if IsSome(builtin_value) { value = UnwrapOption(builtin_value); }
             if value == "" {
             if kind == DirectMirScalarProgramExprLogicalNot() {
@@ -216,12 +217,13 @@ func DirectMirScalarProgramCExpressionAt(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int,
-    target: CompilerTargetProjectionFact
+    target: CompilerTargetProjectionFact, ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
     let values: Array<String> = DirectMirScalarProgramCExpressionValues(
         expressions, expression_row, runtime, logical_record,
         referenced_enum,
-        routines, routine, target);
+        routines, routine, target, array_string_abi, array_string_projection);
     let root: Int = expressions.graph_roots[expression_row] -
         expressions.graph_starts[expression_row];
     return values[root];

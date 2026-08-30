@@ -9,6 +9,7 @@ import "direct_mir_scalar_program_option_int_try_admission_owner.pgy";
 func DirectMirScalarProgramCOptionIntTryDefinition(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     let result: Int = plan.operation_result_values[operation];
@@ -22,7 +23,8 @@ func DirectMirScalarProgramCOptionIntTryDefinition(
     let operand: String = DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, expression_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
-        plan.routines, routine, target);
+        plan.routines, routine, target, plan.program.array_string_abi,
+        array_string_projection);
     let suffix: String = Concat(ToString(routine), Concat("_", ToString(operation)));
     let temporary: String = Concat("pgy_try_option_int_", suffix);
     let present: Option<String> = DirectMirScalarProgramCOptionIntExpression(

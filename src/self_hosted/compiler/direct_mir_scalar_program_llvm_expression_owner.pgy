@@ -273,7 +273,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     arguments, argument_types, argument_kinds,
                     argument_carriages,
                     expressions.node_callable_rows[node], expressions.node_parameter_ordinals[node], runtime,
-                    logical_record, payload_free_enum, referenced_enum);
+                    logical_record, payload_free_enum, referenced_enum, array_string_abi, array_string_projection);
             if string_expression.matched {
                 if !string_expression.valid {
                     return DirectMirScalarProgramLlvmExpression(

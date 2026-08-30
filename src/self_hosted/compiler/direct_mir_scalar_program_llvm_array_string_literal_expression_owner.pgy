@@ -1,14 +1,27 @@
 // LLVM caller-frame materialization for borrowed-static/owned Array<String> literals.
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 func DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(
     kind: Int, result: String, left: String, right: String,
-    arguments: Array<String>, owns_elements: Bool
+    arguments: Array<String>, owns_elements: Bool,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind != DirectMirScalarProgramExprArrayStringLiteral() {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
+    if !IsSome(array_string_projection) { Die(
+        "direct MIR LLVM Array<String> literal projection is missing"); }
+    let projection: DirectMirArrayStringAbiProjection =
+        UnwrapOption(array_string_projection);
+    if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            array_string_abi, projection, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR LLVM Array<String> literal projection drifted");
+    }
+    let aggregate: String = projection.llvm_value_type;
+    let align: String = ToString(projection.storage.align);
     let values: Array<String> = [];
     let row: Int = 0;
     while row < ArrayLength(arguments) {
@@ -28,8 +41,11 @@ func DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(
     }
     let count: Int = ArrayLength(values);
     let output: String = Concat("  ", Concat(result,
-        ".backing = alloca %pgy.array.string, align 8\n  store %pgy.array.string zeroinitializer, ptr "));
-    output = Concat(output, Concat(result, ".backing, align 8\n"));
+        Concat(".backing = alloca ", Concat(aggregate, Concat(", align ",
+        Concat(align, Concat("\n  store ", Concat(aggregate,
+        " zeroinitializer, ptr "))))))));
+    output = Concat(output, Concat(result, Concat(".backing, align ",
+        Concat(align, "\n"))));
     let item: Int = 0;
     while item < count {
         output = Concat(output, "  call void @");
@@ -43,9 +59,9 @@ func DirectMirScalarProgramLlvmArrayStringLiteralExpressionAt(
     }
     output = Concat(output, "  ");
     output = Concat(output, result);
-    output = Concat(output, " = load %pgy.array.string, ptr ");
+    output = Concat(output, Concat(" = load ", Concat(aggregate, ", ptr ")));
     output = Concat(output, result);
-    output = Concat(output, ".backing, align 8\n");
+    output = Concat(output, Concat(".backing, align ", Concat(align, "\n")));
     return DirectMirScalarProgramLlvmStringExpression(
         true, true, output, result);
 }

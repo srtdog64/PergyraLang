@@ -79,7 +79,7 @@ func DirectMirScalarCfgProgramCRoutine(
         while operation < operation_end {
             let emitted: String = DirectMirScalarCfgProgramCOperation(
                 plan, routine, operation, formatted_print, process_exit,
-                runtime, int_line_format, string_line_format, target);
+                runtime, int_line_format, string_line_format, array_string_projection, target);
             if emitted == "" &&
                 (plan.operation_kinds[operation] ==
                     DirectMirScalarCfgOpPhiInt() ||
@@ -145,7 +145,7 @@ func DirectMirScalarCfgProgramCRoutine(
             TextBuilderAppend(output, DirectMirScalarProgramCExpressionAt(
                 plan.program.expressions, return_row, runtime,
                 plan.program.logical_record, plan.program.referenced_enum,
-                plan.routines, routine, target));
+                plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
             TextBuilderAppend(output, ";\n");
         } else if plan.block_condition_kinds[block] ==
                 DirectMirScalarCfgConditionExpression() {
@@ -154,7 +154,7 @@ func DirectMirScalarCfgProgramCRoutine(
                 plan.program.expressions,
                 plan.program.block_condition_expression_rows[block],
                 runtime, plan.program.logical_record,
-                plan.program.referenced_enum, plan.routines, routine, target));
+                plan.program.referenced_enum, plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
             TextBuilderAppend(output, ") goto pgy_r");
             TextBuilderAppend(output, ToString(routine));
             TextBuilderAppend(output, "_block_");

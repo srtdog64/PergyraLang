@@ -1,14 +1,19 @@
 // C materialization for borrowed-static or owner-transferred Array<String> literals.
-
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
-import "abi_layout_row_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_c_string_collection_materialization_owner.pgy";
-
 func DirectMirScalarProgramCArrayStringLiteralExpression(
     kind: Int, left: String, right: String, arguments: Array<String>,
-    owns_elements: Bool
+    owns_elements: Bool, ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> Option<String> {
     if kind != DirectMirScalarProgramExprArrayStringLiteral() { return None; }
+    if !IsSome(array_string_projection) { Die(
+        "direct MIR C Array<String> literal projection is missing"); }
+    let projection: DirectMirArrayStringAbiProjection =
+        UnwrapOption(array_string_projection);
+    let type_name: String = DirectMirScalarProgramCArrayStringCarrierType(
+        array_string_abi, projection);
     let values: Array<String> = [];
     let row: Int = 0;
     while row < ArrayLength(arguments) {
@@ -23,7 +28,6 @@ func DirectMirScalarProgramCArrayStringLiteralExpression(
         return Some(Concat(DirectMirScalarProgramCStringArrayOwnedSingleFn(),
             Concat("(", Concat(values[0], ")"))));
     }
-    let type_name: String = CompilerAbiLayoutArrayStringCValueType();
     if ArrayLength(values) == 0 {
         return Some(Concat("((", Concat(type_name,
             "){NULL, 0, 0, NULL})")));
