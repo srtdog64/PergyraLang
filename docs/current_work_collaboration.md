@@ -6,6 +6,34 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — generated zone resource lifecycle
+
+- Exact base is `d8debe30c169d98411d57d4e66af7f2506b7970e`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit and
+  publication owner for this source-to-C resource boundary.
+- The baseline installed-driver probe emitted a fresh `CounterZone` local with
+  zero lock init/destroy operations: it printed `7` single-threaded and panicked
+  at the first write lock under `PGY_ZONE_THREADSAFE`. Current source replaces
+  that bypass with generated lexical init/destroy and executes
+  `7 / 11 / 13 / 17 / 19` through normal, return, break, and continue exits in
+  both modes.
+- Objective, owners, last consumers, forbidden fallbacks, edit scope, and
+  focused falsifier are fixed in
+  `docs/agent_work_directives/generated_zone_resource_lifecycle_2026-08-31.md`.
+  This is hidden C resource cleanup, not a source-level fixed world lifetime.
+- No parallel implementation scope is open. Copies, reassignment, by-value
+  carriage, embedded zones, and nonzero DIR admission do not become supported
+  by inference; they must fail closed or retain their existing separate rung.
+- Fresh local lifecycle plus copied/reassigned thread-safe negatives are local
+  green through the focused owner and a current-source production candidate.
+  Candidate C SHA-256 is `9e89012dac9491a5732f2e82a73f12740da4c82a6a134cae3641157b0d246e10`;
+  executable SHA-256 is
+  `510ae50426c4f2e26214824d9cb5948bf03741971a34b341a80d3ba96dc3f46a`.
+- Focused, component, hard contract, build-source inventory, documentation,
+  agent sentinel, and SoT edge gates are local green. The lease remains active
+  through publication and exact CI. It changes no SoT census or progress
+  percentage by itself.
+
 ## DONE lease — canonical MIR constructor-fact carriage published
 
 - Exact base is `d69ee85195eb6f300bcc421fdfa795e359ced9e2`, equal to

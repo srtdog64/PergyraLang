@@ -18,6 +18,42 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## ACTIVE — generated zone resource lifecycle is local-candidate green
+
+- Exact tracked base is `d8debe30c169d98411d57d4e66af7f2506b7970e`, equal
+  to `origin/main` when this rung opened. The worktree is dirty with this scoped
+  implementation; protected unrelated untracked paths remain outside
+  inspection, edit, and staging.
+- Production entrypoint is current-source
+  `pgy-self-driver --emit-c-artifact-verified`. The deleted bypass was a fresh
+  local zone compound literal whose generated `*_sync(self)` reached an
+  uninitialized thread-safe lock and panicked at the first write lock.
+- `SemanticAstLocalBindingFacts`, admitted nominal kind, and resolved direct
+  call-target identity now prove a fresh local. `EmitStmtList` owns generated
+  lock init plus reverse lexical cleanup across normal, return, break, and
+  continue exits; no source-level fixed world lifetime was added.
+- Named copy and reassignment retain existing single-threaded value behavior
+  but fail closed at thread-safe C compilation. By-value parameter/return and
+  world-embedded zone transfer also fail closed under `PGY_ZONE_THREADSAFE`;
+  those transfer semantics remain open and the top SoT row stays `ACTIVE`.
+- The strengthened focused gate executes exact output
+  `7 / 11 / 13 / 17 / 19` in single-threaded and thread-safe modes and observes
+  exact copy/reassignment failures. A current-source full driver candidate
+  repeats those results through the production entrypoint.
+- Candidate C is 164,246 lines, SHA-256
+  `9e89012dac9491a5732f2e82a73f12740da4c82a6a134cae3641157b0d246e10`;
+  candidate executable SHA-256 is
+  `510ae50426c4f2e26214824d9cb5948bf03741971a34b341a80d3ba96dc3f46a`.
+  O1 self-codegen emission took 492.01 seconds and host O0 C compilation took
+  16.46 seconds. The reached repeated cost is whole-program self-codegen
+  emission, not host compilation; no cache/query track is inferred from it.
+- Objective and exact scope live in
+  `docs/agent_work_directives/generated_zone_resource_lifecycle_2026-08-31.md`.
+  Focused, component, hard contract, build-source inventory, documentation,
+  agent sentinel, and SoT edge gates are local green. Next required evidence
+  is a scoped commit and push, then exact CI. Counts remain 88/183 with
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`; the integrated 83% forecast is unchanged.
+
 ## Published — canonical MIR constructor-fact carriage is exact-CI green
 
 - Exact base is `d69ee85195eb6f300bcc421fdfa795e359ced9e2`, equal to

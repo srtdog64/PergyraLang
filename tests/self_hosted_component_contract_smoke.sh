@@ -328,7 +328,10 @@ require_stage_owner_line_cap() {
         rel="${file#"$ROOT_DIR/"}"
         cap=600
         if [[ "$rel" == "src/self_hosted/codegen/emission/stmt_emit.pgy" ]]; then
-            cap=640
+            # Lexical statement ownership now includes hidden zone-resource
+            # cleanup across normal/return/loop exits. Splitting that CFG state
+            # would create a second statement-control owner.
+            cap=800
         elif [[ "$rel" == "src/self_hosted/codegen/type_facts/type_env.pgy" ]]; then
             cap=640
         elif [[ "$rel" == "src/self_hosted/semantic/diagnostic_owner.pgy" ]]; then
@@ -466,15 +469,23 @@ require_text "src/self_hosted/OWNERS.md" \
 require_text "src/runtime/pgy_runtime_zone_result_option_inline.h" \
     '#include "pgy_runtime_zone_sync_abi.h"'
 require_file "tests/self_hosted/fixtures/domain_runtime_zone_sync_zero.pgy"
+require_file "tests/self_hosted/fixtures/domain_runtime_zone_lifecycle.pgy"
+require_file \
+    "tests/self_hosted/fixtures/domain_runtime_zone_copy_threadsafe_rejected.pgy"
+require_file \
+    "tests/self_hosted/fixtures/domain_runtime_zone_reassign_threadsafe_rejected.pgy"
 require_file \
     "tests/self_hosted/parity/fixture/domain_runtime_zone_sync_harness.c"
 require_file \
     "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh"
 require_max_lines \
-    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" 180
+    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" 210
 for zone_sync_gate_term in \
     "compare_zone_bijection" \
     "PGY_ZONE_THREADSAFE" \
+    "PGY_ZONE_LOCK_INIT(&counter);" \
+    "Pergyra zone local copy requires an admitted transfer plan" \
+    "Pergyra zone reassignment requires an admitted transfer plan" \
     "PGY_FRONTIER_REASON_ZONE_OVERFLOW" \
     "nonzero domain runtime zone topology is not executable in self-host C"; do
     require_text \
@@ -495,6 +506,24 @@ reject_text \
     "SelfMirDomainRuntimeCarrierJson("
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" \
     "CodegenDomainRuntimeFactsEmpty(true)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "struct CodegenStatementBlockEmission"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "func CodegenFreshZoneLocal("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'let zone_local: Bool = local_nominal_kind == "zone";'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'local_type, local_nominal_kind, let_graph'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'PGY_ZONE_LOCK_INIT(&'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'PGY_ZONE_LOCK_DESTROY(&'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'EndsWith(type_name, "Zone")'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    'Pergyra zone by-value parameter requires an admitted transfer plan'
+require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
+    'Pergyra embedded zone requires an admitted transfer plan'
 require_file "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \
@@ -3844,7 +3873,8 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStmtList(count: Int, arena: AstArena,"
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
-    "func EmitStmtList(" "CodegenJoinOwnedStringFragments(result, \"\");"
+    "func EmitStmtList(" \
+    "CodegenJoinOwnedStringFragments(result, \"\"), scope_cleanup"
 require_file "src/self_hosted/codegen/text/owned_string_join_owner.pgy"
 require_max_lines "src/self_hosted/codegen/text/owned_string_join_owner.pgy" 20
 require_text "src/self_hosted/codegen/text/owned_string_join_owner.pgy" \
@@ -8689,7 +8719,7 @@ done
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'inout routine_defers: Array<String>'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
-    'ArraySet(routine_defers, 0, Concat(body, routine_defers[0]))'
+    'deferred.scope_cleanup, routine_defers[0]'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'let deferred: String = "";'
 require_file "tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"

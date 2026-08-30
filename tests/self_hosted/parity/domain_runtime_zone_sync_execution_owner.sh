@@ -52,9 +52,7 @@ ZERO_THREADSAFE_BIN="$BUILD_DIR/zero-threadsafe.exe"
 ZERO_HARNESS="$ROOT_DIR/tests/self_hosted/parity/fixture/domain_runtime_zone_sync_harness.c"
 
 "$PGY_BIN" --native-pipeline --ast "$ZERO_SOURCE" >"$ZERO_AST"
-ZERO_AST_INPUT="${ZERO_AST#"$ROOT_DIR/"}"
-[[ "$ZERO_AST_INPUT" != "$ZERO_AST" ]]
-"$CODEGEN_BIN" "$ZERO_AST_INPUT" >"$ZERO_C"
+"$CODEGEN_BIN" --source "${ZERO_SOURCE#"$ROOT_DIR/"}" >"$ZERO_C"
 compare_zone_bijection "$ZERO_AST" "$ZERO_C" zero
 
 grep -Fq '#include "pgy_runtime_zone_sync_abi.h"' "$ZERO_C"
@@ -87,15 +85,91 @@ done
     "$ZERO_HARNESS" -o "$ZERO_THREADSAFE_BIN"
 "$ZERO_THREADSAFE_BIN"
 
+# A generated fresh local owns its hidden lock for the exact lexical scope.
+# This is implementation-resource cleanup, not a source-level world lifetime.
+LIFECYCLE_SOURCE="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_zone_lifecycle.pgy"
+LIFECYCLE_AST="$BUILD_DIR/lifecycle.ast.txt"
+LIFECYCLE_C="$BUILD_DIR/lifecycle.c"
+LIFECYCLE_BIN="$BUILD_DIR/lifecycle.exe"
+LIFECYCLE_THREADSAFE_BIN="$BUILD_DIR/lifecycle-threadsafe.exe"
+LIFECYCLE_SINGLE_OUT="$BUILD_DIR/lifecycle-single.out"
+LIFECYCLE_THREADSAFE_OUT="$BUILD_DIR/lifecycle-threadsafe.out"
+LIFECYCLE_EXPECTED="$BUILD_DIR/lifecycle.expected"
+
+"$PGY_BIN" --native-pipeline --ast "$LIFECYCLE_SOURCE" >"$LIFECYCLE_AST"
+"$CODEGEN_BIN" --source "${LIFECYCLE_SOURCE#"$ROOT_DIR/"}" >"$LIFECYCLE_C"
+compare_zone_bijection "$LIFECYCLE_AST" "$LIFECYCLE_C" lifecycle
+[[ "$(grep -Fc 'PGY_ZONE_LOCK_INIT(&' "$LIFECYCLE_C")" == 5 ]]
+[[ "$(grep -Fc 'PGY_ZONE_LOCK_DESTROY(&' "$LIFECYCLE_C")" == 10 ]]
+grep -Fq 'CounterZone_sync(self);' "$LIFECYCLE_C"
+grep -Fq 'PGY_ZONE_LOCK_INIT(&counter);' "$LIFECYCLE_C"
+grep -Fq 'PGY_ZONE_LOCK_DESTROY(&counter);' "$LIFECYCLE_C"
+grep -Fq 'PGY_ZONE_LOCK_DESTROY(&early);' "$LIFECYCLE_C"
+grep -Fq 'PGY_ZONE_LOCK_DESTROY(&nested);' "$LIFECYCLE_C"
+grep -Fq 'PGY_ZONE_LOCK_DESTROY(&breaker);' "$LIFECYCLE_C"
+grep -Fq 'PGY_ZONE_LOCK_DESTROY(&continuing);' "$LIFECYCLE_C"
+init_line="$(grep -nF 'PGY_ZONE_LOCK_INIT(&counter);' "$LIFECYCLE_C" | cut -d: -f1)"
+use_line="$(grep -nF 'CounterZone_Value(&(counter))' "$LIFECYCLE_C" | cut -d: -f1)"
+destroy_line="$(grep -nF 'PGY_ZONE_LOCK_DESTROY(&counter);' "$LIFECYCLE_C" | cut -d: -f1)"
+[[ "$init_line" -lt "$use_line" && "$use_line" -lt "$destroy_line" ]]
+breaker_destroy_line="$(grep -nF 'PGY_ZONE_LOCK_DESTROY(&breaker);' "$LIFECYCLE_C" | head -1 | cut -d: -f1)"
+break_line="$(grep -nF 'break;' "$LIFECYCLE_C" | cut -d: -f1)"
+continuing_destroy_line="$(grep -nF 'PGY_ZONE_LOCK_DESTROY(&continuing);' "$LIFECYCLE_C" | head -1 | cut -d: -f1)"
+continue_line="$(grep -nF 'continue;' "$LIFECYCLE_C" | cut -d: -f1)"
+[[ "$breaker_destroy_line" -lt "$break_line" ]]
+[[ "$continuing_destroy_line" -lt "$continue_line" ]]
+
+printf '7\n11\n13\n17\n19\n' >"$LIFECYCLE_EXPECTED"
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    "$LIFECYCLE_C" -o "$LIFECYCLE_BIN"
+"$LIFECYCLE_BIN" | tr -d '\r' >"$LIFECYCLE_SINGLE_OUT"
+cmp -s "$LIFECYCLE_EXPECTED" "$LIFECYCLE_SINGLE_OUT"
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    -DPGY_ZONE_THREADSAFE "$LIFECYCLE_C" -o "$LIFECYCLE_THREADSAFE_BIN"
+"$LIFECYCLE_THREADSAFE_BIN" | tr -d '\r' >"$LIFECYCLE_THREADSAFE_OUT"
+cmp -s "$LIFECYCLE_EXPECTED" "$LIFECYCLE_THREADSAFE_OUT"
+
+# Named copies and reassignment still have no admitted mutex-transfer plan.
+# Preserve current single-threaded value behavior, but make a thread-safe build
+# fail closed at compile time instead of copying pthread storage silently.
+for negative_case in copy reassign; do
+    if [[ "$negative_case" == copy ]]; then
+        negative_source="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_zone_copy_threadsafe_rejected.pgy"
+        negative_reason='Pergyra zone local copy requires an admitted transfer plan'
+    else
+        negative_source="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_zone_reassign_threadsafe_rejected.pgy"
+        negative_reason='Pergyra zone reassignment requires an admitted transfer plan'
+    fi
+    negative_c="$BUILD_DIR/$negative_case-negative.c"
+    negative_single_bin="$BUILD_DIR/$negative_case-negative-single.exe"
+    negative_threadsafe_bin="$BUILD_DIR/$negative_case-negative-threadsafe.exe"
+    negative_err="$BUILD_DIR/$negative_case-negative-threadsafe.err"
+    "$CODEGEN_BIN" --source "${negative_source#"$ROOT_DIR/"}" >"$negative_c"
+    grep -Fq "#error \"$negative_reason\"" "$negative_c"
+    "$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+        -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+        "$negative_c" -o "$negative_single_bin"
+    set +e
+    "$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+        -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+        -DPGY_ZONE_THREADSAFE "$negative_c" \
+        -o "$negative_threadsafe_bin" 2>"$negative_err"
+    negative_rc=$?
+    set -e
+    [[ "$negative_rc" -ne 0 ]]
+    grep -Fq "$negative_reason" "$negative_err"
+done
+
 NONZERO_SOURCE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 NONZERO_AST="$BUILD_DIR/nonzero.ast.txt"
 NONZERO_OUT="$BUILD_DIR/nonzero.out"
 NONZERO_ERR="$BUILD_DIR/nonzero.err"
 
 "$PGY_BIN" --native-pipeline --ast "$NONZERO_SOURCE" >"$NONZERO_AST"
-NONZERO_AST_INPUT="${NONZERO_AST#"$ROOT_DIR/"}"
-[[ "$NONZERO_AST_INPUT" != "$NONZERO_AST" ]]
-if "$CODEGEN_BIN" "$NONZERO_AST_INPUT" >"$NONZERO_OUT" 2>"$NONZERO_ERR"; then
+if "$CODEGEN_BIN" --source "${NONZERO_SOURCE#"$ROOT_DIR/"}" \
+    >"$NONZERO_OUT" 2>"$NONZERO_ERR"; then
     echo "nonzero zone topology must fail closed in self-host C" >&2
     exit 1
 fi

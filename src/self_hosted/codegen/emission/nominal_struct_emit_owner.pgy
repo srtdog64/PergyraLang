@@ -37,6 +37,7 @@ func CollectStructsSelected(
         let fields_c: Array<String> = [];
         let field_names: Array<String> = [];
         let constructor_field_names: Array<String> = [];
+        let zone_embedding_guard: String = "";
         let has_projection_slots: Bool = false;
         let field_count: Int = CodegenSemanticNominalFieldCountOrDie(facts, i);
         let role_slot_count: Int = CodegenSemanticNominalRoleSlotCountOrDie(
@@ -53,6 +54,10 @@ func CollectStructsSelected(
             let field_kind: String = CodegenSemanticNominalFieldKindOrDie(
                 facts, i, field_index
             );
+            if field_kind == NominalFieldKindWorldZone() {
+                zone_embedding_guard =
+                    "#ifdef PGY_ZONE_THREADSAFE\n#error \"Pergyra embedded zone requires an admitted transfer plan\"\n#endif\n";
+            }
             let cfield_type: String = AbiLayoutCFieldType(
                 ftype, dependency_env
             );
@@ -158,7 +163,12 @@ func CollectStructsSelected(
                 "    PGY_ZONE_LOCK_FIELD\n    PGY_ZONE_GENERATION_FIELD\n"
             );
         }
-        ArrayPush(typedefs, Concat("typedef struct {\n", Concat(field_block, Concat("} ", Concat(c_sname, ";\n\n")))));
+        ArrayPush(typedefs, Concat(
+            zone_embedding_guard,
+            Concat("typedef struct {\n", Concat(
+                field_block, Concat("} ", Concat(c_sname, ";\n\n"))
+            ))
+        ));
         ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
         ArrayPush(struct_env_rows, Concat(
             sname, Concat("=nk:", Concat(nominal_kind, "|"))

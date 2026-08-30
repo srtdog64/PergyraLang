@@ -1,0 +1,13 @@
+subject Player {
+    let hp: Int;
+}
+
+zone CounterZone {
+    subject slot player: Player
+}
+
+func Main() -> Void {
+    let first: CounterZone = CounterZone(Player(7));
+    let copied: CounterZone = first;
+    Log(copied.player.hp);
+}

@@ -53,6 +53,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let function_env_rows: Array<String> = [Concat("", "|")];
     let prologue: String = "";
     let copyout: String = "";
+    let zone_value_carriage_guard: String = "";
     let receiver_carriage: String =
         CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
             receiver_facts, signature_index
@@ -138,6 +139,11 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             if role_receiver {
                 p_type = role_receiver_type;
             }
+        }
+        if p_name != "self" &&
+            LookupKindType(base_env, p_type, "nk") == "zone" {
+            zone_value_carriage_guard =
+                "#ifdef PGY_ZONE_THREADSAFE\n#error \"Pergyra zone by-value parameter requires an admitted transfer plan\"\n#endif\n";
         }
         let p_binding: CodegenFunctionValueBindingFact =
             CodegenFunctionValueBindingFactFor(
@@ -228,6 +234,10 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let ret_type: String = CodegenGenericResolvedReturnTypeOrDie(
         signatures, signature_index, generic_actuals
     );
+    if LookupKindType(base_env, ret_type, "nk") == "zone" {
+        zone_value_carriage_guard =
+            "#ifdef PGY_ZONE_THREADSAFE\n#error \"Pergyra zone return requires an admitted transfer plan\"\n#endif\n";
+    }
     ArraySet(cur, 0, cur[0] + 1);
 
     CodegenSemanticCallableContractAdvanceOrDie(
@@ -242,11 +252,12 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         body_ret = AbiLayoutCEntrypointBodyReturnType();
     }
     let routine_defers: Array<String> = [""];
-    let body: String = EmitStmtList(
+    let body_emission: CodegenStatementBlockEmission = EmitStmtList(
         count, arena, local_bindings, assignments, statements, body_types,
         expression_surfaces, stmt_indent, cur, "    ",
-        env_state, body_ret, routine_defers, copyout, base_env
+        env_state, body_ret, routine_defers, copyout, "", base_env
     );
+    let body: String = body_emission.body;
 
     let signature: String = "";
     if is_main {
@@ -269,6 +280,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let output: TextBuilder = TextBuilderNew(1024);
     TextBuilderAppend(output, signature);
     TextBuilderAppend(output, "\n{\n");
+    TextBuilderAppend(output, zone_value_carriage_guard);
     if is_main && uses_args {
         TextBuilderAppend(output, HostIORuntimeCArgsCapturePrefix());
         TextBuilderAppend(output, machine_startup);
@@ -280,6 +292,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     }
     TextBuilderAppend(output, body);
     TextBuilderAppend(output, routine_defers[0]);
+    TextBuilderAppend(output, body_emission.scope_cleanup);
     TextBuilderAppend(output, copyout);
     TextBuilderAppend(output, tail);
     let definition: String = TextBuilderFinish(output, output_allocator);
@@ -288,6 +301,9 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let owned_function_epoch: Array<String> = [body];
     if routine_defers[0] != "" {
         ArrayPush(owned_function_epoch, routine_defers[0]);
+    }
+    if body_emission.scope_cleanup != "" {
+        ArrayPush(owned_function_epoch, body_emission.scope_cleanup);
     }
     if copyout != "" { ArrayPush(owned_function_epoch, copyout); }
     if !is_main && signature != "" {

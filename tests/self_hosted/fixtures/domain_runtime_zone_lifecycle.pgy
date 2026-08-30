@@ -1,0 +1,58 @@
+subject Player {
+    let hp: Int;
+}
+
+zone CounterZone {
+    subject slot player: Player
+
+    func Value(self) -> Int {
+        return self.player.hp;
+    }
+}
+
+func ReadEarly(enabled: Bool) -> Int {
+    let early: CounterZone = CounterZone(Player(11));
+    if enabled {
+        return early.Value();
+    }
+    return 0;
+}
+
+func ReadNested(enabled: Bool) -> Int {
+    if enabled {
+        let nested: CounterZone = CounterZone(Player(13));
+        return nested.Value();
+    }
+    return 0;
+}
+
+func ReadBreak() -> Int {
+    let result: Int = 0;
+    while result < 1 {
+        let breaker: CounterZone = CounterZone(Player(17));
+        result = breaker.Value();
+        break;
+    }
+    return result;
+}
+
+func ReadContinue() -> Int {
+    let index: Int = 0;
+    let result: Int = 0;
+    while index < 1 {
+        let continuing: CounterZone = CounterZone(Player(19));
+        result = continuing.Value();
+        index = index + 1;
+        continue;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    let counter: CounterZone = CounterZone(Player(7));
+    Log(counter.Value());
+    Log(ReadEarly(true));
+    Log(ReadNested(true));
+    Log(ReadBreak());
+    Log(ReadContinue());
+}

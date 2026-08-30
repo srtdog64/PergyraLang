@@ -11,8 +11,8 @@ int main(void)
     EmptyZone zone = {0};
     int result = 0;
 
-    /* The fixture owns this explicit lifecycle. Language-generated zone
-     * construction/destruction remains a separate production owner seam. */
+    /* This explicit lifecycle is ABI-only supporting evidence. Generated
+     * fresh-local lifecycle is exercised by the source fixture separately. */
     PGY_ZONE_LOCK_INIT(&zone);
 
     zone.__projection_ready_view = true;
