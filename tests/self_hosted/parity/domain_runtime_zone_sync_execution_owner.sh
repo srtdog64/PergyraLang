@@ -14,6 +14,11 @@ if [[ -z "$SELF_DRIVER" ]]; then
 fi
 CODEGEN_BIN="${PGY_SELFHOST_PREBUILT_CODEGEN:-$BUILD_DIR/codegen.exe}"
 CC_BIN="${CC:-gcc}"
+POSIX_FEATURE_FLAGS=(
+    -D_POSIX_C_SOURCE=200809L
+    -D_XOPEN_SOURCE=700
+    -D_DEFAULT_SOURCE
+)
 
 mkdir -p "$BUILD_DIR"
 cd "$ROOT_DIR"
@@ -88,11 +93,13 @@ for field in \
 done
 
 "$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    "${POSIX_FEATURE_FLAGS[@]}" \
     -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
     -DPGY_ZONE_SYNC_GENERATED_C=\"$ZERO_C\" \
     "$ZERO_HARNESS" -o "$ZERO_BIN"
 "$ZERO_BIN"
 "$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    "${POSIX_FEATURE_FLAGS[@]}" \
     -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
     -DPGY_ZONE_THREADSAFE \
     -DPGY_ZONE_SYNC_GENERATED_C=\"$ZERO_C\" \
@@ -138,11 +145,13 @@ continue_line="$(grep -nF 'continue;' "$LIFECYCLE_C" | cut -d: -f1)"
 
 printf '7\n11\n13\n17\n19\n23\n' >"$LIFECYCLE_EXPECTED"
 "$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    "${POSIX_FEATURE_FLAGS[@]}" \
     -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
     "$LIFECYCLE_C" -o "$LIFECYCLE_BIN"
 "$LIFECYCLE_BIN" | tr -d '\r' >"$LIFECYCLE_SINGLE_OUT"
 cmp -s "$LIFECYCLE_EXPECTED" "$LIFECYCLE_SINGLE_OUT"
 "$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    "${POSIX_FEATURE_FLAGS[@]}" \
     -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
     -DPGY_ZONE_THREADSAFE "$LIFECYCLE_C" -o "$LIFECYCLE_THREADSAFE_BIN"
 "$LIFECYCLE_THREADSAFE_BIN" | tr -d '\r' >"$LIFECYCLE_THREADSAFE_OUT"

@@ -137,3 +137,11 @@ substitution progress.
   OS-specific `SELF_HOST_DRIVER`, and adds a component ratchet. The exact Make
   target is locally green from a fresh codegen build; another exact CI run is
   still required.
+- Portable-path run `33339894056` also reached 29/30 and proved the driver
+  selection fix, but `build-linux` then reached the next real portability
+  boundary: strict C11 hid `pthread_rwlock_t` because the focused harness did
+  not request the repository's POSIX/XOPEN feature surface. The active repair
+  adds `_POSIX_C_SOURCE=200809L`, `_XOPEN_SOURCE=700`, and `_DEFAULT_SOURCE` to
+  all four pthread-backed harness compilations and ratchets the XOPEN flag.
+  The exact Make target is locally green with those flags; exact Linux CI is
+  pending.

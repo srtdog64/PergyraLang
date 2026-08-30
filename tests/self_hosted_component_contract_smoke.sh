@@ -537,6 +537,9 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
 require_text \
     "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
     'PGY_SELFHOST_DRIVER_BIN:-${PGY_SELF_DRIVER_BIN:-}'
+require_text \
+    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
+    '-D_XOPEN_SOURCE=700'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func CodegenFreshZoneLocal("
 require_text \

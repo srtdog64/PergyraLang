@@ -46,6 +46,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   passes the Makefile's OS-specific driver path explicitly, and locally passes
   the exact Make target from a fresh codegen build. The lease remains active
   through another exact run.
+- Portable-path run `33339894056` is again 29/30: driver selection now reaches
+  the Linux harness compile, which failed because strict C11 did not expose
+  `pthread_rwlock_t` without POSIX/XOPEN feature macros. The active repair adds
+  the repository-standard feature flags to all four pthread-backed compile
+  commands and a component ratchet. Local exact-target execution is green;
+  the lease still requires exact Linux CI.
 
 ## DONE lease — generated zone resource lifecycle published
 
