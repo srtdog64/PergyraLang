@@ -1,6 +1,6 @@
 # Optimization-neutral source inspection substitution
 
-Status: LOCAL IMPLEMENTATION GREEN
+Status: IMPLEMENTATION COMPLETE
 
 Exact base: `f5f85f1ac2773079e98af6aa176ac061f2d76f60`
 
@@ -59,9 +59,9 @@ Exact base: `f5f85f1ac2773079e98af6aa176ac061f2d76f60`
 
 ## Evidence classification
 
-The opening commands are observations. The focused executable gate promotes
-the code change to local implementation evidence; publication still requires
-exact remote CI. This card does not change the `88/183`,
+The opening commands are observations. Focused local evidence and exact remote
+CI promote implementation `65164c152892549c1659abd2bfb415e36db02dae` to a
+published executable substitution. This card does not change the `88/183`,
 `CLOSED=55 BRIDGE=32 ACTIVE=1` census or the 83% project forecast.
 
 ## Local implementation evidence
@@ -78,5 +78,10 @@ exact remote CI. This card does not change the `88/183`,
   pass. Component and hard self-host contracts pass. SoT edge, Gate
   single-owner, protocol registry, and substitution-velocity gates pass with
   `88/183`, `55/32/1`, ten protocol rows, and nine bounded blockers.
-- Exact remote CI has not yet been observed. Until it is green, this remains an
-  active publication lease and no successor rung is inferred.
+- Exact run `33450356121` is green 30/30. Its full self-host log records
+  `gen2 == gen3 (173074 lines)`, receipt-bound DRV-2 installation, and the new
+  focused gate before installed CLI aggregation. Rocq, codegen/full bootstrap,
+  sanitizers, Linux/Windows/macOS, and all 20 backend shards passed. Full
+  self-host took 34m12s and build-linux 25m27s; these are observations, not an
+  inferred performance or successor lease. GitHub also emitted a non-failing
+  Node 20 action-deprecation annotation.

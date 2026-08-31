@@ -18,12 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — optimization-neutral source inspection
+## Published — optimization-neutral source inspection exact-CI green
 
-- Exact base is `f5f85f1ac2773079e98af6aa176ac061f2d76f60`, equal to
-  `origin/main` when the rung opened. Protected unrelated untracked paths are
-  listed in the collaboration ledger and remain outside inspection, edit, and
-  staging.
+- Exact base is `f5f85f1ac2773079e98af6aa176ac061f2d76f60` and implementation
+  `65164c152892549c1659abd2bfb415e36db02dae` is on `origin/main`.
+  Protected unrelated untracked paths are listed in the collaboration ledger
+  and remain outside inspection, edit, and staging.
 - Fresh public `--opt=dev` requests for `--tokens`, `--ast`, `--dir`, and
   `--capability-manifest` fail in the C selector before installed Pergyra
   execution. Their installed release-profile stdout is byte-equal to the
@@ -44,8 +44,15 @@ percentage by themselves.
   fail closed on a missing child or unsupported `--verbose`. The four existing
   public owner gates, component/hard contracts, SoT edge, Gate single-owner,
   protocol registry, and substitution-velocity gates also pass. SoT remains
-  `88/183`, `55/32/1`, and the project forecast remains 83%. Exact remote CI
-  is the remaining publication falsifier; do not infer a successor rung yet.
+  `88/183`, `55/32/1`, and the project forecast remains 83%.
+- Exact run `33450356121` is green 30/30. Full self-host recorded
+  `gen2 == gen3 (173074 lines)`, adopted the receipt-bound DRV-2, and ran the
+  focused gate before installed CLI aggregation. Rocq, both bootstrap jobs,
+  sanitizers, Linux/Windows/macOS, and all 20 backend shards passed. Full
+  self-host took 34m12s and build-linux 25m27s. The non-failing Node 20 action
+  deprecation annotation is CI maintenance evidence, not a blocker. The
+  publication falsifier is closed; select a fresh production executable
+  falsifier rather than inferring a successor from this boundary or its timing.
 
 ## Published — public artifact JSON diagnostic receipt exact-CI green
 

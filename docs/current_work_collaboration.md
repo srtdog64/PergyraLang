@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — optimization-neutral source inspection
+## DONE lease — optimization-neutral source inspection
 
 - Exact base is `f5f85f1ac2773079e98af6aa176ac061f2d76f60`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -30,7 +30,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   inspection owner gates. Component/hard, SoT edge, Gate single-owner,
   protocol registry, and substitution-velocity gates are green. The observed
   census remains `88/183`, `55/32/1`; this lease does not change SoT counts or
-  project percentage by itself. Exact remote CI remains to be observed.
+  project percentage by itself.
+- Implementation `65164c152892549c1659abd2bfb415e36db02dae` is on
+  `origin/main`. Exact run `33450356121` is green 30/30 and its full self-host
+  log observes `gen2 == gen3 (173074 lines)`, DRV-2 adoption, and the focused
+  source-inspection gate before installed CLI aggregation. Rocq, both
+  bootstrap jobs, sanitizers, all platforms, and all 20 backend shards passed.
+  The only annotation is the non-failing GitHub Actions Node 20 deprecation
+  warning. The publication falsifier is closed and this lease is retired.
 - Protected unrelated untracked `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
   staging.
