@@ -44,6 +44,20 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   and adds a ratchet against reintroducing the helper forwarding. The exact
   failed seed target and focused zone execution are green locally;
   republication and replacement exact CI remain pending.
+- Correction publication `bda2d4cff42a4ae85b817f507c1dd1387b4ec2ff`
+  reached run `33347320011` and completed 29/30. All 20 backend shards,
+  sanitizer/TSAN, Windows/macOS, Rocq 9, codegen bootstrap, and full self-host
+  passed. Linux logged all three zone carriage/parameter/sync PASS lines. Full
+  self-host proved `gen2 == gen3 (172580 lines)`, adopted the receipt-bound
+  fixed-point driver, installed Pergyra-built DRV-2, and censused all three
+  policy sources as `out_of_subset`.
+- The sole red was Linux preparation's generated language-word implementation
+  inventory after the new `.pgy` owner/fixtures/ref use. The official registry
+  renderer has regenerated that projection, and the exact language-word gate
+  plus its full `self-host-preparation-contract-test-smoke` parent are green
+  locally. Local authority adequacy records the declared missing-Coq skip while
+  the exact run's Rocq 9 job is green. One inventory-only publication and exact
+  CI remain.
 
 ## DONE lease — zone value carriage semantic admission
 

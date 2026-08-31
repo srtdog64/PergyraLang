@@ -63,6 +63,19 @@ percentage by themselves.
   forwards the borrow. The exact failing seed target now builds gen2 plus the
   parser producer locally, and the focused zone target is green. Replacement
   publication and exact CI remain pending.
+- Correction `bda2d4cff42a4ae85b817f507c1dd1387b4ec2ff` reached exact
+  run `33347320011`, which completed 29/30. Zone copy/reassignment, default
+  parameter rejection, ref single/thread-safe execution, and aggregate sync all
+  passed on Linux. Backend shards were 20/20; Rocq 9, sanitizers, TSAN,
+  Windows/macOS, codegen bootstrap, and full self-host were green. The full
+  driver fixed point was `gen2 == gen3 (172580 lines)`, then receipt-bound DRV-2
+  adoption and the three-source `out_of_subset` census completed.
+- The only failure was the generated language-word implementation inventory.
+  It is now regenerated through the official registry renderer and its exact
+  gate plus the full preparation-contract parent are green locally. Local Coq
+  absence is a declared skip; the exact run's Rocq 9 job passed. Inventory-only
+  publication and replacement exact CI remain pending; this correction does not
+  change the SoT census or 83% line.
 
 ## Published — zone value carriage semantic admission is exact-CI green
 

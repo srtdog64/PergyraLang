@@ -1,6 +1,6 @@
 # Zone Parameter Ref Semantic Admission — 2026-08-31
 
-Status: `LOCAL FIX GREEN — REPUBLICATION AND EXACT CI PENDING`
+Status: `LOCAL INVENTORY FIX GREEN — REPUBLICATION AND EXACT CI PENDING`
 
 Exact base: `8ef7039459711e64ac07da12b8473057968c0451`, equal to
 `origin/main` when this rung opened.
@@ -113,3 +113,15 @@ define zone move/return/embedding semantics or invent a fixed lifetime.
   accessor forwarding. The exact failed seed bootstrap now reports zero
   diagnostics and produces gen2 plus the parser AST producer; the current-gen2
   focused zone gate is green. Replacement publication and exact CI are pending.
+- Correction publication `bda2d4cff42a4ae85b817f507c1dd1387b4ec2ff`
+  completed run `33347320011` at 29/30. Every semantic/executable target in this
+  directive passed, including the three Linux zone lines, backend shards 20/20,
+  Rocq 9, codegen bootstrap, and full self-host. The integrated fixed point was
+  `gen2 == gen3 (172580 lines)` followed by receipt-bound Pergyra-built DRV-2
+  adoption and three expected `out_of_subset` policy rows.
+- The sole failure was the generated language-word implementation inventory,
+  whose `.pgy` use counts changed with this rung. The official registry
+  renderer regenerated only that derived projection; its exact gate is green
+  locally, as is the full preparation-contract parent with a declared local
+  missing-Coq skip. Exact CI already proved the Rocq 9 job. Inventory-only
+  publication and exact CI remain pending.
