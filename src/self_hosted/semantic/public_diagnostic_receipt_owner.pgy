@@ -15,22 +15,27 @@ struct SemanticPublicDiagnosticReceipt {
     message: String;
 }
 
+struct SemanticPublicDiagnosticIdentity {
+    ready: Bool;
+    cause_ir: String;
+    fix_source: String;
+}
+
 func SemanticPublicDiagnosticReceiptSchema() -> String {
     return "pgy.selfhost.public-diagnostic.v1";
 }
 
-func SemanticPublicDiagnosticCauseIr(code: String) -> String {
+func SemanticPublicDiagnosticIdentityForOwnedCode(
+    code: String
+) -> SemanticPublicDiagnosticIdentity {
     if code == "undefined_symbol" || code == "undefined_function" {
-        return "semantic:symbol:undefined";
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:symbol:undefined",
+            "import-or-declare-symbol"
+        );
     }
-    return "";
-}
-
-func SemanticPublicDiagnosticFixSource(code: String) -> String {
-    if code == "undefined_symbol" || code == "undefined_function" {
-        return "import-or-declare-symbol";
-    }
-    return "";
+    return SemanticPublicDiagnosticIdentity(false, "", "");
 }
 
 func SemanticPublicDiagnosticReceiptFromOwnedFacts(
@@ -38,18 +43,17 @@ func SemanticPublicDiagnosticReceiptFromOwnedFacts(
     message: String
 ) -> SemanticPublicDiagnosticReceipt {
     let public_code: String = SemanticDiagnosticOracleCode(code);
-    let cause_ir: String = SemanticPublicDiagnosticCauseIr(code);
-    let fix_source: String = SemanticPublicDiagnosticFixSource(code);
-    let ready: Bool = public_code != "" && cause_ir != "" &&
-        fix_source != "" && message != "";
+    let identity: SemanticPublicDiagnosticIdentity =
+        SemanticPublicDiagnosticIdentityForOwnedCode(code);
+    let ready: Bool = public_code != "" && identity.ready && message != "";
     return SemanticPublicDiagnosticReceipt(
         ready,
         SemanticPublicDiagnosticReceiptSchema(),
         "semantic",
         "type",
         public_code,
-        cause_ir,
-        fix_source,
+        identity.cause_ir,
+        identity.fix_source,
         message
     );
 }
@@ -58,12 +62,15 @@ func SemanticPublicDiagnosticReceiptReadyFor(
     receipt: SemanticPublicDiagnosticReceipt,
     owned_code: String
 ) -> Bool {
+    let identity: SemanticPublicDiagnosticIdentity =
+        SemanticPublicDiagnosticIdentityForOwnedCode(owned_code);
     return receipt.ready &&
+        identity.ready &&
         receipt.schema == SemanticPublicDiagnosticReceiptSchema() &&
         receipt.stage == "semantic" && receipt.layer == "type" &&
         receipt.code == SemanticDiagnosticOracleCode(owned_code) &&
-        receipt.cause_ir == SemanticPublicDiagnosticCauseIr(owned_code) &&
-        receipt.fix_source == SemanticPublicDiagnosticFixSource(owned_code) &&
+        receipt.cause_ir == identity.cause_ir &&
+        receipt.fix_source == identity.fix_source &&
         receipt.message != "";
 }
 
