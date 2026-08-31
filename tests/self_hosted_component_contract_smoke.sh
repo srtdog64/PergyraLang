@@ -8565,6 +8565,14 @@ require_text "Makefile" "self-host-aggregate-field-policy-parity-test-smoke:"
 require_text "Makefile" "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh"
 require_file "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy" 100
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy" \
+    "func SemanticAstExpressionGraphRootForNode(" \
+    'let middle: Int = low + ((high - low) / 2);'
+reject_function_text \
+    "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy" \
+    "func SemanticAstExpressionGraphRootForNode(" \
+    'let i: Int = 0;'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     'SemanticExpressionGraphIntrinsicTypeContractReady()'
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \

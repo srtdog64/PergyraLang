@@ -6,6 +6,40 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — semantic generic-specialization pressure
+
+- Exact base is `c5c50c4968418009c36cd33ed17c8e0ad937bcde`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit, push, and CI owner.
+- Fresh full-driver producer and consumer pressure shards both spend about
+  52-53 seconds inside
+  `SemanticAstGenericSpecializationFactsFromAdmittedBody`, despite entering
+  from different routes with byte-identical MIR at their shared boundary.
+- The objective, fact owner, last consumers, candidate repeated operations,
+  forbidden fallbacks, exact hashes, and validation budget are fixed in
+  `docs/agent_work_directives/semantic_generic_specialization_pressure_2026-08-31.md`.
+- The opening falsifier was owner-local count/timing observation. No lookup rewrite,
+  cache, query engine, graph redesign, or parallel compiler-scale run is
+  authorized until it distinguishes linear membership lookup, graph revisits,
+  and environment reseeding.
+- Diagnosis falsified both generic membership and duplicate graph traversal:
+  the full driver has zero specialization rows, 409,688 membership probes with
+  zero comparisons, and exactly one visit for each of 766,885 graph nodes. The
+  reached repeated operation was `SemanticAstExpressionGraphRootForNode`
+  rescanning up to 126,513 sorted surface IDs for every root query.
+- The local candidate replaces only that scan with lower-bound lookup. Actual
+  Pergyra source producer/consumer generic stages fell from 52,155/53,156ms to
+  18,593/18,734ms. Candidate gen2 and gen3 are byte-identical at 172,787 lines,
+  11,440,236 bytes, SHA-256
+  `e4440e785fdd4f8d4152fb21dd9752704ef40e01f16482d29d2552f348e08cf7`.
+  Generic execution and identity/mismatch/no-artifact negatives are green.
+- The broad component gate exceeded the static budget and was stopped after a
+  reached source-MIR ratchet PASS; it is not locally claimed green. Exact push
+  CI is the next integration falsifier. No parallel edit scope is open.
+- SoT stays `88/183` and `55/32/1`; the 83% forecast does not move by opening
+  or optimizing this performance rung. The three protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+
 ## DONE lease — compiler-world embedded-zone resource lifecycle
 
 - Exact base is `52021bbf3912e65b7066d2b0adce832150699a76`, equal to

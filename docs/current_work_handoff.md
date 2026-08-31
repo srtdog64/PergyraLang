@@ -18,6 +18,48 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — semantic generic-specialization pressure
+
+- Exact base is `c5c50c4968418009c36cd33ed17c8e0ad937bcde`, equal to
+  `origin/main` when this rung opened. The compiler-world embedded-zone lease
+  below is complete and exact-CI green; do not revive it as the active queue.
+- Fresh bounded full-driver producer and consumer shards independently place
+  about 52-53 seconds inside
+  `SemanticAstGenericSpecializationFactsFromAdmittedBody`. The producer emitted
+  a 275,728,528-byte MIR with SHA-256
+  `12050fdf7917e0a6f50d187f2bdb5f6c56b1d0900e2a7f3a8acb1b13e512842c`;
+  the consumer read that byte-identical input and emitted 11,440,003-byte C
+  with SHA-256
+  `2ec56d6d34c9d4ababcb22a9aca0d1280312c91b745c855512d72aac14f1cc13`.
+- The owner currently combines linear call-ID membership checks, graph
+  traversal, and per-surface environment seeding. The next falsifying case is
+  owner-local count/timing observation that distinguishes those operations;
+  no one is yet recorded as the proven cause.
+- That falsifier is now resolved. The full driver has zero generic rows;
+  409,688 call-ID probes performed zero comparisons, and 766,885 graph nodes
+  were each visited once. The repeated work was the root view rescanning up to
+  all 126,513 sorted surface IDs every time a caller requested a lane root.
+- The local source candidate uses lower-bound lookup in the existing view
+  owner. Producer/consumer generic stages fell from 52,155/53,156ms to
+  18,593/18,734ms. Candidate gen2 equals gen3 at 172,787 lines and 11,440,236
+  bytes, SHA-256
+  `e4440e785fdd4f8d4152fb21dd9752704ef40e01f16482d29d2552f348e08cf7`.
+  Exact generic output plus identity, target, nested, explicit mismatch, and
+  no-artifact negatives are local green.
+- Resume from
+  `docs/agent_work_directives/semantic_generic_specialization_pressure_2026-08-31.md`.
+  Preserve stable call identity, unresolved-generic failure, exact fixture
+  behavior and candidate gen2/gen3 bytes, the existing 300-second / 3072MiB
+  shard limits, and the single-owner lease.
+  General cache/query work, parallel compiler-scale emission, unrelated SoT,
+  parser/runtime size debt, and input shrinking are forbidden.
+- The broad component contract was stopped after exceeding its 60-second
+  static budget; it had emitted the source-MIR action PASS but is not claimed
+  fully green. Resume from exact push CI for the lower-bound candidate, not
+  from another local full matrix or a broader optimization.
+- Opening this bounded performance rung changes neither the `88/183`,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1` census nor the 83% project forecast.
+
 ## Published — compiler-world embedded-zone lifecycle is exact-CI green
 
 - The rung opened at `52021bbf3912e65b7066d2b0adce832150699a76`.
