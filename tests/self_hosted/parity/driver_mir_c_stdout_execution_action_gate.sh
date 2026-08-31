@@ -106,7 +106,7 @@ for installed_case in 'case DriverCliMirCStdout(input_path):' \
         active { print }
         active && /case DriverCli/ && !index($0, header) { exit }
     ' "$MIR_C_INSTALLED_OWNER")"
-    [[ "$(grep -Fc 'DriverRung2ExecuteReadRequest(request);' \
+    [[ "$(grep -Fc 'DriverRung2ExecuteReadRequest(compiler_world, request);' \
         <<<"$installed_case_body")" == "1" ]] ||
         fail "installed MIR-C case lost exact read delegation: $installed_case"
     for forbidden in 'ProduceMirC' 'CompileMirJsonToCVerified' 'Log('; do
@@ -121,7 +121,8 @@ done
 require_mir_c_text "$MIR_C_READ_OWNER" 'MirCDefaultMachine'
 require_mir_c_text "$MIR_C_READ_OWNER" 'MirCManifestVerified('
 require_mir_c_text "$MIR_C_ARTIFACT_OWNER" \
-    'input_path, output_path, mir_c_request, MirCDefaultMachine'
+    'compiler_world, input_path, output_path, mir_c_request,'
+require_mir_c_text "$MIR_C_ARTIFACT_OWNER" 'MirCDefaultMachine'
 
 cmp -s "$WORK_DIR/mir.stdout.normalized.c" \
     "$WORK_DIR/mir.artifact.normalized.c" ||

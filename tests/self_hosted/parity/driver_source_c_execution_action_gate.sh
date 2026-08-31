@@ -16,6 +16,7 @@ SOURCE_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_execution_owner
 PROTOCOL_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_protocol_owner.pgy"
 WORLD_OWNER="$ROOT_DIR/src/self_hosted/compiler/world.pgy"
 COMPOSITION_OWNER="$ROOT_DIR/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy"
+ROOT_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 INSTALLED_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
 ARTIFACT_EXECUTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
 
@@ -32,7 +33,7 @@ MACHINE_MANIFEST="$(pgy_self_driver_machine_manifest_path "$SELF_DRIVER")"
 MACHINE_MANIFEST_ARG="${MACHINE_MANIFEST#"$ROOT_DIR"/}"
 
 for owner in "$SOURCE_OWNER" "$PROTOCOL_OWNER" "$WORLD_OWNER" "$COMPOSITION_OWNER" \
-    "$INSTALLED_OWNER" "$ARTIFACT_EXECUTION_OWNER"; do
+    "$ROOT_OWNER" "$INSTALLED_OWNER" "$ARTIFACT_EXECUTION_OWNER"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 for term in 'tobject DriverSourceCExecutionReceipt' \
@@ -63,15 +64,26 @@ for term in 'zone source_c: DriverSourceCZone' \
     'DriverSourceCExecutionOutcomeReadyFor('; do
     require_text "$WORLD_OWNER" "$term"
 done
-for term in 'DriverSourceCZone(DriverSourceCExecution(' \
+for term in 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' \
+    'DriverSourceCZone(DriverSourceCExecution(' \
     'DriverSourceCExecutionTopologyIdentity(), None' \
+    'DriverRung2ExecuteInstalledRequest(compiler_world, request);'; do
+    require_text "$ROOT_OWNER" "$term"
+done
+[[ "$(grep -Fc 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' \
+    "$ROOT_OWNER")" == "1" ]] ||
+    fail "installed compiler root must own exactly one fresh world"
+for term in 'inout compiler_world: PgyCompilerWorld' \
     'func CompileSourceToCThroughPgyCompilerWorld(' \
     'compiler_world.CompileSourceToC('; do
     require_text "$COMPOSITION_OWNER" "$term"
 done
+grep -Fq 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' \
+    "$COMPOSITION_OWNER" &&
+    fail "source-C route owner regained world reconstruction"
 for term in 'func DriverRung2InstalledPublishSourceC(' \
     'CompileSourceToCThroughPgyCompilerWorld(' \
-    'source_path, output_path, request' \
+    'compiler_world, source_path, output_path, request' \
     'DriverSourceCExecutionOutcomeReadyFor(' \
     'DriverSourceCExecutionOutcomeDiagnostic('; do
     require_text "$ARTIFACT_EXECUTION_OWNER" "$term"
