@@ -1,0 +1,59 @@
+// Exact source-C request identity. Diagnostic selection is carried with the
+// machine declaration; consumers may not recover it from rendered text.
+
+import "machine_layer_declaration_consumer.pgy";
+
+enum DriverSourceCRequest {
+    SourceCDefault(Bool),
+    SourceCManifestVerified(SelfHostMachineLayerDeclaration, Bool),
+}
+
+func DriverSourceCRequestEmitsJsonDiagnostic(
+    request: DriverSourceCRequest
+) -> Bool {
+    match request {
+        case SourceCDefault(emit_json): return emit_json;
+        case SourceCManifestVerified(declaration, emit_json): return emit_json;
+    }
+}
+
+func DriverSourceCRequestMode(request: DriverSourceCRequest) -> String {
+    let suffix: String = "";
+    if DriverSourceCRequestEmitsJsonDiagnostic(request) {
+        suffix = "-json-diagnostic";
+    }
+    match request {
+        case SourceCDefault(emit_json): return Concat("default", suffix);
+        case SourceCManifestVerified(declaration, emit_json):
+            return Concat("manifest-verified", suffix);
+    }
+}
+
+func DriverSourceCRequestDeclaration(
+    request: DriverSourceCRequest
+) -> SelfHostMachineLayerDeclaration {
+    match request {
+        case SourceCDefault(emit_json):
+            return SelfHostMachineLayerDeclarationEmpty();
+        case SourceCManifestVerified(declaration, emit_json):
+            return declaration;
+    }
+}
+
+func DriverSourceCRequestManifestId(request: DriverSourceCRequest) -> String {
+    match request {
+        case SourceCDefault(emit_json): return "";
+        case SourceCManifestVerified(declaration, emit_json):
+            return declaration.manifest_id;
+    }
+}
+
+func DriverSourceCRequestManifestFingerprint(
+    request: DriverSourceCRequest
+) -> String {
+    match request {
+        case SourceCDefault(emit_json): return "";
+        case SourceCManifestVerified(declaration, emit_json):
+            return declaration.manifest_fingerprint;
+    }
+}

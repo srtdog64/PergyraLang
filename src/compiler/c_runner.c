@@ -58,7 +58,8 @@ c_runner_execute_installed_self_host_c(
     if (flags->verbose)
         printf("pgy: self-host C artifact → %s\n", workspace.primary_path);
     materialize_rc = driver_materialize_self_host_c_artifact(
-        launcher_path, flags->source_path, workspace.primary_path, flags->verbose);
+        launcher_path, flags->source_path, workspace.primary_path,
+        flags->verbose, flags->diag_format == DIAG_FORMAT_JSON);
     if (materialize_rc != 0) {
         compiler_transient_artifact_workspace_close(&workspace);
         free(binary_path);

@@ -13,12 +13,13 @@ ARTIFACT_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifact_req
 REQUEST="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 INSTALLED="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
 C_OWNER="$ROOT_DIR/src/compiler/self_host_llvm_driver.c"
+PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 
 fail() { echo "[compiler-root-intent-takeover] $*" >&2; exit 1; }
 require_text() { grep -Fq -- "$2" "$1" || fail "missing ${1#"$ROOT_DIR/"}: $2"; }
 
 for owner in "$WORLD" "$PROTOCOL" "$ACTION" "$PUBLICATION" "$INTENT_EXECUTION" "$ROOT_EXECUTION" \
-    "$ARTIFACT_EXECUTION" "$REQUEST" "$INSTALLED" "$C_OWNER"; do
+    "$ARTIFACT_EXECUTION" "$REQUEST" "$INSTALLED" "$C_OWNER" "$PROCESS_OWNER"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 
@@ -105,15 +106,18 @@ for term in 'func DriverRung2InstalledPublishSourceLlvm(' \
     'IntentLastFailed()'; do
     require_text "$ARTIFACT_EXECUTION" "$term"
 done
-for term in 'DriverCliSourceLlvmArtifact(String, String)' \
-    'args[0] == "--emit-source-llvm-ir-verified"'; do
+for term in 'DriverCliSourceLlvmArtifact(String, String, Bool)' \
+    'args[0] == "--emit-source-llvm-ir-verified"' \
+    'args[0] == "--emit-source-llvm-ir-json-diagnostic-verified"'; do
     require_text "$REQUEST" "$term"
 done
-require_text "$INSTALLED" 'case DriverCliSourceLlvmArtifact(source_path, output_path):'
+require_text "$INSTALLED" 'case DriverCliSourceLlvmArtifact(source_path, output_path, emit_json):'
 
-[[ "$(grep -Fc 'pgy_exec_argv(intent_argv, verbose)' "$C_OWNER")" -eq 1 ]] ||
+[[ "$(grep -Fc 'driver_run_self_host_artifact_process(' "$C_OWNER")" -eq 1 ]] ||
     fail "C host must invoke exactly one installed compiler intent"
-require_text "$C_OWNER" 'intent_argv[1] = "--emit-source-llvm-ir-verified";'
+require_text "$C_OWNER" '"--emit-source-llvm-ir-verified"'
+require_text "$C_OWNER" '"--emit-source-llvm-ir-json-diagnostic-verified"'
+require_text "$PROCESS_OWNER" 'pgy_exec_argv_capture_stdout('
 grep -Eq 'driver_materialize_self_host_mir_artifact|--mir-json-backend=llvm|mir_output_path' \
     "$C_OWNER" && fail "C host regained source-MIR/backend orchestration"
 grep -R -Eq 'driver_materialize_self_host_llvm_artifacts\(' "$ROOT_DIR/src" &&

@@ -7,7 +7,8 @@ driver_self_host_llvm_artifact_request_supported(const DriverFlags *flags)
 {
     return driver_plain_llvm_binary_target_requested(flags)
         && !flags->emit_debug_lines
-        && flags->diag_format == DIAG_FORMAT_TEXT
+        && (flags->diag_format == DIAG_FORMAT_TEXT
+            || flags->diag_format == DIAG_FORMAT_JSON)
         && flags->runtime_mode == RUNTIME_DEFAULT
         && flags->machine_layer_physical_manifest == NULL;
 }

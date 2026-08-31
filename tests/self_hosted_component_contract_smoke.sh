@@ -9260,6 +9260,8 @@ require_file "src/compiler/self_host_mir_artifact_owner.c"
 require_file "src/compiler/self_host_mir_artifact_owner.h"
 require_file "src/compiler/self_host_mir_diagnostic_stdout_owner.c"
 require_file "src/compiler/self_host_mir_diagnostic_stdout_owner.h"
+require_file "src/compiler/self_host_artifact_process_owner.c"
+require_file "src/compiler/self_host_artifact_process_owner.h"
 require_file "src/compiler/self_host_llvm_driver.c"
 require_file "src/compiler/self_host_llvm_driver.h"
 require_file "src/compiler/driver_self_host_selection_owner.c"
@@ -9283,6 +9285,7 @@ require_max_lines \
     "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" 125
 require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_artifact_json_diagnostic_receipt_owner.sh"
 require_file "tests/self_hosted/parity/fixture/silent_self_host_driver.c"
 require_file "tests/self_hosted/parity/public_machine_manifest_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh"
@@ -9315,6 +9318,7 @@ require_max_lines "src/self_hosted/fmt/layout_owner.pgy" 200
 require_max_lines "src/self_hosted/fmt/session_owner.pgy" 50
 require_max_lines "src/compiler/self_host_mir_artifact_owner.c" 90
 require_max_lines "src/compiler/self_host_mir_diagnostic_stdout_owner.c" 130
+require_max_lines "src/compiler/self_host_artifact_process_owner.c" 100
 require_max_lines "src/compiler/compiler_process.c" 620
 require_max_lines "src/compiler/self_host_llvm_driver.c" 120
 require_max_lines "src/compiler/driver_self_host_selection_owner.c" 140
@@ -9419,7 +9423,11 @@ require_text "src/compiler/self_host_driver.c" \
     "driver_run_self_host_c_emit_artifact("
 require_text "src/compiler/self_host_driver.c" 'child_argv[child_argc++] = "--emit-c-verified"'
 require_text "src/compiler/self_host_driver.c" \
-    'child_argv[1] = "--emit-c-artifact-verified"'
+    '"--emit-c-artifact-verified"'
+require_text "src/compiler/self_host_driver.c" \
+    '"--emit-c-artifact-json-diagnostic-verified"'
+require_text "src/compiler/self_host_driver.c" \
+    'driver_run_self_host_artifact_process('
 require_text "src/compiler/self_host_driver.c" \
     'child_argv[2] = canonical_source_path'
 require_text "src/compiler/self_host_driver.c" 'child_argv[3] = output_path'
@@ -9456,7 +9464,7 @@ require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "DriverCliSourceCapabilityManifestStdout(String)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
-    "DriverCliSourceCArtifact(String, String, String)"
+    "DriverCliSourceCArtifact(String, String, String, Bool)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[3] != "--machine-manifest-json"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
@@ -9594,14 +9602,16 @@ reject_text "src/self_hosted/mir_lower/mir_diagnostic_projection_owner.pgy" \
     "ReadFile("
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"'
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/public_artifact_json_diagnostic_receipt_owner.sh"'
 require_function_text "src/compiler/self_host_llvm_driver.c" \
     "driver_materialize_self_host_llvm_artifact(" \
-    'intent_argv[1] = "--emit-source-llvm-ir-verified"'
+    '"--emit-source-llvm-ir-verified"'
 reject_function_text "src/compiler/self_host_llvm_driver.c" \
     "driver_materialize_self_host_llvm_artifact(" \
     "driver_materialize_self_host_mir_artifact("
 require_text "src/compiler/self_host_llvm_driver.c" \
-    'intent_argv[1] = "--emit-source-llvm-ir-verified"'
+    '"--emit-source-llvm-ir-json-diagnostic-verified"'
 require_text "src/compiler/self_host_llvm_driver.c" \
     'intent_argv[3] = "-o"'
 reject_text "src/compiler/self_host_llvm_driver.c" "--mir-json-backend=llvm"
@@ -24183,6 +24193,11 @@ require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
     'import "driver_source_c_protocol_owner.pgy";'
 require_text "src/self_hosted/OWNERS.md" \
     'src/self_hosted/compiler/driver_source_c_protocol_owner.pgy'
+require_file "src/self_hosted/compiler/driver_source_c_request_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_source_c_request_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    'src/self_hosted/compiler/driver_source_c_request_owner.pgy'
 require_file \
     "tests/self_hosted/parity/driver_source_c_execution_action_gate.sh"
 require_max_lines \
@@ -24240,8 +24255,8 @@ require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
     'intent CompilePergyraCArtifact('
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
     'let mut outcome: Option<DriverSourceCExecutionOutcome>;'
-require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" \
-    'SourceCManifestVerified(SelfHostMachineLayerDeclaration)'
+require_text "src/self_hosted/compiler/driver_source_c_request_owner.pgy" \
+    'SourceCManifestVerified(SelfHostMachineLayerDeclaration, Bool)'
 require_text "src/self_hosted/compiler/driver_source_c_protocol_owner.pgy" \
     'DriverSourceCRequestManifestFingerprint(expected_request)'
 require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \

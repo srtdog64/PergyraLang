@@ -135,7 +135,8 @@ func DriverSourceLlvmIntentOutcomeReadyFor(
 func DriverSourceLlvmIntentOutcomeDiagnostic(
     outcome: DriverSourceLlvmIntentOutcome,
     source_path: String,
-    expected_final_path: String
+    expected_final_path: String,
+    expected_source_request: DriverSourceMirRequest
 ) -> String {
     match outcome {
         case DriverSourceLlvmPublished(receipt):
@@ -146,7 +147,7 @@ func DriverSourceLlvmIntentOutcomeDiagnostic(
         case DriverSourceLlvmSourceRejected(rejection):
             return DriverSourceMirPayloadAdmissionDiagnostic(
                 DriverSourceMirPayloadDenied(rejection), source_path,
-                SourceMirVerified
+                expected_source_request
             );
         case DriverSourceLlvmProjectionRejected(failure):
             return DriverLlvmPayloadPublicationFailureDiagnostic(

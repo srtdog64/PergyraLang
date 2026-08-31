@@ -10,7 +10,8 @@ func DriverRung2PublishMirPayloadLlvmArtifactForIdentity(
     source_receipt: DriverSourceMirPayloadReceipt,
     source_path: String,
     output_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    source_request: DriverSourceMirRequest
 ) -> DriverLlvmPayloadPublicationOutcome with caps io_write {
     if execution_identity != DriverRung2ExecutionOwnerIdentity() {
         return DriverLlvmPayloadPublicationRejected(
@@ -20,7 +21,7 @@ func DriverRung2PublishMirPayloadLlvmArtifactForIdentity(
         );
     }
     if !DriverSourceMirPayloadReceiptReadyFor(
-        source_receipt, source_path, SourceMirVerified
+        source_receipt, source_path, source_request
     ) || output_path == "" {
         return DriverLlvmPayloadPublicationRejected(
             DriverLlvmPayloadRequestFailure(

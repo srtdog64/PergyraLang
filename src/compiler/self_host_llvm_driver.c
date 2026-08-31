@@ -2,6 +2,7 @@
 
 #include "compiler_process.h"
 #include "path_utils.h"
+#include "self_host_artifact_process_owner.h"
 #include "self_host_driver.h"
 
 #include <stdio.h>
@@ -12,7 +13,8 @@ driver_materialize_self_host_llvm_artifact(
     const char *launcher_path,
     const char *source_path,
     const char *llvm_output_path,
-    bool verbose)
+    bool verbose,
+    bool emit_json_diagnostic)
 {
     const char *intent_argv[6];
     char *binary;
@@ -34,15 +36,20 @@ driver_materialize_self_host_llvm_artifact(
     }
 
     intent_argv[0] = binary;
-    intent_argv[1] = "--emit-source-llvm-ir-verified";
+    intent_argv[1] = emit_json_diagnostic
+        ? "--emit-source-llvm-ir-json-diagnostic-verified"
+        : "--emit-source-llvm-ir-verified";
     intent_argv[2] = source_path;
     intent_argv[3] = "-o";
     intent_argv[4] = llvm_output_path;
     intent_argv[5] = NULL;
-    rc = pgy_exec_argv(intent_argv, verbose);
+    rc = driver_run_self_host_artifact_process(
+        intent_argv, verbose, emit_json_diagnostic);
     if (rc != 0) {
-        fprintf(stderr,
-                "pgy: self-host source LLVM intent failed with code %d\n", rc);
+        if (!emit_json_diagnostic)
+            fprintf(stderr,
+                    "pgy: self-host source LLVM intent failed with code %d\n",
+                    rc);
         goto done;
     }
     if (!path_file_exists(llvm_output_path)) {

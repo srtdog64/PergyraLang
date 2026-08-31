@@ -4,6 +4,7 @@
 #include "import_resolver_internal.h"
 #include "path_utils.h"
 #include "self_host_child_io_authority.h"
+#include "self_host_artifact_process_owner.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -169,7 +170,7 @@ int
 driver_materialize_self_host_c_artifact(const char *launcher_path,
                                         const char *source_path,
                                         const char *output_path,
-                                        bool verbose)
+                                        bool verbose, bool emit_json_diagnostic)
 {
     const char *child_argv[7];
     char *binary;
@@ -210,18 +211,18 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
     }
 
     child_argv[0] = binary;
-    child_argv[1] = "--emit-c-artifact-verified";
+    child_argv[1] = emit_json_diagnostic ? "--emit-c-artifact-json-diagnostic-verified" : "--emit-c-artifact-verified";
     child_argv[2] = canonical_source_path;
     child_argv[3] = output_path;
     child_argv[4] = "--machine-manifest-json";
     child_argv[5] = manifest_path;
     child_argv[6] = NULL;
     driver_authorize_self_host_child_io();
-    rc = pgy_exec_argv(child_argv, verbose);
+    rc = driver_run_self_host_artifact_process(child_argv, verbose, emit_json_diagnostic);
     /* The driver can fail before it has anything to say -- a denied source
      * read, say -- so never let a delegated failure surface as a bare exit
      * code with no observable cause. */
-    if (rc != 0)
+    if (rc != 0 && !emit_json_diagnostic)
         fprintf(stderr,
                 "pgy: self-host driver failed (exit %d) emitting C for %s -> %s\n",
                 rc, source_path, output_path);
@@ -241,7 +242,7 @@ int
 driver_run_self_host_c_emit_artifact(const char *launcher_path,
                                      const char *source_path,
                                      const char *output_path,
-                                     bool verbose)
+                                     bool verbose, bool emit_json_diagnostic)
 {
     const char *effective_output = output_path;
     char *derived_output = NULL;
@@ -260,8 +261,7 @@ driver_run_self_host_c_emit_artifact(const char *launcher_path,
         return 1;
     }
 
-    rc = driver_materialize_self_host_c_artifact(
-        launcher_path, source_path, effective_output, verbose);
+    rc = driver_materialize_self_host_c_artifact(launcher_path, source_path, effective_output, verbose, emit_json_diagnostic);
     if (rc == 0)
         printf("pgy: wrote %s\n", effective_output);
 

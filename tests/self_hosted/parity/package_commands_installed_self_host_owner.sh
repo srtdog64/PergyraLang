@@ -188,10 +188,12 @@ grep -Fq 'llvm_runner_execute_installed_self_host_llvm(' <<<"$pkg_body" ||
 
 llvm_owner="$(sed -n '/^driver_materialize_self_host_llvm_artifact(/,/^}/p' \
     "$ROOT_DIR/src/compiler/self_host_llvm_driver.c")"
-[[ "$(grep -Fc 'pgy_exec_argv(intent_argv, verbose)' <<<"$llvm_owner")" == "1" ]] ||
+[[ "$(grep -Fc 'driver_run_self_host_artifact_process(' <<<"$llvm_owner")" == "1" ]] ||
     fail "LLVM materializer does not invoke one compiler intent"
-grep -Fq 'intent_argv[1] = "--emit-source-llvm-ir-verified"' <<<"$llvm_owner" ||
+grep -Fq '"--emit-source-llvm-ir-verified"' <<<"$llvm_owner" ||
     fail "LLVM materializer lost the canonical compiler-intent request"
+grep -Fq '"--emit-source-llvm-ir-json-diagnostic-verified"' <<<"$llvm_owner" ||
+    fail "LLVM materializer lost the JSON diagnostic request"
 ! grep -Eq 'driver_materialize_self_host_mir_artifact|--mir-json-backend=llvm' \
     <<<"$llvm_owner" || fail "LLVM materializer regained two-step C orchestration"
 

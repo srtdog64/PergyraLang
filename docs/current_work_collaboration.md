@@ -6,6 +6,35 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — public artifact JSON diagnostic receipt
+
+- Exact base is `09491bf820e28c0a75a219a741cc22267a7d6fc7`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner.
+- Production entrypoint is default `pgy --error-format=json SOURCE`, including
+  explicit C/LLVM backend selection. The direct bypass is the launcher's
+  pre-delegation rejection of JSON-selected artifact requests.
+- The existing Pergyra public diagnostic receipt owns semantic identity. The
+  source-C/source-MIR requests must carry format identity into the one artifact
+  compilation; C may only capture, admit, and relay its opaque envelope.
+- Native retry, a diagnostic preflight or second semantic compile, message
+  parsing, partial payload relay, and accepting missing/malformed/crosswired
+  receipts are forbidden.
+- Local current-source evidence is green. A fresh Pergyra-built DRV-2 compiles
+  `examples/hello.pgy` through both public C and LLVM JSON-selected paths; the
+  reached undefined-function input publishes the exact owner receipt on both.
+  Missing, malformed, and crosswired children publish neither artifact nor
+  partial payload. Existing MIR receipt, source-C action, installed aggregate,
+  compiler-root, component, hard, language-word, SoT edge, single-owner, and
+  protocol gates pass. Publication and exact CI remain pending.
+- Exact objective, edit scope, and falsifiers are in
+  `docs/agent_work_directives/public_artifact_json_diagnostic_receipt_2026-09-01.md`.
+  This is one bounded executable substitution; it does not close the broader
+  diagnostic SoT row or change the project percentage by itself.
+- Protected unrelated untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging.
+
 ## DONE lease — public MIR JSON diagnostic receipt publication
 
 - Exact base is `04a981b1afd5a625d8e0a6b411919165d34d7439`, equal to

@@ -18,7 +18,40 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — no successor implementation lease open
+## Active self-host context — public artifact JSON diagnostic receipt
+
+- Exact base is `09491bf820e28c0a75a219a741cc22267a7d6fc7`, equal to
+  `origin/main` when this rung opened. Protected unrelated untracked paths are
+  listed in the collaboration ledger and remain outside inspection, edit, and
+  staging.
+- Fresh execution shows that valid default
+  `pgy --error-format=json examples/minimal.pgy` is rejected by the C launcher
+  before installed Pergyra execution, while the reached undefined-function
+  `--mir` request already publishes the exact owner-issued JSON identity.
+- Production entrypoint is default JSON-selected source artifact compilation,
+  including explicit C/LLVM backends. The bypass to delete is the launcher's
+  `DIAG_FORMAT_TEXT`-only artifact selection. One artifact request must carry
+  format identity through the existing source-C/source-MIR owner; no semantic
+  preflight or failure retry is allowed.
+- Focused positives are valid C and LLVM builds. The opening negative is the
+  undefined-function fixture with exact semantic/type,
+  `PGY_SEM_UNDEFINED_SYMBOL`, `semantic:symbol:undefined`, and
+  `import-or-declare-symbol`; missing, malformed, and crosswired envelopes must
+  fail without partial output or native timing.
+- Local implementation is green on a fresh current-source Pergyra-built DRV-2.
+  Public C/LLVM JSON-selected `examples/hello.pgy` artifacts exist; both
+  undefined-function requests publish the exact Pergyra-owned JSON identity;
+  malformed, missing, and crosswired child envelopes fail closed. Existing MIR
+  JSON receipt, source-C action, installed CLI aggregate, compiler-root,
+  component, hard, language-word, SoT edge, Gate single-owner, and protocol
+  gates are green. Native compiler build is warning-clean. Publication and
+  exact CI remain pending.
+- Exact objective and forbidden fallbacks are in
+  `docs/agent_work_directives/public_artifact_json_diagnostic_receipt_2026-09-01.md`.
+  This active rung does not yet change `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`,
+  or the 83% project forecast.
+
+## Published — public MIR JSON diagnostic receipt exact-CI green
 
 - The rung opened from `04a981b1afd5a625d8e0a6b411919165d34d7439`.
   Implementation `bc694e87694100dd408ac46bb55bb1063e18d64f` and generated-

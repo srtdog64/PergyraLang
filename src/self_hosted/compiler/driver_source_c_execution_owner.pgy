@@ -20,8 +20,8 @@ func DriverSourceCRequestDiagnostic(
     }
     if source_path == "" { return "source C input path is empty"; }
     match request {
-        case SourceCDefault: return "";
-        case SourceCManifestVerified(declaration):
+        case SourceCDefault(emit_json): return "";
+        case SourceCManifestVerified(declaration, emit_json):
             if !SelfHostMachineLayerDeclarationReady(declaration) {
                 return "source C machine declaration is invalid";
             }
@@ -44,7 +44,8 @@ func DriverSourceCProducePayloadAdmitted(
         );
     }
     let artifact: CompilerEmissionArtifact = CompileSourceToCVerified(
-        source_path, DriverSourceCRequestDeclaration(request)
+        source_path, DriverSourceCRequestDeclaration(request),
+        DriverSourceCRequestEmitsJsonDiagnostic(request)
     );
     if !CompilerEmissionArtifactReady(artifact) {
         return DriverSourceCPayloadDeniedAdmission(

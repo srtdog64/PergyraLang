@@ -114,7 +114,7 @@ llvm_runner_execute_installed_self_host_llvm(
                workspace.primary_path, workspace.secondary_path);
     materialize_rc = driver_materialize_self_host_llvm_artifact(
         launcher_path, flags->source_path, workspace.secondary_path,
-        flags->verbose);
+        flags->verbose, flags->diag_format == DIAG_FORMAT_JSON);
     if (materialize_rc != 0) {
         compiler_transient_artifact_workspace_close(&workspace);
         free(binary_path);

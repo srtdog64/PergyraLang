@@ -1046,7 +1046,11 @@ require_text "src/compiler/self_host_mir_artifact_owner.c" \
 require_text "src/compiler/self_host_mir_artifact_owner.c" \
     'child_argv[3] = "-o";'
 require_text "src/compiler/self_host_llvm_driver.c" \
-    'intent_argv[1] = "--emit-source-llvm-ir-verified"'
+    '"--emit-source-llvm-ir-verified"'
+require_text "src/compiler/self_host_llvm_driver.c" \
+    '"--emit-source-llvm-ir-json-diagnostic-verified"'
+require_text "src/compiler/self_host_llvm_driver.c" \
+    'driver_run_self_host_artifact_process('
 forbid_text "src/compiler/self_host_llvm_driver.c" \
     "driver_materialize_self_host_mir_artifact("
 forbid_text "src/compiler/self_host_llvm_driver.c" "--mir-json-backend=llvm"

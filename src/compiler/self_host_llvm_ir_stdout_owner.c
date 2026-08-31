@@ -60,7 +60,7 @@ driver_write_self_host_llvm_ir_stdout(const char *launcher_path,
         return 1;
     }
     rc = driver_materialize_self_host_llvm_artifact(
-        launcher_path, source_path, workspace.secondary_path, false);
+        launcher_path, source_path, workspace.secondary_path, false, false);
     if (rc == 0)
         rc = driver_stream_llvm_ir_file_to_stdout(workspace.secondary_path);
     compiler_transient_artifact_workspace_close(&workspace);

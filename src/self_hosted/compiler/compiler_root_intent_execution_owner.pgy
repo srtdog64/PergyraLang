@@ -7,9 +7,10 @@ func CompileSourceToLlvmThroughPgyCompilerWorld(
     inout compiler_world: PgyCompilerWorld,
     source_path: String,
     output_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    source_request: DriverSourceMirRequest
 ) -> DriverSourceLlvmIntentOutcome with caps io_read, io_write {
     return compiler_world.CompileSourceToLlvm(
-        source_path, output_path, machine_declaration
+        source_path, output_path, machine_declaration, source_request
     );
 }

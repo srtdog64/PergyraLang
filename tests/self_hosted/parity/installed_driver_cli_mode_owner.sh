@@ -265,6 +265,7 @@ for artifact in artifact.c source.artifact.mir.json llvm-source.mir.json direct-
 done
 
 source "$ROOT_DIR/tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/public_artifact_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_native_ir_explicit_opt_in_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_repl_installed_self_host_compile_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_fmt_installed_self_host_owner.sh"

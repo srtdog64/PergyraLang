@@ -3,12 +3,8 @@
 // semantic/emission fact.
 
 import "driver_pipeline_owner.pgy";
+import "driver_source_c_request_owner.pgy";
 import "../mir/artifact_transaction_owner.pgy";
-
-enum DriverSourceCRequest {
-    SourceCDefault,
-    SourceCManifestVerified(SelfHostMachineLayerDeclaration),
-}
 
 tobject DriverSourceCPayloadReceipt {
     schema: String;
@@ -65,39 +61,6 @@ func DriverSourceCExecutionTopologyIdentity() -> String {
 
 func DriverSourceCExecutionOutcomeSchema() -> String {
     return "pgy.driver-source-c-execution-outcome.v1";
-}
-
-func DriverSourceCRequestMode(request: DriverSourceCRequest) -> String {
-    match request {
-        case SourceCDefault: return "default";
-        case SourceCManifestVerified(declaration): return "manifest-verified";
-    }
-}
-
-func DriverSourceCRequestDeclaration(
-    request: DriverSourceCRequest
-) -> SelfHostMachineLayerDeclaration {
-    match request {
-        case SourceCDefault: return SelfHostMachineLayerDeclarationEmpty();
-        case SourceCManifestVerified(declaration): return declaration;
-    }
-}
-
-func DriverSourceCRequestManifestId(request: DriverSourceCRequest) -> String {
-    match request {
-        case SourceCDefault: return "";
-        case SourceCManifestVerified(declaration): return declaration.manifest_id;
-    }
-}
-
-func DriverSourceCRequestManifestFingerprint(
-    request: DriverSourceCRequest
-) -> String {
-    match request {
-        case SourceCDefault: return "";
-        case SourceCManifestVerified(declaration):
-            return declaration.manifest_fingerprint;
-    }
 }
 
 func DriverSourceCPayloadDeniedAdmission(

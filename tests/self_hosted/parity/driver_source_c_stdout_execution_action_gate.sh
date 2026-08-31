@@ -3,25 +3,27 @@
 # driver and artifact evidence are ready.
 
 READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
-STDOUT_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy"
+STDOUT_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_stdout_execution_owner.pgy" C_REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_c_request_owner.pgy"
 
-for owner in "$READ_OWNER" "$STDOUT_OWNER"; do
+for owner in "$READ_OWNER" "$STDOUT_OWNER" "$C_REQUEST_OWNER"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
 for term in 'tobject DriverSourceCPayloadReceipt' \
     'artifact: CompilerEmissionArtifact;' \
     'machine_manifest_id: String;' \
     'machine_manifest_fingerprint: String;' \
-    'enum DriverSourceCRequest' 'SourceCDefault' \
-    'SourceCManifestVerified(SelfHostMachineLayerDeclaration)' \
     'enum DriverSourceCPayloadAdmission' \
-    'func DriverSourceCRequestDeclaration(' \
-    'func DriverSourceCRequestManifestId(' \
-    'func DriverSourceCRequestManifestFingerprint(' \
     'func DriverSourceCPayloadAdmissionReadyFor(' \
     'func DriverSourceCPayloadAdmissionDiagnostic('; do
     require_text "$PROTOCOL_OWNER" "$term"
 done
+for term in 'enum DriverSourceCRequest' 'SourceCDefault(Bool)' \
+    'SourceCManifestVerified(SelfHostMachineLayerDeclaration, Bool)' \
+    'func DriverSourceCRequestEmitsJsonDiagnostic(' \
+    'func DriverSourceCRequestDeclaration(' \
+    'func DriverSourceCRequestManifestId(' \
+    'func DriverSourceCRequestManifestFingerprint('; do
+    require_text "$C_REQUEST_OWNER" "$term"; done
 for term in 'func DriverSourceCProducePayloadAdmitted(' \
     'action ProduceSourceC(' 'DriverSourceCPayloadReceipt(' \
     'DriverSourceCRequestDeclaration(request)' \

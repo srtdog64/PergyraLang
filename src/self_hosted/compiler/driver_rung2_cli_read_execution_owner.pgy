@@ -37,13 +37,14 @@ func DriverRung2ExecuteReadRequest(
             ));
         case DriverCliSourceCStdout(source_path):
             DriverRung2CliLogSourceCPayloadOrDie(
-                compiler_world, source_path, SourceCDefault
+                compiler_world, source_path, SourceCDefault(false)
             );
         case DriverCliSourceCManifestStdout(source_path, manifest_path):
             DriverRung2CliLogSourceCPayloadOrDie(
                 compiler_world, source_path,
                 SourceCManifestVerified(
-                    SelfHostMachineLayerDeclarationFromPath(manifest_path)
+                    SelfHostMachineLayerDeclarationFromPath(manifest_path),
+                    false
                 )
             );
         case DriverCliSourceMirDiagnosticStdout(source_path):
@@ -104,9 +105,9 @@ func DriverRung2ExecuteReadRequest(
                 input_path,
                 SelfHostMachineLayerDeclarationFromPath(manifest_path)
             );
-        case DriverCliSourceCArtifact(source_path, output_path, manifest_path):
+        case DriverCliSourceCArtifact(source_path, output_path, manifest_path, emit_json):
             Die("driver rung-2 artifact request requires installed composition root");
-        case DriverCliSourceLlvmArtifact(source_path, output_path):
+        case DriverCliSourceLlvmArtifact(source_path, output_path, emit_json):
             Die("driver rung-2 artifact request requires installed composition root");
         case DriverCliSourceMirArtifact(source_path, output_path):
             Die("driver rung-2 artifact request requires installed composition root");

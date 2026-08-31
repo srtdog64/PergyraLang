@@ -212,24 +212,24 @@ func CompileArtifactAnalysisToMirJsonVerified(
 
 func CompileArtifactToMirJsonVerified(
     own artifact: AstTreeArtifact,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration, emit_json_diagnostic: Bool
 ) -> String {
     let analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeTyped(artifact, true);
     let projection: DriverRung2MirProjection =
         DriverRung2MirProjectionFromAdmittedAnalysisObserved(
-            artifact, analysis, machine_declaration, false, false
+            artifact, analysis, machine_declaration, false, emit_json_diagnostic
         );
     return DriverRung2MirProjectionJson(projection, false);
 }
 
 func CompileSourceToMirJsonVerified(
     source_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration, emit_json_diagnostic: Bool
 ) -> String with caps io_read {
     let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
     return CompileArtifactToMirJsonVerified(
-        artifact, machine_declaration
+        artifact, machine_declaration, emit_json_diagnostic
     );
 }
 
@@ -463,10 +463,10 @@ func CompileMirJsonTextToCVerified(
 
 func CompileSourceToCVerified(
     source_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration, emit_json_diagnostic: Bool
 ) -> CompilerEmissionArtifact with caps io_read {
     let json: String = CompileSourceToMirJsonVerified(
-        source_path, machine_declaration
+        source_path, machine_declaration, emit_json_diagnostic
     );
     return CompileMirJsonTextToCVerified(json, machine_declaration);
 }

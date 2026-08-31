@@ -316,7 +316,7 @@ main(int argc, char *argv[])
             return 1;
         }
         return driver_run_self_host_c_emit_artifact(
-            argv[0], flags.source_path, flags.output_path, flags.verbose);
+            argv[0], flags.source_path, flags.output_path, flags.verbose, flags.diag_format == DIAG_FORMAT_JSON);
     }
     if (driver_plain_c_binary_target_requested(&flags)) {
         if (!driver_self_host_c_artifact_request_supported(&flags)) {

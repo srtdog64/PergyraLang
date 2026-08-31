@@ -20,7 +20,8 @@ subject DriverSourceLlvmIntentExecution {
         direct_execution: DriverRung2Execution,
         source_path: String,
         output_path: String,
-        machine_declaration: SelfHostMachineLayerDeclaration
+        machine_declaration: SelfHostMachineLayerDeclaration,
+        source_request: DriverSourceMirRequest
     ) -> Bool
         within DriverSourceLlvmIntentZone
         authorized by self
@@ -40,7 +41,7 @@ subject DriverSourceLlvmIntentExecution {
             DriverSourceMirProducePayloadAdmitted(
                 source_execution.identity,
                 source_execution.topology_identity,
-                source_path, machine_declaration, SourceMirVerified
+                source_path, machine_declaration, source_request
             );
         match source_admission {
             case DriverSourceMirPayloadDenied(rejection):
@@ -54,7 +55,8 @@ subject DriverSourceLlvmIntentExecution {
                 let publication: DriverLlvmPayloadPublicationOutcome =
                     DriverRung2PublishMirPayloadLlvmArtifactForIdentity(
                         direct_execution.identity, source_receipt,
-                        source_path, output_path, machine_declaration
+                        source_path, output_path, machine_declaration,
+                        source_request
                     );
                 match publication {
                     case DriverLlvmPayloadPublished(receipt):

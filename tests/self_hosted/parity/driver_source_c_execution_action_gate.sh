@@ -74,7 +74,7 @@ for term in 'inout compiler_world: PgyCompilerWorld' 'func CompileSourceToCThrou
 for term in 'func DriverRung2InstalledPublishSourceC(' 'CompileSourceToCThroughPgyCompilerWorld(' \
     'compiler_world, source_path, output_path, request' 'DriverSourceCExecutionOutcomeReadyFor(' \
     'DriverSourceCExecutionOutcomeDiagnostic('; do require_text "$ARTIFACT_EXECUTION_OWNER" "$term"; done
-require_text "$INSTALLED_OWNER" 'case DriverCliSourceCArtifact(source_path, output_path, manifest_path):'
+require_text "$INSTALLED_OWNER" 'case DriverCliSourceCArtifact(source_path, output_path, manifest_path, emit_json):'
 require_text "$INSTALLED_OWNER" 'SourceCManifestVerified('
 ! grep -Fq 'DriverRung2InstalledCommitSourceC' "$ARTIFACT_EXECUTION_OWNER" ||
     fail "retired installed source-C direct commit returned"

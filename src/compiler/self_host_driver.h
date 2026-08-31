@@ -16,9 +16,11 @@ int driver_run_self_host_mir_json(const char *launcher_path,
 int driver_materialize_self_host_c_artifact(const char *launcher_path,
                                             const char *source_path,
                                             const char *output_path,
-                                            bool verbose);
+                                            bool verbose,
+                                            bool emit_json_diagnostic);
 int driver_run_self_host_c_emit_artifact(const char *launcher_path,
                                          const char *source_path,
                                          const char *output_path,
-                                         bool verbose);
+                                         bool verbose,
+                                         bool emit_json_diagnostic);
 #endif /* PGY_SELF_HOST_DRIVER_H */

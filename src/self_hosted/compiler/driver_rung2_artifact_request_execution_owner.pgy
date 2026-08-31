@@ -100,17 +100,20 @@ func DriverRung2InstalledPublishDirectMir(
 func DriverRung2InstalledPublishSourceLlvm(
     inout compiler_world: PgyCompilerWorld,
     source_path: String,
-    output_path: String
+    output_path: String,
+    emit_json_diagnostic: Bool
 ) -> Void with caps io_read, io_write {
     let history_before: Int = IntentHistoryCount();
+    let mut source_request: DriverSourceMirRequest = SourceMirVerified;
+    if emit_json_diagnostic { source_request = SourceMirJsonDiagnostic; }
     let outcome: DriverSourceLlvmIntentOutcome =
         CompileSourceToLlvmThroughPgyCompilerWorld(
             compiler_world, source_path, output_path,
-            SelfHostMachineLayerDeclarationEmpty()
+            SelfHostMachineLayerDeclarationEmpty(), source_request
         );
     if !DriverSourceLlvmIntentOutcomeReadyFor(outcome, output_path) {
         Log(DriverSourceLlvmIntentOutcomeDiagnostic(
-            outcome, source_path, output_path
+            outcome, source_path, output_path, source_request
         ));
         Exit(1);
     }

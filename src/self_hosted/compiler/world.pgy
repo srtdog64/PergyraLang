@@ -349,7 +349,8 @@ world PgyCompilerWorld {
     }
 
     func CompileSourceToLlvm(self, source_path: String, output_path: String,
-        machine_declaration: SelfHostMachineLayerDeclaration
+        machine_declaration: SelfHostMachineLayerDeclaration,
+        source_request: DriverSourceMirRequest
     ) -> DriverSourceLlvmIntentOutcome with caps io_read, io_write {
         let intent_zone: DriverSourceLlvmIntentZone = Clone(source_llvm);
         let intent_execution: DriverSourceLlvmIntentExecution =
@@ -360,7 +361,7 @@ world PgyCompilerWorld {
             Clone(direct_mir.execution);
         let completed: Bool = CompilePergyraProgram(
             intent_zone, intent_execution, source_execution, direct_execution,
-            source_path, output_path, machine_declaration
+            source_path, output_path, machine_declaration, source_request
         );
         if !IsSome(intent_execution.outcome) {
             return DriverSourceLlvmProjectionRejectedOutcome(
@@ -582,7 +583,8 @@ intent CompilePergyraProgram(
     direct_execution: DriverRung2Execution,
     source_path: String,
     output_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    source_request: DriverSourceMirRequest
 ) {
     exclusive;
 
@@ -590,7 +592,7 @@ intent CompilePergyraProgram(
         using: intent_zone;
         on action_succeeded: intent_execution.Compile(
             source_execution, direct_execution,
-            source_path, output_path, machine_declaration
+            source_path, output_path, machine_declaration, source_request
         );
         expect: action_succeeded;
     }

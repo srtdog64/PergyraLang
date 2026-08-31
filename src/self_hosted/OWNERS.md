@@ -2288,6 +2288,10 @@ inventory must not become a second fact-family owner registry.
   the existing `CompilerEmissionArtifact` rather than copying payload, target,
   or capability facts. It owns no compilation, publication, or
   semantic/emission fact.
+- `src/self_hosted/compiler/driver_source_c_request_owner.pgy` -- exact
+  source-C machine-declaration and public-diagnostic request identity. It
+  seals JSON selection into request mode and owns no compilation, receipt,
+  publication, or diagnostic vocabulary.
 - `src/self_hosted/compiler/driver_source_c_execution_owner.pgy` -- production
   source-to-C admission and execution subject, exact existing compiler
   consumption, artifact transaction transition, and the sole

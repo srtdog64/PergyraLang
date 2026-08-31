@@ -15,8 +15,8 @@ enum DriverRung2CliRequest {
     DriverCliMachineManifestStdout(String),
     DriverCliSourceCStdout(String),
     DriverCliSourceCManifestStdout(String, String),
-    DriverCliSourceCArtifact(String, String, String),
-    DriverCliSourceLlvmArtifact(String, String),
+    DriverCliSourceCArtifact(String, String, String, Bool),
+    DriverCliSourceLlvmArtifact(String, String, Bool),
     DriverCliSourceMirDiagnosticStdout(String),
     DriverCliSourceMirJsonDiagnosticStdout(String),
     DriverCliSourceMirStdout(String),
@@ -110,7 +110,7 @@ func DriverRung2CliRequestFromArgsOrDie(
             DriverRung2CliPathOperandOrDie(args[1], "machine manifest artifact path")
         );
     }
-    if args[0] == "--emit-c-artifact-verified" {
+    if args[0] == "--emit-c-artifact-verified" || args[0] == "--emit-c-artifact-json-diagnostic-verified" {
         if count != 3 && count != 5 { Die("source C artifact mode requires source and output paths"); }
         if count == 5 && args[3] != "--machine-manifest-json" {
             Die("source C artifact machine manifest flag is invalid"); }
@@ -123,16 +123,18 @@ func DriverRung2CliRequestFromArgsOrDie(
             args[4], "source C machine manifest path"); }
         DriverRung2CliArtifactPathsOrDie(source_path, output_path);
         return DriverCliSourceCArtifact(
-            source_path, output_path, manifest_path);
+            source_path, output_path, manifest_path,
+            args[0] == "--emit-c-artifact-json-diagnostic-verified");
     }
-    if args[0] == "--emit-source-llvm-ir-verified" {
+    if args[0] == "--emit-source-llvm-ir-verified" || args[0] == "--emit-source-llvm-ir-json-diagnostic-verified" {
         if count != 4 || args[2] != "-o" {
             Die("source LLVM intent mode requires source -o output");
         }
         let source_path: String = DriverRung2CliPathOperandOrDie(args[1], "source LLVM input path");
         let output_path: String = DriverRung2CliPathOperandOrDie(args[3], "source LLVM output path");
         DriverRung2CliArtifactPathsOrDie(source_path, output_path);
-        return DriverCliSourceLlvmArtifact(source_path, output_path);
+        return DriverCliSourceLlvmArtifact(source_path, output_path,
+            args[0] == "--emit-source-llvm-ir-json-diagnostic-verified");
     }
     if args[0] == "--emit-mir-diagnostic-verified" {
         if count != 2 { Die("MIR diagnostic mode requires one source path"); }
