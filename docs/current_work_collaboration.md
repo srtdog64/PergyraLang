@@ -28,6 +28,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   whole-row closure. Native module-load, AIR, runtime, and other diagnostic
   mappings remain, so the census stays `88/183` and `55/32/1`, and the project
   forecast stays 83%.
+- Exact run `33422880526` finished 29/30. Full self-host, Rocq, all 20 backend
+  shards, Windows/macOS, and sanitizers were green. The sole failure was the
+  fast Linux tail: the generated language-word implementation inventory did
+  not yet count the new Pergyra owner files. The owner generator changes only
+  `func` 652→653, `if` 169→170, and `import` 27→28. The exact failed gate is
+  locally green; its parent passed component/hard follow-ons and stopped only
+  at the explicitly declared missing local Coq/Rocq boundary.
 - Publication and exact-head CI are still open. Protected unrelated untracked
   `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/` remain
   outside inspection, edit, and staging.

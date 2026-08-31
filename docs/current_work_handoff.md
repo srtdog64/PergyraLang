@@ -41,15 +41,21 @@ percentage by themselves.
   and protocol gates are green; native compiler build is warning-clean. The
   component contract took about 7.5 minutes against its 60-second budget, and
   the DRV-2 rebuild took about 11.5 minutes.
+- Exact run `33422880526` finished 29/30. Full self-host, Rocq, all backend
+  shards, Windows/macOS, and sanitizers were green. Fast Linux failed only
+  because the generated language-word implementation inventory omitted the
+  new Pergyra files. The owner generator updates three counts (`func`, `if`,
+  `import`); the exact gate is local green and its parent advanced through
+  component/hard before the declared missing-local-prover boundary.
 - Exact objective and forbidden fallbacks are in
   `docs/agent_work_directives/public_mir_json_diagnostic_receipt_2026-09-01.md`.
   This is one `SUBSTITUTING` public boundary inside the still-open
   `diagnostic.catalog` BRIDGE. Native module-load, AIR, runtime, and other
   diagnostic mappings remain, so SoT stays `88/183`,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`; project forecast remains 83%.
-- Next action is review, explicit staging excluding protected paths, commit,
-  push, and exact-head CI observation. Do not open a successor implementation
-  rung until publication is green.
+- Next action is commit and push the generated-inventory repair, then observe
+  its exact-head CI. Do not open a successor implementation rung until
+  publication is green.
 
 ## Published — compatibility-evolution production receipt exact-CI green
 
