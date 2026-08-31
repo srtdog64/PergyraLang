@@ -1,0 +1,140 @@
+// Zone parameters carry identity-bearing resource state. Until an explicit
+// transfer owner exists, only a read-only ref boundary may carry a zone into a
+// callable; default, inout, and own modes would copy or ambiguously transfer it.
+
+import "ast_signature_fact_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_body_analysis_shape_owner.pgy";
+import "ast_zone_value_carriage_verdict_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstZoneParameterBoundaryVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    syntax_node_id: Int;
+}
+
+func SemanticAstZoneParameterBoundaryVerdictOk(
+) -> SemanticAstZoneParameterBoundaryVerdict {
+    return SemanticAstZoneParameterBoundaryVerdict(true, "", "", -1);
+}
+
+func SemanticAstZoneParameterBoundaryVerdictError(
+    code: String,
+    message: String,
+    syntax_node_id: Int
+) -> SemanticAstZoneParameterBoundaryVerdict {
+    return SemanticAstZoneParameterBoundaryVerdict(
+        false, code, message, syntax_node_id
+    );
+}
+
+func SemanticAstZoneParameterBoundaryVerdictFromAdmittedFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts
+) -> SemanticAstZoneParameterBoundaryVerdict {
+    if !SemanticAstSignatureRowsAdmittedReady(artifact, signatures) ||
+        constructors.artifact_node_count != artifact.count ||
+        !SemanticAstNominalConstructorRowsReady(constructors) {
+        return SemanticAstZoneParameterBoundaryVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner",
+                "SemanticAstZoneParameterBoundaryVerdict"
+            ),
+            -1
+        );
+    }
+    let signature_index: Int = 0;
+    while signature_index < SemanticAstFunctionSignatureCount(signatures) {
+        let function_name: Option<String> = SemanticAstFunctionNameAt(
+            signatures, signature_index
+        );
+        let parameter_count: Option<Int> = SemanticAstFunctionParamCountAt(
+            signatures, signature_index
+        );
+        if !IsSome(function_name) || !IsSome(parameter_count) {
+            return SemanticAstZoneParameterBoundaryVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner",
+                    "SemanticAstZoneParameterBoundaryVerdict"
+                ),
+                -1
+            );
+        }
+        let parameter_index: Int = 0;
+        while parameter_index < UnwrapOption(parameter_count) {
+            let parameter_node: Option<Int> = SemanticAstFunctionParamNodeAt(
+                signatures, signature_index, parameter_index
+            );
+            let parameter_name: Option<String> = SemanticAstFunctionParamNameAt(
+                signatures, signature_index, parameter_index
+            );
+            let parameter_type: Option<String> = SemanticAstFunctionParamTypeAt(
+                signatures, signature_index, parameter_index
+            );
+            let parameter_mode: Option<Int> = SemanticAstFunctionParamModeAt(
+                signatures, signature_index, parameter_index
+            );
+            if !IsSome(parameter_node) || !IsSome(parameter_name) ||
+                !IsSome(parameter_type) || !IsSome(parameter_mode) {
+                return SemanticAstZoneParameterBoundaryVerdictError(
+                    "ast_artifact_invalid",
+                    SemanticError1(
+                        "ast_artifact_invalid", "owner",
+                        "SemanticAstZoneParameterBoundaryVerdict"
+                    ),
+                    -1
+                );
+            }
+            if UnwrapOption(parameter_name) != "self" &&
+                UnwrapOption(parameter_mode) != 3 &&
+                SemanticAstZoneValueCarriageTypeIsZone(
+                    constructors, UnwrapOption(parameter_type)
+                ) {
+                return SemanticAstZoneParameterBoundaryVerdictError(
+                    "zone_value_parameter_requires_transfer",
+                    SemanticError3(
+                        "zone_value_parameter_requires_transfer",
+                        "function", UnwrapOption(function_name),
+                        "parameter", UnwrapOption(parameter_name),
+                        "type", UnwrapOption(parameter_type)
+                    ),
+                    UnwrapOption(parameter_node)
+                );
+            }
+            parameter_index = parameter_index + 1;
+        }
+        signature_index = signature_index + 1;
+    }
+    return SemanticAstZoneParameterBoundaryVerdictOk();
+}
+
+func SemanticAstZoneCarriageVerdictFromAdmittedFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    assignments: SemanticAstAssignmentFacts,
+    ref assignment_types: SemanticAstAssignmentTypeFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstZoneValueCarriageVerdict {
+    let boundary: SemanticAstZoneParameterBoundaryVerdict =
+        SemanticAstZoneParameterBoundaryVerdictFromAdmittedFacts(
+            artifact, signatures, constructors
+        );
+    if !boundary.ok {
+        return SemanticAstZoneValueCarriageVerdictError(
+            boundary.diagnostic_code, boundary.diagnostic_message,
+            boundary.syntax_node_id
+        );
+    }
+    return SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(
+        artifact, constructors, locals, initializer_types, assignments,
+        assignment_types, expression_surfaces
+    );
+}

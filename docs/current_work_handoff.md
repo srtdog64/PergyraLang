@@ -18,6 +18,41 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — zone parameter ref semantic admission
+
+- Exact tracked base is `8ef7039459711e64ac07da12b8473057968c0451`, equal
+  to `origin/main` when this rung opened. Protected unrelated untracked paths in
+  the collaboration ledger remain outside inspection, edit, and staging.
+- Production entrypoints are current-source artifact publication and the DRV-2
+  build. A fresh default zone-parameter probe exits zero and publishes C with a
+  thread-safe-only guard. A blanket semantic candidate then rejected the real
+  `ProgramEmitter.Emit(types: TypeEnvZone, ...)` DRV-2 path, proving that this
+  compiler copy is the next reached substitution target.
+- `SemanticAstFunctionSignatureFacts` owns parameter type/mode and
+  `SemanticAstNominalConstructorFacts` owns zone kind. Reject default, `inout`,
+  and `own`; admit read-only `ref`. Migrate the three `ProgramEmitter.Emit`
+  zone parameters to `ref` and delete only the parameter backend guard.
+- Preserve fresh local and explicit one-argument `Clone` lifecycle execution.
+  Zone return and world embedding retain their current guards and are separate
+  future executable rungs.
+- Objective and exact scope are fixed in
+  `docs/agent_work_directives/zone_parameter_ref_semantic_admission_2026-08-31.md`.
+  SoT remains 88/183 and `55/32/1`; broader transfer implementation and the
+  83% forecast do not change by inference.
+- Local current-source focused execution is green. Default zone parameter
+  admission fails with a stable code and no artifact; ref carriage executes
+  exact `7` in single/thread-safe C with discarded qualifiers promoted to an
+  error. Existing local/`Clone` lifecycle behavior remains green.
+- A fresh DRV-2 candidate builds at SHA-256
+  `AB377C4A31F84789C600C65419C2A83A27F91431860696C9D1260184169FBBC3`.
+  Its `ProgramEmitter_Emit` prototype carries the three compiler zones as const
+  pointers and the intent call passes stable addresses. Candidate production
+  negatives/positives and component/compiler-world/SoT/hard/inventory/docs/
+  agent gates are green. The broad incremental-size gate remains red only on
+  the unrelated unmodified `src/parser/ast_expr_control_accessors.c` 725/699
+  violation; publication and exact CI remain pending. Local Rocq is
+  unavailable, so formal proof is an explicit skip owned by exact CI.
+
 ## Published — zone value carriage semantic admission is exact-CI green
 
 - Exact tracked base was `5a2a95c0dfdd956bbecdd7398874cb7c312d6386`.

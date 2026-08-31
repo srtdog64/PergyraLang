@@ -1,0 +1,20 @@
+subject Player {
+    let hp: Int;
+}
+
+zone CounterZone {
+    subject slot player: Player
+
+    func Value(self) -> Int {
+        return self.player.hp;
+    }
+}
+
+func Observe(ref value: CounterZone) -> Int {
+    return value.player.hp;
+}
+
+func Main() -> Void {
+    let counter: CounterZone = CounterZone(Player(7));
+    Log(Observe(counter));
+}

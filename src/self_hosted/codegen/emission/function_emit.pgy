@@ -53,7 +53,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let function_env_rows: Array<String> = [Concat("", "|")];
     let prologue: String = "";
     let copyout: String = "";
-    let zone_value_carriage_guard: String = "";
+    let zone_return_carriage_guard: String = "";
     let receiver_carriage: String =
         CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
             receiver_facts, signature_index
@@ -139,11 +139,6 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             if role_receiver {
                 p_type = role_receiver_type;
             }
-        }
-        if p_name != "self" &&
-            LookupKindType(base_env, p_type, "nk") == "zone" {
-            zone_value_carriage_guard =
-                "#ifdef PGY_ZONE_THREADSAFE\n#error \"Pergyra zone by-value parameter requires an admitted transfer plan\"\n#endif\n";
         }
         let p_binding: CodegenFunctionValueBindingFact =
             CodegenFunctionValueBindingFactFor(
@@ -235,7 +230,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         signatures, signature_index, generic_actuals
     );
     if LookupKindType(base_env, ret_type, "nk") == "zone" {
-        zone_value_carriage_guard =
+        zone_return_carriage_guard =
             "#ifdef PGY_ZONE_THREADSAFE\n#error \"Pergyra zone return requires an admitted transfer plan\"\n#endif\n";
     }
     ArraySet(cur, 0, cur[0] + 1);
@@ -280,7 +275,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let output: TextBuilder = TextBuilderNew(1024);
     TextBuilderAppend(output, signature);
     TextBuilderAppend(output, "\n{\n");
-    TextBuilderAppend(output, zone_value_carriage_guard);
+    TextBuilderAppend(output, zone_return_carriage_guard);
     if is_main && uses_args {
         TextBuilderAppend(output, HostIORuntimeCArgsCapturePrefix());
         TextBuilderAppend(output, machine_startup);

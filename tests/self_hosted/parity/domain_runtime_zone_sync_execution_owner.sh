@@ -158,6 +158,7 @@ cmp -s "$LIFECYCLE_EXPECTED" "$LIFECYCLE_SINGLE_OUT"
 cmp -s "$LIFECYCLE_EXPECTED" "$LIFECYCLE_THREADSAFE_OUT"
 
 source "$ROOT_DIR/tests/self_hosted/parity/domain_runtime_zone_value_carriage_admission_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/domain_runtime_zone_parameter_admission_owner.sh"
 
 NONZERO_SOURCE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 NONZERO_AST="$BUILD_DIR/nonzero.ast.txt"

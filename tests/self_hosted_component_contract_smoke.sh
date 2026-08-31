@@ -524,8 +524,26 @@ require_max_lines \
 require_text \
     "src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy" \
     "func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts("
-require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+require_text \
+    "src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy" \
     "SemanticAstZoneValueCarriageVerdictFromAdmittedFacts("
+require_file \
+    "src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy" 180
+require_text \
+    "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "SemanticAstZoneCarriageVerdictFromAdmittedFacts("
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy"
+require_text "src/self_hosted/compiler/world.pgy" \
+    "self, ref types: TypeEnvZone, ref abi_layout: AbiLayoutZone,"
+require_text "src/self_hosted/compiler/world.pgy" \
+    "ref target_capability: TargetCapabilityZone"
+reject_text "src/self_hosted/compiler/world.pgy" \
+    "action Emit(self, types: TypeEnvZone"
+require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" \
+    '"zone_value_parameter_requires_transfer"'
 require_text \
     "src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy" \
     "fresh_local_node_ids: Array<Int>"
@@ -549,10 +567,15 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'Pergyra zone local copy requires an admitted transfer plan'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'Pergyra zone reassignment requires an admitted transfer plan'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'Pergyra zone by-value parameter requires an admitted transfer plan'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    'Pergyra zone return requires an admitted transfer plan'
 require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
     'Pergyra embedded zone requires an admitted transfer plan'
+require_text \
+    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
+    'domain_runtime_zone_parameter_admission_owner.sh'
 require_file "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \

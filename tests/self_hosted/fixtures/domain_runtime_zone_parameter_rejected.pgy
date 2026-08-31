@@ -1,0 +1,15 @@
+subject Player {
+    let hp: Int;
+}
+
+zone CounterZone {
+    subject slot player: Player
+}
+
+func Observe(value: CounterZone) -> Int {
+    return 1;
+}
+
+func Main() -> Void {
+    Log(0);
+}

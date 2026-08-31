@@ -6,6 +6,36 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — zone parameter ref semantic admission
+
+- Exact base is `8ef7039459711e64ac07da12b8473057968c0451`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit and
+  publication owner.
+- A fresh default zone-parameter probe exits zero and publishes C whose only
+  rejection is the thread-safe backend guard. A blanket semantic candidate
+  then exposed the reached DRV-2 copy at `ProgramEmitter.Emit(types:
+  TypeEnvZone, ...)`; the active replacement uses explicit ref carriage.
+- Objective, fact owners, last consumer, forbidden fallbacks, edit scope, and
+  focused gate are fixed in
+  `docs/agent_work_directives/zone_parameter_ref_semantic_admission_2026-08-31.md`.
+- No parallel implementation scope is open. Zone return/embedding, transfer
+  syntax, fixed lifetimes, unrelated artifact admission, and other SoT rows
+  remain outside this lease.
+- The lease stays active through semantic-owner implementation, deletion of the
+  parameter backend decision, default-negative plus ref execution, current
+  DRV-2 construction, publication, and exact Linux CI. Its completion does not
+  by itself change the SoT census or 83% forecast.
+- Local implementation and production-candidate integration are green. The
+  default fixture fails before C with the stable semantic code; read-only ref
+  executes exact `7` in single/thread-safe builds. A fresh DRV-2 candidate with
+  SHA-256
+  `AB377C4A31F84789C600C65419C2A83A27F91431860696C9D1260184169FBBC3`
+  builds and projects `ProgramEmitter.Emit` through three const pointers.
+  Component, compiler-world, SoT, hard, inventory, documentation, and agent
+  gates are green. The broad incremental-size gate still reports the unrelated
+  pre-existing `src/parser/ast_expr_control_accessors.c` 725/699 violation;
+  publication and exact CI remain pending.
+
 ## DONE lease — zone value carriage semantic admission
 
 - Exact base is `5a2a95c0dfdd956bbecdd7398874cb7c312d6386`, equal to

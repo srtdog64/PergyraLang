@@ -40,12 +40,15 @@ for negative_case in copy reassign; do
 done
 
 ZONE_CARRIAGE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy"
+ZONE_PARAMETER_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy"
 BODY_BUNDLE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/stmt_emit.pgy"
 
 grep -Fq 'func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(' \
     "$ZONE_CARRIAGE_OWNER"
 grep -Fq 'SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(' \
+    "$ZONE_PARAMETER_OWNER"
+grep -Fq 'SemanticAstZoneCarriageVerdictFromAdmittedFacts(' \
     "$BODY_BUNDLE_OWNER"
 grep -Fq 'CodegenSemanticZoneLocalFresh(body_types, idx)' "$STATEMENT_OWNER"
 if grep -Fq 'func CodegenFreshZoneLocal(' "$STATEMENT_OWNER"; then

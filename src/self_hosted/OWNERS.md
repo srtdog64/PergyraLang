@@ -480,6 +480,10 @@ inventory must not become a second fact-family owner registry.
   nominal kind, initializer/assignment types, and resolved direct-constructor
   identity; C emission may own hidden lock lifecycle but may not defer copy or
   reassignment policy to a thread-safe preprocessor branch.
+- `src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy` --
+  target-neutral admission for zone parameter carriage from admitted signature
+  mode and nominal-kind facts. Read-only `ref` preserves identity; function C
+  emission may not reconstruct or defer the by-value rejection.
 - `src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy` and
   `src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy`
   -- final source-syntax call target IDs, exact declared-callee binding IDs on

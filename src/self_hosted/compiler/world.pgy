@@ -55,7 +55,8 @@ subject MirLowerStage {
 
 subject ProgramEmitter {
     let name: String;
-    action Emit(self, types: TypeEnvZone, abi_layout: AbiLayoutZone, target_capability: TargetCapabilityZone) -> Bool
+    action Emit(self, ref types: TypeEnvZone, ref abi_layout: AbiLayoutZone,
+        ref target_capability: TargetCapabilityZone) -> Bool
         requires ArtifactEmission
         within EmissionZone
         authorized by self {
