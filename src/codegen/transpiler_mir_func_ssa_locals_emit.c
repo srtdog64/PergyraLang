@@ -15,6 +15,7 @@
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_lookup.h"
+#include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_signature.h"
 #include "transpiler_mir_ssa_local_facts.h"
 #include "transpiler_mir_ssa_map.h"
@@ -283,6 +284,14 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         }
         write_indent(ctx);
         codebuf_write(ctx->out, "(void)%s;\n", c_name);
+        if (!transpiler_emit_mir_embedded_zone_local_guard_decl(
+                ctx, ctx->out, ctx->indent, versioned_name, type_name,
+                c_name)) {
+            free(initial_expr);
+            free(c_name);
+            free(owned_type_name);
+            return false;
+        }
         free(initial_expr);
         free(c_name);
         free(owned_type_name);

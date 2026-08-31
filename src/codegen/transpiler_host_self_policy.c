@@ -43,3 +43,17 @@ is_pointer_self_host_type_name(TranspilerCtx *ctx, const char *type_name)
     decl = transpiler_find_nominal_host_decl_local(ctx, type_name);
     return transpiler_host_decl_uses_pointer_self(decl);
 }
+
+bool
+transpiler_host_type_owns_embedded_zone_resource(
+    TranspilerCtx *ctx,
+    const char *type_name)
+{
+    TranspilerHostedWorldZoneSlotView zone_view;
+
+    if (ctx == NULL || type_name == NULL)
+        return false;
+    zone_view = transpiler_hosted_world_zone_slot_view_from_decl(
+        ctx, type_name, NULL);
+    return zone_view.uses_mir_metadata && zone_view.count > 0;
+}

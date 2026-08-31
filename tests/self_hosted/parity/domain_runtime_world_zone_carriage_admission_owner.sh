@@ -8,6 +8,7 @@
 : "${ROOT_DIR:?world-zone carriage gate requires ROOT_DIR}"
 : "${BUILD_DIR:?world-zone carriage gate requires BUILD_DIR}"
 : "${CODEGEN_BIN:?world-zone carriage gate requires CODEGEN_BIN}"
+: "${PGY_BIN:?world-zone carriage gate requires PGY_BIN}"
 : "${CC_BIN:?world-zone carriage gate requires CC_BIN}"
 
 WORLD_BUILD_DIR="$BUILD_DIR/world-zone-carriage"
@@ -20,6 +21,11 @@ WORLD_THREADSAFE_BIN="$WORLD_BUILD_DIR/world-zone-threadsafe.exe"
 WORLD_SINGLE_OUT="$WORLD_BUILD_DIR/world-zone-single.out"
 WORLD_THREADSAFE_OUT="$WORLD_BUILD_DIR/world-zone-threadsafe.out"
 WORLD_EXPECTED="$WORLD_BUILD_DIR/world-zone.expected"
+WORLD_NATIVE_C="$WORLD_BUILD_DIR/world-zone-native.c"
+WORLD_NATIVE_SINGLE_BIN="$WORLD_BUILD_DIR/world-zone-native-single.exe"
+WORLD_NATIVE_THREADSAFE_BIN="$WORLD_BUILD_DIR/world-zone-native-threadsafe.exe"
+WORLD_NATIVE_SINGLE_OUT="$WORLD_BUILD_DIR/world-zone-native-single.out"
+WORLD_NATIVE_THREADSAFE_OUT="$WORLD_BUILD_DIR/world-zone-native-threadsafe.out"
 
 "$CODEGEN_BIN" --source "${WORLD_SOURCE#"$ROOT_DIR/"}" >"$WORLD_C"
 
@@ -53,6 +59,40 @@ cmp -s "$WORLD_EXPECTED" "$WORLD_SINGLE_OUT"
     -DPGY_ZONE_THREADSAFE "$WORLD_C" -o "$WORLD_THREADSAFE_BIN"
 "$WORLD_THREADSAFE_BIN" | tr -d '\r' >"$WORLD_THREADSAFE_OUT"
 cmp -s "$WORLD_EXPECTED" "$WORLD_THREADSAFE_OUT"
+
+# The native C bootstrap oracle consumes the same MIR declaration-header zone
+# paths as the Pergyra codegen. It must preserve the caller-owned world identity
+# and bracket each embedded lock exactly once even in the thread-safe runtime.
+"$PGY_BIN" "$WORLD_SOURCE" --native-pipeline --emit-c -o "$WORLD_NATIVE_C"
+grep -Fq 'int32_t ReadWorld(CartWorld *compiler_world)' "$WORLD_NATIVE_C"
+grep -Fq 'int32_t ForwardWorld(CartWorld *compiler_world)' "$WORLD_NATIVE_C"
+grep -Fq 'return ReadWorld(compiler_world);' "$WORLD_NATIVE_C"
+grep -Fq 'ForwardWorld(&_pgy_ssa_compiler_world_1)' "$WORLD_NATIVE_C"
+[[ "$(grep -Fc 'PGY_ZONE_LOCK_INIT(&_pgy_ssa_compiler_world_1.cart);' \
+    "$WORLD_NATIVE_C")" == 1 ]]
+[[ "$(grep -Fc 'PGY_ZONE_LOCK_DESTROY(&_pgy_ssa_compiler_world_1.cart);' \
+    "$WORLD_NATIVE_C")" == 1 ]]
+if grep -Fq 'compiler_world__mutref' "$WORLD_NATIVE_C" || \
+   grep -Fq 'CartWorld compiler_world = *' "$WORLD_NATIVE_C"; then
+    echo "native world-zone inout regressed to lock-bearing copy-in/out" >&2
+    exit 1
+fi
+
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    "$WORLD_NATIVE_C" -o "$WORLD_NATIVE_SINGLE_BIN"
+"$WORLD_NATIVE_SINGLE_BIN" | tr -d '\r' >"$WORLD_NATIVE_SINGLE_OUT"
+cmp -s "$WORLD_EXPECTED" "$WORLD_NATIVE_SINGLE_OUT"
+
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    -DPGY_ZONE_THREADSAFE "$WORLD_NATIVE_C" \
+    -o "$WORLD_NATIVE_THREADSAFE_BIN"
+"$WORLD_NATIVE_THREADSAFE_BIN" | tr -d '\r' \
+    >"$WORLD_NATIVE_THREADSAFE_OUT"
+cmp -s "$WORLD_EXPECTED" "$WORLD_NATIVE_THREADSAFE_OUT"
 
 for negative_case in copy reassign default_parameter return; do
     negative_source="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_world_zone_${negative_case}_rejected.pgy"
@@ -95,4 +135,4 @@ if grep -Fq 'Pergyra embedded zone requires an admitted transfer plan' \
     exit 1
 fi
 
-echo "[domain-runtime-world-zone-carriage] semantic paths + mutable borrow + single/thread-safe lifecycle: PASS"
+echo "[domain-runtime-world-zone-carriage] semantic paths + mutable borrow + Pergyra/native single/thread-safe lifecycle: PASS"

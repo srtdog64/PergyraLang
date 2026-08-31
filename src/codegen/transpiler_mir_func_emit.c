@@ -298,8 +298,13 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         secure_slot = transpiler_mir_routine_param_is_secure_slot(
             mir_routine, i);
         if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
-            codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
-            transpiler_register_mut_ref_param(ctx, p->name, pt);
+            if (transpiler_host_type_owns_embedded_zone_resource(
+                    ctx, type_name)) {
+                codebuf_write(params_sig, "%s *%s", pt, p->name);
+            } else {
+                codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
+                transpiler_register_mut_ref_param(ctx, p->name, pt);
+            }
         } else if (boundary_slot) {
             char inner_buf[128];
             const char *inner = inner_buf;
@@ -633,12 +638,27 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                             return;
                         }
                         transpiler_emit_mut_ref_writebacks(ctx);
+                        if (!transpiler_emit_mir_embedded_zone_local_cleanups(
+                                ctx, ctx->out, ctx->indent)) {
+                            free(ret_expr);
+                            transpiler_defer_scope_pop(ctx);
+                            transpiler_restore_mir_emit_state_from_snapshot_local(
+                                ctx, &saved_emit_state);
+                            return;
+                        }
                         transpiler_region_scope_destroy(ctx);
                         write_indent(ctx);
                         codebuf_write(ctx->out, "return %s;\n", ret_expr);
                         free(ret_expr);
                     } else {
                         transpiler_emit_mut_ref_writebacks(ctx);
+                        if (!transpiler_emit_mir_embedded_zone_local_cleanups(
+                                ctx, ctx->out, ctx->indent)) {
+                            transpiler_defer_scope_pop(ctx);
+                            transpiler_restore_mir_emit_state_from_snapshot_local(
+                                ctx, &saved_emit_state);
+                            return;
+                        }
                         transpiler_region_scope_destroy(ctx);
                         write_indent(ctx);
                         codebuf_write(ctx->out, "return;\n");

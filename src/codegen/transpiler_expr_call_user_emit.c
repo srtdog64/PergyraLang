@@ -12,6 +12,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_generic_specialization_emit.h"
+#include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_signature.h"
 #include "transpiler_mir_inventory_intent_collect.h"
@@ -409,7 +410,13 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (!handled && i > 0)
             codebuf_write(args_buf, ", ");
         if (!handled && carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
-            codebuf_write(args_buf, "&%s", arg);
+            if (transpiler_host_type_owns_embedded_zone_resource(
+                    ctx, param_type_name)
+                && transpiler_call_arg_is_indirect_ref(ctx, arg_node)) {
+                codebuf_write(args_buf, "%s", arg);
+            } else {
+                codebuf_write(args_buf, "&%s", arg);
+            }
         } else if (!handled) {
             if (pass_indirect
                 || transpiler_call_arg_needs_subject_address(ctx,

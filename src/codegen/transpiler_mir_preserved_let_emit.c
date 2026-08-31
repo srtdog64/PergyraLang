@@ -18,6 +18,7 @@
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_reason.h"
+#include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_specialization_registry.h"
@@ -459,6 +460,14 @@ transpiler_emit_mir_source_local_let_def_inst(
 
     write_indent_to(buf, ctx->indent);
     codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+    if (!transpiler_emit_mir_embedded_zone_local_init(
+            ctx, buf, ctx->indent, inst->result_name,
+            local_type_name_owned, lhs)) {
+        free(lhs);
+        free(rhs);
+        free(local_type_name_owned);
+        return TRANSPILE_MIR_LOCAL_LET_FAILED;
+    }
     free(lhs);
     free(rhs);
 

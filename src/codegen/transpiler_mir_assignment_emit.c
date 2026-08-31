@@ -20,6 +20,7 @@
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_reason.h"
+#include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
@@ -406,6 +407,18 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
 
     write_indent_to(buf, ctx->indent);
     codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+    {
+        const char *value_type =
+            transpiler_mir_routine_source_local_type_name(
+                mir_routine, target_name);
+        if (!transpiler_emit_mir_embedded_zone_local_init(
+                ctx, buf, ctx->indent, inst->result_name, value_type,
+                lhs)) {
+            free(lhs);
+            free(rhs);
+            return TRANSPILE_MIR_ASSIGNMENT_FAILED;
+        }
+    }
     free(lhs);
     free(rhs);
 

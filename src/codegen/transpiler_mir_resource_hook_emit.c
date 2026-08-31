@@ -12,12 +12,194 @@
 #include "../semantic/diag_codes.h"
 #include "../compiler/mir_type_helpers.h"
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_mir_expr_ssa.h"
+#include "transpiler_mir_ssa_names.h"
 #include "codegen_mir_resource_name_helpers.h"
 #include "transpiler_mir_resource_op_core.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_stmt_emit.h"
 #include "transpiler_symbols.h"
+
+static TypedVarEntry *
+transpiler_embedded_zone_cleanup_entry(TranspilerCtx *ctx,
+                                       const char *versioned_name)
+{
+    if (ctx == NULL || versioned_name == NULL)
+        return NULL;
+    for (int i = ctx->typed_var_count - 1; i >= 0; i--) {
+        TypedVarEntry *entry = &ctx->typed_vars[i];
+        if (entry->requires_embedded_zone_cleanup
+            && entry->embedded_zone_cleanup_routine
+                == ctx->active_mir_routine
+            && strcmp(entry->name, versioned_name) == 0) {
+            return entry;
+        }
+    }
+    return NULL;
+}
+
+static bool
+transpiler_embedded_zone_view_for_type(
+    TranspilerCtx *ctx,
+    const char *type_name,
+    TranspilerHostedWorldZoneSlotView *view_out)
+{
+    TranspilerHostedWorldZoneSlotView view;
+
+    if (view_out == NULL)
+        return false;
+    memset(&view, 0, sizeof(view));
+    if (ctx == NULL || type_name == NULL) {
+        *view_out = view;
+        return false;
+    }
+    view = transpiler_hosted_world_zone_slot_view_from_decl(
+        ctx, type_name, NULL);
+    *view_out = view;
+    return view.uses_mir_metadata && view.count > 0;
+}
+
+static bool
+transpiler_embedded_zone_field_name(
+    TranspilerCtx *ctx,
+    const TranspilerHostedWorldZoneSlotView *view,
+    size_t index,
+    const char **field_name_out)
+{
+    const char *field_name =
+        transpiler_hosted_world_zone_slot_view_name(view, index);
+
+    if (field_name_out != NULL)
+        *field_name_out = field_name;
+    if (field_name != NULL && field_name[0] != '\0')
+        return true;
+    transpiler_set_mir_inventory_missing(
+        ctx,
+        "MIR embedded-zone lifecycle is missing world-zone field metadata at index %llu",
+        (unsigned long long) index);
+    return false;
+}
+
+bool
+transpiler_emit_mir_embedded_zone_local_guard_decl(
+    TranspilerCtx *ctx,
+    CodeBuf *out,
+    int indent,
+    const char *versioned_name,
+    const char *type_name,
+    const char *c_name)
+{
+    TranspilerHostedWorldZoneSlotView view;
+    TypedVarEntry *entry;
+
+    if (!transpiler_embedded_zone_view_for_type(ctx, type_name, &view))
+        return true;
+    if (out == NULL || versioned_name == NULL || c_name == NULL)
+        return false;
+    entry = lookup_typed_entry(ctx, versioned_name);
+    if (entry == NULL || strcmp(entry->name, versioned_name) != 0) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR embedded-zone lifecycle is missing SSA local '%s'",
+            versioned_name);
+        return false;
+    }
+    entry->requires_embedded_zone_cleanup = true;
+    entry->embedded_zone_cleanup_routine = ctx->active_mir_routine;
+    write_indent_to(out, indent);
+    codebuf_write(out, "bool %s__embedded_zones_initialized = false;\n",
+                  c_name);
+    return true;
+}
+
+bool
+transpiler_emit_mir_embedded_zone_local_init(
+    TranspilerCtx *ctx,
+    CodeBuf *out,
+    int indent,
+    const char *versioned_name,
+    const char *type_name,
+    const char *c_name)
+{
+    TranspilerHostedWorldZoneSlotView view;
+
+    if (!transpiler_embedded_zone_view_for_type(ctx, type_name, &view))
+        return true;
+    if (out == NULL || c_name == NULL
+        || transpiler_embedded_zone_cleanup_entry(ctx, versioned_name) == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR embedded-zone initialization for '%s' has no owned SSA lifetime",
+            versioned_name != NULL ? versioned_name : "<local>");
+        return false;
+    }
+    for (size_t i = 0; i < view.count; i++) {
+        const char *field_name = NULL;
+        if (!transpiler_embedded_zone_field_name(ctx, &view, i,
+                                                 &field_name)) {
+            return false;
+        }
+        write_indent_to(out, indent);
+        codebuf_write(out, "PGY_ZONE_LOCK_INIT(&%s.%s);\n",
+                      c_name, field_name);
+    }
+    write_indent_to(out, indent);
+    codebuf_write(out, "%s__embedded_zones_initialized = true;\n", c_name);
+    return true;
+}
+
+bool
+transpiler_emit_mir_embedded_zone_local_cleanups(
+    TranspilerCtx *ctx,
+    CodeBuf *out,
+    int indent)
+{
+    if (ctx == NULL || out == NULL)
+        return false;
+    for (int i = ctx->typed_var_count - 1; i >= 0; i--) {
+        TypedVarEntry *entry = &ctx->typed_vars[i];
+        TranspilerHostedWorldZoneSlotView view;
+        char *c_name;
+
+        if (!entry->requires_embedded_zone_cleanup
+            || entry->embedded_zone_cleanup_routine
+                != ctx->active_mir_routine) {
+            continue;
+        }
+        if (!transpiler_embedded_zone_view_for_type(
+                ctx, entry->type_name, &view)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR embedded-zone cleanup for '%s' lost its world-zone metadata",
+                entry->name);
+            return false;
+        }
+        c_name = transpiler_render_ssa_name(ctx, entry->name);
+        if (c_name == NULL)
+            return false;
+        write_indent_to(out, indent);
+        codebuf_write(out, "if (%s__embedded_zones_initialized) {\n", c_name);
+        for (size_t j = view.count; j > 0; j--) {
+            const char *field_name = NULL;
+            if (!transpiler_embedded_zone_field_name(ctx, &view, j - 1,
+                                                     &field_name)) {
+                free(c_name);
+                return false;
+            }
+            write_indent_to(out, indent + 1);
+            codebuf_write(out, "PGY_ZONE_LOCK_DESTROY(&%s.%s);\n",
+                          c_name, field_name);
+        }
+        write_indent_to(out, indent + 1);
+        codebuf_write(out, "%s__embedded_zones_initialized = false;\n",
+                      c_name);
+        write_indent_to(out, indent);
+        codebuf_write(out, "}\n");
+        free(c_name);
+    }
+    return true;
+}
 
 bool
 transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,

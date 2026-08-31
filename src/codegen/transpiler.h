@@ -89,6 +89,12 @@ typedef struct
     bool source_secure;
     bool is_indirect_ref; /* pointer-carried binding; use -> for member access */
     bool is_projection_borrow; /* object projection borrowed from a local source */
+    /* Set only on an SSA local whose nominal value owns MIR-declared embedded
+     * zone locks.  The resource-hook owner uses this carrier to emit guarded
+     * cleanup on every function exit; parameters and borrowed aliases stay
+     * false and therefore never acquire caller-owned cleanup. */
+    bool requires_embedded_zone_cleanup;
+    const MIRRoutine *embedded_zone_cleanup_routine;
 } TypedVarEntry;
 
 typedef struct

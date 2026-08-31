@@ -21,6 +21,7 @@
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_preserved_let_emit.h"
 #include "transpiler_mir_reason.h"
+#include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_resource_op_emit.h"
 #include "transpiler_mir_ssa_contract.h"
 #include "transpiler_mir_ssa_entry.h"
@@ -290,6 +291,14 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
 
             write_indent_to(buf, ctx->indent);
             codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+            if (!transpiler_emit_mir_embedded_zone_local_init(
+                    ctx, buf, ctx->indent, inst->result_name, value_type,
+                    lhs)) {
+                free(lhs);
+                free(rhs);
+                ok = false;
+                break;
+            }
             free(lhs);
             free(rhs);
 

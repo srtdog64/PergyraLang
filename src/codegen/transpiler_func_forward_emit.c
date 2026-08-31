@@ -171,7 +171,12 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                 || carriage == MIR_PARAM_CARRIAGE_READONLY_REF);
         secure_slot = resource_kind == MIR_PARAM_RESOURCE_SECURE_SLOT;
         if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
-            codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
+            if (transpiler_host_type_owns_embedded_zone_resource(
+                    ctx, type_name)) {
+                codebuf_write(params_sig, "%s *%s", pt, p->name);
+            } else {
+                codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
+            }
         } else if (boundary_slot) {
             char inner_buf[128];
             const char *inner = inner_buf;

@@ -11,5 +11,8 @@
 bool transpiler_host_decl_uses_pointer_self(ASTNode *decl);
 bool is_pointer_self_host_type_name(TranspilerCtx *ctx,
                                     const char *type_name);
+bool transpiler_host_type_owns_embedded_zone_resource(
+    TranspilerCtx *ctx,
+    const char *type_name);
 
 #endif /* PERGYRA_TRANSPILER_HOST_SELF_POLICY_H */

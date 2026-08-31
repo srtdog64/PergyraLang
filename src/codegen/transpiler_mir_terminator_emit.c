@@ -11,6 +11,7 @@
 #include "transpiler_mir_cfg_control_emit.h"
 #include "transpiler_mir_phi_emit.h"
 #include "transpiler_mir_pin_emit.h"
+#include "transpiler_mir_resource_hook_emit.h"
 #include "../semantic/diag_codes.h"
 
 static void
@@ -168,6 +169,11 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
     }
 
     transpiler_emit_mut_ref_writebacks(ctx);
+    if (!transpiler_emit_mir_embedded_zone_local_cleanups(
+            ctx, ctx->out, ctx->indent)) {
+        free(ret_expr);
+        return false;
+    }
     transpiler_region_scope_destroy(ctx);
     write_indent(ctx);
     if (inst->expr0 != NULL) {
@@ -258,6 +264,10 @@ transpiler_emit_mir_fallthrough_terminator(const MIRRoutine *mir_routine,
             return false;
         }
         transpiler_emit_mut_ref_writebacks(ctx);
+        if (!transpiler_emit_mir_embedded_zone_local_cleanups(
+                ctx, ctx->out, ctx->indent)) {
+            return false;
+        }
         transpiler_region_scope_destroy(ctx);
         write_indent(ctx);
         if (strcmp(ctx->current_return_type, "Void") == 0) {
