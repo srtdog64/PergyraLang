@@ -18,19 +18,20 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — compiler-world embedded-zone lifecycle
+## Published — compiler-world embedded-zone lifecycle is exact-CI green
 
 - The rung opened at `52021bbf3912e65b7066d2b0adce832150699a76`.
-  Implementation `4d5168f32f8b9a91c133a32648aae9dd760e8c66` is now on
-  `origin/main`; native-oracle repair
-  `98e004936eececbab9ef85c88499a060183ccfca` is the committed publication
-  candidate. Protected unrelated untracked paths in the collaboration ledger
-  remain outside inspection, edit, and staging.
-- Fresh current-source DRV-2 evidence shows an artificial zone-return probe is
-  single-mode executable but has no self-host production consumer. The real
-  reached bypass is the `PgyCompilerWorld` embedded-zone guard in generated
-  production `driver.c`; its current factory also returns the lock-bearing
-  world by value and every route reconstructs it.
+  Implementation `4d5168f32f8b9a91c133a32648aae9dd760e8c66`, native-oracle
+  repair `98e004936eececbab9ef85c88499a060183ccfca`, and gate repair
+  `4c30aadbd79a7439b9e22495f621ce26f752ede2` are on `origin/main`.
+  Protected unrelated untracked paths in the collaboration ledger remain
+  outside inspection, edit, and staging.
+- At opening, fresh current-source DRV-2 evidence showed an artificial
+  zone-return probe was single-mode executable but had no self-host production
+  consumer. The real
+  reached bypass was the `PgyCompilerWorld` embedded-zone guard in generated
+  production `driver.c`; its factory returned the lock-bearing world by value
+  and every route reconstructed it.
 - `driver_bootstrap_main.Main` now owns one direct fresh world. Admitted
   nominal `world_zone` field facts become exact semantic resource paths;
   statement emission consumes them for nested lock init/destroy, and admitted
@@ -90,8 +91,12 @@ percentage by themselves.
 - Line-cap repair `4c30aadbd79a7439b9e22495f621ce26f752ede2` keeps the
   same ownership assertions in 128 lines. The exact Source-C execution and
   transaction-rejection gate, shell syntax/diff hygiene, and full component
-  contract are local green. Replacement exact CI is the remaining publication
-  falsifier; no successor implementation rung is selected.
+  contract are local green. Exact-head run `33385765963` at
+  `f082560476e81a32178a2fb767bcbf6858345101` is green 30/30. Linux fast push
+  records the component-contract PASS, backend shards are 20/20, and full
+  bootstrap records `gen2 == gen3 (172782 lines)`, receipt-bound DRV-2,
+  direct-MIR/Source-C/installed-CLI parity, and the three expected policy
+  rejections. The publication falsifier is satisfied and the lease is retired.
 - The exact objective card, scope, and validation budget are in
   `docs/agent_work_directives/compiler_world_embedded_zone_lifecycle_2026-08-31.md`.
   Aggregate zone, topology, compiler-world, intent, source-MIR, and component
@@ -101,8 +106,10 @@ percentage by themselves.
   `b1345fc43fb6a0a1095ecb1188e684fd8cee647609185171e5bd992563cbb340`
   and executed one verified-artifact production request with exact `0`, then
   rejected lock-bearing world return with no artifact.
-  Replacement exact CI remains pending. The SoT census and 83% forecast do not
-  change.
+  The SoT census and 83% forecast do not change. No successor implementation
+  rung is selected; resume from a fresh production falsifier, with the measured
+  repeated compiler-scale work as a bounded performance candidate rather than
+  an inferred cache or query architecture.
 
 ## Published — zone parameter ref semantic admission is exact-CI green
 

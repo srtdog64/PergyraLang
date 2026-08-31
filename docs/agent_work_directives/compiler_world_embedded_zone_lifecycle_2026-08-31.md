@@ -1,6 +1,6 @@
 # Compiler-world embedded-zone lifecycle directive
 
-Status: LINE-CAP REPAIR COMMITTED — REPLACEMENT EXACT CI PENDING
+Status: `PUBLISHED — EXACT-HEAD CI GREEN`
 
 Exact base: `52021bbf3912e65b7066d2b0adce832150699a76`, equal to
 `origin/main` when this directive opened. Protected unrelated untracked paths
@@ -191,6 +191,12 @@ only after the exact published revision is green in CI.
 - Commit `4c30aadbd79a7439b9e22495f621ce26f752ede2` keeps the ownership
   assertions unchanged while reducing the gate to 128 lines. Exact Source-C
   execution/transaction rejection, shell syntax, diff hygiene, and the full
-  component structural contract are green locally. The next and only
-  publication falsifier is replacement exact CI for this committed revision;
-  no successor implementation rung is open.
+  component structural contract are green locally.
+- Exact-head run `33385765963` at
+  `f082560476e81a32178a2fb767bcbf6858345101` is green 30/30. Linux fast push
+  records the component-contract PASS; full bootstrap records
+  `gen2 == gen3 (172782 lines)`, receipt-bound fixed-point adoption,
+  Pergyra-built DRV-2 installation, direct-MIR and Source-C parity, installed
+  CLI parity, and three expected `out_of_subset` rows. The publication
+  falsifier is satisfied, this lease is released, and no successor
+  implementation rung is inferred from this receipt.

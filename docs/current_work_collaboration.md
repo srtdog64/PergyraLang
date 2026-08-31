@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — compiler-world embedded-zone resource lifecycle
+## DONE lease — compiler-world embedded-zone resource lifecycle
 
 - Exact base is `52021bbf3912e65b7066d2b0adce832150699a76`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -71,9 +71,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   ratchet exceeded its existing 130-line cap. Commit
   `4c30aadbd79a7439b9e22495f621ce26f752ede2` preserves the assertions at
   128 lines, and exact Source-C behavior plus the full component contract are
-  local green. Replacement exact CI and final lease retirement remain
-  pending. Existing untouched parser 725/699 and runtime-header 618/600 size
-  failures stay outside this lease.
+  local green. Exact-head run `33385765963` at
+  `f082560476e81a32178a2fb767bcbf6858345101` is green 30/30: Linux fast push
+  passed the component ratchet, all backend shards were green, and full
+  bootstrap proved the 172,782-line fixed point, receipt-bound DRV-2,
+  installed CLI, and three-row policy census. This lease is retired and no
+  successor edit scope is open. Existing untouched parser 725/699 and
+  runtime-header 618/600 size failures stay outside this lease.
 
 ## DONE lease — zone parameter ref semantic admission
 

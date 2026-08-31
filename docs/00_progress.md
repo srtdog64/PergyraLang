@@ -2,7 +2,7 @@
 
 마지막 업데이트: 2026-08-31
 
-현재 열린 executable rung은 `PgyCompilerWorld` 내부 zone 생명주기다. 구현
+가장 최근 닫힌 executable rung은 `PgyCompilerWorld` 내부 zone 생명주기다. 구현
 `4d5168f3`은 `origin/main`에 있으며 생산 `driver_bootstrap_main.Main`이 fresh world
 하나를 직접 소유하고 모든 설치/read/artifact 경로가 같은 identity를 `inout`으로
 운반한다. Semantic admission이 exact nested resource path와 mutable-resource
@@ -23,8 +23,8 @@ compiler build가 green이다. Full fixed point도 `gen2 == gen3 (172782 lines)`
 을 증명했다. 다만 Windows pressure evidence는 2,369,221ms, peak private 2.641GiB로
 80% attention threshold를 넘었으며, 두 broad size gate는 이번 diff와 무관한 기존
 parser 725/699 및 runtime header 618/600 부채로 red다. General zone return/move와
-성능 병목은 별도 open seam이고 repair publication 및 replacement exact CI가 남아
-있다. 따라서 census는 88 authorities / 183 carriers /
+성능 병목은 별도 open seam이며 이번 correctness lease에는 포함하지 않았다. 따라서
+census는 88 authorities / 183 carriers /
 `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도는 **83%** (81~85%)를 그대로 유지한다.
 
 Native-oracle repair와 문서 checkpoint `e1444370`의 exact run
@@ -42,8 +42,12 @@ DRV-2 설치, Source-C/installed CLI 및 세 policy row를 증명했다. 유일�
 expanded Source-C ratchet의 142/130줄 component cap 위반이었다. Repair
 `4c30aadbd79a7439b9e22495f621ce26f752ede2`는 같은 assertion을 128줄로
 유지하며 exact Source-C behavior와 full component contract가 local green이다.
-Replacement exact CI가 남아 있으며 이 후속 수리는 SoT census와 83% line을
-바꾸지 않는다.
+Exact-head run `33385765963` at `f0825604`는 30/30 green이다. Linux fast push는
+component ratchet을 통과했고 backend shard는 20/20, full bootstrap은 동일
+172,782-line fixed point, receipt-bound DRV-2, direct-MIR/Source-C/installed CLI와
+세 `out_of_subset` row를 증명했다. 이 lease는 닫혔으며 후속 수리는 SoT census와
+83% line을 바꾸지 않는다. 다음 구현 rung은 아직 열지 않았고 fresh production
+falsifier에서만 선정한다.
 
 `abi.intent_observability_rows`는 이제 기존 BRIDGE를 실제로 닫았다. Append-only
 registry가 `RuntimeCallAbiId`와 source/runtime 이름, parameter shape, result kind를
