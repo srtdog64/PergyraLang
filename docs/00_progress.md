@@ -2,18 +2,30 @@
 
 마지막 업데이트: 2026-08-31
 
-현재 열린 executable rung은 `PgyCompilerWorld` 내부 zone 생명주기다. 로컬
-후보에서는 생산 `driver_bootstrap_main.Main`이 fresh world 하나를 직접 소유하고,
-모든 설치/read/artifact 경로가 같은 identity를 `inout`으로 운반한다. Semantic
-admission이 exact nested resource path와 mutable-resource parameter ID를 소유하며,
-codegen은 그 증거만으로 lock init/destroy와 무복사 borrow를 생성한다. 기존
-embedded-zone C guard와 by-value factory는 삭제됐다. Copy/reassignment/default
-parameter/world-return negative, single/thread-safe exact 실행, aggregate zone, topology,
-compiler-world, intent/source-MIR, component ratchet과 fresh production DRV-2
-thread-safe verified-artifact 요청이 local green이다. General zone return/move는
-별도 open seam이며 publication 및 exact CI는 아직 남아 있다. 따라서 census는
-88 authorities / 183 carriers / `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도는
-**83%** (81~85%)를 그대로 유지한다.
+현재 열린 executable rung은 `PgyCompilerWorld` 내부 zone 생명주기다. 구현
+`4d5168f3`은 `origin/main`에 있으며 생산 `driver_bootstrap_main.Main`이 fresh world
+하나를 직접 소유하고 모든 설치/read/artifact 경로가 같은 identity를 `inout`으로
+운반한다. Semantic admission이 exact nested resource path와 mutable-resource
+parameter ID를 소유하며 Pergyra codegen은 그 증거만으로 lock init/destroy와
+무복사 borrow를 생성한다. 기존 embedded-zone C guard와 by-value factory는
+삭제됐다.
+
+첫 exact run `33360317233`은 다른 Linux/platform/sanitizer/Rocq/backend job은
+green이었지만 `self-host-bootstrap-linux` 하나가 stale native C bootstrap oracle의
+world copy-in/copy-out lowering 때문에 RED였다. 로컬 repair는 MIR-declared embedded
+zone resource를 native oracle에서도 pointer-carried identity로 내리고, exact field
+lock을 한 번 init/destroy하며 commit
+`98e004936eececbab9ef85c88499a060183ccfca`에 고정됐다. Focused
+Pergyra/native single/thread-safe exact `7`과
+copy/reassignment/default/return negatives, bounded driver bootstrap, default LLVM
+compiler build가 green이다. Full fixed point도 `gen2 == gen3 (172782 lines)`와
+동일 SHA-256 `2ec56d6d34c9d4ababcb22a9aca0d1280312c91b745c855512d72aac14f1cc13`
+을 증명했다. 다만 Windows pressure evidence는 2,369,221ms, peak private 2.641GiB로
+80% attention threshold를 넘었으며, 두 broad size gate는 이번 diff와 무관한 기존
+parser 725/699 및 runtime header 618/600 부채로 red다. General zone return/move와
+성능 병목은 별도 open seam이고 repair publication 및 replacement exact CI가 남아
+있다. 따라서 census는 88 authorities / 183 carriers /
+`CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도는 **83%** (81~85%)를 그대로 유지한다.
 
 `abi.intent_observability_rows`는 이제 기존 BRIDGE를 실제로 닫았다. Append-only
 registry가 `RuntimeCallAbiId`와 source/runtime 이름, parameter shape, result kind를

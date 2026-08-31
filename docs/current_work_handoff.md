@@ -20,9 +20,12 @@ percentage by themselves.
 
 ## Active self-host context — compiler-world embedded-zone lifecycle
 
-- Exact tracked base is `52021bbf3912e65b7066d2b0adce832150699a76`, equal
-  to `origin/main` when this rung opened. Protected unrelated untracked paths
-  in the collaboration ledger remain outside inspection, edit, and staging.
+- The rung opened at `52021bbf3912e65b7066d2b0adce832150699a76`.
+  Implementation `4d5168f32f8b9a91c133a32648aae9dd760e8c66` is now on
+  `origin/main`; native-oracle repair
+  `98e004936eececbab9ef85c88499a060183ccfca` is the committed publication
+  candidate. Protected unrelated untracked paths in the collaboration ledger
+  remain outside inspection, edit, and staging.
 - Fresh current-source DRV-2 evidence shows an artificial zone-return probe is
   single-mode executable but has no self-host production consumer. The real
   reached bypass is the `PgyCompilerWorld` embedded-zone guard in generated
@@ -36,18 +39,43 @@ percentage by themselves.
   copy/reassignment/default parameter and lock-bearing world return fail in
   semantic admission; raw lock copying, backend-local world-name exceptions,
   fixed source lifetimes, and general zone return/move work remain forbidden.
+- Exact run `33360317233` for the implementation was green everywhere except
+  `self-host-bootstrap-linux` job `99390300706`. The native C oracle still
+  lowered admitted embedded-zone `inout` as value-result copy-in/copy-out, so
+  generated route calls passed a value to `PgyCompilerWorld *self` and
+  `driver_oracle.c` failed compilation. The Pergyra-built codegen path was
+  already green; this was a stale native-oracle consumer, not a second
+  semantic owner.
+- The local repair consumes the same MIR-declared `world_zone` field inventory
+  in native C emission. Embedded-zone value-result parameters remain pointer
+  aliases, calls do not add a second address layer, SSA locals guard exact
+  field lock initialization, and every exit destroys owned fields once in
+  reverse order. Ordinary value-result parameters retain copy-in/copy-out.
+- Focused world-zone execution is green for Pergyra and native C in single and
+  `PGY_ZONE_THREADSAFE` modes with exact `7`, plus no-artifact copy,
+  reassignment, default-parameter, and return negatives. The bounded driver
+  bootstrap is green. The CI-equivalent full driver gate exits zero with
+  `gen2 == gen3 (172782 lines)`; both 11,440,003-byte C files have SHA-256
+  `2ec56d6d34c9d4ababcb22a9aca0d1280312c91b745c855512d72aac14f1cc13`
+  and the fixed-point receipt cross-seals that hash.
+- The Windows full fixed point took 2,369,221ms and reached peak working set
+  2.425GiB / private 2.641GiB, crossing the 2.4GiB attention threshold without
+  exceeding the 3GiB stop limit. Treat the repeated compiler-scale MIR and
+  generated-C work as the next bounded performance falsifier only after this
+  correctness repair is exact-CI green. Broad size gates remain red only on
+  untouched existing `src/parser/ast_expr_control_accessors.c` 725/699 and
+  `src/runtime/pgy_runtime_lib_io_string_exports.h` 618/600 violations.
 - The exact objective card, scope, and validation budget are in
   `docs/agent_work_directives/compiler_world_embedded_zone_lifecycle_2026-08-31.md`.
-  Focused semantic negatives and single/thread-safe execution are green, as
-  are aggregate zone, topology, compiler-world, intent, source-MIR, and
-  component ratchets. A fresh production DRV-2 candidate has SHA-256
+  Aggregate zone, topology, compiler-world, intent, source-MIR, and component
+  ratchets remain green. A fresh production DRV-2 candidate has SHA-256
   `3c5b2b9c690529e5fc236e73a9acdceb19153ba033a3071d4bde9b9038f4c6d1`;
   its thread-safe rebuild SHA-256 is
   `b1345fc43fb6a0a1095ecb1188e684fd8cee647609185171e5bd992563cbb340`
   and executed one verified-artifact production request with exact `0`, then
   rejected lock-bearing world return with no artifact.
-  Generated inventory, publication, and exact CI remain pending. The SoT
-  census and 83% forecast do not change.
+  Repair publication and replacement exact CI remain pending. The SoT census
+  and 83% forecast do not change.
 
 ## Published — zone parameter ref semantic admission is exact-CI green
 

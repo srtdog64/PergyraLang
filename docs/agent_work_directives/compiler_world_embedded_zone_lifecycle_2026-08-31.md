@@ -1,6 +1,6 @@
 # Compiler-world embedded-zone lifecycle directive
 
-Status: LOCAL CANDIDATE — PUBLICATION PENDING
+Status: IMPLEMENTATION PUBLISHED — NATIVE-ORACLE REPAIR LOCAL FIXED POINT GREEN
 
 Exact base: `52021bbf3912e65b7066d2b0adce832150699a76`, equal to
 `origin/main` when this directive opened. Protected unrelated untracked paths
@@ -123,3 +123,35 @@ only after the exact published revision is green in CI.
   the same driver rejected lock-bearing world return with no artifact.
 - General zone return/move remains a distinct open seam. The SoT census stays
   `88/183` and `55/32/1`, and the integrated forecast stays 83%.
+
+## First publication and native-oracle repair
+
+- Implementation `4d5168f32f8b9a91c133a32648aae9dd760e8c66` is on
+  `origin/main`. Exact run `33360317233` was green in codegen bootstrap,
+  Linux/platform builds, sanitizer/TSan, Rocq, backend toolchain, and backend
+  shards, but `self-host-bootstrap-linux` job `99390300706` failed while
+  compiling generated `driver_oracle.c`.
+- The native C oracle had kept generic value-result copy-in/copy-out for the
+  newly admitted lock-bearing world `inout`. Generated route calls therefore
+  passed a `PgyCompilerWorld` value where member functions required
+  `PgyCompilerWorld *self`. The repair consumes the existing MIR-declared
+  `world_zone` field view: embedded-zone parameters are direct pointers,
+  already-indirect calls remain direct, and owned SSA locals guard exact field
+  init/destroy on every exit. Ordinary value-result semantics are unchanged.
+- This repair is committed as
+  `98e004936eececbab9ef85c88499a060183ccfca`; publication and exact remote
+  execution are still pending at this checkpoint.
+- The focused owner gate executes exact `7` through Pergyra and native C in
+  single and thread-safe modes and preserves all four semantic no-artifact
+  negatives. The bounded driver bootstrap is green. The full pressure-owned
+  driver gate exits zero with `gen2 == gen3 (172782 lines)`; the byte-equal
+  11,440,003-byte files and receipt carry SHA-256
+  `2ec56d6d34c9d4ababcb22a9aca0d1280312c91b745c855512d72aac14f1cc13`.
+- That Windows full gate took 2,369,221ms, peaked at 2.425GiB working set and
+  2.641GiB private memory, and crossed the 80% attention threshold without
+  exceeding the 3GiB stop limit. This is bounded performance evidence, not a
+  reason to add a cache or parallel track inside the correctness repair.
+  Existing untouched parser 725/699 and runtime-header 618/600 size signals
+  remain explicit unrelated red gates.
+- Repair publication and replacement exact CI are the remaining falsifier.
+  This repair closes no additional SoT row and does not change the 83% line.

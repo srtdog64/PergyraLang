@@ -41,7 +41,25 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `b1345fc43fb6a0a1095ecb1188e684fd8cee647609185171e5bd992563cbb340`
   and it executed one verified-artifact production request with exact `0`,
   then rejected lock-bearing world return with no artifact.
-  Publication, exact CI, and final lease retirement remain pending.
+- Implementation `4d5168f32f8b9a91c133a32648aae9dd760e8c66` is on
+  `origin/main`. Run `33360317233` was green except for
+  `self-host-bootstrap-linux` job `99390300706`: stale native C value-result
+  lowering copied the lock-bearing world and passed a value to pointer-self
+  routes. No parallel owner is opened for this repair.
+- The local repair reuses the MIR world-zone field owner for native pointer
+  carriage and exact guarded field lifecycle. Pergyra/native single and
+  thread-safe exact `7`, all four semantic negatives, bounded bootstrap, and
+  the pressure-owned full fixed point are green. Gen2 and gen3 are byte-equal
+  at 172,782 lines with SHA-256
+  `2ec56d6d34c9d4ababcb22a9aca0d1280312c91b745c855512d72aac14f1cc13`.
+  The full Windows gate took 2,369,221ms and peaked at 2.641GiB private memory;
+  it crossed the attention threshold but not the 3GiB stop limit.
+- Repair commit `98e004936eececbab9ef85c88499a060183ccfca` is the sole
+  committed publication candidate; this lease still owns its push and exact
+  CI observation.
+- Repair publication, replacement exact CI, and final lease retirement remain
+  pending. Existing untouched parser 725/699 and runtime-header 618/600 size
+  failures stay outside this lease.
 
 ## DONE lease — zone parameter ref semantic admission
 
