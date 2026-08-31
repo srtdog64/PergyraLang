@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — semantic generic-specialization pressure
+## Active self-host context — no successor implementation lease open
 
 - Exact base is `c5c50c4968418009c36cd33ed17c8e0ad937bcde`, equal to
   `origin/main` when this rung opened. The compiler-world embedded-zone lease
@@ -31,32 +31,28 @@ percentage by themselves.
   the consumer read that byte-identical input and emitted 11,440,003-byte C
   with SHA-256
   `2ec56d6d34c9d4ababcb22a9aca0d1280312c91b745c855512d72aac14f1cc13`.
-- The owner currently combines linear call-ID membership checks, graph
-  traversal, and per-surface environment seeding. The next falsifying case is
-  owner-local count/timing observation that distinguishes those operations;
-  no one is yet recorded as the proven cause.
-- That falsifier is now resolved. The full driver has zero generic rows;
+- The opening falsifier is resolved. The full driver has zero generic rows;
   409,688 call-ID probes performed zero comparisons, and 766,885 graph nodes
   were each visited once. The repeated work was the root view rescanning up to
   all 126,513 sorted surface IDs every time a caller requested a lane root.
-- The local source candidate uses lower-bound lookup in the existing view
+- The published implementation uses lower-bound lookup in the existing view
   owner. Producer/consumer generic stages fell from 52,155/53,156ms to
   18,593/18,734ms. Candidate gen2 equals gen3 at 172,787 lines and 11,440,236
   bytes, SHA-256
   `e4440e785fdd4f8d4152fb21dd9752704ef40e01f16482d29d2552f348e08cf7`.
   Exact generic output plus identity, target, nested, explicit mismatch, and
   no-artifact negatives are local green.
-- Resume from
-  `docs/agent_work_directives/semantic_generic_specialization_pressure_2026-08-31.md`.
-  Preserve stable call identity, unresolved-generic failure, exact fixture
-  behavior and candidate gen2/gen3 bytes, the existing 300-second / 3072MiB
-  shard limits, and the single-owner lease.
-  General cache/query work, parallel compiler-scale emission, unrelated SoT,
-  parser/runtime size debt, and input shrinking are forbidden.
-- The broad component contract was stopped after exceeding its 60-second
-  static budget; it had emitted the source-MIR action PASS but is not claimed
-  fully green. Resume from exact push CI for the lower-bound candidate, not
-  from another local full matrix or a broader optimization.
+- Implementation `d1ac69ca3ed02e10687d87efddd9bc25a06c64a1` is on
+  `origin/main`. Exact run `33395241482` is green 30/30. Linux passed the full
+  component contract, all 20 backend shards passed, and full bootstrap proved
+  `gen2 == gen3 (172787 lines)`, receipt-bound Pergyra-built DRV-2 adoption,
+  direct-MIR/Source-C/installed-CLI parity, and three explicit
+  `out_of_subset` policy rows.
+- The performance lease is retired. No successor implementation rung is
+  inferred from timing alone. Resume by selecting one fresh production
+  executable falsifier and opening its objective card; do not start a cache,
+  query engine, unrelated SoT cleanup, parser/runtime size cleanup, or another
+  compiler-scale matrix merely because this lookup is now bounded.
 - Opening this bounded performance rung changes neither the `88/183`,
   `CLOSED=55 BRIDGE=32 ACTIVE=1` census nor the 83% project forecast.
 

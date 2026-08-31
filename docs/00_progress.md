@@ -2,6 +2,18 @@
 
 마지막 업데이트: 2026-08-31
 
+최신 bounded performance rung은 semantic expression root lookup이다. Full-driver
+계측은 generic-specialization row나 graph 재방문이 아니라, 이미 정렬된 126,513개
+surface ID를 lane root 질의마다 다시 선형 순회하는 비용을 원인으로 확정했다.
+기존 view owner 안의 lower-bound lookup으로 producer/consumer generic stage가
+52,155/53,156ms에서 18,593/18,734ms로 줄었고, candidate gen2/gen3는 172,787줄에서
+바이트 동일했다. 구현 `d1ac69ca3ed02e10687d87efddd9bc25a06c64a1`의 exact run
+`33395241482`는 30/30 green이며 component ratchet, backend 20/20, receipt-bound
+DRV-2, direct-MIR/Source-C/installed CLI, 세 `out_of_subset` policy row를 모두
+증명했다. 이 작업은 실행 비용을 줄였지만 새 Pergyra 구현으로 C 경로를 치환한
+rung은 아니므로 census `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`과 통합 진행도
+**83%** (81~85%)는 유지한다.
+
 가장 최근 닫힌 executable rung은 `PgyCompilerWorld` 내부 zone 생명주기다. 구현
 `4d5168f3`은 `origin/main`에 있으며 생산 `driver_bootstrap_main.Main`이 fresh world
 하나를 직접 소유하고 모든 설치/read/artifact 경로가 같은 identity를 `inout`으로

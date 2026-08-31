@@ -1,6 +1,6 @@
 # Semantic Generic-Specialization Pressure — 2026-08-31
 
-Status: `IMPLEMENTATION CANDIDATE — LOCAL FIXED POINT GREEN`
+Status: `COMPLETE — EXACT CI GREEN`
 
 Exact base: `c5c50c4968418009c36cd33ed17c8e0ad937bcde` on
 `origin/main`.
@@ -117,8 +117,23 @@ add a cache/query authority, claim SoT closure, or relax the fixed point.
 - Semantic environment lifetime, shared function-table, agent boundary, and
   documentation-quality gates are green. The broad component gate was stopped
   after it exceeded the 60-second static budget; it had reached and passed the
-  source-MIR action ratchet but is not claimed green locally. Exact push CI is
-  the next broad integration falsifier.
+  source-MIR action ratchet but was not claimed green locally.
+
+## Publication evidence
+
+- Implementation commit `d1ac69ca3ed02e10687d87efddd9bc25a06c64a1` is on
+  `origin/main`. Exact GitHub Actions run `33395241482` is green 30/30 with no
+  failed job; all 20 backend comparison shards passed.
+- `build-linux` recorded the full component-contract PASS, including the
+  removed-path and structural source ratchets that prevent restoration of the
+  former linear root scan.
+- `self-host-bootstrap-linux` proved `gen2 == gen3 (172787 lines)`, adopted the
+  receipt-bound fixed-point driver, and installed the Pergyra-built DRV-2.
+  Direct-MIR legacy/composite/nested intent gates, Source-C execution, and the
+  installed CLI aggregate passed.
+- The policy corpus recorded all three sources as explicit `out_of_subset`
+  results (`0 in_subset, 3 out_of_subset`); no fallback artifact was admitted.
+  The exact-CI falsifier is satisfied and this performance lease is retired.
 
 ## Scope and budget
 

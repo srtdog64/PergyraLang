@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — semantic generic-specialization pressure
+## DONE lease — semantic generic-specialization pressure
 
 - Exact base is `c5c50c4968418009c36cd33ed17c8e0ad937bcde`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -33,9 +33,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   11,440,236 bytes, SHA-256
   `e4440e785fdd4f8d4152fb21dd9752704ef40e01f16482d29d2552f348e08cf7`.
   Generic execution and identity/mismatch/no-artifact negatives are green.
-- The broad component gate exceeded the static budget and was stopped after a
-  reached source-MIR ratchet PASS; it is not locally claimed green. Exact push
-  CI is the next integration falsifier. No parallel edit scope is open.
+- Implementation `d1ac69ca3ed02e10687d87efddd9bc25a06c64a1` is on
+  `origin/main`. Exact run `33395241482` is green 30/30: Linux recorded the
+  component-contract ratchet, every backend shard passed, and full bootstrap
+  proved `gen2 == gen3 (172787 lines)`, receipt-bound DRV-2 installation,
+  direct-MIR/Source-C/installed-CLI parity, and the three explicit
+  `out_of_subset` policy rows. The publication falsifier is satisfied, this
+  lease is retired, and no successor edit scope is open.
 - SoT stays `88/183` and `55/32/1`; the 83% forecast does not move by opening
   or optimizing this performance rung. The three protected unrelated untracked
   paths remain outside inspection, edit, and staging.
