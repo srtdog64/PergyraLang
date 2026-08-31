@@ -1,0 +1,17 @@
+subject Buyer {
+    let hp: Int;
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+}
+
+world CartWorld {
+    zone cart: CartZone
+}
+
+func Main() -> Void {
+    let original: CartWorld = CartWorld(CartZone(Buyer(1)));
+    let copied: CartWorld = original;
+    Log(copied.cart.buyer.hp);
+}

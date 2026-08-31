@@ -3,12 +3,13 @@
 import "compiler_world_direct_mir_owner.pgy";
 
 func DriverRung2CliLogSourceCPayloadOrDie(
+    inout compiler_world: PgyCompilerWorld,
     source_path: String,
     request: DriverSourceCRequest
 ) -> Void with caps io_read {
     let admission: DriverSourceCPayloadAdmission =
         ProduceSourceCThroughPgyCompilerWorld(
-            source_path, request
+            compiler_world, source_path, request
         );
     if !DriverSourceCPayloadAdmissionReadyFor(
         admission, source_path, request

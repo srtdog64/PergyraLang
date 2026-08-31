@@ -63,7 +63,8 @@ FUNCTION_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy"
 NOMINAL_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy"
 
 grep -Fq 'zone_value_parameter_requires_transfer' "$ZONE_PARAMETER_OWNER"
-grep -Fq 'parameter_mode != 3' "$ZONE_PARAMETER_OWNER"
+grep -Fq 'resource_kind == 2 && parameter_mode == 1' "$ZONE_PARAMETER_OWNER"
+grep -Fq 'mutable_resource_parameter_node_ids' "$ZONE_PARAMETER_OWNER"
 if grep -Fq 'SemanticAstFunctionParam' "$ZONE_PARAMETER_OWNER"; then
     echo "zone parameter owner forwarded its borrowed signature view" >&2
     exit 1
@@ -75,7 +76,10 @@ if grep -Fq 'Pergyra zone by-value parameter requires an admitted transfer plan'
 fi
 grep -Fq 'Pergyra zone return requires an admitted transfer plan' \
     "$FUNCTION_OWNER"
-grep -Fq 'Pergyra embedded zone requires an admitted transfer plan' \
-    "$NOMINAL_OWNER"
+if grep -Fq 'Pergyra embedded zone requires an admitted transfer plan' \
+    "$NOMINAL_OWNER"; then
+    echo "retired embedded-zone backend guard returned" >&2
+    exit 1
+fi
 
 echo "[domain-runtime-zone-parameter-admission] default semantic rejection plus ref single/thread-safe execution: PASS"

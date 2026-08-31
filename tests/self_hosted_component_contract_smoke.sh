@@ -547,11 +547,23 @@ require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" \
 require_text \
     "src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy" \
     "fresh_local_node_ids: Array<Int>"
+require_file \
+    "src/self_hosted/semantic/ast_zone_resource_shape_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_zone_resource_shape_owner.pgy" 140
+require_file \
+    "src/self_hosted/semantic/ast_zone_resource_carriage_rows_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_zone_resource_carriage_rows_owner.pgy" 160
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_zone_resource_shape_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_zone_resource_carriage_rows_owner.pgy"
 require_text \
     "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
-    "func CodegenSemanticZoneLocalFresh("
+    "func CodegenSemanticResourceLocalIndex("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
-    "CodegenSemanticZoneLocalFresh(body_types, idx)"
+    "CodegenSemanticResourceLocalIndex(body_types, idx)"
 require_text \
     "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
     'PGY_SELFHOST_DRIVER_BIN:-${PGY_SELF_DRIVER_BIN:-}'
@@ -562,7 +574,10 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func CodegenFreshZoneLocal("
 require_text \
     "src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy" \
-    "zone_fresh_identity_count: Int"
+    "zone_resource_identity_count: Int"
+require_text \
+    "src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy" \
+    "zone_resource_path_count: Int"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'Pergyra zone local copy requires an admitted transfer plan'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
@@ -571,11 +586,14 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'Pergyra zone by-value parameter requires an admitted transfer plan'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'Pergyra zone return requires an admitted transfer plan'
-require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
+reject_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
     'Pergyra embedded zone requires an admitted transfer plan'
 require_text \
     "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
     'domain_runtime_zone_parameter_admission_owner.sh'
+require_text \
+    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
+    'domain_runtime_world_zone_carriage_admission_owner.sh'
 require_file "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \
@@ -9661,7 +9679,11 @@ require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     "DriverRung2CliRequestFromArgsOrDie(Args())"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    "DriverRung2ExecuteInstalledRequest(request);"
+    "DriverRung2ExecuteInstalledRequest(compiler_world, request);"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    "let compiler_world: PgyCompilerWorld = PgyCompilerWorld("
+reject_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+    "PgyCompilerWorldMaterializeExecutableZones"
 reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args["
 require_file "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh"
 require_text "Makefile" "self-host-installed-driver-cli-mode-test-smoke"
@@ -24187,13 +24209,13 @@ require_text "src/self_hosted/compiler/driver_source_c_execution_owner.pgy" \
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'import "world.pgy";'
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
-    'func PgyCompilerWorldMaterializeExecutableZones()'
-require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func EmitDirectMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func PublishMirCArtifactThroughPgyCompilerWorld('
-require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     'let compiler_world: PgyCompilerWorld = PgyCompilerWorld('
+require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
+    'inout compiler_world: PgyCompilerWorld'
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     'func ProduceSourceMirThroughPgyCompilerWorld('
 require_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \

@@ -110,18 +110,18 @@ constructor_sites="$(
         -exec grep -lE '(^|[^[:alnum:]_])PgyCompilerWorld\(' {} + || true
 )"
 constructor_site_count="$(printf '%s\n' "$constructor_sites" | awk 'NF { count++ } END { print count + 0 }')"
-[[ "$constructor_site_count" -eq 1 ]] || fail "compiler tree must have one world materialization root"
-constructor_site="$(printf '%s\n' "$constructor_sites" | sed -n '1p' | tr '\\' '/')"
-[[ "$constructor_site" == *'/src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy' ]] ||
-    fail "world materialization escaped its composition owner"
-[[ "$(grep -Ec -- '(^|[^[:alnum:]_])PgyCompilerWorld\(' "$COMPOSITION_OWNER")" -eq 1 ]] ||
-    fail "composition root must materialize the world exactly once"
-for term in 'DriverRung2DirectMirZone(' 'DriverSourceMirZone(' \
-    'DriverSourceLlvmIntentZone(' \
-    'DriverSourceCZone(' \
-    'func ProduceSourceMirThroughPgyCompilerWorld(' \
+[[ "$constructor_site_count" -eq 2 ]] || fail "installed and test-only processes must each have one world root"
+[[ "$(grep -Ec -- '(^|[^[:alnum:]_])PgyCompilerWorld\(' "$MAIN_OWNER")" -eq 1 ]] || fail "installed Main must materialize one world"
+[[ "$(grep -Ec -- '(^|[^[:alnum:]_])PgyCompilerWorld\(' "$CLI_OWNER")" -eq 1 ]] || fail "test-only CLI must materialize one world"
+grep -Eq -- '(^|[^[:alnum:]_])PgyCompilerWorld\(' "$COMPOSITION_OWNER" && fail "route owner returned to world materialization"
+for term in 'func ProduceSourceMirThroughPgyCompilerWorld(' \
     'func PublishSourceMirArtifactThroughPgyCompilerWorld('; do
     require_text "$COMPOSITION_OWNER" "$term"
+done
+for root_owner in "$MAIN_OWNER" "$CLI_OWNER"; do
+    for term in 'DriverRung2DirectMirZone(' 'DriverSourceMirZone(' 'DriverSourceLlvmIntentZone(' 'DriverSourceCZone('; do
+        require_text "$root_owner" "$term"
+    done
 done
 for term in 'enum DriverRung2CliRequest' 'func DriverRung2CliRequestFromArgsOrDie(' \
     'DriverCliSourceMirStdout(String)' 'DriverCliSourceMirManifestStdout(String, String)' \
@@ -166,13 +166,13 @@ for owner in "$MAIN_OWNER" "$CLI_OWNER" "$READ_OWNER" "$INSTALLED_OWNER" \
 done
 for term in 'import "driver_rung2_cli_request_owner.pgy";' 'import "driver_rung2_installed_cli_owner.pgy";' \
     'DriverRung2CliRequestFromArgsOrDie(Args())' \
-    'DriverRung2ExecuteInstalledRequest(request);'; do
+    'DriverRung2ExecuteInstalledRequest(compiler_world, request);'; do
     require_text "$MAIN_OWNER" "$term"
 done
 grep -Eq -- '(PublishSourceMirArtifact|ProduceSourceMir|SelfMirArtifactCommitPayload|--emit-mir-json-verified)' "$MAIN_OWNER" && fail "installed Main regained source-MIR routing or publication"
 for term in 'import "driver_rung2_cli_request_owner.pgy";' 'import "driver_rung2_cli_read_execution_owner.pgy";' \
     'DriverRung2CliRequestFromArgsOrDie(args)' \
-    'DriverRung2ExecuteReadRequest(request);' 'with caps io_read {'; do
+    'DriverRung2ExecuteReadRequest(compiler_world, request);' 'with caps io_read {'; do
     require_text "$CLI_OWNER" "$term"
 done
 grep -Fq -- 'io_write' "$CLI_OWNER" && fail "standalone CLI wrapper regained io_write authority"

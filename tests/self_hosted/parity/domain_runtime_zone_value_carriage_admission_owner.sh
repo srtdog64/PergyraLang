@@ -50,7 +50,7 @@ grep -Fq 'SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(' \
     "$ZONE_PARAMETER_OWNER"
 grep -Fq 'SemanticAstZoneCarriageVerdictFromAdmittedFacts(' \
     "$BODY_BUNDLE_OWNER"
-grep -Fq 'CodegenSemanticZoneLocalFresh(body_types, idx)' "$STATEMENT_OWNER"
+grep -Fq 'CodegenSemanticResourceLocalIndex(body_types, idx)' "$STATEMENT_OWNER"
 if grep -Fq 'func CodegenFreshZoneLocal(' "$STATEMENT_OWNER"; then
     echo "zone fresh identity returned to statement-emission inference" >&2
     exit 1

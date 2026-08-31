@@ -225,8 +225,8 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenSemanticLocalBindingDeclaredTypeOrDie(
                     local_bindings, idx
                 );
-            let fresh_zone_local: Bool =
-                CodegenSemanticZoneLocalFresh(body_types, idx);
+            let resource_local_index: Option<Int> =
+                CodegenSemanticResourceLocalIndex(body_types, idx);
             if CodegenSemanticExpressionGraphIsTry(let_graph) {
                 emitted_let = EmitTryLet(
                     local_bindings, arena, idx, let_graph, statement_env, env,
@@ -237,25 +237,50 @@ func EmitStmtList(count: Int, arena: AstArena,
             }
             CodegenTypeEnvStateAdoptAfterLastConsumer(env_state, statement_env);
             ArrayPush(result, CodegenPrefixOwnedStatementLine(emitted_let, pad, "", "\n"));
-            if fresh_zone_local {
+            if IsSome(resource_local_index) {
                 let local_name: String =
                     CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
                 let local_c_name: String =
                     CodegenFunctionValueBindingFactFor(
                         local_name, local_type, env
                     ).c_name;
-                ArrayPush(result, Concat(
-                    pad, Concat(
-                        "PGY_ZONE_LOCK_INIT(&", Concat(local_c_name, ");\n")
-                    )
-                ));
-                scope_cleanup = Concat(
-                    pad, Concat(
-                        "PGY_ZONE_LOCK_DESTROY(&", Concat(
-                            local_c_name, Concat(");\n", scope_cleanup)
+                let resource_index: Int =
+                    UnwrapOption(resource_local_index);
+                let path_count: Int =
+                    CodegenSemanticResourceLocalPathCountOrDie(
+                        body_types, resource_index
+                    );
+                let path_index: Int = 0;
+                while path_index < path_count {
+                    let source_path: String =
+                        CodegenSemanticResourceLocalPathOrDie(
+                            body_types, resource_index, path_index
+                        );
+                    let resource_c_expression: String = local_c_name;
+                    if source_path != "" {
+                        resource_c_expression = Concat(
+                            local_c_name, Concat(
+                                ".", CompilerSymbolCFieldName(source_path)
+                            )
+                        );
+                    }
+                    ArrayPush(result, Concat(
+                        pad, Concat(
+                            "PGY_ZONE_LOCK_INIT(&", Concat(
+                                resource_c_expression, ");\n"
+                            )
                         )
-                    )
-                );
+                    ));
+                    scope_cleanup = Concat(
+                        pad, Concat(
+                            "PGY_ZONE_LOCK_DESTROY(&", Concat(
+                                resource_c_expression,
+                                Concat(");\n", scope_cleanup)
+                            )
+                        )
+                    );
+                    path_index = path_index + 1;
+                }
             }
             ArraySet(cur, 0, idx + 1); continue;
         }

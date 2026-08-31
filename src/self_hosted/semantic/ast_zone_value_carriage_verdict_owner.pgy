@@ -1,16 +1,14 @@
-// Zone values carry identity-bearing resource state. Until an explicit
-// transfer owner exists, admitted semantic analysis accepts only a fresh
-// direct constructor for a local and rejects named copies or reassignment.
+// Zone resources carry identity-bearing state. Semantic admission records
+// every fresh local's exact resource paths and every mutable resource borrow;
+// named copies, reassignment, and unowned parameter carriage fail closed.
 
 import "ast_nominal_constructor_fact_owner.pgy";
-import "ast_nominal_constructor_lookup_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_assignment_type_fact_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
-import "ast_expression_call_target_fact_owner.pgy";
+import "ast_zone_resource_shape_owner.pgy";
 import "diagnostic_owner.pgy";
 
 struct SemanticAstZoneValueCarriageVerdict {
@@ -19,13 +17,23 @@ struct SemanticAstZoneValueCarriageVerdict {
     diagnostic_message: String;
     syntax_node_id: Int;
     fresh_local_node_ids: Array<Int>;
+    resource_path_starts: Array<Int>;
+    resource_path_counts: Array<Int>;
+    resource_field_paths: Array<String>;
+    mutable_borrow_parameter_node_ids: Array<Int>;
 }
 
 func SemanticAstZoneValueCarriageVerdictOk(
-    fresh_local_node_ids: Array<Int>
+    fresh_local_node_ids: Array<Int>,
+    resource_path_starts: Array<Int>,
+    resource_path_counts: Array<Int>,
+    resource_field_paths: Array<String>,
+    mutable_borrow_parameter_node_ids: Array<Int>
 ) -> SemanticAstZoneValueCarriageVerdict {
     return SemanticAstZoneValueCarriageVerdict(
-        true, "", "", -1, fresh_local_node_ids
+        true, "", "", -1, fresh_local_node_ids,
+        resource_path_starts, resource_path_counts, resource_field_paths,
+        mutable_borrow_parameter_node_ids
     );
 }
 
@@ -35,68 +43,14 @@ func SemanticAstZoneValueCarriageVerdictError(
     syntax_node_id: Int
 ) -> SemanticAstZoneValueCarriageVerdict {
     let empty_node_ids: Array<Int> = [];
+    let empty_starts: Array<Int> = [];
+    let empty_counts: Array<Int> = [];
+    let empty_paths: Array<String> = [];
+    let empty_parameter_ids: Array<Int> = [];
     return SemanticAstZoneValueCarriageVerdict(
-        false, code, message, syntax_node_id, empty_node_ids
+        false, code, message, syntax_node_id, empty_node_ids,
+        empty_starts, empty_counts, empty_paths, empty_parameter_ids
     );
-}
-
-func SemanticAstZoneValueCarriageTypeIsZone(
-    ref constructors: SemanticAstNominalConstructorFacts,
-    type_name: String
-) -> Bool {
-    let index: Option<Int> =
-        SemanticAstNominalConstructorIndexForName(constructors, type_name);
-    return IsSome(index) &&
-        constructors.nominal_kinds[UnwrapOption(index)] == "zone";
-}
-
-func SemanticAstZoneValueCarriageFreshIdentity(
-    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
-    syntax_node_id: Int,
-    type_name: String
-) -> Bool {
-    if !expression_surfaces.ok || syntax_node_id < 0 ||
-        syntax_node_id >= expression_surfaces.artifact_node_count {
-        return false;
-    }
-    let count: Int = SemanticAstExpressionSurfaceCount(expression_surfaces);
-    let low: Int = 0;
-    let high: Int = count;
-    while low < high {
-        let middle: Int = low + ((high - low) / 2);
-        if expression_surfaces.node_ids[middle] < syntax_node_id {
-            low = middle + 1;
-        } else {
-            high = middle;
-        }
-    }
-    if low >= count || expression_surfaces.node_ids[low] != syntax_node_id {
-        return false;
-    }
-    let root_index: Int = low * 3 + AstExpressionLaneValue();
-    if root_index < 0 ||
-        root_index >= ArrayLength(expression_surfaces.expression_graph.roots) ||
-        root_index >= ArrayLength(expression_surfaces.expression_graph.has_roots) ||
-        !expression_surfaces.expression_graph.has_roots[root_index] {
-        return false;
-    }
-    let root_id: Int = expression_surfaces.expression_graph.roots[root_index];
-    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-        expression_surfaces.expression_graph, root_id);
-    if !call.ok { return false; }
-    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
-        expression_surfaces.expression_graph, call.call_node
-    );
-    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
-        expression_surfaces.expression_graph, call.call_node
-    );
-    if !IsSome(target_kind) || !IsSome(target_name) ||
-        UnwrapOption(target_kind) != SemanticCallTargetDirect() {
-        return false;
-    }
-    if UnwrapOption(target_name) == type_name { return true; }
-    return UnwrapOption(target_name) == "Clone" &&
-        ArrayLength(call.argument_nodes) == 1;
 }
 
 func SemanticAstZoneValueCarriageFactsReady(
@@ -136,9 +90,13 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(
     initializer_types: SemanticAstInitializerTypeFacts,
     assignments: SemanticAstAssignmentFacts,
     ref assignment_types: SemanticAstAssignmentTypeFacts,
-    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    mutable_borrow_parameter_node_ids: Array<Int>
 ) -> SemanticAstZoneValueCarriageVerdict {
     let fresh_local_node_ids: Array<Int> = [];
+    let resource_path_starts: Array<Int> = [];
+    let resource_path_counts: Array<Int> = [];
+    let resource_field_paths: Array<String> = [];
     if !SemanticAstZoneValueCarriageFactsReady(
         artifact, constructors, locals, initializer_types, assignments,
         assignment_types, expression_surfaces
@@ -157,9 +115,14 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(
         if initializer_types.verified[local_index] == 1 {
             let type_name: String =
                 initializer_types.inferred_type_names[local_index];
-            if SemanticAstZoneValueCarriageTypeIsZone(constructors, type_name) {
+            let resource_kind: Int =
+                SemanticAstZoneValueCarriageResourceKind(
+                    constructors, type_name
+                );
+            if resource_kind != 0 {
                 if !SemanticAstZoneValueCarriageFreshIdentity(
-                    expression_surfaces, locals.node_ids[local_index], type_name
+                    expression_surfaces, locals.node_ids[local_index],
+                    type_name, resource_kind == 1
                 ) {
                     return SemanticAstZoneValueCarriageVerdictError(
                         "zone_value_copy_requires_transfer",
@@ -172,6 +135,59 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(
                     );
                 }
                 ArrayPush(fresh_local_node_ids, locals.node_ids[local_index]);
+                ArrayPush(resource_path_starts,
+                    ArrayLength(resource_field_paths));
+                if resource_kind == 1 {
+                    ArrayPush(resource_field_paths, "");
+                    ArrayPush(resource_path_counts, 1);
+                } else {
+                    let constructor_opt: Option<Int> =
+                        SemanticAstNominalConstructorIndexForName(
+                            constructors, type_name
+                        );
+                    if !IsSome(constructor_opt) {
+                        return SemanticAstZoneValueCarriageVerdictError(
+                            "ast_artifact_invalid",
+                            SemanticError1(
+                                "ast_artifact_invalid", "owner",
+                                "SemanticAstZoneResourcePath"
+                            ),
+                            locals.node_ids[local_index]
+                        );
+                    }
+                    let constructor_index: Int =
+                        UnwrapOption(constructor_opt);
+                    let path_start: Int =
+                        ArrayLength(resource_field_paths);
+                    let field_index: Int = 0;
+                    while field_index <
+                        constructors.param_counts[constructor_index] {
+                        let flat_index: Int =
+                            constructors.param_starts[constructor_index] +
+                            field_index;
+                        if constructors.field_kinds[flat_index] ==
+                            NominalFieldKindWorldZone() {
+                            ArrayPush(
+                                resource_field_paths,
+                                constructors.field_names[flat_index]
+                            );
+                        }
+                        field_index = field_index + 1;
+                    }
+                    let path_count: Int =
+                        ArrayLength(resource_field_paths) - path_start;
+                    if path_count <= 0 {
+                        return SemanticAstZoneValueCarriageVerdictError(
+                            "ast_artifact_invalid",
+                            SemanticError1(
+                                "ast_artifact_invalid", "owner",
+                                "SemanticAstZoneResourcePath"
+                            ),
+                            locals.node_ids[local_index]
+                        );
+                    }
+                    ArrayPush(resource_path_counts, path_count);
+                }
             }
         }
         local_index = local_index + 1;
@@ -181,7 +197,7 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(
         if assignment_types.verified[assignment_index] == 1 {
             let target_type: String =
                 assignment_types.target_type_names[assignment_index];
-            if SemanticAstZoneValueCarriageTypeIsZone(
+            if SemanticAstZoneValueCarriageTypeOwnsResource(
                 constructors, target_type
             ) {
                 return SemanticAstZoneValueCarriageVerdictError(
@@ -197,36 +213,8 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(
         }
         assignment_index = assignment_index + 1;
     }
-    return SemanticAstZoneValueCarriageVerdictOk(fresh_local_node_ids);
-}
-
-func SemanticAstZoneValueCarriageVerdictRowsReady(
-    artifact: AstTreeArtifact,
-    ref constructors: SemanticAstNominalConstructorFacts,
-    locals: SemanticAstLocalBindingFacts,
-    initializer_types: SemanticAstInitializerTypeFacts,
-    ref verdict: SemanticAstZoneValueCarriageVerdict
-) -> Bool {
-    if !verdict.ok || !SemanticAstInitializerTypeFactsReadyProjection(
-        artifact, locals, initializer_types
-    ) {
-        return false;
-    }
-    let row: Int = 0;
-    let local_index: Int = 0;
-    while local_index < SemanticAstLocalBindingCount(locals) {
-        if initializer_types.verified[local_index] == 1 &&
-            SemanticAstZoneValueCarriageTypeIsZone(
-                constructors, initializer_types.inferred_type_names[local_index]
-            ) {
-            if row >= ArrayLength(verdict.fresh_local_node_ids) ||
-                verdict.fresh_local_node_ids[row] !=
-                    locals.node_ids[local_index] {
-                return false;
-            }
-            row = row + 1;
-        }
-        local_index = local_index + 1;
-    }
-    return row == ArrayLength(verdict.fresh_local_node_ids);
+    return SemanticAstZoneValueCarriageVerdictOk(
+        fresh_local_node_ids, resource_path_starts, resource_path_counts,
+        resource_field_paths, mutable_borrow_parameter_node_ids
+    );
 }

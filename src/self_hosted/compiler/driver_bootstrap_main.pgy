@@ -3,9 +3,26 @@
 
 import "driver_rung2_cli_request_owner.pgy";
 import "driver_rung2_installed_cli_owner.pgy";
+import "compiler_world_direct_mir_owner.pgy";
 
 func Main() -> Void with caps env, io_read, io_write {
     let request: DriverRung2CliRequest =
         DriverRung2CliRequestFromArgsOrDie(Args());
-    DriverRung2ExecuteInstalledRequest(request);
+    let compiler_world: PgyCompilerWorld = PgyCompilerWorld(
+        DriverRung2DirectMirZone(
+            DriverRung2Execution(DriverRung2ExecutionOwnerIdentity())
+        ),
+        DriverSourceMirZone(DriverSourceMirExecution(
+            DriverSourceMirExecutionOwnerIdentity(),
+            DriverSourceMirExecutionTopologyIdentity()
+        )),
+        DriverSourceLlvmIntentZone(DriverSourceLlvmIntentExecution(
+            DriverSourceLlvmIntentExecutionOwnerIdentity(), None
+        )),
+        DriverSourceCZone(DriverSourceCExecution(
+            DriverSourceCExecutionOwnerIdentity(),
+            DriverSourceCExecutionTopologyIdentity(), None
+        ))
+    );
+    DriverRung2ExecuteInstalledRequest(compiler_world, request);
 }

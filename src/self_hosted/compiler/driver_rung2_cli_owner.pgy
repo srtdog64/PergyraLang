@@ -3,9 +3,28 @@
 
 import "driver_rung2_cli_request_owner.pgy";
 import "driver_rung2_cli_read_execution_owner.pgy";
+import "compiler_world_direct_mir_owner.pgy";
 
 func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
     let request: DriverRung2CliRequest =
         DriverRung2CliRequestFromArgsOrDie(args);
-    DriverRung2ExecuteReadRequest(request);
+    // This test-only DRV-2 binary is a separate process from the installed
+    // compiler root. It still owns exactly one fresh world for its request.
+    let compiler_world: PgyCompilerWorld = PgyCompilerWorld(
+        DriverRung2DirectMirZone(
+            DriverRung2Execution(DriverRung2ExecutionOwnerIdentity())
+        ),
+        DriverSourceMirZone(DriverSourceMirExecution(
+            DriverSourceMirExecutionOwnerIdentity(),
+            DriverSourceMirExecutionTopologyIdentity()
+        )),
+        DriverSourceLlvmIntentZone(DriverSourceLlvmIntentExecution(
+            DriverSourceLlvmIntentExecutionOwnerIdentity(), None
+        )),
+        DriverSourceCZone(DriverSourceCExecution(
+            DriverSourceCExecutionOwnerIdentity(),
+            DriverSourceCExecutionTopologyIdentity(), None
+        ))
+    );
+    DriverRung2ExecuteReadRequest(compiler_world, request);
 }

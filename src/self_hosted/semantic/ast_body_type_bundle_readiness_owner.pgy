@@ -16,6 +16,7 @@ import "ast_expression_identity_resolution_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
 import "ast_iteration_graph_root_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
+import "ast_zone_resource_carriage_rows_owner.pgy";
 
 func SemanticAstBodyTypeBundleReadinessError(
     artifact: AstTreeArtifact,
@@ -56,7 +57,8 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !bundle.assignment_types.ok { return "assignment_types"; }
     if !bundle.statement_types.ok { return "statement_types"; }
     if !SemanticAstZoneValueCarriageVerdictRowsReady(
-        artifact, analysis.constructors, analysis.local_bindings,
+        artifact, analysis.signatures, analysis.constructors,
+        analysis.local_bindings,
         bundle.initializer_types, bundle.zone_carriage
     ) { return "zone_value_carriage_rows"; }
     if !SemanticAstGenericSpecializationFactsMatchExpressionGraph(

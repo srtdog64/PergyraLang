@@ -14,26 +14,86 @@ import "generic_specialization_codegen_view_owner.pgy";
 struct CodegenSemanticBodyTypeFacts {
     assignment_types: SemanticAstAssignmentTypeFacts;
     statement_types: SemanticAstStatementTypeFacts;
-    fresh_zone_local_node_ids: Array<Int>;
+    fresh_resource_local_node_ids: Array<Int>;
+    resource_path_starts: Array<Int>;
+    resource_path_counts: Array<Int>;
+    resource_field_paths: Array<String>;
+    mutable_resource_parameter_node_ids: Array<Int>;
     generic_specializations: CodegenGenericSpecializationFacts;
 }
 
-func CodegenSemanticZoneLocalFresh(
+func CodegenSemanticResourceLocalIndex(
     ref facts: CodegenSemanticBodyTypeFacts,
     node_id: Int
-) -> Bool {
-    let count: Int = ArrayLength(facts.fresh_zone_local_node_ids);
+) -> Option<Int> {
+    let count: Int = ArrayLength(facts.fresh_resource_local_node_ids);
     let low: Int = 0;
     let high: Int = count;
     while low < high {
         let middle: Int = low + ((high - low) / 2);
-        if facts.fresh_zone_local_node_ids[middle] < node_id {
+        if facts.fresh_resource_local_node_ids[middle] < node_id {
             low = middle + 1;
         } else {
             high = middle;
         }
     }
-    return low < count && facts.fresh_zone_local_node_ids[low] == node_id;
+    if low < count && facts.fresh_resource_local_node_ids[low] == node_id {
+        return Some(low);
+    }
+    return None;
+}
+
+func CodegenSemanticResourceLocalPathCountOrDie(
+    ref facts: CodegenSemanticBodyTypeFacts,
+    resource_index: Int
+) -> Int {
+    if resource_index < 0 || resource_index >=
+        ArrayLength(facts.fresh_resource_local_node_ids) ||
+        resource_index >= ArrayLength(facts.resource_path_starts) ||
+        resource_index >= ArrayLength(facts.resource_path_counts) {
+        Die("semantic zone-resource local path row is missing");
+    }
+    return facts.resource_path_counts[resource_index];
+}
+
+func CodegenSemanticResourceLocalPathOrDie(
+    ref facts: CodegenSemanticBodyTypeFacts,
+    resource_index: Int,
+    path_index: Int
+) -> String {
+    let count: Int = CodegenSemanticResourceLocalPathCountOrDie(
+        facts, resource_index
+    );
+    if path_index < 0 || path_index >= count {
+        Die("semantic zone-resource local path index is invalid");
+    }
+    let flat_index: Int = facts.resource_path_starts[resource_index] +
+        path_index;
+    if flat_index < 0 ||
+        flat_index >= ArrayLength(facts.resource_field_paths) {
+        Die("semantic zone-resource local path fact is missing");
+    }
+    return facts.resource_field_paths[flat_index];
+}
+
+func CodegenSemanticMutableResourceParameter(
+    ref facts: CodegenSemanticBodyTypeFacts,
+    node_id: Int
+) -> Bool {
+    let count: Int =
+        ArrayLength(facts.mutable_resource_parameter_node_ids);
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.mutable_resource_parameter_node_ids[middle] < node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low < count &&
+        facts.mutable_resource_parameter_node_ids[low] == node_id;
 }
 
 func CodegenSemanticBodyTypeFactsFromBundleOrDie(
@@ -77,6 +137,10 @@ func CodegenSemanticBodyTypeFactsFromBundleOrDie(
     return CodegenSemanticBodyTypeFacts(
         bundle.assignment_types, bundle.statement_types,
         bundle.zone_carriage.fresh_local_node_ids,
+        bundle.zone_carriage.resource_path_starts,
+        bundle.zone_carriage.resource_path_counts,
+        bundle.zone_carriage.resource_field_paths,
+        bundle.zone_carriage.mutable_borrow_parameter_node_ids,
         generic_specializations
     );
 }
@@ -102,6 +166,10 @@ func CodegenSemanticBodyTypeFactsFromAdmittedBundleOrDie(
     return CodegenSemanticBodyTypeFacts(
         bundle.assignment_types, bundle.statement_types,
         bundle.zone_carriage.fresh_local_node_ids,
+        bundle.zone_carriage.resource_path_starts,
+        bundle.zone_carriage.resource_path_counts,
+        bundle.zone_carriage.resource_field_paths,
+        bundle.zone_carriage.mutable_borrow_parameter_node_ids,
         generic_specializations
     );
 }

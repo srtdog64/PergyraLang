@@ -1,0 +1,102 @@
+// Target-neutral classification and fresh-origin proof for values that own
+// zone synchronization resources. World grammar owns direct zone-slot paths;
+// C layout is not an input to this owner.
+
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_expression_surface_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+func SemanticAstZoneValueCarriageTypeIsZone(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    type_name: String
+) -> Bool {
+    let index: Option<Int> =
+        SemanticAstNominalConstructorIndexForName(constructors, type_name);
+    return IsSome(index) &&
+        constructors.nominal_kinds[UnwrapOption(index)] == "zone";
+}
+
+// 0: ordinary value, 1: zone identity itself, 2: world that owns zone slots.
+func SemanticAstZoneValueCarriageResourceKind(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    type_name: String
+) -> Int {
+    let index_opt: Option<Int> =
+        SemanticAstNominalConstructorIndexForName(constructors, type_name);
+    if !IsSome(index_opt) { return 0; }
+    let index: Int = UnwrapOption(index_opt);
+    if constructors.nominal_kinds[index] == "zone" { return 1; }
+    if constructors.nominal_kinds[index] != "world" { return 0; }
+    let field_index: Int = 0;
+    while field_index < constructors.param_counts[index] {
+        let flat_index: Int = constructors.param_starts[index] + field_index;
+        if constructors.field_kinds[flat_index] ==
+            NominalFieldKindWorldZone() {
+            return 2;
+        }
+        field_index = field_index + 1;
+    }
+    return 0;
+}
+
+func SemanticAstZoneValueCarriageTypeOwnsResource(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    type_name: String
+) -> Bool {
+    return SemanticAstZoneValueCarriageResourceKind(
+        constructors, type_name
+    ) != 0;
+}
+
+func SemanticAstZoneValueCarriageFreshIdentity(
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    syntax_node_id: Int,
+    type_name: String,
+    allow_explicit_clone: Bool
+) -> Bool {
+    if !expression_surfaces.ok || syntax_node_id < 0 ||
+        syntax_node_id >= expression_surfaces.artifact_node_count {
+        return false;
+    }
+    let count: Int = SemanticAstExpressionSurfaceCount(expression_surfaces);
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if expression_surfaces.node_ids[middle] < syntax_node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if low >= count || expression_surfaces.node_ids[low] != syntax_node_id {
+        return false;
+    }
+    let root_index: Int = low * 3 + AstExpressionLaneValue();
+    if root_index < 0 ||
+        root_index >= ArrayLength(expression_surfaces.expression_graph.roots) ||
+        root_index >= ArrayLength(expression_surfaces.expression_graph.has_roots) ||
+        !expression_surfaces.expression_graph.has_roots[root_index] {
+        return false;
+    }
+    let root_id: Int = expression_surfaces.expression_graph.roots[root_index];
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        expression_surfaces.expression_graph, root_id);
+    if !call.ok { return false; }
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        expression_surfaces.expression_graph, call.call_node
+    );
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        expression_surfaces.expression_graph, call.call_node
+    );
+    if !IsSome(target_kind) || !IsSome(target_name) ||
+        UnwrapOption(target_kind) != SemanticCallTargetDirect() {
+        return false;
+    }
+    if UnwrapOption(target_name) == type_name { return true; }
+    return allow_explicit_clone && UnwrapOption(target_name) == "Clone" &&
+        ArrayLength(call.argument_nodes) == 1;
+}

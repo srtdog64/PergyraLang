@@ -126,6 +126,11 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         prologue = role_binding.prologue;
     }
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
+        let parameter_node_id: Int = cur[0];
+        let mutable_resource_parameter: Bool =
+            CodegenSemanticMutableResourceParameter(
+                body_types, parameter_node_id
+            );
         let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
             signatures, signature_index, param_n
         );
@@ -184,8 +189,15 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         } else if p_mode == 1 {
             let inout_name: String = CompilerSymbolCInoutParamName(p_name);
             c_param = Concat(c_param_type, Concat(" *", inout_name));
-            prologue = Concat(prologue, Concat("    ", Concat(c_param_type, Concat(" ", Concat(c_p_name, Concat(" = *", Concat(inout_name, ";\n")))))));
-            copyout = Concat(copyout, Concat("    *", Concat(inout_name, Concat(" = ", Concat(c_p_name, ";\n")))));
+            if mutable_resource_parameter {
+                p_env_binding = CodegenFunctionValueBindingFactForCExpression(
+                    p_name, p_type, base_env,
+                    Concat("(*", Concat(inout_name, ")"))
+                );
+            } else {
+                prologue = Concat(prologue, Concat("    ", Concat(c_param_type, Concat(" ", Concat(c_p_name, Concat(" = *", Concat(inout_name, ";\n")))))));
+                copyout = Concat(copyout, Concat("    *", Concat(inout_name, Concat(" = ", Concat(c_p_name, ";\n")))));
+            }
         } else if p_mode == 3 {
             c_ref_name = CompilerSymbolCReadonlyRefParamName(p_name);
             c_param = Concat(

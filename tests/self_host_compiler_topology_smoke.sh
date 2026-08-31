@@ -205,7 +205,6 @@ for owner_term in \
     "$WORLD|return self.source_c.execution.ProduceSourceC(" \
     "$WORLD|let completed: Bool = CompilePergyraCArtifact(" \
     "$COMPOSITION|import \"world.pgy\";" \
-    "$COMPOSITION|func PgyCompilerWorldMaterializeExecutableZones()" \
     "$COMPOSITION|func EmitDirectMirThroughPgyCompilerWorld(" \
     "$COMPOSITION|func ProduceMirCThroughPgyCompilerWorld(" \
     "$COMPOSITION|func PublishMirCArtifactThroughPgyCompilerWorld(" \
@@ -213,10 +212,11 @@ for owner_term in \
     "$COMPOSITION|func PublishSourceMirArtifactThroughPgyCompilerWorld(" \
     "$COMPOSITION|func ProduceSourceCThroughPgyCompilerWorld(" \
     "$COMPOSITION|func CompileSourceToCThroughPgyCompilerWorld(" \
-    "$COMPOSITION|DriverRung2DirectMirZone(" \
-    "$COMPOSITION|DriverSourceMirZone(" \
-    "$COMPOSITION|DriverSourceLlvmIntentZone(" \
-    "$COMPOSITION|DriverSourceCZone(" \
+    "$MAIN|let compiler_world: PgyCompilerWorld = PgyCompilerWorld(" \
+    "$MAIN|DriverRung2DirectMirZone(" \
+    "$MAIN|DriverSourceMirZone(" \
+    "$MAIN|DriverSourceLlvmIntentZone(" \
+    "$MAIN|DriverSourceCZone(" \
     "$COMPOSITION|return compiler_world.EmitDirectMir(" \
     "$COMPOSITION|return compiler_world.ProduceMirC(" \
     "$COMPOSITION|return compiler_world.PublishMirCArtifact(" \
@@ -229,7 +229,7 @@ for owner_term in \
     "$MIR_C_STDOUT|ProduceMirCThroughPgyCompilerWorld(" \
     "$MIR_C_STDOUT|DriverRung2MirCPayloadAdmissionReadyFor(" \
     "$MAIN|import \"driver_rung2_installed_cli_owner.pgy\";" \
-    "$MAIN|DriverRung2ExecuteInstalledRequest(request);" \
+    "$MAIN|DriverRung2ExecuteInstalledRequest(compiler_world, request);" \
     "$INSTALLED|case DriverCliSourceCStdout(source_path):" \
     "$INSTALLED|case DriverCliSourceCManifestStdout(source_path, manifest_path):" \
     "$INSTALLED|case DriverCliMirCStdout(input_path):" \
@@ -276,7 +276,7 @@ for installed_case in \
     'case DriverCliSourceCManifestStdout(source_path, manifest_path):'; do
     awk -v header="$installed_case" '
         index($0, header) { active = 1; next }
-        active && /DriverRung2ExecuteReadRequest\(request\);/ { found = 1; exit }
+        active && /DriverRung2ExecuteReadRequest\(compiler_world, request\);/ { found = 1; exit }
         active && /case DriverCli/ { exit }
         END { exit found ? 0 : 1 }
     ' "$INSTALLED" || fail "installed source-C case lost read delegation: $installed_case"
@@ -288,7 +288,7 @@ for installed_case in \
     'case DriverCliMirCManifestStdout(input_path, manifest_path):'; do
     awk -v header="$installed_case" '
         index($0, header) { active = 1; next }
-        active && /DriverRung2ExecuteReadRequest\(request\);/ { found = 1; exit }
+        active && /DriverRung2ExecuteReadRequest\(compiler_world, request\);/ { found = 1; exit }
         active && /case DriverCli/ { exit }
         END { exit found ? 0 : 1 }
     ' "$INSTALLED" || fail "installed MIR-C case lost read delegation: $installed_case"

@@ -476,14 +476,23 @@ inventory must not become a second fact-family owner registry.
   owner instead of maintaining an element-type allowlist; MIR and backends may
   not reconstruct or defer this source-semantic rejection.
 - `src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy` --
-  target-neutral admission for local zone value carriage. It joins admitted
-  nominal kind, initializer/assignment types, and resolved direct-constructor
-  identity; C emission may own hidden lock lifecycle but may not defer copy or
-  reassignment policy to a thread-safe preprocessor branch.
+  target-neutral admission for local zone-resource value carriage. It joins
+  admitted resource shape, initializer/assignment types, and resolved fresh
+  identity, then carries exact local/path and mutable-borrow parameter rows;
+  C emission may own hidden lock lifecycle but may not reconstruct policy.
+- `src/self_hosted/semantic/ast_zone_resource_shape_owner.pgy` -- canonical
+  classification of a zone identity versus a world with direct `world_zone`
+  slots, plus fresh direct-constructor/explicit-zone-Clone origin proof. C
+  layout and source-name exceptions are not inputs.
+- `src/self_hosted/semantic/ast_zone_resource_carriage_rows_owner.pgy` --
+  exact readiness proof that admitted fresh local IDs, embedded zone field
+  paths, and mutable resource-parameter IDs still match the semantic owners.
+  It produces no policy or backend rows.
 - `src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy` --
-  target-neutral admission for zone parameter carriage from admitted signature
-  mode and nominal-kind facts. Read-only `ref` preserves identity; function C
-  emission may not reconstruct or defer the by-value rejection.
+  target-neutral admission for zone-resource parameter carriage from admitted
+  signature mode and resource-shape facts. Zone identity remains read-only
+  `ref`; a world with owned zones may use explicit `inout`, whose admitted node
+  ID lowers as an in-place mutable borrow rather than copy-in/copy-out.
 - `src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy` and
   `src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy`
   -- final source-syntax call target IDs, exact declared-callee binding IDs on
@@ -2171,8 +2180,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- installed compiler
   composition root used by producer parity and the integrated seed/oracle
   fixed point. It admits argv once through `driver_rung2_cli_request_owner.pgy`
-  and delegates effects to `driver_rung2_installed_cli_owner.pgy`; it owns no
-  mode or positional interpretation. The explicit
+  and owns one fresh `PgyCompilerWorld` for that request before delegating
+  effects to `driver_rung2_installed_cli_owner.pgy`; exact semantic zone paths
+  own its four hidden lock lifecycles. It owns no mode or positional
+  interpretation. The explicit
   `--emit-c-artifact-verified source output` request owns the public C artifact for
   `pgy --emit-c` and the admitted
   `--backend=c` compile/run envelope after the native selector admits it. The
@@ -2284,12 +2295,11 @@ inventory must not become a second fact-family owner registry.
   existing compiler world, accepts only a ready typed payload admission, and
   logs the preserved compiler artifact payload without a commit or fallback.
 - `src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy` -- active-slice
-  composition owner for the single `PgyCompilerWorld`. It constructs the
-  ordered direct-MIR, source-to-MIR, and source-to-C zones once through
-  `PgyCompilerWorldMaterializeExecutableZones`; the public wrappers only
-  delegate through world methods. This is not a physical no-copy claim. It owns
-  no target, source, MIR, backend, or artifact fact and may not declare another
-  world.
+  route owner for the single caller-owned `PgyCompilerWorld`. Public wrappers
+  accept one explicit `inout` world, alias that same identity without
+  copy-in/copy-out, and delegate through world methods. Construction belongs to
+  the executable entrypoint; this owner may not return, reconstruct, or copy a
+  world and owns no target, source, MIR, backend, or artifact fact.
 - `src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy` --
   backend-neutral hard-substitution boundary that receives one admitted MIR
   graph, claims enum-marked input before nominal/erasure/shape dispatch,

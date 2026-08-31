@@ -76,7 +76,7 @@ pgy_selfhost_assert_driver_rung2_execution_action() {
     done
     for term in '.EmitDirectMir(' '.ProduceMirC(' '.PublishMirCArtifact(' 'DriverRung2DirectMirZone(' \
         'DriverRung2Execution(' 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld('; do
-        grep -Fq -- "$term" "$world" "$composition" || {
+        grep -Fq -- "$term" "$world" "$composition" "$main" || {
             echo "[driver-rung2-execution-action] world composition is incomplete: $term" >&2; return 1; }
     done
     if grep -Fq -- 'SelfMirArtifactCommitOutcomeReady(committed)' "$execution" \

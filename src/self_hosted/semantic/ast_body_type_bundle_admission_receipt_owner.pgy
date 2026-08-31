@@ -16,12 +16,14 @@ tobject SemanticAstBodyTypeBundleAdmissionReceipt {
     iteration_count: Int;
     assignment_count: Int;
     statement_count: Int;
-    zone_fresh_identity_count: Int;
+    zone_resource_identity_count: Int;
+    zone_resource_path_count: Int;
+    zone_mutable_borrow_count: Int;
     generic_count: Int;
 }
 
 func SemanticAstBodyTypeBundleAdmissionSchema() -> String {
-    return "pgy.semantic-body-type-bundle-admission.v2";
+    return "pgy.semantic-body-type-bundle-admission.v3";
 }
 
 func SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(
@@ -43,6 +45,8 @@ func SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(
         ArrayLength(bundle.assignment_types.node_ids),
         ArrayLength(bundle.statement_types.node_ids),
         ArrayLength(bundle.zone_carriage.fresh_local_node_ids),
+        ArrayLength(bundle.zone_carriage.resource_field_paths),
+        ArrayLength(bundle.zone_carriage.mutable_borrow_parameter_node_ids),
         ArrayLength(bundle.generic_specializations.call_node_ids)
     );
 }
@@ -73,8 +77,13 @@ func SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
             ArrayLength(bundle.assignment_types.node_ids) &&
         receipt.statement_count ==
             ArrayLength(bundle.statement_types.node_ids) &&
-        receipt.zone_fresh_identity_count ==
+        receipt.zone_resource_identity_count ==
             ArrayLength(bundle.zone_carriage.fresh_local_node_ids) &&
+        receipt.zone_resource_path_count ==
+            ArrayLength(bundle.zone_carriage.resource_field_paths) &&
+        receipt.zone_mutable_borrow_count == ArrayLength(
+            bundle.zone_carriage.mutable_borrow_parameter_node_ids
+        ) &&
         receipt.generic_count ==
             ArrayLength(bundle.generic_specializations.call_node_ids);
 }

@@ -6,6 +6,43 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — compiler-world embedded-zone resource lifecycle
+
+- Exact base is `52021bbf3912e65b7066d2b0adce832150699a76`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit, push, and CI owner.
+- Fresh DRV-2 evidence separates two seams. An artificial zone-return probe
+  executes exact `0` in single mode and fails only at the thread-safe return
+  guard, but no current self-host production function returns a zone. In
+  contrast, generated production `driver.c` contains the embedded-zone guard
+  for `PgyCompilerWorld`, while its factory returns that lock-bearing world by
+  value and every route reconstructs it.
+- Objective, owners, last consumer, forbidden fallbacks, edit scope, and gates
+  are fixed in
+  `docs/agent_work_directives/compiler_world_embedded_zone_lifecycle_2026-08-31.md`.
+- One fresh compiler world will be owned by `driver_bootstrap_main.Main`.
+  Exact semantic resource rows will drive nested lock init/destroy, and one
+  admitted `inout` chain will carry the same mutable identity without
+  copy-in/copy-out. The backend guard and by-value factory are deletion
+  targets.
+- General zone return/transfer syntax, fixed source lifetimes, unrelated SoT,
+  query/cache work, binary hardening, and performance work remain outside this
+  lease. SoT stays `88/183` and `55/32/1`; the 83% forecast does not move by
+  opening this card.
+- Local implementation has deleted the embedded guard and by-value factory.
+  Exact semantic resource paths now drive nested lock init/destroy, while
+  admitted resource `inout` parameters alias the caller object with no
+  copy-in/copy-out. Focused world-zone single/thread-safe execution and its
+  copy/reassignment/default/return negatives are green; aggregate zone, topology,
+  compiler-world, intent, source-MIR, and component ratchets are green.
+- Fresh production DRV-2 SHA-256 is
+  `3c5b2b9c690529e5fc236e73a9acdceb19153ba033a3071d4bde9b9038f4c6d1`.
+  Its thread-safe rebuild SHA-256 is
+  `b1345fc43fb6a0a1095ecb1188e684fd8cee647609185171e5bd992563cbb340`
+  and it executed one verified-artifact production request with exact `0`,
+  then rejected lock-bearing world return with no artifact.
+  Publication, exact CI, and final lease retirement remain pending.
+
 ## DONE lease — zone parameter ref semantic admission
 
 - Exact base is `8ef7039459711e64ac07da12b8473057968c0451`, equal to

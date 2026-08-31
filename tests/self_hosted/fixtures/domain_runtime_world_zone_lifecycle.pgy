@@ -1,0 +1,28 @@
+subject Buyer {
+    let hp: Int;
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+}
+
+world CartWorld {
+    zone cart: CartZone
+
+    func Hp(self) -> Int {
+        return cart.buyer.hp;
+    }
+}
+
+func ReadWorld(inout compiler_world: CartWorld) -> Int {
+    return compiler_world.Hp();
+}
+
+func ForwardWorld(inout compiler_world: CartWorld) -> Int {
+    return ReadWorld(compiler_world);
+}
+
+func Main() -> Void {
+    let compiler_world: CartWorld = CartWorld(CartZone(Buyer(7)));
+    Log(ForwardWorld(compiler_world));
+}

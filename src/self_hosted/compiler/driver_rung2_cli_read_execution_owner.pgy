@@ -12,6 +12,7 @@ import "../lexer/source_input_owner.pgy";
 import "../parser/program_parse_owner.pgy";
 
 func DriverRung2ExecuteReadRequest(
+    inout compiler_world: PgyCompilerWorld,
     request: DriverRung2CliRequest
 ) -> Void with caps io_read {
     match request {
@@ -36,26 +37,28 @@ func DriverRung2ExecuteReadRequest(
             ));
         case DriverCliSourceCStdout(source_path):
             DriverRung2CliLogSourceCPayloadOrDie(
-                source_path, SourceCDefault
+                compiler_world, source_path, SourceCDefault
             );
         case DriverCliSourceCManifestStdout(source_path, manifest_path):
             DriverRung2CliLogSourceCPayloadOrDie(
-                source_path,
+                compiler_world, source_path,
                 SourceCManifestVerified(
                     SelfHostMachineLayerDeclarationFromPath(manifest_path)
                 )
             );
         case DriverCliSourceMirDiagnosticStdout(source_path):
             Log(DriverSourceMirDiagnosticPayloadOrDie(
-                source_path, SelfHostMachineLayerDeclarationEmpty()
+                compiler_world, source_path,
+                SelfHostMachineLayerDeclarationEmpty()
             ));
         case DriverCliSourceMirStdout(source_path):
             Log(DriverSourceMirCanonicalPayloadOrDie(
-                source_path, SelfHostMachineLayerDeclarationEmpty()
+                compiler_world, source_path,
+                SelfHostMachineLayerDeclarationEmpty()
             ));
         case DriverCliSourceMirManifestStdout(source_path, manifest_path):
             Log(DriverSourceMirCanonicalPayloadOrDie(
-                source_path,
+                compiler_world, source_path,
                 SelfHostMachineLayerDeclarationFromPath(manifest_path)
             ));
         case DriverCliCanonicalMirStdout(input_path):
@@ -78,11 +81,11 @@ func DriverRung2ExecuteReadRequest(
             ));
         case DriverCliMirCStdout(input_path):
             DriverRung2CliLogMirCPayloadOrDie(
-                input_path, MirCVerified, MirCDefaultMachine
+                compiler_world, input_path, MirCVerified, MirCDefaultMachine
             );
         case DriverCliMirCManifestStdout(input_path, manifest_path):
             DriverRung2CliLogMirCPayloadOrDie(
-                input_path, MirCVerified,
+                compiler_world, input_path, MirCVerified,
                 MirCManifestVerified(
                     SelfHostMachineLayerDeclarationFromPath(manifest_path)
                 )

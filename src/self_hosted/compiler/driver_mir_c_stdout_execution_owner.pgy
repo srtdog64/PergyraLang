@@ -3,13 +3,15 @@
 import "compiler_world_direct_mir_owner.pgy";
 
 func DriverRung2CliLogMirCPayloadOrDie(
+    inout compiler_world: PgyCompilerWorld,
     mir_json_path: String,
     observation_request: DriverRung2MirCRequest,
     machine_request: DriverRung2MirCMachineRequest
 ) -> Void with caps io_read {
     let admission: DriverRung2MirCPayloadAdmission =
         ProduceMirCThroughPgyCompilerWorld(
-            mir_json_path, observation_request, machine_request
+            compiler_world, mir_json_path, observation_request,
+            machine_request
         );
     if !DriverRung2MirCPayloadAdmissionReadyFor(
         admission, mir_json_path, observation_request, machine_request

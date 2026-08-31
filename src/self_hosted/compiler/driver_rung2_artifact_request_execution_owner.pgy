@@ -6,6 +6,7 @@ import "driver_rung2_cli_request_owner.pgy";
 import "compiler_root_intent_execution_owner.pgy";
 
 func DriverRung2InstalledPublishSourceC(
+    inout compiler_world: PgyCompilerWorld,
     source_path: String,
     output_path: String,
     request: DriverSourceCRequest
@@ -13,7 +14,7 @@ func DriverRung2InstalledPublishSourceC(
     let history_before: Int = IntentHistoryCount();
     let outcome: DriverSourceCExecutionOutcome =
         CompileSourceToCThroughPgyCompilerWorld(
-            source_path, output_path, request
+            compiler_world, source_path, output_path, request
         );
     if !DriverSourceCExecutionOutcomeReadyFor(
         outcome, source_path, output_path
@@ -29,13 +30,14 @@ func DriverRung2InstalledPublishSourceC(
 }
 
 func DriverRung2InstalledPublishSourceMir(
+    inout compiler_world: PgyCompilerWorld,
     source_path: String,
     output_path: String,
     source_request: DriverSourceMirRequest
 ) -> Void with caps io_read, io_write {
     let source_outcome: DriverSourceMirExecutionOutcome =
         PublishSourceMirArtifactThroughPgyCompilerWorld(
-            source_path, output_path,
+            compiler_world, source_path, output_path,
             SelfHostMachineLayerDeclarationEmpty(), source_request
         );
     if !DriverSourceMirExecutionOutcomeReadyFor(
@@ -49,13 +51,15 @@ func DriverRung2InstalledPublishSourceMir(
 }
 
 func DriverRung2InstalledPublishMirC(
+    inout compiler_world: PgyCompilerWorld,
     input_path: String,
     output_path: String,
     mir_c_request: DriverRung2MirCRequest
 ) -> Void with caps io_read, io_write {
     let outcome: DriverRung2ExecutionOutcome =
         PublishMirCArtifactThroughPgyCompilerWorld(
-            input_path, output_path, mir_c_request, MirCDefaultMachine
+            compiler_world, input_path, output_path, mir_c_request,
+            MirCDefaultMachine
         );
     let projection: String = CompilerTargetCpuCProjection();
     if !DriverRung2ExecutionOutcomeReadyFor(
@@ -69,6 +73,7 @@ func DriverRung2InstalledPublishMirC(
 }
 
 func DriverRung2InstalledPublishDirectMir(
+    inout compiler_world: PgyCompilerWorld,
     input_path: String,
     output_path: String,
     direct_request: DriverRung2DirectMirRequest,
@@ -76,7 +81,7 @@ func DriverRung2InstalledPublishDirectMir(
 ) -> Void with caps io_read, io_write {
     let outcome: DriverRung2ExecutionOutcome =
         EmitDirectMirThroughPgyCompilerWorld(
-            input_path, output_path,
+            compiler_world, input_path, output_path,
             SelfHostMachineLayerDeclarationEmpty(), direct_request,
             observe_pressure
         );
@@ -93,13 +98,15 @@ func DriverRung2InstalledPublishDirectMir(
 }
 
 func DriverRung2InstalledPublishSourceLlvm(
+    inout compiler_world: PgyCompilerWorld,
     source_path: String,
     output_path: String
 ) -> Void with caps io_read, io_write {
     let history_before: Int = IntentHistoryCount();
     let outcome: DriverSourceLlvmIntentOutcome =
         CompileSourceToLlvmThroughPgyCompilerWorld(
-            source_path, output_path, SelfHostMachineLayerDeclarationEmpty()
+            compiler_world, source_path, output_path,
+            SelfHostMachineLayerDeclarationEmpty()
         );
     if !DriverSourceLlvmIntentOutcomeReadyFor(outcome, output_path) {
         Log(DriverSourceLlvmIntentOutcomeDiagnostic(

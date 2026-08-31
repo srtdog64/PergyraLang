@@ -1,0 +1,125 @@
+// Exact readiness proof for admitted zone-resource local paths and mutable
+// world-borrow parameter rows.
+
+import "ast_zone_value_carriage_verdict_owner.pgy";
+import "ast_zone_resource_shape_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_local_binding_fact_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+func SemanticAstZoneValueCarriageVerdictRowsReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    ref verdict: SemanticAstZoneValueCarriageVerdict
+) -> Bool {
+    if !verdict.ok || !SemanticAstInitializerTypeFactsReadyProjection(
+        artifact, locals, initializer_types
+    ) {
+        return false;
+    }
+    if ArrayLength(verdict.fresh_local_node_ids) !=
+            ArrayLength(verdict.resource_path_starts) ||
+        ArrayLength(verdict.fresh_local_node_ids) !=
+            ArrayLength(verdict.resource_path_counts) {
+        return false;
+    }
+    let row: Int = 0;
+    let path_row: Int = 0;
+    let local_index: Int = 0;
+    while local_index < SemanticAstLocalBindingCount(locals) {
+        if initializer_types.verified[local_index] == 1 &&
+            SemanticAstZoneValueCarriageTypeOwnsResource(
+                constructors, initializer_types.inferred_type_names[local_index]
+            ) {
+            if row >= ArrayLength(verdict.fresh_local_node_ids) ||
+                verdict.fresh_local_node_ids[row] !=
+                    locals.node_ids[local_index] ||
+                verdict.resource_path_starts[row] != path_row {
+                return false;
+            }
+            let type_name: String =
+                initializer_types.inferred_type_names[local_index];
+            let resource_kind: Int =
+                SemanticAstZoneValueCarriageResourceKind(
+                    constructors, type_name
+                );
+            if resource_kind == 1 {
+                if verdict.resource_path_counts[row] != 1 ||
+                    path_row >= ArrayLength(verdict.resource_field_paths) ||
+                    verdict.resource_field_paths[path_row] != "" {
+                    return false;
+                }
+                path_row = path_row + 1;
+            } else if resource_kind == 2 {
+                let constructor_opt: Option<Int> =
+                    SemanticAstNominalConstructorIndexForName(
+                        constructors, type_name
+                    );
+                if !IsSome(constructor_opt) { return false; }
+                let constructor_index: Int = UnwrapOption(constructor_opt);
+                let expected_count: Int = 0;
+                let field_index: Int = 0;
+                while field_index < constructors.param_counts[constructor_index] {
+                    let flat_index: Int =
+                        constructors.param_starts[constructor_index] +
+                        field_index;
+                    if constructors.field_kinds[flat_index] ==
+                        NominalFieldKindWorldZone() {
+                        if path_row >=
+                                ArrayLength(verdict.resource_field_paths) ||
+                            verdict.resource_field_paths[path_row] !=
+                                constructors.field_names[flat_index] {
+                            return false;
+                        }
+                        path_row = path_row + 1;
+                        expected_count = expected_count + 1;
+                    }
+                    field_index = field_index + 1;
+                }
+                if expected_count <= 0 ||
+                    verdict.resource_path_counts[row] != expected_count {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+            row = row + 1;
+        }
+        local_index = local_index + 1;
+    }
+    if row != ArrayLength(verdict.fresh_local_node_ids) ||
+        path_row != ArrayLength(verdict.resource_field_paths) {
+        return false;
+    }
+    let parameter_row: Int = 0;
+    let signature_index: Int = 0;
+    while signature_index < SemanticAstFunctionSignatureCount(signatures) {
+        let parameter_index: Int = 0;
+        while parameter_index < signatures.param_counts[signature_index] {
+            let flat_index: Int =
+                signatures.param_starts[signature_index] + parameter_index;
+            if signatures.param_names[flat_index] != "self" &&
+                signatures.param_modes[flat_index] == 1 &&
+                SemanticAstZoneValueCarriageResourceKind(
+                    constructors, signatures.param_types[flat_index]
+                ) == 2 {
+                if parameter_row >= ArrayLength(
+                        verdict.mutable_borrow_parameter_node_ids) ||
+                    verdict.mutable_borrow_parameter_node_ids[parameter_row] !=
+                        signatures.param_node_ids[flat_index] {
+                    return false;
+                }
+                parameter_row = parameter_row + 1;
+            }
+            parameter_index = parameter_index + 1;
+        }
+        signature_index = signature_index + 1;
+    }
+    return parameter_row ==
+        ArrayLength(verdict.mutable_borrow_parameter_node_ids);
+}

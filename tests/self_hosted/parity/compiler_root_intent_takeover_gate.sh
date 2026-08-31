@@ -81,7 +81,7 @@ grep -Eq '\.ProduceSourceMir\(|\.PublishMirPayloadLlvmArtifact\(' "$INTENT_EXECU
     fail "compiler-purpose action bypassed its function owners through nested zone actions"
 
 for term in 'func CompileSourceToLlvmThroughPgyCompilerWorld(' \
-    'PgyCompilerWorldMaterializeExecutableZones();' \
+    'inout compiler_world: PgyCompilerWorld,' \
     'return compiler_world.CompileSourceToLlvm('; do
     require_text "$ROOT_EXECUTION" "$term"
 done
@@ -97,8 +97,8 @@ for term in 'func CompileSourceToLlvm(self, source_path: String' \
     'completed != DriverSourceLlvmIntentOutcomeReadyFor('; do
     require_text "$WORLD" "$term"
 done
-[[ "$(grep -Fc 'PgyCompilerWorldMaterializeExecutableZones();' "$ROOT_EXECUTION")" -eq 1 ]] ||
-    fail "compiler intent execution must materialize one world"
+grep -Fq 'PgyCompilerWorldMaterializeExecutableZones' "$ROOT_EXECUTION" &&
+    fail "compiler intent execution returned to a by-value world factory"
 for term in 'func DriverRung2InstalledPublishSourceLlvm(' \
     'CompileSourceToLlvmThroughPgyCompilerWorld(' \
     'IntentHistoryCount()' 'IntentLastName() != "CompilePergyraProgram"' \

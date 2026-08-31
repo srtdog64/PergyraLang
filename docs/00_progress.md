@@ -1,6 +1,19 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-29
+마지막 업데이트: 2026-08-31
+
+현재 열린 executable rung은 `PgyCompilerWorld` 내부 zone 생명주기다. 로컬
+후보에서는 생산 `driver_bootstrap_main.Main`이 fresh world 하나를 직접 소유하고,
+모든 설치/read/artifact 경로가 같은 identity를 `inout`으로 운반한다. Semantic
+admission이 exact nested resource path와 mutable-resource parameter ID를 소유하며,
+codegen은 그 증거만으로 lock init/destroy와 무복사 borrow를 생성한다. 기존
+embedded-zone C guard와 by-value factory는 삭제됐다. Copy/reassignment/default
+parameter/world-return negative, single/thread-safe exact 실행, aggregate zone, topology,
+compiler-world, intent/source-MIR, component ratchet과 fresh production DRV-2
+thread-safe verified-artifact 요청이 local green이다. General zone return/move는
+별도 open seam이며 publication 및 exact CI는 아직 남아 있다. 따라서 census는
+88 authorities / 183 carriers / `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도는
+**83%** (81~85%)를 그대로 유지한다.
 
 `abi.intent_observability_rows`는 이제 기존 BRIDGE를 실제로 닫았다. Append-only
 registry가 `RuntimeCallAbiId`와 source/runtime 이름, parameter shape, result kind를

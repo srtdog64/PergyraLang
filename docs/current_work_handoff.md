@@ -18,6 +18,37 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — compiler-world embedded-zone lifecycle
+
+- Exact tracked base is `52021bbf3912e65b7066d2b0adce832150699a76`, equal
+  to `origin/main` when this rung opened. Protected unrelated untracked paths
+  in the collaboration ledger remain outside inspection, edit, and staging.
+- Fresh current-source DRV-2 evidence shows an artificial zone-return probe is
+  single-mode executable but has no self-host production consumer. The real
+  reached bypass is the `PgyCompilerWorld` embedded-zone guard in generated
+  production `driver.c`; its current factory also returns the lock-bearing
+  world by value and every route reconstructs it.
+- `driver_bootstrap_main.Main` now owns one direct fresh world. Admitted
+  nominal `world_zone` field facts become exact semantic resource paths;
+  statement emission consumes them for nested lock init/destroy, and admitted
+  `inout` parameters alias the same identity without copy-in/copy-out.
+- The embedded backend guard and by-value factory are deleted. World
+  copy/reassignment/default parameter and lock-bearing world return fail in
+  semantic admission; raw lock copying, backend-local world-name exceptions,
+  fixed source lifetimes, and general zone return/move work remain forbidden.
+- The exact objective card, scope, and validation budget are in
+  `docs/agent_work_directives/compiler_world_embedded_zone_lifecycle_2026-08-31.md`.
+  Focused semantic negatives and single/thread-safe execution are green, as
+  are aggregate zone, topology, compiler-world, intent, source-MIR, and
+  component ratchets. A fresh production DRV-2 candidate has SHA-256
+  `3c5b2b9c690529e5fc236e73a9acdceb19153ba033a3071d4bde9b9038f4c6d1`;
+  its thread-safe rebuild SHA-256 is
+  `b1345fc43fb6a0a1095ecb1188e684fd8cee647609185171e5bd992563cbb340`
+  and executed one verified-artifact production request with exact `0`, then
+  rejected lock-bearing world return with no artifact.
+  Generated inventory, publication, and exact CI remain pending. The SoT
+  census and 83% forecast do not change.
+
 ## Published — zone parameter ref semantic admission is exact-CI green
 
 - Exact tracked base is `8ef7039459711e64ac07da12b8473057968c0451`, equal
