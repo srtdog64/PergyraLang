@@ -18,13 +18,13 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — public MIR JSON receipt publication pending
+## Active self-host context — no successor implementation lease open
 
-- Exact base and current HEAD are
-  `04a981b1afd5a625d8e0a6b411919165d34d7439`; `origin/main` matched when the
-  lease opened. The tracked tree contains the local candidate. Protected
-  unrelated untracked paths are listed in the collaboration ledger and must
-  not be inspected, edited, or staged.
+- The rung opened from `04a981b1afd5a625d8e0a6b411919165d34d7439`.
+  Implementation `bc694e87694100dd408ac46bb55bb1063e18d64f` and generated-
+  inventory repair `f0db07633ecc7d4bf0a1b191c80fa1416b0bd67a` are on
+  `origin/main`. Protected unrelated untracked paths are listed in the
+  collaboration ledger and remain outside inspection, edit, and staging.
 - Production entrypoint is default `pgy --mir --error-format=json SOURCE`.
   The deleted direct bypass is the C launcher's unsupported-option rejection.
   `public_diagnostic_receipt_owner.pgy` owns the typed public receipt, and
@@ -47,15 +47,19 @@ percentage by themselves.
   new Pergyra files. The owner generator updates three counts (`func`, `if`,
   `import`); the exact gate is local green and its parent advanced through
   component/hard before the declared missing-local-prover boundary.
+- Exact repair run `33427035319` is green on its scoped Markdown path,
+  including the formerly failing language-word inventory gate. Combined with
+  the first run's 29 green full jobs, the publication falsifier is closed.
 - Exact objective and forbidden fallbacks are in
   `docs/agent_work_directives/public_mir_json_diagnostic_receipt_2026-09-01.md`.
   This is one `SUBSTITUTING` public boundary inside the still-open
   `diagnostic.catalog` BRIDGE. Native module-load, AIR, runtime, and other
   diagnostic mappings remain, so SoT stays `88/183`,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`; project forecast remains 83%.
-- Next action is commit and push the generated-inventory repair, then observe
-  its exact-head CI. Do not open a successor implementation rung until
-  publication is green.
+- No successor implementation rung is inferred from this boundary or from the
+  measured gate times. Resume by selecting one fresh production executable
+  falsifier and opening a new objective card; do not continue general
+  diagnostic SoT cleanup merely because this bounded path is green.
 
 ## Published — compatibility-evolution production receipt exact-CI green
 

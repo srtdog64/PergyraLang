@@ -1,6 +1,6 @@
 # Public MIR JSON diagnostic receipt
 
-Status: LOCAL IMPLEMENTATION COMPLETE; PUBLICATION AND EXACT CI PENDING
+Status: PUBLISHED; EXACT CI GREEN
 Base revision: `04a981b1afd5a625d8e0a6b411919165d34d7439`
 
 This directive coordinates one bounded production substitution. It is not a

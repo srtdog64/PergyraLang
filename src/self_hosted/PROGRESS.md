@@ -1,6 +1,6 @@
 # Self-Host Progress
 
-## Local self-host context - 2026-09-01 public MIR JSON diagnostic receipt
+## Completed self-host context - 2026-09-01 public MIR JSON diagnostic receipt
 
 - Default `pgy --mir --error-format=json SOURCE` no longer stops at a C-owned
   unsupported-option branch. The installed Pergyra request carries the
@@ -19,7 +19,11 @@
   BRIDGE, not whole-row closure. Native module-load, AIR, runtime, and other
   free-text mappings remain. Census stays `88/183` and `55/32/1`; integrated
   progress remains 83% (81-85%), strict beta 83%, and hard replacement 75%.
-  Commit, push, and exact-head CI remain the publication falsifier.
+  Implementation `bc694e87` and inventory repair `f0db0763` are published.
+  Run `33422880526` proved full self-host, Rocq, all 20 backend shards,
+  Windows/macOS, sanitizers, and 28 other jobs green; its sole failed generated
+  inventory was repaired, and exact repair run `33427035319` is green on the
+  scoped Markdown contract path. Publication is complete.
 
 ## Completed self-host context - 2026-08-30 ArrayString literal target projection
 

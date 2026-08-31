@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — public MIR JSON diagnostic receipt publication
+## DONE lease — public MIR JSON diagnostic receipt publication
 
 - Exact base is `04a981b1afd5a625d8e0a6b411919165d34d7439`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -35,7 +35,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `func` 652→653, `if` 169→170, and `import` 27→28. The exact failed gate is
   locally green; its parent passed component/hard follow-ons and stopped only
   at the explicitly declared missing local Coq/Rocq boundary.
-- Publication and exact-head CI are still open. Protected unrelated untracked
+- Implementation `bc694e87694100dd408ac46bb55bb1063e18d64f` and generated-
+  inventory repair `f0db07633ecc7d4bf0a1b191c80fa1416b0bd67a` are on
+  `origin/main`. Exact repair run `33427035319` is green on its scoped Markdown
+  path, including the formerly failing language-word gate. Together the first
+  run's 29 green full jobs and the repair run close the publication falsifier;
+  this lease is retired and no successor edit scope is inferred.
+- Protected unrelated untracked
   `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/` remain
   outside inspection, edit, and staging.
 
