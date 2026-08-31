@@ -57,9 +57,18 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Repair commit `98e004936eececbab9ef85c88499a060183ccfca` is the sole
   committed publication candidate; this lease still owns its push and exact
   CI observation.
-- Repair publication, replacement exact CI, and final lease retirement remain
-  pending. Existing untouched parser 725/699 and runtime-header 618/600 size
-  failures stay outside this lease.
+- Repair/document checkpoint `e14443709bd1fb8c077e096e17ed14e37503ee28`
+  produced exact run `33368895709`. Full fixed-point, receipt adoption, and
+  direct-MIR intent parity were green; the sole red was a stale source-C gate
+  that still assigned world construction to the route owner. Preventive local
+  execution then found two matching MIR-C expectations that omitted the new
+  carried world argument.
+- Gate repair `69d5a20fdf784105c8f0cda8e1dbb828577c40d0` owns the one
+  installed-root construction and exact source-C/MIR-C identity delegation
+  ratchets. Exact source-C, installed CLI aggregate, and policy corpus are
+  local green. Its publication, replacement exact CI, and final lease
+  retirement remain pending. Existing untouched parser 725/699 and
+  runtime-header 618/600 size failures stay outside this lease.
 
 ## DONE lease — zone parameter ref semantic admission
 

@@ -65,6 +65,21 @@ percentage by themselves.
   correctness repair is exact-CI green. Broad size gates remain red only on
   untouched existing `src/parser/ast_expr_control_accessors.c` 725/699 and
   `src/runtime/pgy_runtime_lib_io_string_exports.h` 618/600 violations.
+- Repair/document checkpoint `e14443709bd1fb8c077e096e17ed14e37503ee28`
+  reached exact run `33368895709`. Every job except
+  `self-host-bootstrap-linux` was green, including backend shards 20/20. The
+  full bootstrap itself passed the repaired native oracle, bounded parity,
+  full MIR, `gen2 == gen3 (172782 lines)`, receipt-bound installed DRV-2, and
+  three direct-MIR intent parity gates. It then failed only because the
+  source-C structural gate still required the deleted route-local world
+  constructor.
+- Gate repair `69d5a20fdf784105c8f0cda8e1dbb828577c40d0` now requires
+  exactly one installed world construction in `driver_bootstrap_main.Main`,
+  forbids reconstruction in the route owner, and ratchets the same
+  `compiler_world` through source-C and MIR-C read/artifact consumers. The
+  exact source-C parent behavior, installed CLI aggregate, public MIR/native
+  opt-in/REPL/formatter/device-manifest gates, and three-row policy corpus are
+  local green. Publication and replacement exact CI remain pending.
 - The exact objective card, scope, and validation budget are in
   `docs/agent_work_directives/compiler_world_embedded_zone_lifecycle_2026-08-31.md`.
   Aggregate zone, topology, compiler-world, intent, source-MIR, and component
@@ -74,8 +89,8 @@ percentage by themselves.
   `b1345fc43fb6a0a1095ecb1188e684fd8cee647609185171e5bd992563cbb340`
   and executed one verified-artifact production request with exact `0`, then
   rejected lock-bearing world return with no artifact.
-  Repair publication and replacement exact CI remain pending. The SoT census
-  and 83% forecast do not change.
+  Gate-repair publication and replacement exact CI remain pending. The SoT
+  census and 83% forecast do not change.
 
 ## Published — zone parameter ref semantic admission is exact-CI green
 

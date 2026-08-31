@@ -1,6 +1,6 @@
 # Compiler-world embedded-zone lifecycle directive
 
-Status: IMPLEMENTATION PUBLISHED — NATIVE-ORACLE REPAIR LOCAL FIXED POINT GREEN
+Status: NATIVE-ORACLE REPAIR PUBLISHED — FOLLOW-UP GATE REPAIR COMMITTED
 
 Exact base: `52021bbf3912e65b7066d2b0adce832150699a76`, equal to
 `origin/main` when this directive opened. Protected unrelated untracked paths
@@ -155,3 +155,22 @@ only after the exact published revision is green in CI.
   remain explicit unrelated red gates.
 - Repair publication and replacement exact CI are the remaining falsifier.
   This repair closes no additional SoT row and does not change the 83% line.
+
+## Replacement run and structural-gate repair
+
+- Repair/document checkpoint `e14443709bd1fb8c077e096e17ed14e37503ee28`
+  produced run `33368895709`. Codegen bootstrap, all platform and sanitizer
+  jobs, Rocq, backend toolchain, and all 20 shards were green. Full bootstrap
+  passed `gen2 == gen3 (172782 lines)`, adopted the receipt-bound driver, and
+  passed the legacy/composite/nested direct-MIR intent gates.
+- The only failure came after fixed-point adoption. The source-C structural
+  gate still looked for `DriverSourceCZone(DriverSourceCExecution(` in the
+  route owner even though this rung deliberately moved the sole production
+  construction to `driver_bootstrap_main.Main`. A preventive installed-CLI
+  run exposed two matching MIR-C expectations that still omitted the carried
+  `compiler_world` argument.
+- Gate repair `69d5a20fdf784105c8f0cda8e1dbb828577c40d0` requires one
+  installed-root world, prohibits route reconstruction, and pins the same
+  identity through installed/read/artifact calls. Exact source-C behavior,
+  the full installed CLI aggregate, and the policy corpus are local green.
+  Publication and replacement exact CI are the remaining falsifier.

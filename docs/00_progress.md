@@ -27,6 +27,19 @@ parser 725/699 및 runtime header 618/600 부채로 red다. General zone return/
 있다. 따라서 census는 88 authorities / 183 carriers /
 `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도는 **83%** (81~85%)를 그대로 유지한다.
 
+Native-oracle repair와 문서 checkpoint `e1444370`의 exact run
+`33368895709`는 codegen bootstrap, Linux/Windows/macOS, sanitizer/TSan, Rocq,
+backend toolchain과 shard 20/20을 모두 통과했다. Full bootstrap도 stale native
+oracle 오류를 지나 `gen2 == gen3 (172782 lines)`, receipt-bound DRV-2 설치와 세
+direct-MIR intent parity를 증명했다. 마지막 red는 world 생성 책임이 이미
+`driver_bootstrap_main.Main`으로 이동했는데 source-C/MIR-C 구조 게이트가 옛 route
+owner 생성과 무인수 read delegation을 요구한 것이었다. Gate repair
+`69d5a20fdf784105c8f0cda8e1dbb828577c40d0`은 Main의 exactly-one world,
+route의 reconstruction 금지, installed/read/artifact 경계의 같은
+`compiler_world` 전달을 ratchet한다. Exact source-C, installed CLI aggregate와
+policy corpus는 local green이고 이 gate repair의 publication 및 replacement exact
+CI가 남아 있다. 이 후속 수리는 SoT census와 83% line을 바꾸지 않는다.
+
 `abi.intent_observability_rows`는 이제 기존 BRIDGE를 실제로 닫았다. Append-only
 registry가 `RuntimeCallAbiId`와 source/runtime 이름, parameter shape, result kind를
 소유하고, semantic expression과 admitted MIR가 그 ID를 운반한다. Semantic
