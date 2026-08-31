@@ -1,12 +1,12 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-08-31 (Asia/Seoul)
+Updated: 2026-09-01 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — compatibility-evolution production receipt
+## DONE lease — compatibility-evolution production receipt
 
 - Exact base is `551fef8836bf187a4931e9c7a8eafbcb0abe7081`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -31,8 +31,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   CLI aggregate; and component/topology ratchets require validation before
   dispatch. SoT edge/single-owner/protocol and hard-contract gates are green.
   Local SoT adequacy declared its missing Coq/Rocq prover and therefore did not
-  check the formal model. Exact push CI is the remaining formal and publication
-  falsifier, so this lease is still active.
+  check the formal model.
+- Implementation `76d620a1cd219a5c0459bf85583cbf53273a4b09` is on
+  `origin/main`. Exact run `33405702853` is green 30/30, including Rocq,
+  receipt-bound `gen2 == gen3 (172892 lines)`, Pergyra-built DRV-2 adoption,
+  installed CLI parity, sanitizers, Windows/Linux/macOS, and all 20 backend
+  shards. The publication falsifier is satisfied and this lease is retired.
 - Protected unrelated untracked `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
   staging.

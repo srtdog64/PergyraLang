@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-08-31 (Asia/Seoul)
+Updated: 2026-09-01 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -18,13 +18,14 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — compatibility-evolution production receipt
+## Active self-host context — no successor implementation lease open
 
-- Exact base is `551fef8836bf187a4931e9c7a8eafbcb0abe7081`, equal to
-  `origin/main` when this rung opened. The primary task owns the active edit and
-  publication lease recorded in `docs/current_work_collaboration.md`.
+- The compatibility-evolution production-receipt rung opened at
+  `551fef8836bf187a4931e9c7a8eafbcb0abe7081`. Implementation
+  `76d620a1cd219a5c0459bf85583cbf53273a4b09` is on `origin/main`; its edit and
+  publication lease in `docs/current_work_collaboration.md` is retired.
 - Production entrypoint is `driver_bootstrap_main.Main`; the last consumer is
-  `DriverRung2ExecuteInstalledRequest`. The current dirty source now carries an
+  `DriverRung2ExecuteInstalledRequest`. Published source carries an
   owner-issued compatibility fact from `Main` and rejects it before request
   dispatch when its exact identity is invalid. The older
   `ProveHardSelfHostEvidence` compatibility step has no caller and therefore is
@@ -47,13 +48,22 @@ percentage by themselves.
   fresh Pergyra-built DRV-2 passed the installed CLI aggregate; and component
   plus pre-dispatch topology ratchets are green. SoT edge/single-owner/protocol
   and hard self-host contract gates are green. Local SoT adequacy checked live
-  binding and negative mutations with an explicit missing-Coq/Rocq skip; exact
-  push CI remains the formal-model and publication evidence.
+  binding and negative mutations with an explicit missing-Coq/Rocq skip.
+- Exact run `33405702853` is green 30/30. Rocq checked the formal model; Linux
+  full self-host proved `gen2 == gen3 (172892 lines)`, adopted the receipt-bound
+  fixed-point driver, installed the Pergyra-built DRV-2, and passed source-C
+  plus installed-CLI parity. Sanitizers, Windows/Linux/macOS, and all 20 backend
+  comparison shards are green. The full self-host job took 34m11s and Linux
+  fast push took 23m14s; those costs are evidence, not a new optimization lease.
 - This prerequisite does not close the registry row. Native C text validation
   and diagnostic/package consumers remain, so SoT stays `88/183`,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`, and the project forecast remains 83%.
+- No successor implementation rung is inferred from this prerequisite or its
+  timing. Resume by selecting one fresh production executable falsifier and
+  opening its objective card; do not revive this receipt rung, start unrelated
+  SoT cleanup, or open a cache/query redesign from elapsed time alone.
 
-## Active self-host context — no successor implementation lease open
+## Published — semantic root lookup performance rung exact-CI green
 
 - Exact base is `c5c50c4968418009c36cd33ed17c8e0ad937bcde`, equal to
   `origin/main` when this rung opened. The compiler-world embedded-zone lease

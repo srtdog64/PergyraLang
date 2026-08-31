@@ -1,6 +1,6 @@
 # Compatibility Evolution Production Receipt
 
-Status: `ACTIVE` — implementation local-green; publication pending
+Status: `IMPLEMENTATION COMPLETE`
 
 Exact base revision: `551fef8836bf187a4931e9c7a8eafbcb0abe7081`
 
@@ -89,8 +89,12 @@ CI.
   SoT adequacy live binding and negative mutations are green with an explicit
   local Coq/Rocq skip; this workstation has no prover, so the model itself was
   not checked locally and exact CI remains its required evidence.
-- Publication and exact push-CI evidence remain pending. Until they are
-  observed, the collaboration lease and this directive remain active.
+- Implementation `76d620a1cd219a5c0459bf85583cbf53273a4b09` is on
+  `origin/main`. Exact run `33405702853` is green 30/30. The full Linux
+  self-host job proved `gen2 == gen3 (172892 lines)`, adopted the receipt-bound
+  fixed-point driver, installed the Pergyra-built DRV-2, and passed source-C and
+  installed-CLI parity. Rocq, sanitizers, Windows/Linux/macOS, and all 20
+  backend shards are green. The implementation lease is retired.
 
 ## Evidence classification
 
