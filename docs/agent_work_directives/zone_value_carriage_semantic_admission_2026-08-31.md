@@ -1,6 +1,6 @@
 # Zone Value Carriage Semantic Admission — 2026-08-31
 
-Status: `LOCAL GREEN — PUBLICATION AND EXACT CI PENDING`
+Status: `PUBLISHED — EXACT CI GREEN`
 
 Exact base: `5a2a95c0dfdd956bbecdd7398874cb7c312d6386`, equal to
 `origin/main` when this rung opened.
@@ -145,3 +145,11 @@ substitution progress.
   all four pthread-backed harness compilations and ratchets the XOPEN flag.
   The exact Make target is locally green with those flags; exact Linux CI is
   pending.
+- Feature-surface repair `c630504011558de4ffe5b351d3093f6035d9574b` is
+  published. Exact push run `33341938147` is green 30/30. Its `build-linux`
+  log observes both the semantic-admission/backend-error ratchet PASS and
+  `[domain-runtime-zone-sync] PASS`; full self-host observes
+  `gen2 == gen3 (172527 lines)`, receipt-bound fixed-point driver adoption,
+  Pergyra-built DRV-2 installation, and the exact three-source policy-corpus
+  `out_of_subset` census. This bounded seam is complete; broader by-value and
+  embedded zone transfer remain open under the existing ACTIVE SoT family.

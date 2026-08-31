@@ -18,57 +18,49 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — zone value carriage semantic admission
+## Published — zone value carriage semantic admission is exact-CI green
 
-- Exact tracked base is `5a2a95c0dfdd956bbecdd7398874cb7c312d6386`, equal
-  to `origin/main` when this rung opened. The worktree has the one active
-  implementation lease plus protected unrelated untracked paths listed in the
-  collaboration ledger; do not inspect, edit, or stage those paths.
+- Exact tracked base was `5a2a95c0dfdd956bbecdd7398874cb7c312d6386`.
+  Implementation `4e787b05f794ef03183128e0533db2e69d996707`, CI wiring
+  `91a604ff7a237cd65b17aa5d07aa3b9b265c5b34`, portable driver selection
+  `5d2f676e9e52fb9641b59c7fed5667a69cf3a270`, and POSIX/XOPEN repair
+  `c630504011558de4ffe5b351d3093f6035d9574b` are on `origin/main`.
+  Protected unrelated untracked paths in the collaboration ledger remain
+  outside inspection, edit, and staging.
 - Production entrypoint is current-source
   `pgy-self-driver --emit-c-artifact-verified SOURCE OUTPUT`. The deleted
   bypass accepted named local zone copy and reassignment in semantics, then
   emitted thread-safe-only C `#error` decisions.
-- `SemanticAstZoneValueCarriageVerdictFromAdmittedFacts` now owns that
-  target-neutral admission. It carries admitted fresh local node IDs through
-  the body bundle, v2 receipt, and codegen view. `EmitStmtList` consumes the
-  carried row and no longer reconstructs constructor/nominal-kind policy.
-- Direct construction and the existing explicit one-argument `Clone`
-  ownership boundary remain admitted. Named local copy and every zone
-  reassignment fail closed before artifact publication; by-value and embedded
-  zone transfer remain outside this rung and the registry row stays `ACTIVE`.
-- Rebuilt installed DRV-2 SHA-256 is
+- `SemanticAstZoneValueCarriageVerdictFromAdmittedFacts` now owns target-neutral
+  admission and carries admitted fresh local node IDs through the body bundle,
+  v2 receipt, and codegen view. `EmitStmtList` consumes the carried row and no
+  longer reconstructs constructor or nominal-kind policy.
+- Direct construction and the existing explicit one-argument `Clone` boundary
+  remain admitted. Named local copy and every zone reassignment fail before
+  artifact publication with stable diagnostic codes. Both production
+  negatives exit 1 with no C artifact; the rebuilt DRV-2 SHA-256 is
   `18B60B93C8B5B324F3D98337F027921E57D0DF2392F75C45E6AC37E02ABC9D33`.
-  Both production negatives exit 1 with stable codes and no C artifact.
-  Lifecycle execution is exact `7 / 11 / 13 / 17 / 19 / 23` in single and
+- Lifecycle execution is exact `7 / 11 / 13 / 17 / 19 / 23` in single and
   thread-safe modes with seven lock initializations, thirteen destroy sites,
-  and `Clone` init/destroy.
-- Focused current-source parity, component, compiler-world, hard-contract,
-  SoT-edge, build inventory, documentation, and agent-sentinel gates are
-  local green. SoT census remains 88/183 and `55/32/1`.
-  `tests/test_inc_size_smoke.sh` retains an unrelated baseline failure for the
-  unmodified `src/parser/ast_expr_control_accessors.c` at 725/699.
-- Objective and exact scope are fixed in
+  and `Clone` init/destroy. Focused, component, compiler-world, hard-contract,
+  SoT-edge, build inventory, documentation, and agent-sentinel gates are local
+  green.
+- Exact push run `33341938147` at `c630504011558de4ffe5b351d3093f6035d9574b`
+  is green 30/30. `build-linux` observes both the semantic-admission/backend-
+  error ratchet PASS and `[domain-runtime-zone-sync] PASS`; all 20 backend
+  shards are green. Full self-host observes `gen2 == gen3 (172527 lines)`,
+  receipt-bound fixed-point driver adoption, Pergyra-built DRV-2 installation,
+  and the three-source policy corpus as `out_of_subset`.
+- SoT census remains 88 authorities / 183 carriers and
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`; the integrated forecast remains 83%.
+  By-value and embedded zone transfer remain open under the existing ACTIVE
+  semantic family. `tests/test_inc_size_smoke.sh` retains the unrelated,
+  unmodified `src/parser/ast_expr_control_accessors.c` 725/699 baseline failure.
+- Objective and exact scope are recorded in
   `docs/agent_work_directives/zone_value_carriage_semantic_admission_2026-08-31.md`.
-  Implementation `4e787b05f794ef03183128e0533db2e69d996707` is published,
-  and push run `33335932435` is green 30/30 with a 172,527-line fixed point and
-  receipt-bound DRV-2 adoption. Post-run log audit found no focused zone-gate
-  execution in the actual Linux step lists. The current follow-up wires the
-  existing Make target into both lists and ratchets that wiring; publish it
-  and require an exact rerun with the focused PASS in `build-linux` before
-  retiring the collaboration lease.
-- Wiring run `33337733639` reached 29/30 green but failed `build-linux` at the
-  focused gate with exit 127 because its script ignored the established
-  `PGY_SELF_DRIVER_BIN` and tried the Windows-only `.exe` default on Linux.
-  Current worktree repair consumes the standard variable, passes
-  `SELF_HOST_DRIVER` from the Make target, and ratchets the connection. The
-  exact Make target is locally green from a fresh codegen build; publish this
-  repair and rerun exact CI.
-- Portable-path run `33339894056` proved that driver selection and then failed
-  one boundary later: strict C11 hid `pthread_rwlock_t` because the focused
-  harness lacked POSIX/XOPEN feature defines. Current worktree adds
-  `_POSIX_C_SOURCE=200809L`, `_XOPEN_SOURCE=700`, and `_DEFAULT_SOURCE` to all
-  four pthread-backed harness compile commands and ratchets the flag. The exact
-  Make target is locally green; publish and rerun exact Linux CI.
+  No implementation lease remains active. The next session must select the
+  next reached production falsifier or direct C bypass; do not infer a
+  successor from an arbitrary SoT row.
 
 ## Published — generated zone resource lifecycle is exact-CI green
 

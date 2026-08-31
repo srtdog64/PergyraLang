@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — zone value carriage semantic admission
+## DONE lease — zone value carriage semantic admission
 
 - Exact base is `5a2a95c0dfdd956bbecdd7398874cb7c312d6386`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit and
@@ -20,9 +20,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - No parallel implementation scope is open. Parameter/return carriage,
   embedded zones, move syntax, fixed lifetimes, and unrelated SoT rows remain
   outside this lease.
-- The lease remains active through semantic-owner implementation, backend
-  bypass deletion, focused and integration evidence, publication, and exact
-  CI. Its completion does not by itself change the SoT census or 83% forecast.
+- Completion required semantic-owner implementation, backend bypass deletion,
+  focused and integration evidence, publication, and exact CI. Those conditions
+  are now satisfied; the result does not by itself change the SoT census or
+  83% forecast.
 - Local implementation and integration are green. The semantic verdict owns
   copy/reassignment admission and carries its admitted fresh-local rows to
   codegen; the two C-backend policy branches are deleted. Rebuilt production
@@ -33,25 +34,29 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   modes with seven lock initializations, thirteen destroy sites, and the
   explicit `Clone` identity lifecycle. Focused, component, compiler-world,
   hard, SoT-edge, inventory, documentation, and agent sentinel gates are
-  green. Publication and exact CI remain pending; the lease is not retired.
+  green.
 - Implementation `4e787b05f794ef03183128e0533db2e69d996707` is on
   `origin/main`, and push run `33335932435` is green 30/30. Log audit proved
   the focused zone gate was absent from the actual Linux step lists, however;
-  this lease therefore remains active while the existing Make target is wired
-  into both push and full Linux CI and an exact rerun observes its PASS output.
+  that run therefore remained provisional while the existing Make target was
+  wired into both push and full Linux CI.
 - Wiring run `33337733639` is 29/30: full self-host and all 20 backend shards
   are green, while `build-linux` failed only because the focused script chose
   `bin/pgy-self-driver.exe` instead of the exported
   `PGY_SELF_DRIVER_BIN`. The active repair consumes that standard variable,
   passes the Makefile's OS-specific driver path explicitly, and locally passes
-  the exact Make target from a fresh codegen build. The lease remains active
-  through another exact run.
+  the exact Make target from a fresh codegen build.
 - Portable-path run `33339894056` is again 29/30: driver selection now reaches
   the Linux harness compile, which failed because strict C11 did not expose
   `pthread_rwlock_t` without POSIX/XOPEN feature macros. The active repair adds
   the repository-standard feature flags to all four pthread-backed compile
-  commands and a component ratchet. Local exact-target execution is green;
-  the lease still requires exact Linux CI.
+  commands and a component ratchet. Local exact-target execution is green.
+- Feature-surface repair `c630504011558de4ffe5b351d3093f6035d9574b` is on
+  `origin/main`. Exact push run `33341938147` is green 30/30; `build-linux`
+  observes both focused zone PASS lines, all 20 backend shards are green, and
+  full self-host observes the 172,527-line fixed point plus receipt-bound
+  Pergyra-built DRV-2 adoption. This lease is retired. By-value and embedded
+  zone transfer remain outside it and keep the top semantic family ACTIVE.
 
 ## DONE lease — generated zone resource lifecycle published
 
