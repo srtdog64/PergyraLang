@@ -1,6 +1,6 @@
 # Zone Parameter Ref Semantic Admission — 2026-08-31
 
-Status: `LOCAL CI RATCHET GREEN — REPUBLICATION AND EXACT CI PENDING`
+Status: `PUBLISHED — EXACT CI GREEN`
 
 Exact base: `8ef7039459711e64ac07da12b8473057968c0451`, equal to
 `origin/main` when this rung opened.
@@ -112,7 +112,8 @@ define zone move/return/embedding semantics or invent a fixed lifetime.
   parallel rows directly. A negative source ratchet rejects renewed signature
   accessor forwarding. The exact failed seed bootstrap now reports zero
   diagnostics and produces gen2 plus the parser AST producer; the current-gen2
-  focused zone gate is green. Replacement publication and exact CI are pending.
+  focused zone gate is green. Replacement publication and exact CI were pending
+  at that checkpoint.
 - Correction publication `bda2d4cff42a4ae85b817f507c1dd1387b4ec2ff`
   completed run `33347320011` at 29/30. Every semantic/executable target in this
   directive passed, including the three Linux zone lines, backend shards 20/20,
@@ -124,7 +125,7 @@ define zone move/return/embedding semantics or invent a fixed lifetime.
   renderer regenerated only that derived projection; its exact gate is green
   locally, as is the full preparation-contract parent with a declared local
   missing-Coq skip. Exact CI already proved the Rocq 9 job. Inventory-only
-  publication and exact CI remain pending.
+  publication and exact CI were pending at that checkpoint.
 - Inventory commit `c3b1286b3c9565e99b82545d207bed2f061f9272` produced
   green run `33349837888`, but its Markdown-only target omitted the exact
   language-word generator check. The run therefore does not close the one red
@@ -132,4 +133,20 @@ define zone move/return/embedding semantics or invent a fixed lifetime.
 - The Markdown contract now runs `language_keyword_registry_smoke.sh`, and the
   CI-profile owner ratchets that invocation. The complete local Markdown
   command list is green with the regenerated inventory. Publication and one
-  remote registry PASS remain pending.
+  remote registry PASS were pending at that checkpoint.
+
+## Publication evidence
+
+- Implementation `672990d2a4eaf58a2a67d065aa904b3995676983`, borrow-view
+  repair `bda2d4cff42a4ae85b817f507c1dd1387b4ec2ff`, generated inventory
+  `c3b1286b3c9565e99b82545d207bed2f061f9272`, and CI ratchet
+  `3988644ae307fb9d24f718e1503691089b90a47f` are published on `origin/main`.
+- Exact run `33350057083` completed green 30/30. Linux logged copy/reassignment
+  admission PASS, default-negative plus ref execution PASS, aggregate zone-sync
+  PASS, and the 146-row language-word registry PASS. Full self-host proved
+  `gen2 == gen3 (172580 lines)`, adopted the receipt-bound fixed-point driver,
+  installed Pergyra-built DRV-2, and recorded all three policy sources as
+  `out_of_subset`.
+- The SoT census remains 88 authorities / 183 carriers / `55/32/1`. Return and
+  world-embedding transfer remain separate guarded seams. This directive does
+  not select a successor rung.

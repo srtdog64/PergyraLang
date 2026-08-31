@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — zone parameter ref semantic admission
+## DONE lease — zone parameter ref semantic admission
 
 - Exact base is `8ef7039459711e64ac07da12b8473057968c0451`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit and
@@ -21,10 +21,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - No parallel implementation scope is open. Zone return/embedding, transfer
   syntax, fixed lifetimes, unrelated artifact admission, and other SoT rows
   remain outside this lease.
-- The lease stays active through semantic-owner implementation, deletion of the
+- Closure required semantic-owner implementation, deletion of the
   parameter backend decision, default-negative plus ref execution, current
   DRV-2 construction, publication, and exact Linux CI. Its completion does not
-  by itself change the SoT census or 83% forecast.
+  by itself change the SoT census or 83% forecast. Those conditions are now
+  satisfied.
 - Local implementation and production-candidate integration are green. The
   default fixture fails before C with the stable semantic code; read-only ref
   executes exact `7` in single/thread-safe builds. A fresh DRV-2 candidate with
@@ -34,7 +35,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Component, compiler-world, SoT, hard, inventory, documentation, and agent
   gates are green. The broad incremental-size gate still reports the unrelated
   pre-existing `src/parser/ast_expr_control_accessors.c` 725/699 violation;
-  replacement publication and exact CI remain pending.
+  Those were still pending at that candidate checkpoint.
 - First publication `672990d2a4eaf58a2a67d065aa904b3995676983`
   exposed one stricter self-host check in CI run `33345542503`: the new owner
   accepted `ref signatures` but forwarded that borrowed view through by-value
@@ -43,7 +44,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   the fact view as `ref`, reads its already-admitted parallel rows directly,
   and adds a ratchet against reintroducing the helper forwarding. The exact
   failed seed target and focused zone execution are green locally;
-  republication and replacement exact CI remain pending.
+  Those were still pending after the local borrow repair.
 - Correction publication `bda2d4cff42a4ae85b817f507c1dd1387b4ec2ff`
   reached run `33347320011` and completed 29/30. All 20 backend shards,
   sanitizer/TSAN, Windows/macOS, Rocq 9, codegen bootstrap, and full self-host
@@ -57,7 +58,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   plus its full `self-host-preparation-contract-test-smoke` parent are green
   locally. Local authority adequacy records the declared missing-Coq skip while
   the exact run's Rocq 9 job is green. One inventory-only publication and exact
-  CI remain.
+  CI were still pending at that checkpoint.
 - Inventory publication `c3b1286b3c9565e99b82545d207bed2f061f9272` produced
   green run `33349837888`, but change classification selected the Markdown-only
   target and that target did not execute the registry renderer check. This is a
@@ -65,7 +66,18 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - The Markdown contract target now runs
   `tests/language_keyword_registry_smoke.sh`; the CI-profile ratchet requires
   that call. The exact local Markdown command list is green with the regenerated
-  inventory. Publication of this CI repair and its exact run remain pending.
+  inventory. Publication and exact execution were pending until the CI repair.
+- Implementation `672990d2a4eaf58a2a67d065aa904b3995676983`, borrow-view
+  repair `bda2d4cff42a4ae85b817f507c1dd1387b4ec2ff`, generated inventory
+  `c3b1286b3c9565e99b82545d207bed2f061f9272`, and CI ratchet
+  `3988644ae307fb9d24f718e1503691089b90a47f` are on `origin/main`.
+  Exact run `33350057083` is green 30/30. Linux records the three zone PASS
+  lines and the 146-row language-word registry PASS; full self-host records
+  `gen2 == gen3 (172580 lines)`, receipt-bound fixed-point adoption,
+  Pergyra-built DRV-2 installation, and three expected `out_of_subset` rows.
+- The lease is closed. SoT stays `88/183` and `55/32/1`; zone return and world
+  embedding remain separate guarded seams. No successor rung is inferred from
+  this receipt.
 
 ## DONE lease — zone value carriage semantic admission
 

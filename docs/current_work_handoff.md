@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — zone parameter ref semantic admission
+## Published — zone parameter ref semantic admission is exact-CI green
 
 - Exact tracked base is `8ef7039459711e64ac07da12b8473057968c0451`, equal
   to `origin/main` when this rung opened. Protected unrelated untracked paths in
@@ -50,7 +50,7 @@ percentage by themselves.
   negatives/positives and component/compiler-world/SoT/hard/inventory/docs/
   agent gates are green. The broad incremental-size gate remains red only on
   the unrelated unmodified `src/parser/ast_expr_control_accessors.c` 725/699
-  violation; replacement publication and exact CI remain pending. Local Rocq is
+  violation; those were still pending at the candidate checkpoint. Local Rocq is
   unavailable, so formal proof is an explicit skip owned by exact CI.
 - First publication `672990d2a4eaf58a2a67d065aa904b3995676983`
   reached CI run `33345542503`, where codegen bootstrap, full self-host,
@@ -62,7 +62,7 @@ percentage by themselves.
   deeply admitted row arrays in place; it neither copies the fact view nor
   forwards the borrow. The exact failing seed target now builds gen2 plus the
   parser producer locally, and the focused zone target is green. Replacement
-  publication and exact CI remain pending.
+  publication and exact CI were still pending at that repair checkpoint.
 - Correction `bda2d4cff42a4ae85b817f507c1dd1387b4ec2ff` reached exact
   run `33347320011`, which completed 29/30. Zone copy/reassignment, default
   parameter rejection, ref single/thread-safe execution, and aggregate sync all
@@ -74,7 +74,7 @@ percentage by themselves.
   It is now regenerated through the official registry renderer and its exact
   gate plus the full preparation-contract parent are green locally. Local Coq
   absence is a declared skip; the exact run's Rocq 9 job passed. Inventory-only
-  publication and replacement exact CI remain pending; this correction does not
+  publication and replacement exact CI were still pending; this correction does not
   change the SoT census or 83% line.
 - Inventory commit `c3b1286b3c9565e99b82545d207bed2f061f9272` is on
   `origin/main`; run `33349837888` was green through the Markdown-only path.
@@ -84,7 +84,18 @@ percentage by themselves.
 - CI now executes `tests/language_keyword_registry_smoke.sh` in the Markdown
   contract and `self_host_ci_profile_smoke.sh` ratchets the call. The exact
   local Markdown sequence is green. Publish this CI repair and observe the
-  registry PASS remotely before moving the active card to Published.
+  registry PASS remotely before moving the card to Published.
+- Implementation `672990d2a4eaf58a2a67d065aa904b3995676983`, borrow-view
+  repair `bda2d4cff42a4ae85b817f507c1dd1387b4ec2ff`, inventory
+  `c3b1286b3c9565e99b82545d207bed2f061f9272`, and CI ratchet
+  `3988644ae307fb9d24f718e1503691089b90a47f` are on `origin/main`.
+  Exact run `33350057083` completed green 30/30. Linux proved the three zone
+  gates and the 146-row language registry; full self-host proved
+  `gen2 == gen3 (172580 lines)`, receipt-bound Pergyra-built DRV-2 adoption,
+  and the three-source `out_of_subset` census.
+- This published rung does not change `88/183`, `55/32/1`, or the 83% forecast.
+  Zone return and world embedding remain guarded separate seams. No successor
+  is selected; resume only from a fresh production falsifier.
 
 ## Published — zone value carriage semantic admission is exact-CI green
 
