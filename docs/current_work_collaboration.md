@@ -66,9 +66,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Gate repair `69d5a20fdf784105c8f0cda8e1dbb828577c40d0` owns the one
   installed-root construction and exact source-C/MIR-C identity delegation
   ratchets. Exact source-C, installed CLI aggregate, and policy corpus are
-  local green. Its publication, replacement exact CI, and final lease
-  retirement remain pending. Existing untouched parser 725/699 and
-  runtime-header 618/600 size failures stay outside this lease.
+  local green. Run `33381999323` proved the repaired full fixed point and 29
+  green jobs; its only red was `build-linux` because the expanded Source-C
+  ratchet exceeded its existing 130-line cap. Commit
+  `4c30aadbd79a7439b9e22495f621ce26f752ede2` preserves the assertions at
+  128 lines, and exact Source-C behavior plus the full component contract are
+  local green. Replacement exact CI and final lease retirement remain
+  pending. Existing untouched parser 725/699 and runtime-header 618/600 size
+  failures stay outside this lease.
 
 ## DONE lease — zone parameter ref semantic admission
 

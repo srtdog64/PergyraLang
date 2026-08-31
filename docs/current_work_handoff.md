@@ -79,7 +79,19 @@ percentage by themselves.
   `compiler_world` through source-C and MIR-C read/artifact consumers. The
   exact source-C parent behavior, installed CLI aggregate, public MIR/native
   opt-in/REPL/formatter/device-manifest gates, and three-row policy corpus are
-  local green. Publication and replacement exact CI remain pending.
+  local green.
+- Documentation checkpoint `69be4a7014af09e3779c769b1f4212b0df81f240`
+  reached run `33381999323`. Twenty-nine jobs were green. In particular, full
+  bootstrap passed `gen2 == gen3 (172782 lines)`, receipt-bound DRV-2
+  installation, direct-MIR intent parity, Source-C world/action parity, the
+  installed CLI aggregate, and the three expected `out_of_subset` rows. The
+  sole red was `build-linux` after behavior checks because the expanded
+  Source-C structural ratchet was 142 lines against its 130-line cap.
+- Line-cap repair `4c30aadbd79a7439b9e22495f621ce26f752ede2` keeps the
+  same ownership assertions in 128 lines. The exact Source-C execution and
+  transaction-rejection gate, shell syntax/diff hygiene, and full component
+  contract are local green. Replacement exact CI is the remaining publication
+  falsifier; no successor implementation rung is selected.
 - The exact objective card, scope, and validation budget are in
   `docs/agent_work_directives/compiler_world_embedded_zone_lifecycle_2026-08-31.md`.
   Aggregate zone, topology, compiler-world, intent, source-MIR, and component
@@ -89,8 +101,8 @@ percentage by themselves.
   `b1345fc43fb6a0a1095ecb1188e684fd8cee647609185171e5bd992563cbb340`
   and executed one verified-artifact production request with exact `0`, then
   rejected lock-bearing world return with no artifact.
-  Gate-repair publication and replacement exact CI remain pending. The SoT
-  census and 83% forecast do not change.
+  Replacement exact CI remains pending. The SoT census and 83% forecast do not
+  change.
 
 ## Published — zone parameter ref semantic admission is exact-CI green
 

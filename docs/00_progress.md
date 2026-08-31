@@ -36,9 +36,14 @@ direct-MIR intent parity를 증명했다. 마지막 red는 world 생성 책임�
 owner 생성과 무인수 read delegation을 요구한 것이었다. Gate repair
 `69d5a20fdf784105c8f0cda8e1dbb828577c40d0`은 Main의 exactly-one world,
 route의 reconstruction 금지, installed/read/artifact 경계의 같은
-`compiler_world` 전달을 ratchet한다. Exact source-C, installed CLI aggregate와
-policy corpus는 local green이고 이 gate repair의 publication 및 replacement exact
-CI가 남아 있다. 이 후속 수리는 SoT census와 83% line을 바꾸지 않는다.
+`compiler_world` 전달을 ratchet한다. Exact run `33381999323`은 29개 job과 full
+fixed point를 green으로 만들었고 `gen2 == gen3 (172782 lines)`, receipt-bound
+DRV-2 설치, Source-C/installed CLI 및 세 policy row를 증명했다. 유일한 red는
+expanded Source-C ratchet의 142/130줄 component cap 위반이었다. Repair
+`4c30aadbd79a7439b9e22495f621ce26f752ede2`는 같은 assertion을 128줄로
+유지하며 exact Source-C behavior와 full component contract가 local green이다.
+Replacement exact CI가 남아 있으며 이 후속 수리는 SoT census와 83% line을
+바꾸지 않는다.
 
 `abi.intent_observability_rows`는 이제 기존 BRIDGE를 실제로 닫았다. Append-only
 registry가 `RuntimeCallAbiId`와 source/runtime 이름, parameter shape, result kind를

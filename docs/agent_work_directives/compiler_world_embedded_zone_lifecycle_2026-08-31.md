@@ -1,6 +1,6 @@
 # Compiler-world embedded-zone lifecycle directive
 
-Status: NATIVE-ORACLE REPAIR PUBLISHED — FOLLOW-UP GATE REPAIR COMMITTED
+Status: LINE-CAP REPAIR COMMITTED — REPLACEMENT EXACT CI PENDING
 
 Exact base: `52021bbf3912e65b7066d2b0adce832150699a76`, equal to
 `origin/main` when this directive opened. Protected unrelated untracked paths
@@ -173,4 +173,24 @@ only after the exact published revision is green in CI.
   installed-root world, prohibits route reconstruction, and pins the same
   identity through installed/read/artifact calls. Exact source-C behavior,
   the full installed CLI aggregate, and the policy corpus are local green.
-  Publication and replacement exact CI are the remaining falsifier.
+  Publication and replacement exact CI were the remaining falsifier at that
+  checkpoint.
+
+## Gate-repair publication and line-cap repair
+
+- Documentation checkpoint `69be4a7014af09e3779c769b1f4212b0df81f240`
+  produced exact run `33381999323`. Twenty-nine jobs were green; the only red
+  was `build-linux` job `99456301134`, after its behavior checks, because this
+  directive's expanded Source-C ownership ratchet was 142 lines against its
+  existing 130-line component cap.
+- The same run's `self-host-bootstrap-linux` job `99456301219` was green. It
+  proved `gen2 == gen3 (172782 lines)`, receipt-bound fixed-point adoption,
+  Pergyra-built DRV-2 installation, direct-MIR intent parity, Source-C
+  world/action parity, the installed CLI aggregate, and the expected three-row
+  `out_of_subset` policy census.
+- Commit `4c30aadbd79a7439b9e22495f621ce26f752ede2` keeps the ownership
+  assertions unchanged while reducing the gate to 128 lines. Exact Source-C
+  execution/transaction rejection, shell syntax, diff hygiene, and the full
+  component structural contract are green locally. The next and only
+  publication falsifier is replacement exact CI for this committed revision;
+  no successor implementation rung is open.
