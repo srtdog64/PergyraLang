@@ -65,29 +65,15 @@ for term in 'zone source_c: DriverSourceCZone' \
     require_text "$WORLD_OWNER" "$term"
 done
 for term in 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' \
-    'DriverSourceCZone(DriverSourceCExecution(' \
-    'DriverSourceCExecutionTopologyIdentity(), None' \
-    'DriverRung2ExecuteInstalledRequest(compiler_world, request);'; do
-    require_text "$ROOT_OWNER" "$term"
-done
-[[ "$(grep -Fc 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' \
-    "$ROOT_OWNER")" == "1" ]] ||
-    fail "installed compiler root must own exactly one fresh world"
-for term in 'inout compiler_world: PgyCompilerWorld' \
-    'func CompileSourceToCThroughPgyCompilerWorld(' \
-    'compiler_world.CompileSourceToC('; do
-    require_text "$COMPOSITION_OWNER" "$term"
-done
-grep -Fq 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' \
-    "$COMPOSITION_OWNER" &&
-    fail "source-C route owner regained world reconstruction"
-for term in 'func DriverRung2InstalledPublishSourceC(' \
-    'CompileSourceToCThroughPgyCompilerWorld(' \
-    'compiler_world, source_path, output_path, request' \
-    'DriverSourceCExecutionOutcomeReadyFor(' \
-    'DriverSourceCExecutionOutcomeDiagnostic('; do
-    require_text "$ARTIFACT_EXECUTION_OWNER" "$term"
-done
+    'DriverSourceCZone(DriverSourceCExecution(' 'DriverSourceCExecutionTopologyIdentity(), None' \
+    'DriverRung2ExecuteInstalledRequest(compiler_world, request);'; do require_text "$ROOT_OWNER" "$term"; done
+[[ "$(grep -Fc 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' "$ROOT_OWNER")" == "1" ]] || fail "installed compiler root must own exactly one fresh world"
+for term in 'inout compiler_world: PgyCompilerWorld' 'func CompileSourceToCThroughPgyCompilerWorld(' \
+    'compiler_world.CompileSourceToC('; do require_text "$COMPOSITION_OWNER" "$term"; done
+! grep -Fq 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' "$COMPOSITION_OWNER" || fail "source-C route owner regained world reconstruction"
+for term in 'func DriverRung2InstalledPublishSourceC(' 'CompileSourceToCThroughPgyCompilerWorld(' \
+    'compiler_world, source_path, output_path, request' 'DriverSourceCExecutionOutcomeReadyFor(' \
+    'DriverSourceCExecutionOutcomeDiagnostic('; do require_text "$ARTIFACT_EXECUTION_OWNER" "$term"; done
 require_text "$INSTALLED_OWNER" 'case DriverCliSourceCArtifact(source_path, output_path, manifest_path):'
 require_text "$INSTALLED_OWNER" 'SourceCManifestVerified('
 ! grep -Fq 'DriverRung2InstalledCommitSourceC' "$ARTIFACT_EXECUTION_OWNER" ||
