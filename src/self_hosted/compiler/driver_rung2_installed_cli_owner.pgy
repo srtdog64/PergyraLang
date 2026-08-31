@@ -5,13 +5,20 @@
 import "driver_rung2_cli_request_owner.pgy";
 import "driver_rung2_cli_read_execution_owner.pgy";
 import "driver_rung2_artifact_request_execution_owner.pgy";
+import "compatibility_evolution_owner.pgy";
 import "../debug/session_owner.pgy";
 import "../fmt/session_owner.pgy";
 
 func DriverRung2ExecuteInstalledRequest(
     inout compiler_world: PgyCompilerWorld,
-    request: DriverRung2CliRequest
+    request: DriverRung2CliRequest,
+    ref compatibility_receipt: CompilerCompatibilityEvolutionReceipt
 ) -> Void with caps io_read, io_write {
+    if !CompilerCompatibilityEvolutionReceiptReady(compatibility_receipt) {
+        Log("SELFHOST COMPATIBILITY ERROR: owner receipt is not ready");
+        Exit(1);
+        return;
+    }
     match request {
         case DriverCliDebugSession(source_path):
             RunDebugSession(source_path);

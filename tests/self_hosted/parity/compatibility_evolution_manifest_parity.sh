@@ -82,6 +82,29 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "$C_OUT" \
     "compatibility_evolution"
 
+assert_receipt_mutation_rejected() {
+    local mode="$1"
+    local stem="${mode#--self-test-receipt-}"
+    local out="$BUILD_DIR/compatibility_evolution_receipt_${stem}.out"
+    local err="$BUILD_DIR/compatibility_evolution_receipt_${stem}.err"
+    if ! (cd "$ROOT_DIR" && "$C_BIN" "$mode" >"$out" 2>"$err"); then
+        echo "[self-host-parity:compatibility-evolution] receipt self-test failed: $mode" >&2
+        cat "$out" "$err" >&2
+        exit 1
+    fi
+    local actual
+    actual="$(tr -d '\r' <"$out")"
+    if [[ "$actual" != "receipt_rejected=$mode" ]]; then
+        echo "[self-host-parity:compatibility-evolution] receipt mutation was not rejected: $mode" >&2
+        cat "$out" "$err" >&2
+        exit 1
+    fi
+}
+
+assert_receipt_mutation_rejected --self-test-receipt-diagnostic-crosswire
+assert_receipt_mutation_rejected --self-test-receipt-missing-row
+assert_receipt_mutation_rejected --self-test-receipt-duplicate-surface
+
 assert_llvm_leg "self-host-parity:compatibility-evolution" "$TOOL_ARG" "$BUILD_DIR"
 
 echo "[self-host-parity:compatibility-evolution] parity ok"

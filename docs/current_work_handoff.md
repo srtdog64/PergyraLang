@@ -18,6 +18,41 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — compatibility-evolution production receipt
+
+- Exact base is `551fef8836bf187a4931e9c7a8eafbcb0abe7081`, equal to
+  `origin/main` when this rung opened. The primary task owns the active edit and
+  publication lease recorded in `docs/current_work_collaboration.md`.
+- Production entrypoint is `driver_bootstrap_main.Main`; the last consumer is
+  `DriverRung2ExecuteInstalledRequest`. The current dirty source now carries an
+  owner-issued compatibility fact from `Main` and rejects it before request
+  dispatch when its exact identity is invalid. The older
+  `ProveHardSelfHostEvidence` compatibility step has no caller and therefore is
+  readiness surface, not production dogfood.
+- `compatibility_evolution_owner.pgy` owns the nine canonical surfaces and
+  eleven-field rows. Its pure typed receipt binds ordered surfaces to exact
+  diagnostics and rows; the installed root carries that value without adding
+  a lock-bearing world zone.
+- Opening falsifiers are valid-shape `PGYCOMPAT003`/`PGYCOMPAT004` crosswire,
+  a missing row, and a duplicate surface. Canonical receipt C/LLVM parity and
+  one real installed request are the positive gates.
+- Keep `src/compiler/driver_diag.c` and `driver_app.c` as the explicit native
+  bootstrap oracle in this prerequisite. A bool-only consumer check,
+  consumer-local row parser, native retry, and a second compatibility owner are
+  forbidden.
+- Exact objective and budget are in
+  `docs/agent_work_directives/compatibility_evolution_production_receipt_2026-08-31.md`.
+  Local executable evidence establishes `REACHABLE` production carriage:
+  compatibility C/LLVM parity and all three mutation negatives are green; a
+  fresh Pergyra-built DRV-2 passed the installed CLI aggregate; and component
+  plus pre-dispatch topology ratchets are green. SoT edge/single-owner/protocol
+  and hard self-host contract gates are green. Local SoT adequacy checked live
+  binding and negative mutations with an explicit missing-Coq/Rocq skip; exact
+  push CI remains the formal-model and publication evidence.
+- This prerequisite does not close the registry row. Native C text validation
+  and diagnostic/package consumers remain, so SoT stays `88/183`,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, and the project forecast remains 83%.
+
 ## Active self-host context — no successor implementation lease open
 
 - Exact base is `c5c50c4968418009c36cd33ed17c8e0ad937bcde`, equal to

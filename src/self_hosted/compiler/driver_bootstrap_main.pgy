@@ -8,6 +8,7 @@ import "compiler_world_direct_mir_owner.pgy";
 func Main() -> Void with caps env, io_read, io_write {
     let request: DriverRung2CliRequest =
         DriverRung2CliRequestFromArgsOrDie(Args());
+    let compatibility_receipt: CompilerCompatibilityEvolutionReceipt = CompilerCompatibilityEvolutionReceiptFromOwner();
     let compiler_world: PgyCompilerWorld = PgyCompilerWorld(
         DriverRung2DirectMirZone(
             DriverRung2Execution(DriverRung2ExecutionOwnerIdentity())
@@ -24,5 +25,5 @@ func Main() -> Void with caps env, io_read, io_write {
             DriverSourceCExecutionTopologyIdentity(), None
         ))
     );
-    DriverRung2ExecuteInstalledRequest(compiler_world, request);
+    DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_receipt);
 }

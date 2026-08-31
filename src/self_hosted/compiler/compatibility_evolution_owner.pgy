@@ -287,6 +287,119 @@ func CompilerCompatibilityChangeRowForSurface(surface: String) -> String {
     return "";
 }
 
+struct CompilerCompatibilityEvolutionReceipt {
+    let schema: String;
+    let owner_schema: String;
+    let surfaces: Array<String>;
+    let diagnostic_ids: Array<String>;
+    let change_rows: Array<String>;
+}
+
+func CompilerCompatibilityEvolutionReceiptSchema() -> String {
+    return "pgy.selfhost.compatibility-evolution-receipt.v1";
+}
+
+func CompilerCompatibilityDiagnosticIdForSurface(surface: String) -> String {
+    if surface == CompilerSourceCompatibilitySurface() {
+        return CompilerCompatibilityDiagnosticId("001");
+    }
+    if surface == CompilerAbiBinaryCompatibilitySurface() {
+        return CompilerCompatibilityDiagnosticId("002");
+    }
+    if surface == CompilerBehaviorCompatibilitySurface() {
+        return CompilerCompatibilityDiagnosticId("004");
+    }
+    if surface == CompilerDiagnosticCompatibilitySurface() {
+        return CompilerCompatibilityDiagnosticId("003");
+    }
+    if surface == CompilerAirEvidenceCompatibilitySurface() {
+        return CompilerCompatibilityDiagnosticId("005");
+    }
+    if surface == CompilerMirJsonCompatibilitySurface() {
+        return CompilerCompatibilityDiagnosticId("006");
+    }
+    if surface == CompilerRuntimeTraceCompatibilitySurface() {
+        return CompilerCompatibilityDiagnosticId("007");
+    }
+    if surface == CompilerCapabilityProfileCompatibilitySurface() {
+        return CompilerCompatibilityDiagnosticId("008");
+    }
+    if surface == CompilerStdlibModuleCompatibilitySurface() {
+        return CompilerCompatibilityDiagnosticId("009");
+    }
+    return "";
+}
+
+func CompilerCompatibilityEvolutionReceiptFromOwner()
+    -> CompilerCompatibilityEvolutionReceipt {
+    let surfaces: Array<String> = [];
+    let diagnostic_ids: Array<String> = [];
+    let change_rows: Array<String> = [];
+    let index: Int = 0;
+    while index < CompilerCompatibilitySurfaceCount() {
+        let surface: String = CompilerCompatibilitySurfaceAt(index);
+        ArrayPush(surfaces, surface);
+        ArrayPush(
+            diagnostic_ids,
+            CompilerCompatibilityDiagnosticIdForSurface(surface)
+        );
+        ArrayPush(change_rows, CompilerCompatibilityChangeRowForSurface(surface));
+        index = index + 1;
+    }
+    return CompilerCompatibilityEvolutionReceipt(
+        CompilerCompatibilityEvolutionReceiptSchema(),
+        CompilerCompatibilityEvolutionSchema(),
+        surfaces, diagnostic_ids, change_rows
+    );
+}
+
+func CompilerCompatibilityEvolutionReceiptReady(
+    ref receipt: CompilerCompatibilityEvolutionReceipt
+) -> Bool {
+    if receipt.schema != CompilerCompatibilityEvolutionReceiptSchema() ||
+        receipt.owner_schema != CompilerCompatibilityEvolutionSchema() ||
+        ArrayLength(receipt.surfaces) != CompilerCompatibilitySurfaceCount() ||
+        ArrayLength(receipt.diagnostic_ids) !=
+            CompilerCompatibilitySurfaceCount() ||
+        ArrayLength(receipt.change_rows) != CompilerCompatibilitySurfaceCount() {
+        return false;
+    }
+    let index: Int = 0;
+    while index < CompilerCompatibilitySurfaceCount() {
+        let surface: String = receipt.surfaces[index];
+        let diagnostic_id: String = receipt.diagnostic_ids[index];
+        let row: String = receipt.change_rows[index];
+        if surface != CompilerCompatibilitySurfaceAt(index) ||
+            diagnostic_id !=
+                CompilerCompatibilityDiagnosticIdForSurface(surface) ||
+            row != CompilerCompatibilityChangeRowForSurface(surface) ||
+            CompilerCompatibilityChangeRowFieldAt(
+                row, CompilerCompatibilityChangeSurfaceFieldIndex()
+            ) != surface ||
+            CompilerCompatibilityChangeRowFieldAt(
+                row, CompilerCompatibilityChangeDiagnosticIdFieldIndex()
+            ) != diagnostic_id {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < index {
+            if receipt.surfaces[prior] == surface ||
+                receipt.diagnostic_ids[prior] == diagnostic_id {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+func CompilerCompatibilityEvolutionReceiptContractReady() -> Bool {
+    let receipt: CompilerCompatibilityEvolutionReceipt =
+        CompilerCompatibilityEvolutionReceiptFromOwner();
+    return CompilerCompatibilityEvolutionReceiptReady(receipt);
+}
+
 func CompilerCompatibilityEvolutionReady() -> Bool {
     return CompilerCompatibilitySurfaceCount() > 0 &&
         CompilerCompatibilitySurfaceAt(CompilerCompatibilitySurfaceCount()) == "" &&
@@ -369,5 +482,6 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityChangeRowForSurface(CompilerRuntimeTraceCompatibilitySurface()) != "" &&
         CompilerCompatibilityChangeRowForSurface(CompilerCapabilityProfileCompatibilitySurface()) != "" &&
         CompilerCompatibilityChangeRowForSurface(CompilerStdlibModuleCompatibilitySurface()) != "" &&
-        CompilerRuntimeCallAbiCompatibilityReady();
+        CompilerRuntimeCallAbiCompatibilityReady() &&
+        CompilerCompatibilityEvolutionReceiptContractReady();
 }

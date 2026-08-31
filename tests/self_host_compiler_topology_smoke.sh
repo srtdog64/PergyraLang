@@ -229,7 +229,7 @@ for owner_term in \
     "$MIR_C_STDOUT|ProduceMirCThroughPgyCompilerWorld(" \
     "$MIR_C_STDOUT|DriverRung2MirCPayloadAdmissionReadyFor(" \
     "$MAIN|import \"driver_rung2_installed_cli_owner.pgy\";" \
-    "$MAIN|DriverRung2ExecuteInstalledRequest(compiler_world, request);" \
+    "$MAIN|DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_receipt);" \
     "$INSTALLED|case DriverCliSourceCStdout(source_path):" \
     "$INSTALLED|case DriverCliSourceCManifestStdout(source_path, manifest_path):" \
     "$INSTALLED|case DriverCliMirCStdout(input_path):" \
@@ -251,6 +251,16 @@ for owner_term in \
     [[ "$(grep -F -c -- "$term" "$owner")" -eq 1 ]] ||
         fail "direct-MIR topology fact must occur exactly once: $term"
 done
+
+compatibility_guard_line="$(grep -nF -- \
+    '!CompilerCompatibilityEvolutionReceiptReady(compatibility_receipt)' \
+    "$INSTALLED" | cut -d: -f1)"
+installed_dispatch_line="$(grep -nF -- 'match request {' "$INSTALLED" | cut -d: -f1)"
+[[ -n "$compatibility_guard_line" && -n "$installed_dispatch_line" && \
+    "$compatibility_guard_line" -lt "$installed_dispatch_line" ]] ||
+    fail "compatibility receipt must fail closed before installed request dispatch"
+grep -Fq -- 'CompilerCompatibilityEvolutionReady()' "$INSTALLED" &&
+    fail "installed consumer regained bool-only compatibility readiness"
 
 if grep -Fq -- 'func PublishSourceCArtifact(' "$WORLD" ||
     grep -Fq -- 'PublishSourceCArtifactThroughPgyCompilerWorld(' "$COMPOSITION"; then

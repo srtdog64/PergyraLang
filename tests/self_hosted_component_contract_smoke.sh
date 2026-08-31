@@ -4730,6 +4730,15 @@ require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func 
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeKindKnown"
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeRowFieldAt"
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeRowForSurface"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "struct CompilerCompatibilityEvolutionReceipt"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityEvolutionReceiptFromOwner"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityEvolutionReceiptReady"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "CompilerBehaviorCompatibilitySurface()"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" 'CompilerCompatibilityDiagnosticId("004")'
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "CompilerDiagnosticCompatibilitySurface()"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" 'CompilerCompatibilityDiagnosticId("003")'
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "receipt.surfaces[prior] == surface"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "receipt.diagnostic_ids[prior] == diagnostic_id"
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "CompilerCompatibilitySurfaceAt(CompilerCompatibilitySurfaceCount()) == \"\""
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "CompilerObsoleteMigrationFieldAt(CompilerObsoleteMigrationFieldCount()) == \"\""
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "CompilerCompatibilityChangeKindAt(CompilerCompatibilityChangeKindCount()) == \"\""
@@ -4794,6 +4803,10 @@ require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.s
 require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" '"compatibility_evolution"'
 require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" "assert_llvm_leg"
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" "--self-test-receipt-diagnostic-crosswire"
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" "--self-test-receipt-missing-row"
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" "--self-test-receipt-duplicate-surface"
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" "assert_receipt_mutation_rejected"
 reject_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/compatibility_evolution_manifest.pgy"'
 reject_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/compatibility_evolution.txt"'
 require_text "Makefile" "self-host-compatibility-evolution-parity-test-smoke"
@@ -9687,9 +9700,17 @@ require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     "DriverRung2CliRequestFromArgsOrDie(Args())"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
-    "DriverRung2ExecuteInstalledRequest(compiler_world, request);"
+    "DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_receipt);"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
     "let compiler_world: PgyCompilerWorld = PgyCompilerWorld("
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \
+    "let compatibility_receipt: CompilerCompatibilityEvolutionReceipt = CompilerCompatibilityEvolutionReceiptFromOwner();"
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    "ref compatibility_receipt: CompilerCompatibilityEvolutionReceipt"
+require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    "!CompilerCompatibilityEvolutionReceiptReady(compatibility_receipt)"
+reject_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
+    "CompilerCompatibilityEvolutionReady()"
 reject_text "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy" \
     "PgyCompilerWorldMaterializeExecutableZones"
 reject_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args["

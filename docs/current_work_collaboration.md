@@ -6,6 +6,37 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — compatibility-evolution production receipt
+
+- Exact base is `551fef8836bf187a4931e9c7a8eafbcb0abe7081`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit, push, and CI owner.
+- Production entrypoint is `driver_bootstrap_main.Main`; the last consumer is
+  `DriverRung2ExecuteInstalledRequest`. The reached gap is that the installed
+  root executes requests without carrying an owner-issued compatibility fact,
+  while the existing hard-evidence intent is readiness-only and uncalled.
+- `compatibility_evolution_owner.pgy` now issues one pure typed receipt with
+  exact surface/diagnostic/row binding. It remains a value fact rather than a
+  fifth lock-bearing compiler-world zone.
+- Valid-shape `PGYCOMPAT003`/`PGYCOMPAT004` crosswire, missing row, and duplicate
+  surface are the opening falsifiers. A bool-only readiness check, consumer
+  row parsing, native retry, or deletion of the explicit native bootstrap
+  validator is forbidden.
+- Exact objective, edit boundary, and validation budget are fixed in
+  `docs/agent_work_directives/compatibility_evolution_production_receipt_2026-08-31.md`.
+  This prerequisite keeps `compatibility.evolution` at `BRIDGE`, the SoT census
+  at `88/183` and `55/32/1`, and the project forecast at 83%.
+- Local implementation is green: compatibility C/LLVM parity rejects all
+  three receipt mutations; a fresh Pergyra-built DRV-2 passed the installed
+  CLI aggregate; and component/topology ratchets require validation before
+  dispatch. SoT edge/single-owner/protocol and hard-contract gates are green.
+  Local SoT adequacy declared its missing Coq/Rocq prover and therefore did not
+  check the formal model. Exact push CI is the remaining formal and publication
+  falsifier, so this lease is still active.
+- Protected unrelated untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging.
+
 ## DONE lease — semantic generic-specialization pressure
 
 - Exact base is `c5c50c4968418009c36cd33ed17c8e0ad937bcde`, equal to

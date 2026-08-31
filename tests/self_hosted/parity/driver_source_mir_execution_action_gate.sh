@@ -166,7 +166,7 @@ for owner in "$MAIN_OWNER" "$CLI_OWNER" "$READ_OWNER" "$INSTALLED_OWNER" \
 done
 for term in 'import "driver_rung2_cli_request_owner.pgy";' 'import "driver_rung2_installed_cli_owner.pgy";' \
     'DriverRung2CliRequestFromArgsOrDie(Args())' \
-    'DriverRung2ExecuteInstalledRequest(compiler_world, request);'; do
+    'DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_receipt);'; do
     require_text "$MAIN_OWNER" "$term"
 done
 grep -Eq -- '(PublishSourceMirArtifact|ProduceSourceMir|SelfMirArtifactCommitPayload|--emit-mir-json-verified)' "$MAIN_OWNER" && fail "installed Main regained source-MIR routing or publication"

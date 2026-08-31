@@ -66,7 +66,7 @@ for term in 'zone source_c: DriverSourceCZone' \
 done
 for term in 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' \
     'DriverSourceCZone(DriverSourceCExecution(' 'DriverSourceCExecutionTopologyIdentity(), None' \
-    'DriverRung2ExecuteInstalledRequest(compiler_world, request);'; do require_text "$ROOT_OWNER" "$term"; done
+    'DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_receipt);'; do require_text "$ROOT_OWNER" "$term"; done
 [[ "$(grep -Fc 'let compiler_world: PgyCompilerWorld = PgyCompilerWorld(' "$ROOT_OWNER")" == "1" ]] || fail "installed compiler root must own exactly one fresh world"
 for term in 'inout compiler_world: PgyCompilerWorld' 'func CompileSourceToCThroughPgyCompilerWorld(' \
     'compiler_world.CompileSourceToC('; do require_text "$COMPOSITION_OWNER" "$term"; done

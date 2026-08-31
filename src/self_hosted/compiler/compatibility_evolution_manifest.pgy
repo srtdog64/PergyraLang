@@ -14,10 +14,119 @@ func CompilerObsoleteMigrationManifestRowAt(index: Int) -> String {
     return Concat(row1, CompilerObsoleteMigrationFieldAt(index));
 }
 
+func CompilerCompatibilityReceiptCrosswireMode() -> String {
+    return "--self-test-receipt-diagnostic-crosswire";
+}
+
+func CompilerCompatibilityReceiptMissingRowMode() -> String {
+    return "--self-test-receipt-missing-row";
+}
+
+func CompilerCompatibilityReceiptDuplicateSurfaceMode() -> String {
+    return "--self-test-receipt-duplicate-surface";
+}
+
+func CompilerCompatibilityChangeRowWithDiagnosticId(
+    row: String,
+    diagnostic_id: String
+) -> String {
+    return CompilerCompatibilityChangeRow(
+        CompilerCompatibilityChangeRowFieldAt(
+            row, CompilerCompatibilityChangeSurfaceFieldIndex()
+        ),
+        CompilerCompatibilityChangeRowFieldAt(
+            row, CompilerCompatibilityChangeSymbolFieldIndex()
+        ),
+        CompilerCompatibilityChangeRowFieldAt(
+            row, CompilerCompatibilityChangeKindFieldIndex()
+        ),
+        diagnostic_id,
+        CompilerCompatibilityChangeRowFieldAt(
+            row, CompilerCompatibilityChangeReplacementFieldIndex()
+        ),
+        CompilerCompatibilityChangeRowFieldAt(
+            row, CompilerCompatibilityChangeMigrationUrlFieldIndex()
+        ),
+        CompilerCompatibilityChangeRowFieldAt(
+            row, CompilerCompatibilityChangeCodefixStatusFieldIndex()
+        )
+    );
+}
+
+func CompilerCompatibilityEvolutionMutatedReceipt(
+    ref canonical: CompilerCompatibilityEvolutionReceipt,
+    mode: String
+) -> CompilerCompatibilityEvolutionReceipt {
+    let surfaces: Array<String> = [];
+    let diagnostic_ids: Array<String> = [];
+    let change_rows: Array<String> = [];
+    let limit: Int = ArrayLength(canonical.surfaces);
+    if mode == CompilerCompatibilityReceiptMissingRowMode() {
+        limit = limit - 1;
+    }
+    let index: Int = 0;
+    while index < limit {
+        let surface: String = canonical.surfaces[index];
+        let diagnostic_id: String = canonical.diagnostic_ids[index];
+        let row: String = canonical.change_rows[index];
+        if mode == CompilerCompatibilityReceiptCrosswireMode() &&
+            surface == CompilerBehaviorCompatibilitySurface() {
+            diagnostic_id = CompilerCompatibilityDiagnosticId("003");
+            row = CompilerCompatibilityChangeRowWithDiagnosticId(
+                row, diagnostic_id
+            );
+        } else if mode == CompilerCompatibilityReceiptCrosswireMode() &&
+            surface == CompilerDiagnosticCompatibilitySurface() {
+            diagnostic_id = CompilerCompatibilityDiagnosticId("004");
+            row = CompilerCompatibilityChangeRowWithDiagnosticId(
+                row, diagnostic_id
+            );
+        } else if mode == CompilerCompatibilityReceiptDuplicateSurfaceMode() &&
+            index == limit - 1 {
+            surface = canonical.surfaces[0];
+            diagnostic_id = canonical.diagnostic_ids[0];
+            row = canonical.change_rows[0];
+        }
+        ArrayPush(surfaces, surface);
+        ArrayPush(diagnostic_ids, diagnostic_id);
+        ArrayPush(change_rows, row);
+        index = index + 1;
+    }
+    return CompilerCompatibilityEvolutionReceipt(
+        canonical.schema, canonical.owner_schema,
+        surfaces, diagnostic_ids, change_rows
+    );
+}
+
+func CompilerCompatibilityEvolutionReceiptSelfTest(
+    ref canonical: CompilerCompatibilityEvolutionReceipt,
+    mode: String
+) -> Void {
+    let mutated: CompilerCompatibilityEvolutionReceipt =
+        CompilerCompatibilityEvolutionMutatedReceipt(canonical, mode);
+    if CompilerCompatibilityEvolutionReceiptReady(mutated) {
+        Log(Concat("COMPATIBILITY_EVOLUTION ERROR: accepted ", mode));
+        Exit(1);
+        return;
+    }
+    Log(Concat("receipt_rejected=", mode));
+}
+
 func Main() -> Void {
-    if !CompilerCompatibilityEvolutionReady() {
+    let receipt: CompilerCompatibilityEvolutionReceipt =
+        CompilerCompatibilityEvolutionReceiptFromOwner();
+    if !CompilerCompatibilityEvolutionReady() ||
+        !CompilerCompatibilityEvolutionReceiptReady(receipt) {
         Log("COMPATIBILITY_EVOLUTION ERROR: owner is not ready");
         Exit(1);
+        return;
+    }
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 &&
+        (args[0] == CompilerCompatibilityReceiptCrosswireMode() ||
+         args[0] == CompilerCompatibilityReceiptMissingRowMode() ||
+         args[0] == CompilerCompatibilityReceiptDuplicateSurfaceMode()) {
+        CompilerCompatibilityEvolutionReceiptSelfTest(receipt, args[0]);
         return;
     }
     Log(Concat("schema=", CompilerCompatibilityEvolutionSchema()));
