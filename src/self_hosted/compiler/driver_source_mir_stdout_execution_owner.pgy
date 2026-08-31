@@ -9,17 +9,18 @@ import "../mir_lower/mir_diagnostic_projection_owner.pgy";
 func DriverSourceMirStdoutReceiptOrDie(
     inout compiler_world: PgyCompilerWorld,
     source_path: String,
-    declaration: SelfHostMachineLayerDeclaration
+    declaration: SelfHostMachineLayerDeclaration,
+    request: DriverSourceMirRequest
 ) -> DriverSourceMirPayloadReceipt with caps io_read {
     let outcome: DriverSourceMirPayloadAdmission =
         ProduceSourceMirThroughPgyCompilerWorld(
-            compiler_world, source_path, declaration, SourceMirVerified
+            compiler_world, source_path, declaration, request
         );
     if !DriverSourceMirPayloadAdmissionReadyFor(
-        outcome, source_path, SourceMirVerified
+        outcome, source_path, request
     ) {
         Log(DriverSourceMirPayloadAdmissionDiagnostic(
-            outcome, source_path, SourceMirVerified
+            outcome, source_path, request
         ));
         Exit(1);
     }
@@ -42,7 +43,7 @@ func DriverSourceMirCanonicalPayloadOrDie(
     declaration: SelfHostMachineLayerDeclaration
 ) -> String with caps io_read {
     let receipt: DriverSourceMirPayloadReceipt =
-        DriverSourceMirStdoutReceiptOrDie(compiler_world, source_path, declaration);
+        DriverSourceMirStdoutReceiptOrDie(compiler_world, source_path, declaration, SourceMirVerified);
     return receipt.payload;
 }
 
@@ -52,7 +53,7 @@ func DriverSourceMirDiagnosticPayloadOrDie(
     declaration: SelfHostMachineLayerDeclaration
 ) -> String with caps io_read {
     let receipt: DriverSourceMirPayloadReceipt =
-        DriverSourceMirStdoutReceiptOrDie(compiler_world, source_path, declaration);
+        DriverSourceMirStdoutReceiptOrDie(compiler_world, source_path, declaration, SourceMirVerified);
     let admitted: MirMachineLayerAdmittedJsonInput =
         MirJsonAdmitBorrowedText(receipt.payload, declaration);
     return MirDiagnosticProjectionFromAdmitted(admitted);

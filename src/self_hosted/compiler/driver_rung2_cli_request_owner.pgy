@@ -18,6 +18,7 @@ enum DriverRung2CliRequest {
     DriverCliSourceCArtifact(String, String, String),
     DriverCliSourceLlvmArtifact(String, String),
     DriverCliSourceMirDiagnosticStdout(String),
+    DriverCliSourceMirJsonDiagnosticStdout(String),
     DriverCliSourceMirStdout(String),
     DriverCliSourceMirManifestStdout(String, String),
     DriverCliSourceMirArtifact(String, String),
@@ -137,6 +138,12 @@ func DriverRung2CliRequestFromArgsOrDie(
         if count != 2 { Die("MIR diagnostic mode requires one source path"); }
         return DriverCliSourceMirDiagnosticStdout(
             DriverRung2CliPathOperandOrDie(args[1], "MIR diagnostic source path")
+        );
+    }
+    if args[0] == "--emit-mir-json-diagnostic-verified" {
+        if count != 2 { Die("MIR JSON diagnostic mode requires one source path"); }
+        return DriverCliSourceMirJsonDiagnosticStdout(
+            DriverRung2CliPathOperandOrDie(args[1], "MIR JSON diagnostic source path")
         );
     }
     if args[0] == "--emit-mir-json-verified" {

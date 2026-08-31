@@ -18,7 +18,40 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — no successor implementation lease open
+## Active self-host context — public MIR JSON receipt publication pending
+
+- Exact base and current HEAD are
+  `04a981b1afd5a625d8e0a6b411919165d34d7439`; `origin/main` matched when the
+  lease opened. The tracked tree contains the local candidate. Protected
+  unrelated untracked paths are listed in the collaboration ledger and must
+  not be inspected, edited, or staged.
+- Production entrypoint is default `pgy --mir --error-format=json SOURCE`.
+  The deleted direct bypass is the C launcher's unsupported-option rejection.
+  `public_diagnostic_receipt_owner.pgy` owns the typed public receipt, and
+  `DriverSourceMirJsonDiagnosticPayloadOrDie` is its last semantic consumer.
+  The C wire owner validates and relays an opaque envelope only.
+- The reached `undefined_function` fixture publishes exact semantic/type,
+  `PGY_SEM_UNDEFINED_SYMBOL`, `semantic:symbol:undefined`, and
+  `import-or-declare-symbol`. Message wording cannot change identity.
+  Malformed, missing, and crosswired receipts fail without partial JSON or
+  native timing; valid JSON-selected MIR output stays byte-identical to text
+  selection.
+- A fresh current-source Pergyra DRV-2 is installed. Focused JSON, existing
+  text MIR, source-MIR action, component, hard, SoT edge, Gate single-owner,
+  and protocol gates are green; native compiler build is warning-clean. The
+  component contract took about 7.5 minutes against its 60-second budget, and
+  the DRV-2 rebuild took about 11.5 minutes.
+- Exact objective and forbidden fallbacks are in
+  `docs/agent_work_directives/public_mir_json_diagnostic_receipt_2026-09-01.md`.
+  This is one `SUBSTITUTING` public boundary inside the still-open
+  `diagnostic.catalog` BRIDGE. Native module-load, AIR, runtime, and other
+  diagnostic mappings remain, so SoT stays `88/183`,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`; project forecast remains 83%.
+- Next action is review, explicit staging excluding protected paths, commit,
+  push, and exact-head CI observation. Do not open a successor implementation
+  rung until publication is green.
+
+## Published — compatibility-evolution production receipt exact-CI green
 
 - The compatibility-evolution production-receipt rung opened at
   `551fef8836bf187a4931e9c7a8eafbcb0abe7081`. Implementation

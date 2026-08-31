@@ -1,0 +1,8 @@
+import "../../../../src/self_hosted/semantic/diagnostic_contract_owner.pgy";
+
+func Main() -> Void {
+    if !SemanticPublicDiagnosticReceiptMessageIndependenceReady() {
+        Exit(1);
+    }
+    Log("message-independent");
+}

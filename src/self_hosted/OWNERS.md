@@ -197,6 +197,9 @@ inventory must not become a second fact-family owner registry.
   consume this verdict instead of owning a second type-compatibility table.
 - `src/self_hosted/semantic/diagnostic_owner.pgy` -- structured semantic
   diagnostic rendering, vocabulary, fixture manifest, and audit facts.
+- `src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy` -- typed
+  public JSON diagnostic identity and wire payload derived from the carried
+  semantic code; rendered message text is payload and never an identity input.
 - `src/self_hosted/semantic/diagnostic_contract_owner.pgy` -- executable
   payload-status and diagnostic-vocabulary completeness contract.
 - `src/self_hosted/semantic/ast_artifact_verdict_owner.pgy` -- semantic
@@ -2274,6 +2277,9 @@ inventory must not become a second fact-family owner registry.
   shared read-only last consumer for canonical source-MIR JSON and its human
   diagnostic projection. Both reuse one compiler-world payload receipt; only
   the diagnostic form performs full borrowed-text admission before rendering.
+- `src/self_hosted/compiler/driver_source_mir_json_diagnostic_stdout_owner.pgy`
+  -- read-only last consumer for the public JSON failure request; it selects
+  `SourceMirJsonDiagnostic` and does not infer identity from rendered text.
   It owns no second compiler action, protocol, publication, or native fallback.
 - `src/self_hosted/compiler/driver_source_c_protocol_owner.pgy` -- detached
   source-to-C payload/artifact receipts, rejections, outcome readiness, and

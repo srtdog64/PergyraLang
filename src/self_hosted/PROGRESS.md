@@ -1,5 +1,26 @@
 # Self-Host Progress
 
+## Local self-host context - 2026-09-01 public MIR JSON diagnostic receipt
+
+- Default `pgy --mir --error-format=json SOURCE` no longer stops at a C-owned
+  unsupported-option branch. The installed Pergyra request carries the
+  semantic diagnostic code into a typed public receipt; C validates and relays
+  only the opaque wire envelope.
+- The reached `undefined_function` failure now publishes exact
+  `PGY_SEM_UNDEFINED_SYMBOL`, semantic/type stage, owned cause, and owned fix
+  without scanning rendered message text. A wording-independence probe and
+  malformed, missing, and crosswired child receipts fail the old recovery path.
+- A fresh Pergyra-built DRV-2 passes the focused public JSON gate, existing
+  text MIR gate, source-MIR action gate, component contract, hard contract,
+  SoT edge, Gate single-owner, and protocol registry. Native compiler build is
+  warning-clean. The component contract took about 7.5 minutes despite its
+  60-second static budget; the self-driver rebuild took about 11.5 minutes.
+- This is a production substitution inside the existing `diagnostic.catalog`
+  BRIDGE, not whole-row closure. Native module-load, AIR, runtime, and other
+  free-text mappings remain. Census stays `88/183` and `55/32/1`; integrated
+  progress remains 83% (81-85%), strict beta 83%, and hard replacement 75%.
+  Commit, push, and exact-head CI remain the publication falsifier.
+
 ## Completed self-host context - 2026-08-30 ArrayString literal target projection
 
 - Installed C empty and LLVM populated ArrayString literal expressions had

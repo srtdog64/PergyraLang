@@ -5,6 +5,7 @@ import "../mir/artifact_transaction_owner.pgy";
 enum DriverSourceMirRequest {
     SourceMirVerified,
     SourceMirPressureObserved,
+    SourceMirJsonDiagnostic,
 }
 
 tobject DriverSourceMirPayloadReceipt {
@@ -59,6 +60,7 @@ func DriverSourceMirRequestMode(
     match request {
         case SourceMirVerified: return "verified";
         case SourceMirPressureObserved: return "pressure-observed";
+        case SourceMirJsonDiagnostic: return "json-diagnostic";
     }
 }
 
@@ -68,6 +70,17 @@ func DriverSourceMirRequestObservesPressure(
     match request {
         case SourceMirVerified: return false;
         case SourceMirPressureObserved: return true;
+        case SourceMirJsonDiagnostic: return false;
+    }
+}
+
+func DriverSourceMirRequestEmitsJsonDiagnostic(
+    request: DriverSourceMirRequest
+) -> Bool {
+    match request {
+        case SourceMirVerified: return false;
+        case SourceMirPressureObserved: return false;
+        case SourceMirJsonDiagnostic: return true;
     }
 }
 

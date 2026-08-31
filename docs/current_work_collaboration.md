@@ -6,6 +6,32 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — public MIR JSON diagnostic receipt publication
+
+- Exact base is `04a981b1afd5a625d8e0a6b411919165d34d7439`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit, push, and exact-CI observation owner.
+- Production entrypoint is default `pgy --mir --error-format=json SOURCE`.
+  The deleted bypass is the C launcher's rejection of this option; the last
+  semantic consumer is `DriverSourceMirJsonDiagnosticPayloadOrDie`, followed
+  only by the opaque C wire relay.
+- `public_diagnostic_receipt_owner.pgy` derives exact public code, stage,
+  cause, and fix from the separately carried Pergyra diagnostic code. The
+  rendered message is payload only. C may validate the wire marker and JSON
+  envelope but may not recover semantic identity or retry the native pipeline.
+- Local implementation is green on a fresh Pergyra-built DRV-2: the focused
+  public gate proves exact identity, wording independence, unchanged valid
+  MIR output, and malformed/missing/crosswired fail-closed behavior. Existing
+  text MIR, source-MIR action, component, hard, SoT edge, Gate single-owner,
+  and protocol gates are green.
+- This is one real production substitution inside `diagnostic.catalog`, not
+  whole-row closure. Native module-load, AIR, runtime, and other diagnostic
+  mappings remain, so the census stays `88/183` and `55/32/1`, and the project
+  forecast stays 83%.
+- Publication and exact-head CI are still open. Protected unrelated untracked
+  `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/` remain
+  outside inspection, edit, and staging.
+
 ## DONE lease — compatibility-evolution production receipt
 
 - Exact base is `551fef8836bf187a4931e9c7a8eafbcb0abe7081`, equal to

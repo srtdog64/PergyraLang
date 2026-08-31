@@ -1,6 +1,7 @@
 // Executable payload and vocabulary contract for semantic diagnostics.
 
 import "diagnostic_owner.pgy";
+import "public_diagnostic_receipt_owner.pgy";
 
 func SemanticVerdictPayloadStatusReady() -> Bool {
     let ok: String = SemanticOk();
@@ -24,6 +25,26 @@ func SemanticVerdictPayloadStatusReady() -> Bool {
     return true;
 }
 
+func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
+    let first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "undefined_function", "first wording"
+        );
+    let second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "undefined_function", "second wording"
+        );
+    return SemanticPublicDiagnosticReceiptReadyFor(
+            first, "undefined_function"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            second, "undefined_function"
+        ) && first.schema == second.schema &&
+        first.stage == second.stage && first.layer == second.layer &&
+        first.code == second.code && first.cause_ir == second.cause_ir &&
+        first.fix_source == second.fix_source &&
+        first.message != second.message;
+}
+
 func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadSchema() != "pgy.selfhost.semantic.v1" {
         return false;
@@ -41,6 +62,9 @@ func SemanticVerdictPayloadContractReady() -> Bool {
         return false;
     }
     if !SemanticVerdictPayloadStatusReady() {
+        return false;
+    }
+    if !SemanticPublicDiagnosticReceiptMessageIndependenceReady() {
         return false;
     }
     return true;

@@ -1,0 +1,109 @@
+// Typed public diagnostic receipt owner. Rendered message wording is payload,
+// never the source of semantic identity.
+
+import "../lib/json_emit.pgy";
+import "diagnostic_code_owner.pgy";
+
+struct SemanticPublicDiagnosticReceipt {
+    ready: Bool;
+    schema: String;
+    stage: String;
+    layer: String;
+    code: String;
+    cause_ir: String;
+    fix_source: String;
+    message: String;
+}
+
+func SemanticPublicDiagnosticReceiptSchema() -> String {
+    return "pgy.selfhost.public-diagnostic.v1";
+}
+
+func SemanticPublicDiagnosticCauseIr(code: String) -> String {
+    if code == "undefined_symbol" || code == "undefined_function" {
+        return "semantic:symbol:undefined";
+    }
+    return "";
+}
+
+func SemanticPublicDiagnosticFixSource(code: String) -> String {
+    if code == "undefined_symbol" || code == "undefined_function" {
+        return "import-or-declare-symbol";
+    }
+    return "";
+}
+
+func SemanticPublicDiagnosticReceiptFromOwnedFacts(
+    code: String,
+    message: String
+) -> SemanticPublicDiagnosticReceipt {
+    let public_code: String = SemanticDiagnosticOracleCode(code);
+    let cause_ir: String = SemanticPublicDiagnosticCauseIr(code);
+    let fix_source: String = SemanticPublicDiagnosticFixSource(code);
+    let ready: Bool = public_code != "" && cause_ir != "" &&
+        fix_source != "" && message != "";
+    return SemanticPublicDiagnosticReceipt(
+        ready,
+        SemanticPublicDiagnosticReceiptSchema(),
+        "semantic",
+        "type",
+        public_code,
+        cause_ir,
+        fix_source,
+        message
+    );
+}
+
+func SemanticPublicDiagnosticReceiptReadyFor(
+    receipt: SemanticPublicDiagnosticReceipt,
+    owned_code: String
+) -> Bool {
+    return receipt.ready &&
+        receipt.schema == SemanticPublicDiagnosticReceiptSchema() &&
+        receipt.stage == "semantic" && receipt.layer == "type" &&
+        receipt.code == SemanticDiagnosticOracleCode(owned_code) &&
+        receipt.cause_ir == SemanticPublicDiagnosticCauseIr(owned_code) &&
+        receipt.fix_source == SemanticPublicDiagnosticFixSource(owned_code) &&
+        receipt.message != "";
+}
+
+func SemanticPublicDiagnosticReceiptJson(
+    receipt: SemanticPublicDiagnosticReceipt
+) -> String {
+    if !receipt.ready { return ""; }
+    return JsonEmitArray([JsonEmitObject([
+        JsonEmitFieldString("severity", "error"),
+        JsonEmitFieldString("stage", receipt.stage),
+        JsonEmitFieldString("layer", receipt.layer),
+        JsonEmitFieldString("code", receipt.code),
+        JsonEmitFieldString("cause_ir", receipt.cause_ir),
+        JsonEmitFieldString("fix_source", receipt.fix_source),
+        JsonEmitFieldRaw("location", "null"),
+        JsonEmitFieldString("message", receipt.message)
+    ])]);
+}
+
+func SemanticPublicDiagnosticReceiptWirePayload(
+    receipt: SemanticPublicDiagnosticReceipt
+) -> String {
+    return Concat(
+        receipt.schema,
+        Concat("\n", SemanticPublicDiagnosticReceiptJson(receipt))
+    );
+}
+
+func SemanticDiagnosticPayloadForPublicBoundary(
+    code: String,
+    message: String,
+    emit_json_receipt: Bool
+) -> String {
+    if !emit_json_receipt { return message; }
+    let receipt: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(code, message);
+    if !SemanticPublicDiagnosticReceiptReadyFor(receipt, code) {
+        // The caller owns the non-zero exit. Empty output makes the transport
+        // reject the receipt without importing another failure vocabulary.
+        return "";
+    }
+    return SemanticPublicDiagnosticReceiptWirePayload(receipt);
+}

@@ -46,7 +46,8 @@ func DriverSourceMirProjectionFromAdmittedRequest(
     DriverRung2PressureStage(observe_pressure, "semantic:done");
     let projection: DriverRung2MirProjection =
         DriverRung2MirProjectionFromAdmittedAnalysisObserved(
-        artifact, analysis, machine_declaration, observe_pressure
+        artifact, analysis, machine_declaration, observe_pressure,
+        DriverSourceMirRequestEmitsJsonDiagnostic(request)
     );
     return projection;
 }

@@ -6017,6 +6017,9 @@ require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(" \
     "SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy("
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(" \
+    "SemanticDiagnosticPayloadForPublicBoundary("
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(" \
     "VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy("
 reject_function_terms "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -9553,7 +9556,9 @@ require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "driver_run_pipeline("
 reject_text "src/compiler/self_host_mir_artifact_owner.c" "system("
 require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
-    'child_argv[1] = "--emit-mir-diagnostic-verified";'
+    '"--emit-mir-diagnostic-verified";'
+require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
+    '"--emit-mir-json-diagnostic-verified"'
 require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
     "pgy_exec_argv_capture_stdout("
 require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
@@ -9566,9 +9571,15 @@ require_text "src/compiler/compiler_process.c" \
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "DriverCliSourceMirDiagnosticStdout(String)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    "DriverCliSourceMirJsonDiagnosticStdout(String)"
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--emit-mir-diagnostic-verified"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    'args[0] == "--emit-mir-json-diagnostic-verified"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "DriverSourceMirDiagnosticPayloadOrDie("
+require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    "DriverSourceMirJsonDiagnosticPayloadOrDie("
 require_text "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" \
     "ProduceSourceMirThroughPgyCompilerWorld("
 require_text "src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy" \

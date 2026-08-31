@@ -1,0 +1,18 @@
+// Read-only last consumer for public source-MIR JSON diagnostic failures.
+
+import "driver_source_mir_stdout_execution_owner.pgy";
+
+func DriverSourceMirJsonDiagnosticPayloadOrDie(
+    inout compiler_world: PgyCompilerWorld,
+    source_path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> String with caps io_read {
+    let receipt: DriverSourceMirPayloadReceipt =
+        DriverSourceMirStdoutReceiptOrDie(
+            compiler_world, source_path, declaration,
+            SourceMirJsonDiagnostic
+        );
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonAdmitBorrowedText(receipt.payload, declaration);
+    return MirDiagnosticProjectionFromAdmitted(admitted);
+}

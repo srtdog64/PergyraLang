@@ -4,7 +4,7 @@ import "driver_rung2_cli_request_owner.pgy";
 import "capability_manifest_owner.pgy";
 import "dir_text_artifact_owner.pgy";
 import "driver_source_c_stdout_execution_owner.pgy";
-import "driver_source_mir_stdout_execution_owner.pgy";
+import "driver_source_mir_json_diagnostic_stdout_owner.pgy";
 import "driver_mir_c_stdout_execution_owner.pgy";
 import "canonical_mir_execution_owner.pgy";
 import "../lexer/scan_owner.pgy";
@@ -48,6 +48,11 @@ func DriverRung2ExecuteReadRequest(
             );
         case DriverCliSourceMirDiagnosticStdout(source_path):
             Log(DriverSourceMirDiagnosticPayloadOrDie(
+                compiler_world, source_path,
+                SelfHostMachineLayerDeclarationEmpty()
+            ));
+        case DriverCliSourceMirJsonDiagnosticStdout(source_path):
+            Log(DriverSourceMirJsonDiagnosticPayloadOrDie(
                 compiler_world, source_path,
                 SelfHostMachineLayerDeclarationEmpty()
             ));
