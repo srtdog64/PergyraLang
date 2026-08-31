@@ -18,16 +18,19 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — public artifact JSON diagnostic receipt
+## Published — public artifact JSON diagnostic receipt exact-CI green
 
-- Exact base is `09491bf820e28c0a75a219a741cc22267a7d6fc7`, equal to
-  `origin/main` when this rung opened. Protected unrelated untracked paths are
-  listed in the collaboration ledger and remain outside inspection, edit, and
-  staging.
-- Fresh execution shows that valid default
-  `pgy --error-format=json examples/minimal.pgy` is rejected by the C launcher
-  before installed Pergyra execution, while the reached undefined-function
-  `--mir` request already publishes the exact owner-issued JSON identity.
+- Exact base is `09491bf820e28c0a75a219a741cc22267a7d6fc7`.
+  Implementation `68981898fe0ab22327412ad955eb15edcf5235c2`, typed-
+  identity repair `3d2207845538a4dd6e251c1ef29db4f08c2311e2`, and topology-
+  ratchet repair `de8180670a90baaec2db905bc1d4023dd96fcd93` are on
+  `origin/main`. Protected unrelated untracked paths are listed in the
+  collaboration ledger and remain outside inspection, edit, and staging.
+- The opening observation was that default JSON-selected artifact compilation
+  was rejected by the C launcher before installed Pergyra execution, while the
+  reached undefined-function `--mir` request already published the exact
+  owner-issued JSON identity. `examples/hello.pgy` is the bounded valid positive
+  fixture for the installed source subset.
 - Production entrypoint is default JSON-selected source artifact compilation,
   including explicit C/LLVM backends. The bypass to delete is the launcher's
   `DIAG_FORMAT_TEXT`-only artifact selection. One artifact request must carry
@@ -44,12 +47,22 @@ percentage by themselves.
   malformed, missing, and crosswired child envelopes fail closed. Existing MIR
   JSON receipt, source-C action, installed CLI aggregate, compiler-root,
   component, hard, language-word, SoT edge, Gate single-owner, and protocol
-  gates are green. Native compiler build is warning-clean. Publication and
-  exact CI remain pending.
+  gates are green. Native compiler build is warning-clean. The strict likeness
+  metric is 76/76; the compiler-world topology admits only the diagnostic-aware
+  three-field LLVM request, and `world.pgy` remains at 600/600 lines.
+- Exact run `33445456545` is green 30/30. Rocq, both bootstrap jobs,
+  sanitizers, Linux/Windows/macOS, and all 20 backend comparison shards passed.
+  `build-linux` took 25m14s and full self-host bootstrap took 23m14s; those
+  timings are evidence, not an inferred performance lease.
 - Exact objective and forbidden fallbacks are in
   `docs/agent_work_directives/public_artifact_json_diagnostic_receipt_2026-09-01.md`.
-  This active rung does not yet change `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`,
-  or the 83% project forecast.
+  This bounded `SUBSTITUTING` public boundary does not close the broader
+  `diagnostic.catalog` row. SoT stays `88/183`,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, and the project forecast stays 83%.
+- No successor implementation rung is inferred from this boundary or its CI
+  timing. Resume by selecting one fresh production executable falsifier and
+  opening a new objective card; do not continue general diagnostic SoT cleanup
+  merely because this path is green.
 
 ## Published — public MIR JSON diagnostic receipt exact-CI green
 

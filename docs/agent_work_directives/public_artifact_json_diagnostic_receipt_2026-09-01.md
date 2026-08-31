@@ -1,7 +1,11 @@
 # Public Artifact JSON Diagnostic Receipt — 2026-09-01
 
-Status: IMPLEMENTATION COMPLETE — PUBLICATION PENDING
+Status: IMPLEMENTATION COMPLETE
 Exact base: `09491bf820e28c0a75a219a741cc22267a7d6fc7`
+Published implementation: `68981898fe0ab22327412ad955eb15edcf5235c2`,
+`3d2207845538a4dd6e251c1ef29db4f08c2311e2`, and
+`de8180670a90baaec2db905bc1d4023dd96fcd93`
+Exact CI: run `33445456545`, green 30/30
 
 This directive coordinates one production self-host replacement. It is not a
 semantic owner, progress owner, registry, or completion claim.
@@ -60,5 +64,7 @@ semantic owner, progress owner, registry, or completion claim.
   Pergyra-built DRV-2. The focused C/LLVM public gate, existing MIR JSON receipt
   gate, installed CLI aggregate, source-C action gate, compiler-root gate,
   native build, hard contract, component contract, language-word registry,
-  SoT edge, Gate single-owner, and protocol registry are green. Publication and
-  exact CI remain pending.
+  SoT edge, Gate single-owner, protocol registry, likeness ratchet, and
+  compiler-world contract are green. Exact run `33445456545` is green 30/30,
+  including Rocq, Linux/Windows/macOS, sanitizers, both bootstrap jobs, and all
+  20 backend comparison shards. The publication falsifier is closed.

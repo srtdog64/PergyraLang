@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — public artifact JSON diagnostic receipt
+## DONE lease — public artifact JSON diagnostic receipt
 
 - Exact base is `09491bf820e28c0a75a219a741cc22267a7d6fc7`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -26,7 +26,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Missing, malformed, and crosswired children publish neither artifact nor
   partial payload. Existing MIR receipt, source-C action, installed aggregate,
   compiler-root, component, hard, language-word, SoT edge, single-owner, and
-  protocol gates pass. Publication and exact CI remain pending.
+  protocol gates pass. The strict likeness metric is 76/76, the compiler-world
+  topology requires the diagnostic-aware three-field LLVM request and forbids
+  its retired two-field shape, and `world.pgy` remains at its 600-line cap.
+- Implementation `68981898fe0ab22327412ad955eb15edcf5235c2`, typed-
+  identity repair `3d2207845538a4dd6e251c1ef29db4f08c2311e2`, and topology-
+  ratchet repair `de8180670a90baaec2db905bc1d4023dd96fcd93` are on
+  `origin/main`. Exact run `33445456545` is green 30/30: Rocq, both bootstrap
+  jobs, sanitizers, Linux/Windows/macOS, and all 20 backend shards passed. The
+  publication falsifier is closed and this lease is retired.
 - Exact objective, edit scope, and falsifiers are in
   `docs/agent_work_directives/public_artifact_json_diagnostic_receipt_2026-09-01.md`.
   This is one bounded executable substitution; it does not close the broader
