@@ -9299,6 +9299,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/public_ast_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_source_inspection_opt_profile_owner.sh"
+require_file \
+    "tests/self_hosted/parity/fixture/counting_self_host_source_stdout_driver.c"
 require_file "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh"
 require_file "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh"
@@ -9337,6 +9340,10 @@ require_max_lines \
 require_max_lines "tests/self_hosted/parity/public_ast_installed_self_host_owner.sh" 140
 require_max_lines "tests/self_hosted/parity/public_capability_manifest_installed_self_host_owner.sh" 180
 require_max_lines "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh" 140
+require_max_lines \
+    "tests/self_hosted/parity/public_source_inspection_opt_profile_owner.sh" 180
+require_max_lines \
+    "tests/self_hosted/parity/fixture/counting_self_host_source_stdout_driver.c" 45
 require_max_lines "src/compiler/driver_self_host_llvm_selection_owner.c" 60
 require_max_lines "src/compiler/self_host_llvm_ir_artifact_owner.c" 90
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh" 140
@@ -9765,6 +9772,10 @@ require_text "Makefile" \
     "self-host-public-dir-replacement-test-smoke:"
 require_text "Makefile" \
     "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh"
+require_text "Makefile" \
+    "self-host-source-inspection-opt-profile-test-smoke:"
+require_text "Makefile" \
+    "tests/self_hosted/parity/public_source_inspection_opt_profile_owner.sh"
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL"'
 reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \

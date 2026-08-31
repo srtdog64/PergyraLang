@@ -6,6 +6,35 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — optimization-neutral source inspection
+
+- Exact base is `f5f85f1ac2773079e98af6aa176ac061f2d76f60`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner.
+- Fresh public falsifiers reject `--tokens`, `--ast`, `--dir`, and
+  `--capability-manifest` when `--opt=dev` is present, even though the installed
+  release-profile payload is stdout-equal to the explicit native payload for
+  all four modes. RIR/AIR/HIR have no installed Pergyra producer and
+  `--runtime=none` reports unimplemented freestanding lowering, so neither is
+  part of this lease.
+- `DriverRung2CliRequestFromArgsOrDie` and the existing read-execution owners
+  already own these payloads. The deletion target is only the release-profile
+  predicate in the C source-stdout selector. Optimization profile must not be
+  added to the typed request or affect the artifact.
+- Native retry, profile-specific inspection output, broad option relaxation,
+  and promotion of native-only IR modes are forbidden. Missing sibling and
+  unsupported `--verbose` combinations must remain fail-closed.
+- The focused gate and exact objective are in
+  `docs/agent_work_directives/optimization_neutral_source_inspection_2026-09-01.md`.
+  A fresh Pergyra-built DRV-2 passes that gate and the four existing public
+  inspection owner gates. Component/hard, SoT edge, Gate single-owner,
+  protocol registry, and substitution-velocity gates are green. The observed
+  census remains `88/183`, `55/32/1`; this lease does not change SoT counts or
+  project percentage by itself. Exact remote CI remains to be observed.
+- Protected unrelated untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging.
+
 ## DONE lease — public artifact JSON diagnostic receipt
 
 - Exact base is `09491bf820e28c0a75a219a741cc22267a7d6fc7`, equal to

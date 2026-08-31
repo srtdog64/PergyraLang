@@ -18,6 +18,35 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — optimization-neutral source inspection
+
+- Exact base is `f5f85f1ac2773079e98af6aa176ac061f2d76f60`, equal to
+  `origin/main` when the rung opened. Protected unrelated untracked paths are
+  listed in the collaboration ledger and remain outside inspection, edit, and
+  staging.
+- Fresh public `--opt=dev` requests for `--tokens`, `--ast`, `--dir`, and
+  `--capability-manifest` fail in the C selector before installed Pergyra
+  execution. Their installed release-profile stdout is byte-equal to the
+  explicit native stdout, so optimization policy is not a legitimate input to
+  these inspection artifacts.
+- Production entrypoint is each of those four public dev-profile inspection
+  requests. The deletion target is the release-only predicate in
+  `driver_self_host_source_stdout_mode`; the existing typed request owner and
+  `DriverRung2ExecuteReadRequest` remain the fact owner and last consumer.
+- Missing sibling, `--verbose`, profile-dependent bytes, native retry, and
+  adding optimization profile to the Pergyra request are the opening negative
+  cases. RIR/AIR/HIR and runtime-none are explicitly outside this rung because
+  their Pergyra production owners or lowering are absent.
+- Exact objective, scope, and focused gate are in
+  `docs/agent_work_directives/optimization_neutral_source_inspection_2026-09-01.md`.
+  A fresh Pergyra-built DRV-2 passes the focused gate: all four dev-profile
+  requests use one installed child, preserve release/native stdout bytes, and
+  fail closed on a missing child or unsupported `--verbose`. The four existing
+  public owner gates, component/hard contracts, SoT edge, Gate single-owner,
+  protocol registry, and substitution-velocity gates also pass. SoT remains
+  `88/183`, `55/32/1`, and the project forecast remains 83%. Exact remote CI
+  is the remaining publication falsifier; do not infer a successor rung yet.
+
 ## Published — public artifact JSON diagnostic receipt exact-CI green
 
 - Exact base is `09491bf820e28c0a75a219a741cc22267a7d6fc7`.
