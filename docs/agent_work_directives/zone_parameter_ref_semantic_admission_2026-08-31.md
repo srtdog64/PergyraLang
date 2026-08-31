@@ -1,6 +1,6 @@
 # Zone Parameter Ref Semantic Admission — 2026-08-31
 
-Status: `LOCAL GREEN — PUBLICATION AND EXACT CI PENDING`
+Status: `LOCAL FIX GREEN — REPUBLICATION AND EXACT CI PENDING`
 
 Exact base: `8ef7039459711e64ac07da12b8473057968c0451`, equal to
 `origin/main` when this rung opened.
@@ -101,3 +101,15 @@ define zone move/return/embedding semantics or invent a fixed lifetime.
   `src/parser/ast_expr_control_accessors.c` 725/699 violation. The local
   authority adequacy gate records an explicit missing-Rocq skip; exact CI's
   `formal-proofs-rocq9` remains the proof owner.
+- First publication `672990d2a4eaf58a2a67d065aa904b3995676983` reached
+  exact CI run `33345542503`. Five jobs that first construct the installed
+  self-host toolchain failed on one shared strict diagnostic: the new owner
+  forwarded `ref signatures` through by-value signature accessors, which the
+  transitive borrow summary correctly rejected. This was not a failure of the
+  `ProgramEmitter.Emit` ref ABI.
+- The corrected owner retains a generated
+  `const SemanticAstFunctionSignatureFacts *` and reads the deeply admitted
+  parallel rows directly. A negative source ratchet rejects renewed signature
+  accessor forwarding. The exact failed seed bootstrap now reports zero
+  diagnostics and produces gen2 plus the parser AST producer; the current-gen2
+  focused zone gate is green. Replacement publication and exact CI are pending.

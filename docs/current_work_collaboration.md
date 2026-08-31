@@ -34,7 +34,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Component, compiler-world, SoT, hard, inventory, documentation, and agent
   gates are green. The broad incremental-size gate still reports the unrelated
   pre-existing `src/parser/ast_expr_control_accessors.c` 725/699 violation;
-  publication and exact CI remain pending.
+  replacement publication and exact CI remain pending.
+- First publication `672990d2a4eaf58a2a67d065aa904b3995676983`
+  exposed one stricter self-host check in CI run `33345542503`: the new owner
+  accepted `ref signatures` but forwarded that borrowed view through by-value
+  signature accessors, so every job that first built an installed driver failed
+  with the same transitive helper-escape diagnostic. The local correction keeps
+  the fact view as `ref`, reads its already-admitted parallel rows directly,
+  and adds a ratchet against reintroducing the helper forwarding. The exact
+  failed seed target and focused zone execution are green locally;
+  republication and replacement exact CI remain pending.
 
 ## DONE lease — zone value carriage semantic admission
 

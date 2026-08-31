@@ -63,7 +63,11 @@ FUNCTION_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy"
 NOMINAL_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy"
 
 grep -Fq 'zone_value_parameter_requires_transfer' "$ZONE_PARAMETER_OWNER"
-grep -Fq 'UnwrapOption(parameter_mode) != 3' "$ZONE_PARAMETER_OWNER"
+grep -Fq 'parameter_mode != 3' "$ZONE_PARAMETER_OWNER"
+if grep -Fq 'SemanticAstFunctionParam' "$ZONE_PARAMETER_OWNER"; then
+    echo "zone parameter owner forwarded its borrowed signature view" >&2
+    exit 1
+fi
 if grep -Fq 'Pergyra zone by-value parameter requires an admitted transfer plan' \
     "$FUNCTION_OWNER"; then
     echo "zone parameter policy returned to C function emission" >&2

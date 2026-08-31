@@ -50,8 +50,19 @@ percentage by themselves.
   negatives/positives and component/compiler-world/SoT/hard/inventory/docs/
   agent gates are green. The broad incremental-size gate remains red only on
   the unrelated unmodified `src/parser/ast_expr_control_accessors.c` 725/699
-  violation; publication and exact CI remain pending. Local Rocq is
+  violation; replacement publication and exact CI remain pending. Local Rocq is
   unavailable, so formal proof is an explicit skip owned by exact CI.
+- First publication `672990d2a4eaf58a2a67d065aa904b3995676983`
+  reached CI run `33345542503`, where codegen bootstrap, full self-host,
+  fast Linux push, sanitizer driver construction, and backend toolchain
+  construction all failed at the same strict borrow check. The new semantic
+  owner had forwarded
+  `ref signatures` into by-value signature accessors. The corrected owner keeps
+  a generated `const SemanticAstFunctionSignatureFacts *` ABI and reads the
+  deeply admitted row arrays in place; it neither copies the fact view nor
+  forwards the borrow. The exact failing seed target now builds gen2 plus the
+  parser producer locally, and the focused zone target is green. Replacement
+  publication and exact CI remain pending.
 
 ## Published — zone value carriage semantic admission is exact-CI green
 
