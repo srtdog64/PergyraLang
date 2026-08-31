@@ -58,6 +58,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   locally. Local authority adequacy records the declared missing-Coq skip while
   the exact run's Rocq 9 job is green. One inventory-only publication and exact
   CI remain.
+- Inventory publication `c3b1286b3c9565e99b82545d207bed2f061f9272` produced
+  green run `33349837888`, but change classification selected the Markdown-only
+  target and that target did not execute the registry renderer check. This is a
+  CI evidence gap, not exact remote closure of the previous sole failure.
+- The Markdown contract target now runs
+  `tests/language_keyword_registry_smoke.sh`; the CI-profile ratchet requires
+  that call. The exact local Markdown command list is green with the regenerated
+  inventory. Publication of this CI repair and its exact run remain pending.
 
 ## DONE lease — zone value carriage semantic admission
 

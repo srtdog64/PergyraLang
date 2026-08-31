@@ -76,6 +76,15 @@ percentage by themselves.
   absence is a declared skip; the exact run's Rocq 9 job passed. Inventory-only
   publication and replacement exact CI remain pending; this correction does not
   change the SoT census or 83% line.
+- Inventory commit `c3b1286b3c9565e99b82545d207bed2f061f9272` is on
+  `origin/main`; run `33349837888` was green through the Markdown-only path.
+  Log inspection showed that path checked docs/sentinels but not the
+  language-word registry, so it is insufficient remote evidence for the one
+  failure from run `33347320011`.
+- CI now executes `tests/language_keyword_registry_smoke.sh` in the Markdown
+  contract and `self_host_ci_profile_smoke.sh` ratchets the call. The exact
+  local Markdown sequence is green. Publish this CI repair and observe the
+  registry PASS remotely before moving the active card to Published.
 
 ## Published — zone value carriage semantic admission is exact-CI green
 

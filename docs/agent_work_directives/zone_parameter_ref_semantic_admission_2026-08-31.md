@@ -1,6 +1,6 @@
 # Zone Parameter Ref Semantic Admission — 2026-08-31
 
-Status: `LOCAL INVENTORY FIX GREEN — REPUBLICATION AND EXACT CI PENDING`
+Status: `LOCAL CI RATCHET GREEN — REPUBLICATION AND EXACT CI PENDING`
 
 Exact base: `8ef7039459711e64ac07da12b8473057968c0451`, equal to
 `origin/main` when this rung opened.
@@ -125,3 +125,11 @@ define zone move/return/embedding semantics or invent a fixed lifetime.
   locally, as is the full preparation-contract parent with a declared local
   missing-Coq skip. Exact CI already proved the Rocq 9 job. Inventory-only
   publication and exact CI remain pending.
+- Inventory commit `c3b1286b3c9565e99b82545d207bed2f061f9272` produced
+  green run `33349837888`, but its Markdown-only target omitted the exact
+  language-word generator check. The run therefore does not close the one red
+  from `33347320011` by itself.
+- The Markdown contract now runs `language_keyword_registry_smoke.sh`, and the
+  CI-profile owner ratchets that invocation. The complete local Markdown
+  command list is green with the regenerated inventory. Publication and one
+  remote registry PASS remain pending.

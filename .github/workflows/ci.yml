@@ -68,6 +68,7 @@ jobs:
           bash tests/agent_boundary_sentinel_smoke.sh
           bash tests/object_action_boundary_contract_smoke.sh
           bash tests/documentation_quality_smoke.sh
+          bash tests/language_keyword_registry_smoke.sh
           bash tests/post_selfhost_validation_manifest_smoke.sh
           bash tests/sot_authority_edge_smoke.sh
           bash tests/gate_sot_single_owner_smoke.sh
