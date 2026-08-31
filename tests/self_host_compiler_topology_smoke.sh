@@ -17,6 +17,7 @@ ROOT_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/compiler_root_intent_executio
 MAIN="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"
 INSTALLED="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy"
 READ_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
+CLI_REQUEST="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 ARTIFACT_EXECUTION="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"
 COMPILER_ROOT="$ROOT_DIR/src/self_hosted/compiler"
 ARCH="$ROOT_DIR/docs/self_hosted/11_compiler_world_architecture.md"
@@ -39,6 +40,7 @@ fail() {
 [[ -f "$MAIN" ]] || fail "missing production compiler entrypoint"
 [[ -f "$INSTALLED" ]] || fail "missing installed CLI request executor"
 [[ -f "$READ_EXECUTION" ]] || fail "missing read-only CLI request executor"
+[[ -f "$CLI_REQUEST" ]] || fail "missing installed CLI request owner"
 [[ -f "$ARTIFACT_EXECUTION" ]] || fail "missing installed artifact request executor"
 [[ -f "$ARCH" ]] || fail "missing compiler world architecture"
 
@@ -238,7 +240,9 @@ for owner_term in \
     "$READ_EXECUTION|case DriverCliSourceCManifestStdout(source_path, manifest_path):" \
     "$READ_EXECUTION|case DriverCliMirCStdout(input_path):" \
     "$READ_EXECUTION|case DriverCliMirCManifestStdout(input_path, manifest_path):" \
-    "$INSTALLED|case DriverCliSourceLlvmArtifact(source_path, output_path):" \
+    "$CLI_REQUEST|DriverCliSourceLlvmArtifact(String, String, Bool)," \
+    "$INSTALLED|case DriverCliSourceLlvmArtifact(source_path, output_path, emit_json):" \
+    "$READ_EXECUTION|case DriverCliSourceLlvmArtifact(source_path, output_path, emit_json):" \
     "$ARTIFACT_EXECUTION|EmitDirectMirThroughPgyCompilerWorld(" \
     "$ARTIFACT_EXECUTION|PublishMirCArtifactThroughPgyCompilerWorld(" \
     "$ARTIFACT_EXECUTION|PublishSourceMirArtifactThroughPgyCompilerWorld(" \
@@ -251,6 +255,12 @@ for owner_term in \
     [[ "$(grep -F -c -- "$term" "$owner")" -eq 1 ]] ||
         fail "direct-MIR topology fact must occur exactly once: $term"
 done
+
+if grep -Fq -- 'DriverCliSourceLlvmArtifact(String, String),' "$CLI_REQUEST" ||
+    grep -Fq -- 'case DriverCliSourceLlvmArtifact(source_path, output_path):' \
+        "$INSTALLED" "$READ_EXECUTION"; then
+    fail "source-LLVM request regained the diagnostic-unaware two-field shape"
+fi
 
 compatibility_guard_line="$(grep -nF -- \
     '!CompilerCompatibilityEvolutionReceiptReady(compatibility_receipt)' \

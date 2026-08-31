@@ -349,8 +349,7 @@ world PgyCompilerWorld {
     }
 
     func CompileSourceToLlvm(self, source_path: String, output_path: String,
-        machine_declaration: SelfHostMachineLayerDeclaration,
-        source_request: DriverSourceMirRequest
+        machine_declaration: SelfHostMachineLayerDeclaration, source_request: DriverSourceMirRequest
     ) -> DriverSourceLlvmIntentOutcome with caps io_read, io_write {
         let intent_zone: DriverSourceLlvmIntentZone = Clone(source_llvm);
         let intent_execution: DriverSourceLlvmIntentExecution =
@@ -583,8 +582,7 @@ intent CompilePergyraProgram(
     direct_execution: DriverRung2Execution,
     source_path: String,
     output_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration,
-    source_request: DriverSourceMirRequest
+    machine_declaration: SelfHostMachineLayerDeclaration, source_request: DriverSourceMirRequest
 ) {
     exclusive;
 
