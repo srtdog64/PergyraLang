@@ -31,6 +31,27 @@ lease, or completion claim.
 - The observed compiler executable SHA-256 was
   `464C55FAF5F2489F9293E678BF42377A640A6321A14C6A67BE157810FC7972F1`.
 
+### Independent follow-up campaign
+
+- A second delegated read-only campaign began at D revision
+  `eace7842fb9549b678140c28335e5a5d3dafd54f` and ended after the concurrent
+  documentation publication moved HEAD to
+  `a7e99d5c2eced2a16b5d2cd3095296ae87401781`. The compiler executable hash
+  remained unchanged. The requested `F:\tex\_bug` path did not exist, so the
+  observed repository was the existing `F:\tex_bug` path.
+- From 100 corpus inputs, 65 self-contained native-HIR-green seeds were
+  admitted; 8 import-context inputs and 27 baseline rejects were excluded.
+  Mutation operators were run with seeds `20260902`, `20260903`, and `424242`
+  for 120 cases total.
+- Every case ran twice through tokens, AST, public MIR, C, LLVM, and native HIR
+  with a one-second timeout: 1,440 mode invocations in 97.22 seconds. The
+  campaign found zero new crash, hang, internal diagnostic, or determinism
+  mismatch and left no OS temporary residue.
+- The exact `enum({` canary remained the sole finding: tokens, AST, MIR, C, and
+  LLVM terminated in 42-196ms, while native HIR timed out at approximately
+  1.071s and 3.173s under the one- and three-second checks. This is duplicate
+  evidence, not a second finding or an implementation authorization.
+
 ## Harness limitations observed
 
 - The corpus runner contains a stale hard-coded `E:\` path and an obsolete

@@ -18,6 +18,44 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — let-type-mismatch public JSON receipt local green
+
+- Exact base and current published HEAD are
+  `a7e99d5c2eced2a16b5d2cd3095296ae87401781`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: all thirteen fixtures that reach the installed
+  Pergyra `let_type_mismatch` verdict retain their text facts, but private JSON
+  is empty and public MIR JSON stops at the generic malformed-receipt error.
+- Explicit native JSON fixes `PGY_SEM_TYPE_MISMATCH`, stage `semantic`, layer
+  `type`, cause `semantic:assignability_check`, and fix `annotate-or-convert`
+  across all thirteen contexts.
+- The already admitted return mismatch legitimately shares that public
+  identity while retaining a distinct Pergyra code. `assign_type_mismatch`
+  remains a forbidden co-admission, along with C mapping, native retry, message
+  parsing, another semantic pass, invented location, text/fact changes, and a
+  second renderer.
+- The active rung may admit only this exact Pergyra code, prove all thirteen
+  private contexts, and reuse the existing MIR/artifact process and wire owners
+  for public MIR/C/LLVM relay. Its focused falsifier is
+  `tests/self_hosted/parity/public_let_type_mismatch_json_diagnostic_receipt_owner.sh`.
+- A fresh Pergyra-built DRV-2 passes the focused thirteen-context gate,
+  rebaselined return/logical negative checks, all existing semantic receipt
+  gates, and the complete installed CLI aggregate through artifact, parser,
+  tokens, AST, LLVM IR, native opt-in, REPL, formatter, and DeviceSlot
+  boundaries.
+- The first aggregate invocation used Windows absolute driver paths and was
+  rejected by the repository-relative machine-manifest guard. The
+  Make/CI-equivalent POSIX-path rerun passed without a source change.
+- Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
+  velocity, hard-contract, and progress ratchets pass. The broad component
+  inventory remains an exact-CI verdict under the 60-second local budget.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.20% and
+  project forecast remains 83%. Next step is diff review, commit/push, and
+  exact CI. The delegated fuzz campaign is read-only, found no new issue in
+  1,440 mode invocations, and leaves the existing `enum({` native-HIR hang as
+  separate waiting work.
+
 ## Published — compare-type-mismatch public JSON receipt exact-CI green
 
 - Exact base is `215bcf0274831a1613b6505281485d13182409b5` and implementation

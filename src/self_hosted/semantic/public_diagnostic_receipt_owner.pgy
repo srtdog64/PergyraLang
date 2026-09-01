@@ -42,6 +42,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "annotate-or-convert"
         );
     }
+    if code == "let_type_mismatch" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:assignability_check",
+            "annotate-or-convert"
+        );
+    }
     if code == "logical_operand_not_bool" {
         return SemanticPublicDiagnosticIdentity(
             true,
