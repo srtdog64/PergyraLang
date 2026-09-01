@@ -136,12 +136,11 @@ require_text "$SEMANTIC_OWNER" \
     'SelfHostPublicDiagnosticReceiptWireFromOwnedFacts('
 require_text "$WIRE_OWNER" 'SelfHostPublicDiagnosticReceiptSchema()'
 
-mapfile -t pgy_wire_literals < <(
+pgy_wire_literal_owner="$(
     grep -RIl --include='*.pgy' 'pgy.selfhost.public-diagnostic.v1' \
         "$ROOT_DIR/src/self_hosted"
-)
-[[ "${#pgy_wire_literals[@]}" -eq 1 &&
-   "${pgy_wire_literals[0]}" == "$WIRE_OWNER" ]] ||
+)"
+[[ "$pgy_wire_literal_owner" == "$WIRE_OWNER" ]] ||
     fail "Pergyra public diagnostic wire schema regained multiple owners"
 ! grep -Eq 'Args\(|GetEnv|Environment|driver_diag_code_from_message' \
     "$PARSER_OWNER" "$PIPELINE_OWNER" "$SOURCE_MIR_OWNER" ||
