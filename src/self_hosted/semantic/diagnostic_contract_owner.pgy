@@ -58,6 +58,14 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "condition_not_bool", "second condition wording"
         );
+    let unary_first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "not_operand_not_bool", "first unary wording"
+        );
+    let unary_second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "not_operand_not_bool", "second unary wording"
+        );
     return SemanticPublicDiagnosticReceiptReadyFor(
             first, "undefined_function"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
@@ -74,6 +82,10 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
             condition_first, "condition_not_bool"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             condition_second, "condition_not_bool"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            unary_first, "not_operand_not_bool"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            unary_second, "not_operand_not_bool"
         ) && first.schema == second.schema &&
         first.stage == second.stage && first.layer == second.layer &&
         first.code == second.code && first.cause_ir == second.cause_ir &&
@@ -99,7 +111,14 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         condition_first.code == condition_second.code &&
         condition_first.cause_ir == condition_second.cause_ir &&
         condition_first.fix_source == condition_second.fix_source &&
-        condition_first.message != condition_second.message;
+        condition_first.message != condition_second.message &&
+        unary_first.schema == unary_second.schema &&
+        unary_first.stage == unary_second.stage &&
+        unary_first.layer == unary_second.layer &&
+        unary_first.code == unary_second.code &&
+        unary_first.cause_ir == unary_second.cause_ir &&
+        unary_first.fix_source == unary_second.fix_source &&
+        unary_first.message != unary_second.message;
 }
 
 func SemanticVerdictPayloadContractReady() -> Bool {

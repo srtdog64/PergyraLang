@@ -6,6 +6,29 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — not-operand public JSON diagnostic receipt
+
+- Exact base is `b916fbf6fb247b99853f9dd45f46da6091b9365d`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves `not_operand_not_bool` retains its
+  Pergyra text verdict while private JSON is empty and public JSON reaches only
+  the generic malformed-receipt boundary. Explicit native JSON fixes one
+  unary-operand code/cause/fix identity.
+- The deletion target is exact admission of that one owned code and reuse of
+  existing wire/process owners. Condition/logical/return grouping, C mapping,
+  native retry, message parsing, another semantic pass, location invention,
+  fact loss, and text wording changes are forbidden.
+- Exact objective and distinctions are in
+  `docs/agent_work_directives/not_operand_public_json_diagnostic_receipt_2026-09-02.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+- Local implementation is green on a fresh Pergyra-built DRV-2. The focused
+  unary gate, rebaselined condition/logical negatives, and full installed CLI
+  aggregate pass. Diagnostic, SoT, Gate, protocol, inventory, velocity, hard-
+  contract, and progress ratchets pass. Implementation volume is 21.18%; the
+  broad component inventory and exact CI remain pending.
+
 ## DONE lease — condition-not-bool public JSON diagnostic receipt
 
 - Exact base is `ca122be5396a4862a8b330e7a9d2e9710920a775`, equal to

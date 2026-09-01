@@ -56,6 +56,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "convert-condition-to-bool"
         );
     }
+    if code == "not_operand_not_bool" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:unary_operator:operand",
+            "align-operand-type"
+        );
+    }
     return SemanticPublicDiagnosticIdentity(false, "", "");
 }
 

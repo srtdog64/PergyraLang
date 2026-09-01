@@ -18,6 +18,38 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — not-operand public JSON receipt local green
+
+- Exact base and current published HEAD are
+  `b916fbf6fb247b99853f9dd45f46da6091b9365d`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: `bad_not_operand.pgy` reaches the installed
+  Pergyra `not_operand_not_bool` verdict with `actual: Int`, but private JSON is
+  only a blank line and public MIR JSON stops at the generic malformed-receipt
+  error.
+- Explicit native JSON fixes `PGY_SEM_UNOP_TYPE_MISMATCH`, stage `semantic`,
+  layer `type`, cause `semantic:unary_operator:operand`, and fix
+  `align-operand-type`. Native wording is payload and Pergyra owns no source
+  span for this verdict.
+- Condition, logical, and return identities are forbidden groupings, along with
+  C mapping, native retry, message parsing, a second semantic pass, invented
+  location, text/fact changes, and a second wire renderer.
+- The active rung may admit only this exact Pergyra code and reuse the existing
+  MIR/artifact process and wire owners for public MIR/C/LLVM relay. Its focused
+  falsifier is
+  `tests/self_hosted/parity/public_not_operand_json_diagnostic_receipt_owner.sh`.
+- A fresh Pergyra-built DRV-2 passes the focused unary gate, rebaselined
+  condition/logical gates, and the complete installed CLI aggregate through
+  artifact, parser, tokens, AST, LLVM IR, native opt-in, REPL, formatter, and
+  DeviceSlot boundaries.
+- Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
+  velocity, hard-contract, and progress ratchets pass. The broad component
+  inventory remains an exact-CI verdict under the 60-second local budget.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.18% and
+  project forecast remains 83%. Next step is diff review, commit/push, and
+  exact CI. No fuzz repair or second SoT track is active.
+
 ## Published — condition-not-bool public JSON receipt exact-CI green
 
 - Exact base is `ca122be5396a4862a8b330e7a9d2e9710920a775` and implementation

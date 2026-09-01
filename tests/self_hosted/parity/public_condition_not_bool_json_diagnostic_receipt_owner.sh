@@ -134,7 +134,9 @@ require_text "$WORK_DIR/logical.out" '"cause_ir":"semantic:binop:operand_types"'
     fail "logical verdict gained condition identity"
 [[ "$unary_rc" -ne 0 && ! -s "$WORK_DIR/unary.err" ]] ||
     fail "unary exclusion changed its private channels"
-! grep -q '[^[:space:]]' "$WORK_DIR/unary.out" ||
+require_text "$WORK_DIR/unary.out" \
+    '"cause_ir":"semantic:unary_operator:operand"'
+! grep -Fq 'semantic:condition:non_bool' "$WORK_DIR/unary.out" ||
     fail "unary verdict gained the condition identity"
 
 probe_bin="$WORK_DIR/message-independence-probe"
