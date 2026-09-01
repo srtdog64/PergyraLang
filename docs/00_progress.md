@@ -1,6 +1,20 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-08-31
+마지막 업데이트: 2026-09-01
+
+가장 최근 닫힌 executable rung은 public token JSON diagnostic receipt다.
+구현 `e8c3c3a6003c2c87f7abe6eb4b37cbee4dc90107`은 token request에 한 개의
+admitted Bool을 운반하고, 기존 invalid-character 검출점에서 Pergyra lexer가
+`PGY_LEX_INVALID_TOKEN` code/stage/layer/cause/fix를 소유하게 한다. C adapter는
+private argv 선택과 공용 opaque process relay만 담당하며 lexer 의미, native retry,
+중복 lexing은 갖지 않는다. 성공 token bytes와 formatter의 typed-fact wrapper는
+그대로다. Exact-head CI run `33503873163`은 30/30 green이고 backend shard는
+20/20이다. Full self-host는 `gen2 == gen3 (173229 lines)`, receipt-bound 채택,
+Pergyra-built DRV-2 설치, token receipt marker를 각각 정확히 한 번 증명했다.
+`build-linux`는 25m33s, full self-host는 34m35s였다. 이 작업은
+`diagnostic.catalog`의 실제 consumer migration이지만 전체 행 폐쇄는 아니므로
+census `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%,
+통합 진행도 **83%** (81~85%)는 유지한다.
 
 최신 bounded performance rung은 semantic expression root lookup이다. Full-driver
 계측은 generic-specialization row나 graph 재방문이 아니라, 이미 정렬된 126,513개

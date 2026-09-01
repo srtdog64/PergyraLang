@@ -18,11 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — tokens public JSON diagnostic receipt local gates green
+## Published — tokens public JSON diagnostic receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `cb65af9afda1af9533efefab2d1446e60462af41`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `cb65af9afda1af9533efefab2d1446e60462af41`; implementation
+  `e8c3c3a6003c2c87f7abe6eb4b37cbee4dc90107` is on `origin/main` and is the
+  current published implementation HEAD. Protected unrelated untracked paths
+  remain outside inspection, edit, and staging.
 - Fresh production falsifier: text `SOURCE --tokens` reaches the installed
   driver, but the otherwise-identical `--error-format=json` request stops at the
   C adapter's text-only source-stdout predicate. Published AST text/JSON both
@@ -49,9 +50,13 @@ percentage by themselves.
   installed CLI aggregate, and component/hard/source-inventory/SoT/Gate/
   protocol/velocity ratchets. The observed census remains `88/183`,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
-- `diagnostic.catalog` remains `BRIDGE` and project forecast remains 83%. The
-  next step is only the implementation commit/push and exact CI; do not open
-  another executable rung.
+- Exact-head CI run `33503873163` is green 30/30 with backend shards 20/20.
+  `build-linux` took 25m33s and full self-host 34m35s. Its log records exactly
+  one each of `gen2 == gen3 (173229 lines)`, receipt-bound adoption,
+  Pergyra-built DRV-2 installation, and the focused token marker.
+- `diagnostic.catalog` remains `BRIDGE` and project forecast remains 83%. This
+  publication falsifier is closed; do not infer a successor without a fresh
+  production executable falsifier.
 
 ## Published — AST public JSON diagnostic receipt exact-CI green
 

@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — tokens public JSON diagnostic receipt
+## DONE lease — tokens public JSON diagnostic receipt
 
 - Exact base is `cb65af9afda1af9533efefab2d1446e60462af41`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -32,9 +32,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   formatter facts, existing AST/MIR receipt gates, and the complete installed
   CLI aggregate. Component, hard, source-inventory, SoT, Gate, protocol, and
   velocity ratchets also pass.
-- The observed census remains `88/183`, `55/32/1`, with 9 blockers. Exact CI
-  and publication remain pending; this lease stays ACTIVE and authorizes no
-  successor rung.
+- The observed census remains `88/183`, `55/32/1`, with 9 blockers. Exact-head
+  implementation `e8c3c3a6003c2c87f7abe6eb4b37cbee4dc90107` is on
+  `origin/main`; CI run `33503873163` is green 30/30 with backend shards 20/20.
+  Full self-host records exactly one 173229-line fixed point, receipt-bound
+  adoption, Pergyra-built DRV-2 installation, and focused token marker.
+- This lease is DONE and authorizes no successor rung. A new lease requires a
+  fresh production executable falsifier.
 
 ## DONE lease — AST public JSON diagnostic receipt
 

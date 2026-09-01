@@ -1,6 +1,6 @@
 # Tokens Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL GATES GREEN, EXACT CI PENDING
+Status: DONE — EXACT CI GREEN AND PUBLISHED
 
 Exact base revision: `cb65af9afda1af9533efefab2d1446e60462af41`
 
@@ -111,5 +111,22 @@ candidates, not completion evidence.
 - Observed census remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9
   blockers. `diagnostic.catalog` remains `BRIDGE`; this is consumer migration,
   not row closure or a project-percentage increment.
-- Exact CI and publication evidence are still pending. No successor executable
-  rung is authorized by these local results.
+- At this local checkpoint, exact CI and publication evidence were still
+  pending; the publication section below supersedes that checkpoint. The local
+  results alone authorized no successor executable rung.
+
+## Publication evidence
+
+- Implementation `e8c3c3a6003c2c87f7abe6eb4b37cbee4dc90107` is on
+  `origin/main`. Exact-head CI run `33503873163` is green 30/30, including all
+  20 backend-compare shards.
+- `build-linux` completed in 25m33s and full self-host in 34m35s. The full
+  self-host log records exactly one each of `gen2 == gen3 (173229 lines)`,
+  receipt-bound fixed-point adoption, Pergyra-built DRV-2 installation, and the
+  focused token JSON diagnostic marker.
+- The deletion target is published without C lexer meaning, native fallback,
+  duplicate lexing, or JSON admission for excluded modes. The observed census
+  remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project
+  forecast remains 83%.
+- This directive is DONE and authorizes no successor rung. A successor requires
+  a fresh production executable falsifier and a new bounded objective card.
