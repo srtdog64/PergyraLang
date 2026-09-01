@@ -18,6 +18,35 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — optimization-neutral MIR reads local green
+
+- Exact base/current published HEAD is
+  `645d6e42014cc7959416bc5c5aecbe4df3c4d46d`; the implementation is dirty and
+  not yet published. Protected unrelated untracked paths are listed in the
+  collaboration ledger and remain outside inspection, edit, and staging.
+- Production entrypoints are public `--mir`, `--mir --error-format=json`, and
+  `--mir-json` with `--opt=dev`. The direct C bypasses are the release-only
+  predicates in `driver_self_host_mir_diagnostic_request_supported` and
+  `driver_self_host_mir_json_request_supported`.
+- Existing typed Pergyra requests and
+  `DriverRung2ExecuteReadRequest` remain the fact owner and last consumer. No
+  optimization profile was added to a request and no MIR representation or
+  Pergyra semantic owner changed.
+- A fresh receipt-bound DRV-2 passes the focused gate: release/dev/direct bytes
+  agree for all three request identities, one installed child executes per
+  request, missing children fail without partial output/native timing, and
+  `--verbose` remains rejected. Existing MIR diagnostic and MIR JSON owner
+  gates pass after repairing the latter's stale canonicalizer, native-dispatch
+  count, and installed-consumer inventory assertions.
+- Component/hard contracts, SoT edge, Gate single-owner, protocol registry,
+  and substitution velocity are green. Census remains `88/183`,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`; project forecast remains 83%.
+- Exact objective and local evidence are in
+  `docs/agent_work_directives/optimization_neutral_mir_read_outputs_2026-09-01.md`.
+  Next executable action is final diff/component verification, then one
+  implementation commit/push and exact CI observation. Do not infer a
+  machine-manifest or native-only IR successor from this boundary.
+
 ## Published — optimization-neutral source inspection exact-CI green
 
 - Exact base is `f5f85f1ac2773079e98af6aa176ac061f2d76f60` and implementation

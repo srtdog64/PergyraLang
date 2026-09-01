@@ -99,7 +99,6 @@ driver_self_host_mir_json_request_supported(const DriverFlags *flags)
         && !flags->dump_mir && !flags->dump_hir
         && !flags->check_only && !flags->verbose && !flags->repl
         && !flags->emit_debug_lines
-        && flags->opt_profile == PGY_OPT_RELEASE
         && flags->diag_format == DIAG_FORMAT_TEXT
         && flags->runtime_mode == RUNTIME_DEFAULT
         && flags->machine_layer_physical_manifest == NULL;

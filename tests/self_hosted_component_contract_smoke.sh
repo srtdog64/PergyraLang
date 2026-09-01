@@ -9302,6 +9302,9 @@ require_file "tests/self_hosted/parity/public_dir_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_source_inspection_opt_profile_owner.sh"
 require_file \
     "tests/self_hosted/parity/fixture/counting_self_host_source_stdout_driver.c"
+require_file "tests/self_hosted/parity/public_mir_opt_profile_owner.sh"
+require_file \
+    "tests/self_hosted/parity/fixture/counting_self_host_mir_read_driver.c"
 require_file "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh"
 require_file "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh"
@@ -9344,6 +9347,10 @@ require_max_lines \
     "tests/self_hosted/parity/public_source_inspection_opt_profile_owner.sh" 180
 require_max_lines \
     "tests/self_hosted/parity/fixture/counting_self_host_source_stdout_driver.c" 45
+require_max_lines \
+    "tests/self_hosted/parity/public_mir_opt_profile_owner.sh" 180
+require_max_lines \
+    "tests/self_hosted/parity/fixture/counting_self_host_mir_read_driver.c" 45
 require_max_lines "src/compiler/driver_self_host_llvm_selection_owner.c" 60
 require_max_lines "src/compiler/self_host_llvm_ir_artifact_owner.c" 90
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh" 140
@@ -9806,6 +9813,8 @@ require_text "Makefile" \
     "self-host-generic-specialization-identity-epoch-test-smoke: self-host-canonical-mir-routine-phase-identity-test-smoke"
 require_text "Makefile" \
     "self-host-public-mir-json-replacement-test-smoke: self-host-installed-driver-cli-mode-test-smoke self-host-generic-specialization-identity-epoch-test-smoke"
+require_text "Makefile" \
+    "self-host-installed-driver-cli-mode-test-smoke: self-host-source-inspection-opt-profile-test-smoke self-host-mir-opt-profile-test-smoke"
 require_text "Makefile" \
     "self-host-public-llvm-ir-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke"
 require_text "Makefile" \

@@ -6,6 +6,35 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — optimization-neutral MIR read outputs
+
+- Exact base is `645d6e42014cc7959416bc5c5aecbe4df3c4d46d`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Production entrypoints are public `--mir`, `--mir --error-format=json`, and
+  `--mir-json` with `--opt=dev`. Their existing Pergyra read owners already
+  produce the release payloads; the deletion targets are only the two C
+  `PGY_OPT_RELEASE` admission predicates.
+- Optimization-profile carriage, MIR representation changes, native retry,
+  accepting `--verbose`, and bundling machine-manifest/RIR/AIR/HIR/runtime-none
+  work are forbidden. Missing siblings must fail without output or native
+  timing.
+- Local implementation is green on a fresh receipt-bound Pergyra-built DRV-2.
+  The focused gate proves release/dev/direct equality and one child per typed
+  request. Existing public MIR diagnostic/MIR JSON gates, component/hard
+  contracts, SoT edge, Gate single-owner, protocol registry, and substitution
+  velocity are green. The MIR JSON gate's stale canonicalizer, native-dispatch
+  count, and new installed-consumer inventory assertions were corrected to the
+  current stronger topology.
+- Exact objective, falsifier, and evidence are in
+  `docs/agent_work_directives/optimization_neutral_mir_read_outputs_2026-09-01.md`.
+  The lease remains active until implementation is committed/pushed and exact
+  CI is observed. SoT remains `88/183`, `55/32/1`; project forecast remains
+  83%.
+- Protected unrelated untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging.
+
 ## DONE lease — optimization-neutral source inspection
 
 - Exact base is `f5f85f1ac2773079e98af6aa176ac061f2d76f60`, equal to

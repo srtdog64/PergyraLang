@@ -127,17 +127,18 @@ require_text "$SELECTION_OWNER" '&& !flags->test_native_mir_json_oracle'
 require_text "$SIBLING_OWNER" 'args[0] = (char *)"--emit-mir-json-verified";'
 require_text "$SIBLING_OWNER" 'return driver_run_self_host_command(launcher_path, 2, args);'
 require_text "$SIBLING_OWNER" 'driver_self_host_source_identity_path_dup('
-require_text "$SIBLING_OWNER" 'import_resolver_canonicalize_path_dup(source_path)'
+require_text "$SIBLING_OWNER" 'import_resolver_existing_final_identity_path_dup(source_path)'
 require_text "$MIR_ARTIFACT_OWNER" 'driver_self_host_source_identity_path_dup(source_path)'
 require_text "$PATH_OWNER" "if (*p == '\\\\')"
-# 3 = test oracle + declared --native-pipeline opt-out (docs/152) + final
-# non-selected dispatch. Public --mir must not add another native reachability.
-[[ "$(grep -F -c 'return driver_run_pipeline(&flags);' "$LAUNCHER_OWNER")" -eq 3 ]] ||
-    fail "native pipeline reachability escaped test oracle, declared opt-out, and final non-MIR dispatch"
+# 2 = test oracle + declared --native-pipeline opt-out (docs/152). Public MIR
+# reads and the default compile path must not add native reachability.
+[[ "$(grep -F -c 'return driver_run_pipeline(&flags);' "$LAUNCHER_OWNER")" -eq 2 ]] ||
+    fail "native pipeline reachability escaped the test oracle and declared opt-out"
 grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&
     fail "installed sibling launcher regained a native pipeline fallback"
 unseparated_oracles="$(find "$ROOT_DIR/tests" -type f -name '*.sh' \
     ! -name 'public_mir_json_installed_self_host_owner.sh' \
+    ! -name 'public_mir_opt_profile_owner.sh' \
     ! -name 'public_llvm_ir_installed_self_host_owner.sh' -exec awk '
         /"\$PGY"/ { pgy_window = 3; self_mode = /--self-driver/ }
         pgy_window > 0 && /--mir-json/ && !/--test-native-mir-json-oracle/ &&
