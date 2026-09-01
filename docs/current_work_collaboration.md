@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — condition-not-bool public JSON diagnostic receipt
+## DONE lease — condition-not-bool public JSON diagnostic receipt
 
 - Exact base is `ca122be5396a4862a8b330e7a9d2e9710920a775`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -31,6 +31,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - One first aggregate invocation used a Windows backslash driver path and was
   rejected by the repository-relative machine-manifest guard. The
   Make/CI-equivalent POSIX-path rerun passed without a source change.
+- Implementation `c01ac369716e0a8486c4c762a4ca5606f12b528a` is on
+  `origin/main`; exact run `33527177441` is green 30/30 with backend shards
+  20/20. `build-linux` passed the structural component contract in 24m58s.
+  Full self-host passed in 35m12s and records exactly one 173244-line fixed
+  point, receipt-bound adoption, Pergyra-built DRV-2 installation, and focused
+  condition marker.
+- This lease is DONE and authorizes no successor rung. A new lease requires a
+  fresh production executable falsifier.
 
 ## DONE lease — logical-operand public JSON diagnostic receipt
 
