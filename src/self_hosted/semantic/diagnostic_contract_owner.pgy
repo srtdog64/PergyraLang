@@ -66,6 +66,14 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "call_arg_type_mismatch", "second call argument wording"
         );
+    let builtin_first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "builtin_arg_type_mismatch", "first builtin argument wording"
+        );
+    let builtin_second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "builtin_arg_type_mismatch", "second builtin argument wording"
+        );
     let logical_first: SemanticPublicDiagnosticReceipt =
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "logical_operand_not_bool", "first logical wording"
@@ -119,6 +127,10 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             call_arg_second, "call_arg_type_mismatch"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
+            builtin_first, "builtin_arg_type_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            builtin_second, "builtin_arg_type_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
             logical_first, "logical_operand_not_bool"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             logical_second, "logical_operand_not_bool"
@@ -167,6 +179,13 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         call_arg_first.cause_ir == call_arg_second.cause_ir &&
         call_arg_first.fix_source == call_arg_second.fix_source &&
         call_arg_first.message != call_arg_second.message &&
+        builtin_first.schema == builtin_second.schema &&
+        builtin_first.stage == builtin_second.stage &&
+        builtin_first.layer == builtin_second.layer &&
+        builtin_first.code == builtin_second.code &&
+        builtin_first.cause_ir == builtin_second.cause_ir &&
+        builtin_first.fix_source == builtin_second.fix_source &&
+        builtin_first.message != builtin_second.message &&
         logical_first.schema == logical_second.schema &&
         logical_first.stage == logical_second.stage &&
         logical_first.layer == logical_second.layer &&

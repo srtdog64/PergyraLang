@@ -18,6 +18,40 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — builtin-argument-type-mismatch public JSON receipt local green
+
+- Exact base and current published HEAD are
+  `1946f4ea4daf55443eb7c8737d2be1a25d302626`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: both option-builtin fixtures reach installed
+  Pergyra `builtin_arg_type_mismatch` verdicts with exact function,
+  expected-type, and actual-type facts, but private JSON is only whitespace and
+  public MIR JSON stops at the generic malformed-receipt error.
+- Explicit native JSON fixes `PGY_SEM_BUILTIN_ARGS_INVALID`, stage `semantic`,
+  layer `type`, cause `semantic:builtin:signature_mismatch`, and fix
+  `match-builtin-signature` across both contexts.
+- `value_param_collection_mutation` deliberately shares that native public
+  identity while retaining a different Pergyra code, so it is the exact-code
+  fail-closed case. `option_concrete_type_required` is also excluded because
+  the explicit native pipeline currently succeeds without a receipt.
+- The active rung may admit only this exact Pergyra code, prove both private
+  contexts, and reuse the existing MIR/artifact process and wire owners for
+  public MIR/C/LLVM relay. Its focused falsifier is
+  `tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh`.
+- A fresh Pergyra-built DRV-2 passes the focused two-context gate, rebaselined
+  return/logical/let/assignment/call-argument negatives, and the complete
+  installed CLI aggregate through artifact, parser, tokens, AST, LLVM IR,
+  native opt-in, REPL, formatter, and DeviceSlot boundaries. The first
+  aggregate run exposed the logical gate's stale option-builtin negative; the
+  exact-code replacement and full rerun pass.
+- Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
+  velocity, hard-contract, and progress ratchets pass. The broad component
+  inventory remains an exact-CI verdict under the 60-second local budget.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.22% and
+  project forecast remains 83%. Next step is diff review, commit/push, and
+  exact CI.
+
 ## Published — call-argument-type-mismatch public JSON receipt exact-CI green
 
 - Exact base is `69fa9171dd32ea3f35433a5e7d4425e3cee5a7ef` and implementation

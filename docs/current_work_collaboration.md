@@ -6,6 +6,33 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — builtin-argument-type-mismatch public JSON receipt
+
+- Exact base is `1946f4ea4daf55443eb7c8737d2be1a25d302626`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves the `IsSome` and `UnwrapOption`
+  `builtin_arg_type_mismatch` contexts retain Pergyra text facts while private
+  JSON is empty and public MIR JSON reaches only the generic malformed-receipt
+  boundary. Explicit native JSON agrees on one builtin-signature identity.
+- The deletion target is exact admission of `builtin_arg_type_mismatch` and
+  reuse of existing wire/process owners. Grouping by the shared public
+  identity, co-admitting `value_param_collection_mutation`, co-admitting
+  `option_concrete_type_required`, C mapping, native retry, message parsing,
+  another semantic pass, location invention, fact loss, and text-code changes
+  are forbidden.
+- Exact objective, two-context coverage, and exclusions are in
+  `docs/agent_work_directives/builtin_arg_type_mismatch_public_json_diagnostic_receipt_2026-09-02.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+- Local implementation is green on a fresh Pergyra-built DRV-2. The focused
+  two-context gate, rebaselined return/logical/let/assignment/call-argument
+  negatives, and full installed CLI aggregate pass. The aggregate first caught
+  and then verified removal of the logical gate's stale option-builtin
+  negative. Diagnostic, SoT, Gate, protocol, inventory, velocity, hard-
+  contract, and progress ratchets pass. Implementation volume is 21.22%; the
+  broad component inventory and exact CI remain pending.
+
 ## DONE lease — call-argument-type-mismatch public JSON receipt
 
 - Exact base is `69fa9171dd32ea3f35433a5e7d4425e3cee5a7ef`, equal to

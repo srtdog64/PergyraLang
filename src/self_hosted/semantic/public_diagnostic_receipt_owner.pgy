@@ -63,6 +63,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "annotate-or-convert"
         );
     }
+    if code == "builtin_arg_type_mismatch" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:builtin:signature_mismatch",
+            "match-builtin-signature"
+        );
+    }
     if code == "logical_operand_not_bool" {
         return SemanticPublicDiagnosticIdentity(
             true,
