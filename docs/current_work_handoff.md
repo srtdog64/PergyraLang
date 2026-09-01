@@ -18,6 +18,34 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — optimization-neutral LLVM IR publication
+
+- Exact base/current published HEAD is
+  `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`; implementation is not yet
+  published. Protected unrelated untracked paths remain outside inspection,
+  edit, and staging.
+- Fresh public stdout/file `--emit-llvm --opt=dev` requests fail at the common
+  C release-only selector. Explicit native release/dev LLVM IR is byte-equal,
+  while existing installed release file/stdout owner gates already prove their
+  own exact bytes and executable behavior.
+- Existing `DriverCliSourceLlvmArtifact(String, String, Bool)`,
+  `DriverRung2InstalledPublishSourceLlvm`, and
+  `CompileSourceToLlvmThroughPgyCompilerWorld` remain the owner chain. No
+  profile input or new LLVM representation is authorized.
+- Final executable optimization is explicitly outside this rung and must remain
+  profile-sensitive at the compile/link boundary. Missing sibling, partial
+  file/stdout, native retry, `--verbose`, and typed-request profile carriage are
+  the opening negatives.
+- Exact objective and gate are in
+  `docs/agent_work_directives/optimization_neutral_llvm_ir_publication_2026-09-01.md`.
+  The smallest C admission deletion is locally implemented. The new focused
+  gate and both existing LLVM file/stdout owner gates pass; dev uses one
+  installed intent per form, executes exact `7/11/5`, and fails closed on
+  missing/verbose requests. Component, hard-substitution, SoT-edge, velocity,
+  and documentation gates also pass. Next action is commit/push and exact CI.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+
 ## Published — optimization-neutral machine manifest exact-CI green
 
 - Exact base is `3e536a82caa33f1c6ee4c16fc1c1a9c787a456b0`. Implementation

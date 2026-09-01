@@ -9306,6 +9306,7 @@ require_file "tests/self_hosted/parity/public_mir_opt_profile_owner.sh"
 require_file \
     "tests/self_hosted/parity/fixture/counting_self_host_mir_read_driver.c"
 require_file "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/public_llvm_ir_opt_profile_owner.sh"
 require_file "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh"
 require_file "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" \
@@ -9354,6 +9355,7 @@ require_max_lines \
 require_max_lines "src/compiler/driver_self_host_llvm_selection_owner.c" 60
 require_max_lines "src/compiler/self_host_llvm_ir_artifact_owner.c" 90
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh" 140
+require_max_lines "tests/self_hosted/parity/public_llvm_ir_opt_profile_owner.sh" 180
 require_max_lines "tests/self_hosted/parity/public_nested_scalar_cfg_llvm_owner.sh" 70
 require_max_lines "src/compiler/self_host_llvm_ir_stdout_owner.c" 80
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh" 120
@@ -9816,7 +9818,7 @@ require_text "Makefile" \
 require_text "Makefile" \
     "self-host-installed-driver-cli-mode-test-smoke: self-host-public-machine-manifest-replacement-test-smoke self-host-source-inspection-opt-profile-test-smoke self-host-mir-opt-profile-test-smoke"
 require_text "Makefile" \
-    "self-host-public-llvm-ir-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke"
+    "self-host-public-llvm-ir-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke self-host-llvm-ir-opt-profile-test-smoke"
 require_text "Makefile" \
     "self-host-public-nested-scalar-cfg-llvm-test-smoke: self-host-public-llvm-ir-replacement-test-smoke"
 require_text "Makefile" \

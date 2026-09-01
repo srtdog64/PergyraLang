@@ -6,6 +6,30 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — optimization-neutral LLVM IR publication
+
+- Exact base is `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner.
+- Production entrypoints are public `SOURCE --emit-llvm --opt=dev` in stdout
+  and `-o FILE` forms. Explicit native release/dev IR is byte-identical; the
+  existing installed request and source-LLVM intent own the release output.
+- The deletion target is only the common C LLVM-IR selector's release-profile
+  predicate. Profile carriage, native retry, partial publication,
+  JSON/verbose/runtime relaxation, and any change to profile-sensitive final
+  executable compile/link behavior are forbidden.
+- Exact objective and falsifier are in
+  `docs/agent_work_directives/optimization_neutral_llvm_ir_publication_2026-09-01.md`.
+  Local focused plus existing file/stdout gates are green: release/dev bytes,
+  one installed intent per form, executable output, missing/verbose negatives,
+  and final binary profile sensitivity all hold. Component, hard-substitution,
+  SoT-edge, velocity, and documentation gates are also green; the inventory is
+  unchanged at `88/183`, `55/32/1`, with 9 blockers. The lease remains active
+  through commit/push and exact CI.
+- Protected unrelated untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging.
+
 ## DONE lease — optimization-neutral machine-manifest read
 
 - Exact base is `3e536a82caa33f1c6ee4c16fc1c1a9c787a456b0`, equal to
