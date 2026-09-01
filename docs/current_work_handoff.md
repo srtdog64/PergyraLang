@@ -18,11 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — builtin-argument-type-mismatch public JSON receipt local green
+## Published — builtin-argument-type-mismatch public JSON receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `1946f4ea4daf55443eb7c8737d2be1a25d302626`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `1946f4ea4daf55443eb7c8737d2be1a25d302626` and implementation
+  `36bd2d41ada2a307fddc302706614837ae175f28` is on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - Fresh production falsifier: both option-builtin fixtures reach installed
   Pergyra `builtin_arg_type_mismatch` verdicts with exact function,
   expected-type, and actual-type facts, but private JSON is only whitespace and
@@ -46,11 +46,17 @@ percentage by themselves.
   exact-code replacement and full rerun pass.
 - Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
   velocity, hard-contract, and progress ratchets pass. The broad component
-  inventory remains an exact-CI verdict under the 60-second local budget.
+  inventory passed in exact CI under the 60-second local budget.
+- Exact-head CI run `33565119186`, attempt 1, is green 30/30 with backend
+  shards 20/20. `build-linux` passed the structural component contract in
+  25m28s. Full self-host passed in 34m37s and records exactly one 173274-line
+  `gen2 == gen3` fixed point, receipt-bound driver adoption, Pergyra-built
+  DRV-2 installation, and the focused two-context receipt marker.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
   `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.22% and
-  project forecast remains 83%. Next step is diff review, commit/push, and
-  exact CI.
+  project forecast remains 83%. This rung is published and closed; no
+  successor is inferred without a fresh executable falsifier. The native
+  malformed-enum parser finding remains separate waiting work.
 
 ## Published — call-argument-type-mismatch public JSON receipt exact-CI green
 
