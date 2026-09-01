@@ -4164,7 +4164,7 @@ self-host-public-debug-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_debug_installed_self_host_session_owner.sh
 
-self-host-installed-driver-cli-mode-test-smoke: self-host-public-machine-manifest-replacement-test-smoke self-host-source-inspection-opt-profile-test-smoke self-host-mir-opt-profile-test-smoke
+self-host-installed-driver-cli-mode-test-smoke: self-host-public-machine-manifest-replacement-test-smoke self-host-source-inspection-opt-profile-test-smoke self-host-mir-opt-profile-test-smoke self-host-llvm-ir-opt-profile-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/installed_driver_cli_mode_owner.sh
 

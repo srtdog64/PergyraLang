@@ -20,14 +20,14 @@ percentage by themselves.
 
 ## Active self-host context — optimization-neutral LLVM IR publication
 
-- Exact base/current published HEAD is
-  `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`; implementation is not yet
-  published. Protected unrelated untracked paths remain outside inspection,
-  edit, and staging.
-- Fresh public stdout/file `--emit-llvm --opt=dev` requests fail at the common
-  C release-only selector. Explicit native release/dev LLVM IR is byte-equal,
-  while existing installed release file/stdout owner gates already prove their
-  own exact bytes and executable behavior.
+- Exact base is `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`; implementation
+  `5af5261cf39de239ebb932c1bffc200c152572fa` is the current published HEAD.
+  The integration repair is local. Protected unrelated untracked paths remain
+  outside inspection, edit, and staging.
+- The opening public stdout/file `--emit-llvm --opt=dev` requests failed at the
+  common C release-only selector. That predicate is removed. Explicit native
+  release/dev LLVM IR is byte-equal, while installed release/dev file/stdout
+  owner gates now prove their own exact bytes and executable behavior.
 - Existing `DriverCliSourceLlvmArtifact(String, String, Bool)`,
   `DriverRung2InstalledPublishSourceLlvm`, and
   `CompileSourceToLlvmThroughPgyCompilerWorld` remain the owner chain. No
@@ -42,9 +42,15 @@ percentage by themselves.
   gate and both existing LLVM file/stdout owner gates pass; dev uses one
   installed intent per form, executes exact `7/11/5`, and fails closed on
   missing/verbose requests. Component, hard-substitution, SoT-edge, velocity,
-  and documentation gates also pass. Next action is commit/push and exact CI.
-  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
-  83%.
+  and documentation gates also pass. Exact run `33465080162` was green 30/30,
+  with `gen2 == gen3 (173074 lines)` and receipt-bound DRV-2 installation, but
+  did not execute the new LLVM profile gate and is not publication evidence.
+- The local repair adds the gate to the existing
+  `self-host-installed-driver-cli-mode-test-smoke` exact-CI entrypoint. That
+  aggregate passes locally with the required `[self-host-llvm-ir-opt]` marker;
+  component, hard-substitution, SoT-edge, velocity, and documentation ratchets
+  also pass. Next action is commit/push and a second exact CI log check. SoT
+  remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains 83%.
 
 ## Published — optimization-neutral machine manifest exact-CI green
 

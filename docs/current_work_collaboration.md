@@ -8,9 +8,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE lease — optimization-neutral LLVM IR publication
 
-- Exact base is `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`, equal to
-  `origin/main` when this lease opened. The primary task is the sole edit,
-  integration, commit/push, and exact-CI observation owner.
+- Exact base is `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`; implementation
+  `5af5261cf39de239ebb932c1bffc200c152572fa` is on `origin/main`. The primary
+  task is the sole integration-repair, commit/push, and exact-CI observation
+  owner.
 - Production entrypoints are public `SOURCE --emit-llvm --opt=dev` in stdout
   and `-o FILE` forms. Explicit native release/dev IR is byte-identical; the
   existing installed request and source-LLVM intent own the release output.
@@ -25,7 +26,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   and final binary profile sensitivity all hold. Component, hard-substitution,
   SoT-edge, velocity, and documentation gates are also green; the inventory is
   unchanged at `88/183`, `55/32/1`, with 9 blockers. The lease remains active
-  through commit/push and exact CI.
+  through the integration repair, commit/push, and exact CI.
+- Exact run `33465080162` was green 30/30 and proved the fixed point and
+  receipt-bound DRV-2 installation, but did not execute the new LLVM profile
+  gate. It is explicitly not publication evidence. The local repair connects
+  that gate to the existing installed-CLI CI aggregate; the aggregate now
+  passes locally with the required `[self-host-llvm-ir-opt]` marker. Component,
+  hard-substitution, SoT-edge, velocity, and documentation ratchets also pass;
+  the repair awaits commit/push plus a second exact run.
 - Protected unrelated untracked `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
   staging.

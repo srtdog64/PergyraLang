@@ -9816,7 +9816,7 @@ require_text "Makefile" \
 require_text "Makefile" \
     "self-host-public-mir-json-replacement-test-smoke: self-host-installed-driver-cli-mode-test-smoke self-host-generic-specialization-identity-epoch-test-smoke"
 require_text "Makefile" \
-    "self-host-installed-driver-cli-mode-test-smoke: self-host-public-machine-manifest-replacement-test-smoke self-host-source-inspection-opt-profile-test-smoke self-host-mir-opt-profile-test-smoke"
+    "self-host-installed-driver-cli-mode-test-smoke: self-host-public-machine-manifest-replacement-test-smoke self-host-source-inspection-opt-profile-test-smoke self-host-mir-opt-profile-test-smoke self-host-llvm-ir-opt-profile-test-smoke"
 require_text "Makefile" \
     "self-host-public-llvm-ir-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke self-host-llvm-ir-opt-profile-test-smoke"
 require_text "Makefile" \

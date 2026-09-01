@@ -88,5 +88,19 @@ registry change is claimed before the new profile gate passes. SoT remains
 - Component, hard-substitution, SoT-edge, substitution-velocity, and
   documentation integration gates pass. The observed inventory remains
   `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 executable/process
-  blockers. Exact CI remains to be observed; no registry or project percentage
-  change is claimed locally.
+  blockers. No registry or project percentage change is claimed locally.
+- Implementation `5af5261cf39de239ebb932c1bffc200c152572fa` is on
+  `origin/main`. Exact run `33465080162` was green 30/30 and proved
+  `gen2 == gen3 (173074 lines)` plus receipt-bound DRV-2 installation, but its
+  logs did not contain the new LLVM profile gate marker. That run is not
+  publication evidence for this rung.
+- The missing integration edge was the exact-CI entrypoint:
+  `self-host-bootstrap-linux` calls
+  `self-host-installed-driver-cli-mode-test-smoke`, while the new gate was only
+  downstream of the public LLVM replacement chain. The local repair adds the
+  gate to that existing aggregate without a second workflow step or fixed-point
+  build. Running the same aggregate locally succeeds and emits
+  `[self-host-llvm-ir-opt] dev file/stdout publication is installed and
+  profile-neutral`. Component, hard-substitution, SoT-edge, velocity, and
+  documentation ratchets pass after the repair. It still requires commit/push
+  and a second exact CI log observation.
