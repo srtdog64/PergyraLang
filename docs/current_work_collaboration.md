@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — parser callable-contract public JSON receipt
+## DONE lease — parser callable-contract public JSON receipt
 
 - Exact base is `50df573a7effa8b7103a921b0fd52daa6c247edf`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -31,8 +31,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   MIR/C/LLVM parser receipt gate, both existing JSON receipt gates, and the
   installed-driver CLI aggregate pass; direct text is unchanged and C remains
   an opaque relay. Component/hard, SoT edge, Gate single-owner, protocol,
-  velocity, and bounded documentation contracts pass. Publication and exact
-  CI remain pending.
+  velocity, and bounded documentation contracts pass.
 - The unrelated lifetime gate currently stops on five pre-existing body-type
   leaf-coverage rows before reaching its source-MIR assertion. Full
   documentation-quality was not run because it would scan the protected
@@ -40,6 +39,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Protected unrelated untracked `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
   staging.
+- Implementation `45f10ff4c1aafdbf441742ec57221c037ff5d3b7` is on
+  `origin/main`. Its run `33476664357` proved fixed point, DRV-2 adoption, and
+  the new marker, but finished 29/30 because the gate used Bash 4-only
+  `mapfile`; that run is not publication evidence.
+- Bash 3.2 compatibility repair
+  `3f6a63363218fddad90f900251a3f5e78a0bf5b8` is on `origin/main`. Exact run
+  `33478794002` is green 30/30 and records `gen2 == gen3 (173194 lines)`,
+  receipt-bound fixed-point adoption, Pergyra-built DRV-2 installation, and
+  exactly one parser callable-contract public JSON receipt marker.
+  `build-linux` took 29m09s and full self-host took 34m28s. The lease is closed
+  with SoT still `88/183`, `55/32/1`, 9 blockers, and project forecast 83%.
 
 ## DONE lease — optimization-neutral LLVM IR publication
 

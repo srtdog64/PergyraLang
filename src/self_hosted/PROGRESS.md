@@ -1,5 +1,26 @@
 # Self-Host Progress
 
+## Completed self-host context - 2026-09-01 parser callable-contract public JSON receipt
+
+- The reached duplicate callable-contract capability rejection already had
+  parser-owned code, axis, and name, but public MIR/C/LLVM JSON requests
+  collapsed it into the C adapter's generic malformed-receipt diagnostic.
+- The admitted JSON request now reaches callable-contract reporting through an
+  explicit parser projection. Parser facts retain meaning, one shared Pergyra
+  owner serializes the public wire, and C remains an opaque validating relay.
+  Text mode is unchanged; missing, malformed, and crosswired receipts still
+  fail closed without native retry or a partial artifact.
+- A fresh Pergyra-built DRV-2 passes direct and public MIR/C/LLVM parity, both
+  existing JSON receipt gates, installed CLI aggregation, component/hard,
+  SoT, Gate, protocol, and velocity ratchets. Implementation `45f10ff4` and
+  Bash 3.2 gate repair `3f6a6336` are published. Exact repair run
+  `33478794002` is green 30/30 and proves `gen2 == gen3 (173194 lines)`,
+  receipt-bound DRV-2 installation, and exactly one focused marker.
+- This is an executable consumer migration inside the existing
+  `diagnostic.catalog` BRIDGE, not whole-row closure. Census remains `88/183`
+  and `55/32/1`, with 9 blockers; integrated progress remains 83% (81-85%),
+  strict beta 83%, and hard replacement 75%.
+
 ## Completed self-host context - 2026-09-01 public MIR JSON diagnostic receipt
 
 - Default `pgy --mir --error-format=json SOURCE` no longer stops at a C-owned

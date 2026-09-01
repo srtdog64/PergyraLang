@@ -1,6 +1,6 @@
 # Parser Callable-Contract Public JSON Receipt
 
-Status: LOCAL IMPLEMENTATION GREEN — PUBLICATION PENDING
+Status: PUBLICATION COMPLETE
 
 Exact base revision: `50df573a7effa8b7103a921b0fd52daa6c247edf`
 
@@ -98,5 +98,14 @@ candidates, not completion evidence.
   run because it recursively scans the protected unrelated untracked
   `docs/compiler_architectures/`; its safe component contracts named above
   were run separately.
-- Commit, push, and exact CI are still required. Local evidence does not close
-  this directive or publish a successor rung.
+- Implementation `45f10ff4c1aafdbf441742ec57221c037ff5d3b7` and Bash 3.2
+  gate repair `3f6a63363218fddad90f900251a3f5e78a0bf5b8` are on
+  `origin/main`. The first run `33476664357` proved the full self-host path and
+  new marker but finished 29/30 because the new gate used Bash 4-only
+  `mapfile`; it is not publication evidence.
+- Exact repair run `33478794002` is green 30/30. Its self-host log records
+  `gen2 == gen3 (173194 lines)`, receipt-bound fixed-point adoption, a
+  Pergyra-built DRV-2 installation, and exactly one
+  `[self-host-public-parser-callable-contract-json-diagnostic]` marker.
+  `build-linux` took 29m09s and `self-host-bootstrap-linux` took 34m28s.
+  Publication is complete without a SoT or project-percentage change.

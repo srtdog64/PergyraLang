@@ -18,11 +18,13 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — parser callable-contract public JSON receipt, local green
+## Published — parser callable-contract public JSON receipt exact-CI green
 
-- Exact base is `50df573a7effa8b7103a921b0fd52daa6c247edf`; the current
-  implementation is dirty and not yet published. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `50df573a7effa8b7103a921b0fd52daa6c247edf`; implementation
+  `45f10ff4c1aafdbf441742ec57221c037ff5d3b7` and Bash 3.2 gate repair
+  `3f6a63363218fddad90f900251a3f5e78a0bf5b8` are on `origin/main`.
+  Protected unrelated untracked paths remain outside inspection, edit, and
+  staging.
 - Fresh production falsifier:
   `tests/cases/callable_contract_vocabulary/duplicate_cap/main.pgy`. Before
   this change, the Pergyra parser owned
@@ -46,11 +48,18 @@ percentage by themselves.
   documentation-quality was omitted because it would recursively inspect the
   protected untracked architecture directory. Neither warning changes this
   rung's focused executable evidence.
-- Next falsifier is publication: commit the exact reviewed paths, push, and
-  require exact CI to execute the new
-  `[self-host-public-parser-callable-contract-json-diagnostic]` marker together
-  with fixed-point and receipt-bound DRV-2 evidence. Do not infer a successor
-  until that run is observed.
+- Run `33476664357` proved fixed point, receipt-bound DRV-2 adoption, and the
+  new marker but finished 29/30 because the focused script used Bash 4-only
+  `mapfile`; it is not publication evidence. The exact failing
+  `build-source-inventory` gate and focused executable gate pass after the
+  compatibility repair.
+- Exact repair run `33478794002` is green 30/30. Its full self-host log records
+  `gen2 == gen3 (173194 lines)`, receipt-bound fixed-point adoption,
+  Pergyra-built DRV-2 installation, and exactly one
+  `[self-host-public-parser-callable-contract-json-diagnostic]` marker.
+  `build-linux` took 29m09s and full self-host took 34m28s. The publication
+  falsifier is closed; select a fresh production executable falsifier rather
+  than inferring a successor from this boundary.
 
 ## Published — optimization-neutral LLVM IR exact-CI green
 
