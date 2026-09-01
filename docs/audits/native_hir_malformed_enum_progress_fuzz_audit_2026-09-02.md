@@ -2,19 +2,21 @@
 
 Status: READ-ONLY FINDING — REPRODUCED, NOT REPAIRED
 
-Observed revision: `06207a293d9c1c313bc5734a7ee1ef49caa80422`
+Latest observed revision: `1b6954cd086e85240f83f68e82ce92c3424c6296`
 
 This audit records delegated fuzz evidence from `F:\tex_bug`. It is not a
 semantic owner, SoT registry entry, progress increment, active implementation
 lease, or completion claim.
 
-## Unique finding
+## Original finding
 
 - The one-minimal reproducer is the exact six-byte input `enum({` with no
   trailing newline.
 - `pgy SOURCE --native-pipeline --hir` exceeded both a 1-second timeout
   (observed wall time about 1.057s) and a 3-second timeout (about 3.249s).
-  The result is a native HIR malformed-enum progress hang, not a crash receipt.
+  This was first observed through native HIR, but the later stage-localization
+  campaign below proves that the hang begins in native module loading before
+  AST production. It is not a HIR-lowering hang or a crash receipt.
 - The same input terminates through the sampled neighboring phases: tokens
   exits 0 in about 52ms, AST exits 1 in about 49ms, public MIR exits 1 in about
   79ms, and C emission exits 1 in about 43ms.
@@ -52,6 +54,38 @@ lease, or completion claim.
   1.071s and 3.173s under the one- and three-second checks. This is duplicate
   evidence, not a second finding or an implementation authorization.
 
+### Native module-load boundary campaign
+
+- A third delegated read-only campaign used the two `F:\tex_bug` enum-bearing
+  corpus seeds `pergyra-0093-examples_enum_test.pgy` and
+  `pergyra-0024-examples_bsd_packet_server_main.pgy`. It deterministically
+  generated 222 adjacent brace, parenthesis, and bracket mutations; no RNG
+  seed was used.
+- Each case ran twice through tokens, public AST, and explicit native AST for
+  exactly 1,332 core mode invocations. Short classification timeouts were
+  0.35 seconds for native AST and 0.75 seconds for public AST. Separate
+  minimization, one-/three-second confirmations, and stage-localization calls
+  are not included in that count. The campaign took 327.59 seconds.
+- Tokens exited 0 for all 222 cases. Public AST rejected all 222 explicitly
+  with exit 1. Explicit `--native-pipeline --ast` rejected 83 with exit 1 and
+  timed out on 139; every timeout classification repeated identically. There
+  were no crashes, internal diagnostics, or determinism mismatches.
+- The 139 timeouts reduce to five deletion-minimum spellings: the existing
+  `enum({` family (45 cases) and new `enum)` (58), `enum[` (18), `enum]` (16),
+  and `enum{{` (2) families. Each new minimum timed out under both one- and
+  three-second confirmation. These are distinct minimal spellings, not proof
+  of five independent root causes.
+- The first hanging mode is explicit `--native-pipeline --ast`; native RIR,
+  AIR, HIR, CFG, DOM, and SSA requests inherit the same hang. The last debug
+  stage is `[driver stage] module_load`, so the owned defect boundary is native
+  module-load/parser progress before AST creation. Public AST, DIR, MIR, C,
+  and LLVM all reject the same malformed inputs promptly.
+- The observed `bin\pgy.exe` SHA-256 remained
+  `464C55FAF5F2489F9293E678BF42377A640A6321A14C6A67BE157810FC7972F1`.
+  Neither repository was modified, and the empty OS temporary directory left
+  by the interrupted preliminary sweep was verified and removed by the
+  integration owner.
+
 ## Harness limitations observed
 
 - The corpus runner contains a stale hard-coded `E:\` path and an obsolete
@@ -66,7 +100,9 @@ lease, or completion claim.
 ## Proposed bounded falsifier
 
 A future independently leased repair should add one focused progress gate such
-as `native_hir_malformed_enum_progress_owner.sh`: valid enum HIR must succeed;
-the exact malformed fixture must exit nonzero within one second; timeout is a
-failure; and token, AST, and public-MIR phase guards must all terminate. This
-proposal is waiting work, not an implemented gate.
+as `native_pipeline_malformed_enum_progress_owner.sh`: valid enum native AST
+must succeed; all five deletion-minimum malformed spellings must exit nonzero
+within one second; timeout is a failure; and token, public-AST, and public-MIR
+phase guards must all terminate. The repair owner must be the native
+module-load/parser progress boundary, not HIR lowering. This proposal is
+waiting work, not an implemented gate.
