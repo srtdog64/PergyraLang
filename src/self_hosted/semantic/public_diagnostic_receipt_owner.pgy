@@ -63,6 +63,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "align-operand-type"
         );
     }
+    if code == "compare_type_mismatch" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:binop:operand_types",
+            "align-operand-types-or-overload"
+        );
+    }
     return SemanticPublicDiagnosticIdentity(false, "", "");
 }
 
