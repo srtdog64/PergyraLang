@@ -33,6 +33,7 @@ SIMPLE="examples/hello.pgy"
 CFG="src/self_hosted/mir_lower/fixture/if_else_assign.pgy"
 LAUNCHER="$ROOT_DIR/src/pgy_driver.c"
 C_OWNER="$ROOT_DIR/src/compiler/self_host_mir_diagnostic_stdout_owner.c"
+PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_stdout_process_owner.c"
 REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 STDOUT_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_source_mir_stdout_execution_owner.pgy"
@@ -207,10 +208,11 @@ native_dispatch_count="$(grep -Fc 'return driver_run_pipeline(&flags);' "$LAUNCH
 ((native_dispatch_count == 2 && native_line < mir_line &&
     last_native_dispatch_line < mir_line)) ||
     fail "native pipeline dispatch escaped the pre-delegation explicit opt-out boundary"
-require_text "$C_OWNER" 'pgy_exec_argv_capture_stdout('
 require_text "$C_OWNER" '"--emit-mir-diagnostic-verified"'
-require_text "$C_OWNER" 'success without a MIR diagnostic payload'
-! grep -Eq 'driver_run_pipeline|mir_dump|system\(' "$C_OWNER" ||
+require_text "$C_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR'
+require_text "$PROCESS_OWNER" 'pgy_exec_argv_capture_stdout('
+require_text "$PROCESS_OWNER" 'success without %s %s payload'
+! grep -Eq 'driver_run_pipeline|mir_dump|system\(' "$C_OWNER" "$PROCESS_OWNER" ||
     fail "MIR diagnostic relay regained a native/string-shell fallback"
 require_text "$REQUEST_OWNER" 'DriverCliSourceMirDiagnosticStdout(String)'
 require_text "$REQUEST_OWNER" 'args[0] == "--emit-mir-diagnostic-verified"'

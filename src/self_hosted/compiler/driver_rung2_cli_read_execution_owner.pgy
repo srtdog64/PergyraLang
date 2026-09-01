@@ -5,6 +5,7 @@ import "capability_manifest_owner.pgy";
 import "dir_text_artifact_owner.pgy";
 import "driver_source_c_stdout_execution_owner.pgy";
 import "driver_source_mir_json_diagnostic_stdout_owner.pgy";
+import "driver_pipeline_owner.pgy";
 import "driver_mir_c_stdout_execution_owner.pgy";
 import "canonical_mir_execution_owner.pgy";
 import "../lexer/scan_owner.pgy";
@@ -22,8 +23,11 @@ func DriverRung2ExecuteReadRequest(
             Die("format source request requires installed composition root");
         case DriverCliSourceTokensStdout(source_path):
             Log(LexContent(source_path, LexerReadSource(source_path)));
-        case DriverCliSourceAstStdout(source_path):
-            Log(ParseRootProgram(source_path));
+        case DriverCliSourceAstStdout(source_path, emit_json):
+            let artifact: AstTreeArtifact =
+                CompileSourceToAstArtifactForPublicDiagnosticRequest(
+                    source_path, emit_json);
+            Log(artifact.tree_text);
             Log("");
         case DriverCliSourceCapabilityManifestStdout(source_path):
             CompilerCapabilityManifestOutcomeEmitOrDie(

@@ -18,6 +18,38 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — AST public JSON diagnostic receipt local green
+
+- Exact base and current published HEAD are
+  `615529ffecc042216fc545699f5a3e87b1ba9020`. The implementation is locally
+  dirty and not yet publication evidence. Protected unrelated untracked paths
+  remain outside inspection, edit, and staging.
+- Fresh production falsifier: text `SOURCE --ast` reaches the installed driver,
+  but the otherwise-identical `--error-format=json` request stops at the C
+  adapter's text-only source-stdout predicate.
+- The existing AST request now carries one admitted Bool and consumes
+  `CompileSourceToAstArtifactForPublicDiagnosticRequest`. Parser facts and the
+  shared wire retain meaning; C selects the private argv spelling and one named
+  opaque diagnostic stdout process owner separates success stdout from failure
+  receipt stderr. Existing MIR diagnostic capture migrated to that same process
+  owner without changing its text contract.
+- A warning-clean launcher and fresh isolated Pergyra-built DRV-2 pass direct/
+  public/native AST byte parity, exact callable-contract JSON relay, existing
+  text rejection, missing/silent/malformed/absent/crosswired fail-closed cases,
+  existing AST/MIR gates, and the complete installed CLI aggregate with exactly
+  one focused marker. Excluded inspection/manifest modes remain text-only.
+- Component/hard, source inventory, SoT edge, Gate single-owner, protocol, and
+  velocity contracts pass. Caps remain shrink-only (`340/340`, `254/270`, and
+  `319/320` for the reached launcher/driver/request owners).
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers. This
+  is an executable consumer migration within `diagnostic.catalog`, not a row
+  closure. Project forecast remains 83%.
+- Next executable step is only: commit and push the bounded implementation,
+  observe exact CI fixed point, receipt-bound DRV-2 installation, and exactly
+  one focused AST marker, then publish. Raw MIR JSON is not a successor: its
+  current diagnostic request changes successful output shape and needs a
+  separate Pergyra fact before any C route change.
+
 ## Published — LLVM IR public JSON diagnostic receipt exact-CI green
 
 - Exact base is `f6c4f2a04202b4f6be49f5f7991a9f090a26d9d2`; implementation

@@ -6,6 +6,32 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — AST public JSON diagnostic receipt
+
+- Exact base is `615529ffecc042216fc545699f5a3e87b1ba9020`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Local implementation is green. A fresh isolated launcher and Pergyra-built
+  DRV-2 pass byte-exact AST text/JSON success, exact parser receipt relay,
+  missing/silent/malformed/absent/crosswired negatives, existing AST/MIR gates,
+  installed CLI aggregation, and component/hard/SoT/Gate/protocol/velocity
+  ratchets. Exact CI is still pending; the lease remains ACTIVE.
+- Public `SOURCE --ast --error-format=json` currently stops at the C adapter's
+  text-only source-stdout predicate, while text mode reaches the installed
+  driver. The existing parser public-diagnostic projection owns the reached
+  callable-contract receipt; the AST request lacks only admitted Bool carriage.
+- The deletion target is bounded to AST selection and opaque stdout/receipt
+  process transport. C message meaning, native retry, duplicate parse, AST
+  re-rendering, and JSON admission for tokens/capability/DIR/MIR-JSON/machine
+  manifest are forbidden.
+- Exact objective and falsifiers are in
+  `docs/agent_work_directives/ast_public_json_diagnostic_receipt_2026-09-01.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+- Protected unrelated untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging.
+
 ## DONE lease — LLVM IR public JSON diagnostic receipt
 
 - Exact base is `f6c4f2a04202b4f6be49f5f7991a9f090a26d9d2`, equal to

@@ -9,7 +9,7 @@ enum DriverRung2CliRequest {
     DriverCliDebugSession(String),
     DriverCliFormatSourceArtifact(String, String),
     DriverCliSourceTokensStdout(String),
-    DriverCliSourceAstStdout(String),
+    DriverCliSourceAstStdout(String, Bool),
     DriverCliSourceCapabilityManifestStdout(String),
     DriverCliSourceDirStdout(String),
     DriverCliMachineManifestStdout(String),
@@ -77,12 +77,11 @@ func DriverRung2CliRequestFromArgsOrDie(
         return DriverCliSourceTokensStdout(DriverRung2CliPathOperandOrDie(
             args[1], "source token input path"));
     }
-    if args[0] == "--ast" {
-        if count != 2 {
-            Die("source AST mode requires exactly one input path");
-        }
+    if args[0] == "--ast" || args[0] == "--ast-json-diagnostic-verified" {
+        if count != 2 { Die("source AST mode requires exactly one input path"); }
         return DriverCliSourceAstStdout(DriverRung2CliPathOperandOrDie(
-            args[1], "source AST input path"));
+            args[1], "source AST input path"),
+            args[0] == "--ast-json-diagnostic-verified");
     }
     if args[0] == "--emit-capability-manifest-verified" {
         if count != 2 {

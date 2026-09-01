@@ -5,6 +5,7 @@
 #include "path_utils.h"
 #include "self_host_child_io_authority.h"
 #include "self_host_artifact_process_owner.h"
+#include "self_host_public_diagnostic_stdout_process_owner.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -60,6 +61,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
     }
     source_stdout_mode = strcmp(argv[0], "--tokens") == 0
         || strcmp(argv[0], "--ast") == 0
+        || strcmp(argv[0], "--ast-json-diagnostic-verified") == 0
         || strcmp(argv[0], "--emit-capability-manifest-verified") == 0
         || strcmp(argv[0], "--emit-dir-verified") == 0;
     mir_json_mode = strcmp(argv[0], "--mir-json") == 0;
@@ -121,34 +123,16 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
         child_argv[child_argc++] = "--emit-c-verified";
     }
     child_argv[child_argc] = NULL;
-    driver_authorize_self_host_child_io();
-    rc = pgy_exec_argv(child_argv, false);
+    if (strcmp(argv[0], "--ast-json-diagnostic-verified") == 0)
+        rc = driver_run_self_host_public_diagnostic_stdout_process(
+            child_argv, DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST, true);
+    else {
+        driver_authorize_self_host_child_io();
+        rc = pgy_exec_argv(child_argv, false);
+    }
     free(canonical_source_path);
     free(binary);
     return rc;
-}
-
-int
-driver_run_self_host_source_stdout(const char *launcher_path,
-                                   const char *mode,
-                                   const char *source_path)
-{
-    char *args[2];
-
-    if (mode == NULL
-        || (strcmp(mode, "--tokens") != 0 && strcmp(mode, "--ast") != 0
-            && strcmp(mode, "--emit-capability-manifest-verified") != 0
-            && strcmp(mode, "--emit-dir-verified") != 0)) {
-        fprintf(stderr, "pgy: unknown self-host source stdout mode\n");
-        return 1;
-    }
-    if (source_path == NULL || source_path[0] == '\0') {
-        fprintf(stderr, "pgy: self-host source stdout requires a source path\n");
-        return 1;
-    }
-    args[0] = (char *)mode;
-    args[1] = (char *)source_path;
-    return driver_run_self_host_command(launcher_path, 2, args);
 }
 
 int

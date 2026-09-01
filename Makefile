@@ -892,11 +892,13 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/driver_self_host_selection_owner.c \
                    $(COMPILER_DIR)/driver_self_host_llvm_selection_owner.c \
                    $(COMPILER_DIR)/self_host_driver.c \
+                   $(COMPILER_DIR)/self_host_source_stdout_owner.c \
                    $(COMPILER_DIR)/self_host_debug_driver.c \
                    $(COMPILER_DIR)/self_host_machine_manifest_artifact_owner.c \
                    $(COMPILER_DIR)/self_host_mir_artifact_owner.c \
                     $(COMPILER_DIR)/self_host_mir_diagnostic_stdout_owner.c \
                     $(COMPILER_DIR)/self_host_public_diagnostic_wire_owner.c \
+                    $(COMPILER_DIR)/self_host_public_diagnostic_stdout_process_owner.c \
                     $(COMPILER_DIR)/self_host_artifact_process_owner.c \
                     $(COMPILER_DIR)/self_host_child_io_authority.c \
                    $(COMPILER_DIR)/self_host_llvm_driver.c \
@@ -4127,6 +4129,11 @@ self-host-public-tokens-replacement-test-smoke: self-host-public-machine-manifes
 self-host-public-ast-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_ast_installed_self_host_owner.sh
+
+.PHONY: self-host-public-ast-json-diagnostic-receipt-test-smoke
+self-host-public-ast-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh
 
 self-host-public-capability-manifest-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

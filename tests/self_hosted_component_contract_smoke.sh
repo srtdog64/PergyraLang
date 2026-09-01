@@ -9473,13 +9473,15 @@ require_text "src/compiler/self_host_driver.c" \
 require_text "src/compiler/self_host_driver.c" \
     'strcmp(argv[0], "--ast") == 0'
 require_text "src/compiler/self_host_driver.c" \
+    'strcmp(argv[0], "--ast-json-diagnostic-verified") == 0'
+require_text "src/compiler/self_host_driver.c" \
     'strcmp(argv[0], "--emit-capability-manifest-verified") == 0'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "DriverCliSourceTokensStdout(String)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--tokens"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
-    "DriverCliSourceAstStdout(String)"
+    "DriverCliSourceAstStdout(String, Bool)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--ast"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
@@ -9491,13 +9493,13 @@ require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "Log(LexContent(source_path, LexerReadSource(source_path)));"
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
-    "Log(ParseRootProgram(source_path));"
+    "CompileSourceToAstArtifactForPublicDiagnosticRequest("
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "CompileSourceCapabilityManifestVerified(source_path)"
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     "case DriverCliSourceTokensStdout(source_path):"
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
-    "case DriverCliSourceAstStdout(source_path):"
+    "case DriverCliSourceAstStdout(source_path, emit_json):"
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     "case DriverCliSourceCapabilityManifestStdout(source_path):"
 require_function_text "src/compiler/self_host_mir_artifact_owner.c" \
@@ -9588,10 +9590,12 @@ require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
     '"--emit-mir-diagnostic-verified";'
 require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
     '"--emit-mir-json-diagnostic-verified"'
-require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
+require_text "src/compiler/self_host_public_diagnostic_stdout_process_owner.c" \
     "pgy_exec_argv_capture_stdout("
 require_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
-    "success without a MIR diagnostic payload"
+    "DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR"
+require_text "src/compiler/self_host_public_diagnostic_stdout_process_owner.c" \
+    "success without %s %s payload"
 reject_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" \
     "driver_run_pipeline("
 reject_text "src/compiler/self_host_mir_diagnostic_stdout_owner.c" "mir_dump("

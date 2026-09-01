@@ -130,9 +130,10 @@ require_text "$LAUNCHER_OWNER" 'driver_self_host_source_stdout_mode(&flags)'
 require_text "$LAUNCHER_OWNER" 'driver_run_self_host_source_stdout('
 require_text "$SELECTION_OWNER" '"--emit-capability-manifest-verified"'
 require_text "$SIBLING_OWNER" 'strcmp(argv[0], "--ast") == 0'
-require_text "$REQUEST_OWNER" 'DriverCliSourceAstStdout(String)'
+require_text "$REQUEST_OWNER" 'DriverCliSourceAstStdout(String, Bool)'
 require_text "$REQUEST_OWNER" 'args[0] == "--ast"'
-require_text "$EXECUTION_OWNER" 'Log(ParseRootProgram(source_path));'
+require_text "$EXECUTION_OWNER" 'CompileSourceToAstArtifactForPublicDiagnosticRequest('
+require_text "$EXECUTION_OWNER" 'Log(artifact.tree_text);'
 grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&
     fail "installed sibling launcher regained a native pipeline fallback"
 

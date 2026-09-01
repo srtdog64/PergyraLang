@@ -69,14 +69,16 @@ driver_self_host_source_stdout_mode(const DriverFlags *flags)
         || flags->test_native_mir_json_oracle || flags->dump_hir
         || flags->check_only || flags->verbose || flags->repl
         || flags->emit_debug_lines
-        || flags->diag_format != DIAG_FORMAT_TEXT
+        || (flags->diag_format != DIAG_FORMAT_TEXT &&
+            !(flags->dump_ast && flags->diag_format == DIAG_FORMAT_JSON))
         || flags->runtime_mode != RUNTIME_DEFAULT
         || flags->machine_layer_physical_manifest != NULL)
         return NULL;
     if (flags->dump_tokens)
         return "--tokens";
     if (flags->dump_ast)
-        return "--ast";
+        return flags->diag_format == DIAG_FORMAT_JSON
+            ? "--ast-json-diagnostic-verified" : "--ast";
     return flags->dump_capability_manifest
         ? "--emit-capability-manifest-verified" : "--emit-dir-verified";
 }

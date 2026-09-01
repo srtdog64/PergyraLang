@@ -14,6 +14,7 @@
 #include "compiler/pkg.h"
 #include "compiler/debugger.h"
 #include "compiler/self_host_driver.h"
+#include "compiler/self_host_source_stdout_owner.h"
 #include "compiler/self_host_machine_manifest_artifact_owner.h"
 #include "compiler/driver_self_host_selection_owner.h"
 #include "compiler/driver_self_host_llvm_selection_owner.h"
@@ -230,7 +231,6 @@ main(int argc, char *argv[])
             return rc;
         }
     }
-
     DriverFlags flags = parse_args(argc, argv);
     if (flags.repl)
         return repl_run(argv[0]);
