@@ -18,14 +18,15 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — AST public JSON diagnostic receipt local green
+## Published — AST public JSON diagnostic receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `615529ffecc042216fc545699f5a3e87b1ba9020`. The implementation is locally
-  dirty and not yet publication evidence. Protected unrelated untracked paths
-  remain outside inspection, edit, and staging.
-- Fresh production falsifier: text `SOURCE --ast` reaches the installed driver,
-  but the otherwise-identical `--error-format=json` request stops at the C
+- Exact base is `615529ffecc042216fc545699f5a3e87b1ba9020`; implementation
+  `9ce212627268a26fe20f660be7eda5b66a1f4d19` and exact-CI gate repair
+  `85b6ed3a750cca205bb92007a74cf622d92ec7cc` are on `origin/main`.
+  Protected unrelated untracked paths remain outside inspection, edit, and
+  staging.
+- Fresh production falsifier: text `SOURCE --ast` reached the installed driver,
+  but the otherwise-identical `--error-format=json` request stopped at the C
   adapter's text-only source-stdout predicate.
 - The existing AST request now carries one admitted Bool and consumes
   `CompileSourceToAstArtifactForPublicDiagnosticRequest`. Parser facts and the
@@ -44,11 +45,19 @@ percentage by themselves.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers. This
   is an executable consumer migration within `diagnostic.catalog`, not a row
   closure. Project forecast remains 83%.
-- Next executable step is only: commit and push the bounded implementation,
-  observe exact CI fixed point, receipt-bound DRV-2 installation, and exactly
-  one focused AST marker, then publish. Raw MIR JSON is not a successor: its
-  current diagnostic request changes successful output shape and needs a
-  separate Pergyra fact before any C route change.
+- The first implementation run `33493015435` reached fixed point and DRV-2
+  installation but finished 29/30 because the source-inspection optimization
+  gate still asserted the retired one-argument AST request shape. The repair
+  preserves path-only requests for the other inspection modes and requires
+  AST's exact path plus diagnostic-format Bool.
+- Exact repair run `33496180181` is green 30/30. Its full self-host log records
+  exactly one each of `gen2 == gen3 (173198 lines)`, receipt-bound fixed-point
+  adoption, Pergyra-built DRV-2 installation, the repaired optimization-profile
+  marker, and the focused AST marker. `build-linux` took 25m55s; full self-host
+  took 24m42s.
+- The publication falsifier is closed. Do not infer a successor from raw MIR
+  JSON or the attached architecture review; name a fresh production executable
+  falsifier first.
 
 ## Published — LLVM IR public JSON diagnostic receipt exact-CI green
 

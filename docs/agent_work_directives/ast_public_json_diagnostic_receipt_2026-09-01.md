@@ -1,8 +1,12 @@
 # AST Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL GREEN, EXACT CI PENDING
+Status: DONE — EXACT CI GREEN
 
 Exact base revision: `615529ffecc042216fc545699f5a3e87b1ba9020`
+
+Implementation revision: `9ce212627268a26fe20f660be7eda5b66a1f4d19`
+
+Exact-CI gate repair revision: `85b6ed3a750cca205bb92007a74cf622d92ec7cc`
 
 This directive coordinates one bounded executable replacement. It is not a
 semantic owner, SoT registry, progress counter, or completion claim.
@@ -104,3 +108,22 @@ candidates, not completion evidence.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers. This is
   an executable consumer migration inside `diagnostic.catalog`, not whole-row
   closure; project forecast remains 83%.
+
+## Observed publication evidence
+
+- The first implementation run `33493015435` reached fixed point, installed the
+  receipt-bound DRV-2, and finished 29/30. It correctly exposed one stale
+  structural assertion in the source-inspection optimization-profile gate:
+  that gate still required the pre-rung one-argument AST request shape.
+- Repair `85b6ed3a750cca205bb92007a74cf622d92ec7cc` keeps the other inspection
+  requests path-only while requiring AST's exact `(String, Bool)` path plus
+  diagnostic-format shape and rejecting any third policy input. The complete
+  optimization-profile behavior gate and the focused AST receipt gate pass
+  locally.
+- Exact repair run `33496180181` is green 30/30. Its full self-host log records
+  exactly one each of `gen2 == gen3 (173198 lines)`, receipt-bound fixed-point
+  adoption, Pergyra-built DRV-2 installation, the repaired optimization-profile
+  marker, and the focused AST JSON diagnostic marker. `build-linux` took
+  25m55s and full self-host took 24m42s.
+- The bounded publication falsifier is closed. This directive authorizes no
+  successor rung; a fresh production executable falsifier is required.

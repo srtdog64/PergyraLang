@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — AST public JSON diagnostic receipt
+## DONE lease — AST public JSON diagnostic receipt
 
 - Exact base is `615529ffecc042216fc545699f5a3e87b1ba9020`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -15,11 +15,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   DRV-2 pass byte-exact AST text/JSON success, exact parser receipt relay,
   missing/silent/malformed/absent/crosswired negatives, existing AST/MIR gates,
   installed CLI aggregation, and component/hard/SoT/Gate/protocol/velocity
-  ratchets. Exact CI is still pending; the lease remains ACTIVE.
-- Public `SOURCE --ast --error-format=json` currently stops at the C adapter's
-  text-only source-stdout predicate, while text mode reaches the installed
-  driver. The existing parser public-diagnostic projection owns the reached
-  callable-contract receipt; the AST request lacks only admitted Bool carriage.
+  ratchets.
+- Before this rung, public `SOURCE --ast --error-format=json` stopped at the C
+  adapter's text-only source-stdout predicate while text mode reached the
+  installed driver. The parser public-diagnostic projection already owned the
+  reached callable-contract receipt; this rung added the missing admitted Bool
+  carriage without moving diagnostic meaning into C.
 - The deletion target is bounded to AST selection and opaque stdout/receipt
   process transport. C message meaning, native retry, duplicate parse, AST
   re-rendering, and JSON admission for tokens/capability/DIR/MIR-JSON/machine
@@ -28,6 +29,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `docs/agent_work_directives/ast_public_json_diagnostic_receipt_2026-09-01.md`.
   SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
   83%.
+- Implementation `9ce212627268a26fe20f660be7eda5b66a1f4d19` and exact-CI
+  gate repair `85b6ed3a750cca205bb92007a74cf622d92ec7cc` are on
+  `origin/main`. The first run `33493015435` exposed the stale pre-Bool AST
+  request-shape assertion and finished 29/30. Exact repair run `33496180181` is
+  green 30/30 and records exactly one fixed point, receipt-bound adoption,
+  Pergyra-built DRV-2 installation, repaired optimization-profile marker, and
+  focused AST JSON diagnostic marker. This lease is DONE and authorizes no
+  successor rung.
 - Protected unrelated untracked `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
   staging.

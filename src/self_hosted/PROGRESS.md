@@ -1,5 +1,29 @@
 # Self-Host Progress
 
+## Completed self-host context - 2026-09-01 AST public JSON diagnostic receipt
+
+- Public `SOURCE --ast --error-format=json` previously stopped at the C
+  adapter's text-only source-inspection predicate while text AST already reached
+  the installed Pergyra driver. The existing AST request now carries one
+  admitted diagnostic-format Bool and consumes the parser-owned public
+  diagnostic projection.
+- Valid text/JSON/native AST bytes agree. The reached callable-contract failure
+  publishes the exact parser-owned JSON receipt on public stderr only; missing,
+  silent, malformed, absent, and crosswired child receipts fail closed. Tokens,
+  capability manifest, DIR, raw MIR JSON, machine manifest, and verbose AST keep
+  their previous contracts. AST and MIR share one opaque diagnostic-stdout
+  process owner without assigning diagnostic meaning to C.
+- Implementation `9ce21262` and optimization-profile gate repair `85b6ed3a`
+  are published. Exact run `33496180181` is green 30/30 and proves exactly one
+  `gen2 == gen3 (173198 lines)`, receipt-bound DRV-2 adoption, Pergyra-built
+  DRV-2 installation, repaired optimization-profile marker, and focused AST
+  marker. Linux took 25m55s and full self-host took 24m42s.
+- This is an executable consumer migration inside `diagnostic.catalog`, not
+  whole-row closure. Census remains `88/183` and `55/32/1`, with 9 blockers;
+  integrated progress remains 83% (81-85%), strict beta 83%, and hard
+  replacement 75%. No successor rung is inferred without a fresh production
+  executable falsifier.
+
 ## Completed self-host context - 2026-09-01 LLVM IR public JSON diagnostic receipt
 
 - Public stdout/file `SOURCE --emit-llvm --error-format=json` previously stopped
