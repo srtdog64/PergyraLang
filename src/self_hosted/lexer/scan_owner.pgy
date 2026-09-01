@@ -1,9 +1,13 @@
 // Self-host lexer scan-loop owner.
 
 import "char_owner.pgy";
+import "public_diagnostic_receipt_owner.pgy";
 import "token_owner.pgy";
 
-func LexContentFacts(content: String) -> Array<LexerTokenFact> {
+func LexerScanContentFacts(
+    content: String,
+    emit_json_receipt: Bool
+) -> Array<LexerTokenFact> {
     let n: Int = StringLength(content);
     let tokens: Array<LexerTokenFact> = [];
 
@@ -367,8 +371,8 @@ func LexContentFacts(content: String) -> Array<LexerTokenFact> {
             continue;
         }
 
-        Log(Concat(
-            "LEXER ERROR: invalid source character at line ", ToString(line)
+        Log(LexerInvalidTokenDiagnosticPayloadForPublicBoundary(
+            line, emit_json_receipt
         ));
         Exit(1);
     }
@@ -378,6 +382,20 @@ func LexContentFacts(content: String) -> Array<LexerTokenFact> {
     return tokens;
 }
 
+func LexContentFacts(content: String) -> Array<LexerTokenFact> {
+    return LexerScanContentFacts(content, false);
+}
+
+func LexContentForPublicDiagnosticRequest(
+    source_path: String,
+    content: String,
+    emit_json_receipt: Bool
+) -> String {
+    return LexerTokenFactsText(
+        source_path, LexerScanContentFacts(content, emit_json_receipt)
+    );
+}
+
 func LexContent(source_path: String, content: String) -> String {
-    return LexerTokenFactsText(source_path, LexContentFacts(content));
+    return LexContentForPublicDiagnosticRequest(source_path, content, false);
 }

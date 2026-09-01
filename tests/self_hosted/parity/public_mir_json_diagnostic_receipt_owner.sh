@@ -16,6 +16,7 @@ INVALID_REL="$WORK_REL/undefined_function.pgy"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
 C_FIXTURE="$ROOT_DIR/tests/self_hosted/parity/fixture/malformed_public_diagnostic_self_host_driver.c"
 C_OWNER="$ROOT_DIR/src/compiler/self_host_mir_diagnostic_stdout_owner.c"
+PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_stdout_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
 CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
@@ -139,13 +140,17 @@ require_text "$PROTOCOL_OWNER" 'DriverSourceMirRequestEmitsJsonDiagnostic('
 require_text "$REQUEST_OWNER" 'DriverCliSourceMirJsonDiagnosticStdout(String)'
 require_text "$REQUEST_OWNER" 'args[0] == "--emit-mir-json-diagnostic-verified"'
 require_text "$READ_OWNER" 'DriverSourceMirJsonDiagnosticPayloadOrDie('
-require_text "$C_OWNER" 'driver_self_host_public_diagnostic_wire_relay('
+require_text "$C_OWNER" 'driver_run_self_host_public_diagnostic_stdout_process('
+require_text "$C_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR'
 require_text "$C_OWNER" '"--emit-mir-json-diagnostic-verified"'
+require_text "$PROCESS_OWNER" 'driver_self_host_public_diagnostic_wire_relay('
+require_text "$PROCESS_OWNER" 'pgy_exec_argv_capture_stdout('
 require_text "$WIRE_OWNER" 'driver_self_host_public_diagnostic_wire_admit('
 require_text "$WIRE_OWNER" 'pgy.selfhost.public-diagnostic.v1'
 ! grep -Eq 'driver_diag_code_from_message|driver_route_stage|PGY_SEM_UNDEFINED_SYMBOL|semantic:symbol:undefined|import-or-declare-symbol' \
-    "$C_OWNER" "$WIRE_OWNER" || fail "C transport regained semantic diagnostic authority"
-! grep -Eq 'driver_run_pipeline|mir_dump|system\(' "$C_OWNER" ||
+    "$C_OWNER" "$PROCESS_OWNER" "$WIRE_OWNER" ||
+    fail "C transport regained semantic diagnostic authority"
+! grep -Eq 'driver_run_pipeline|mir_dump|system\(' "$C_OWNER" "$PROCESS_OWNER" ||
     fail "C transport regained a native or string-shell fallback"
 
 echo "[self-host-public-mir-json-diagnostic-receipt] typed Pergyra identity, opaque C relay, wording independence, and fail-closed wire: PASS"

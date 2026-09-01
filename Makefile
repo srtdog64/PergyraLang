@@ -4126,6 +4126,11 @@ self-host-public-tokens-replacement-test-smoke: self-host-public-machine-manifes
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_tokens_installed_self_host_owner.sh
 
+.PHONY: self-host-public-tokens-json-diagnostic-receipt-test-smoke
+self-host-public-tokens-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/public_tokens_json_diagnostic_receipt_owner.sh
+
 self-host-public-ast-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_ast_installed_self_host_owner.sh

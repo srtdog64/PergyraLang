@@ -19,8 +19,10 @@ static const char *
 driver_public_diagnostic_stdout_name(
     DriverSelfHostPublicDiagnosticStdoutKind kind)
 {
-    return kind == DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST
-        ? "AST diagnostic" : "MIR diagnostic";
+    if (kind == DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST)
+        return "AST diagnostic";
+    return kind == DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_TOKENS
+        ? "token diagnostic" : "MIR diagnostic";
 }
 
 int
@@ -36,7 +38,8 @@ driver_run_self_host_public_diagnostic_stdout_process(
     int rc;
 
     if (argv == NULL || (kind != DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST
-        && kind != DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR)) {
+        && kind != DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR
+        && kind != DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_TOKENS)) {
         fprintf(stderr, "pgy: invalid self-host public diagnostic stdout request\n");
         return 1;
     }

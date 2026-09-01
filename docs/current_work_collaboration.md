@@ -6,6 +6,36 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — tokens public JSON diagnostic receipt
+
+- Exact base is `cb65af9afda1af9533efefab2d1446e60462af41`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves public text `--tokens` reaches the
+  installed child while the equal JSON request stops at the C adapter's
+  text-only predicate. An invalid `~` reaches the Pergyra lexer in text mode;
+  the normal native JSON compile already owns the stable invalid-token identity.
+- The deletion target is bounded to token JSON selection, one Pergyra lexer
+  public-diagnostic projection, explicit Bool carriage, and reuse of the opaque
+  AST/MIR stdout process owner. Formatter token facts and every other inspection
+  mode remain unchanged.
+- C message meaning, native retry, duplicate lexing, token reconstruction, and
+  partial JSON contracts for capability/DIR/raw-MIR/machine-manifest are
+  forbidden. Exact objective and falsifiers are in
+  `docs/agent_work_directives/tokens_public_json_diagnostic_receipt_2026-09-01.md`.
+- SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%. Protected unrelated untracked paths remain outside inspection, edit, and
+  staging.
+- Local implementation is green: a warning-clean launcher and fresh isolated
+  Pergyra-built DRV-2 pass token text/JSON/native byte parity, exact lexer-owned
+  receipt relay, missing/silent/malformed/absent/crosswired negatives, preserved
+  formatter facts, existing AST/MIR receipt gates, and the complete installed
+  CLI aggregate. Component, hard, source-inventory, SoT, Gate, protocol, and
+  velocity ratchets also pass.
+- The observed census remains `88/183`, `55/32/1`, with 9 blockers. Exact CI
+  and publication remain pending; this lease stays ACTIVE and authorizes no
+  successor rung.
+
 ## DONE lease — AST public JSON diagnostic receipt
 
 - Exact base is `615529ffecc042216fc545699f5a3e87b1ba9020`, equal to

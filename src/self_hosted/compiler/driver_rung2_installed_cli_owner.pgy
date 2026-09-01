@@ -24,7 +24,7 @@ func DriverRung2ExecuteInstalledRequest(
             RunDebugSession(source_path);
         case DriverCliFormatSourceArtifact(source_path, output_path):
             RunFormatSourceArtifact(source_path, output_path);
-        case DriverCliSourceTokensStdout(source_path):
+        case DriverCliSourceTokensStdout(source_path, emit_json):
             DriverRung2ExecuteReadRequest(compiler_world, request);
         case DriverCliSourceAstStdout(source_path, emit_json):
             DriverRung2ExecuteReadRequest(compiler_world, request);

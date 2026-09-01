@@ -21,8 +21,9 @@ func DriverRung2ExecuteReadRequest(
             Die("debug session request requires installed composition root");
         case DriverCliFormatSourceArtifact(source_path, output_path):
             Die("format source request requires installed composition root");
-        case DriverCliSourceTokensStdout(source_path):
-            Log(LexContent(source_path, LexerReadSource(source_path)));
+        case DriverCliSourceTokensStdout(source_path, emit_json):
+            Log(LexContentForPublicDiagnosticRequest(
+                source_path, LexerReadSource(source_path), emit_json));
         case DriverCliSourceAstStdout(source_path, emit_json):
             let artifact: AstTreeArtifact =
                 CompileSourceToAstArtifactForPublicDiagnosticRequest(

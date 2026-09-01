@@ -111,9 +111,9 @@ require_text "$LAUNCHER_OWNER" 'driver_self_host_source_stdout_mode(&flags)'
 require_text "$LAUNCHER_OWNER" 'driver_run_self_host_source_stdout('
 require_text "$SELECTION_OWNER" 'driver_self_host_source_stdout_mode('
 require_text "$SIBLING_OWNER" 'strcmp(argv[0], "--tokens") == 0'
-require_text "$REQUEST_OWNER" 'DriverCliSourceTokensStdout(String)'
+require_text "$REQUEST_OWNER" 'DriverCliSourceTokensStdout(String, Bool)'
 require_text "$REQUEST_OWNER" 'args[0] == "--tokens"'
-require_text "$EXECUTION_OWNER" 'Log(LexContent(source_path, LexerReadSource(source_path)));'
+require_text "$EXECUTION_OWNER" 'LexContentForPublicDiagnosticRequest('
 grep -Fq 'driver_run_pipeline(' "$SIBLING_OWNER" &&
     fail "installed sibling launcher regained a native pipeline fallback"
 

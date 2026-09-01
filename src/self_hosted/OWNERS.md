@@ -58,6 +58,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/lexer/run_owner.pgy` -- lexer CLI run boundary and mode
   selection.
 - `src/self_hosted/lexer/source_input_owner.pgy` -- source path and file input.
+- `src/self_hosted/lexer/public_diagnostic_receipt_owner.pgy` -- invalid-token
+  public code, stage/layer, cause, fix, and message projection.
 - `src/self_hosted/lexer/scan_owner.pgy` -- typed token scan loop and ordered
   `LexerTokenFact` publication.
 - `src/self_hosted/lexer/token_owner.pgy` -- token classification, normalized

@@ -9473,13 +9473,17 @@ require_text "src/compiler/self_host_driver.c" \
 require_text "src/compiler/self_host_driver.c" \
     'strcmp(argv[0], "--ast") == 0'
 require_text "src/compiler/self_host_driver.c" \
+    'strcmp(argv[0], "--tokens-json-diagnostic-verified") == 0'
+require_text "src/compiler/self_host_driver.c" \
     'strcmp(argv[0], "--ast-json-diagnostic-verified") == 0'
 require_text "src/compiler/self_host_driver.c" \
     'strcmp(argv[0], "--emit-capability-manifest-verified") == 0'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
-    "DriverCliSourceTokensStdout(String)"
+    "DriverCliSourceTokensStdout(String, Bool)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[0] == "--tokens"'
+require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
+    'args[0] == "--tokens-json-diagnostic-verified"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     "DriverCliSourceAstStdout(String, Bool)"
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
@@ -9491,13 +9495,31 @@ require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'args[3] != "--machine-manifest-json"'
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
-    "Log(LexContent(source_path, LexerReadSource(source_path)));"
+    "LexContentForPublicDiagnosticRequest("
+require_file "src/self_hosted/lexer/public_diagnostic_receipt_owner.pgy"
+require_text "src/self_hosted/lexer/scan_owner.pgy" \
+    'import "public_diagnostic_receipt_owner.pgy";'
+require_text "src/self_hosted/lexer/scan_owner.pgy" \
+    "func LexContentFacts(content: String) -> Array<LexerTokenFact>"
+require_text "src/self_hosted/lexer/public_diagnostic_receipt_owner.pgy" \
+    "PGY_LEX_INVALID_TOKEN"
+require_text "src/compiler/self_host_public_diagnostic_stdout_process_owner.h" \
+    "DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_TOKENS"
+for owner in src/compiler/driver_self_host_selection_owner.c \
+    src/compiler/self_host_driver.c \
+    src/compiler/self_host_public_diagnostic_stdout_process_owner.c \
+    src/compiler/self_host_source_stdout_owner.c; do
+    reject_text "$owner" "PGY_LEX_INVALID_TOKEN"
+    reject_text "$owner" "lex:invalid_token"
+    reject_text "$owner" "remove-or-escape-character"
+    reject_text "$owner" "LEXER ERROR"
+done
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "CompileSourceToAstArtifactForPublicDiagnosticRequest("
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     "CompileSourceCapabilityManifestVerified(source_path)"
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
-    "case DriverCliSourceTokensStdout(source_path):"
+    "case DriverCliSourceTokensStdout(source_path, emit_json):"
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \
     "case DriverCliSourceAstStdout(source_path, emit_json):"
 require_text "src/self_hosted/compiler/driver_rung2_installed_cli_owner.pgy" \

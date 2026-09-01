@@ -18,6 +18,41 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — tokens public JSON diagnostic receipt local gates green
+
+- Exact base and current published HEAD are
+  `cb65af9afda1af9533efefab2d1446e60462af41`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: text `SOURCE --tokens` reaches the installed
+  driver, but the otherwise-identical `--error-format=json` request stops at the
+  C adapter's text-only source-stdout predicate. Published AST text/JSON both
+  reach the child control.
+- An invalid `~` reaches the Pergyra lexer and emits the existing text failure.
+  The native diagnostic catalog already fixes `PGY_LEX_INVALID_TOKEN`, stage
+  `lex`, layer `syntax`, cause `lex:invalid_token`, and fix
+  `remove-or-escape-character`; that identity is the exact missing Pergyra fact.
+- The active rung preserves successful token and formatter bytes, adds one
+  lexer-owned public diagnostic projection and one Bool to the existing token
+  request, and reuses the AST/MIR opaque process owner. C diagnostic meaning,
+  native retry, duplicate lexing, and other source-inspection JSON modes are
+  forbidden.
+- Capability manifest and DIR are not successors inside this rung: their full
+  semantic failure domains do not yet carry public identities. Raw MIR JSON and
+  machine manifest retain separate output/evidence contracts.
+- The token request now carries one admitted Bool and reaches a lexer-owned
+  `PGY_LEX_INVALID_TOKEN` public receipt. Successful token bytes and the
+  formatter-facing typed-fact wrapper remain unchanged; C only selects the
+  private argv spelling and reuses the shared opaque token/AST/MIR process
+  owner.
+- A warning-clean launcher and fresh isolated Pergyra-built DRV-2 pass the
+  focused token gate, existing token/formatter/AST/MIR gates, the complete
+  installed CLI aggregate, and component/hard/source-inventory/SoT/Gate/
+  protocol/velocity ratchets. The observed census remains `88/183`,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+- `diagnostic.catalog` remains `BRIDGE` and project forecast remains 83%. The
+  next step is only the implementation commit/push and exact CI; do not open
+  another executable rung.
+
 ## Published — AST public JSON diagnostic receipt exact-CI green
 
 - Exact base is `615529ffecc042216fc545699f5a3e87b1ba9020`; implementation

@@ -1,5 +1,4 @@
 #include "driver_self_host_selection_owner.h"
-
 static bool
 driver_plain_binary_target_requested(const DriverFlags *flags,
                                      BackendKind backend)
@@ -23,7 +22,6 @@ driver_plain_binary_target_requested(const DriverFlags *flags,
         && !flags->check_only
         && !flags->repl;
 }
-
 bool
 driver_plain_c_binary_target_requested(const DriverFlags *flags)
 {
@@ -70,12 +68,14 @@ driver_self_host_source_stdout_mode(const DriverFlags *flags)
         || flags->check_only || flags->verbose || flags->repl
         || flags->emit_debug_lines
         || (flags->diag_format != DIAG_FORMAT_TEXT &&
-            !(flags->dump_ast && flags->diag_format == DIAG_FORMAT_JSON))
+            !(flags->dump_ast && flags->diag_format == DIAG_FORMAT_JSON) &&
+            !(flags->dump_tokens && flags->diag_format == DIAG_FORMAT_JSON))
         || flags->runtime_mode != RUNTIME_DEFAULT
         || flags->machine_layer_physical_manifest != NULL)
         return NULL;
     if (flags->dump_tokens)
-        return "--tokens";
+        return flags->diag_format == DIAG_FORMAT_JSON
+            ? "--tokens-json-diagnostic-verified" : "--tokens";
     if (flags->dump_ast)
         return flags->diag_format == DIAG_FORMAT_JSON
             ? "--ast-json-diagnostic-verified" : "--ast";

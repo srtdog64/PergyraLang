@@ -5,7 +5,8 @@
 
 typedef enum {
     DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST = 0,
-    DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR = 1
+    DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR = 1,
+    DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_TOKENS = 2
 } DriverSelfHostPublicDiagnosticStdoutKind;
 
 int driver_run_self_host_public_diagnostic_stdout_process(

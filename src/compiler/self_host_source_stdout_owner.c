@@ -14,6 +14,7 @@ driver_run_self_host_source_stdout(const char *launcher_path,
 
     if (mode == NULL
         || (strcmp(mode, "--tokens") != 0 && strcmp(mode, "--ast") != 0
+            && strcmp(mode, "--tokens-json-diagnostic-verified") != 0
             && strcmp(mode, "--ast-json-diagnostic-verified") != 0
             && strcmp(mode, "--emit-capability-manifest-verified") != 0
             && strcmp(mode, "--emit-dir-verified") != 0)) {

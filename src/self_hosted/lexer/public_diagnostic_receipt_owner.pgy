@@ -1,0 +1,22 @@
+// Lexer-owned public diagnostic identity. Detection remains in the token scan;
+// this owner assigns stable public meaning and delegates only wire rendering.
+
+import "../lib/public_diagnostic_receipt_owner.pgy";
+
+func LexerInvalidTokenDiagnosticMessage(line: Int) -> String {
+    return Concat(
+        "LEXER ERROR: invalid source character at line ", ToString(line)
+    );
+}
+
+func LexerInvalidTokenDiagnosticPayloadForPublicBoundary(
+    line: Int,
+    emit_json_receipt: Bool
+) -> String {
+    let message: String = LexerInvalidTokenDiagnosticMessage(line);
+    if !emit_json_receipt { return message; }
+    return SelfHostPublicDiagnosticReceiptWireFromOwnedFacts(
+        "lex", "syntax", "PGY_LEX_INVALID_TOKEN",
+        "lex:invalid_token", "remove-or-escape-character", message
+    );
+}

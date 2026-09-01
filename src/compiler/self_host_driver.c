@@ -60,6 +60,7 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
         return 1;
     }
     source_stdout_mode = strcmp(argv[0], "--tokens") == 0
+        || strcmp(argv[0], "--tokens-json-diagnostic-verified") == 0
         || strcmp(argv[0], "--ast") == 0
         || strcmp(argv[0], "--ast-json-diagnostic-verified") == 0
         || strcmp(argv[0], "--emit-capability-manifest-verified") == 0
@@ -123,9 +124,14 @@ driver_run_self_host_command(const char *launcher_path, int argc, char *argv[])
         child_argv[child_argc++] = "--emit-c-verified";
     }
     child_argv[child_argc] = NULL;
-    if (strcmp(argv[0], "--ast-json-diagnostic-verified") == 0)
+    if (strcmp(argv[0], "--tokens-json-diagnostic-verified") == 0
+        || strcmp(argv[0], "--ast-json-diagnostic-verified") == 0)
         rc = driver_run_self_host_public_diagnostic_stdout_process(
-            child_argv, DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST, true);
+            child_argv,
+            strcmp(argv[0], "--tokens-json-diagnostic-verified") == 0
+                ? DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_TOKENS
+                : DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST,
+            true);
     else {
         driver_authorize_self_host_child_io();
         rc = pgy_exec_argv(child_argv, false);

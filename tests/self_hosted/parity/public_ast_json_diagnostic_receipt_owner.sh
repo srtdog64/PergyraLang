@@ -166,7 +166,7 @@ require_text "$WORK_DIR/malformed.err" 'self-host JSON diagnostic receipt is mal
 require_text "$WORK_DIR/crosswired.err" 'self-host JSON diagnostic receipt is malformed'
 require_text "$WORK_DIR/missing.err" 'failed (exit 1) emitting AST diagnostic'
 
-for mode in --tokens --capability-manifest --dir --mir-json; do
+for mode in --capability-manifest --dir --mir-json; do
     set +e
     (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$SELF_DRIVER" \
         "$PGY" "$VALID_REL" "$mode" --error-format=json) \

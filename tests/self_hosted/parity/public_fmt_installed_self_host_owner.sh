@@ -462,8 +462,10 @@ grep -Fq 'lifecycle_transition_indent' \
     fail "lifecycle transition identity escaped into global text classification"
 grep -Fq 'func LexContentFacts(content: String) -> Array<LexerTokenFact>' \
     "$LEXER_OWNER" || fail "lexer scan does not publish typed facts"
-grep -Fq 'LexerTokenFactsText(source_path, LexContentFacts(content))' \
-    "$LEXER_OWNER" || fail "public token text is not a typed-fact projection"
+grep -Fq 'LexerTokenFactsText(' "$LEXER_OWNER" ||
+    fail "public token text is not a typed-fact projection"
+grep -Fq 'source_path, LexerScanContentFacts(content, emit_json_receipt)' \
+    "$LEXER_OWNER" || fail "public token text bypasses typed lexer facts"
 grep -Fq 'FormatSourceFromTokenFacts(LexContentFacts(source))' \
     "$SESSION_OWNER" || fail "formatter does not consume typed token facts"
 ! grep -Fq 'LexContent(' "$LAYOUT_OWNER" ||

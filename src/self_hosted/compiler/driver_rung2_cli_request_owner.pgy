@@ -8,7 +8,7 @@ import "../codegen/text/text_owner.pgy";
 enum DriverRung2CliRequest {
     DriverCliDebugSession(String),
     DriverCliFormatSourceArtifact(String, String),
-    DriverCliSourceTokensStdout(String),
+    DriverCliSourceTokensStdout(String, Bool),
     DriverCliSourceAstStdout(String, Bool),
     DriverCliSourceCapabilityManifestStdout(String),
     DriverCliSourceDirStdout(String),
@@ -72,10 +72,11 @@ func DriverRung2CliRequestFromArgsOrDie(
         DriverRung2CliArtifactPathsOrDie(source_path, output_path);
         return DriverCliFormatSourceArtifact(source_path, output_path);
     }
-    if args[0] == "--tokens" {
+    if args[0] == "--tokens" || args[0] == "--tokens-json-diagnostic-verified" {
         if count != 2 { Die("source token mode requires exactly one input path"); }
         return DriverCliSourceTokensStdout(DriverRung2CliPathOperandOrDie(
-            args[1], "source token input path"));
+            args[1], "source token input path"),
+            args[0] == "--tokens-json-diagnostic-verified");
     }
     if args[0] == "--ast" || args[0] == "--ast-json-diagnostic-verified" {
         if count != 2 { Die("source AST mode requires exactly one input path"); }
