@@ -42,6 +42,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "annotate-or-convert"
         );
     }
+    if code == "logical_operand_not_bool" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:binop:operand_types",
+            "align-operand-types-or-overload"
+        );
+    }
     return SemanticPublicDiagnosticIdentity(false, "", "");
 }
 

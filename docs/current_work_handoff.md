@@ -18,6 +18,42 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — logical-operand public JSON receipt local green
+
+- Exact base and current published HEAD are
+  `06207a293d9c1c313bc5734a7ee1ef49caa80422`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: the five `bad_logical_*` fixtures reach the
+  installed Pergyra `logical_operand_not_bool` verdict in text mode, but the
+  private JSON receipt is empty and public MIR JSON stops at the generic
+  malformed-receipt error.
+- Explicit native JSON fixes one identity for all five contexts:
+  `PGY_SEM_BINOP_TYPE_MISMATCH`, stage `semantic`, layer `type`, cause
+  `semantic:binop:operand_types`, and fix
+  `align-operand-types-or-overload`.
+- `condition_not_bool` and `not_operand` own different native identities and
+  are forbidden exclusions, along with C mapping, native retry, message
+  parsing, a second semantic pass, invented location, text/fact changes, and a
+  second wire renderer.
+- The active rung admits only this exact Pergyra code, proves all five private
+  contexts, and reuses the existing MIR/artifact process and wire owners for
+  public MIR/C/LLVM relay. Its focused falsifier is
+  `tests/self_hosted/parity/public_logical_operand_json_diagnostic_receipt_owner.sh`.
+- A fresh Pergyra-built DRV-2 passes the focused gate, the updated return-type
+  exclusion, existing undefined-function/artifact/parser receipt gates, and the
+  complete installed CLI aggregate. Diagnostic, SoT, Gate, protocol,
+  build-source inventory, substitution velocity, hard-contract, and progress
+  ratchets pass.
+- Full semantic selfcheck stopped before the changed owners at the existing
+  `function_emit.pgy` leaf-coverage gap for
+  `CodegenSemanticMutableResourceParameter`. The component inventory exceeded
+  its 60-second local budget and was stopped without a verdict. Exact CI is the
+  remaining integration observation.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.17% and
+  project forecast remains 83%. Next step is diff review, commit/push, and exact
+  CI, not a successor rung.
+
 ## Published — return-type mismatch public JSON receipt exact-CI green
 
 - Exact base is `02d93d4271f23f58ae3bfac32f37260e8a13a96a` and implementation

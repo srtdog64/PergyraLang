@@ -6,6 +6,32 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — logical-operand public JSON diagnostic receipt
+
+- Exact base is `06207a293d9c1c313bc5734a7ee1ef49caa80422`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves all five `bad_logical_*` contexts emit
+  the existing Pergyra `logical_operand_not_bool` code, while private JSON is
+  empty and public JSON reaches only the generic malformed-receipt boundary.
+  Explicit native JSON agrees on one binary-operand code/cause/fix identity.
+- The deletion target is exact admission of that one owned code and reuse of
+  the existing wire/process owners. Condition/unary mismatch grouping, C
+  mapping, native retry, message parsing, another semantic pass, location
+  invention, fact loss, and text wording changes are forbidden.
+- Exact objective, context coverage, and exclusions are in
+  `docs/agent_work_directives/logical_operand_public_json_diagnostic_receipt_2026-09-01.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+- Local implementation is green on a fresh Pergyra-built DRV-2. The focused
+  five-context gate, updated return-type exclusion, existing shared receipt
+  gates, and full installed CLI aggregate pass. Diagnostic, SoT, Gate,
+  protocol, inventory, velocity, hard-contract, and progress ratchets pass.
+- The broad component inventory exceeded its 60-second local budget without a
+  verdict. Full semantic selfcheck stopped earlier at the existing
+  `function_emit.pgy` leaf-coverage gap; neither observation is recorded as a
+  pass. Commit/push and exact CI remain pending.
+
 ## DONE lease — return-type mismatch public JSON diagnostic receipt
 
 - Exact base is `02d93d4271f23f58ae3bfac32f37260e8a13a96a`, equal to
