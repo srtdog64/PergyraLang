@@ -6,6 +6,32 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — condition-not-bool public JSON diagnostic receipt
+
+- Exact base is `ca122be5396a4862a8b330e7a9d2e9710920a775`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves both the `if` and `while`
+  `condition_not_bool` contexts retain Pergyra text verdicts while private JSON
+  is empty and public JSON reaches only the generic malformed-receipt boundary.
+  Explicit native JSON agrees on one condition-specific code/cause/fix identity.
+- The deletion target is exact admission of that one owned code and reuse of
+  the existing wire/process owners. Same-public-code return grouping, C
+  mapping, native retry, message parsing, another semantic pass, location
+  invention, fact loss, and text wording changes are forbidden.
+- Exact objective, two-context coverage, and exclusions are in
+  `docs/agent_work_directives/condition_not_bool_public_json_diagnostic_receipt_2026-09-02.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+- Local implementation is green on a fresh Pergyra-built DRV-2. The focused
+  if/while gate, rebaselined return/logical negatives, and full installed CLI
+  aggregate pass. Diagnostic, SoT, Gate, protocol, inventory, velocity, hard-
+  contract, and progress ratchets pass. The broad component inventory and
+  exact CI remain pending.
+- One first aggregate invocation used a Windows backslash driver path and was
+  rejected by the repository-relative machine-manifest guard. The
+  Make/CI-equivalent POSIX-path rerun passed without a source change.
+
 ## DONE lease — logical-operand public JSON diagnostic receipt
 
 - Exact base is `06207a293d9c1c313bc5734a7ee1ef49caa80422`, equal to

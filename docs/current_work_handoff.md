@@ -18,6 +18,43 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — condition-not-bool public JSON receipt local green
+
+- Exact base and current published HEAD are
+  `ca122be5396a4862a8b330e7a9d2e9710920a775`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: both `bad_condition_not_bool.pgy` (`if`) and
+  `bad_while_condition.pgy` (`while`) reach the installed Pergyra
+  `condition_not_bool` verdict with `expected: Bool` and `actual: Int`, but
+  private JSON is only a blank line and public MIR JSON stops at the generic
+  malformed-receipt error.
+- Explicit native JSON fixes one identity for both contexts:
+  `PGY_SEM_TYPE_MISMATCH`, stage `semantic`, layer `type`, cause
+  `semantic:condition:non_bool`, and fix `convert-condition-to-bool`. Native
+  location and wording vary by context and are not Pergyra-owned facts here.
+- Same-public-code `return_type_mismatch`, logical-operand, and unary-operand
+  identities are forbidden exclusions, along with C mapping, native retry,
+  message parsing, a second semantic pass, invented location, text/fact
+  changes, and a second wire renderer.
+- The active rung may admit only this exact Pergyra code, prove both private
+  contexts, and reuse the existing MIR/artifact process and wire owners for
+  public MIR/C/LLVM relay. Its focused falsifier is
+  `tests/self_hosted/parity/public_condition_not_bool_json_diagnostic_receipt_owner.sh`.
+- A fresh Pergyra-built DRV-2 passes the focused if/while gate, rebaselined
+  return/logical gates, and the complete installed CLI aggregate through
+  artifact, parser, tokens, AST, LLVM IR, native opt-in, REPL, formatter, and
+  DeviceSlot boundaries. The first direct aggregate invocation used a Windows
+  backslash driver path and was correctly rejected by the repository-relative
+  manifest guard; the Make/CI-equivalent POSIX-path rerun passed without a
+  source change.
+- Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
+  velocity, hard-contract, and progress ratchets pass. The broad component
+  inventory remains an exact-CI verdict under the 60-second local budget.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.17% and
+  project forecast remains 83%. Next step is diff review, commit/push, and
+  exact CI. No fuzz repair or second SoT track is active.
+
 ## Published — logical-operand public JSON receipt exact-CI green
 
 - Exact base is `06207a293d9c1c313bc5734a7ee1ef49caa80422` and implementation

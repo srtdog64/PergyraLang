@@ -268,6 +268,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/public_mir_diagnostic_installed_self_
 source "$ROOT_DIR/tests/self_hosted/parity/public_artifact_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_return_type_mismatch_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_logical_operand_json_diagnostic_receipt_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/public_condition_not_bool_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_tokens_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh"
