@@ -1,0 +1,65 @@
+// Shared public diagnostic wire renderer.
+//
+// Domain owners retain code, stage, layer, cause, fix, and message identity.
+// This owner only validates and serializes those admitted facts into the
+// envelope consumed opaquely by the native launcher.
+
+import "json_emit.pgy";
+
+func SelfHostPublicDiagnosticReceiptSchema() -> String {
+    return "pgy.selfhost.public-diagnostic.v1";
+}
+
+func SelfHostPublicDiagnosticReceiptFactsReady(
+    stage: String,
+    layer: String,
+    code: String,
+    cause_ir: String,
+    fix_source: String,
+    message: String
+) -> Bool {
+    return stage != "" && layer != "" && code != "" &&
+        cause_ir != "" && fix_source != "" && message != "";
+}
+
+func SelfHostPublicDiagnosticReceiptJsonFromOwnedFacts(
+    stage: String,
+    layer: String,
+    code: String,
+    cause_ir: String,
+    fix_source: String,
+    message: String
+) -> String {
+    if !SelfHostPublicDiagnosticReceiptFactsReady(
+        stage, layer, code, cause_ir, fix_source, message
+    ) {
+        return "";
+    }
+    return JsonEmitArray([JsonEmitObject([
+        JsonEmitFieldString("severity", "error"),
+        JsonEmitFieldString("stage", stage),
+        JsonEmitFieldString("layer", layer),
+        JsonEmitFieldString("code", code),
+        JsonEmitFieldString("cause_ir", cause_ir),
+        JsonEmitFieldString("fix_source", fix_source),
+        JsonEmitFieldRaw("location", "null"),
+        JsonEmitFieldString("message", message)
+    ])]);
+}
+
+func SelfHostPublicDiagnosticReceiptWireFromOwnedFacts(
+    stage: String,
+    layer: String,
+    code: String,
+    cause_ir: String,
+    fix_source: String,
+    message: String
+) -> String {
+    let json: String = SelfHostPublicDiagnosticReceiptJsonFromOwnedFacts(
+        stage, layer, code, cause_ir, fix_source, message
+    );
+    if json == "" { return ""; }
+    return Concat(
+        SelfHostPublicDiagnosticReceiptSchema(), Concat("\n", json)
+    );
+}

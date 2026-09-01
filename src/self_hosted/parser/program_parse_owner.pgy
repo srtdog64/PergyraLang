@@ -56,7 +56,8 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     content: String,
     follow_imports: Bool,
     observe_phases: Bool,
-    admit_format_surfaces: Bool
+    admit_format_surfaces: Bool,
+    diagnostic_projection: ParseDiagnosticProjection
 ) -> ParserProgramBuild {
     let cursor: Array<Int> = [0];
     let i: Int = SkipWhitespaceAndComments(content, 0);
@@ -75,7 +76,8 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     if observe_phases { Log("Phase: declaration-composition:start"); }
     let decls: String = ParseDecls(
         content, i, cursor, "", false, src_dir, source_path, false,
-        follow_imports, admit_format_surfaces, "", involve_types,
+        follow_imports, admit_format_surfaces, diagnostic_projection,
+        "", involve_types,
         import_paths, expression_graphs,
         source_locations, declaration_module_paths
     );
@@ -142,17 +144,29 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     );
 }
 
-func ParseProgramBuildWithImportPolicyObserved(
+func ParseProgramBuildWithImportPolicyObservedAndDiagnosticProjection(
     source_path: String,
     follow_imports: Bool,
-    observe_phases: Bool
+    observe_phases: Bool,
+    diagnostic_projection: ParseDiagnosticProjection
 ) -> ParserProgramBuild {
     if !FileExists(source_path) { Exit(1); }
     if observe_phases { Log("Phase: source-read:start"); }
     let content: String = ReadFile(source_path);
     if observe_phases { Log("Phase: source-read:done"); }
     return ParseProgramBuildContentWithImportPolicyObserved(
-        source_path, content, follow_imports, observe_phases, false
+        source_path, content, follow_imports, observe_phases, false,
+        diagnostic_projection
+    );
+}
+
+func ParseProgramBuildWithImportPolicyObserved(
+    source_path: String,
+    follow_imports: Bool,
+    observe_phases: Bool
+) -> ParserProgramBuild {
+    return ParseProgramBuildWithImportPolicyObservedAndDiagnosticProjection(
+        source_path, follow_imports, observe_phases, ParseDiagnosticText
     );
 }
 
@@ -162,7 +176,8 @@ func ParseProgramBuildContentWithImportPolicy(
     follow_imports: Bool
 ) -> ParserProgramBuild {
     return ParseProgramBuildContentWithImportPolicyObserved(
-        source_path, content, follow_imports, false, false
+        source_path, content, follow_imports, false, false,
+        ParseDiagnosticText
     );
 }
 
@@ -171,7 +186,7 @@ func ParseFormatProgramBuildContent(
     content: String
 ) -> ParserProgramBuild {
     return ParseProgramBuildContentWithImportPolicyObserved(
-        source_path, content, false, false, true
+        source_path, content, false, false, true, ParseDiagnosticText
     );
 }
 
@@ -186,6 +201,15 @@ func ParseProgramBuildWithImportPolicy(
 
 func ParseRootProgramBuild(source_path: String) -> ParserProgramBuild {
     return ParseProgramBuildWithImportPolicy(source_path, true);
+}
+
+func ParseRootProgramBuildWithDiagnosticProjection(
+    source_path: String,
+    diagnostic_projection: ParseDiagnosticProjection
+) -> ParserProgramBuild {
+    return ParseProgramBuildWithImportPolicyObservedAndDiagnosticProjection(
+        source_path, true, false, diagnostic_projection
+    );
 }
 
 func ParseObservedRootProgramBuild(source_path: String) -> ParserProgramBuild {
@@ -218,4 +242,15 @@ func ParserProgramArtifactFromBuild(
 
 func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
     return ParserProgramArtifactFromBuild(ParseRootProgramBuild(source_path));
+}
+
+func ParseRootProgramArtifactWithDiagnosticProjection(
+    source_path: String,
+    diagnostic_projection: ParseDiagnosticProjection
+) -> AstTreeArtifact {
+    return ParserProgramArtifactFromBuild(
+        ParseRootProgramBuildWithDiagnosticProjection(
+            source_path, diagnostic_projection
+        )
+    );
 }

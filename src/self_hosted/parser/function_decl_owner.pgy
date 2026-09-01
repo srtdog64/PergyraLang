@@ -20,7 +20,8 @@ func ParserCallableContractContains(names: Array<String>, name: String) -> Bool 
 }
 
 func ParserCallableContractAppendName(
-    inout names: Array<String>, name: String, axis: Int
+    inout names: Array<String>, name: String, axis: Int,
+    diagnostic_projection: ParseDiagnosticProjection
 ) -> Bool {
     let index: Int = CallableContractVocabularyFindIndex(axis, name);
     // Each rejection reports before it returns. The three reasons used to
@@ -28,12 +29,14 @@ func ParserCallableContractAppendName(
     // word, so a rejected contract clause produced no output at all.
     if StringLength(name) == 0 || index < 0 {
         ParseDiagnosticReportContractName(
+            diagnostic_projection,
             "callable_contract_unknown_name", axis, name
         );
         return false;
     }
     if ParserCallableContractContains(names, name) {
         ParseDiagnosticReportContractName(
+            diagnostic_projection,
             "callable_contract_duplicate_name", axis, name
         );
         return false;
@@ -42,6 +45,7 @@ func ParserCallableContractAppendName(
     if zero_policy == CallableContractVocabularyZeroExclusive() &&
         ArrayLength(names) > 0 {
         ParseDiagnosticReportContractName(
+            diagnostic_projection,
             "callable_contract_exclusive_effect", axis, name
         );
         return false;
@@ -54,6 +58,7 @@ func ParserCallableContractAppendName(
         if existing >= 0 && CallableContractVocabularyZeroPolicyAt(existing) ==
             CallableContractVocabularyZeroExclusive() {
             ParseDiagnosticReportContractName(
+                diagnostic_projection,
                 "callable_contract_exclusive_effect", axis, names[i]
             );
             return false;
@@ -116,7 +121,8 @@ func ParseFunctionObserved(
     within_zone_arg: String,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     location_context: ParserSourceLocationContext,
-    inout source_locations: Array<ParserSourceLocationObservation>
+    inout source_locations: Array<ParserSourceLocationObservation>,
+    diagnostic_projection: ParseDiagnosticProjection
 ) -> String {
     let function_slot: Int = ParserSourceLocationReserve(
         location_context, start, source_locations
@@ -354,7 +360,8 @@ func ParseFunctionObserved(
                     i = cursor_out[0];
                     if !ParserCallableContractAppendName(
                         effect_names, effect_name,
-                        CallableContractVocabularyEffectAxis()
+                        CallableContractVocabularyEffectAxis(),
+                        diagnostic_projection
                     ) { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
@@ -376,7 +383,8 @@ func ParseFunctionObserved(
                     i = cursor_out[0];
                     if !ParserCallableContractAppendName(
                         cap_names, cap_name,
-                        CallableContractVocabularyCapabilityAxis()
+                        CallableContractVocabularyCapabilityAxis(),
+                        diagnostic_projection
                     ) { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
@@ -496,7 +504,8 @@ func ParseFunction(
     fn_label: String,
     is_signature: Bool,
     within_zone_arg: String,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    diagnostic_projection: ParseDiagnosticProjection
 ) -> String {
     let context: ParserSourceLocationContext =
         ParserSourceLocationContextUnknown();
@@ -504,6 +513,6 @@ func ParseFunction(
     return ParseFunctionObserved(
         content, start, cursor_out, name_prefix, is_export, base_indent,
         fn_keyword, fn_label, is_signature, within_zone_arg,
-        expression_graphs, context, locations
+        expression_graphs, context, locations, diagnostic_projection
     );
 }

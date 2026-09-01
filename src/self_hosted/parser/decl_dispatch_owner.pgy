@@ -65,6 +65,7 @@ func ParseDeclsInto(
     force_export: Bool,
     follow_imports: Bool,
     admit_format_surfaces: Bool,
+    diagnostic_projection: ParseDiagnosticProjection,
     within_zone: String,
     inout involve_types: Array<String>,
     inout import_paths: Set<String>,
@@ -139,7 +140,7 @@ func ParseDeclsInto(
                 ParseDeclsInto(
                     imp_content, 0, imp_cursor, name_prefix, false, imp_dir,
                     imp_path, true, true, admit_format_surfaces,
-                    active_within_zone, involve_types,
+                    diagnostic_projection, active_within_zone, involve_types,
                     import_paths, expression_graphs, script_graphs,
                     source_locations, script_source_locations,
                     out_blocks, out_module_paths, script_blocks
@@ -169,7 +170,8 @@ func ParseDeclsInto(
             ParseDeclsInto(
                 content, i, cursor_out, new_prefix, true, source_dir,
                 source_path, force_export, follow_imports,
-                admit_format_surfaces, active_within_zone,
+                admit_format_surfaces, diagnostic_projection,
+                active_within_zone,
                 involve_types, import_paths, expression_graphs, script_graphs,
                 source_locations, script_source_locations,
                 out_blocks, out_module_paths, script_blocks
@@ -197,7 +199,8 @@ func ParseDeclsInto(
             ParseDeclsInto(
                 content, i, cursor_out, name_prefix, true, source_dir,
                 source_path, force_export, follow_imports,
-                admit_format_surfaces, wz_name, involve_types,
+                admit_format_surfaces, diagnostic_projection,
+                wz_name, involve_types,
                 import_paths, expression_graphs, script_graphs,
                 source_locations, script_source_locations,
                 out_blocks, out_module_paths, script_blocks
@@ -275,7 +278,8 @@ func ParseDeclsInto(
                 // the declared name itself, so no decl prefix applies.
                 let extern_sig: String = ParseFunction(
                     content, i, cursor_out, "", false, 4,
-                    "func", "Function: ", true, "", expression_graphs
+                    "func", "Function: ", true, "", expression_graphs,
+                    diagnostic_projection
                 );
                 i = cursor_out[0];
                 extern_out = AppendLine(extern_out, extern_sig);
@@ -356,8 +360,8 @@ func ParseDeclsInto(
 
         if MatchLanguageWord(content, i, LanguageWordId.WordAbility) {
             let ability_block: String = ParseAbilityDecl(
-                content, i, cursor_out, decl_prefix, expression_graphs
-            );
+                content, i, cursor_out, decl_prefix, expression_graphs,
+                diagnostic_projection);
             i = cursor_out[0];
             ArrayPush(out_blocks, ability_block);
             ArrayPush(out_module_paths, source_path);
@@ -367,7 +371,7 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordZone) {
             let zone_block: String = ParseZoneDecl(
                 content, i, cursor_out, decl_prefix, involve_types,
-                expression_graphs
+                expression_graphs, diagnostic_projection
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, zone_block);
@@ -397,8 +401,7 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordRole) {
             let role_block: String = ParseRoleDecl(
                 content, i, cursor_out, decl_prefix, active_within_zone,
-                expression_graphs
-            );
+                expression_graphs, diagnostic_projection);
             i = cursor_out[0];
             ArrayPush(out_blocks, role_block);
             ArrayPush(out_module_paths, source_path);
@@ -421,7 +424,7 @@ func ParseDeclsInto(
             let nominal_block: String = ParseNominalDecl(
                 content, i, cursor_out, decl_prefix, is_export,
                 active_within_zone,
-                involve_types, expression_graphs
+                involve_types, expression_graphs, diagnostic_projection
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, nominal_block);
@@ -459,7 +462,8 @@ func ParseDeclsInto(
             let fn_block: String = ParseFunctionObserved(
                 content, i, cursor_out, decl_prefix, effective_export, 2,
                 "func", "Function: ", false, active_within_zone,
-                expression_graphs, location_context, source_locations
+                expression_graphs, location_context, source_locations,
+                diagnostic_projection
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, fn_block);
@@ -518,6 +522,7 @@ func ParseDecls(
     force_export: Bool,
     follow_imports: Bool,
     admit_format_surfaces: Bool,
+    diagnostic_projection: ParseDiagnosticProjection,
     within_zone: String,
     inout involve_types: Array<String>,
     inout import_paths: Set<String>,
@@ -535,7 +540,7 @@ func ParseDecls(
     ParseDeclsInto(
         content, start, cursor_out, name_prefix, until_brace, source_dir,
         source_path, force_export, follow_imports, admit_format_surfaces,
-        within_zone, involve_types,
+        diagnostic_projection, within_zone, involve_types,
         import_paths, expression_graphs, script_graphs,
         source_locations, script_source_locations,
         out_blocks, declaration_module_paths, script_blocks

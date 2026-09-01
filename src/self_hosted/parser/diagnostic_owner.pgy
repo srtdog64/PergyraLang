@@ -11,7 +11,29 @@
 // domain codes, the shared library owns the output shape.
 
 import "../lib/diagnostic.pgy";
+import "../lib/public_diagnostic_receipt_owner.pgy";
 import "../lib/callable_contract_vocabulary_projection_owner.pgy";
+
+enum ParseDiagnosticProjection {
+    ParseDiagnosticText,
+    ParseDiagnosticPublicJson,
+}
+
+func ParseDiagnosticProjectionFromPublicJsonRequest(
+    emit_public_json: Bool
+) -> ParseDiagnosticProjection {
+    if emit_public_json { return ParseDiagnosticPublicJson; }
+    return ParseDiagnosticText;
+}
+
+func ParseDiagnosticProjectionPublishesPublicJson(
+    projection: ParseDiagnosticProjection
+) -> Bool {
+    match projection {
+        case ParseDiagnosticText: return false;
+        case ParseDiagnosticPublicJson: return true;
+    }
+}
 
 func ParseDiagnosticSchema() -> String {
     return "pgy.selfhost.parse.v1";
@@ -65,28 +87,72 @@ func ParseDiagnosticAxisLabel(axis: Int) -> String {
     return "unknown";
 }
 
+struct ParsePublicDiagnosticIdentity {
+    ready: Bool;
+    code: String;
+    cause_ir: String;
+    fix_source: String;
+}
+
+func ParsePublicDiagnosticIdentityForOwnedCode(
+    code: String
+) -> ParsePublicDiagnosticIdentity {
+    if code == "callable_contract_duplicate_name" ||
+        code == "callable_contract_unknown_name" ||
+        code == "callable_contract_exclusive_effect" {
+        return ParsePublicDiagnosticIdentity(
+            true, "PGY_PARSE_SYNTAX", "parse:unexpected_token", "check-syntax"
+        );
+    }
+    return ParsePublicDiagnosticIdentity(false, "", "", "");
+}
+
+func ParseDiagnosticPayload2(
+    projection: ParseDiagnosticProjection,
+    code: String,
+    k1: String, v1: String,
+    k2: String, v2: String
+) -> String {
+    let row: ParseDiagnosticRow = ParseDiagnosticRowForCode(code);
+    let text: String = SelfHostDiagnostic.RenderError(
+        ParseDiagnosticSchema(), "parse", "error",
+        code, row.reason, row.fix, "none",
+        SelfHostDiagnostic.Fact2(k1, v1, k2, v2)
+    );
+    if !ParseDiagnosticProjectionPublishesPublicJson(projection) {
+        return text;
+    }
+    let identity: ParsePublicDiagnosticIdentity =
+        ParsePublicDiagnosticIdentityForOwnedCode(code);
+    if !identity.ready {
+        // Empty output makes the opaque transport fail closed without
+        // recovering identity from rendered parser wording.
+        return "";
+    }
+    return SelfHostPublicDiagnosticReceiptWireFromOwnedFacts(
+        "parse", "syntax", identity.code, identity.cause_ir,
+        identity.fix_source, text
+    );
+}
+
 // Reports only. The caller still owns the decision to stop, so the rejection
 // stays one observable branch rather than a hidden exit inside a helper.
 func ParseDiagnosticReport2(
+    projection: ParseDiagnosticProjection,
     code: String,
     k1: String, v1: String,
     k2: String, v2: String
 ) -> Void {
-    let row: ParseDiagnosticRow = ParseDiagnosticRowForCode(code);
-    Log(SelfHostDiagnostic.RenderError(
-        ParseDiagnosticSchema(), "parse", "error",
-        code,
-        row.reason,
-        row.fix,
-        "none",
-        SelfHostDiagnostic.Fact2(k1, v1, k2, v2)));
+    Log(ParseDiagnosticPayload2(projection, code, k1, v1, k2, v2));
 }
 
 func ParseDiagnosticReportContractName(
+    projection: ParseDiagnosticProjection,
     code: String, axis: Int, name: String
 ) -> Void {
     ParseDiagnosticReport2(
-        code, "axis", ParseDiagnosticAxisLabel(axis), "name", name
+        projection, code,
+        "axis", ParseDiagnosticAxisLabel(axis), "name", name
     );
 }
 
@@ -97,7 +163,7 @@ func ParseDiagnosticReportContractName(
 // the reason is now true.
 func ParseDiagnosticReportUncoveredSurface(surface: String) -> Void {
     ParseDiagnosticReport2(
-        "surface_not_covered",
+        ParseDiagnosticText, "surface_not_covered",
         "surface", surface,
         "position", "top_level_declaration"
     );

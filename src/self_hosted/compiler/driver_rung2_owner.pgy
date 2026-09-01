@@ -222,12 +222,12 @@ func CompileArtifactToMirJsonVerified(
         );
     return DriverRung2MirProjectionJson(projection, false);
 }
-
-func CompileSourceToMirJsonVerified(
-    source_path: String,
-    machine_declaration: SelfHostMachineLayerDeclaration, emit_json_diagnostic: Bool
+func CompileSourceToMirJsonVerified(source_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration,
+    emit_json_diagnostic: Bool
 ) -> String with caps io_read {
-    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifactForPublicDiagnosticRequest(
+        source_path, emit_json_diagnostic);
     return CompileArtifactToMirJsonVerified(
         artifact, machine_declaration, emit_json_diagnostic
     );

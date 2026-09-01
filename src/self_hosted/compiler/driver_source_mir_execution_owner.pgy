@@ -38,7 +38,11 @@ func DriverSourceMirProjectionFromAdmittedRequest(
     let observe_pressure: Bool =
         DriverSourceMirRequestObservesPressure(request);
     DriverRung2PressureStage(observe_pressure, "ast:start");
-    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    let artifact: AstTreeArtifact =
+        CompileSourceToAstArtifactForPublicDiagnosticRequest(
+            source_path,
+            DriverSourceMirRequestEmitsJsonDiagnostic(request)
+        );
     DriverRung2PressureStage(observe_pressure, "ast:done");
     DriverRung2PressureStage(observe_pressure, "semantic:start");
     let analysis: SemanticAstArtifactAnalysis =

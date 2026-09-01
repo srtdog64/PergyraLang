@@ -1,7 +1,7 @@
 // Typed public diagnostic receipt owner. Rendered message wording is payload,
 // never the source of semantic identity.
 
-import "../lib/json_emit.pgy";
+import "../lib/public_diagnostic_receipt_owner.pgy";
 import "diagnostic_code_owner.pgy";
 
 struct SemanticPublicDiagnosticReceipt {
@@ -22,7 +22,7 @@ struct SemanticPublicDiagnosticIdentity {
 }
 
 func SemanticPublicDiagnosticReceiptSchema() -> String {
-    return "pgy.selfhost.public-diagnostic.v1";
+    return SelfHostPublicDiagnosticReceiptSchema();
 }
 
 func SemanticPublicDiagnosticIdentityForOwnedCode(
@@ -78,24 +78,22 @@ func SemanticPublicDiagnosticReceiptJson(
     receipt: SemanticPublicDiagnosticReceipt
 ) -> String {
     if !receipt.ready { return ""; }
-    return JsonEmitArray([JsonEmitObject([
-        JsonEmitFieldString("severity", "error"),
-        JsonEmitFieldString("stage", receipt.stage),
-        JsonEmitFieldString("layer", receipt.layer),
-        JsonEmitFieldString("code", receipt.code),
-        JsonEmitFieldString("cause_ir", receipt.cause_ir),
-        JsonEmitFieldString("fix_source", receipt.fix_source),
-        JsonEmitFieldRaw("location", "null"),
-        JsonEmitFieldString("message", receipt.message)
-    ])]);
+    return SelfHostPublicDiagnosticReceiptJsonFromOwnedFacts(
+        receipt.stage, receipt.layer, receipt.code, receipt.cause_ir,
+        receipt.fix_source, receipt.message
+    );
 }
 
 func SemanticPublicDiagnosticReceiptWirePayload(
     receipt: SemanticPublicDiagnosticReceipt
 ) -> String {
-    return Concat(
-        receipt.schema,
-        Concat("\n", SemanticPublicDiagnosticReceiptJson(receipt))
+    if !receipt.ready ||
+        receipt.schema != SelfHostPublicDiagnosticReceiptSchema() {
+        return "";
+    }
+    return SelfHostPublicDiagnosticReceiptWireFromOwnedFacts(
+        receipt.stage, receipt.layer, receipt.code, receipt.cause_ir,
+        receipt.fix_source, receipt.message
     );
 }
 

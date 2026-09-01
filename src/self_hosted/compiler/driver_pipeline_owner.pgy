@@ -55,6 +55,24 @@ func CompileSourceToAstArtifact(source_path: String) -> AstTreeArtifact with cap
     return artifact;
 }
 
+func CompileSourceToAstArtifactForPublicDiagnosticRequest(
+    source_path: String,
+    emit_public_json: Bool
+) -> AstTreeArtifact with caps io_read {
+    if !CompilerDriverPipelineReady() {
+        Die("driver pipeline facts are not ready");
+    }
+    let artifact: AstTreeArtifact =
+        ParseRootProgramArtifactWithDiagnosticProjection(
+            source_path,
+            ParseDiagnosticProjectionFromPublicJsonRequest(emit_public_json)
+        );
+    if !AstTreeArtifactReady(artifact) {
+        Die("parser produced an invalid typed AST artifact");
+    }
+    return artifact;
+}
+
 func CompileAstArtifactToC(
     artifact: AstTreeArtifact
 ) -> CompilerEmissionArtifact {

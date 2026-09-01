@@ -18,6 +18,40 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — parser callable-contract public JSON receipt, local green
+
+- Exact base is `50df573a7effa8b7103a921b0fd52daa6c247edf`; the current
+  implementation is dirty and not yet published. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier:
+  `tests/cases/callable_contract_vocabulary/duplicate_cap/main.pgy`. Before
+  this change, the Pergyra parser owned
+  `callable_contract_duplicate_name`, but public MIR/C/LLVM JSON requests
+  collapsed into the C adapter's malformed-receipt diagnostic.
+- The admitted JSON request now reaches callable-contract reporting through an
+  explicit parser diagnostic projection. Parser code/axis/name retain meaning;
+  one shared Pergyra owner serializes the public wire; C only admits and relays
+  the opaque envelope. Uncovered parser surfaces retain their prior text
+  contract and are not reclassified by this rung.
+- A fresh Pergyra-built DRV-2 passes its source/manifest smoke, the focused
+  parser receipt gate, both existing JSON receipt gates, and the complete
+  installed-driver CLI aggregate from an isolated sibling installation.
+  Component/hard, callable vocabulary, compiler-world, SoT edge, Gate
+  single-owner, protocol, velocity, and bounded documentation contracts pass.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`; `diagnostic.catalog`
+  remains BRIDGE and now records the parser/shared-wire carriers. The project
+  forecast remains 83%.
+- Warning: `routine_build_storage_lifetime_owner.sh` stops on five unrelated
+  body-type leaf-coverage rows before its source-MIR assertion. Full
+  documentation-quality was omitted because it would recursively inspect the
+  protected untracked architecture directory. Neither warning changes this
+  rung's focused executable evidence.
+- Next falsifier is publication: commit the exact reviewed paths, push, and
+  require exact CI to execute the new
+  `[self-host-public-parser-callable-contract-json-diagnostic]` marker together
+  with fixed-point and receipt-bound DRV-2 evidence. Do not infer a successor
+  until that run is observed.
+
 ## Published — optimization-neutral LLVM IR exact-CI green
 
 - Exact base is `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`; implementation

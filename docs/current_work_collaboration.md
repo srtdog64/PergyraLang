@@ -6,6 +6,41 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — parser callable-contract public JSON receipt
+
+- Exact base is `50df573a7effa8b7103a921b0fd52daa6c247edf`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- The fresh production falsifier is
+  `tests/cases/callable_contract_vocabulary/duplicate_cap/main.pgy`. Direct
+  installed parsing already reports parser-owned code
+  `callable_contract_duplicate_name`, but default public MIR and artifact JSON
+  requests collapse it into the C adapter's malformed-receipt diagnostic.
+- The existing JSON request must be carried explicitly into parser reporting.
+  Parser code/axis/name remain the meaning owner; one shared Pergyra public
+  wire renderer owns serialization; C remains an opaque relay.
+- C message parsing, native retry/preflight, a second parse, source rescanning,
+  dual text/JSON emission, CLI/environment inference, mutable global mode, and
+  unrelated parser error conversion are forbidden. Genuine malformed/missing
+  receipt rejection remains required.
+- Exact objective and falsifiers are in
+  `docs/agent_work_directives/parser_callable_contract_public_json_receipt_2026-09-01.md`.
+  SoT remains `88/183`, `55/32/1`, and the project forecast remains 83% until
+  executable and exact-CI evidence says otherwise.
+- Local implementation is green on a fresh Pergyra-built DRV-2. The focused
+  MIR/C/LLVM parser receipt gate, both existing JSON receipt gates, and the
+  installed-driver CLI aggregate pass; direct text is unchanged and C remains
+  an opaque relay. Component/hard, SoT edge, Gate single-owner, protocol,
+  velocity, and bounded documentation contracts pass. Publication and exact
+  CI remain pending.
+- The unrelated lifetime gate currently stops on five pre-existing body-type
+  leaf-coverage rows before reaching its source-MIR assertion. Full
+  documentation-quality was not run because it would scan the protected
+  untracked architecture directory; no protected path was staged.
+- Protected unrelated untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging.
+
 ## DONE lease — optimization-neutral LLVM IR publication
 
 - Exact base is `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`; implementation

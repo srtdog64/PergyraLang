@@ -15,7 +15,8 @@ func ParseNominalDecl(
     exported: Bool,
     within_zone: String,
     inout involve_types: Array<String>,
-    inout expression_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    diagnostic_projection: ParseDiagnosticProjection
 ) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
@@ -126,7 +127,7 @@ func ParseNominalDecl(
                 let m_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
                     "func", "Function: ", false, within_zone,
-                    expression_graphs
+                    expression_graphs, diagnostic_projection
                 );
                 i = cursor_out[0];
                 method_blocks = AppendLine(method_blocks, m_block);
@@ -141,7 +142,7 @@ func ParseNominalDecl(
                 let a_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
                     "action", "Action: ", false, within_zone,
-                    expression_graphs
+                    expression_graphs, diagnostic_projection
                 );
                 i = cursor_out[0];
                 method_blocks = AppendLine(method_blocks, a_block);
