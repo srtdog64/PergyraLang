@@ -1,6 +1,6 @@
 # Call-Argument-Type-Mismatch Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL IMPLEMENTATION GREEN, EXACT CI PENDING
+Status: DONE — PUBLISHED, EXACT CI GREEN
 
 Exact base revision: `69fa9171dd32ea3f35433a5e7d4425e3cee5a7ef`
 
@@ -105,3 +105,17 @@ semantic owner, SoT registry, progress counter, or completion claim.
 - The observed census remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9
   blockers. Implementation volume is 21.21%; neither measure changes the 83%
   project forecast or closes `diagnostic.catalog`.
+
+## Publication evidence
+
+- Implementation `db9d54902e91d35cd1e7ebe53b767726a20d8a4d` is published on
+  `origin/main`. Exact-head CI run `33557751736`, attempt 1, is green 30/30;
+  all twenty backend comparison shards passed.
+- `build-linux` passed in 25m31s and records one execution of the structural
+  component contract plus its removed-path ratchet PASS marker. Full self-host
+  passed in 22m49s and records exactly one 173269-line `gen2 == gen3` fixed
+  point, receipt-bound driver adoption, Pergyra-built DRV-2 installation, and
+  the focused thirteen-context call-argument receipt PASS marker.
+- This directive is DONE and authorizes no successor rung. A new lease requires
+  a fresh production executable falsifier; delegated fuzz work remains
+  read-only and does not own this compiler seam.

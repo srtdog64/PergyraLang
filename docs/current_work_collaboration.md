@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — call-argument-type-mismatch public JSON receipt
+## DONE lease — call-argument-type-mismatch public JSON receipt
 
 - Exact base is `69fa9171dd32ea3f35433a5e7d4425e3cee5a7ef`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -28,8 +28,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   thirteen-context gate, rebaselined return/logical/let/assignment negatives,
   and full installed CLI aggregate pass. Diagnostic, SoT, Gate, protocol,
   inventory, velocity, hard-contract, and progress ratchets pass.
-  Implementation volume is 21.21%; the broad component inventory and exact CI
-  remain pending.
+  Implementation volume is 21.21%.
+- Implementation `db9d54902e91d35cd1e7ebe53b767726a20d8a4d` is on
+  `origin/main`; exact run `33557751736`, attempt 1, is green 30/30 with backend
+  shards 20/20. `build-linux` passed the structural component contract in
+  25m31s. Full self-host passed in 22m49s and records exactly one 173269-line
+  fixed point, receipt-bound adoption, Pergyra-built DRV-2 installation, and
+  the focused call-argument receipt marker.
+- This lease is DONE and authorizes no successor rung. A new lease requires a
+  fresh production executable falsifier; delegated fuzz work remains a
+  read-only audit and owns no source edit.
 
 ## DONE lease — assign-type-mismatch public JSON diagnostic receipt
 

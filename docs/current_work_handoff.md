@@ -18,11 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — call-argument-type-mismatch public JSON receipt local green
+## Published — call-argument-type-mismatch public JSON receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `69fa9171dd32ea3f35433a5e7d4425e3cee5a7ef`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `69fa9171dd32ea3f35433a5e7d4425e3cee5a7ef` and implementation
+  `db9d54902e91d35cd1e7ebe53b767726a20d8a4d` is on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - Fresh production falsifier: all thirteen fixtures reaching the installed
   Pergyra `call_arg_type_mismatch` verdict retain their text facts, but private
   JSON is empty and public MIR JSON stops at the generic malformed-receipt
@@ -45,11 +45,17 @@ percentage by themselves.
   native opt-in, REPL, formatter, and DeviceSlot boundaries.
 - Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
   velocity, hard-contract, and progress ratchets pass. The broad component
-  inventory remains an exact-CI verdict under the 60-second local budget.
+  inventory passed in exact CI under the 60-second local budget.
+- Exact-head CI run `33557751736`, attempt 1, is green 30/30 with backend
+  shards 20/20. `build-linux` passed the structural component contract in
+  25m31s. Full self-host passed in 22m49s and records exactly one 173269-line
+  `gen2 == gen3` fixed point, receipt-bound driver adoption, Pergyra-built
+  DRV-2 installation, and the focused thirteen-context receipt marker.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
   `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.21% and
-  project forecast remains 83%. Next step is diff review, commit/push, and
-  exact CI. The malformed-enum fuzz finding remains separate waiting work.
+  project forecast remains 83%. This rung is published and closed; no
+  successor is inferred without a fresh executable falsifier. The delegated
+  malformed-enum fuzz investigation remains separate read-only work.
 
 ## Published — assign-type-mismatch public JSON receipt exact-CI green
 
