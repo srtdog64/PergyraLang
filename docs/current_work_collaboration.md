@@ -6,6 +6,30 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — optimization-neutral machine-manifest read
+
+- Exact base is `3e536a82caa33f1c6ee4c16fc1c1a9c787a456b0`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner.
+- Production entrypoint is public `--machine-manifest-json --opt=dev`. The
+  immutable installed companion and existing Pergyra verifier already own the
+  release payload; the deletion target is only the C selector's release-profile
+  predicate.
+- Profile carriage, reconstruction, native retry, `--verbose`, physical
+  manifest override, runtime/backend relaxation, and unrelated SoT work are
+  forbidden. Missing and invalid companions must remain fail-closed.
+- Local focused evidence is green: release/public dev/direct/native dev bytes
+  agree across caller working directories; dev missing/invalid/verbose
+  negatives pass; the typed request stays one-path. Component/hard, SoT edge,
+  Gate single-owner, protocol registry, substitution velocity, and document
+  contracts also pass. Exact objective and evidence are in
+  `docs/agent_work_directives/optimization_neutral_machine_manifest_read_2026-09-01.md`.
+- The lease remains active through component/hard/SoT verification,
+  commit/push, and exact CI. SoT remains `88/183`, `55/32/1`; project forecast
+  remains 83%. Protected unrelated untracked
+  `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/` remain
+  outside inspection, edit, and staging.
+
 ## DONE lease — optimization-neutral MIR read outputs
 
 - Exact base is `645d6e42014cc7959416bc5c5aecbe4df3c4d46d`, equal to

@@ -18,6 +18,30 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — optimization-neutral machine manifest local green
+
+- Exact base/current published HEAD is
+  `3e536a82caa33f1c6ee4c16fc1c1a9c787a456b0`; implementation is dirty and not
+  yet published. Protected unrelated untracked paths remain outside inspection,
+  edit, and staging.
+- Production entrypoint is public `--machine-manifest-json --opt=dev`. The
+  deletion target is the release-only predicate in
+  `driver_self_host_machine_manifest_request_supported`; the immutable
+  installed companion, `DriverCliMachineManifestStdout(String)`, and
+  `SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified` remain the
+  owner chain.
+- Local focused evidence is green. Release, public dev from repository and
+  alternate working directories, direct installed, and explicit native dev
+  bytes agree. Missing/invalid companions and dev plus `--verbose` fail without
+  manifest output or native timing. No Pergyra request or machine declaration
+  semantics changed.
+- Exact objective and local evidence are in
+  `docs/agent_work_directives/optimization_neutral_machine_manifest_read_2026-09-01.md`.
+  Component/hard, SoT edge, Gate single-owner, protocol registry, substitution
+  velocity, and documentation contracts pass. Next executable action is one
+  implementation commit/push and exact CI observation. SoT remains `88/183`,
+  `55/32/1`; project forecast remains 83%.
+
 ## Published — optimization-neutral MIR reads exact-CI green
 
 - Exact base is `645d6e42014cc7959416bc5c5aecbe4df3c4d46d` and implementation

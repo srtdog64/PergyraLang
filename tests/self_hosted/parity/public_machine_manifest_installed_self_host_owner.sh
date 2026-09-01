@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
-# Public machine-manifest output is a verified replay of the immutable native
-# companion installed beside the Pergyra-built driver. The native serializer
-# remains reachable only through the explicit --native-pipeline oracle.
-# Registry forbidden-fallback inventory exercised below:
-# public_machine_manifest_native_fallback, public_machine_manifest_reconstruction,
-# missing_companion_native_retry, selfhost_physical_manifest_reconstruction.
+# Profile-neutral verified replay of the installed immutable machine companion.
 
 set -euo pipefail
 
@@ -53,14 +48,19 @@ mkdir -p "$WORK_DIR"
     "$PGY" --machine-manifest-json) \
     >"$WORK_DIR/public.out" 2>"$WORK_DIR/public.err"
 (cd "$WORK_DIR" && unset PGY_SELF_DRIVER_BIN PGY_NATIVE_PIPELINE && \
-    "$PGY" --machine-manifest-json) \
+    "$PGY" --machine-manifest-json --opt=dev) \
     >"$WORK_DIR/public-cwd.out" 2>"$WORK_DIR/public-cwd.err"
-(cd "$ROOT_DIR" && "$PGY" --native-pipeline --machine-manifest-json) \
+(cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN PGY_NATIVE_PIPELINE && \
+    "$PGY" --machine-manifest-json --opt=dev) \
+    >"$WORK_DIR/public-dev.out" 2>"$WORK_DIR/public-dev.err"
+(cd "$ROOT_DIR" && "$PGY" --native-pipeline --machine-manifest-json --opt=dev) \
     >"$WORK_DIR/native.out" 2>"$WORK_DIR/native.err"
 cmp -s "$COMPANION" "$WORK_DIR/direct.out" ||
     fail "installed driver changed the verified companion bytes"
 cmp -s "$WORK_DIR/direct.out" "$WORK_DIR/public.out" ||
     fail "public manifest differs from installed self-host output"
+cmp -s "$WORK_DIR/public.out" "$WORK_DIR/public-dev.out" ||
+    fail "public manifest changed bytes under --opt=dev"
 cmp -s "$WORK_DIR/direct.out" "$WORK_DIR/public-cwd.out" ||
     fail "public manifest depends on the caller working directory"
 cmp -s "$WORK_DIR/direct.out" "$WORK_DIR/native.out" ||
@@ -78,14 +78,14 @@ printf '{}\n' >"$invalid_companion"
 
 set +e
 (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$missing_driver" \
-    PGY_DEBUG_PIPELINE_TIMING=1 "$PGY" --machine-manifest-json) \
+    PGY_DEBUG_PIPELINE_TIMING=1 "$PGY" --machine-manifest-json --opt=dev) \
     >"$WORK_DIR/missing.out" 2>"$WORK_DIR/missing.err"
 missing_rc=$?
 (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$invalid_driver" \
-    PGY_DEBUG_PIPELINE_TIMING=1 "$PGY" --machine-manifest-json) \
+    PGY_DEBUG_PIPELINE_TIMING=1 "$PGY" --machine-manifest-json --opt=dev) \
     >"$WORK_DIR/invalid.out" 2>"$WORK_DIR/invalid.err"
 invalid_rc=$?
-(cd "$ROOT_DIR" && "$PGY" --machine-manifest-json --verbose) \
+(cd "$ROOT_DIR" && "$PGY" --machine-manifest-json --opt=dev --verbose) \
     >"$WORK_DIR/options.out" 2>"$WORK_DIR/options.err"
 options_rc=$?
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-machine-manifest-verified) \
@@ -121,6 +121,13 @@ require_text "$ROOT_DIR/src/compiler/self_host_machine_manifest_artifact_owner.c
     'child_argv[1] = "--emit-machine-manifest-verified";'
 require_text "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" \
     'DriverCliMachineManifestStdout(String)'
+! grep -Fq 'DriverCliMachineManifestStdout(String,' \
+    "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy" ||
+    fail "machine-manifest request gained a second policy input"
+selection_body="$(sed -n '/driver_self_host_machine_manifest_request_supported(/,/^}/p' \
+    "$ROOT_DIR/src/compiler/driver_self_host_selection_owner.c")"
+! grep -Fq 'opt_profile' <<<"$selection_body" ||
+    fail "C admission still assigns optimization semantics to the manifest"
 require_text "$ROOT_DIR/src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
     'SelfHostMachineLayerDeclarationArtifactPayloadFromPathVerified('
 require_text "$ROOT_DIR/src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
