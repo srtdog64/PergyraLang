@@ -1,6 +1,6 @@
 # Compare-Type-Mismatch Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL IMPLEMENTATION GREEN, EXACT CI PENDING
+Status: DONE — IMPLEMENTATION AND EXACT CI GREEN
 
 Exact base revision: `215bcf0274831a1613b6505281485d13182409b5`
 
@@ -103,3 +103,19 @@ semantic owner, SoT registry, progress counter, or completion claim.
 - The observed census remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9
   blockers. Implementation volume is 21.19%; neither measure changes the 83%
   project forecast or closes `diagnostic.catalog`.
+
+## Publication evidence
+
+- Implementation `eace7842fb9549b678140c28335e5a5d3dafd54f` is on
+  `origin/main`. Exact-head CI run `33539097572` is green 30/30, including
+  backend comparison shards 20/20.
+- `build-linux` passed in 25m33s and actually invoked
+  `tests/self_hosted_component_contract_smoke.sh`; the structural source
+  inventory and removed-path ratchets reported PASS.
+- `self-host-bootstrap-linux` passed in 34m42s and records exactly one
+  173254-line `gen2 == gen3` fixed point, exactly one receipt-bound driver
+  adoption, exactly one Pergyra-built DRV-2 installation, and exactly one
+  focused compare-receipt PASS marker.
+- This directive is complete and authorizes no successor rung. A new edit lease
+  requires a fresh production executable falsifier. Read-only fuzz observation
+  remains independent and does not alter this completion claim.

@@ -18,11 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — compare-type-mismatch public JSON receipt local green
+## Published — compare-type-mismatch public JSON receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `215bcf0274831a1613b6505281485d13182409b5`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `215bcf0274831a1613b6505281485d13182409b5` and implementation
+  `eace7842fb9549b678140c28335e5a5d3dafd54f` is on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - Fresh production falsifier: the assign, condition, and operand compare
   fixtures reach the installed Pergyra `compare_type_mismatch` verdict with
   `left: Int` and `right: String`, but private JSON is only a blank line and
@@ -44,11 +44,18 @@ percentage by themselves.
   DeviceSlot boundaries.
 - Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
   velocity, hard-contract, and progress ratchets pass. The broad component
-  inventory remains an exact-CI verdict under the 60-second local budget.
+  inventory remained an exact-CI verdict under the 60-second local budget.
+- Exact-head CI run `33539097572` is green 30/30 with backend shards 20/20.
+  `build-linux` passed the structural component contract in 25m33s. Full
+  self-host passed in 34m42s and records exactly one 173254-line `gen2 == gen3`
+  fixed point, receipt-bound driver adoption, Pergyra-built DRV-2 installation,
+  and focused compare-receipt marker.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
   `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.19% and
-  project forecast remains 83%. Next step is diff review, commit/push, and
-  exact CI. No fuzz repair or second SoT track is active.
+  project forecast remains 83%. This rung is published and closed; no successor
+  is inferred without a fresh executable falsifier. Read-only fuzz observation
+  may proceed independently, but no fuzz repair or second SoT edit track is
+  active.
 
 ## Published — not-operand public JSON receipt exact-CI green
 
