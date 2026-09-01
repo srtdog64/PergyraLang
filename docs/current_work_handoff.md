@@ -18,11 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — return-type mismatch public JSON receipt local green
+## Published — return-type mismatch public JSON receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `02d93d4271f23f58ae3bfac32f37260e8a13a96a`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `02d93d4271f23f58ae3bfac32f37260e8a13a96a` and implementation
+  `b51d3cfc11695895423fecb72fd16524925910f0` is on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - Fresh production falsifier: the installed semantic owner emits
   `return_type_mismatch` in text mode, but its private JSON receipt is empty;
   public MIR/C/LLVM requests consequently stop at generic malformed/missing
@@ -44,11 +44,16 @@ percentage by themselves.
 - Diagnostic registry, SoT edge, Gate single-owner, protocol registry,
   substitution velocity, build-source inventory, and hard self-host contract
   are green. The broad component inventory exceeded its 60-second local budget
-  and was stopped without a verdict; exact CI is the remaining integration
-  observation.
+  and was stopped without a local verdict; exact CI later passed its structural
+  component contract.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
-  `diagnostic.catalog` remains `BRIDGE`; project forecast remains 83%. Next step
-  is commit/push followed by exact-head CI, not another successor rung.
+  `diagnostic.catalog` remains `BRIDGE`; project forecast remains 83%.
+- Exact run `33511109765` is green 30/30 with backend shards 20/20.
+  `build-linux` took 26m01s and full self-host took 24m37s. The self-host log
+  records exactly one each of `gen2 == gen3 (173234 lines)`, receipt-bound
+  fixed-point adoption, Pergyra-built DRV-2 installation, and the focused
+  return-type marker. This publication falsifier is closed; do not infer a
+  successor without a fresh production executable falsifier.
 
 ## Published — tokens public JSON diagnostic receipt exact-CI green
 

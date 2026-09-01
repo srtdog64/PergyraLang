@@ -1,6 +1,6 @@
 # Return-Type Mismatch Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL IMPLEMENTATION GREEN, EXACT CI PENDING
+Status: DONE — EXACT CI GREEN
 
 Exact base revision: `02d93d4271f23f58ae3bfac32f37260e8a13a96a`
 
@@ -107,3 +107,15 @@ inspection, edit, and staging: `docs/compiler_architectures/`,
 - The observed census remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9
   blockers. This executable delta does not by itself close
   `diagnostic.catalog` or change the 83% project forecast.
+
+## Publication evidence
+
+- Implementation `b51d3cfc11695895423fecb72fd16524925910f0` is published on
+  `origin/main`. Exact run `33511109765` is green 30/30 with all 20 backend
+  comparison shards green.
+- `build-linux` took 26m01s and passed the structural component contract. Full
+  self-host took 24m37s and records exactly one each of
+  `gen2 == gen3 (173234 lines)`, receipt-bound fixed-point adoption,
+  Pergyra-built DRV-2 installation, and the focused return-type marker.
+- This directive is closed coordination history. It owns no successor rung and
+  does not close the `diagnostic.catalog` registry row.
