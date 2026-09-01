@@ -12,7 +12,8 @@
 int
 driver_publish_self_host_llvm_ir_file(const char *launcher_path,
                                       const char *source_path,
-                                      const char *output_path)
+                                      const char *output_path,
+                                      bool emit_json_diagnostic)
 {
     CompilerTransientArtifactWorkspace workspace;
     char *output_directory;
@@ -51,7 +52,8 @@ driver_publish_self_host_llvm_ir_file(const char *launcher_path,
     free(output_directory);
 
     rc = driver_materialize_self_host_llvm_artifact(
-        launcher_path, source_path, workspace.secondary_path, false, false);
+        launcher_path, source_path, workspace.secondary_path, false,
+        emit_json_diagnostic);
     if (rc == 0 && rename(workspace.secondary_path, output_path) != 0) {
         fprintf(stderr, "pgy: could not publish the self-host LLVM IR artifact\n");
         rc = 1;

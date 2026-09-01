@@ -6,6 +6,37 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — LLVM IR public JSON diagnostic receipt
+
+- Exact base is `f6c4f2a04202b4f6be49f5f7991a9f090a26d9d2`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Local implementation and negatives are green. A fresh isolated launcher and
+  Pergyra-built DRV-2 pass valid text/JSON release/dev LLVM byte parity, exact
+  invalid stdout/file JSON relay, missing/malformed/crosswired fail-closed
+  cases, the complete installed CLI aggregate, and component/hard/SoT/Gate/
+  protocol/velocity ratchets. Exact CI is still pending; this lease remains
+  ACTIVE and no successor rung is authorized.
+- Public stdout/file `--emit-llvm --error-format=json` requests currently stop
+  at the C adapter's text-only contract predicate. The existing Pergyra
+  `DriverCliSourceLlvmArtifact(..., Bool)` request already accepts JSON mode,
+  and a fresh DRV-2 publishes the exact parser-owned public receipt for the
+  reached duplicate callable-contract failure.
+- The deletion target is only the LLVM IR selector's text-only predicate and
+  the wrappers' hard-coded false JSON carriage. Parser/semantic facts retain
+  meaning; the shared Pergyra renderer owns the wire; C remains an opaque relay
+  and stdout/file publisher.
+- C message parsing, native retry/preflight, duplicate compilation, partial
+  publication, runtime/verbose/debug relaxation, final-binary behavior changes,
+  and a new Pergyra request variant are forbidden. Exact objective and
+  falsifiers are in
+  `docs/agent_work_directives/llvm_ir_public_json_diagnostic_receipt_2026-09-01.md`.
+- SoT remains `88/183`, `55/32/1`, with 9 blockers; the project forecast
+  remains 83% until executable and exact-CI evidence proves otherwise.
+- Protected unrelated untracked `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
+  staging.
+
 ## DONE lease — parser callable-contract public JSON receipt
 
 - Exact base is `50df573a7effa8b7103a921b0fd52daa6c247edf`, equal to

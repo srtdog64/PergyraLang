@@ -18,6 +18,41 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — LLVM IR public JSON diagnostic receipt local green
+
+- Exact base and current published HEAD are
+  `f6c4f2a04202b4f6be49f5f7991a9f090a26d9d2`. The implementation is locally
+  dirty and not yet publication evidence. Protected unrelated untracked paths
+  remain outside inspection, edit, and staging.
+- Fresh production falsifier: public stdout/file
+  `SOURCE --emit-llvm --error-format=json` stopped at the C adapter's text-only
+  predicate even though the current Pergyra DRV-2 already owns the typed
+  `DriverCliSourceLlvmArtifact(..., Bool)` request and exact parser diagnostic
+  receipt.
+- The reached selector now admits JSON without relaxing runtime, verbose,
+  debug-line, final-binary, or explicit-native contracts. Stdout/file wrappers
+  carry the admitted Bool into the existing Pergyra LLVM intent. Parser and
+  semantic owners retain diagnostic meaning; C validates and relays only the
+  opaque receipt and publishes the artifact.
+- A warning-clean launcher and fresh isolated Pergyra-built DRV-2 pass valid
+  text/JSON release/dev stdout/file LLVM byte parity, exact parser-owned JSON
+  rejection on stderr only, missing/malformed/absent/crosswired fail-closed
+  cases, the existing LLVM and JSON receipt gates, and the complete installed
+  CLI aggregate with exactly one new focused marker.
+- Component/hard, SoT edge, Gate single-owner, protocol, velocity,
+  agent-boundary, object/action, and post-self-host manifest contracts pass.
+  The component contract took about 13.5 minutes and exceeds its 60-second
+  static budget; do not infer a cache or general query engine from that timing.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers. This
+  is an executable consumer migration within `diagnostic.catalog`, not a row
+  closure. Project forecast remains 83%.
+- Next executable step is only: commit and push the bounded implementation,
+  observe exact CI including fixed point, receipt-bound DRV-2 installation, and
+  exactly one focused marker, then publish the result. Do not infer a successor
+  from the attached 2026-09-01 architecture review; its resource calculus,
+  working-set, typing, concurrency, and sandbox recommendations remain future
+  candidates until this rung closes and a fresh production falsifier is named.
+
 ## Published — parser callable-contract public JSON receipt exact-CI green
 
 - Exact base is `50df573a7effa8b7103a921b0fd52daa6c247edf`; implementation

@@ -30,7 +30,8 @@ driver_self_host_llvm_ir_request_supported(const DriverFlags *flags)
         && !flags->test_native_mir_json_oracle
         && !flags->dump_hir && !flags->check_only
         && !flags->verbose && !flags->repl && !flags->emit_debug_lines
-        && flags->diag_format == DIAG_FORMAT_TEXT
+        && (flags->diag_format == DIAG_FORMAT_TEXT
+            || flags->diag_format == DIAG_FORMAT_JSON)
         && flags->runtime_mode == RUNTIME_DEFAULT
         && flags->machine_layer_physical_manifest == NULL;
 }

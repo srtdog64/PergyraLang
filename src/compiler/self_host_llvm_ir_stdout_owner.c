@@ -44,7 +44,8 @@ driver_stream_llvm_ir_file_to_stdout(const char *path)
 
 int
 driver_write_self_host_llvm_ir_stdout(const char *launcher_path,
-                                      const char *source_path)
+                                      const char *source_path,
+                                      bool emit_json_diagnostic)
 {
     CompilerTransientArtifactWorkspace workspace;
     int rc;
@@ -60,7 +61,8 @@ driver_write_self_host_llvm_ir_stdout(const char *launcher_path,
         return 1;
     }
     rc = driver_materialize_self_host_llvm_artifact(
-        launcher_path, source_path, workspace.secondary_path, false, false);
+        launcher_path, source_path, workspace.secondary_path, false,
+        emit_json_diagnostic);
     if (rc == 0)
         rc = driver_stream_llvm_ir_file_to_stdout(workspace.secondary_path);
     compiler_transient_artifact_workspace_close(&workspace);

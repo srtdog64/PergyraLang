@@ -297,16 +297,16 @@ main(int argc, char *argv[])
                         "pgy: --emit-llvm file options are outside the installed self-host driver contract\n");
                 return 1;
             }
-            return driver_publish_self_host_llvm_ir_file(
-                argv[0], flags.source_path, flags.output_path);
+            return driver_publish_self_host_llvm_ir_file(argv[0],
+                flags.source_path, flags.output_path, flags.diag_format == DIAG_FORMAT_JSON);
         }
         if (!driver_self_host_llvm_ir_stdout_request_supported(&flags)) {
             fprintf(stderr,
                     "pgy: --emit-llvm stdout options are outside the installed self-host driver contract\n");
             return 1;
         }
-        return driver_write_self_host_llvm_ir_stdout(
-            argv[0], flags.source_path);
+        return driver_write_self_host_llvm_ir_stdout(argv[0], flags.source_path,
+            flags.diag_format == DIAG_FORMAT_JSON);
     }
     if (flags.emit_c_only) {
         if (flags.do_run

@@ -4148,6 +4148,11 @@ self-host-llvm-ir-opt-profile-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_llvm_ir_opt_profile_owner.sh
 
+.PHONY: self-host-public-llvm-ir-json-diagnostic-receipt-test-smoke
+self-host-public-llvm-ir-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/public_llvm_ir_json_diagnostic_receipt_owner.sh
+
 self-host-public-llvm-ir-replacement-test-smoke: self-host-public-mir-json-replacement-test-smoke self-host-llvm-ir-opt-profile-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_llvm_ir_installed_self_host_owner.sh
