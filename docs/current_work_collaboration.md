@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — assign-type-mismatch public JSON diagnostic receipt
+## DONE lease — assign-type-mismatch public JSON diagnostic receipt
 
 - Exact base is `c1ebd599519b43c9298b5ed7d1d7479db9f67e76`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -29,6 +29,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   CLI aggregate pass. Diagnostic, SoT, Gate, protocol, inventory, velocity,
   hard-contract, and progress ratchets pass. Implementation volume is 21.20%;
   the broad component inventory and exact CI remain pending.
+- Implementation `c6e940de9b430de907accb507324d894e3fb97f7` is on
+  `origin/main`; exact run `33551646367`, attempt 2, is green 30/30 with backend
+  shards 20/20. Attempt 1's sole failure was a Microsoft apt-repository 403
+  before shard 7 reached the compiler; rerunning that failed job passed
+  dependency setup and backend comparison 46/46.
+- `build-linux` passed the structural component contract in 25m34s. Full
+  self-host passed in 35m21s and records exactly one 173264-line fixed point,
+  receipt-bound adoption, Pergyra-built DRV-2 installation, and focused
+  assignment-receipt marker.
+- This lease is DONE and authorizes no successor rung. A new lease requires a
+  fresh production executable falsifier.
 
 ## DONE lease — let-type-mismatch public JSON diagnostic receipt
 

@@ -1,6 +1,6 @@
 # Assign-Type-Mismatch Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL IMPLEMENTATION GREEN, EXACT CI PENDING
+Status: DONE — IMPLEMENTATION AND EXACT CI GREEN
 
 Exact base revision: `c1ebd599519b43c9298b5ed7d1d7479db9f67e76`
 
@@ -100,3 +100,23 @@ semantic owner, SoT registry, progress counter, or completion claim.
 - The observed census remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9
   blockers. Implementation volume is 21.20%; neither measure changes the 83%
   project forecast or closes `diagnostic.catalog`.
+
+## Publication evidence
+
+- Implementation `c6e940de9b430de907accb507324d894e3fb97f7` is on
+  `origin/main`. Exact-head CI run `33551646367`, attempt 2, is green 30/30
+  with backend comparison shards 20/20.
+- Attempt 1 had one provisioning-only failure: backend shard 7 received HTTP
+  403 from two preinstalled Microsoft apt repositories before downloading the
+  compiler pair. The failed job alone was rerun; dependency installation,
+  compiler-pair admission, and its 46/46 backend comparison then passed.
+- `build-linux` passed in 25m34s and actually invoked
+  `tests/self_hosted_component_contract_smoke.sh`; the structural source
+  inventory and removed-path ratchets reported PASS.
+- `self-host-bootstrap-linux` passed in 35m21s and records exactly one
+  173264-line `gen2 == gen3` fixed point, exactly one receipt-bound driver
+  adoption, exactly one Pergyra-built DRV-2 installation, and exactly one
+  focused assignment-receipt PASS marker.
+- This directive is complete and authorizes no successor rung. A new edit lease
+  requires a fresh production executable falsifier. The malformed-enum fuzz
+  finding remains separate waiting work.
