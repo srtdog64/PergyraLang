@@ -29,6 +29,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   remains 83%. Protected unrelated untracked
   `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/` remain
   outside inspection, edit, and staging.
+- Implementation `e84d1ca6bf50841739b6c83743e5c5a09d72a64d` exact run
+  `33459018691` is green 30/30, but its full log did not execute the focused
+  machine-manifest gate. The lease therefore remains active while the installed
+  CLI aggregate is wired to that gate and a repair exact run is observed.
 
 ## DONE lease — optimization-neutral MIR read outputs
 

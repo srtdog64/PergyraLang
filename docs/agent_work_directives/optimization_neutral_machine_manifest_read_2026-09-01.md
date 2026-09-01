@@ -82,3 +82,8 @@ is claimed until the installed-owner gate passes. SoT remains `88/183`,
   velocity, and documentation quality pass with `88/183`, `55/32/1`, ten
   protocol rows, and nine bounded blockers. No registry or project percentage
   change is claimed locally.
+- Implementation `e84d1ca6bf50841739b6c83743e5c5a09d72a64d` exact run
+  `33459018691` is green 30/30, but full-log inspection found no execution of
+  the focused machine-manifest owner gate. This is not publication evidence.
+  The installed CLI aggregate must explicitly depend on that gate and a repair
+  exact run must show its PASS line before this rung can close.

@@ -41,6 +41,11 @@ percentage by themselves.
   velocity, and documentation contracts pass. Next executable action is one
   implementation commit/push and exact CI observation. SoT remains `88/183`,
   `55/32/1`; project forecast remains 83%.
+- Implementation `e84d1ca6bf50841739b6c83743e5c5a09d72a64d` exact run
+  `33459018691` is green 30/30, but full-log inspection found no focused
+  machine-manifest gate execution. Do not publish from that green run. Wire the
+  gate into installed CLI aggregation and require its PASS line in a repair
+  exact run.
 
 ## Published — optimization-neutral MIR reads exact-CI green
 
