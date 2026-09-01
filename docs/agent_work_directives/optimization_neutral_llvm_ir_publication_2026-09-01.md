@@ -1,6 +1,6 @@
 # Optimization-neutral LLVM IR publication
 
-Status: LOCAL IMPLEMENTATION COMPLETE
+Status: IMPLEMENTATION COMPLETE
 
 Exact base: `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`
 
@@ -102,5 +102,20 @@ registry change is claimed before the new profile gate passes. SoT remains
   build. Running the same aggregate locally succeeds and emits
   `[self-host-llvm-ir-opt] dev file/stdout publication is installed and
   profile-neutral`. Component, hard-substitution, SoT-edge, velocity, and
-  documentation ratchets pass after the repair. It still requires commit/push
-  and a second exact CI log observation.
+  documentation ratchets pass after the repair. The publication evidence below
+  closes the remaining commit/push and exact-CI obligations.
+
+## Publication evidence
+
+- Implementation `5af5261cf39de239ebb932c1bffc200c152572fa` and exact-CI
+  integration repair `bd13e1c1a47a2f334e64e20babfdf6108a272def` are on
+  `origin/main`.
+- Exact run `33468852139` is green 30/30. `build-linux` completed in 25m04s;
+  `self-host-bootstrap-linux` completed in 33m42s. The latter log contains the
+  required `[self-host-llvm-ir-opt] dev file/stdout publication is installed
+  and profile-neutral` marker exactly once.
+- The same exact log proves `gen2 == gen3 (173074 lines)`, adoption of the
+  receipt-bound fixed-point driver, Pergyra-built DRV-2 installation, and the
+  preceding machine-manifest/source-inspection/MIR profile gates. The final
+  inventory remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%.

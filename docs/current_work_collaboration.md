@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — optimization-neutral LLVM IR publication
+## DONE lease — optimization-neutral LLVM IR publication
 
 - Exact base is `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`; implementation
   `5af5261cf39de239ebb932c1bffc200c152572fa` is on `origin/main`. The primary
@@ -25,15 +25,20 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   one installed intent per form, executable output, missing/verbose negatives,
   and final binary profile sensitivity all hold. Component, hard-substitution,
   SoT-edge, velocity, and documentation gates are also green; the inventory is
-  unchanged at `88/183`, `55/32/1`, with 9 blockers. The lease remains active
-  through the integration repair, commit/push, and exact CI.
+  unchanged at `88/183`, `55/32/1`, with 9 blockers.
 - Exact run `33465080162` was green 30/30 and proved the fixed point and
   receipt-bound DRV-2 installation, but did not execute the new LLVM profile
   gate. It is explicitly not publication evidence. The local repair connects
   that gate to the existing installed-CLI CI aggregate; the aggregate now
   passes locally with the required `[self-host-llvm-ir-opt]` marker. Component,
   hard-substitution, SoT-edge, velocity, and documentation ratchets also pass;
-  the repair awaits commit/push plus a second exact run.
+  the repair was published as
+  `bd13e1c1a47a2f334e64e20babfdf6108a272def`.
+- Exact run `33468852139` is green 30/30. Its self-host log proves
+  `gen2 == gen3 (173074 lines)`, receipt-bound DRV-2 installation, and exactly
+  one `[self-host-llvm-ir-opt]` marker. `build-linux` took 25m04s and
+  `self-host-bootstrap-linux` took 33m42s. The lease is closed without a SoT or
+  project-percentage change.
 - Protected unrelated untracked `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
   staging.

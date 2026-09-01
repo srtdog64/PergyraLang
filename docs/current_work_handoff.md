@@ -18,12 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — optimization-neutral LLVM IR publication
+## Published — optimization-neutral LLVM IR exact-CI green
 
 - Exact base is `24dfa5e82ea0dc308d6d54fdd62cbbae8974272d`; implementation
-  `5af5261cf39de239ebb932c1bffc200c152572fa` is the current published HEAD.
-  The integration repair is local. Protected unrelated untracked paths remain
-  outside inspection, edit, and staging.
+  `5af5261cf39de239ebb932c1bffc200c152572fa` and exact-CI integration repair
+  `bd13e1c1a47a2f334e64e20babfdf6108a272def` are on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - The opening public stdout/file `--emit-llvm --opt=dev` requests failed at the
   common C release-only selector. That predicate is removed. Explicit native
   release/dev LLVM IR is byte-equal, while installed release/dev file/stdout
@@ -38,19 +38,24 @@ percentage by themselves.
   the opening negatives.
 - Exact objective and gate are in
   `docs/agent_work_directives/optimization_neutral_llvm_ir_publication_2026-09-01.md`.
-  The smallest C admission deletion is locally implemented. The new focused
-  gate and both existing LLVM file/stdout owner gates pass; dev uses one
-  installed intent per form, executes exact `7/11/5`, and fails closed on
-  missing/verbose requests. Component, hard-substitution, SoT-edge, velocity,
-  and documentation gates also pass. Exact run `33465080162` was green 30/30,
-  with `gen2 == gen3 (173074 lines)` and receipt-bound DRV-2 installation, but
-  did not execute the new LLVM profile gate and is not publication evidence.
+  The smallest C admission deletion is published. The new focused gate and
+  both existing LLVM file/stdout owner gates pass; dev uses one installed
+  intent per form, executes exact `7/11/5`, and fails closed on missing/verbose
+  requests. Component, hard-substitution, SoT-edge, velocity, and documentation
+  gates also pass. Exact run `33465080162` was green 30/30, with
+  `gen2 == gen3 (173074 lines)` and receipt-bound DRV-2 installation, but did
+  not execute the new LLVM profile gate and is not publication evidence.
 - The local repair adds the gate to the existing
   `self-host-installed-driver-cli-mode-test-smoke` exact-CI entrypoint. That
   aggregate passes locally with the required `[self-host-llvm-ir-opt]` marker;
   component, hard-substitution, SoT-edge, velocity, and documentation ratchets
-  also pass. Next action is commit/push and a second exact CI log check. SoT
-  remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains 83%.
+  also pass.
+- Exact run `33468852139` is green 30/30. `build-linux` took 25m04s and
+  `self-host-bootstrap-linux` took 33m42s. The self-host log contains exactly
+  one `[self-host-llvm-ir-opt]` marker plus `gen2 == gen3 (173074 lines)`,
+  receipt-bound fixed-point adoption, and Pergyra-built DRV-2 installation.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%. No successor rung is inferred from this completed evidence.
 
 ## Published — optimization-neutral machine manifest exact-CI green
 
