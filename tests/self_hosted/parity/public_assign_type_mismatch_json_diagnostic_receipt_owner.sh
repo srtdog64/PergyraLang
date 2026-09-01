@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One Pergyra-owned return-type verdict publishes the same exact JSON receipt
-# through public MIR, C, and LLVM requests. Other mismatch codes stay closed.
+# One Pergyra-owned assignment verdict publishes its exact assignability
+# identity through installed MIR, C, and LLVM requests.
 
 set -euo pipefail
 
@@ -10,9 +10,11 @@ pgy_prepend_windows_runtime_paths
 
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 SELF_DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-WORK_REL=".tmp/self_hosted/public_return_type_mismatch_json_diagnostic"
+WORK_REL=".tmp/self_hosted/public_assign_type_mismatch_json_diagnostic"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
-RETURN_REL="src/self_hosted/semantic/fixture/bad_return_type.pgy"
+ASSIGN_REL="src/self_hosted/semantic/fixture/bad_assign_type.pgy"
+EXPECTED="$ROOT_DIR/src/self_hosted/semantic/expected/bad_assign_type.diag"
+LET_REL="src/self_hosted/semantic/fixture/bad_let_type.pgy"
 UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_user_arg.pgy"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
 DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
@@ -21,7 +23,7 @@ PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 
 fail() {
-    echo "[self-host-public-return-type-mismatch-json-diagnostic] $*" >&2
+    echo "[self-host-public-assign-type-mismatch-json-diagnostic] $*" >&2
     exit 1
 }
 
@@ -36,23 +38,24 @@ rm -f "$WORK_DIR"/*
 
 set +e
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-diagnostic-verified \
-    "$RETURN_REL") >"$WORK_DIR/direct-text.out" 2>"$WORK_DIR/direct-text.err"
-direct_text_rc=$?
+    "$ASSIGN_REL") >"$WORK_DIR/assign.text.out" 2>"$WORK_DIR/assign.text.err"
+text_rc=$?
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-diagnostic-verified \
-    "$RETURN_REL") >"$WORK_DIR/direct-json.out" 2>"$WORK_DIR/direct-json.err"
-direct_json_rc=$?
+    "$ASSIGN_REL") >"$WORK_DIR/assign.json.out" 2>"$WORK_DIR/assign.json.err"
+json_rc=$?
 set -e
-[[ "$direct_text_rc" -ne 0 ]] || fail "direct text verdict unexpectedly succeeded"
-for fact in 'Code: return_type_mismatch' 'expected: Float' 'actual: Double'; do
-    grep -Fq -- "$fact" "$WORK_DIR/direct-text.out" \
-        "$WORK_DIR/direct-text.err" || fail "direct text verdict lost: $fact"
-done
-[[ "$direct_json_rc" -ne 0 && ! -s "$WORK_DIR/direct-json.err" ]] ||
-    fail "direct JSON verdict changed its private channel contract"
-grep -Fxq 'pgy.selfhost.public-diagnostic.v1' "$WORK_DIR/direct-json.out" ||
-    fail "direct JSON verdict lost its wire marker"
-tail -n +2 "$WORK_DIR/direct-json.out" >"$WORK_DIR/expected.json"
-[[ -s "$WORK_DIR/expected.json" ]] || fail "direct JSON receipt is empty"
+[[ "$text_rc" -ne 0 && ! -s "$WORK_DIR/assign.text.err" ]] ||
+    fail "assignment verdict changed its direct text channels"
+expected_text="$(tr -d '\r' < "$EXPECTED")"
+actual_text="$(tr -d '\r' < "$WORK_DIR/assign.text.out")"
+[[ "$actual_text" == "$expected_text" ]] ||
+    fail "assignment verdict changed its text code or expected/actual facts"
+[[ "$json_rc" -ne 0 && ! -s "$WORK_DIR/assign.json.err" ]] ||
+    fail "assignment verdict changed its private JSON channels"
+grep -Fxq 'pgy.selfhost.public-diagnostic.v1' \
+    "$WORK_DIR/assign.json.out" || fail "assignment verdict lost its wire marker"
+tail -n +2 "$WORK_DIR/assign.json.out" >"$WORK_DIR/expected.json"
+[[ -s "$WORK_DIR/expected.json" ]] || fail "assignment JSON receipt is empty"
 for fact in \
     '"severity":"error"' \
     '"stage":"semantic"' \
@@ -85,24 +88,35 @@ run_public_failure() {
         fail "$label retried the native pipeline"
 }
 
-run_public_failure mir "" --mir --error-format=json "$RETURN_REL"
+run_public_failure mir "" --mir --error-format=json "$ASSIGN_REL"
 run_public_failure c "$WORK_REL/invalid-c.bin" \
-    --error-format=json --backend=c "$RETURN_REL" \
+    --error-format=json --backend=c "$ASSIGN_REL" \
     -o "$WORK_REL/invalid-c.bin"
 run_public_failure llvm "$WORK_REL/invalid-llvm.bin" \
-    --error-format=json --backend=llvm "$RETURN_REL" \
+    --error-format=json --backend=llvm "$ASSIGN_REL" \
     -o "$WORK_REL/invalid-llvm.bin"
 
 set +e
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-diagnostic-verified \
+    "$LET_REL") >"$WORK_DIR/let.out" 2>"$WORK_DIR/let.err"
+let_rc=$?
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-diagnostic-verified \
     "$UNADMITTED_REL") >"$WORK_DIR/unadmitted.out" \
     2>"$WORK_DIR/unadmitted.err"
 unadmitted_rc=$?
 set -e
+[[ "$let_rc" -ne 0 && ! -s "$WORK_DIR/let.err" ]] ||
+    fail "shared-identity let verdict changed its private channels"
+for fact in \
+    '"code":"PGY_SEM_TYPE_MISMATCH"' \
+    '"cause_ir":"semantic:assignability_check"' \
+    '"fix_source":"annotate-or-convert"'; do
+    require_text "$WORK_DIR/let.out" "$fact"
+done
 [[ "$unadmitted_rc" -ne 0 && ! -s "$WORK_DIR/unadmitted.err" ]] ||
-    fail "unrelated semantic mismatch changed its failure channels"
+    fail "unadmitted call-argument verdict changed its private channels"
 ! grep -q '[^[:space:]]' "$WORK_DIR/unadmitted.out" ||
-    fail "unrelated semantic mismatch gained a public identity"
+    fail "unadmitted call-argument verdict gained assignment admission"
 
 probe_bin="$WORK_DIR/message-independence-probe"
 [[ "$PGY" == *.exe ]] && probe_bin="$probe_bin.exe"
@@ -113,14 +127,15 @@ probe_bin="$WORK_DIR/message-independence-probe"
 "$probe_bin" >"$WORK_DIR/probe.out" 2>"$WORK_DIR/probe.err" ||
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
-    fail "message wording changed return-type diagnostic identity"
+    fail "message wording changed assignment diagnostic identity"
 
-require_text "$DIAGNOSTIC_OWNER" 'if code == "return_type_mismatch" {'
+require_text "$DIAGNOSTIC_OWNER" 'if code == "assign_type_mismatch" {'
 require_text "$DIAGNOSTIC_OWNER" '"semantic:assignability_check"'
 require_text "$DIAGNOSTIC_OWNER" '"annotate-or-convert"'
-require_text "$CONTRACT_OWNER" 'return_first.message != return_second.message'
+require_text "$CONTRACT_OWNER" \
+    'assign_first.message != assign_second.message'
 ! grep -Eq 'PGY_SEM_TYPE_MISMATCH|semantic:assignability_check|annotate-or-convert' \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic return-type authority"
+    fail "C transport gained semantic assignment authority"
 
-echo "[self-host-public-return-type-mismatch-json-diagnostic] exact semantic identity, MIR/C/LLVM relay, and unrelated-code exclusion: PASS"
+echo "[self-host-public-assign-type-mismatch-json-diagnostic] exact assignability identity, MIR/C/LLVM relay, and call-argument exclusion: PASS"

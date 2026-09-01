@@ -50,6 +50,14 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "let_type_mismatch", "second let wording"
         );
+    let assign_first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "assign_type_mismatch", "first assign wording"
+        );
+    let assign_second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "assign_type_mismatch", "second assign wording"
+        );
     let logical_first: SemanticPublicDiagnosticReceipt =
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "logical_operand_not_bool", "first logical wording"
@@ -95,6 +103,10 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             let_second, "let_type_mismatch"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
+            assign_first, "assign_type_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            assign_second, "assign_type_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
             logical_first, "logical_operand_not_bool"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             logical_second, "logical_operand_not_bool"
@@ -129,6 +141,13 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         let_first.cause_ir == let_second.cause_ir &&
         let_first.fix_source == let_second.fix_source &&
         let_first.message != let_second.message &&
+        assign_first.schema == assign_second.schema &&
+        assign_first.stage == assign_second.stage &&
+        assign_first.layer == assign_second.layer &&
+        assign_first.code == assign_second.code &&
+        assign_first.cause_ir == assign_second.cause_ir &&
+        assign_first.fix_source == assign_second.fix_source &&
+        assign_first.message != assign_second.message &&
         logical_first.schema == logical_second.schema &&
         logical_first.stage == logical_second.stage &&
         logical_first.layer == logical_second.layer &&

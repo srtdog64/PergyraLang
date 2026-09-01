@@ -6,6 +6,30 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — assign-type-mismatch public JSON diagnostic receipt
+
+- Exact base is `c1ebd599519b43c9298b5ed7d1d7479db9f67e76`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves `assign_type_mismatch` retains its
+  Pergyra text code and expected/actual facts while private JSON is empty and
+  public MIR JSON reaches only the generic malformed-receipt boundary. Explicit
+  native JSON fixes one assignability code/cause/fix identity.
+- The deletion target is exact admission of `assign_type_mismatch` and reuse of
+  existing wire/process owners. Grouping by shared public identity,
+  co-admitting `call_arg_type_mismatch`, C mapping, native retry, message
+  parsing, another semantic pass, location invention, fact loss, and text-code
+  changes are forbidden.
+- Exact objective and exclusions are in
+  `docs/agent_work_directives/assign_type_mismatch_public_json_diagnostic_receipt_2026-09-02.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+- Local implementation is green on a fresh Pergyra-built DRV-2. The focused
+  assignment gate, rebaselined return/logical/let negatives, and full installed
+  CLI aggregate pass. Diagnostic, SoT, Gate, protocol, inventory, velocity,
+  hard-contract, and progress ratchets pass. Implementation volume is 21.20%;
+  the broad component inventory and exact CI remain pending.
+
 ## DONE lease — let-type-mismatch public JSON diagnostic receipt
 
 - Exact base is `a7e99d5c2eced2a16b5d2cd3095296ae87401781`, equal to
