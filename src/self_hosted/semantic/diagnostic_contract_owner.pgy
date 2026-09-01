@@ -34,15 +34,34 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "undefined_function", "second wording"
         );
+    let return_first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "return_type_mismatch", "first return wording"
+        );
+    let return_second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "return_type_mismatch", "second return wording"
+        );
     return SemanticPublicDiagnosticReceiptReadyFor(
             first, "undefined_function"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             second, "undefined_function"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            return_first, "return_type_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            return_second, "return_type_mismatch"
         ) && first.schema == second.schema &&
         first.stage == second.stage && first.layer == second.layer &&
         first.code == second.code && first.cause_ir == second.cause_ir &&
         first.fix_source == second.fix_source &&
-        first.message != second.message;
+        first.message != second.message &&
+        return_first.schema == return_second.schema &&
+        return_first.stage == return_second.stage &&
+        return_first.layer == return_second.layer &&
+        return_first.code == return_second.code &&
+        return_first.cause_ir == return_second.cause_ir &&
+        return_first.fix_source == return_second.fix_source &&
+        return_first.message != return_second.message;
 }
 
 func SemanticVerdictPayloadContractReady() -> Bool {

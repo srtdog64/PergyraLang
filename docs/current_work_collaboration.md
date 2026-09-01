@@ -6,6 +6,30 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — return-type mismatch public JSON diagnostic receipt
+
+- Exact base is `02d93d4271f23f58ae3bfac32f37260e8a13a96a`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves the installed Pergyra semantic owner
+  emits `return_type_mismatch` in text mode, but direct private JSON is empty
+  and public MIR/C/LLVM JSON stops at generic malformed/missing receipt errors.
+  Explicit native observation agrees on code, stage/layer, cause, and fix.
+- The deletion target is one exact semantic public identity and reuse of the
+  existing wire/process owners. C mapping, native retry, message parsing,
+  another semantic pass, broad grouping of other type-mismatch codes, location
+  invention, and text wording changes are forbidden.
+- Exact objective and falsifiers are in
+  `docs/agent_work_directives/return_type_mismatch_public_json_diagnostic_receipt_2026-09-01.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+- Local implementation is green on a fresh Pergyra-built DRV-2: the focused
+  exact MIR/C/LLVM receipt and unrelated-code exclusion gate passes, as do the
+  existing semantic/parser/lexer diagnostic gates and the full installed CLI
+  aggregate. Diagnostic, SoT, Gate, protocol, velocity, build inventory, and
+  hard-contract ratchets pass. The component inventory exceeded its 60-second
+  local budget without a verdict; commit/push and exact CI remain pending.
+
 ## DONE lease — tokens public JSON diagnostic receipt
 
 - Exact base is `cb65af9afda1af9533efefab2d1446e60462af41`, equal to

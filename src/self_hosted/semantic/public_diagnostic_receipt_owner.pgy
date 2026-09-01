@@ -35,6 +35,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "import-or-declare-symbol"
         );
     }
+    if code == "return_type_mismatch" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:assignability_check",
+            "annotate-or-convert"
+        );
+    }
     return SemanticPublicDiagnosticIdentity(false, "", "");
 }
 

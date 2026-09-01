@@ -18,6 +18,38 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — return-type mismatch public JSON receipt local green
+
+- Exact base and current published HEAD are
+  `02d93d4271f23f58ae3bfac32f37260e8a13a96a`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: the installed semantic owner emits
+  `return_type_mismatch` in text mode, but its private JSON receipt is empty;
+  public MIR/C/LLVM requests consequently stop at generic malformed/missing
+  receipt errors with no native retry.
+- Explicit native observation agrees on `PGY_SEM_TYPE_MISMATCH`, stage
+  `semantic`, layer `type`, cause `semantic:assignability_check`, and fix
+  `annotate-or-convert`. The active rung adds those facts only for the existing
+  Pergyra-owned `return_type_mismatch` code and reuses the current wire/process
+  owners.
+- Other type-mismatch codes, lexer failure propagation, C mapping, native
+  preflight/retry, wording-derived identity, source-location invention, and a
+  second semantic pass are forbidden. The focused gate is
+  `tests/self_hosted/parity/public_return_type_mismatch_json_diagnostic_receipt_owner.sh`.
+- A fresh Pergyra-built DRV-2 passes preserved text, direct private wire, exact
+  public MIR/C/LLVM stderr relay, no artifact or native timing, wording
+  independence, and an unrelated mismatch-code exclusion. Existing semantic,
+  parser, lexer, artifact, AST, and LLVM IR receipt gates pass inside the full
+  installed CLI aggregate.
+- Diagnostic registry, SoT edge, Gate single-owner, protocol registry,
+  substitution velocity, build-source inventory, and hard self-host contract
+  are green. The broad component inventory exceeded its 60-second local budget
+  and was stopped without a verdict; exact CI is the remaining integration
+  observation.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  `diagnostic.catalog` remains `BRIDGE`; project forecast remains 83%. Next step
+  is commit/push followed by exact-head CI, not another successor rung.
+
 ## Published — tokens public JSON diagnostic receipt exact-CI green
 
 - Exact base is `cb65af9afda1af9533efefab2d1446e60462af41`; implementation
