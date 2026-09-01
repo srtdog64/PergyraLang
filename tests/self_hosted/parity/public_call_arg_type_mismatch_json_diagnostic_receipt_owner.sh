@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pergyra-owned let mismatch verdicts retain thirteen contexts while one exact
+# Pergyra-owned call-argument verdicts retain thirteen contexts while one exact
 # assignability identity reaches installed MIR, C, and LLVM requests.
 
 set -euo pipefail
@@ -10,7 +10,7 @@ pgy_prepend_windows_runtime_paths
 
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 SELF_DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-WORK_REL=".tmp/self_hosted/public_let_type_mismatch_json_diagnostic"
+WORK_REL=".tmp/self_hosted/public_call_arg_type_mismatch_json_diagnostic"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
@@ -18,12 +18,12 @@ DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_o
 CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
 PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
-LET_FIXTURES="bad_arith_assign bad_call_assign bad_clamp_assign bad_fileexists_assign bad_for_body bad_inner_let_type bad_let_type bad_option_payload_let bad_result_unwrap_assign bad_toint_assign bad_tolower_assign bad_tostring_assign bad_while_body"
-RETURN_REL="src/self_hosted/semantic/fixture/bad_return_type.pgy"
+CALL_ARG_FIXTURES="bad_atan2_arg bad_builtin_arg bad_join_sep bad_max_mixed bad_min_mixed bad_random_arg bad_seedrandom_arg bad_sin_arg bad_split_arg bad_sqrt_arg bad_string_contains_arg bad_user_arg bad_writefile_arg"
+ASSIGN_REL="src/self_hosted/semantic/fixture/bad_assign_type.pgy"
 UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_issome_non_option.pgy"
 
 fail() {
-    echo "[self-host-public-let-type-mismatch-json-diagnostic] $*" >&2
+    echo "[self-host-public-call-arg-type-mismatch-json-diagnostic] $*" >&2
     exit 1
 }
 
@@ -36,7 +36,7 @@ require_text() {
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 
-for base in $LET_FIXTURES; do
+for base in $CALL_ARG_FIXTURES; do
     rel="src/self_hosted/semantic/fixture/$base.pgy"
     set +e
     (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-diagnostic-verified \
@@ -93,39 +93,39 @@ run_public_failure() {
         fail "$label retried the native pipeline"
 }
 
-run_public_failure mir "$WORK_DIR/bad_let_type.expected.json" "" \
+run_public_failure mir "$WORK_DIR/bad_user_arg.expected.json" "" \
     --mir --error-format=json \
-    src/self_hosted/semantic/fixture/bad_let_type.pgy
-run_public_failure c "$WORK_DIR/bad_call_assign.expected.json" \
+    src/self_hosted/semantic/fixture/bad_user_arg.pgy
+run_public_failure c "$WORK_DIR/bad_atan2_arg.expected.json" \
     "$WORK_REL/invalid-c.bin" --error-format=json --backend=c \
-    src/self_hosted/semantic/fixture/bad_call_assign.pgy \
+    src/self_hosted/semantic/fixture/bad_atan2_arg.pgy \
     -o "$WORK_REL/invalid-c.bin"
-run_public_failure llvm "$WORK_DIR/bad_while_body.expected.json" \
+run_public_failure llvm "$WORK_DIR/bad_writefile_arg.expected.json" \
     "$WORK_REL/invalid-llvm.bin" --error-format=json --backend=llvm \
-    src/self_hosted/semantic/fixture/bad_while_body.pgy \
+    src/self_hosted/semantic/fixture/bad_writefile_arg.pgy \
     -o "$WORK_REL/invalid-llvm.bin"
 
 set +e
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-diagnostic-verified \
-    "$RETURN_REL") >"$WORK_DIR/return.out" 2>"$WORK_DIR/return.err"
-return_rc=$?
+    "$ASSIGN_REL") >"$WORK_DIR/assign.out" 2>"$WORK_DIR/assign.err"
+assign_rc=$?
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-diagnostic-verified \
     "$UNADMITTED_REL") >"$WORK_DIR/unadmitted.out" \
     2>"$WORK_DIR/unadmitted.err"
 unadmitted_rc=$?
 set -e
-[[ "$return_rc" -ne 0 && ! -s "$WORK_DIR/return.err" ]] ||
-    fail "shared-identity return verdict changed its private channels"
+[[ "$assign_rc" -ne 0 && ! -s "$WORK_DIR/assign.err" ]] ||
+    fail "shared-identity assignment verdict changed its private channels"
 for fact in \
     '"code":"PGY_SEM_TYPE_MISMATCH"' \
     '"cause_ir":"semantic:assignability_check"' \
     '"fix_source":"annotate-or-convert"'; do
-    require_text "$WORK_DIR/return.out" "$fact"
+    require_text "$WORK_DIR/assign.out" "$fact"
 done
 [[ "$unadmitted_rc" -ne 0 && ! -s "$WORK_DIR/unadmitted.err" ]] ||
-    fail "unadmitted assignment verdict changed its private channels"
+    fail "unadmitted builtin-argument verdict changed its private channels"
 ! grep -q '[^[:space:]]' "$WORK_DIR/unadmitted.out" ||
-    fail "unadmitted assignment verdict gained let admission"
+    fail "unadmitted builtin-argument verdict gained call admission"
 
 probe_bin="$WORK_DIR/message-independence-probe"
 [[ "$PGY" == *.exe ]] && probe_bin="$probe_bin.exe"
@@ -136,14 +136,15 @@ probe_bin="$WORK_DIR/message-independence-probe"
 "$probe_bin" >"$WORK_DIR/probe.out" 2>"$WORK_DIR/probe.err" ||
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
-    fail "message wording changed let-type diagnostic identity"
+    fail "message wording changed call-argument diagnostic identity"
 
-require_text "$DIAGNOSTIC_OWNER" 'if code == "let_type_mismatch" {'
+require_text "$DIAGNOSTIC_OWNER" 'if code == "call_arg_type_mismatch" {'
 require_text "$DIAGNOSTIC_OWNER" '"semantic:assignability_check"'
 require_text "$DIAGNOSTIC_OWNER" '"annotate-or-convert"'
-require_text "$CONTRACT_OWNER" 'let_first.message != let_second.message'
+require_text "$CONTRACT_OWNER" \
+    'call_arg_first.message != call_arg_second.message'
 ! grep -Eq 'PGY_SEM_TYPE_MISMATCH|semantic:assignability_check|annotate-or-convert' \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic let-type authority"
+    fail "C transport gained semantic call-argument authority"
 
-echo "[self-host-public-let-type-mismatch-json-diagnostic] exact assignability identity, thirteen semantic contexts, MIR/C/LLVM relay, and builtin-argument exclusion: PASS"
+echo "[self-host-public-call-arg-type-mismatch-json-diagnostic] exact assignability identity, thirteen semantic contexts, MIR/C/LLVM relay, and builtin-argument exclusion: PASS"

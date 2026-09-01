@@ -9305,6 +9305,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh" 220
+require_file "tests/self_hosted/parity/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh" 220
 require_file "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh" 165
@@ -9684,6 +9687,8 @@ require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_let_type_mismatch_json_diagnostic_receipt_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh"'
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"'
 require_function_text "src/compiler/self_host_llvm_driver.c" \

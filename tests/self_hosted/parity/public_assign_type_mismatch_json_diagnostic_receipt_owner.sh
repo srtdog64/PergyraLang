@@ -15,7 +15,7 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 ASSIGN_REL="src/self_hosted/semantic/fixture/bad_assign_type.pgy"
 EXPECTED="$ROOT_DIR/src/self_hosted/semantic/expected/bad_assign_type.diag"
 LET_REL="src/self_hosted/semantic/fixture/bad_let_type.pgy"
-UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_user_arg.pgy"
+UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_issome_non_option.pgy"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
 DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
 CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
@@ -138,4 +138,4 @@ require_text "$CONTRACT_OWNER" \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic assignment authority"
 
-echo "[self-host-public-assign-type-mismatch-json-diagnostic] exact assignability identity, MIR/C/LLVM relay, and call-argument exclusion: PASS"
+echo "[self-host-public-assign-type-mismatch-json-diagnostic] exact assignability identity, MIR/C/LLVM relay, and builtin-argument exclusion: PASS"

@@ -19,7 +19,7 @@ CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy
 PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 LOGICAL_FIXTURES="bad_logical_assign bad_logical_condition bad_logical_int bad_logical_return bad_logical_right"
-EXCLUDED_FIXTURES="bad_user_arg bad_binop_assign"
+EXCLUDED_FIXTURES="bad_issome_non_option bad_binop_assign"
 
 fail() {
     echo "[self-host-public-logical-operand-json-diagnostic] $*" >&2
