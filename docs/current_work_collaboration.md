@@ -1,12 +1,12 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-09-01 (Asia/Seoul)
+Updated: 2026-09-02 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — logical-operand public JSON diagnostic receipt
+## DONE lease — logical-operand public JSON diagnostic receipt
 
 - Exact base is `06207a293d9c1c313bc5734a7ee1ef49caa80422`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -28,9 +28,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   gates, and full installed CLI aggregate pass. Diagnostic, SoT, Gate,
   protocol, inventory, velocity, hard-contract, and progress ratchets pass.
 - The broad component inventory exceeded its 60-second local budget without a
-  verdict. Full semantic selfcheck stopped earlier at the existing
-  `function_emit.pgy` leaf-coverage gap; neither observation is recorded as a
-  pass. Commit/push and exact CI remain pending.
+  local verdict. Full semantic selfcheck stopped earlier at the existing
+  `function_emit.pgy` leaf-coverage gap; that selfcheck is not recorded as a
+  pass.
+- Implementation `0c6e15139893328bce99899d0f715941bcf514ee` is on
+  `origin/main`; exact run `33518461300` is green 30/30 with backend shards
+  20/20. `build-linux` passed the structural component contract in 25m49s.
+  Full self-host passed in 27m26s and records exactly one 173239-line fixed
+  point, receipt-bound adoption, Pergyra-built DRV-2 installation, and focused
+  logical-operand marker.
+- This lease is DONE and authorizes no successor rung. A new lease requires a
+  fresh production executable falsifier.
 
 ## DONE lease — return-type mismatch public JSON diagnostic receipt
 

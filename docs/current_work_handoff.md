@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-09-01 (Asia/Seoul)
+Updated: 2026-09-02 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -18,11 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — logical-operand public JSON receipt local green
+## Published — logical-operand public JSON receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `06207a293d9c1c313bc5734a7ee1ef49caa80422`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `06207a293d9c1c313bc5734a7ee1ef49caa80422` and implementation
+  `0c6e15139893328bce99899d0f715941bcf514ee` is on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - Fresh production falsifier: the five `bad_logical_*` fixtures reach the
   installed Pergyra `logical_operand_not_bool` verdict in text mode, but the
   private JSON receipt is empty and public MIR JSON stops at the generic
@@ -46,13 +46,33 @@ percentage by themselves.
   ratchets pass.
 - Full semantic selfcheck stopped before the changed owners at the existing
   `function_emit.pgy` leaf-coverage gap for
-  `CodegenSemanticMutableResourceParameter`. The component inventory exceeded
-  its 60-second local budget and was stopped without a verdict. Exact CI is the
-  remaining integration observation.
+  `CodegenSemanticMutableResourceParameter`; it is not recorded as a pass. The
+  component inventory exceeded its 60-second local budget and was stopped
+  without a local verdict.
+- Exact-head CI run `33518461300` is green 30/30 with backend shards 20/20.
+  `build-linux` passed the structural component contract in 25m49s. Full
+  self-host passed in 27m26s and records exactly one 173239-line `gen2 == gen3`
+  fixed point, receipt-bound driver adoption, Pergyra-built DRV-2 installation,
+  and focused logical-operand receipt marker.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
   `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.17% and
-  project forecast remains 83%. Next step is diff review, commit/push, and exact
-  CI, not a successor rung.
+  project forecast remains 83%. This rung is published and closed; no successor
+  is inferred without a fresh production executable falsifier.
+
+## Read-only delegated fuzz observation — waiting, not an active rung
+
+- A delegated read-only audit of `F:\tex_bug` against revision
+  `06207a293d9c1c313bc5734a7ee1ef49caa80422` found one unique progress defect:
+  the exact six-byte input `enum({` does not terminate under
+  `pgy SOURCE --native-pipeline --hir` within either 1s or 3s.
+- Token, AST, public MIR, and C-emission requests for the same malformed input
+  terminate in 43-79ms, while the valid `examples/enum_test.pgy` completes in
+  every sampled phase. An additional deterministic 80-case campaign found no
+  second crash, hang, internal diagnostic, or output mismatch.
+- The audit changed no repository file and proves no SoT closure. Its detailed
+  reproducer, harness limitations, and proposed bounded regression live in
+  `docs/audits/native_hir_malformed_enum_progress_fuzz_audit_2026-09-02.md`.
+  Any repair requires its own executable recovery objective card and lease.
 
 ## Published — return-type mismatch public JSON receipt exact-CI green
 
