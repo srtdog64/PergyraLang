@@ -1,5 +1,26 @@
 # Self-Host Progress
 
+## Completed self-host context - 2026-09-01 LLVM IR public JSON diagnostic receipt
+
+- Public stdout/file `SOURCE --emit-llvm --error-format=json` previously stopped
+  at the C adapter's text-only selector even though the installed Pergyra
+  request already owned the JSON-mode Bool and exact diagnostic receipt.
+- The selector now admits JSON only for the existing LLVM request shape, and
+  stdout/file wrappers carry that Bool into the same source-LLVM intent. Parser
+  and semantic owners retain meaning; C remains an opaque receipt relay and
+  artifact publisher. Valid text/JSON release/dev LLVM bytes agree, while
+  missing/malformed/absent/crosswired receipts fail closed without native retry
+  or partial output.
+- Fresh isolated installed-driver aggregation, focused/existing parity gates,
+  component/hard, SoT, Gate, protocol, velocity, and platform contracts pass.
+  Implementation `8ed4f5d8` is published. Exact run `33485110766` is green
+  30/30 and proves `gen2 == gen3 (173194 lines)`, receipt-bound DRV-2 adoption,
+  Pergyra-built DRV-2 installation, and exactly one focused marker.
+- This is an executable consumer migration inside `diagnostic.catalog`, not
+  whole-row closure. Census remains `88/183` and `55/32/1`, with 9 blockers;
+  integrated progress remains 83% (81-85%), strict beta 83%, and hard
+  replacement 75%. No successor rung is inferred from the architecture review.
+
 ## Completed self-host context - 2026-09-01 parser callable-contract public JSON receipt
 
 - The reached duplicate callable-contract capability rejection already had

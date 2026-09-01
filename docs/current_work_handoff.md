@@ -18,12 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — LLVM IR public JSON diagnostic receipt local green
+## Published — LLVM IR public JSON diagnostic receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `f6c4f2a04202b4f6be49f5f7991a9f090a26d9d2`. The implementation is locally
-  dirty and not yet publication evidence. Protected unrelated untracked paths
-  remain outside inspection, edit, and staging.
+- Exact base is `f6c4f2a04202b4f6be49f5f7991a9f090a26d9d2`; implementation
+  `8ed4f5d8d00157cc84f0d72582a4be0650f68044` is on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - Fresh production falsifier: public stdout/file
   `SOURCE --emit-llvm --error-format=json` stopped at the C adapter's text-only
   predicate even though the current Pergyra DRV-2 already owns the typed
@@ -46,12 +45,14 @@ percentage by themselves.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers. This
   is an executable consumer migration within `diagnostic.catalog`, not a row
   closure. Project forecast remains 83%.
-- Next executable step is only: commit and push the bounded implementation,
-  observe exact CI including fixed point, receipt-bound DRV-2 installation, and
-  exactly one focused marker, then publish the result. Do not infer a successor
-  from the attached 2026-09-01 architecture review; its resource calculus,
-  working-set, typing, concurrency, and sandbox recommendations remain future
-  candidates until this rung closes and a fresh production falsifier is named.
+- Exact run `33485110766` is green 30/30. Its full self-host log records exactly
+  one each of `gen2 == gen3 (173194 lines)`, receipt-bound fixed-point driver
+  adoption, Pergyra-built DRV-2 installation, and the focused LLVM JSON marker.
+  `build-linux` took 25m25s; full self-host took 34m50s.
+- The publication falsifier is closed. Do not infer a successor from the
+  attached 2026-09-01 architecture review; its resource calculus, working-set,
+  typing, concurrency, and sandbox recommendations remain future candidates
+  until a fresh production executable falsifier is named.
 
 ## Published — parser callable-contract public JSON receipt exact-CI green
 

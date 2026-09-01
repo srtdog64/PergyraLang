@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — LLVM IR public JSON diagnostic receipt
+## DONE lease — LLVM IR public JSON diagnostic receipt
 
 - Exact base is `f6c4f2a04202b4f6be49f5f7991a9f090a26d9d2`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -15,8 +15,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Pergyra-built DRV-2 pass valid text/JSON release/dev LLVM byte parity, exact
   invalid stdout/file JSON relay, missing/malformed/crosswired fail-closed
   cases, the complete installed CLI aggregate, and component/hard/SoT/Gate/
-  protocol/velocity ratchets. Exact CI is still pending; this lease remains
-  ACTIVE and no successor rung is authorized.
+  protocol/velocity ratchets.
+- Implementation `8ed4f5d8d00157cc84f0d72582a4be0650f68044` is on
+  `origin/main`. Exact run `33485110766` is green 30/30; its full self-host log
+  records `gen2 == gen3 (173194 lines)`, receipt-bound fixed-point adoption,
+  Pergyra-built DRV-2 installation, and exactly one focused marker. This lease
+  is DONE and authorizes no successor rung.
 - Public stdout/file `--emit-llvm --error-format=json` requests currently stop
   at the C adapter's text-only contract predicate. The existing Pergyra
   `DriverCliSourceLlvmArtifact(..., Bool)` request already accepts JSON mode,

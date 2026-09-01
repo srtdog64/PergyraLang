@@ -1,6 +1,6 @@
 # LLVM IR Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL GREEN, EXACT CI PENDING
+Status: DONE — EXACT CI GREEN
 
 Exact base revision: `f6c4f2a04202b4f6be49f5f7991a9f090a26d9d2`
 
@@ -103,3 +103,18 @@ candidates, not completion evidence.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers. This is
   an executable consumer migration inside `diagnostic.catalog`, not whole-row
   closure; the project forecast remains 83%.
+
+## Published evidence
+
+- Implementation `8ed4f5d8d00157cc84f0d72582a4be0650f68044` is on
+  `origin/main`. Exact run `33485110766` completed green 30/30, including Rocq,
+  sanitizers, Windows/macOS/Linux, both bootstrap jobs, and all 20 backend
+  comparison shards.
+- The full self-host log records exactly one each of
+  `gen2 == gen3 (173194 lines)`, receipt-bound fixed-point driver adoption,
+  Pergyra-built DRV-2 installation, and the focused
+  `[self-host-public-llvm-ir-json-diagnostic]` PASS marker. `build-linux` took
+  25m25s and the full self-host job took 34m50s.
+- The publication falsifier is closed. This directive does not authorize a
+  successor implementation; select a fresh production executable failure after
+  publication instead of promoting a long-term architecture recommendation.
