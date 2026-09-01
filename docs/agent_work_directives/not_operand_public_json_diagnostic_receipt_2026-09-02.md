@@ -1,6 +1,6 @@
 # Not-Operand Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL IMPLEMENTATION GREEN, EXACT CI PENDING
+Status: DONE — IMPLEMENTATION AND EXACT CI GREEN
 
 Exact base revision: `b916fbf6fb247b99853f9dd45f46da6091b9365d`
 
@@ -98,3 +98,18 @@ semantic owner, SoT registry, progress counter, or completion claim.
 - The observed census remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9
   blockers. Implementation volume is 21.18%; neither measure changes the 83%
   project forecast or closes `diagnostic.catalog`.
+
+## Publication evidence
+
+- Implementation `1593cf90be906eea5401b30869216dbf57d5e30a` is on
+  `origin/main`. Exact-head CI run `33532965136` completed green 30/30 with all
+  20 backend comparison shards green.
+- `build-linux` completed in 25m34s and ran the structural component contract
+  to its explicit `structural source inventory and removed-path ratchets ok`
+  verdict. This supplies the broad inventory verdict not claimed locally.
+- `self-host-bootstrap-linux` completed in 34m36s. Its log records exactly one
+  173249-line `gen2 == gen3` fixed point, one receipt-bound fixed-point driver
+  adoption, one Pergyra-built DRV-2 installation, and one focused unary-receipt
+  PASS marker.
+- This directive is closed. It authorizes no successor implementation; a new
+  rung requires a fresh production executable falsifier and objective card.

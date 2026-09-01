@@ -18,11 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — not-operand public JSON receipt local green
+## Published — not-operand public JSON receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `b916fbf6fb247b99853f9dd45f46da6091b9365d`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `b916fbf6fb247b99853f9dd45f46da6091b9365d` and implementation
+  `1593cf90be906eea5401b30869216dbf57d5e30a` is on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - Fresh production falsifier: `bad_not_operand.pgy` reaches the installed
   Pergyra `not_operand_not_bool` verdict with `actual: Int`, but private JSON is
   only a blank line and public MIR JSON stops at the generic malformed-receipt
@@ -44,11 +44,16 @@ percentage by themselves.
   DeviceSlot boundaries.
 - Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
   velocity, hard-contract, and progress ratchets pass. The broad component
-  inventory remains an exact-CI verdict under the 60-second local budget.
+  inventory was left to exact CI under the 60-second local budget.
+- Exact-head CI run `33532965136` is green 30/30 with backend shards 20/20.
+  `build-linux` passed the structural component contract in 25m34s. Full
+  self-host passed in 34m36s and records exactly one 173249-line `gen2 == gen3`
+  fixed point, receipt-bound driver adoption, Pergyra-built DRV-2 installation,
+  and focused unary-receipt marker.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
   `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.18% and
-  project forecast remains 83%. Next step is diff review, commit/push, and
-  exact CI. No fuzz repair or second SoT track is active.
+  project forecast remains 83%. This rung is published and closed; no successor
+  or fuzz repair is inferred without a fresh executable falsifier.
 
 ## Published — condition-not-bool public JSON receipt exact-CI green
 
