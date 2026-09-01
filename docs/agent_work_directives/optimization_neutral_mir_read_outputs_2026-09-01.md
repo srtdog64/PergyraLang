@@ -1,6 +1,6 @@
 # Optimization-neutral MIR read outputs
 
-Status: LOCAL IMPLEMENTATION COMPLETE
+Status: IMPLEMENTATION COMPLETE
 
 Exact base: `645d6e42014cc7959416bc5c5aecbe4df3c4d46d`
 
@@ -96,5 +96,13 @@ an executable substitution. This card does not change the `88/183`,
 - The Make target correctly rebuilds the native launcher and receipt-bound
   DRV-2 before the focused gate. A second identical invocation was deliberately
   stopped during its unconditional phony self-host rebuild because the same
-  rebuilt binaries had already passed the focused script; exact CI remains the
-  publication gate.
+  rebuilt binaries had already passed the focused script.
+- Implementation `1d76bd1cfdac736df706ef114813c9d272b4e288` is on
+  `origin/main`. Exact run `33455765599` is green 30/30. Its full self-host log
+  records `gen2 == gen3 (173074 lines)`, installs the receipt-bound Pergyra
+  DRV-2, and passes both the prior source-inspection profile gate and the new
+  MIR-read profile gate before installed CLI aggregation. Full self-host took
+  33.70 minutes and build-linux 25.48 minutes; codegen bootstrap, sanitizers,
+  Windows/macOS, Rocq, backend toolchain, and all 20 backend shards also pass.
+  The publication falsifier is closed; no successor rung is inferred from this
+  boundary or its timing.

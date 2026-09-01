@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — optimization-neutral MIR read outputs
+## DONE lease — optimization-neutral MIR read outputs
 
 - Exact base is `645d6e42014cc7959416bc5c5aecbe4df3c4d46d`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -28,9 +28,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   current stronger topology.
 - Exact objective, falsifier, and evidence are in
   `docs/agent_work_directives/optimization_neutral_mir_read_outputs_2026-09-01.md`.
-  The lease remains active until implementation is committed/pushed and exact
-  CI is observed. SoT remains `88/183`, `55/32/1`; project forecast remains
-  83%.
+  Implementation `1d76bd1cfdac736df706ef114813c9d272b4e288` is on
+  `origin/main`; exact run `33455765599` is green 30/30. Full self-host records
+  `gen2 == gen3 (173074 lines)`, installs the receipt-bound DRV-2, and passes
+  the new focused gate. All platforms, Rocq, sanitizers, both bootstrap jobs,
+  and all 20 backend shards pass. This lease is retired. SoT remains `88/183`,
+  `55/32/1`; project forecast remains 83%.
 - Protected unrelated untracked `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/` remain outside inspection, edit, and
   staging.
