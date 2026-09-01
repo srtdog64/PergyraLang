@@ -55,6 +55,7 @@ for rel in \
     tests/self_hosted/parity/diagnostic_catalog_checker_parity.sh \
     tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh \
     src/self_hosted/semantic/diagnostic_owner.pgy \
+    src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy \
     src/self_hosted/semantic/fixture/valid_logical_bool.pgy \
     src/self_hosted/semantic/expected/valid_logical_bool.diag \
     src/self_hosted/semantic/fixture/bad_logical_int.pgy \
@@ -63,6 +64,8 @@ for rel in \
     src/self_hosted/semantic/expected/bad_logical_right.diag \
     src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy \
     src/self_hosted/semantic/expected/bad_value_param_arraypush.diag \
+    src/self_hosted/semantic/fixture/bad_value_param_array_index_assign.pgy \
+    src/self_hosted/semantic/expected/bad_value_param_array_index_assign.diag \
     tests/cases/backend_compare/inout_caller_mutation/main.pgy \
     tests/cases/backend_compare/inout_nested_return_copyout/main.pgy \
     src/parser/parser_decl.c \
@@ -205,6 +208,13 @@ require_text "src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy" "f
 require_text "src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy" "ArrayPush(xs, 9)"
 require_text "src/self_hosted/semantic/expected/bad_value_param_arraypush.diag" "Code: value_param_collection_mutation"
 require_text "src/self_hosted/semantic/expected/bad_value_param_arraypush.diag" "Fix: spell the parameter as inout"
+require_text "src/self_hosted/semantic/fixture/bad_value_param_array_index_assign.pgy" "xs[0] = 9"
+require_text "src/self_hosted/semantic/expected/bad_value_param_array_index_assign.diag" "Code: value_param_collection_mutation"
+require_text "src/self_hosted/semantic/expected/bad_value_param_array_index_assign.diag" "- func: ArraySet"
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "SemanticCollectionMutationError("
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    '"ArraySet", target_root'
 
 # Proof-gated erasure and raw/layout anchors.
 require_text "tests/air_erasure/gate.ps1" "provable fixture must compile to ZERO"

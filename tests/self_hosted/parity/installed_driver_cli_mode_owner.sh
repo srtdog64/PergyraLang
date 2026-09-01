@@ -275,6 +275,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/public_let_type_mismatch_json_diagnos
 source "$ROOT_DIR/tests/self_hosted/parity/public_assign_type_mismatch_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_tokens_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh"

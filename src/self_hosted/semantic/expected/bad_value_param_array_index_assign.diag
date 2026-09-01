@@ -1,0 +1,12 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: value_param_collection_mutation
+Reason: caller-visible collection mutation requires an explicit inout boundary
+Fix: spell the parameter as inout or mutate a local collection and return it
+Span: none
+Facts:
+- func: ArraySet
+- param: xs
+- mode: default

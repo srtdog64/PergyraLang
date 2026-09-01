@@ -1,0 +1,8 @@
+func Rewrite(xs: Array<Int>) -> Void {
+    xs[0] = 9;
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [1, 2, 3];
+    Rewrite(values);
+}

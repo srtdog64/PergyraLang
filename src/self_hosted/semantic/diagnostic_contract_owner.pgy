@@ -74,6 +74,14 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "builtin_arg_type_mismatch", "second builtin argument wording"
         );
+    let value_param_first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "value_param_collection_mutation", "first mutation wording"
+        );
+    let value_param_second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "value_param_collection_mutation", "second mutation wording"
+        );
     let logical_first: SemanticPublicDiagnosticReceipt =
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "logical_operand_not_bool", "first logical wording"
@@ -131,6 +139,10 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             builtin_second, "builtin_arg_type_mismatch"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
+            value_param_first, "value_param_collection_mutation"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            value_param_second, "value_param_collection_mutation"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
             logical_first, "logical_operand_not_bool"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             logical_second, "logical_operand_not_bool"
@@ -186,6 +198,13 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         builtin_first.cause_ir == builtin_second.cause_ir &&
         builtin_first.fix_source == builtin_second.fix_source &&
         builtin_first.message != builtin_second.message &&
+        value_param_first.schema == value_param_second.schema &&
+        value_param_first.stage == value_param_second.stage &&
+        value_param_first.layer == value_param_second.layer &&
+        value_param_first.code == value_param_second.code &&
+        value_param_first.cause_ir == value_param_second.cause_ir &&
+        value_param_first.fix_source == value_param_second.fix_source &&
+        value_param_first.message != value_param_second.message &&
         logical_first.schema == logical_second.schema &&
         logical_first.stage == logical_second.stage &&
         logical_first.layer == logical_second.layer &&

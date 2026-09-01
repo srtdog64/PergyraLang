@@ -6,6 +6,42 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — value-parameter collection-mutation public JSON receipt
+
+- Exact base is `f7800aed4b710890aca3df13e2b38cc280badddd`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves `value_param_collection_mutation`
+  retains exact `ArrayPush`/`xs`/`default` Pergyra facts while private JSON is
+  empty and public MIR JSON reaches only the generic malformed-receipt
+  boundary. Explicit native JSON supplies one builtin-signature identity.
+- The language contract also prohibits direct array index assignment through
+  the same code. A new direct-ArraySet fixture proves the current Pergyra
+  assignment consumer bypasses the existing mutation policy and emits MIR,
+  while explicit native JSON rejects it. This rung must delete that consumer
+  bypass rather than infer coverage from the builtin fixture.
+- The deletion target is exact admission of
+  `value_param_collection_mutation` and reuse of existing wire/process owners.
+  The assignment consumer must call the existing policy; duplicating its mode
+  or collection decision is forbidden. Grouping by the shared public identity,
+  co-admitting `call_arity_mismatch`, weakening `inout`, C mapping, native
+  retry, message parsing, another semantic pass, location invention, fact
+  loss, and text-code changes are forbidden.
+- Exact objective, two-path coverage, and exclusions are in
+  `docs/agent_work_directives/value_param_collection_mutation_public_json_diagnostic_receipt_2026-09-02.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+- Local implementation is green on a fresh Pergyra-built DRV-2. The assignment
+  consumer now calls the existing policy as `ArraySet`; the focused two-path
+  receipt gate, all six rebaselined admitted-family negatives, and the full
+  installed CLI aggregate pass. Static owner/registry/protocol/inventory/
+  velocity/hard-contract/progress ratchets pass; implementation volume is
+  21.23%. Exact 30-job CI and publication are still pending, so this lease
+  remains ACTIVE and no successor rung may open.
+- Delegated fuzzing remains read-only and outside this lease. Its findings may
+  be recorded under `docs/audits/`, but they own no source edit, semantic
+  decision, priority change, or successor implementation rung.
+
 ## DONE lease — builtin-argument-type-mismatch public JSON receipt
 
 - Exact base is `1946f4ea4daf55443eb7c8737d2be1a25d302626`, equal to

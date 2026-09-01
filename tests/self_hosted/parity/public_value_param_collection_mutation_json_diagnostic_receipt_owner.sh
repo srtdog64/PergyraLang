@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Pergyra-owned call-argument verdicts retain thirteen contexts while one exact
-# assignability identity reaches installed MIR, C, and LLVM requests.
+# One existing mutation policy owns builtin and direct-index default-parameter
+# rejection before its exact receipt reaches installed MIR, C, and LLVM paths.
 
 set -euo pipefail
 
@@ -10,20 +10,20 @@ pgy_prepend_windows_runtime_paths
 
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 SELF_DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-WORK_REL=".tmp/self_hosted/public_call_arg_type_mismatch_json_diagnostic"
+WORK_REL=".tmp/self_hosted/public_value_param_collection_mutation_json_diagnostic"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
 DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
 CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
+ASSIGNMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
-CALL_ARG_FIXTURES="bad_atan2_arg bad_builtin_arg bad_join_sep bad_max_mixed bad_min_mixed bad_random_arg bad_seedrandom_arg bad_sin_arg bad_split_arg bad_sqrt_arg bad_string_contains_arg bad_user_arg bad_writefile_arg"
-ASSIGN_REL="src/self_hosted/semantic/fixture/bad_assign_type.pgy"
-UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_arity_builtin.pgy"
+MUTATION_FIXTURES="bad_value_param_arraypush bad_value_param_array_index_assign"
+ARITY_FIXTURES="bad_arity_builtin bad_arity_too_many bad_arity_too_few"
 
 fail() {
-    echo "[self-host-public-call-arg-type-mismatch-json-diagnostic] $*" >&2
+    echo "[self-host-public-value-param-collection-mutation-json-diagnostic] $*" >&2
     exit 1
 }
 
@@ -36,7 +36,7 @@ require_text() {
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 
-for base in $CALL_ARG_FIXTURES; do
+for base in $MUTATION_FIXTURES; do
     rel="src/self_hosted/semantic/fixture/$base.pgy"
     set +e
     (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-diagnostic-verified \
@@ -52,7 +52,7 @@ for base in $CALL_ARG_FIXTURES; do
     expected_text="$(tr -d '\r' < "$EXPECTED_DIR/$base.diag")"
     actual_text="$(tr -d '\r' < "$WORK_DIR/$base.text.out")"
     [[ "$actual_text" == "$expected_text" ]] ||
-        fail "$base changed its text code or expected/actual facts"
+        fail "$base changed its text code or policy facts"
     [[ "$json_rc" -ne 0 && ! -s "$WORK_DIR/$base.json.err" ]] ||
         fail "$base changed its private JSON channels"
     grep -Fxq 'pgy.selfhost.public-diagnostic.v1' \
@@ -64,9 +64,9 @@ for base in $CALL_ARG_FIXTURES; do
         '"severity":"error"' \
         '"stage":"semantic"' \
         '"layer":"type"' \
-        '"code":"PGY_SEM_TYPE_MISMATCH"' \
-        '"cause_ir":"semantic:assignability_check"' \
-        '"fix_source":"annotate-or-convert"'; do
+        '"code":"PGY_SEM_BUILTIN_ARGS_INVALID"' \
+        '"cause_ir":"semantic:builtin:signature_mismatch"' \
+        '"fix_source":"match-builtin-signature"'; do
         require_text "$WORK_DIR/$base.expected.json" "$fact"
     done
 done
@@ -93,39 +93,33 @@ run_public_failure() {
         fail "$label retried the native pipeline"
 }
 
-run_public_failure mir "$WORK_DIR/bad_user_arg.expected.json" "" \
+run_public_failure mir \
+    "$WORK_DIR/bad_value_param_array_index_assign.expected.json" "" \
     --mir --error-format=json \
-    src/self_hosted/semantic/fixture/bad_user_arg.pgy
-run_public_failure c "$WORK_DIR/bad_atan2_arg.expected.json" \
+    src/self_hosted/semantic/fixture/bad_value_param_array_index_assign.pgy
+run_public_failure c "$WORK_DIR/bad_value_param_arraypush.expected.json" \
     "$WORK_REL/invalid-c.bin" --error-format=json --backend=c \
-    src/self_hosted/semantic/fixture/bad_atan2_arg.pgy \
+    src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy \
     -o "$WORK_REL/invalid-c.bin"
-run_public_failure llvm "$WORK_DIR/bad_writefile_arg.expected.json" \
+run_public_failure llvm \
+    "$WORK_DIR/bad_value_param_array_index_assign.expected.json" \
     "$WORK_REL/invalid-llvm.bin" --error-format=json --backend=llvm \
-    src/self_hosted/semantic/fixture/bad_writefile_arg.pgy \
+    src/self_hosted/semantic/fixture/bad_value_param_array_index_assign.pgy \
     -o "$WORK_REL/invalid-llvm.bin"
 
-set +e
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-diagnostic-verified \
-    "$ASSIGN_REL") >"$WORK_DIR/assign.out" 2>"$WORK_DIR/assign.err"
-assign_rc=$?
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-diagnostic-verified \
-    "$UNADMITTED_REL") >"$WORK_DIR/unadmitted.out" \
-    2>"$WORK_DIR/unadmitted.err"
-unadmitted_rc=$?
-set -e
-[[ "$assign_rc" -ne 0 && ! -s "$WORK_DIR/assign.err" ]] ||
-    fail "shared-identity assignment verdict changed its private channels"
-for fact in \
-    '"code":"PGY_SEM_TYPE_MISMATCH"' \
-    '"cause_ir":"semantic:assignability_check"' \
-    '"fix_source":"annotate-or-convert"'; do
-    require_text "$WORK_DIR/assign.out" "$fact"
+for base in $ARITY_FIXTURES; do
+    rel="src/self_hosted/semantic/fixture/$base.pgy"
+    set +e
+    (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-diagnostic-verified \
+        "$rel") >"$WORK_DIR/$base.excluded.out" \
+        2>"$WORK_DIR/$base.excluded.err"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 && ! -s "$WORK_DIR/$base.excluded.err" ]] ||
+        fail "$base exclusion changed its private channels"
+    ! grep -q '[^[:space:]]' "$WORK_DIR/$base.excluded.out" ||
+        fail "$base gained value-parameter admission"
 done
-[[ "$unadmitted_rc" -ne 0 && ! -s "$WORK_DIR/unadmitted.err" ]] ||
-    fail "unadmitted arity verdict changed its private channels"
-! grep -q '[^[:space:]]' "$WORK_DIR/unadmitted.out" ||
-    fail "unadmitted arity verdict gained call admission"
 
 probe_bin="$WORK_DIR/message-independence-probe"
 [[ "$PGY" == *.exe ]] && probe_bin="$probe_bin.exe"
@@ -136,15 +130,18 @@ probe_bin="$WORK_DIR/message-independence-probe"
 "$probe_bin" >"$WORK_DIR/probe.out" 2>"$WORK_DIR/probe.err" ||
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
-    fail "message wording changed call-argument diagnostic identity"
+    fail "message wording changed mutation diagnostic identity"
 
-require_text "$DIAGNOSTIC_OWNER" 'if code == "call_arg_type_mismatch" {'
-require_text "$DIAGNOSTIC_OWNER" '"semantic:assignability_check"'
-require_text "$DIAGNOSTIC_OWNER" '"annotate-or-convert"'
+require_text "$ASSIGNMENT_OWNER" 'SemanticCollectionMutationError('
+require_text "$ASSIGNMENT_OWNER" '"ArraySet", target_root'
+require_text "$DIAGNOSTIC_OWNER" \
+    'if code == "value_param_collection_mutation" {'
+require_text "$DIAGNOSTIC_OWNER" '"semantic:builtin:signature_mismatch"'
+require_text "$DIAGNOSTIC_OWNER" '"match-builtin-signature"'
 require_text "$CONTRACT_OWNER" \
-    'call_arg_first.message != call_arg_second.message'
-! grep -Eq 'PGY_SEM_TYPE_MISMATCH|semantic:assignability_check|annotate-or-convert' \
+    'value_param_first.message != value_param_second.message'
+! grep -Eq 'PGY_SEM_BUILTIN_ARGS_INVALID|semantic:builtin:signature_mismatch|match-builtin-signature' \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic call-argument authority"
+    fail "C transport gained semantic mutation authority"
 
-echo "[self-host-public-call-arg-type-mismatch-json-diagnostic] exact assignability identity, thirteen semantic contexts, MIR/C/LLVM relay, and arity exclusion: PASS"
+echo "[self-host-public-value-param-collection-mutation-json-diagnostic] one mutation policy rejects ArrayPush/ArraySet, relays exact MIR/C/LLVM identity, and excludes same-identity arity codes: PASS"

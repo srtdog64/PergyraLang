@@ -20,7 +20,7 @@ PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 LET_FIXTURES="bad_arith_assign bad_call_assign bad_clamp_assign bad_fileexists_assign bad_for_body bad_inner_let_type bad_let_type bad_option_payload_let bad_result_unwrap_assign bad_toint_assign bad_tolower_assign bad_tostring_assign bad_while_body"
 RETURN_REL="src/self_hosted/semantic/fixture/bad_return_type.pgy"
-UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy"
+UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_arity_builtin.pgy"
 
 fail() {
     echo "[self-host-public-let-type-mismatch-json-diagnostic] $*" >&2
@@ -123,9 +123,9 @@ for fact in \
     require_text "$WORK_DIR/return.out" "$fact"
 done
 [[ "$unadmitted_rc" -ne 0 && ! -s "$WORK_DIR/unadmitted.err" ]] ||
-    fail "unadmitted value-parameter verdict changed its private channels"
+    fail "unadmitted arity verdict changed its private channels"
 ! grep -q '[^[:space:]]' "$WORK_DIR/unadmitted.out" ||
-    fail "unadmitted value-parameter verdict gained let admission"
+    fail "unadmitted arity verdict gained let admission"
 
 probe_bin="$WORK_DIR/message-independence-probe"
 [[ "$PGY" == *.exe ]] && probe_bin="$probe_bin.exe"
@@ -146,4 +146,4 @@ require_text "$CONTRACT_OWNER" 'let_first.message != let_second.message'
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic let-type authority"
 
-echo "[self-host-public-let-type-mismatch-json-diagnostic] exact assignability identity, thirteen semantic contexts, MIR/C/LLVM relay, and value-parameter exclusion: PASS"
+echo "[self-host-public-let-type-mismatch-json-diagnostic] exact assignability identity, thirteen semantic contexts, MIR/C/LLVM relay, and arity exclusion: PASS"

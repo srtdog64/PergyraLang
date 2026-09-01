@@ -5908,6 +5908,15 @@ require_text "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" "func Sema
 require_file "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "func SemanticAstAssignmentTypeFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    'import "collection_mutation_policy_owner.pgy";'
+require_function_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(" \
+    "SemanticCollectionMutationError("
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    '"ArraySet", target_root'
+reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    '"default_param"'
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "LoadSemanticSource"
@@ -9311,6 +9320,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh" 220
+require_file "tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh" 220
 require_file "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh" 165
@@ -9694,6 +9706,8 @@ require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_call_arg_type_mismatch_json_diagnostic_receipt_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh"'
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"'
 require_function_text "src/compiler/self_host_llvm_driver.c" \

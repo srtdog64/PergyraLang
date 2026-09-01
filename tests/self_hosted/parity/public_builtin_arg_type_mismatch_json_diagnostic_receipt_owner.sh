@@ -19,7 +19,7 @@ CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy
 PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 BUILTIN_FIXTURES="bad_issome_non_option bad_unwrap_non_option"
-SAME_IDENTITY_UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy"
+SAME_IDENTITY_UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_arity_builtin.pgy"
 NO_ORACLE_UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_issome_none_call.pgy"
 
 fail() {

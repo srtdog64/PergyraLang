@@ -70,6 +70,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "match-builtin-signature"
         );
     }
+    if code == "value_param_collection_mutation" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:builtin:signature_mismatch",
+            "match-builtin-signature"
+        );
+    }
     if code == "logical_operand_not_bool" {
         return SemanticPublicDiagnosticIdentity(
             true,

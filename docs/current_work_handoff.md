@@ -18,6 +18,45 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — value-parameter collection-mutation public JSON receipt locally green
+
+- Exact base and current published HEAD are
+  `f7800aed4b710890aca3df13e2b38cc280badddd`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: `bad_value_param_arraypush.pgy` reaches installed
+  Pergyra `value_param_collection_mutation` with exact `ArrayPush`, `xs`, and
+  `default` facts, but private JSON is only whitespace and public MIR JSON
+  stops at the generic malformed-receipt error.
+- Explicit native JSON fixes `PGY_SEM_BUILTIN_ARGS_INVALID`, stage `semantic`,
+  layer `type`, cause `semantic:builtin:signature_mismatch`, and fix
+  `match-builtin-signature`.
+- The language contract also assigns direct array index mutation of a default
+  value parameter to this code. The opening executable `ArraySet` fixture
+  proved that the Pergyra assignment consumer succeeded and emitted MIR while
+  explicit native JSON rejected. The assignment consumer now calls the
+  existing collection-mutation policy as `ArraySet`; it does not duplicate the
+  policy's parameter-mode or collection decision.
+- All three `call_arity_mismatch` fixtures share the native public identity but
+  retain a different Pergyra code, so they remain the exact-code fail-closed
+  family.
+- The active rung may admit only this exact Pergyra code, prove builtin and
+  direct-ArraySet private contexts, and reuse the existing MIR/artifact process
+  and wire owners for public MIR/C/LLVM relay. Its focused falsifier is
+  `tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh`.
+- A fresh Pergyra-built DRV-2 passes the focused two-context gate. Rebaselined
+  return, logical, let, assignment, call-argument, and builtin-argument gates
+  keep arity siblings fail-closed, and the complete installed CLI aggregate
+  passes through artifact, parser, tokens, AST, LLVM IR, native opt-in, REPL,
+  formatter, and DeviceSlot boundaries.
+- Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
+  velocity, hard-contract, and progress ratchets pass. The broad component
+  inventory remains an exact-CI verdict under the local 60-second budget.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.23% and
+  project forecast remains 83%. Next step is an exact implementation commit,
+  push, 30-job CI observation, and evidence publication. Delegated fuzz
+  findings remain separate read-only audits and do not open a repair rung.
+
 ## Published — builtin-argument-type-mismatch public JSON receipt exact-CI green
 
 - Exact base is `1946f4ea4daf55443eb7c8737d2be1a25d302626` and implementation

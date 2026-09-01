@@ -259,7 +259,7 @@ func SemanticVerdictPayloadFixtureCount() -> Int {
 }
 
 func SemanticVerdictPayloadFixtureFrontierCount() -> Int {
-    return 114;
+    return 115;
 }
 
 func SemanticVerdictPayloadFixtureDir() -> String {
