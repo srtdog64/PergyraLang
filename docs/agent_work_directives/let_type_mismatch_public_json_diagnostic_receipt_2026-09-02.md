@@ -1,6 +1,6 @@
 # Let-Type-Mismatch Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL IMPLEMENTATION GREEN, EXACT CI PENDING
+Status: DONE — IMPLEMENTATION AND EXACT CI GREEN
 
 Exact base revision: `a7e99d5c2eced2a16b5d2cd3095296ae87401781`
 
@@ -109,3 +109,19 @@ semantic owner, SoT registry, progress counter, or completion claim.
 - The observed census remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9
   blockers. Implementation volume is 21.20%; neither measure changes the 83%
   project forecast or closes `diagnostic.catalog`.
+
+## Publication evidence
+
+- Implementation `6c13bf35513fcdb6d5ee51317a2610054146fb7c` is on
+  `origin/main`. Exact-head CI run `33545829167` is green 30/30, including
+  backend comparison shards 20/20.
+- `build-linux` passed in 25m55s and actually invoked
+  `tests/self_hosted_component_contract_smoke.sh`; the structural source
+  inventory and removed-path ratchets reported PASS.
+- `self-host-bootstrap-linux` passed in 34m36s and records exactly one
+  173259-line `gen2 == gen3` fixed point, exactly one receipt-bound driver
+  adoption, exactly one Pergyra-built DRV-2 installation, and exactly one
+  focused let-receipt PASS marker.
+- This directive is complete and authorizes no successor rung. A new edit lease
+  requires a fresh production executable falsifier. The malformed-enum fuzz
+  finding remains separate waiting work.

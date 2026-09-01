@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — let-type-mismatch public JSON diagnostic receipt
+## DONE lease — let-type-mismatch public JSON diagnostic receipt
 
 - Exact base is `a7e99d5c2eced2a16b5d2cd3095296ae87401781`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -36,6 +36,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - One aggregate invocation used Windows absolute driver paths and was rejected
   by the repository-relative machine-manifest guard. The Make/CI-equivalent
   POSIX-path rerun passed without a source change.
+- Implementation `6c13bf35513fcdb6d5ee51317a2610054146fb7c` is on
+  `origin/main`; exact run `33545829167` is green 30/30 with backend shards
+  20/20. `build-linux` passed the structural component contract in 25m55s.
+  Full self-host passed in 34m36s and records exactly one 173259-line fixed
+  point, receipt-bound adoption, Pergyra-built DRV-2 installation, and focused
+  let-receipt marker.
+- This lease is DONE and authorizes no successor rung. A new lease requires a
+  fresh production executable falsifier. The read-only fuzz report remains
+  separate and owns no source edit.
 
 ## DONE lease — compare-type-mismatch public JSON diagnostic receipt
 

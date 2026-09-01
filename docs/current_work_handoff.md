@@ -18,11 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — let-type-mismatch public JSON receipt local green
+## Published — let-type-mismatch public JSON receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `a7e99d5c2eced2a16b5d2cd3095296ae87401781`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `a7e99d5c2eced2a16b5d2cd3095296ae87401781` and implementation
+  `6c13bf35513fcdb6d5ee51317a2610054146fb7c` is on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - Fresh production falsifier: all thirteen fixtures that reach the installed
   Pergyra `let_type_mismatch` verdict retain their text facts, but private JSON
   is empty and public MIR JSON stops at the generic malformed-receipt error.
@@ -48,13 +48,18 @@ percentage by themselves.
   Make/CI-equivalent POSIX-path rerun passed without a source change.
 - Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
   velocity, hard-contract, and progress ratchets pass. The broad component
-  inventory remains an exact-CI verdict under the 60-second local budget.
+  inventory remained an exact-CI verdict under the 60-second local budget.
+- Exact-head CI run `33545829167` is green 30/30 with backend shards 20/20.
+  `build-linux` passed the structural component contract in 25m55s. Full
+  self-host passed in 34m36s and records exactly one 173259-line `gen2 == gen3`
+  fixed point, receipt-bound driver adoption, Pergyra-built DRV-2 installation,
+  and focused let-receipt marker.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
   `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.20% and
-  project forecast remains 83%. Next step is diff review, commit/push, and
-  exact CI. The delegated fuzz campaign is read-only, found no new issue in
-  1,440 mode invocations, and leaves the existing `enum({` native-HIR hang as
-  separate waiting work.
+  project forecast remains 83%. This rung is published and closed; no successor
+  is inferred without a fresh executable falsifier. The delegated fuzz
+  campaign is read-only, found no new issue in 1,440 mode invocations, and
+  leaves the existing `enum({` native-HIR hang as separate waiting work.
 
 ## Published — compare-type-mismatch public JSON receipt exact-CI green
 
