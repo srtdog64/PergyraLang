@@ -1,6 +1,6 @@
 # Optimization-neutral machine-manifest read
 
-Status: LOCAL IMPLEMENTATION COMPLETE
+Status: IMPLEMENTATION COMPLETE
 
 Exact base: `3e536a82caa33f1c6ee4c16fc1c1a9c787a456b0`
 
@@ -84,6 +84,14 @@ is claimed until the installed-owner gate passes. SoT remains `88/183`,
   change is claimed locally.
 - Implementation `e84d1ca6bf50841739b6c83743e5c5a09d72a64d` exact run
   `33459018691` is green 30/30, but full-log inspection found no execution of
-  the focused machine-manifest owner gate. This is not publication evidence.
-  The installed CLI aggregate must explicitly depend on that gate and a repair
-  exact run must show its PASS line before this rung can close.
+  the focused machine-manifest owner gate. It was therefore not publication
+  evidence and triggered the explicit installed CLI dependency repaired below.
+- Integration repair `b73671a9d1d1288c641c87783a46af864c3a1504` is on
+  `origin/main`. Exact repair run `33461835867` is green 30/30 and its full
+  self-host log records `gen2 == gen3 (173074 lines)`, installs the
+  receipt-bound Pergyra DRV-2, then explicitly passes the machine-manifest owner
+  gate before the source-inspection and MIR profile gates. Full self-host took
+  31.47 minutes and build-linux 25.42 minutes; both bootstrap jobs, Rocq,
+  sanitizers, Linux/Windows/macOS, backend toolchain, and all 20 backend shards
+  pass. The publication falsifier is closed; no successor is inferred from this
+  boundary or its timing.

@@ -18,12 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — optimization-neutral machine manifest local green
+## Published — optimization-neutral machine manifest exact-CI green
 
-- Exact base/current published HEAD is
-  `3e536a82caa33f1c6ee4c16fc1c1a9c787a456b0`; implementation is dirty and not
-  yet published. Protected unrelated untracked paths remain outside inspection,
-  edit, and staging.
+- Exact base is `3e536a82caa33f1c6ee4c16fc1c1a9c787a456b0`. Implementation
+  `e84d1ca6bf50841739b6c83743e5c5a09d72a64d` and CI integration repair
+  `b73671a9d1d1288c641c87783a46af864c3a1504` are on `origin/main`. Protected
+  unrelated untracked paths remain outside inspection, edit, and staging.
 - Production entrypoint is public `--machine-manifest-json --opt=dev`. The
   deletion target is the release-only predicate in
   `driver_self_host_machine_manifest_request_supported`; the immutable
@@ -38,14 +38,23 @@ percentage by themselves.
 - Exact objective and local evidence are in
   `docs/agent_work_directives/optimization_neutral_machine_manifest_read_2026-09-01.md`.
   Component/hard, SoT edge, Gate single-owner, protocol registry, substitution
-  velocity, and documentation contracts pass. Next executable action is one
-  implementation commit/push and exact CI observation. SoT remains `88/183`,
-  `55/32/1`; project forecast remains 83%.
+  velocity, and documentation contracts pass. SoT remains `88/183`, `55/32/1`;
+  project forecast remains 83%.
 - Implementation `e84d1ca6bf50841739b6c83743e5c5a09d72a64d` exact run
   `33459018691` is green 30/30, but full-log inspection found no focused
-  machine-manifest gate execution. Do not publish from that green run. Wire the
-  gate into installed CLI aggregation and require its PASS line in a repair
-  exact run.
+  machine-manifest gate execution. That first green run was insufficient for
+  publication and triggered the installed CLI aggregation repair below.
+- Integration repair `b73671a9d1d1288c641c87783a46af864c3a1504` exact run
+  `33461835867` is green 30/30. Full self-host records
+  `gen2 == gen3 (173074 lines)`, installs the receipt-bound Pergyra DRV-2, and
+  explicitly passes the machine-manifest owner gate before the source-inspection
+  and MIR profile gates. Full self-host took 31.47 minutes and build-linux
+  25.42 minutes; both bootstrap jobs, Rocq, sanitizers, all platforms, backend
+  toolchain, and all 20 comparison shards passed.
+- The publication falsifier is closed. Resume by selecting one fresh production
+  executable falsifier; do not infer target-envelope, physical-manifest, or
+  native-only IR work from this boundary or its timing. SoT remains `88/183`,
+  `55/32/1`; project forecast remains 83%.
 
 ## Published — optimization-neutral MIR reads exact-CI green
 

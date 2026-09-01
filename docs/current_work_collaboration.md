@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — optimization-neutral machine-manifest read
+## DONE lease — optimization-neutral machine-manifest read
 
 - Exact base is `3e536a82caa33f1c6ee4c16fc1c1a9c787a456b0`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -24,15 +24,22 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Gate single-owner, protocol registry, substitution velocity, and document
   contracts also pass. Exact objective and evidence are in
   `docs/agent_work_directives/optimization_neutral_machine_manifest_read_2026-09-01.md`.
-- The lease remains active through component/hard/SoT verification,
-  commit/push, and exact CI. SoT remains `88/183`, `55/32/1`; project forecast
-  remains 83%. Protected unrelated untracked
+- Local evidence alone did not close the lease; component/hard/SoT,
+  commit/push, and exact-CI observation were required. SoT remains `88/183`,
+  `55/32/1`; project forecast remains 83%. Protected unrelated untracked
   `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/` remain
   outside inspection, edit, and staging.
 - Implementation `e84d1ca6bf50841739b6c83743e5c5a09d72a64d` exact run
   `33459018691` is green 30/30, but its full log did not execute the focused
-  machine-manifest gate. The lease therefore remains active while the installed
-  CLI aggregate is wired to that gate and a repair exact run is observed.
+  machine-manifest gate. The lease therefore stayed active while the installed
+  CLI aggregate was wired to that gate and the repair exact run was observed.
+- Integration repair `b73671a9d1d1288c641c87783a46af864c3a1504` is on
+  `origin/main`. Exact repair run `33461835867` is green 30/30; full self-host
+  records `gen2 == gen3 (173074 lines)`, installs the receipt-bound DRV-2, and
+  explicitly passes the machine-manifest owner gate before installed CLI
+  aggregation. All platforms, Rocq, sanitizers, both bootstrap jobs, and all 20
+  backend shards pass. The publication falsifier is closed and this lease is
+  retired.
 
 ## DONE lease — optimization-neutral MIR read outputs
 
