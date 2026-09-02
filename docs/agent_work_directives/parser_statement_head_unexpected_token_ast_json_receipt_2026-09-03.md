@@ -1,6 +1,6 @@
 # Parser Statement-Head Unexpected-Token AST JSON Receipt
 
-Status: IMPLEMENTATION COMPLETE — LOCAL GREEN, PUBLICATION PENDING
+Status: COMPLETE — PUBLISHED, EXACT-CI GREEN
 
 Exact base revision: `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`
 
@@ -108,5 +108,18 @@ progress increment, or completion claim.
 - `parser_parity.sh` is explicitly not claimed green: it fails at the existing
   `ChannelSend:` source-location kind gap described above. That blocker neither
   owns nor invalidates this receipt, but must be closed before claiming the
-  189-source parser parity suite. Remote exact-head CI remains the publication
-  falsifier.
+  189-source parser parity suite.
+
+## Publication evidence
+
+- Implementation `61189ba7e261f329f5238b4de49958f0cc040c8f` and publication
+  checkpoint `288722ee34c2e121dd1471ed9fafb23c086fb615` are on `origin/main`.
+- Exact-head CI run `33672957959` completed `30/30` success in 35 minutes 47
+  seconds. `build-linux` passed in 18 minutes 6 seconds. Full self-host passed
+  in 35 minutes 26 seconds with `gen2 == gen3 (173483 lines)` and installed a
+  Pergyra-built DRV-2.
+- The same full self-host job emitted the exact focused marker
+  `[self-host-public-ast-json-diagnostic] ... statement-head unexpected-token
+  parser receipts ...: PASS`, passed both installed-driver CLI markers, and
+  completed the three-source policy-corpus census. The publication falsifier
+  is closed.

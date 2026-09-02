@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — parser statement-head unexpected-token AST JSON receipt
+## DONE lease — parser statement-head unexpected-token AST JSON receipt
 
 - Exact base is `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`, equal to
   `origin/main` when this lease opened. The primary task is the sole code,
@@ -39,8 +39,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Fresh installed DRV-2 SHA-256
   `1534140B2754D862473FA8B1F60B687297B6F96568BD9CD62A8A4279AB8B8901`
   passes the focused statement-head receipt and complete installed CLI
-  aggregate. Static hard/preparation/diagnostic gates are green. Exact-head CI
-  is still required before this lease moves to `DONE`.
+  aggregate. Static hard/preparation/diagnostic gates are green. Implementation
+  `61189ba7e261f329f5238b4de49958f0cc040c8f` and publication checkpoint
+  `288722ee34c2e121dd1471ed9fafb23c086fb615` are on `origin/main`.
+- Exact-head CI run `33672957959` completed `30/30` success at the publication
+  checkpoint in 35 minutes 47 seconds. `build-linux` passed in 18 minutes 6
+  seconds. Full self-host passed in 35 minutes 26 seconds with
+  `gen2 == gen3 (173483 lines)`, installed a Pergyra-built DRV-2, passed the
+  focused statement-head AST marker and complete installed CLI aggregate, and
+  censused all three policy sources. The publication falsifier is closed and
+  this lease is retired.
 
 ## DONE lease — parser statement-terminator AST JSON receipt
 

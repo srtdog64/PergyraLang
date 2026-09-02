@@ -2,8 +2,8 @@
 
 마지막 업데이트: 2026-09-03
 
-현재 publication 대기 중인 bounded executable rung은 parser statement-head의
-public AST JSON receipt다. 정확히 한 바이트인 `=`는 expression parser에 도달하기
+가장 최근 닫힌 bounded executable rung은 parser statement-head의 public AST JSON
+receipt다. 정확히 한 바이트인 `=`는 expression parser에 도달하기
 전에 `ReadIdent`가 빈 statement head를 반환하는 분기에서 종료된다. 기존 public
 JSON은 generic child failure만 보고했지만 explicit native AST는 line 1, column 1의
 `PGY_PARSE_SYNTAX` / `parse:unexpected_token` / `check-syntax` identity를 소유했다.
@@ -18,11 +18,17 @@ preparation/hard/diagnostic static gate가 green이다. 다만 `parser_parity.sh
 기존 typed-AST text registry에 `ChannelSend:` source-location kind가 없어
 `async_demo.pgy`에서 fail-closed한다. `ch <- 99;` 한 문장으로 최소화됐고 expression
 owner를 opening base와 byte-identical로 복원한 뒤에도 재현되므로 이번 receipt의
-회귀로 계산하지 않는다. Exact-head CI 전까지 candidate이며, 이 bounded repair는
-`diagnostic.catalog` 전체 폐쇄나 Pergyra-for-C 치환 증분이 아니다. 따라서 census
+회귀로 계산하지 않는다. 구현 `61189ba7e261f329f5238b4de49958f0cc040c8f`와
+publication checkpoint `288722ee34c2e121dd1471ed9fafb23c086fb615`은
+`origin/main`에 있다. Exact-head CI run `33672957959`은 35m47s, 30/30 green이며
+`build-linux` 18m06s, full self-host 35m26s다. Full self-host는
+`gen2 == gen3 (173483 lines)`, Pergyra-built DRV-2 설치, focused statement-head AST
+marker, complete installed CLI aggregate, policy source 3건 census를 증명했다. 이
+bounded repair는 `diagnostic.catalog` 전체 폐쇄나 Pergyra-for-C 치환 증분이 아니다.
+따라서 census
 `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%, 통합
-진행도 **83%** (81~85%)를 유지한다. Local implementation revision은
-`61189ba7e261f329f5238b4de49958f0cc040c8f`이다.
+진행도 **83%** (81~85%)를 유지한다. 다음 구체 parser parity falsifier는 별도의
+`ChannelSend:` typed-AST source-location kind gap이다.
 
 가장 최근 닫힌 bounded executable rung은 top-level expression statement terminator의
 public AST JSON receipt다. 삭제 최소 `c C`는 public/native AST 모두 거절하지만,

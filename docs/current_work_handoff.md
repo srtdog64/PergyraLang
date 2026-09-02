@@ -18,11 +18,11 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Candidate — parser statement-head AST JSON receipt, local green
+## Published — parser statement-head AST JSON receipt exact-CI green
 
-- Exact opening base is `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`;
-  local implementation revision is
-  `61189ba7e261f329f5238b4de49958f0cc040c8f` and is not yet published.
+- Exact opening base is `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`.
+  Implementation `61189ba7e261f329f5238b4de49958f0cc040c8f` and publication
+  checkpoint `288722ee34c2e121dd1471ed9fafb23c086fb615` are on `origin/main`.
   Protected unrelated untracked paths remain outside inspection, edit, and
   staging.
 - Exact one-byte `=` reaches the initial `ParseOneStmtCore` empty-head branch:
@@ -53,7 +53,16 @@ percentage by themselves.
 - Objective card and rejected alternatives are in
   `docs/agent_work_directives/parser_statement_head_unexpected_token_ast_json_receipt_2026-09-03.md`.
   SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
-  project forecast remains 83%. Exact-head CI is the publication falsifier.
+  project forecast remains 83%.
+- Exact-head CI run `33672957959` completed `30/30` success at
+  `288722ee34c2e121dd1471ed9fafb23c086fb615` in 35 minutes 47 seconds.
+  `build-linux` passed in 18 minutes 6 seconds. Full self-host passed in 35
+  minutes 26 seconds with `gen2 == gen3 (173483 lines)`, installed a
+  Pergyra-built DRV-2, passed the focused statement-head AST marker and the
+  complete installed CLI aggregate, and censused all three policy sources.
+  The separate `ChannelSend:` typed-AST source-location gap remains the next
+  concrete parser parity falsifier; it is not retroactively folded into this
+  published receipt.
 
 ## Published — parser statement-terminator AST JSON receipt exact-CI green
 
