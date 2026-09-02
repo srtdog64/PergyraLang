@@ -1,8 +1,10 @@
 # Parser Statement-Terminator AST JSON Receipt
 
-Status: IMPLEMENTATION COMPLETE — LOCAL INSTALLED GREEN, PUBLICATION PENDING
+Status: IMPLEMENTATION COMPLETE — PUBLISHED, EXACT CI PENDING
 
 Exact base revision: `24397904d4a2f4a9b650205fde0b3020cb251b87`
+
+Implementation revision: `66ffd0e2149b3ca03e2c804b4f7d5c42410e823b`
 
 This directive coordinates one bounded executable diagnostic-receipt repair.
 It is not a semantic owner, SoT registry, progress increment, general parser
@@ -107,3 +109,5 @@ recovery campaign, or completion claim.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
   project forecast remains 83%. This closes one reached executable receipt
   seam and does not close the whole `diagnostic.catalog` row.
+- Implementation `66ffd0e2149b3ca03e2c804b4f7d5c42410e823b` is published on
+  `origin/main`. Exact-head CI remains the publication falsifier.

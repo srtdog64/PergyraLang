@@ -17,8 +17,10 @@ AST receipt와 complete installed CLI aggregate가 green이고, public/native는
 `parse` / `syntax` / `PGY_PARSE_SYNTAX` / `parse:unexpected_token` /
 `check-syntax` identity를 공유한다. Static diagnostic, hard-owner, SoT edge,
 documentation gates도 green이다. 로컬 formal adequacy는 Coq/Rocq 부재를 명시한
-declared skip이며 exact CI가 남았다. 이 receipt seam은 `diagnostic.catalog` 전체를
-닫지 않으므로 census `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9,
+declared skip이다. 구현 `66ffd0e2149b3ca03e2c804b4f7d5c42410e823b`은
+`origin/main`에 게시됐고 exact-head CI가 남았다. 이 receipt seam은
+`diagnostic.catalog` 전체를 닫지 않으므로 census `88/183`,
+`CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9,
 hard replacement 75%, 통합 진행도 **83%** (81~85%)를 유지한다.
 
 가장 최근 닫힌 bounded executable rung은 array index type semantic admission이다.

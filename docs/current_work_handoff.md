@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Local candidate — parser statement-terminator AST JSON receipt
+## Published candidate — parser statement-terminator AST JSON receipt, exact CI pending
 
 - Exact opening base is `24397904d4a2f4a9b650205fde0b3020cb251b87`, equal
   to `origin/main`; protected unrelated untracked paths remain outside
@@ -45,8 +45,9 @@ percentage by themselves.
   `D199A71301476FFC68916E98B81C9A5D0751A9E06A0DABEA846F5E15EE1F7992`
   passes the focused exact receipt gate and the complete installed CLI
   aggregate. Static diagnostic, hard-owner, SoT edge, and documentation gates
-  are green. Local formal adequacy is a declared no-Coq skip; publication and
-  exact CI remain pending.
+  are green. Local formal adequacy is a declared no-Coq skip. Implementation
+  `66ffd0e2149b3ca03e2c804b4f7d5c42410e823b` is published on
+  `origin/main`; exact-head CI remains pending.
 
 ## Published — array index type semantic admission exact-CI green
 

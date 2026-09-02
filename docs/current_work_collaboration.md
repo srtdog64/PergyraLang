@@ -31,7 +31,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   native five-axis identity, valid/callable AST controls, and the complete
   installed CLI aggregate. Static diagnostic, hard-owner, SoT edge, and
   documentation gates are green. Local formal adequacy is a declared no-Coq
-  skip; exact CI and publication remain pending, so this lease stays ACTIVE.
+  skip. Implementation `66ffd0e2149b3ca03e2c804b4f7d5c42410e823b` is
+  published on `origin/main`; exact-head CI remains pending, so this lease
+  stays ACTIVE.
 
 ## DONE lease — array index type semantic admission
 
