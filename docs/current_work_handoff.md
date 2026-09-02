@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Local candidate — native malformed-enum parser progress
+## Published — native malformed-enum parser progress exact-CI green
 
 - Exact opening base is `9090a5fa7c9c9b63aa2e774b25aaff5aa8873724`, equal to
   `origin/main` when the rung opened. Protected unrelated untracked paths
@@ -43,7 +43,14 @@ percentage by themselves.
 - This native security/progress repair does not change the SoT registry or
   count as Pergyra substitution progress. SoT remains `88/183`,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project forecast remains
-  83%. Next action is scoped diff review, commit/push, and exact-head CI.
+  83%.
+- Exact implementation revision
+  `fd922583da3c614be2ac01bdf6fa4e7975c9f5aa` is published on `origin/main`.
+  Exact CI run `33623390151` completed `30/30` success in 35 minutes 37
+  seconds. `build-linux` completed in 25 minutes 10 seconds and executed the
+  focused enum progress gate through the self-host preparation contract; full
+  self-host completed in 35 minutes 20 seconds. No successor implementation
+  rung is inferred from this native parser repair.
 
 ## Published — vessel method argument-type semantic admission
 

@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — native malformed-enum parser progress
+## DONE lease — native malformed-enum parser progress
 
 - Exact base is `9090a5fa7c9c9b63aa2e774b25aaff5aa8873724`, equal to
   `origin/main` when this lease opened. The primary task is the sole compiler,
@@ -28,6 +28,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - This is a bounded native progress/security repair requested by the user. It
   does not change a SoT row, count as Pergyra self-host substitution progress,
   or authorize unrelated parser recovery work.
+- Exact implementation revision
+  `fd922583da3c614be2ac01bdf6fa4e7975c9f5aa` is published on `origin/main`.
+  Exact CI run `33623390151` completed `30/30` success in 35 minutes 37
+  seconds. `build-linux` completed in 25 minutes 10 seconds with the focused
+  enum progress gate reached through the self-host preparation contract; full
+  self-host completed in 35 minutes 20 seconds. The lease is DONE and opens no
+  general parser-recovery campaign.
 
 ## DONE lease — vessel method argument-type semantic admission
 

@@ -1,6 +1,6 @@
 # Native Malformed-Enum Parser Progress
 
-Status: ACTIVE — LOCALLY GREEN, PUBLICATION/EXACT CI PENDING
+Status: IMPLEMENTATION COMPLETE — PUBLISHED, EXACT CI GREEN
 
 Exact base revision: `9090a5fa7c9c9b63aa2e774b25aaff5aa8873724`
 
@@ -69,4 +69,11 @@ general parser-recovery campaign.
   neighbors terminate, and the valid enum native AST control succeeds.
 - `make test-parser`, the Make-wired focused target, Bash syntax, build-source
   inventory, self-host preparation, and CI-profile static gates are green.
-  Exact publication and push CI remain pending.
+- Exact implementation revision
+  `fd922583da3c614be2ac01bdf6fa4e7975c9f5aa` is published on `origin/main`.
+  Exact CI run `33623390151` completed `30/30` success in 35 minutes 37
+  seconds. `build-linux` completed in 25 minutes 10 seconds and executed the
+  focused gate through the self-host preparation contract; full self-host
+  completed in 35 minutes 20 seconds.
+- This closes only the bounded native enum parser-progress defect. It changes
+  no SoT row and contributes no Pergyra self-host substitution increment.
