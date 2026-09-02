@@ -3231,6 +3231,10 @@ self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-seed-test-smo
 self-host-driver-fixed-point-receipt-test-smoke:
 	"$(BASH)" tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh
 
+.PHONY: self-host-codegen-seed-receipt-test-smoke
+self-host-codegen-seed-receipt-test-smoke:
+	"$(BASH)" tests/self_hosted/parity/codegen_bootstrap_seed_receipt_smoke.sh
+
 self-host-one-mir-dual-backend-projection-test-smoke: self-host-driver-bootstrap-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_dual_backend_projection.sh
 

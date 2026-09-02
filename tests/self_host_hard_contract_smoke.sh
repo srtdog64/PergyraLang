@@ -1100,6 +1100,14 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'pgy_selfhost_driver_installer_prebuild_key'
 require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'pgy_selfhost_driver_validate_installed_artifact_receipt'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    'pgy_selfhost_codegen_seed_try_reuse'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    'pgy_selfhost_codegen_seed_record'
+require_text "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh" \
+    'pgy_selfhost_driver_source_graph_fingerprint'
+require_text "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh" \
+    'pgy_selfhost_codegen_seed_validate_artifact_receipt'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" \
     'pgy_selfhost_driver_write_fixed_point_receipt'
 forbid_text "tests/self_hosted/parity/self_host_compiler_build.sh" \

@@ -6,6 +6,38 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — codegen seed prebuild receipt
+
+- Exact base is `2b4cf40115e848b0077e759419254390bf83729e`, equal to
+  `origin/main` when this lease opened. The primary task is the sole code,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- An exact Make-environment installer call reuses DRV-2 before emission in 12
+  seconds. The phony seed prerequisite then takes about 227 seconds despite
+  producing byte-identical `gen2.c`; only the relinked Windows `gen2.exe` hash
+  changes, which invalidates the conservative installer key and triggers a
+  second DRV-2 emission.
+- The bounded target is a seed-owned prebuild key plus exact gen2 C/binary
+  output receipt. It must skip the unchanged oracle/gen1/gen2 operation before
+  emission, reject damaged or changed evidence, and leave full fixed-point and
+  installed-driver receipt rules intact.
+- Exact objective, forbidden fallbacks, and falsifier are fixed in
+  `docs/agent_work_directives/codegen_seed_prebuild_receipt_2026-09-03.md`.
+  SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%.
+- Local candidate binds seed inputs separately from exact gen2 C/binary output.
+  The first final receipt-producing seed run took 307.2 seconds; its identical
+  repeat stopped before oracle build in 20.9 seconds. After one expected DRV-2
+  refresh, repeated `self-host-compiler` reused both compiler-scale artifacts in
+  32.5 seconds.
+- Fresh installed DRV-2 SHA-256 `8EB168AD...E6AC` passes the complete installed
+  CLI aggregate in 209.9 seconds with seed reuse 1, driver reuse 1, and driver
+  emission 0. Focused receipt, build-source, hard, documentation, and broad
+  component gates are green. Exact-head full fixed-point/CI remains required
+  before this lease becomes `DONE`.
+- The expanded preparation contract reached formal adequacy after its owner
+  suite passed, then stopped because this host has no Rocq/Coq executable. No
+  local prover pass is claimed; the exact CI Rocq 9 job remains load-bearing.
+
 ## DONE lease — parser statement typed-AST source-location admission
 
 - Exact base is `59cdf9002d5b190a911c1eca2ae26b835e95951e`, equal to

@@ -579,6 +579,13 @@ if ! grep -Fq 'self-host-driver-fixed-point-receipt-test-smoke' \
     echo "[build-source-inventory] fixed-point driver reuse must stay receipt-gated in Linux CI" >&2
     missing=1
 fi
+if ! grep -Fq 'self-host-codegen-seed-receipt-test-smoke' \
+    "$ROOT_DIR/scripts/ci_linux_steps.sh" \
+    || ! grep -Fq 'self-host-codegen-seed-receipt-test-smoke' \
+    "$ROOT_DIR/scripts/ci_push_linux_steps.sh"; then
+    echo "[build-source-inventory] codegen seed reuse must stay receipt-gated in Linux CI" >&2
+    missing=1
+fi
 if ! grep -Fq 'self-host-domain-runtime-zone-sync-test-smoke' \
     "$ROOT_DIR/scripts/ci_linux_steps.sh" \
     || ! grep -Fq 'self-host-domain-runtime-zone-sync-test-smoke' \

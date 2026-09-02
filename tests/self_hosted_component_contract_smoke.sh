@@ -9298,6 +9298,12 @@ require_max_lines \
 require_file "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh"
 require_max_lines \
     "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" 125
+require_file "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh" 180
+require_file "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_smoke.sh"
+require_max_lines \
+    "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_smoke.sh" 120
 require_file "tests/self_hosted/parity/public_mir_json_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_mir_diagnostic_installed_self_host_owner.sh"
 require_file "tests/self_hosted/parity/public_artifact_json_diagnostic_receipt_owner.sh"
@@ -9874,6 +9880,17 @@ require_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
 require_text "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" \
     'require_rejected source-graph'
 require_text "Makefile" "self-host-driver-fixed-point-receipt-test-smoke:"
+require_text "Makefile" "self-host-codegen-seed-receipt-test-smoke:"
+require_text "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh" \
+    'schema=pgy.selfhost.codegen-seed-prebuild.v1'
+require_text "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh" \
+    'schema=pgy.selfhost.codegen-seed-artifact.v1'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    'pgy_selfhost_codegen_seed_try_reuse'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    'pgy_selfhost_codegen_seed_record'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    'reusing fingerprinted gen2 seed before oracle build'
 reject_text "tests/self_hosted/parity/self_host_compiler_build.sh" \
     'DRIVER_SOURCE="src/self_hosted/compiler/driver_rung2_main.pgy"'
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" \

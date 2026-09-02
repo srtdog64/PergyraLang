@@ -18,6 +18,43 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — codegen seed prebuild receipt
+
+- Exact base is `2b4cf40115e848b0077e759419254390bf83729e`, equal to
+  `origin/main`; protected unrelated untracked paths remain outside inspection,
+  edit, and staging.
+- An exact Make-environment installer call reuses the current installed driver
+  before emission in 12 seconds. The ordinary phony seed prerequisite still
+  spends about 227 seconds rebuilding oracle/gen1/gen2 for unchanged input.
+- The measured rerun preserves `gen2.c` byte-for-byte at
+  `3F311DDB3CAF040558EFA00FB8AA21DEB7D7D68FD5636D507835F07F66E9CB00`
+  but changes the relinked Windows `gen2.exe` hash from `850BB5FD...` to
+  `A4A468CE...`. That physical hash change then correctly invalidates the
+  conservative DRV-2 installer key, exposing the missing seed-level reuse
+  boundary.
+- The active candidate adds one seed-owned input key and exact gen2 C/binary
+  output receipt. Identical evidence must return before `building oracle tool`;
+  changed source, toolchain, owner, C output, binary output, or runnable state
+  must rebuild or fail explicitly. Full `gen2 == gen3` remains unchanged.
+- Exact owner card and integration falsifier are in
+  `docs/agent_work_directives/codegen_seed_prebuild_receipt_2026-09-03.md`.
+  This performance rung changes neither SoT status nor project percentage.
+- Local candidate separates the input key from an exact gen2 C/binary output
+  receipt. The final first receipt-producing seed run took 307.2 seconds; an
+  identical second seed-only call stopped before oracle build in 20.9 seconds.
+- One expected DRV-2 refresh then took 304.3 seconds. The immediately repeated
+  complete `self-host-compiler` reused both seed and driver before emission in
+  32.5 seconds. Fresh installed DRV-2 SHA-256 `8EB168AD...E6AC` passes the full
+  installed CLI aggregate in 209.9 seconds with one seed reuse, one driver
+  reuse, and zero driver emissions.
+- Focused receipt, build-source inventory, hard, documentation, and broad
+  component gates are green. The next falsifier is exact-head full
+  `gen2 == gen3` plus platform CI. Until then this remains an implementation
+  candidate and the lease stays active.
+- The broader preparation contract reached its formal adequacy step after the
+  owner suite passed, then stopped because local Rocq/Coq is absent. No proof
+  pass is claimed; exact CI's Rocq 9 job must supply that evidence.
+
 ## Published — parser statement typed-AST source-location admission exact-CI green
 
 - Exact opening base is `59cdf9002d5b190a911c1eca2ae26b835e95951e`, equal

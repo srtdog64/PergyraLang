@@ -9,15 +9,7 @@
 #   gen2 = gen1.exe(main.pgy AST) -> C  -> gcc -> gen2.exe   (a Pergyra-built tool)
 #   gen3 = gen2.exe(main.pgy AST) -> C
 #   FIXPOINT: gen2 == gen3 byte-identical.
-# Set PGY_SELFHOST_CODEGEN_FIXPOINT_ONLY=1 to stop after that proof while
-# preserving the default full breadth run used by integration CI.
-#
-# (gen1 vs gen2 may differ by a trailing newline only -- gen0 uses the oracle's
-# `Log`, gen1+ use the emitted `printf("%s\n", ...)`. From gen2 on, the lineage
-# is fully Pergyra-built and must be a stable fixpoint.)
-#
-# Also checks that the Pergyra-built tool emits byte-identical C to the oracle-
-# built tool for a sample of committed fixtures.
+# Full, fixpoint-only, and seed-only modes stop at their named evidence boundary.
 
 set -euo pipefail
 if ! command -v dirname >/dev/null 2>&1 \
@@ -32,6 +24,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/parser_tool_build_leg.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap_compile_leg.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
@@ -344,18 +337,27 @@ compare_artifact_with_owner() {
     fi
 }
 
-# gen0: oracle-built tool.
-#
-# --native-pipeline is load-bearing here. A plain `--backend=c -o` compile now
-# delegates to the installed self-host driver, and that driver is precisely
-# what this bootstrap produces: on a clean checkout there is none, so the
-# oracle build fails outright, and once one exists the "oracle" would be built
-# by the very compiler it is meant to independently judge. Every oracle and
-# scaffolding build below takes the native pipeline for the same reason.
+if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
+    compile_parser_ast_producer
+    set +e
+    pgy_selfhost_codegen_seed_try_reuse "$ROOT_DIR" "$B" "$PGY" "$CC" "${BASH_SOURCE[0]}"
+    seed_reuse_status=$?
+    set -e
+    if [[ "$seed_reuse_status" -eq 0 ]]; then
+        echo "[self-host-bootstrap] reusing fingerprinted gen2 seed before oracle build"
+        exit 0
+    fi
+    [[ "$seed_reuse_status" -eq 1 ]] || exit "$seed_reuse_status"
+fi
+
+# gen0 and scaffolding require --native-pipeline: they precede and independently
+# judge the installed self-host driver that ordinary compilation delegates to.
 echo "[self-host-bootstrap] building oracle tool (gen0)..."
 (cd "$ROOT_DIR" && "$PGY" "${TOOL_SOURCE#"$ROOT_DIR"/}" --native-pipeline \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$B/gen0.exe")" >/dev/null)
-compile_parser_ast_producer
+if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" != "1" ]]; then
+    compile_parser_ast_producer
+fi
 
 # main.pgy's own AST (repo-relative path so the native tool resolves it from cwd)
 AST_REL="$B_REL/main_ast.txt"
@@ -376,6 +378,7 @@ compile_c_artifact_with_bounded_log "gen2" "$B/gen2.c" "$B/gen2.exe" || {
 
 # Reject a stale cross-platform seed before another bootstrap consumes it.
 pgy_binary_is_runnable_here "$B/gen2.exe" || { echo "[self-host-bootstrap] gen2.exe is not runnable on this host (cross-platform residue?)" >&2; exit 1; }
+pgy_selfhost_codegen_seed_record "$ROOT_DIR" "$B" "$PGY" "$CC" "${BASH_SOURCE[0]}"
 
 if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
     echo "[self-host-bootstrap] seed artifacts ready: gen2 codegen and parser AST producer"

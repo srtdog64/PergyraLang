@@ -2,6 +2,22 @@
 
 마지막 업데이트: 2026-09-03
 
+현재 active executable rung은 codegen seed prebuild receipt다. unchanged semantic
+input에서 phony seed prerequisite가 약 2,200개 source graph를 다시 빌드해
+`gen2.c`는 byte-identical인데 Windows `gen2.exe`의 물리 해시만 바꾸고, 그 결과
+보수적인 DRV-2 installer key까지 무효화하는 흐름을 재현했다. 후보 구현은
+source graph, native compiler, C toolchain, runtime headers, compile profile, owner
+scripts를 하나의 seed prebuild key로 소유하고 gen2 C/binary를 별도 exact output
+receipt로 묶는다. 최초 기준 생성은 307.2초였지만 두 번째 seed-only 호출은 oracle
+build 전에 20.9초로 종료했다. 첫 DRV-2 갱신은 304.3초였고 같은
+`self-host-compiler` 반복은 seed와 driver를 모두 재사용해 32.5초였다. complete
+installed CLI aggregate도 209.9초에 green이며 seed reuse 1회, driver reuse 1회,
+driver emit 0회를 기록했다. Focused receipt, build-source inventory, hard contract,
+documentation quality, broad component inventory가 green이다. Exact-head CI 전까지
+이는 local implementation candidate이며 SoT `88/183`, `CLOSED=55 BRIDGE=32
+ACTIVE=1`, blocker 9, hard replacement 75%, 통합 진행도 **83%** (81~85%)는
+변하지 않는다.
+
 가장 최근 닫힌 executable rung은 parser statement typed-AST source-location
 admission이다. parser cluster는 이미 canonical AST row를 만들지만
 `TypedAstTextKindOf`가 7개 기존 C-AST statement 종류를 `Unknown`으로 남겨 reserved
@@ -21,9 +37,8 @@ self-host는 36m26s에 통과했고 `gen2 == gen3 (173546 lines)`, Pergyra-built
 installed AST/CLI aggregate, policy source 3건 census를 확인했다. 따라서 SoT
 `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9,
 hard replacement 75%, 통합 진행도 **83%** (81~85%)는 변하지 않는다.
-다음 실제 관측 concern은 unchanged semantic input인데도 installed CLI aggregate가
-phony seed를 재빌드하고 DRV-2 prebuild receipt를 놓쳐 compiler-scale emission을
-반복하는 성능 seam이다.
+그 다음 실제 관측 concern이었던 phony seed/DRV-2 중복 compiler-scale emission은
+위 active receipt rung에서 local falsifier를 통과했고 exact-head CI를 기다린다.
 
 가장 최근 닫힌 bounded executable rung은 parser statement-head의 public AST JSON
 receipt다. 정확히 한 바이트인 `=`는 expression parser에 도달하기
