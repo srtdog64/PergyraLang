@@ -6,6 +6,37 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — vessel method argument-type semantic admission
+
+- Exact base is `6d849b168e616eab63640ac4ca5eefbe97b1e929`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement confirms public/self-driver MIR and public C
+  admit `v.F(0)` for `F(self, x: V) -> Void`, while native MIR/C reject with
+  exact `PGY_SEM_TYPE_MISMATCH`, call-argument cause, and `V`/`Int` facts. The
+  valid `v.F(x)` control succeeds on both paths.
+- Existing member target and signature owners already carry `V.F`, receiver
+  offset one, and the `V` parameter. The deletion target is the verdict
+  consumer's concrete-scalar-return gate; member text reconstruction, another
+  signature table, C mapping, native retry, backend repair, and receiver ABI
+  changes are forbidden.
+- Exact objective and falsifier are in
+  `docs/agent_work_directives/vessel_method_argument_type_admission_2026-09-02.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; implementation volume is
+  21.29% and project forecast remains 83%.
+- The primary task owns this production rung. The delegated fuzz task excludes
+  the vessel axis and may write one read-only audit only; it owns no compiler,
+  SoT, registry, CI, publication, or priority decision.
+- Local candidate is green: Pergyra-built DRV-2 SHA-256
+  `45D3EF8DFC97031317DF106F7E14A17B5A383961F761746131CF7FA12BE26014`,
+  focused vessel parity, the thirteen-context general-call regression,
+  diagnostic/compiler-world ratchets, and the installed CLI aggregate pass.
+  Commit, push, and exact-head CI observation remain with the primary task.
+- The fuzz-only task finished 1,498 bounded executions and retained exactly
+  `docs/audits/array_index_type_admission_receipt_differential_fuzz_audit_2026-09-02.md`.
+  Its wrong-array-index finding is a successor candidate only and does not
+  reorder or expand this lease.
+
 ## DONE lease — binary-operator type-mismatch public JSON receipt
 
 - Exact base is `6b720aa7d372696764719ec2d25c6333f4debf92`, equal to

@@ -1,0 +1,11 @@
+vessel V {
+    func F(self, x: V) -> Void {
+        return;
+    }
+}
+
+func Main() -> Void {
+    let v: V = V();
+    let x: V = V();
+    v.F(x);
+}

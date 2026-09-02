@@ -58,7 +58,7 @@ func SemanticReason(code: String) -> String {
     if code == "binop_type_mismatch" {
         return "arithmetic operands must have the same type";
     }
-    if code == "call_arg_type_mismatch" {
+    if code == "call_arg_type_mismatch" || code == "member_call_arg_type_mismatch" {
         return "call argument type does not match the callee parameter type";
     }
     if code == "named_value_boundary_argument_required" { return "borrow-tracked value boundaries require one stable source binding"; }
@@ -159,7 +159,7 @@ func SemanticFix(code: String) -> String {
     if code == "binop_type_mismatch" {
         return "use operands with matching arithmetic types";
     }
-    if code == "call_arg_type_mismatch" {
+    if code == "call_arg_type_mismatch" || code == "member_call_arg_type_mismatch" {
         return "change the argument expression or the callee parameter type";
     }
     if code == "named_value_boundary_argument_required" { return "bind the value to a local variable before passing it through the boundary"; }

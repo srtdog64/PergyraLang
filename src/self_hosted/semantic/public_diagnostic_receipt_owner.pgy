@@ -63,6 +63,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "annotate-or-convert"
         );
     }
+    if code == "member_call_arg_type_mismatch" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:call:arg_type_mismatch",
+            "align-arg-type"
+        );
+    }
     if code == "builtin_arg_type_mismatch" {
         return SemanticPublicDiagnosticIdentity(
             true,

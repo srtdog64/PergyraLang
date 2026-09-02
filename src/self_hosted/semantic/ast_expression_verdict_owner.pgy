@@ -290,8 +290,21 @@ func SemanticAstExpressionVerdictFromGraph(
         );
     let graph_call_value_owned: Bool = concrete_scalar_value_owned ||
         contextual_call_arguments_owned;
+    let resolved_member_call_arguments_owned: Bool =
+        SemanticExpressionGraphResolvedMemberCallArgumentsOwned(
+            graph, root_id, constructors, names, types, function_names,
+            function_returns, function_params
+        );
     let call_error: String = "";
     if graph_call_value_owned && !generic_value.applies {
+        call_error = SemanticExpressionGraphConcreteScalarValueError(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns, function_params
+        );
+    } else if resolved_member_call_arguments_owned &&
+        !graph_owned_intrinsic && !generic_value.applies &&
+        !wrapper.applies && !nominal_constructor_call.applies &&
+        !domain_queries.applies {
         call_error = SemanticExpressionGraphConcreteScalarValueError(
             graph, root_id, constructors, names, types,
             function_names, function_returns, function_params

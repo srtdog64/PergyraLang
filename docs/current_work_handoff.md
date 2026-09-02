@@ -18,6 +18,44 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Local candidate — vessel method argument-type semantic admission
+
+- Exact opening base is `6d849b168e616eab63640ac4ca5eefbe97b1e929`, equal to
+  `origin/main` when the rung opened. The worktree is intentionally dirty with
+  this candidate and one delegated fuzz audit; protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: public/native AST both accept the same vessel
+  source, but installed public MIR/C previously admitted `v.F(0)` for
+  `F(self, x: V) -> Void` while native MIR/C rejected with exact
+  `PGY_SEM_TYPE_MISMATCH`, cause `semantic:call:arg_type_mismatch`, fix
+  `align-arg-type`, expected `V`, and actual `Int`. Valid `v.F(x)` succeeds.
+- The existing member target owner already carries `V.F`, receiver offset one,
+  and the method signature. The expression verdict now consumes those facts
+  for exact-arity, graph-owned member arguments independently of return shape;
+  no member text reconstruction, root rescan, signature table, C mapping,
+  native retry, or backend repair was added.
+- General calls retain `call_arg_type_mismatch` with assignability public
+  identity. Resolved member calls use the separately registered
+  `member_call_arg_type_mismatch`, mapped by the same Pergyra receipt owner to
+  the native call-specific identity without message parsing. The vocabulary
+  count contract was corrected from stale 36 to its actual new 39 rows.
+- Fresh Pergyra-built DRV-2 SHA-256 is
+  `45D3EF8DFC97031317DF106F7E14A17B5A383961F761746131CF7FA12BE26014`.
+  Focused vessel parity, the existing thirteen-context general call receipt,
+  diagnostic registry, compiler-world contract, and complete installed CLI
+  aggregate are green. The broad component inventory exceeded its 60-second
+  local budget and was stopped without a failure; exact-head CI must own it.
+- Delegated fuzzing made 1,498 bounded executions without compiler/SoT edits.
+  It recorded a deterministic wrong-String-array-index public/native
+  differential in
+  `docs/audits/array_index_type_admission_receipt_differential_fuzz_audit_2026-09-02.md`.
+  That is a successor candidate, not current-rung progress or priority.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  implementation volume now measures 21.29% and the project forecast remains
+  83%.
+  Next action is diff review, a scoped commit/push, exact-head CI observation,
+  and then a documentation-only publication snapshot if CI is green.
+
 ## Published — binary-operator type-mismatch public receipt exact-CI green
 
 - Exact opening base is `6b720aa7d372696764719ec2d25c6333f4debf92` and exact

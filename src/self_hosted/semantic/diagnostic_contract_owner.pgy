@@ -66,6 +66,16 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "call_arg_type_mismatch", "second call argument wording"
         );
+    let member_call_arg_first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "member_call_arg_type_mismatch",
+            "first member call argument wording"
+        );
+    let member_call_arg_second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "member_call_arg_type_mismatch",
+            "second member call argument wording"
+        );
     let builtin_first: SemanticPublicDiagnosticReceipt =
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "builtin_arg_type_mismatch", "first builtin argument wording"
@@ -155,6 +165,10 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             call_arg_second, "call_arg_type_mismatch"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
+            member_call_arg_first, "member_call_arg_type_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            member_call_arg_second, "member_call_arg_type_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
             builtin_first, "builtin_arg_type_mismatch"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             builtin_second, "builtin_arg_type_mismatch"
@@ -221,6 +235,14 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         call_arg_first.cause_ir == call_arg_second.cause_ir &&
         call_arg_first.fix_source == call_arg_second.fix_source &&
         call_arg_first.message != call_arg_second.message &&
+        member_call_arg_first.schema == member_call_arg_second.schema &&
+        member_call_arg_first.stage == member_call_arg_second.stage &&
+        member_call_arg_first.layer == member_call_arg_second.layer &&
+        member_call_arg_first.code == member_call_arg_second.code &&
+        member_call_arg_first.cause_ir == member_call_arg_second.cause_ir &&
+        member_call_arg_first.fix_source ==
+            member_call_arg_second.fix_source &&
+        member_call_arg_first.message != member_call_arg_second.message &&
         builtin_first.schema == builtin_second.schema &&
         builtin_first.stage == builtin_second.stage &&
         builtin_first.layer == builtin_second.layer &&
@@ -286,7 +308,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
-    if SemanticDiagnosticCodeCount() != 36 {
+    if SemanticDiagnosticCodeCount() != 39 {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {
