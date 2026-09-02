@@ -6,6 +6,31 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — nested collection-call arity semantic admission
+
+- Exact base is `1478c418049cdc39b32bede3c74085ef52f6de02`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner.
+- Fresh production measurement proves public/native AST both accept
+  `let x=SetSize(0,0)-0;`, while public MIR and direct DRV-2 incorrectly
+  publish it, native MIR/C reject with exact builtin-signature identity, and
+  public C reaches only malformed-receipt failure.
+- Existing collection protocol and set-call owners already hold arity one and
+  the exact Pergyra verdict. This lease may only restore invalid nested-call
+  ownership before MIR; text rescanning, native retry, C mapping, another
+  arity table, and backend-only repair are forbidden.
+- Exact objective and falsifier are in
+  `docs/agent_work_directives/nested_collection_call_arity_semantic_admission_2026-09-02.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; project forecast remains
+  83%.
+- A fresh Pergyra-built DRV-2 at SHA-256 `DDB7C12...3FF189`, the focused
+  production gate, existing arity receipt, language registry/golden spine, and
+  installed CLI aggregate are locally green. Publication and exact CI remain
+  with the primary task.
+- The broader standalone semantic parity gate remains an explicitly observed
+  pre-existing bridge at its 115th value-parameter index-assignment golden; it
+  is not being silently counted green or pulled into this edit lease.
+
 ## DONE lease — call-arity-mismatch public JSON receipt
 
 - Exact base is `ff8aa5d09985634d03861fdb0bcb8f6f1df6c386`, equal to

@@ -87,11 +87,7 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
                 function_returns, function_params
             );
     }
-    if ArrayLength(function_names) != ArrayLength(function_params) ||
-        !IsSome(SemanticExpressionGraphResolvedCallConcreteScalarTypeName(
-            graph, node_id, constructors, names, types,
-            function_names, function_returns
-        )) {
+    if ArrayLength(function_names) != ArrayLength(function_params) {
         return false;
     }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
@@ -128,6 +124,15 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     }
     if signature_count < target_fact.parameter_offset { return false; }
     let expected_count: Int = signature_count - target_fact.parameter_offset;
+    if expected_count != ArrayLength(call.argument_nodes) {
+        return true;
+    }
+    if !IsSome(SemanticExpressionGraphResolvedCallConcreteScalarTypeName(
+        graph, node_id, constructors, names, types,
+        function_names, function_returns
+    )) {
+        return false;
+    }
     let i: Int = target_fact.parameter_offset;
     while i < signature_count {
         let expected: String = SemanticDelimitedRangeText(
@@ -139,7 +144,6 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
         }
         i = i + 1;
     }
-    if expected_count != ArrayLength(call.argument_nodes) { return false; }
     i = 0;
     while i < ArrayLength(call.argument_nodes) {
         if !SemanticExpressionGraphConcreteScalarValueOwned(

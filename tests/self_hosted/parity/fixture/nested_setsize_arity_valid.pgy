@@ -1,0 +1,4 @@
+func Main() -> Int {
+    let values: Set<Int> = SetNew();
+    return SetSize(values) - 0;
+}

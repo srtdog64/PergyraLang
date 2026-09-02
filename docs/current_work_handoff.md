@@ -18,6 +18,42 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — nested collection-call arity semantic admission local green, publication pending
+
+- Exact base and current published HEAD are
+  `1478c418049cdc39b32bede3c74085ef52f6de02`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: public/native AST both accept
+  `let x=SetSize(0,0)-0;`; public MIR and both direct DRV-2 diagnostic modes
+  exit zero and publish `(SetSize(0, 0) - 0)`, native MIR/C reject with exact
+  builtin-signature identity, and public C reports only malformed receipt.
+- The shared collection protocol already owns `SetSize` arity one and the set
+  call fact owner already creates exact `call_arity_mismatch` facts. The open
+  bypass is concrete-scalar ownership checking successful resolved type before
+  it admits the child call to its existing error traversal.
+- The bounded objective is to restore that invalid-call ownership before MIR,
+  retain valid nested scalar calls, and relay the already published diagnostic
+  identity. No text scan, native retry, C mapping, new arity table, or backend
+  repair is allowed.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  Exact directive and focused gate are in
+  `docs/agent_work_directives/nested_collection_call_arity_semantic_admission_2026-09-02.md`.
+- The concrete-scalar owner now admits invalid-arity resolved calls to its
+  existing recursive error traversal before successful return typing. A fresh
+  Pergyra-built DRV-2 at SHA-256
+  `DDB7C126CBC5A483C4E45DE33CF91D08CCFCC8125AAD64D8411FCC8A9C3FF189`, the
+  focused production gate, existing arity receipt, language registry/golden
+  spine, and installed CLI aggregate are locally green.
+- Static diagnostic, SoT edge, single-owner, protocol, source inventory,
+  substitution, hard-contract, and progress gates are green. Exact component
+  evidence and CI remain pending.
+- Broader-gate omission is explicit: `self-host-semantic-parity-test-smoke`
+  remains pre-existing red at its fixed 114-row manifest boundary; when
+  experimentally advanced to 115 it reaches the already published
+  `bad_value_param_array_index_assign` golden and its separate text checker
+  reports `ok`. This active production artifact-graph rung does not change or
+  claim that checker.
+
 ## Published — call-arity-mismatch public JSON receipt exact-CI green
 
 - Exact base is `ff8aa5d09985634d03861fdb0bcb8f6f1df6c386`; exact implementation revision

@@ -9332,6 +9332,16 @@ require_max_lines \
 require_file "tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh" 220
+require_file "tests/self_hosted/parity/nested_collection_call_arity_semantic_admission_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/nested_collection_call_arity_semantic_admission_owner.sh" 220
+require_file "tests/self_hosted/parity/fixture/nested_setsize_arity_invalid.pgy"
+require_file "tests/self_hosted/parity/fixture/nested_setsize_arity_expected.diag"
+require_file "tests/self_hosted/parity/fixture/nested_setsize_arity_valid.pgy"
+require_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
+    'if expected_count != ArrayLength(call.argument_nodes) {'
+reject_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
+    'SetSize'
 require_file "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh" 165
@@ -9719,6 +9729,8 @@ require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh"'
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/nested_collection_call_arity_semantic_admission_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"'
 require_function_text "src/compiler/self_host_llvm_driver.c" \
