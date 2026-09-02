@@ -1136,6 +1136,20 @@ status.
 
 Current status counts: `CLOSED=55 BRIDGE=32 ACTIVE=1`.
 
+The reached array-index admission slice remains inside the existing
+`selfhost.expression_surface`, `diagnostic.catalog`, and
+`selfhost.semantic_artifact_admission` rows. The parser-owned expression graph
+already carries exact `Index` topology and the scalar type owner resolves its
+right child. `SemanticExpressionGraphIndexAccessErrorFromTree` now makes the
+last expression-verdict consumer reject a nested non-`Int` index before MIR,
+C, or LLVM publication; the public receipt reuses the native
+`semantic:array_access:index_non_int` / `use-int-index` identity without C
+mapping or native retry. The focused declaration-backed pair and deletion
+minimum are owned by
+`tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh`.
+These bounded consumer and diagnostic migrations do not close the broader
+expression-surface or semantic-artifact rows, so the census is unchanged.
+
 `selfhost.match_case_pattern` is closed on one HIR parse at
 `SemanticAstStatementFacts` admission. Canonical pattern, variant, binding
 range/pool, and digest remain keyed by `SyntaxNodeId`; semantic, MIR, and

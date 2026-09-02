@@ -4182,6 +4182,11 @@ self-host-vessel-method-argument-type-admission-test-smoke: $(PGY) self-host-com
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/vessel_method_argument_type_admission_owner.sh
 
+.PHONY: self-host-array-index-type-semantic-admission-test-smoke
+self-host-array-index-type-semantic-admission-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh
+
 .PHONY: self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke
 self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

@@ -10,6 +10,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "not_operand_not_bool",
         "compare_type_mismatch",
         "binop_type_mismatch",
+        "array_index_type_mismatch",
         "call_arg_type_mismatch",
         "member_call_arg_type_mismatch",
         "named_value_boundary_argument_required",
@@ -79,6 +80,9 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     }
     if code == "binop_type_mismatch" {
         return "PGY_SEM_BINOP_TYPE_MISMATCH";
+    }
+    if code == "array_index_type_mismatch" {
+        return "PGY_SEM_TYPE_MISMATCH";
     }
     if code == "call_arg_type_mismatch" {
         return "PGY_SEM_TYPE_MISMATCH";

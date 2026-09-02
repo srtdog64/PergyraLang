@@ -1,7 +1,86 @@
 // Operand diagnostics for fully graph-owned scalar operator trees.
 
 import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
 import "diagnostic_owner.pgy";
+
+func SemanticExpressionGraphIndexAccessErrorFromTree(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> String {
+    let pending: Array<Int> = [root_id];
+    while ArrayLength(pending) > 0 {
+        let node_id: Int = pending[ArrayLength(pending) - 1];
+        ArrayPop(pending);
+        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, node_id
+        );
+        if !IsSome(kind_opt) {
+            return SemanticError1(
+                "ast_artifact_invalid", "owner", "expression_graph"
+            );
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        if AstExpressionNodeIsCallSpine(kind) {
+            let call: SemanticCallSpineView =
+                SemanticCallSpineViewFromGraph(graph, node_id);
+            if !call.ok {
+                return SemanticError1(
+                    "ast_artifact_invalid", "owner", "call_spine"
+                );
+            }
+            ArrayPush(pending, call.callee_node);
+            let argument: Int = 0;
+            while argument < ArrayLength(call.argument_nodes) {
+                ArrayPush(pending, call.argument_nodes[argument]);
+                argument = argument + 1;
+            }
+            continue;
+        }
+        if kind == AstExpressionNodeIndex() {
+            let index_node: Option<Int> =
+                SemanticExpressionGraphRightChild(graph, node_id);
+            if !IsSome(index_node) {
+                return SemanticError1(
+                    "ast_artifact_invalid", "owner", "array_index"
+                );
+            }
+            let actual: String = SemanticExpressionGraphScalarTypeName(
+                graph, UnwrapOption(index_node), constructors, names, types,
+                function_names, function_returns
+            );
+            if actual != "Int" {
+                return SemanticError2(
+                    "array_index_type_mismatch",
+                    "expected", "Int", "actual", actual
+                );
+            }
+        }
+        let arity_opt: Option<Int> = AstExpressionNodeArityOpt(kind);
+        if !IsSome(arity_opt) {
+            return SemanticError1(
+                "ast_artifact_invalid", "owner", "expression_graph"
+            );
+        }
+        let arity: Int = UnwrapOption(arity_opt);
+        if arity >= 1 {
+            ArrayPush(
+                pending, graph.arena.topology.left_children[node_id]
+            );
+        }
+        if arity == 2 {
+            ArrayPush(
+                pending, graph.arena.topology.right_children[node_id]
+            );
+        }
+    }
+    return "";
+}
 
 func SemanticExpressionGraphScalarOperatorError(
     ref graph: SemanticExpressionGraphFacts,

@@ -18,6 +18,44 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Local candidate — array index type semantic admission
+
+- Exact opening base is `a77c450f34c4533d905c3c55aee51d25aaebfa7f`, equal
+  to `origin/main`; protected unrelated untracked paths remain outside
+  inspection, edit, and staging.
+- The exact array-literal example succeeds through public/native MIR and C.
+  Changing only the third index from `4` to `""` is still admitted by public
+  MIR and direct self-driver MIR, reaches malformed receipt in public C, and is
+  rejected by native MIR/C with `PGY_SEM_TYPE_MISMATCH`,
+  `semantic:array_access:index_non_int`, and `use-int-index`.
+- The expression graph already owns index topology and the `String` scalar
+  type. Only root index expressions currently consume the type constraint;
+  nested call arguments bypass semantic rejection. The bounded target is the
+  existing graph verdict and its last expression-verdict consumer, not parser,
+  native semantics, backend, or public transport.
+- The exact objective card and focused falsifier are
+  `docs/agent_work_directives/array_index_type_semantic_admission_2026-09-02.md`
+  and
+  `tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh`.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%. This section records fresh admission evidence,
+  not completed repair or substitution progress.
+- `SemanticExpressionGraphIndexAccessErrorFromTree` now walks call
+  callee/argument spines and ordinary child topology, consumes the existing
+  typed right child for every reached `Index`, and rejects anything other than
+  `Int` through the single expression-verdict consumer. No text scan, second
+  type table, backend mapping, or native retry was added.
+- A fresh Pergyra-built DRV-2 at SHA-256
+  `D4E2125E3E5164330145D93C2A9660E7CB7E24A3186EFBB3ABFFF7FFEF87DB9B`
+  passes the focused declaration-backed and deletion-minimum gate, exact
+  public/native MIR/C/LLVM identity, and valid C execution. The complete
+  installed-driver aggregate and compiler-world, diagnostic catalog/registry,
+  source inventory, documentation, Bash syntax, and diff gates are green.
+- The broad component inventory is intentionally left to exact CI because its
+  observed local runtime exceeds the 60-second static budget. Next action is
+  scoped diff review, commit/push, and exact-head CI; no SoT row or percentage
+  changes before publication evidence.
+
 ## Published — native malformed-enum parser progress exact-CI green
 
 - Exact opening base is `9090a5fa7c9c9b63aa2e774b25aaff5aa8873724`, equal to

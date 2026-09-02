@@ -126,6 +126,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "align-operand-types-or-overload"
         );
     }
+    if code == "array_index_type_mismatch" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:array_access:index_non_int",
+            "use-int-index"
+        );
+    }
     return SemanticPublicDiagnosticIdentity(false, "", "");
 }
 

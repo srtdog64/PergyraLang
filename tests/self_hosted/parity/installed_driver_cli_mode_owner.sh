@@ -280,6 +280,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/public_value_param_collection_mutatio
 source "$ROOT_DIR/tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/nested_collection_call_arity_semantic_admission_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/vessel_method_argument_type_admission_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_tokens_json_diagnostic_receipt_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh"

@@ -6,6 +6,37 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — array index type semantic admission
+
+- Exact base is `a77c450f34c4533d905c3c55aee51d25aaebfa7f`, equal to
+  `origin/main` when this lease opened. The primary task is the sole semantic,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- Fresh production measurement fixes a strong pair: the declaration-backed
+  `examples/array_literal.pgy` shape succeeds through public/native MIR and C,
+  but changing only the last index from `Int` to `String` leaves public MIR
+  successful, sends public C to malformed receipt, and makes native MIR/C
+  reject with `semantic:array_access:index_non_int` / `use-int-index`.
+- Direct self-driver MIR text/JSON modes also publish the invalid expression.
+  The open bypass is therefore nested expression-graph semantic admission,
+  not just public wire projection. Existing graph topology and scalar type
+  facts already identify the index and its `String` right child.
+- The last consumer is `SemanticAstExpressionVerdictFromGraph`; text scanning,
+  native retry, C/LLVM mapping, a second array type table, and expansion into
+  target-not-indexable or heterogeneous-literal semantics are forbidden.
+- Exact objective and falsifier are in
+  `docs/agent_work_directives/array_index_type_semantic_admission_2026-09-02.md`.
+  The focused gate is
+  `tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh`.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%. No status or progress changes before published
+  executable replacement evidence.
+- Local candidate is green on a fresh Pergyra-built DRV-2 at SHA-256
+  `D4E2125E3E5164330145D93C2A9660E7CB7E24A3186EFBB3ABFFF7FFEF87DB9B`.
+  The focused declaration-backed/minimum parity gate, exact public/native
+  MIR/C/LLVM identity, valid C execution, complete installed-driver aggregate,
+  compiler-world, diagnostic catalog/registry/layering, source inventory, and
+  documentation gates pass. Publication and exact-head CI remain pending.
+
 ## DONE lease — native malformed-enum parser progress
 
 - Exact base is `9090a5fa7c9c9b63aa2e774b25aaff5aa8873724`, equal to

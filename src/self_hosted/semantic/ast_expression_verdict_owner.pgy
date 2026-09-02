@@ -131,6 +131,14 @@ func SemanticAstExpressionVerdictFromGraph(
             domain_queries.diagnostic_message, text, "Unknown"
         );
     }
+    let index_access_error: String =
+        SemanticExpressionGraphIndexAccessErrorFromTree(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    if StringLength(index_access_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, index_access_error);
+    }
     let intrinsic: Option<String> =
         SemanticExpressionGraphIntrinsicTypeName(
             graph, root_id, function_names, function_returns

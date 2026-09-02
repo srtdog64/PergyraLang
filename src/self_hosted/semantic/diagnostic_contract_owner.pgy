@@ -144,6 +144,14 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "binop_type_mismatch", "second arithmetic wording"
         );
+    let array_index_first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "array_index_type_mismatch", "first array index wording"
+        );
+    let array_index_second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "array_index_type_mismatch", "second array index wording"
+        );
     return SemanticPublicDiagnosticReceiptReadyFor(
             first, "undefined_function"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
@@ -202,6 +210,10 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
             binop_first, "binop_type_mismatch"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             binop_second, "binop_type_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            array_index_first, "array_index_type_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            array_index_second, "array_index_type_mismatch"
         ) && first.schema == second.schema &&
         first.stage == second.stage && first.layer == second.layer &&
         first.code == second.code && first.cause_ir == second.cause_ir &&
@@ -298,7 +310,14 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         binop_first.code == binop_second.code &&
         binop_first.cause_ir == binop_second.cause_ir &&
         binop_first.fix_source == binop_second.fix_source &&
-        binop_first.message != binop_second.message;
+        binop_first.message != binop_second.message &&
+        array_index_first.schema == array_index_second.schema &&
+        array_index_first.stage == array_index_second.stage &&
+        array_index_first.layer == array_index_second.layer &&
+        array_index_first.code == array_index_second.code &&
+        array_index_first.cause_ir == array_index_second.cause_ir &&
+        array_index_first.fix_source == array_index_second.fix_source &&
+        array_index_first.message != array_index_second.message;
 }
 
 func SemanticVerdictPayloadContractReady() -> Bool {
@@ -308,7 +327,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
-    if SemanticDiagnosticCodeCount() != 39 {
+    if SemanticDiagnosticCodeCount() != 40 {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {

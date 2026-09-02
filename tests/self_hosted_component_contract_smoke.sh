@@ -3134,7 +3134,7 @@ require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manif
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 39"
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 40"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
@@ -9356,6 +9356,20 @@ require_text "src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy" \
     'if code == "member_call_arg_type_mismatch" {'
 reject_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
     'vessel V'
+require_file "tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh" 220
+require_file "tests/self_hosted/parity/fixture/array_index_type_bad.pgy"
+require_file "tests/self_hosted/parity/fixture/array_index_type_min_bad.pgy"
+require_file "tests/self_hosted/parity/fixture/array_index_type_valid.pgy"
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy" \
+    'func SemanticExpressionGraphIndexAccessErrorFromTree('
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    'SemanticExpressionGraphIndexAccessErrorFromTree('
+require_text "src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy" \
+    'if code == "array_index_type_mismatch" {'
+reject_text "src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy" \
+    'primes['
 require_file "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh" 165
@@ -9749,6 +9763,8 @@ require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/nested_collection_call_arity_semantic_admission_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/vessel_method_argument_type_admission_owner.sh"'
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"'
 require_function_text "src/compiler/self_host_llvm_driver.c" \
