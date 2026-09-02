@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — codegen seed prebuild receipt
+## Published — codegen seed prebuild receipt exact-CI green
 
 - Exact base is `2b4cf40115e848b0077e759419254390bf83729e`, equal to
   `origin/main`; protected unrelated untracked paths remain outside inspection,
@@ -32,7 +32,7 @@ percentage by themselves.
   `A4A468CE...`. That physical hash change then correctly invalidates the
   conservative DRV-2 installer key, exposing the missing seed-level reuse
   boundary.
-- The active candidate adds one seed-owned input key and exact gen2 C/binary
+- The implementation adds one seed-owned input key and exact gen2 C/binary
   output receipt. Identical evidence must return before `building oracle tool`;
   changed source, toolchain, owner, C output, binary output, or runnable state
   must rebuild or fail explicitly. Full `gen2 == gen3` remains unchanged.
@@ -48,12 +48,20 @@ percentage by themselves.
   installed CLI aggregate in 209.9 seconds with one seed reuse, one driver
   reuse, and zero driver emissions.
 - Focused receipt, build-source inventory, hard, documentation, and broad
-  component gates are green. The next falsifier is exact-head full
-  `gen2 == gen3` plus platform CI. Until then this remains an implementation
-  candidate and the lease stays active.
+  component gates are green. Implementation
+  `fca60c65d11868961039b0fa65633dd39337193f` is on `origin/main`.
 - The broader preparation contract reached its formal adequacy step after the
   owner suite passed, then stopped because local Rocq/Coq is absent. No proof
-  pass is claimed; exact CI's Rocq 9 job must supply that evidence.
+  pass was claimed locally; exact CI's Rocq 9 job supplied that evidence.
+- Exact run `33690376556` completed GREEN 30/30 in 36m04s. `build-linux` took
+  20m49s and records one initial seed/oracle build followed by one seed reuse,
+  one initial DRV-2 emission followed by one driver reuse, and the focused
+  receipt PASS. Independent codegen fixed point took 8m53s with
+  `gen2 == gen3 (75150 lines)`.
+- Full self-host took 35m43s with integrated `gen2 == gen3 (173546 lines)`,
+  receipt-bound DRV-2 adoption, complete installed CLI, and three policy sources
+  censused. Windows, macOS, sanitizers, TSan, Rocq 9, and all 20 backend shards
+  are green. This lease is DONE; SoT and project percentages remain unchanged.
 
 ## Published — parser statement typed-AST source-location admission exact-CI green
 

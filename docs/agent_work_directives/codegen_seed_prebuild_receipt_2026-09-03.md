@@ -1,6 +1,6 @@
 # Codegen Seed Prebuild Receipt — 2026-09-03
 
-Status: `IMPLEMENTATION CANDIDATE — LOCAL GREEN, EXACT CI PENDING`
+Status: `IMPLEMENTATION COMPLETE — EXACT CI GREEN`
 
 Exact base: `2b4cf40115e848b0077e759419254390bf83729e` on
 `origin/main`.
@@ -93,6 +93,29 @@ cache architecture, or claim self-host substitution or SoT progress.
   then stopped only because this host has no Rocq/Coq executable. The repository
   explicitly requires `PGY_ALLOW_MISSING_COQ=1` for a declared local skip; no
   prover result is claimed, and the exact CI Rocq 9 job remains load-bearing.
-- Full `gen2 == gen3` and exact-head platform CI remain the publication
-  falsifiers. No semantic owner, SoT row, blocker count, or project percentage
-  changes before those pass.
+- Full `gen2 == gen3` and exact-head platform CI are the publication falsifiers.
+  No semantic owner, SoT row, blocker count, or project percentage changes.
+
+## Exact-head CI receipt
+
+- Implementation `fca60c65d11868961039b0fa65633dd39337193f` is on
+  `origin/main`. Exact run `33690376556` is GREEN 30/30 in 36 minutes 4
+  seconds.
+- `build-linux` completed in 20 minutes 49 seconds. It contains one initial
+  oracle/seed build, then exactly one
+  `reusing fingerprinted gen2 seed before oracle build` marker. It also contains
+  one ordinary DRV-2 emission followed by exactly one pre-emission driver reuse,
+  and the focused seed receipt gate passes on the actual push path. The prior
+  exact run took 25 minutes 46 seconds; marker counts, not runner time alone,
+  own the acceptance claim.
+- The independent codegen job completed in 8 minutes 53 seconds with
+  `gen2 == gen3 (75150 lines)`. Full self-host completed in 35 minutes 43 seconds
+  with integrated `gen2 == gen3 (173546 lines)`, receipt-bound DRV-2 adoption,
+  complete installed CLI success, and three policy sources censused. It has no
+  ordinary typed-source DRV-2 emission after the fixed point.
+- Windows, macOS C-only, sanitizers, TSan, Rocq 9 including the axiom-budget
+  negative, and all 20 installed C/LLVM backend shards are green. GitHub emits
+  a non-blocking Node 20 deprecation annotation for artifact v4 actions while
+  executing them on Node 24; it is separate maintenance evidence.
+- This rung removes repeated compiler-scale work without relaxing first-build
+  or fixed-point proof. It changes neither SoT census nor project percentage.

@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — codegen seed prebuild receipt
+## DONE lease — codegen seed prebuild receipt
 
 - Exact base is `2b4cf40115e848b0077e759419254390bf83729e`, equal to
   `origin/main` when this lease opened. The primary task is the sole code,
@@ -37,6 +37,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - The expanded preparation contract reached formal adequacy after its owner
   suite passed, then stopped because this host has no Rocq/Coq executable. No
   local prover pass is claimed; the exact CI Rocq 9 job remains load-bearing.
+- Implementation `fca60c65d11868961039b0fa65633dd39337193f` is on
+  `origin/main`. Exact run `33690376556` completed GREEN 30/30 in 36m04s.
+  `build-linux` took 20m49s with one initial seed build followed by one seed
+  prebuild reuse, one initial DRV-2 emission followed by one driver reuse, and
+  the focused receipt PASS. Independent codegen fixed point took 8m53s.
+- Full self-host took 35m43s with integrated `gen2 == gen3 (173546 lines)`,
+  receipt-bound DRV-2 adoption, complete installed CLI, and three policy sources.
+  Windows, macOS, sanitizers, TSan, Rocq 9, and all 20 backend shards are green.
+  The publication falsifier is closed and this lease is retired.
 
 ## DONE lease — parser statement typed-AST source-location admission
 
