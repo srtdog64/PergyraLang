@@ -49,6 +49,11 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     task->lane = PGY_LANE_WORKER_POOL;
     task->fn = fn;
     task->arg = arg;
+    if (!pgy_runtime_context_capture_task(&task->runtime_context)) {
+        pgy_parallel_warn("spawn", "runtime context capture failed");
+        free(task);
+        return handle;
+    }
     atomic_store_explicit(&task->state, PGY_TASK_PENDING,
                           memory_order_relaxed);
     pgy_cancel_probe_install(pgy_parallel_cancel_probe);

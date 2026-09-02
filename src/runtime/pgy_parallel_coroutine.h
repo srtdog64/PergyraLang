@@ -40,6 +40,7 @@ typedef struct PgyCoroTask {
     bool                   detached;
     bool                   queued;
     PgyCancelNode         *cancel_node;
+    PgyRuntimeContext      runtime_context;
     struct PgyCoroTask    *next;
     struct PgyCoroTask    *waiter;
 #ifdef _WIN32
@@ -61,6 +62,7 @@ typedef struct {
     PgyCoroTask  *current;
     PgyCoroTask  *ready_head;
     PgyCoroTask  *ready_tail;
+    PgyRuntimeContext *scheduler_runtime_context;
 } PgyCoroRuntime;
 
 PGY_RT_GLOBAL __thread PgyCoroRuntime g_pgy_coro
@@ -186,6 +188,10 @@ pgy_coro_entry_win(void *raw_task)
         pgy_coro_enqueue(task->waiter);
 
     g_pgy_coro.current = NULL;
+    if (!pgy_runtime_context_bind(g_pgy_coro.scheduler_runtime_context)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "coroutine failed to restore scheduler context");
+    }
     SwitchToFiber(g_pgy_coro.scheduler_fiber);
 }
 #else
@@ -211,6 +217,10 @@ pgy_coro_entry(uint32_t raw_task_hi, uint32_t raw_task_lo)
         pgy_coro_enqueue(task->waiter);
 
     g_pgy_coro.current = NULL;
+    if (!pgy_runtime_context_bind(g_pgy_coro.scheduler_runtime_context)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "coroutine failed to restore scheduler context");
+    }
     setcontext(&g_pgy_coro.scheduler_ctx);
 }
 
@@ -270,6 +280,10 @@ pgy_async_spawn(void *(*fn)(void *), void *arg)
     task->lane = PGY_LANE_LOCAL_ASYNC;
     task->fn = fn;
     task->arg = arg;
+    if (!pgy_runtime_context_capture_task(&task->runtime_context)) {
+        free(task);
+        return handle;
+    }
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
 #ifdef _WIN32
     if (!pgy_coro_ensure_scheduler()) {
@@ -306,18 +320,31 @@ pgy_async_progress_one(void)
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyCoroTask *task = pgy_coro_dequeue();
+    PgyRuntimeContext *previous_context;
     if (task == NULL)
         return false;
 
+    previous_context = pgy_runtime_context_current();
+    g_pgy_coro.scheduler_runtime_context = previous_context;
+    if (!pgy_runtime_context_bind(&task->runtime_context)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "coroutine captured runtime context is invalid");
+    }
     g_pgy_coro.current = task;
 #ifdef _WIN32
-    if (!pgy_coro_ensure_scheduler())
+    if (!pgy_coro_ensure_scheduler()) {
+        (void)pgy_runtime_context_bind(previous_context);
         return false;
+    }
     SwitchToFiber(task->fiber);
 #else
     swapcontext(&g_pgy_coro.scheduler_ctx, &task->ctx);
 #endif
     g_pgy_coro.current = NULL;
+    if (!pgy_runtime_context_bind(previous_context)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "coroutine scheduler context restore failed");
+    }
 
     if (task->done && task->detached)
         pgy_coro_destroy(task);
@@ -367,6 +394,10 @@ pgy_async_yield(void)
 
     pgy_coro_enqueue(current);
     g_pgy_coro.current = NULL;
+    if (!pgy_runtime_context_bind(g_pgy_coro.scheduler_runtime_context)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "coroutine yield lost scheduler context");
+    }
 #ifdef _WIN32
     if (g_pgy_coro.scheduler_ready)
         SwitchToFiber(g_pgy_coro.scheduler_fiber);
@@ -374,6 +405,10 @@ pgy_async_yield(void)
     swapcontext(&current->ctx, &g_pgy_coro.scheduler_ctx);
 #endif
     g_pgy_coro.current = current;
+    if (!pgy_runtime_context_bind(&current->runtime_context)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "coroutine yield lost task context");
+    }
 }
 #else
 ;

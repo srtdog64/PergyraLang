@@ -1,13 +1,14 @@
 # 204. 동시성 모델 방향 판정 — PSCC 제안 심사와 정전(canon) 대응표
 
-Updated: 2026-08-21 (Asia/Seoul)
+Updated: 2026-09-03 (Asia/Seoul)
 
 Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 `docs/53`(parallel 코어 정책) · `docs/113`(동결 계약) · `docs/114`(근거) ·
 `docs/146`(SEA lane) · `docs/178`(경계 증거)에 있다. 이 문서는 그 위에
 **동시성 전체 방향**을 고정하고, 외부 제안(PSCC v0.1, 부록 A)을 정전에
-대조해 무엇을 채택·정정·유보하는지 기록한다. 구현 게이트는 없다.
-문장 하나가 실행 계약이 되려면 `docs/113`에 들어가야 한다.
+대조해 무엇을 채택·정정·유보하는지 기록한다. 이 문서 자체는 구현 게이트가
+아니다. 문장 하나가 실행 계약이 되려면 `docs/113`에 들어가고 독립 실행
+게이트가 붙어야 한다. 2026-09-03에는 §3.5의 첫 rung이 그 절차로 착지했다.
 
 ---
 
@@ -79,7 +80,7 @@ Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 | 20 | `parallel` 관측 의미 = 정규 순차 실행 | 채택(정의로) | `docs/181` R2 인덱스 순 수집, R4 고정 fold; `join with any`는 명시적 비결정 — §2.6 |
 | 21 | 결정적 reduction 트리; `unordered`는 명시 | 정전 | `docs/181` R4; 비결정 escape는 이미 `join with any` |
 | 22 | deterministic Zone에서 async 완료는 commit 경계에서 정규 순서로 반영 | 유보(베타 후) | replay/commit 실물 없음(조사 §7) — §3.8 |
-| 23 | 의도적 비결정(select/race)은 capability | 채택 | `select`는 readiness arbitration(`docs/53` §5.5); `PGY_CAP_RANDOM` 비트는 있으나 **require 지점 0** — §3.8 |
+| 23 | 의도적 비결정(select/race)은 capability | 채택(일부 착지) | `select`는 readiness arbitration(`docs/53` §5.5); Random/SeedRandom은 C-inline·LLVM runtime 모두 `PGY_CAP_RANDOM`을 require한다. select/any의 결정성 분류는 잔여 — §3.8 |
 | 24 | 시스템 의존 그래프 compile-once | 유보 | `docs/181` 형 B(reactive) R2 미착수 — `docs/186` 구멍 4 |
 | 25-26 | MIR에 병렬 의미 노드 유지; 스케줄이 아닌 제약만 | 정전+채택 | `docs/104` AIR boundary kind PARALLEL/CHANNEL/EXECUTION; 일반 의존 그래프는 AIR Phase 2 |
 | 27 | IR 계층: AIR → explicit spawn/token graph → Backend | **정정** | AIR는 lowering 금지, 백엔드는 AIR를 include조차 못 함(`tests/air_backend_nonimpact_smoke.sh:60-73`) — §2.2 |
@@ -315,21 +316,26 @@ generation이 바뀌었으면 stale로 처리한다. `docs/107`은 이미 이것
 인덱스-순서 fold를 합성하는 정리다. 실행 게이트로는 "같은 프로그램을
 `PGY_WORKERS=1/2/4/8`로 돌려 byte-equal"이 대응한다 — 지금 없는 게이트다.
 
-### 3.5 capability 흐름의 런타임 캐리어 — 현재 구멍
+### 3.5 capability 흐름의 런타임 캐리어 — 1차 착지
 
 제안 §11의 lend/revoke/return이 성립하려면 자식 task가 부모의 권한을
-**받아야** 한다. 현재 `PgyRuntimeContext{capabilities, budget}`는
-`_Thread_local`이고 **spawn을 건너 전파되지 않는다**
-(`src/runtime/pgy_runtime_context.h:42`; `pgy_parallel*.h`·
-`pgy_lane_scheduler.h`에 context 참조 없음). pool worker는 부모가 아니라
-**기본 컨텍스트**로 capability/budget 게이트를 평가한다. `docs/196`이
-"cancellation roots, schedulers, task handles … still have their own
-process/TLS owners"라고 명시한 바로 그 갭이다.
+**받아야** 한다. 2026-09-03 첫 실행 rung은 이 런타임 구멍을 닫았다.
+`pgy_runtime_context_capture_task()`가 생성 시 capability mask와 instance
+identity를 복사하고, 정량 budget은 새 counter가 아니라 부모의 정확한
+`budget_owner`를 공유한다. Inline/PinnedZone/BlockingPool/LocalAsync/
+WorkerPool/MovableScheduler는 task body 전 해당 컨텍스트를 bind하고 종료 뒤
+주변 TLS를 복원한다. LocalAsync는 yield/await 때 scheduler와 task 컨텍스트를
+서로 복원한다.
 
-채택: task 생성 시 부모 컨텍스트를 **캡처해 자식에 바인딩**한다(share가
-기본; lend/move는 §2.4의 증거 edge가 정하면 마스크를 좁혀 바인딩). 이것은
-`docs/198` Authority Safety(wrong tenant, confused deputy)의 **동시성
-판**이며, 우선순위상 §3.1과 함께 가장 먼저다.
+실행 계약은 `docs/113`의 Spawn Runtime Authority Contract이며,
+`runtime-spawn-context-propagation-test-smoke`가 inline/C-extern/LLVM runtime,
+nested help-run, coroutine suspension을 실행한다. worker 기본 grant, 자식의
+환경 재독, 독립 budget 초기화는 negative ratchet으로 금지된다.
+
+남은 것: lend/move edge가 마스크를 더 좁히는 흐름 분석, 구조적 scope가 부모
+budget owner의 수명을 보장하는 §3.1, 그리고 capability non-forgery의 정리다.
+따라서 이 착지는 Authority carriage이지 완전한 multi-tenant 격리 주장이
+아니다.
 
 ### 3.6 검사 비용은 경계로 — zone 접근자의 매 접근 rdlock
 
@@ -347,14 +353,16 @@ rwlock)는 `ExecutionLane` 열거의 확장으로 둔다 — rwlock은 `docs/113
 실물 없음. 채택하되 저우선. ConcurrencyPlan의 zone 집합을 ZoneId로 정렬해
 획득하고, 가능하면 lock 대신 capability transfer/의존 edge로 푼다.
 
-### 3.8 비결정은 권한이다 — 그러나 비트만 있고 검사가 없다
+### 3.8 비결정은 권한이다 — Random 검사는 착지, arbitration은 잔여
 
-`PGY_CAP_RANDOM` 비트와 표면 이름 `random`은 있으나 `pgy_cap_require_export
-(PGY_CAP_RANDOM, …)` 호출 지점이 **0개**다(조사 §7). `CLOCK`은 검사된다.
-채택: (1) RANDOM require 지점을 붙인다(즉시 가능한 작은 일), (2) `join with
-any`·`select`(readiness arbitration)를 비결정 소스로 분류해 향후
-deterministic zone에서 거절 또는 commit-순서화한다 — 후자는 §2.6과 함께
-유보.
+현재 소스는 `Random`과 `SeedRandom`의 C-inline/LLVM runtime 양쪽에서
+`pgy_cap_require_export(PGY_CAP_RANDOM, …)`를 호출하며, capability runtime
+게이트가 grant/deny를 실행한다. 이 리뷰의 2026-08-21 조사 결과는 이후
+착지된 소스보다 오래되어 정정한다.
+
+잔여 채택 항목은 `join with any`·`select`(readiness arbitration)를 비결정
+소스로 분류해 향후 deterministic zone에서 거절 또는 commit-순서화하는
+것이다. 이것은 §2.6과 함께 베타 후로 유보한다.
 
 ### 3.9 예산 축 — quota는 capability가 아니라 budget이다
 
@@ -415,14 +423,14 @@ Copy 스냅샷 증거, pin/view 경계 규칙, spawn 예산 계량, lane 결정�
 facade, 인덱스-순서 fold, 성능 기준선(n=10에서 Fortran OpenMP 상회 —
 `docs/186` 전제).
 
-**다음 rung(순서대로):**
+**rung 상태(의존 순서대로):**
 
-1. **컨텍스트 전파**(§3.5) — Authority. 자식 task가 부모의 caps/budget을
-   받는다. 게이트: 샌드박스 매니페스트 하에서 spawn된 task의 IO가 거절되는
-   목격자 × 양 백엔드.
+1. **컨텍스트 전파**(§3.5) — **착지(2026-09-03)**. 자식 task가 부모의
+   capability snapshot과 exact shared budget owner를 받는다. 6개 lane ×
+   inline/C-extern/LLVM runtime + nested/suspension 복원 게이트.
 2. **구조적 spawn 범위**(§3.1) — Lifecycle. 함수 exit 시 live handle 거절;
    중첩 병렬 help/drain. `docs/186` 구멍 1을 닫는다.
-3. **`PGY_CAP_RANDOM` require**(§3.8) — 작은 Fail-Closed 항목.
+3. **`PGY_CAP_RANDOM` require**(§3.8) — **현 소스에서 이미 착지 확인**.
 4. **Dynamic Disjointness**(§3.2) — 증거 5종째. `docs/178` §2 DOP 잔여와
    함께.
 5. **재검증 계약**(§3.3) — `docs/107`의 빈자리.
@@ -443,7 +451,7 @@ rwlock 즉시 제거.
 
 | 제안의 정리 | Pergyra 대응 | 상태 |
 |---|---|---|
-| 1. Capability Non-Forgery | capability 마스크는 매니페스트/env grant로만 넓어짐; 자식은 부모 마스크의 부분집합(§3.5 후) | 런타임 계약, 정리 없음 |
+| 1. Capability Non-Forgery | capability 마스크는 매니페스트/env grant로만 넓어짐; 생성 시 자식은 부모 마스크의 snapshot(향후 edge로 축소) | spawn runtime 계약·양 runtime 실행 게이트 착지, 정리 없음 |
 | 2. Data-Race Freedom | `docs/semantics/proofs/WitnessDataRace.v` + `op_guard` 목격자 | 허용 부분집합에 대해 형태 존재 |
 | 3. Slot Temporal Safety | generation 검사 + §3.3 재검증 | 런타임 검사 있음, 정리 없음 |
 | 4. Structured Task Containment | §3.1 | 없음 |

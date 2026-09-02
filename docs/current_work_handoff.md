@@ -18,6 +18,29 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active supporting concurrency context — spawn runtime authority carriage
+
+- Exact opening base is `a6ba51a996438c7de089a6cd495b20b6a6b74844`, equal
+  to `origin/main`; protected unrelated untracked paths remain outside
+  inspection, edit, and staging.
+- `pgy_runtime_context_capture_task()` now snapshots capability masks and
+  instance identity while sharing the parent's exact budget owner. All six
+  lane task paths bind that context; thread/M:N completion and LocalAsync
+  yield/await restore the surrounding context.
+- `runtime-spawn-context-propagation-test-smoke` executes inline, C-extern, and
+  LLVM runtime materializations and covers nested help-first plus coroutine
+  suspension. It also requires a restricted parent's worker child to fail with
+  `class=capability-denied` before IO_WRITE. The focused gate, runtime-context,
+  lane-scheduler, M:N, sandbox, runtime BC/C-extern, parallel-production,
+  memory-concurrency, runtime-authority, ABI-lifetime, worker-boundary, and
+  documentation gates are locally green. No exact-CI claim is made yet.
+- Canonical execution wording is in `docs/113_memory_concurrency_model.md`.
+  The objective card is
+  `docs/agent_work_directives/spawn_runtime_context_propagation_2026-09-03.md`.
+  This supporting runtime closure changes neither SoT counts nor the 83%
+  project forecast. The next lifecycle rung is not open until this one is
+  published and exact CI is observed.
+
 ## Published — codegen seed prebuild receipt exact-CI green
 
 - Exact base is `2b4cf40115e848b0077e759419254390bf83729e`, equal to

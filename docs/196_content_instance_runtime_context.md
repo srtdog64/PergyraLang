@@ -16,8 +16,9 @@
 
 ## ABI
 
-`PgyRuntimeContext` carries the capability mask pair, `PgyBudgetState`, and a
-host-supplied `instance_id`. The host must call:
+`PgyRuntimeContext` carries the capability mask pair, a root `PgyBudgetState`,
+a reference to the effective budget owner, and a host-supplied `instance_id`.
+The host must call:
 
 ```c
 PgyRuntimeContext ctx;
@@ -32,14 +33,32 @@ can observe a zeroed budget or grant.
 
 The C-inline and LLVM-linked implementations use the same header-level policy;
 the LLVM file supplies ABI wrappers and does not own a parallel capability or
-budget global. `tests/runtime_context_smoke.c` proves that two bound contexts
-retain independent manifests and counters.
+budget global. `tests/runtime_context_smoke.c` proves that two bound root
+contexts retain independent manifests and counters.
+
+## Spawn carriage
+
+`pgy_runtime_context_capture_task()` snapshots the bound capability masks and
+instance identity when a lane task is created, while sharing the root
+context's exact `budget_owner`. Every execution lane binds the captured task
+context before user code and restores the surrounding TLS afterward. Local
+coroutines perform the same handoff at yield/await suspension boundaries.
+
+The executable owner gate is
+`make runtime-spawn-context-propagation-test-smoke`. It covers Inline,
+PinnedZone, BlockingPool, LocalAsync, WorkerPool, and MovableScheduler in the
+inline, C-extern, and LLVM runtime materializations, including nested
+help-first execution. A new task-local budget or worker-default capability
+grant is a fail-closed regression, not a fallback.
 
 ## Boundary that remains open
 
-This rung does not claim complete multi-tenant sandboxing. Cancellation roots,
-schedulers, task handles, asset namespaces, linear memory, random streams, and
-diagnostics still have their own process/TLS owners. They require explicit
-context-carriage and cross-instance negative tests before `ContentInstance` can
-be called a complete isolation boundary. The current context is therefore a
-runtime ownership rung, not a release-security claim.
+This rung does not claim complete multi-tenant sandboxing. Capability and
+budget authority now cross runtime lane tasks, but the parent context lifetime
+is not yet owned by a structured spawn scope. Cancellation roots, scheduler
+instances, task-handle containment, asset namespaces, linear memory, random
+streams, and diagnostics still have process/TLS owners or incomplete
+cross-instance evidence. They require their own carriage and negative tests
+before `ContentInstance` can be called a complete isolation boundary. The
+current context is therefore a runtime ownership rung, not a release-security
+claim.

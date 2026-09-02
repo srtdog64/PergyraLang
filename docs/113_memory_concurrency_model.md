@@ -32,6 +32,31 @@ Executable gate: `make memory-concurrency-model-test-smoke`.
   model; use named `spawn Worker(args...)` so ownership and cleanup facts cross
   a declaration boundary.
 
+## Spawn Runtime Authority Contract
+
+- Task creation snapshots the currently bound `PgyRuntimeContext` capability
+  masks. Inline, pinned, blocking-pool, local-async, worker-pool, and movable
+  scheduler execution must bind that snapshot before calling the task body;
+  executor-thread default TLS is not an authority fallback.
+- A task does not receive an independent quantitative allowance. Its context
+  points to the exact parent-owned `PgyBudgetState`, so charges from children,
+  nested help-first execution, and movable tasks contribute to one ceiling.
+- A runtime task path must not reread environment grants, initialize a fresh
+  budget, or widen the captured manifest merely because execution moved to a
+  different thread or fiber.
+- Every execution boundary restores the surrounding context after the task
+  returns. Local coroutines additionally restore scheduler context before
+  `yield`/`await` switches and rebind their own captured context when resumed.
+- This authority-carriage contract does not by itself provide structured task
+  containment. Until the lifecycle rung below is implemented, the existing
+  future/await lifetime rules still apply.
+
+Implementation checkpoint: `src/runtime/pgy_runtime_context.h` owns task
+capture and the shared budget-state reference. `PgyTask` and `PgyCoroTask` are
+carriers only. `make runtime-spawn-context-propagation-test-smoke` executes the
+inline, C-extern, and LLVM runtime materializations across every lane and pins
+nested help-run plus coroutine suspension restoration.
+
 ## Happens-Before Contract
 
 - A `parallel { ... }` block joins before control continues after the block.

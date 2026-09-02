@@ -72,12 +72,23 @@ pgy_await(PgyTaskHandle handle)
                 PgyCoroTask *current = g_pgy_coro.current;
                 task->waiter = current;
                 g_pgy_coro.current = NULL;
+                if (!pgy_runtime_context_bind(
+                        g_pgy_coro.scheduler_runtime_context)) {
+                    PGY_RUNTIME_PANIC(
+                        PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                        "coroutine await lost scheduler context");
+                }
 #ifdef _WIN32
                 SwitchToFiber(g_pgy_coro.scheduler_fiber);
 #else
                 swapcontext(&current->ctx, &g_pgy_coro.scheduler_ctx);
 #endif
                 g_pgy_coro.current = current;
+                if (!pgy_runtime_context_bind(&current->runtime_context)) {
+                    PGY_RUNTIME_PANIC(
+                        PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                        "coroutine await lost task context");
+                }
             }
         } else {
             pgy_async_progress_until(pgy_async_task_done, task);

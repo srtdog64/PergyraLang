@@ -69,6 +69,17 @@ parallel (i in lo..hi) join with sum
 - **트윈 lockstep + `.bc` 재생성**: 런타임 헤더 수술마다 (WO-0-4).
 - **measure-first**: 성능 수술은 B_n(+마이크로) before/after 없이 착수 금지.
 
+### 2026-09-03 authority-carriage checkpoint
+
+실행기 선택과 별개로 모든 lane task가 생성자의 runtime authority를 나른다.
+`PgyRuntimeContext`의 capability mask는 task 생성 시 snapshot되고, 정량
+budget은 부모의 exact `PgyBudgetState` owner를 공유한다. Inline/Pinned,
+BlockingPool, LocalAsync, WorkerPool, MovableScheduler 실행 경계와 coroutine
+yield/await는 bind/restore를 수행한다. `runtime-spawn-context-propagation-
+test-smoke`가 inline/C-extern/LLVM runtime에서 이 executor-invariant를
+검증한다. 이것은 §4의 구조적 task containment를 대신하지 않으며, parent
+context lifetime은 다음 lifecycle rung의 소유 대상이다.
+
 ## 4. 단계별 계획
 
 ### P-A. 정확성 먼저 (fail-close)

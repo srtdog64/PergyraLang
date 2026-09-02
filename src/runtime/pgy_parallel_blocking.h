@@ -168,6 +168,12 @@ pgy_spawn_blocking(void *(*fn)(void *), void *arg)
     task->lane = PGY_LANE_BLOCKING_POOL;
     task->fn = fn;
     task->arg = arg;
+    if (!pgy_runtime_context_capture_task(&task->runtime_context)) {
+        pgy_parallel_warn("spawn-blocking", "runtime context capture failed");
+        free(task);
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
+        return handle;
+    }
     atomic_store_explicit(&task->state, PGY_TASK_PENDING,
                           memory_order_relaxed);
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());

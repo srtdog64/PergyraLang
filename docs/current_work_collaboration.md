@@ -6,6 +6,31 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — spawn runtime context propagation
+
+- Exact base is `a6ba51a996438c7de089a6cd495b20b6a6b74844`, equal to
+  `origin/main` when this lease opened. The primary task is the sole code,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- `docs/204` adopted parent capability/budget context propagation as the first
+  concurrency rung. Current task construction captures cancellation only;
+  WorkerPool, BlockingPool, LocalAsync, MovableScheduler, and inline execution
+  can call the task body under executor-default TLS.
+- The bounded target is one context-owner capture operation, task carriers,
+  bind/restore at every execution boundary, and a focused cross-executor
+  negative gate. A child shares the parent's budget counter owner and receives
+  only the captured capability mask; no child environment reread or fresh
+  budget authority is allowed.
+- Exact objective, owners, forbidden fallbacks, and falsifiers are fixed in
+  `docs/agent_work_directives/spawn_runtime_context_propagation_2026-09-03.md`.
+  This lease does not change SoT or project percentages before executable
+  evidence and publication.
+- Local implementation now carries the context through all six lane task
+  shapes. The dedicated inline/C-extern/LLVM runtime proof, existing runtime
+  context, lane scheduler, M:N, sandbox, runtime twin, parallel production,
+  memory-concurrency, ABI lifetime, worker-boundary, and documentation gates
+  are green. Commit/push and exact CI remain before this lease can become
+  `DONE`.
+
 ## DONE lease — codegen seed prebuild receipt
 
 - Exact base is `2b4cf40115e848b0077e759419254390bf83729e`, equal to

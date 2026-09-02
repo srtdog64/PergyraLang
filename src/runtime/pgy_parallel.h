@@ -23,6 +23,7 @@
 #include "../common/execution_lane_kind.h"
 #include "pgy_runtime_panic_contract.h"
 #include "pgy_runtime_cancel_probe.h"
+#include "pgy_runtime_context.h"
 
 #ifndef PGY_COROUTINES_AVAILABLE
 #ifdef _WIN32
@@ -88,6 +89,7 @@ typedef struct PgyTask {
      * mutex plus the release store. */
     _Atomic PgyTaskState state;
     PgyCancelNode  *cancel_node;
+    PgyRuntimeContext runtime_context;
     pthread_mutex_t mutex;
     pthread_cond_t  cond;
     struct PgyTask *next;
@@ -174,6 +176,11 @@ pgy_spawn_inline_completed(void *(*fn)(void *), void *arg, const char *op,
     task->lane = lane;
     task->fn = fn;
     task->arg = arg;
+    if (!pgy_runtime_context_capture_task(&task->runtime_context)) {
+        pgy_parallel_warn(op_name, "runtime context capture failed");
+        free(task);
+        return handle;
+    }
     if (!pgy_task_sync_init(task, op_name)) {
         free(task);
         return handle;
@@ -182,7 +189,22 @@ pgy_spawn_inline_completed(void *(*fn)(void *), void *arg, const char *op,
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
     /* Cooperative cancellation: an inherited cancel request does not skip the
      * task — it runs and observes IsCancelled(), like every other lane. */
-    task->result = fn(arg);
+    {
+        PgyRuntimeContext *previous_context = pgy_runtime_context_current();
+        if (!pgy_runtime_context_bind(&task->runtime_context)) {
+            pgy_cancel_release(task->cancel_node);
+            pthread_cond_destroy(&task->cond);
+            pthread_mutex_destroy(&task->mutex);
+            free(task);
+            pgy_parallel_warn(op_name, "captured runtime context is invalid");
+            return handle;
+        }
+        task->result = fn(arg);
+        if (!pgy_runtime_context_bind(previous_context)) {
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "inline task failed to restore runtime context");
+        }
+    }
     atomic_store_explicit(&task->state, PGY_TASK_DONE, memory_order_release);
     handle.task = task;
     return handle;
@@ -424,6 +446,7 @@ pgy_pool_run_task(PgyTask *task)
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTask *prev;
+    PgyRuntimeContext *previous_context;
     void    *result;
 
     /* Cancellation is COOPERATIVE on every lane: the task runs and observes
@@ -437,11 +460,20 @@ pgy_pool_run_task(PgyTask *task)
                           memory_order_relaxed);
 
     prev = g_pgy_thread_current;
+    previous_context = pgy_runtime_context_current();
+    if (!pgy_runtime_context_bind(&task->runtime_context)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "task captured runtime context is invalid");
+    }
     g_pgy_thread_current = task;
     g_pgy_pool_task_depth++;
     result = task->fn(task->arg);
     g_pgy_pool_task_depth--;
     g_pgy_thread_current = prev;
+    if (!pgy_runtime_context_bind(previous_context)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "task failed to restore runtime context");
+    }
 
     pthread_mutex_lock(&task->mutex);
     task->result = result;

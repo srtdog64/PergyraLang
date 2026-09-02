@@ -35,11 +35,26 @@ typedef struct {
 typedef struct {
     PgyCapMasks    capabilities;
     PgyBudgetState budget;
+    /* Task contexts snapshot capability masks but share the parent's
+     * quantitative budget authority.  Pointing at the owning state prevents
+     * each worker TLS from resetting counters and bypassing a process/content
+     * ceiling.  Root contexts point this field at their inline `budget`. */
+    PgyBudgetState *budget_owner;
     uint64_t       instance_id;
     int            initialized;
 } PgyRuntimeContext;
 
 PGY_CONTEXT_GLOBAL _Thread_local PgyRuntimeContext *g_pgy_runtime_context_current;
+PGY_CONTEXT_GLOBAL PgyRuntimeContext g_pgy_runtime_context_default
+#if !defined(PGY_RUNTIME_BC_BUILD) && !defined(PGY_RUNTIME_DECLS_ONLY)
+    = {0}
+#endif
+;
+PGY_CONTEXT_GLOBAL pthread_once_t g_pgy_runtime_context_default_once
+#if !defined(PGY_RUNTIME_BC_BUILD) && !defined(PGY_RUNTIME_DECLS_ONLY)
+    = PTHREAD_ONCE_INIT
+#endif
+;
 
 PGY_CONTEXT_DECL void
 pgy_runtime_context_init(PgyRuntimeContext *context, uint64_t instance_id)
@@ -55,6 +70,7 @@ pgy_runtime_context_init(PgyRuntimeContext *context, uint64_t instance_id)
     if (pgy_cap_env_grant(&env_mask))
         context->capabilities.env = env_mask;
     pgy_budget_state_init(&context->budget);
+    context->budget_owner = &context->budget;
     context->instance_id = instance_id;
     context->initialized = 1;
 }
@@ -62,15 +78,24 @@ pgy_runtime_context_init(PgyRuntimeContext *context, uint64_t instance_id)
 ;
 #endif
 
+#if !defined(PGY_RUNTIME_BC_BUILD) && !defined(PGY_RUNTIME_DECLS_ONLY)
+static void
+pgy_runtime_context_default_init(void)
+{
+    pgy_runtime_context_init(&g_pgy_runtime_context_default, 0);
+}
+#endif
+
 PGY_CONTEXT_DECL PgyRuntimeContext *
 pgy_runtime_context_default(void)
 #if !defined(PGY_RUNTIME_BC_BUILD) && !defined(PGY_RUNTIME_DECLS_ONLY)
 {
-    static PgyRuntimeContext context;
-
-    if (!context.initialized)
-        pgy_runtime_context_init(&context, 0);
-    return &context;
+    if (pthread_once(&g_pgy_runtime_context_default_once,
+                     pgy_runtime_context_default_init) != 0) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "runtime default context initialization failed");
+    }
+    return &g_pgy_runtime_context_default;
 }
 #else
 ;
@@ -92,9 +117,36 @@ PGY_CONTEXT_DECL bool
 pgy_runtime_context_bind(PgyRuntimeContext *context)
 #if !defined(PGY_RUNTIME_BC_BUILD) && !defined(PGY_RUNTIME_DECLS_ONLY)
 {
-    if (context == NULL || !context->initialized)
+    if (context == NULL || !context->initialized ||
+        context->budget_owner == NULL || !context->budget_owner->initialized)
         return false;
     g_pgy_runtime_context_current = context;
+    return true;
+}
+#else
+;
+#endif
+
+/* Capture the current authority at task creation. Capability masks are copied
+ * so a child cannot observe an executor thread's broader default grant. The
+ * budget state stays shared so charges across children contribute to the one
+ * parent-owned ceiling instead of opening per-task counter authorities. */
+PGY_CONTEXT_DECL bool
+pgy_runtime_context_capture_task(PgyRuntimeContext *task_context)
+#if !defined(PGY_RUNTIME_BC_BUILD) && !defined(PGY_RUNTIME_DECLS_ONLY)
+{
+    PgyRuntimeContext *parent;
+
+    if (task_context == NULL)
+        return false;
+    parent = pgy_runtime_context_current();
+    if (parent == NULL || !parent->initialized ||
+        parent->budget_owner == NULL || !parent->budget_owner->initialized)
+        return false;
+    task_context->capabilities = parent->capabilities;
+    task_context->budget_owner = parent->budget_owner;
+    task_context->instance_id = parent->instance_id;
+    task_context->initialized = 1;
     return true;
 }
 #else
@@ -135,7 +187,8 @@ PGY_CONTEXT_DECL PgyBudgetState *
 pgy_budget_state_slot(void)
 #if !defined(PGY_RUNTIME_BC_BUILD) && !defined(PGY_RUNTIME_DECLS_ONLY)
 {
-    return &pgy_runtime_context_current()->budget;
+    PgyRuntimeContext *context = pgy_runtime_context_current();
+    return context->budget_owner;
 }
 #else
 ;
