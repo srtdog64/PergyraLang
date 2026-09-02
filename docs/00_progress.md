@@ -1,20 +1,27 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-09-01
+마지막 업데이트: 2026-09-03
 
-가장 최근 닫힌 executable rung은 public token JSON diagnostic receipt다.
-구현 `e8c3c3a6003c2c87f7abe6eb4b37cbee4dc90107`은 token request에 한 개의
-admitted Bool을 운반하고, 기존 invalid-character 검출점에서 Pergyra lexer가
-`PGY_LEX_INVALID_TOKEN` code/stage/layer/cause/fix를 소유하게 한다. C adapter는
-private argv 선택과 공용 opaque process relay만 담당하며 lexer 의미, native retry,
-중복 lexing은 갖지 않는다. 성공 token bytes와 formatter의 typed-fact wrapper는
-그대로다. Exact-head CI run `33503873163`은 30/30 green이고 backend shard는
-20/20이다. Full self-host는 `gen2 == gen3 (173229 lines)`, receipt-bound 채택,
-Pergyra-built DRV-2 설치, token receipt marker를 각각 정확히 한 번 증명했다.
-`build-linux`는 25m33s, full self-host는 34m35s였다. 이 작업은
-`diagnostic.catalog`의 실제 consumer migration이지만 전체 행 폐쇄는 아니므로
-census `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%,
-통합 진행도 **83%** (81~85%)는 유지한다.
+가장 최근 닫힌 bounded executable rung은 array index type semantic admission이다.
+기존 parser-owned expression graph와 scalar type fact는 `Index`의 오른쪽 자식이
+`String`임을 이미 알고 있었지만, root가 `Log(...)` 같은 call이면 마지막 semantic
+consumer가 nested index를 거절하지 않고 MIR을 게시했다. 구현
+`cc27582d48abc54c50f1c6a2fc62b5b7ce30d1ff`은 기존 graph를 한 번 순회해 모든 도달한
+`Index`가 정확히 `Int`를 소비하게 하고, text scan·두 번째 type table·native retry·
+C/LLVM 의미 mapping 없이 기존 expression-verdict owner에서 실패를 닫았다. 공용
+MIR/C/LLVM receipt는 `PGY_SEM_TYPE_MISMATCH`,
+`semantic:array_access:index_non_int`, `use-int-index`로 native와 동일하고, valid
+배열 실행과 삭제 최소 `Log([][""])`를 함께 검증한다.
+
+Owner-generated 언어 인벤토리 보정 `83ebb50f`와 단일 reason/fix owner를 648줄로
+유지한 cap 보정 `724ac254`까지 `origin/main`에 게시됐다. Exact-head CI run
+`33646784958`은 30/30 green이다. `build-linux`는 29m13s에 146-row registry, broad
+component inventory와 20개 push step을 통과했고, full self-host는 36m에
+`gen2 == gen3 (173440 lines)`, Pergyra-built DRV-2 설치, focused array-index marker와
+installed CLI aggregate를 증명했다. 이 작업은 active semantic artifact family 안의
+bounded consumer repair이며 top-level SoT row 폐쇄나 Pergyra-for-C 치환 증분은 아니다.
+따라서 census `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement
+75%, 통합 진행도 **83%** (81~85%)는 유지한다.
 
 최신 bounded performance rung은 semantic expression root lookup이다. Full-driver
 계측은 generic-specialization row나 graph 재방문이 아니라, 이미 정렬된 126,513개

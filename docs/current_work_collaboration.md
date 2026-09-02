@@ -1,12 +1,12 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-09-02 (Asia/Seoul)
+Updated: 2026-09-03 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — array index type semantic admission
+## DONE lease — array index type semantic admission
 
 - Exact base is `a77c450f34c4533d905c3c55aee51d25aaebfa7f`, equal to
   `origin/main` when this lease opened. The primary task is the sole semantic,
@@ -30,12 +30,21 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
   project forecast remains 83%. No status or progress changes before published
   executable replacement evidence.
-- Local candidate is green on a fresh Pergyra-built DRV-2 at SHA-256
+- A fresh Pergyra-built DRV-2 at SHA-256
   `D4E2125E3E5164330145D93C2A9660E7CB7E24A3186EFBB3ABFFF7FFEF87DB9B`.
   The focused declaration-backed/minimum parity gate, exact public/native
   MIR/C/LLVM identity, valid C execution, complete installed-driver aggregate,
   compiler-world, diagnostic catalog/registry/layering, source inventory, and
-  documentation gates pass. Publication and exact-head CI remain pending.
+  documentation gates pass. Implementation `cc27582d48abc54c50f1c6a2fc62b5b7ce30d1ff`,
+  owner-generated inventory correction `83ebb50fcdd282a66d10de84b828f4303b0b1a0b`,
+  and diagnostic-owner cap repair `724ac2544094f3ca16b84d6911f00f0a937d4f85`
+  are published on `origin/main`.
+- Exact-head CI run `33646784958` completed `30/30` success. `build-linux`
+  passed in 29 minutes 13 seconds including the broad component inventory and
+  all 20 push steps. Full self-host passed in 36 minutes with
+  `gen2 == gen3 (173440 lines)`, a Pergyra-built DRV-2, the focused array-index
+  marker, and the installed CLI aggregate. This lease is DONE; it does not
+  change the SoT census or project percentage and opens no successor by itself.
 
 ## DONE lease — native malformed-enum parser progress
 

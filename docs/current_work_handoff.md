@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-09-02 (Asia/Seoul)
+Updated: 2026-09-03 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Local candidate — array index type semantic admission
+## Published — array index type semantic admission exact-CI green
 
 - Exact opening base is `a77c450f34c4533d905c3c55aee51d25aaebfa7f`, equal
   to `origin/main`; protected unrelated untracked paths remain outside
@@ -51,10 +51,19 @@ percentage by themselves.
   public/native MIR/C/LLVM identity, and valid C execution. The complete
   installed-driver aggregate and compiler-world, diagnostic catalog/registry,
   source inventory, documentation, Bash syntax, and diff gates are green.
-- The broad component inventory is intentionally left to exact CI because its
-  observed local runtime exceeds the 60-second static budget. Next action is
-  scoped diff review, commit/push, and exact-head CI; no SoT row or percentage
-  changes before publication evidence.
+- Semantic implementation `cc27582d48abc54c50f1c6a2fc62b5b7ce30d1ff`,
+  owner-generated inventory correction `83ebb50fcdd282a66d10de84b828f4303b0b1a0b`,
+  and diagnostic-owner cap repair `724ac2544094f3ca16b84d6911f00f0a937d4f85`
+  are published on `origin/main`. The cap repair keeps the one reason/fix
+  rendering owner at 648 lines without changing public diagnostic bytes.
+- Exact-head CI run `33646784958` completed `30/30` success. `build-linux`
+  passed in 29 minutes 13 seconds with the 146-row language inventory, broad
+  component inventory, and all 20 push steps. Full self-host passed in 36
+  minutes with one `gen2 == gen3 (173440 lines)`, installed a Pergyra-built
+  DRV-2, and passed the focused array-index marker through the installed CLI
+  aggregate. SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9
+  blockers; project forecast remains 83%. No successor is inferred without a
+  fresh production executable falsifier.
 
 ## Published — native malformed-enum parser progress exact-CI green
 

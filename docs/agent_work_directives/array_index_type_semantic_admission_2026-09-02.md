@@ -1,6 +1,6 @@
 # Array Index Type Semantic Admission
 
-Status: ACTIVE — LOCALLY GREEN, PUBLICATION/EXACT CI PENDING
+Status: IMPLEMENTATION COMPLETE — PUBLISHED, EXACT CI GREEN
 
 Exact base revision: `a77c450f34c4533d905c3c55aee51d25aaebfa7f`
 
@@ -116,7 +116,22 @@ collection campaign, or completion claim.
 - The complete installed-driver aggregate passes, including all pre-existing
   public diagnostic receipt identities and the new index gate. Compiler-world,
   diagnostic catalog/registry/layering, source inventory, documentation, Bash
-  syntax, and diff checks are green. The broad component inventory remains an
-  exact-CI obligation under its observed over-60-second local cost.
+  syntax, and diff checks are green. Exact CI also passes the broad component
+  inventory that remains outside the local 60-second static budget.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
-  project forecast remains 83%. Publication and exact-head CI are pending.
+  project forecast remains 83%. This bounded repair is not a row closure or a
+  self-host substitution increment.
+
+## Publication evidence
+
+- Semantic implementation `cc27582d48abc54c50f1c6a2fc62b5b7ce30d1ff`,
+  owner-generated language-word inventory correction
+  `83ebb50fcdd282a66d10de84b828f4303b0b1a0b`, and diagnostic-owner cap repair
+  `724ac2544094f3ca16b84d6911f00f0a937d4f85` are published on `origin/main`.
+- Exact-head CI run `33646784958` completed `30/30` success. `build-linux`
+  completed in 29 minutes 13 seconds with the 146-row language registry, broad
+  component inventory, 648-line diagnostic owner, and all 20 push steps green.
+- Full self-host completed in 36 minutes with one
+  `gen2 == gen3 (173440 lines)`, installed a Pergyra-built DRV-2, passed the
+  focused array-index marker through the installed CLI aggregate, and retained
+  all prior public diagnostic identities. No successor rung is inferred here.
