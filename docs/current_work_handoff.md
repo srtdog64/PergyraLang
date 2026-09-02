@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Candidate — parser statement typed-AST source-location admission
+## Published — parser statement typed-AST source-location admission exact-CI green
 
 - Exact opening base is `59cdf9002d5b190a911c1eca2ae26b835e95951e`, equal
   to `origin/main`; protected unrelated untracked paths remain outside
@@ -57,7 +57,19 @@ percentage by themselves.
 - The CLI aggregate's phony prerequisite rebuilt the codegen seed and missed
   the DRV-2 prebuild receipt, causing a second compiler-scale emission for
   unchanged semantic input. This remains separate bounded performance evidence.
-  Exact-head CI is the publication falsifier.
+- Implementation `196ed689508e40956b8656537e617009e245007d` and checkpoint
+  `d47d4e5f97783f0066da314931404e88c5483caf` are on `origin/main`.
+- Exact-head CI run `33681672307` completed `30/30` success in 36 minutes 46
+  seconds. `build-linux` passed in 25 minutes 46 seconds with the broad
+  component inventory and hard owner ratchet. Full self-host passed in 36
+  minutes 26 seconds with `gen2 == gen3 (173546 lines)`, installed a
+  Pergyra-built DRV-2, passed the installed AST and complete CLI aggregates,
+  and censused all three policy sources. Windows, macOS, sanitizers, TSan, Rocq
+  9, codegen bootstrap, and all 20 backend shards are green.
+- The next reached concern is the separate duplicate compiler-scale emission:
+  the installed CLI aggregate rebuilds the phony codegen seed and misses the
+  DRV-2 prebuild receipt for unchanged semantic input. It is not part of this
+  published parser correctness claim.
 
 ## Published — parser statement-head AST JSON receipt exact-CI green
 

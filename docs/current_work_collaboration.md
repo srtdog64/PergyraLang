@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — parser statement typed-AST source-location admission
+## DONE lease — parser statement typed-AST source-location admission
 
 - Exact base is `59cdf9002d5b190a911c1eca2ae26b835e95951e`, equal to
   `origin/main` when this lease opened. The primary task is the sole code,
@@ -44,6 +44,14 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   unchanged semantic input instead of reusing its prebuild receipt. This is
   bounded performance evidence and not a reason to widen the active parser
   correctness rung.
+- Implementation `196ed689508e40956b8656537e617009e245007d` and checkpoint
+  `d47d4e5f97783f0066da314931404e88c5483caf` are on `origin/main`.
+  Exact-head CI run `33681672307` completed `30/30` success in 36 minutes 46
+  seconds. `build-linux` passed in 25 minutes 46 seconds. Full self-host passed
+  in 36 minutes 26 seconds with `gen2 == gen3 (173546 lines)`, installed a
+  Pergyra-built DRV-2, passed the installed AST/CLI aggregates, and censused all
+  three policy sources. The publication falsifier is closed and this lease is
+  retired.
 
 ## DONE lease — parser statement-head unexpected-token AST JSON receipt
 

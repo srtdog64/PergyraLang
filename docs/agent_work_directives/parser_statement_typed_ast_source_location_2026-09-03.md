@@ -1,6 +1,6 @@
 # Parser Statement Typed-AST Source-Location Admission
 
-Status: IMPLEMENTATION COMPLETE — LOCAL GREEN, PUBLICATION PENDING
+Status: COMPLETE — PUBLISHED, EXACT-CI GREEN
 
 Exact base revision: `59cdf9002d5b190a911c1eca2ae26b835e95951e`
 
@@ -91,5 +91,17 @@ SoT status change, or a progress increment.
 - The installed CLI aggregate's phony prerequisite rebuilt the codegen seed and
   missed the DRV-2 prebuild receipt, causing a second compiler-scale emission
   for unchanged semantic input. This is bounded performance evidence, not part
-  of this correctness repair. Remote exact-head CI remains the publication
-  falsifier.
+  of this correctness repair.
+
+## Publication evidence
+
+- Implementation `196ed689508e40956b8656537e617009e245007d` and checkpoint
+  `d47d4e5f97783f0066da314931404e88c5483caf` are on `origin/main`.
+- Exact-head CI run `33681672307` completed `30/30` success in 36 minutes 46
+  seconds. `build-linux` passed in 25 minutes 46 seconds and confirmed the
+  broad component inventory plus hard owner ratchet. Full self-host passed in
+  36 minutes 26 seconds with `gen2 == gen3 (173546 lines)`, installed a
+  Pergyra-built DRV-2, passed the installed AST/CLI aggregates, and completed
+  the three-source policy-corpus census.
+- Windows, macOS, sanitizer, TSan, Rocq 9, codegen bootstrap, and all 20 backend
+  comparison shards are green. The publication falsifier is closed.

@@ -2,7 +2,7 @@
 
 마지막 업데이트: 2026-09-03
 
-현재 active executable rung은 parser statement typed-AST source-location
+가장 최근 닫힌 executable rung은 parser statement typed-AST source-location
 admission이다. parser cluster는 이미 canonical AST row를 만들지만
 `TypedAstTextKindOf`가 7개 기존 C-AST statement 종류를 `Unknown`으로 남겨 reserved
 statement observation이 commit되지 않는다. Channel-send만 추가하면
@@ -16,8 +16,14 @@ observation/debugger 특례, source rescan, generic statement alias, readiness �
 fresh installed DRV-2 SHA-256
 `9C6B01FA11C3AB6276FBD34EBEB42271F0A1B76249669F22FEC1F29E3791A9FB`에서 complete
 installed CLI aggregate와 static/broad component gate가 green이다. Exact-head CI
-전까지 local candidate이므로 SoT `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9,
+run `33681672307`도 36m46s, 30/30 green이다. `build-linux`는 25m46s, full
+self-host는 36m26s에 통과했고 `gen2 == gen3 (173546 lines)`, Pergyra-built DRV-2,
+installed AST/CLI aggregate, policy source 3건 census를 확인했다. 따라서 SoT
+`88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9,
 hard replacement 75%, 통합 진행도 **83%** (81~85%)는 변하지 않는다.
+다음 실제 관측 concern은 unchanged semantic input인데도 installed CLI aggregate가
+phony seed를 재빌드하고 DRV-2 prebuild receipt를 놓쳐 compiler-scale emission을
+반복하는 성능 seam이다.
 
 가장 최근 닫힌 bounded executable rung은 parser statement-head의 public AST JSON
 receipt다. 정확히 한 바이트인 `=`는 expression parser에 도달하기
