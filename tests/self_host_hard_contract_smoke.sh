@@ -1453,6 +1453,55 @@ require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     "RenderStmtFromFacts" 'return Concat("Call: ", value)'
 require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
     "TypedAstTextKindOf" 'StartsWith(text, "Call: ")'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'StartsWith(text, "ChannelSend: ")'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'return TypedAstKindChannelSendStmtTag();'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'text == "Parallel:" || text == "Parallel On:"'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'return TypedAstKindParallelBlockTag();'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'StartsWith(text, "With slot<")'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'return TypedAstKindWithStmtTag();'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'text == "TransactionBlock:"'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'return TypedAstKindTransactionBlockTag();'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'text == "Fail:"'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'return TypedAstKindFailStmtTag();'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'StartsWith(text, "EventSubscribe: ")'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'return TypedAstKindEventSubscribeStmtTag();'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'StartsWith(text, "EventUnsubscribe: ")'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'return TypedAstKindEventUnsubscribeStmtTag();'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindChannelSendStmtTag() -> Int { return 94; }'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindParallelBlockTag() -> Int { return 95; }'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindWithStmtTag() -> Int { return 96; }'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindTransactionBlockTag() -> Int { return 97; }'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindFailStmtTag() -> Int { return 98; }'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindEventSubscribeStmtTag() -> Int { return 99; }'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindEventUnsubscribeStmtTag() -> Int { return 100; }'
+require_function_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    "TypedAstKindOwnerReady" \
+    'TypedAstKindKnown(TypedAstKindEventUnsubscribeStmtTag())'
+forbid_text "src/self_hosted/parser/source_location_observation_owner.pgy" \
+    'ChannelSend:'
+forbid_text "src/self_hosted/debug/source_location_fact_owner.pgy" \
+    'ChannelSend:'
 array_set_index_attach_count="$(grep -Fc -- \
     "SelfMirRoutineAttachLastSecondaryExpressionGraph(" \
     "$ROOT_DIR/src/self_hosted/mir/routine_tracked_statement_owner.pgy")"

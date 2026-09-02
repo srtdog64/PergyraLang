@@ -18,6 +18,46 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Candidate — parser statement typed-AST source-location admission
+
+- Exact opening base is `59cdf9002d5b190a911c1eca2ae26b835e95951e`, equal
+  to `origin/main`; protected unrelated untracked paths remain outside
+  inspection, edit, and staging.
+- The existing parser tool fails closed on
+  `src/self_hosted/parser/fixture/channel_ops.pgy` because its reserved
+  `ChannelSend:` statement observation cannot be committed: the canonical
+  `TypedAstTextKindOf` returns `TypedAstKindUnknownTag()` for that emitted row.
+- Adding only channel send makes `channel_ops.pgy` pass, after which
+  `async_demo.pgy` fails on its `Parallel:` row. The bounded missing family is
+  the seven C-AST statement kinds already emitted by the parser cluster:
+  channel send, parallel, with-slot, transaction, fail, event subscribe, and
+  event unsubscribe.
+- Objective: append stable compact identities for that exact family, classify
+  the already emitted AST rows at the canonical inventory boundary, and preserve
+  existing IDs, AST bytes, parser/channel semantics, and fail-closed readiness.
+  Observation/debugger special cases, source rescans, generic-kind aliases, and
+  incomplete-row suppression are forbidden.
+- Exact owner card and falsifier are in
+  `docs/agent_work_directives/parser_statement_typed_ast_source_location_2026-09-03.md`.
+  The opening control is `channel_ops.pgy`; the integration gate remains the
+  owned 189-source `tests/self_hosted/parity/parser_parity.sh` inventory.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%.
+- Existing compact IDs 1 through 93 remain unchanged; the seven missing
+  statement identities are appended as 94 through 100. Fresh C and LLVM parser
+  backends each pass the owned 189-source inventory byte-for-byte with live
+  native drift checking enabled.
+- Fresh installed Pergyra-built DRV-2 SHA-256
+  `9C6B01FA11C3AB6276FBD34EBEB42271F0A1B76249669F22FEC1F29E3791A9FB`
+  passes the complete installed CLI aggregate. Preparation, hard-owner,
+  documentation, progress, SoT edge, single-owner, protocol, and broad
+  component inventory gates are green. The size gate reports only the existing
+  unrelated `src/parser/ast_expr_control_accessors.c` 725/699 violation.
+- The CLI aggregate's phony prerequisite rebuilt the codegen seed and missed
+  the DRV-2 prebuild receipt, causing a second compiler-scale emission for
+  unchanged semantic input. This remains separate bounded performance evidence.
+  Exact-head CI is the publication falsifier.
+
 ## Published — parser statement-head AST JSON receipt exact-CI green
 
 - Exact opening base is `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`.

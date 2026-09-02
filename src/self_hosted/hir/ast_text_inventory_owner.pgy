@@ -235,6 +235,27 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "BindStmt: ") {
         return TypedAstKindBindStmtTag();
     }
+    if StartsWith(text, "ChannelSend: ") {
+        return TypedAstKindChannelSendStmtTag();
+    }
+    if text == "Parallel:" || text == "Parallel On:" {
+        return TypedAstKindParallelBlockTag();
+    }
+    if StartsWith(text, "With slot<") {
+        return TypedAstKindWithStmtTag();
+    }
+    if text == "TransactionBlock:" {
+        return TypedAstKindTransactionBlockTag();
+    }
+    if text == "Fail:" {
+        return TypedAstKindFailStmtTag();
+    }
+    if StartsWith(text, "EventSubscribe: ") {
+        return TypedAstKindEventSubscribeStmtTag();
+    }
+    if StartsWith(text, "EventUnsubscribe: ") {
+        return TypedAstKindEventUnsubscribeStmtTag();
+    }
     if StartsWith(text, "For: ") {
         return TypedAstKindForStmtTag();
     }

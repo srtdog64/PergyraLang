@@ -6,6 +6,44 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — parser statement typed-AST source-location admission
+
+- Exact base is `59cdf9002d5b190a911c1eca2ae26b835e95951e`, equal to
+  `origin/main` when this lease opened. The primary task is the sole code,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- The existing parser tool exits 1 on
+  `src/self_hosted/parser/fixture/channel_ops.pgy` with
+  `PARSER GRAPH ERROR: source-location observation rows are incomplete`.
+  `stmt_owner.pgy` already emits the canonical `ChannelSend:` AST row, but
+  `TypedAstTextKindOf` returns `Unknown`, leaving its reserved statement
+  observation uncommitted.
+- Adding only the channel-send identity makes `channel_ops.pgy` pass, then the
+  same fail-closed error moves to the `Parallel:` row in `async_demo.pgy`.
+  Source review bounds the missing family to seven existing C-AST statement
+  kinds: channel send, parallel, with-slot, transaction, fail, event subscribe,
+  and event unsubscribe.
+- The bounded target is appended compact identities plus canonical
+  `TypedAstTextKindOf` admission for that exact family. Observation/debugger
+  special cases, generic-statement aliases, readiness relaxation, source
+  rescans, existing-ID renumbering, AST byte changes, and channel/parser
+  semantic changes are forbidden.
+- Exact objective, owners, and falsifier are fixed in
+  `docs/agent_work_directives/parser_statement_typed_ast_source_location_2026-09-03.md`.
+  SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%.
+- Existing IDs 1 through 93 are unchanged; seven statement identities are
+  appended as 94 through 100. Fresh C and LLVM parser backends each pass all
+  189 committed AST fixtures byte-for-byte with live native drift checking.
+  Fresh installed DRV-2 SHA-256
+  `9C6B01FA11C3AB6276FBD34EBEB42271F0A1B76249669F22FEC1F29E3791A9FB`
+  passes the complete installed CLI aggregate. Static owner/SoT/documentation
+  gates and the broad component inventory are green; exact-head CI is still
+  required before this lease moves to `DONE`.
+- The CLI aggregate rebuilt the codegen seed and then emitted DRV-2 again for
+  unchanged semantic input instead of reusing its prebuild receipt. This is
+  bounded performance evidence and not a reason to widen the active parser
+  correctness rung.
+
 ## DONE lease — parser statement-head unexpected-token AST JSON receipt
 
 - Exact base is `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`, equal to

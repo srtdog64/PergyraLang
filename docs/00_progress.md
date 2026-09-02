@@ -2,6 +2,22 @@
 
 마지막 업데이트: 2026-09-03
 
+현재 active executable rung은 parser statement typed-AST source-location
+admission이다. parser cluster는 이미 canonical AST row를 만들지만
+`TypedAstTextKindOf`가 7개 기존 C-AST statement 종류를 `Unknown`으로 남겨 reserved
+statement observation이 commit되지 않는다. Channel-send만 추가하면
+`channel_ops.pgy`는 통과하고 다음 `async_demo.pgy`가 `Parallel:`에서 같은 방식으로
+막힌다. 따라서 목표는 channel send, parallel, with-slot, transaction, fail, event
+subscribe/unsubscribe의 기존 kind ID 보존 appended identity와 canonical classifier
+admission이다. 기존 ID 1~93은 그대로이고 7개 identity만 94~100으로 추가됐다.
+observation/debugger 특례, source rescan, generic statement alias, readiness 완화는
+금지한다. Fresh C/LLVM parser backend가 각각 189개 fixture를 byte-equal로 통과했고,
+fresh installed DRV-2 SHA-256
+`9C6B01FA11C3AB6276FBD34EBEB42271F0A1B76249669F22FEC1F29E3791A9FB`에서 complete
+installed CLI aggregate와 static/broad component gate가 green이다. Exact-head CI
+전까지 local candidate이므로 SoT `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9,
+hard replacement 75%, 통합 진행도 **83%** (81~85%)는 변하지 않는다.
+
 가장 최근 닫힌 bounded executable rung은 parser statement-head의 public AST JSON
 receipt다. 정확히 한 바이트인 `=`는 expression parser에 도달하기
 전에 `ReadIdent`가 빈 statement head를 반환하는 분기에서 종료된다. 기존 public

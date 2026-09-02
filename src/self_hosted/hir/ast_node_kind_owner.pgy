@@ -100,6 +100,14 @@ func TypedAstKindIntentPriorityTag() -> Int { return 90; }
 func TypedAstKindUseDeclTag() -> Int { return 91; }
 func TypedAstKindLifecycleDeclTag() -> Int { return 92; }
 func TypedAstKindLifecycleTransitionTag() -> Int { return 93; }
+// Appended statement kind; existing compact identities never move.
+func TypedAstKindChannelSendStmtTag() -> Int { return 94; }
+func TypedAstKindParallelBlockTag() -> Int { return 95; }
+func TypedAstKindWithStmtTag() -> Int { return 96; }
+func TypedAstKindTransactionBlockTag() -> Int { return 97; }
+func TypedAstKindFailStmtTag() -> Int { return 98; }
+func TypedAstKindEventSubscribeStmtTag() -> Int { return 99; }
+func TypedAstKindEventUnsubscribeStmtTag() -> Int { return 100; }
 
 func TypedAstKindIsIntentRow(kind: Int) -> Bool {
     return (kind >= TypedAstKindIntentModeTag() &&
@@ -121,7 +129,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindLifecycleTransitionTag();
+        kind <= TypedAstKindEventUnsubscribeStmtTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -215,14 +223,18 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindIntentStepContractProvenanceTag(),
         TypedAstKindIntentStepIntentTag(),
         TypedAstKindIntentPriorityTag(), TypedAstKindUseDeclTag(),
-        TypedAstKindLifecycleDeclTag(), TypedAstKindLifecycleTransitionTag()
+        TypedAstKindLifecycleDeclTag(), TypedAstKindLifecycleTransitionTag(),
+        TypedAstKindChannelSendStmtTag(), TypedAstKindParallelBlockTag(),
+        TypedAstKindWithStmtTag(), TypedAstKindTransactionBlockTag(),
+        TypedAstKindFailStmtTag(), TypedAstKindEventSubscribeStmtTag(),
+        TypedAstKindEventUnsubscribeStmtTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 93 {
+    if ArrayLength(tags) != 100 {
         return false;
     }
     let i: Int = 0;
@@ -269,6 +281,13 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindUseDeclTag()) &&
         TypedAstKindKnown(TypedAstKindLifecycleDeclTag()) &&
         TypedAstKindKnown(TypedAstKindLifecycleTransitionTag()) &&
+        TypedAstKindKnown(TypedAstKindChannelSendStmtTag()) &&
+        TypedAstKindKnown(TypedAstKindParallelBlockTag()) &&
+        TypedAstKindKnown(TypedAstKindWithStmtTag()) &&
+        TypedAstKindKnown(TypedAstKindTransactionBlockTag()) &&
+        TypedAstKindKnown(TypedAstKindFailStmtTag()) &&
+        TypedAstKindKnown(TypedAstKindEventSubscribeStmtTag()) &&
+        TypedAstKindKnown(TypedAstKindEventUnsubscribeStmtTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentModeTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentTerminalFailureTag()) &&
         TypedAstKindIsIntentRow(
@@ -288,7 +307,7 @@ func TypedAstKindOwnerReady() -> Bool {
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
         !TypedAstKindKnown(
-            TypedAstKindLifecycleTransitionTag() + 1
+            TypedAstKindEventUnsubscribeStmtTag() + 1
         ) &&
         TypedAstKindKnown(TypedAstKindExternBlockTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindExternBlockTag()) &&
