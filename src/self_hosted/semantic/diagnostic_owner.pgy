@@ -55,12 +55,8 @@ func SemanticReason(code: String) -> String {
     if code == "compare_type_mismatch" {
         return "comparison operands must have the same type";
     }
-    if code == "binop_type_mismatch" {
-        return "arithmetic operands must have the same type";
-    }
-    if code == "array_index_type_mismatch" {
-        return "array access requires an Int index";
-    }
+    if code == "binop_type_mismatch" { return "arithmetic operands must have the same type"; }
+    if code == "array_index_type_mismatch" { return "array access requires an Int index"; }
     if code == "call_arg_type_mismatch" || code == "member_call_arg_type_mismatch" {
         return "call argument type does not match the callee parameter type";
     }
@@ -159,12 +155,8 @@ func SemanticFix(code: String) -> String {
     if code == "compare_type_mismatch" {
         return "compare values with matching types";
     }
-    if code == "binop_type_mismatch" {
-        return "use operands with matching arithmetic types";
-    }
-    if code == "array_index_type_mismatch" {
-        return "use an Int expression for the array index";
-    }
+    if code == "binop_type_mismatch" { return "use operands with matching arithmetic types"; }
+    if code == "array_index_type_mismatch" { return "use an Int expression for the array index"; }
     if code == "call_arg_type_mismatch" || code == "member_call_arg_type_mismatch" {
         return "change the argument expression or the callee parameter type";
     }
