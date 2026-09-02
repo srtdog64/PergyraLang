@@ -1,6 +1,6 @@
 # Value-Parameter Collection-Mutation Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL IMPLEMENTATION GREEN; EXACT CI PENDING
+Status: DONE — PUBLISHED; EXACT CI GREEN
 
 Exact base revision: `f7800aed4b710890aca3df13e2b38cc280badddd`
 
@@ -98,6 +98,27 @@ semantic owner, SoT registry, progress counter, or completion claim.
   `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; implementation volume is
   21.23%. The broad component inventory and exact 30-job CI remain publication
   evidence and are not claimed locally.
+
+## Publication evidence
+
+- The implementation sequence is published through
+  `4b5e9c8fbc9cf273b0439a21ceac9ab1f3ec97d5`; the bounded fuzz audit is the
+  separate read-only commit `fb85644d` and owns no part of this rung.
+- Exact-head CI run `33578028783` is green 30/30 with backend shards 20/20.
+  `build-linux` passed in 24m21s, including the generated language-word
+  inventory and structural component contract.
+- Full self-host passed in 33m33s and records exactly one 173286-line
+  `gen2 == gen3` fixed point, receipt-bound driver adoption, Pergyra-built
+  DRV-2 installation, the focused ArrayPush/ArraySet receipt marker, and the
+  complete installed-driver CLI aggregate.
+- Exact CI first exposed two supporting-inventory omissions: the generated
+  language-word implementation census did not include the new fixture, and
+  the semantic fixture frontier retained independent 114-row structural and
+  progress counters. The owner-generated inventory and all three frontier
+  ratchets now agree on 115; no semantic fallback was added to repair CI.
+- This directive is DONE and authorizes no successor rung. A successor requires
+  a fresh production executable falsifier; delegated parser fuzz findings
+  remain read-only audit evidence until separately leased.
 
 ## Coordination bounds
 

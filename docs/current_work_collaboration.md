@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — value-parameter collection-mutation public JSON receipt
+## DONE lease — value-parameter collection-mutation public JSON receipt
 
 - Exact base is `f7800aed4b710890aca3df13e2b38cc280badddd`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -36,11 +36,21 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   receipt gate, all six rebaselined admitted-family negatives, and the full
   installed CLI aggregate pass. Static owner/registry/protocol/inventory/
   velocity/hard-contract/progress ratchets pass; implementation volume is
-  21.23%. Exact 30-job CI and publication are still pending, so this lease
-  remains ACTIVE and no successor rung may open.
+  21.23%.
 - Delegated fuzzing remains read-only and outside this lease. Its findings may
   be recorded under `docs/audits/`, but they own no source edit, semantic
   decision, priority change, or successor implementation rung.
+- Final implementation HEAD
+  `4b5e9c8fbc9cf273b0439a21ceac9ab1f3ec97d5` is on `origin/main`. Exact-head
+  CI run `33578028783` is green 30/30 with backend shards 20/20.
+  `build-linux` passed in 24m21s with the language-word inventory and component
+  structural marker; full self-host passed in 33m33s with exactly one
+  173286-line fixed point, receipt-bound adoption, Pergyra-built DRV-2, the
+  focused two-path marker, and installed-driver aggregate.
+- Exact CI exposed and closed two evidence-only omissions: the generated
+  language-word inventory and the independent 114-row semantic fixture
+  frontier/progress counters. All now derive from or ratchet the 115-row
+  fixture set. This lease is DONE and authorizes no successor rung.
 
 ## DONE lease — builtin-argument-type-mismatch public JSON receipt
 

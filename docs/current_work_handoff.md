@@ -18,11 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — value-parameter collection-mutation public JSON receipt locally green
+## Published — value-parameter collection-mutation public JSON receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `f7800aed4b710890aca3df13e2b38cc280badddd`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `f7800aed4b710890aca3df13e2b38cc280badddd` and published
+  implementation HEAD is `4b5e9c8fbc9cf273b0439a21ceac9ab1f3ec97d5`.
+  Protected unrelated untracked paths remain outside inspection, edit, and
+  staging.
 - Fresh production falsifier: `bad_value_param_arraypush.pgy` reaches installed
   Pergyra `value_param_collection_mutation` with exact `ArrayPush`, `xs`, and
   `default` facts, but private JSON is only whitespace and public MIR JSON
@@ -50,12 +51,24 @@ percentage by themselves.
   formatter, and DeviceSlot boundaries.
 - Diagnostic, SoT, Gate, protocol, build-source inventory, substitution
   velocity, hard-contract, and progress ratchets pass. The broad component
-  inventory remains an exact-CI verdict under the local 60-second budget.
+  inventory passed in exact CI under the local 60-second budget.
+- Exact-head CI run `33578028783` is green 30/30 with backend shards 20/20.
+  `build-linux` passed in 24m21s, including the generated language-word
+  inventory and component structural marker. Full self-host passed in 33m33s
+  and records exactly one 173286-line `gen2 == gen3` fixed point,
+  receipt-bound driver adoption, Pergyra-built DRV-2 installation, the focused
+  ArrayPush/ArraySet receipt marker, and installed-driver aggregate.
+- Earlier exact runs exposed two supporting-inventory omissions rather than a
+  semantic failure: the generated language-word census omitted the new fixture
+  and the semantic fixture frontier retained independent 114-row structural
+  and progress counters. The generator output and all frontier ratchets now
+  agree on 115.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
   `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.23% and
-  project forecast remains 83%. Next step is an exact implementation commit,
-  push, 30-job CI observation, and evidence publication. Delegated fuzz
-  findings remain separate read-only audits and do not open a repair rung.
+  project forecast remains 83%. This rung is published and closed; no
+  successor is inferred without a fresh production executable falsifier.
+  Delegated fuzz findings remain separate read-only audits and do not open a
+  repair rung.
 
 ## Published — builtin-argument-type-mismatch public JSON receipt exact-CI green
 
