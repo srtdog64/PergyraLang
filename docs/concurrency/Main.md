@@ -13,6 +13,7 @@ runtime execution.
 6. [`../181_parallel_surface_full_design.md`](../181_parallel_surface_full_design.md) - full surface design.
 7. [`../182_parallel_remaining_bones_work_orders.md`](../182_parallel_remaining_bones_work_orders.md) - remaining implementation work.
 8. [`../186_parallel_full_implementation_plan.md`](../186_parallel_full_implementation_plan.md) - landed runtime/optimizer rungs and measured closure order.
+9. [`../204_concurrency_direction_pscc_review.md`](../204_concurrency_direction_pscc_review.md) - direction decision: the PSCC proposal reviewed against canon. Records the corrections (async stays a suspension marker, scope owns lifetime; ConcurrencyPlan is a sealed MIR fact and AIR never lowers) and the adopted rungs (context propagation across spawn, structured spawn scope, dynamic disjointness evidence, checked suspension contract).
 
 ## Supporting Evidence
 
@@ -23,6 +24,7 @@ runtime execution.
 | Closure capture | [`../141_closure_capture_design.md`](../141_closure_capture_design.md) |
 | Implementation board | [`../54_parallel_execution_relayout_board.md`](../54_parallel_execution_relayout_board.md) |
 | Async positioning | [`../114_async_model_positioning.md`](../114_async_model_positioning.md) |
+| Direction decision and proposal review | [`../204_concurrency_direction_pscc_review.md`](../204_concurrency_direction_pscc_review.md) |
 
 Implementation readiness must be read from the work-order documents and their
 gates. The presence of a design link is not an implementation claim.
