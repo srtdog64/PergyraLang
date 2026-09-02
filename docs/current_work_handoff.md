@@ -43,8 +43,9 @@ percentage by themselves.
   owned 189-source `tests/self_hosted/parity/parser_parity.sh` inventory.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
   project forecast remains 83%.
-- Existing compact IDs 1 through 93 remain unchanged; the seven missing
-  statement identities are appended as 94 through 100. Fresh C and LLVM parser
+- Local implementation `196ed689508e40956b8656537e617009e245007d`
+  preserves compact IDs 1 through 93 and appends the seven missing statement
+  identities as 94 through 100. Fresh C and LLVM parser
   backends each pass the owned 189-source inventory byte-for-byte with live
   native drift checking enabled.
 - Fresh installed Pergyra-built DRV-2 SHA-256

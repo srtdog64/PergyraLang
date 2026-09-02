@@ -9,7 +9,8 @@ statement observation이 commit되지 않는다. Channel-send만 추가하면
 `channel_ops.pgy`는 통과하고 다음 `async_demo.pgy`가 `Parallel:`에서 같은 방식으로
 막힌다. 따라서 목표는 channel send, parallel, with-slot, transaction, fail, event
 subscribe/unsubscribe의 기존 kind ID 보존 appended identity와 canonical classifier
-admission이다. 기존 ID 1~93은 그대로이고 7개 identity만 94~100으로 추가됐다.
+admission이다. 구현 `196ed689508e40956b8656537e617009e245007d`에서 기존 ID
+1~93은 그대로이고 7개 identity만 94~100으로 추가됐다.
 observation/debugger 특례, source rescan, generic statement alias, readiness 완화는
 금지한다. Fresh C/LLVM parser backend가 각각 189개 fixture를 byte-equal로 통과했고,
 fresh installed DRV-2 SHA-256

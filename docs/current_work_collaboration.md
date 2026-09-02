@@ -31,8 +31,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `docs/agent_work_directives/parser_statement_typed_ast_source_location_2026-09-03.md`.
   SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
   project forecast remains 83%.
-- Existing IDs 1 through 93 are unchanged; seven statement identities are
-  appended as 94 through 100. Fresh C and LLVM parser backends each pass all
+- Local implementation `196ed689508e40956b8656537e617009e245007d`
+  preserves IDs 1 through 93 and appends seven statement identities as 94
+  through 100. Fresh C and LLVM parser backends each pass all
   189 committed AST fixtures byte-for-byte with live native drift checking.
   Fresh installed DRV-2 SHA-256
   `9C6B01FA11C3AB6276FBD34EBEB42271F0A1B76249669F22FEC1F29E3791A9FB`

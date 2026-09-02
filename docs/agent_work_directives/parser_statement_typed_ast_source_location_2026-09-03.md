@@ -68,7 +68,9 @@ SoT status change, or a progress increment.
 
 ## Local implementation evidence
 
-- Existing compact identities 1 through 93 remain unchanged. Seven C-AST
+- Local implementation revision is
+  `196ed689508e40956b8656537e617009e245007d`. Existing compact identities 1
+  through 93 remain unchanged. Seven C-AST
   statement counterparts are appended as IDs 94 through 100 and admitted only
   by `TypedAstTextKindOf`; parser, observation, and debugger owners are
   unchanged.
