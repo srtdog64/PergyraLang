@@ -19,7 +19,7 @@ CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy
 PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 ARITY_FIXTURES="bad_arity_builtin bad_arity_too_many bad_arity_too_few"
-EXCLUDED_FIXTURES="bad_binop_assign bad_issome_none_call"
+EXCLUDED_FIXTURES="bad_import_enum_variant bad_issome_none_call"
 
 fail() {
     echo "[self-host-public-call-arity-mismatch-json-diagnostic] $*" >&2
@@ -140,4 +140,4 @@ require_text "$CONTRACT_OWNER" \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic arity authority"
 
-echo "[self-host-public-call-arity-mismatch-json-diagnostic] exact builtin-signature identity, builtin/user arity contexts, MIR/C/LLVM relay, and arithmetic/missing-oracle/unknown-code exclusion: PASS"
+echo "[self-host-public-call-arity-mismatch-json-diagnostic] exact builtin-signature identity, builtin/user arity contexts, MIR/C/LLVM relay, and symbol/missing-oracle/unknown-code exclusion: PASS"

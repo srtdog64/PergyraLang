@@ -20,7 +20,7 @@ ASSIGNMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_ow
 PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 MUTATION_FIXTURES="bad_value_param_arraypush bad_value_param_array_index_assign"
-EXCLUDED_FIXTURES="bad_binop_assign bad_issome_none_call"
+EXCLUDED_FIXTURES="bad_import_enum_variant bad_issome_none_call"
 
 fail() {
     echo "[self-host-public-value-param-collection-mutation-json-diagnostic] $*" >&2
@@ -146,4 +146,4 @@ require_text "$CONTRACT_OWNER" \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic mutation authority"
 
-echo "[self-host-public-value-param-collection-mutation-json-diagnostic] one mutation policy rejects ArrayPush/ArraySet, relays exact MIR/C/LLVM identity, and excludes arithmetic/missing-oracle codes: PASS"
+echo "[self-host-public-value-param-collection-mutation-json-diagnostic] one mutation policy rejects ArrayPush/ArraySet, relays exact MIR/C/LLVM identity, and excludes symbol/missing-oracle codes: PASS"

@@ -20,7 +20,7 @@ PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 COMPARE_FIXTURES="bad_compare_assign bad_compare_condition bad_compare_operand"
 LOGICAL_REL="src/self_hosted/semantic/fixture/bad_logical_right.pgy"
-UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_binop_assign.pgy"
+UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_import_enum_variant.pgy"
 
 fail() {
     echo "[self-host-public-compare-type-mismatch-json-diagnostic] $*" >&2
@@ -123,9 +123,9 @@ for fact in \
     require_text "$WORK_DIR/logical.out" "$fact"
 done
 [[ "$unadmitted_rc" -ne 0 && ! -s "$WORK_DIR/unadmitted.err" ]] ||
-    fail "unadmitted arithmetic verdict changed its private channels"
+    fail "unadmitted symbol verdict changed its private channels"
 ! grep -q '[^[:space:]]' "$WORK_DIR/unadmitted.out" ||
-    fail "unadmitted arithmetic verdict gained comparison admission"
+    fail "unadmitted symbol verdict gained comparison admission"
 
 probe_bin="$WORK_DIR/message-independence-probe"
 [[ "$PGY" == *.exe ]] && probe_bin="$probe_bin.exe"
@@ -146,4 +146,4 @@ require_text "$CONTRACT_OWNER" \
 ! grep -Fq 'compare_type_mismatch' "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic comparison authority"
 
-echo "[self-host-public-compare-type-mismatch-json-diagnostic] exact shared binary identity, three semantic contexts, MIR/C/LLVM relay, and arithmetic exclusion: PASS"
+echo "[self-host-public-compare-type-mismatch-json-diagnostic] exact shared binary identity, three semantic contexts, MIR/C/LLVM relay, and undefined-symbol exclusion: PASS"

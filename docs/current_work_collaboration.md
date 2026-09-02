@@ -6,6 +6,40 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — binary-operator type-mismatch public JSON receipt
+
+- Exact base is `6b720aa7d372696764719ec2d25c6333f4debf92`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves four `binop_type_mismatch` contexts
+  retain exact `Int`/`String` Pergyra facts while private JSON is empty and
+  public MIR JSON reaches only the generic malformed-receipt boundary.
+  Explicit native JSON supplies the same binary-operand identity in all four.
+- The deletion target is exact admission of `binop_type_mismatch` and reuse of
+  existing wire/process owners. Grouping it with `compare_type_mismatch`,
+  co-admitting undefined or Option codes, C mapping, native retry, message
+  parsing, another semantic pass, fact loss, and text-code changes are
+  forbidden.
+- Replacement negatives are unadmitted `bad_import_enum_variant`,
+  missing-oracle `bad_issome_none_call`, and an unknown Pergyra code. Exact
+  objective and four-context coverage are in
+  `docs/agent_work_directives/binop_type_mismatch_public_json_diagnostic_receipt_2026-09-02.md`.
+- The primary task closes this production SoT seam. The delegated fuzz agent
+  only runs a bounded read-only campaign against `F:/tex_bug` and may write one
+  audit under `docs/audits/`; it owns no compiler, SoT, registry, CI, lease,
+  publication, or priority decision.
+- SoT remains `88/183`, `55/32/1`, with 9 blockers; implementation volume is
+  now 21.25% and project forecast remains 83%.
+- Local implementation is green on a fresh Pergyra-built DRV-2 at SHA-256
+  `CB38B9AE...FF15BA9`. The focused four-context gate, nine rebaselined receipt
+  gates, and the full installed CLI aggregate pass. Diagnostic, SoT, Gate,
+  protocol, inventory, hard-contract, velocity, and progress ratchets pass.
+  Exact CI component evidence remains pending publication.
+- The delegated fuzz task completed without implementation overlap. Its vessel
+  method argument-type differential is recorded only in
+  `docs/audits/vessel_method_argument_type_admission_differential_fuzz_audit_2026-09-02.md`
+  and cannot reorder or close this active lease.
+
 ## DONE lease — nested collection-call arity semantic admission
 
 - Exact base is `1478c418049cdc39b32bede3c74085ef52f6de02`, equal to

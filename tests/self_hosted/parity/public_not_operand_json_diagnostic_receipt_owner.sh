@@ -17,7 +17,7 @@ NOT_REL="src/self_hosted/semantic/fixture/bad_not_operand.pgy"
 CONDITION_REL="src/self_hosted/semantic/fixture/bad_condition_not_bool.pgy"
 LOGICAL_REL="src/self_hosted/semantic/fixture/bad_logical_right.pgy"
 RETURN_REL="src/self_hosted/semantic/fixture/bad_return_type.pgy"
-UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_binop_assign.pgy"
+UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_import_enum_variant.pgy"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
 DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
 CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
@@ -125,9 +125,9 @@ set +e
 unadmitted_rc=$?
 set -e
 [[ "$unadmitted_rc" -ne 0 && ! -s "$WORK_DIR/unadmitted.err" ]] ||
-    fail "unadmitted arithmetic verdict changed its private channels"
+    fail "unadmitted symbol verdict changed its private channels"
 ! grep -q '[^[:space:]]' "$WORK_DIR/unadmitted.out" ||
-    fail "unadmitted arithmetic verdict gained unary identity"
+    fail "unadmitted symbol verdict gained unary identity"
 
 probe_bin="$WORK_DIR/message-independence-probe"
 [[ "$PGY" == *.exe ]] && probe_bin="$probe_bin.exe"
@@ -148,4 +148,4 @@ require_text "$CONTRACT_OWNER" 'unary_first.message != unary_second.message'
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic unary authority"
 
-echo "[self-host-public-not-operand-json-diagnostic] exact unary identity, MIR/C/LLVM relay, admitted-family distinction, and arithmetic exclusion: PASS"
+echo "[self-host-public-not-operand-json-diagnostic] exact unary identity, MIR/C/LLVM relay, admitted-family distinction, and undefined-symbol exclusion: PASS"

@@ -18,6 +18,47 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — binary-operator type-mismatch public receipt local green
+
+- Exact opening base is `6b720aa7d372696764719ec2d25c6333f4debf92`, equal to
+  `origin/main`; the worktree contains one locally green unpublished rung plus
+  protected unrelated untracked paths that remain outside inspection, edit,
+  and staging.
+- Fresh production falsifier: `bad_arith_operand`, `bad_binop_assign`,
+  `bad_binop_condition`, and `bad_binop_return` retain exact Pergyra
+  `binop_type_mismatch` and `Int`/`String` facts, but private JSON is empty and
+  public MIR JSON reaches only malformed receipt. Explicit native MIR fixes
+  `PGY_SEM_BINOP_TYPE_MISMATCH`, `semantic:binop:operand_types`, and
+  `align-operand-types-or-overload` for all four contexts.
+- The implementation admits exactly `binop_type_mismatch` behind the Pergyra
+  public-receipt owner. It does not group the code with
+  `compare_type_mismatch`, map semantics in C, retry native compilation, parse
+  message text, or guess admission for missing-oracle Option codes.
+- A fresh Pergyra-built DRV-2 at SHA-256
+  `CB38B9AED81B841DB58A976239BC5AECA084680CA3B46BA0C066D9443FF15BA9`
+  passes the focused four-context MIR/C/LLVM gate, all nine affected receipt
+  regressions, and the complete installed CLI aggregate.
+- Diagnostic registry, SoT edge, Gate single-owner, protocol, build-source
+  inventory, hard-contract, substitution-velocity, and progress ratchets pass.
+  The broad local component inventory is omitted under its observed
+  over-60-second cost and remains exact-CI evidence after publication.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.25% and
+  project forecast remains 83%.
+- Exact directive and focused gate are
+  `docs/agent_work_directives/binop_type_mismatch_public_json_diagnostic_receipt_2026-09-02.md`
+  and
+  `tests/self_hosted/parity/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh`.
+  Publication and exact CI are the remaining steps for this active rung.
+- Delegated fuzzing did not edit the compiler or SoT. Its 1,804-execution
+  campaign found a stable public/native vessel-method argument-type admission
+  differential and recorded it only in
+  `docs/audits/vessel_method_argument_type_admission_differential_fuzz_audit_2026-09-02.md`.
+  That audit is a successor candidate, not current-rung progress or priority.
+- The broader standalone `self-host-semantic-parity-test-smoke` remains the
+  pre-existing 114-versus-115 text-checker bridge described below; this rung
+  does not silently count it green.
+
 ## Published — nested collection-call arity semantic admission exact-CI green
 
 - Exact base is `1478c418049cdc39b32bede3c74085ef52f6de02`; exact implementation

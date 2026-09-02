@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One Pergyra-owned logical-operand verdict keeps its five semantic contexts
-# while publishing one exact JSON identity through public MIR/C/LLVM requests.
+# Pergyra-owned arithmetic verdicts retain exact operand facts across four
+# semantic contexts and one public identity through MIR, C, and LLVM requests.
 
 set -euo pipefail
 
@@ -10,7 +10,7 @@ pgy_prepend_windows_runtime_paths
 
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 SELF_DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-WORK_REL=".tmp/self_hosted/public_logical_operand_json_diagnostic"
+WORK_REL=".tmp/self_hosted/public_binop_type_mismatch_json_diagnostic"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
@@ -18,11 +18,11 @@ DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_o
 CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
 PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
-LOGICAL_FIXTURES="bad_logical_assign bad_logical_condition bad_logical_int bad_logical_return bad_logical_right"
-EXCLUDED_FIXTURES="bad_import_enum_variant"
+BINOP_FIXTURES="bad_arith_operand bad_binop_assign bad_binop_condition bad_binop_return"
+EXCLUDED_FIXTURES="bad_import_enum_variant bad_issome_none_call"
 
 fail() {
-    echo "[self-host-public-logical-operand-json-diagnostic] $*" >&2
+    echo "[self-host-public-binop-type-mismatch-json-diagnostic] $*" >&2
     exit 1
 }
 
@@ -35,7 +35,7 @@ require_text() {
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 
-for base in $LOGICAL_FIXTURES; do
+for base in $BINOP_FIXTURES; do
     rel="src/self_hosted/semantic/fixture/$base.pgy"
     set +e
     (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-diagnostic-verified \
@@ -51,7 +51,7 @@ for base in $LOGICAL_FIXTURES; do
     expected_text="$(tr -d '\r' < "$EXPECTED_DIR/$base.diag")"
     actual_text="$(tr -d '\r' < "$WORK_DIR/$base.text.out")"
     [[ "$actual_text" == "$expected_text" ]] ||
-        fail "$base changed its existing text diagnostic or operand facts"
+        fail "$base changed its text code or operand facts"
     [[ "$json_rc" -ne 0 && ! -s "$WORK_DIR/$base.json.err" ]] ||
         fail "$base changed its private JSON channels"
     grep -Fxq 'pgy.selfhost.public-diagnostic.v1' \
@@ -92,21 +92,19 @@ run_public_failure() {
         fail "$label retried the native pipeline"
 }
 
-run_public_failure mir \
-    "$WORK_DIR/bad_logical_right.expected.json" "" \
+run_public_failure mir-let "$WORK_DIR/bad_arith_operand.expected.json" "" \
     --mir --error-format=json \
-    src/self_hosted/semantic/fixture/bad_logical_right.pgy
-run_public_failure c \
-    "$WORK_DIR/bad_logical_condition.expected.json" \
-    "$WORK_REL/invalid-c.bin" \
-    --error-format=json --backend=c \
-    src/self_hosted/semantic/fixture/bad_logical_condition.pgy \
+    src/self_hosted/semantic/fixture/bad_arith_operand.pgy
+run_public_failure mir-return "$WORK_DIR/bad_binop_return.expected.json" "" \
+    --mir --error-format=json \
+    src/self_hosted/semantic/fixture/bad_binop_return.pgy
+run_public_failure c "$WORK_DIR/bad_binop_assign.expected.json" \
+    "$WORK_REL/invalid-c.bin" --error-format=json --backend=c \
+    src/self_hosted/semantic/fixture/bad_binop_assign.pgy \
     -o "$WORK_REL/invalid-c.bin"
-run_public_failure llvm \
-    "$WORK_DIR/bad_logical_return.expected.json" \
-    "$WORK_REL/invalid-llvm.bin" \
-    --error-format=json --backend=llvm \
-    src/self_hosted/semantic/fixture/bad_logical_return.pgy \
+run_public_failure llvm "$WORK_DIR/bad_binop_condition.expected.json" \
+    "$WORK_REL/invalid-llvm.bin" --error-format=json --backend=llvm \
+    src/self_hosted/semantic/fixture/bad_binop_condition.pgy \
     -o "$WORK_REL/invalid-llvm.bin"
 
 for base in $EXCLUDED_FIXTURES; do
@@ -118,9 +116,9 @@ for base in $EXCLUDED_FIXTURES; do
     excluded_rc=$?
     set -e
     [[ "$excluded_rc" -ne 0 && ! -s "$WORK_DIR/$base.excluded.err" ]] ||
-        fail "$base changed its excluded failure channels"
+        fail "$base changed its excluded private channels"
     ! grep -q '[^[:space:]]' "$WORK_DIR/$base.excluded.out" ||
-        fail "$base gained the logical-operand public identity"
+        fail "$base gained binary-operator admission"
 done
 
 probe_bin="$WORK_DIR/message-independence-probe"
@@ -132,15 +130,14 @@ probe_bin="$WORK_DIR/message-independence-probe"
 "$probe_bin" >"$WORK_DIR/probe.out" 2>"$WORK_DIR/probe.err" ||
     fail "message-independence probe failed"
 grep -Fxq 'message-independent' "$WORK_DIR/probe.out" ||
-    fail "message wording changed logical-operand diagnostic identity"
+    fail "message wording changed arithmetic diagnostic identity"
 
-require_text "$DIAGNOSTIC_OWNER" 'if code == "logical_operand_not_bool" {'
+require_text "$DIAGNOSTIC_OWNER" 'if code == "binop_type_mismatch" {'
 require_text "$DIAGNOSTIC_OWNER" '"semantic:binop:operand_types"'
 require_text "$DIAGNOSTIC_OWNER" '"align-operand-types-or-overload"'
 require_text "$CONTRACT_OWNER" \
-    'logical_first.message != logical_second.message'
-! grep -Eq 'PGY_SEM_BINOP_TYPE_MISMATCH|semantic:binop:operand_types|align-operand-types-or-overload' \
-    "$PROCESS_OWNER" "$WIRE_OWNER" ||
-    fail "C transport gained semantic logical-operand authority"
+    'binop_first.message != binop_second.message'
+! grep -Fq 'binop_type_mismatch' "$PROCESS_OWNER" "$WIRE_OWNER" ||
+    fail "C transport gained semantic arithmetic authority"
 
-echo "[self-host-public-logical-operand-json-diagnostic] exact binary-operand identity, five semantic contexts, MIR/C/LLVM relay, and undefined-symbol exclusion: PASS"
+echo "[self-host-public-binop-type-mismatch-json-diagnostic] exact binary-operand identity, four semantic contexts, MIR/C/LLVM relay, and symbol/missing-oracle/unknown-code exclusion: PASS"

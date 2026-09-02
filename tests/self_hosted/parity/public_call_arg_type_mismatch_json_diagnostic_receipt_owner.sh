@@ -20,7 +20,7 @@ PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 CALL_ARG_FIXTURES="bad_atan2_arg bad_builtin_arg bad_join_sep bad_max_mixed bad_min_mixed bad_random_arg bad_seedrandom_arg bad_sin_arg bad_split_arg bad_sqrt_arg bad_string_contains_arg bad_user_arg bad_writefile_arg"
 ASSIGN_REL="src/self_hosted/semantic/fixture/bad_assign_type.pgy"
-UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_binop_assign.pgy"
+UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_import_enum_variant.pgy"
 
 fail() {
     echo "[self-host-public-call-arg-type-mismatch-json-diagnostic] $*" >&2
@@ -123,9 +123,9 @@ for fact in \
     require_text "$WORK_DIR/assign.out" "$fact"
 done
 [[ "$unadmitted_rc" -ne 0 && ! -s "$WORK_DIR/unadmitted.err" ]] ||
-    fail "unadmitted arithmetic verdict changed its private channels"
+    fail "unadmitted symbol verdict changed its private channels"
 ! grep -q '[^[:space:]]' "$WORK_DIR/unadmitted.out" ||
-    fail "unadmitted arithmetic verdict gained call admission"
+    fail "unadmitted symbol verdict gained call admission"
 
 probe_bin="$WORK_DIR/message-independence-probe"
 [[ "$PGY" == *.exe ]] && probe_bin="$probe_bin.exe"
@@ -147,4 +147,4 @@ require_text "$CONTRACT_OWNER" \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic call-argument authority"
 
-echo "[self-host-public-call-arg-type-mismatch-json-diagnostic] exact assignability identity, thirteen semantic contexts, MIR/C/LLVM relay, and arithmetic exclusion: PASS"
+echo "[self-host-public-call-arg-type-mismatch-json-diagnostic] exact assignability identity, thirteen semantic contexts, MIR/C/LLVM relay, and undefined-symbol exclusion: PASS"

@@ -4133,6 +4133,11 @@ self-host-public-compare-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_compare_type_mismatch_json_diagnostic_receipt_owner.sh
 
+.PHONY: self-host-public-binop-type-mismatch-json-diagnostic-receipt-test-smoke
+self-host-public-binop-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh
+
 .PHONY: self-host-public-let-type-mismatch-json-diagnostic-receipt-test-smoke
 self-host-public-let-type-mismatch-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
