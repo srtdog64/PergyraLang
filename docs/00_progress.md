@@ -21,7 +21,8 @@ owner를 opening base와 byte-identical로 복원한 뒤에도 재현되므로 �
 회귀로 계산하지 않는다. Exact-head CI 전까지 candidate이며, 이 bounded repair는
 `diagnostic.catalog` 전체 폐쇄나 Pergyra-for-C 치환 증분이 아니다. 따라서 census
 `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%, 통합
-진행도 **83%** (81~85%)를 유지한다.
+진행도 **83%** (81~85%)를 유지한다. Local implementation revision은
+`61189ba7e261f329f5238b4de49958f0cc040c8f`이다.
 
 가장 최근 닫힌 bounded executable rung은 top-level expression statement terminator의
 public AST JSON receipt다. 삭제 최소 `c C`는 public/native AST 모두 거절하지만,

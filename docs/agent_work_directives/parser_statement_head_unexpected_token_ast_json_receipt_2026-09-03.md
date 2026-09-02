@@ -92,9 +92,9 @@ progress increment, or completion claim.
 
 ## Local implementation evidence
 
-- Current candidate base remains exact HEAD
-  `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53` with an intentional dirty diff.
-  Fresh installed DRV-2 SHA-256 is
+- Local implementation revision is
+  `61189ba7e261f329f5238b4de49958f0cc040c8f`, based on the exact opening
+  revision above. Fresh installed DRV-2 SHA-256 is
   `1534140B2754D862473FA8B1F60B687297B6F96568BD9CD62A8A4279AB8B8901`.
 - The focused AST receipt gate passes valid AST bytes, exact callable-contract
   receipts, statement-terminator receipts, exact one-byte `=` statement-head

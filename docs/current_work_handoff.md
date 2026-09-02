@@ -20,10 +20,11 @@ percentage by themselves.
 
 ## Candidate — parser statement-head AST JSON receipt, local green
 
-- Exact opening/current HEAD is
-  `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`; the candidate is intentionally
-  dirty and not yet published. Protected unrelated untracked paths remain
-  outside inspection, edit, and staging.
+- Exact opening base is `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`;
+  local implementation revision is
+  `61189ba7e261f329f5238b4de49958f0cc040c8f` and is not yet published.
+  Protected unrelated untracked paths remain outside inspection, edit, and
+  staging.
 - Exact one-byte `=` reaches the initial `ParseOneStmtCore` empty-head branch:
   `ReadIdent` owns that no supported statement head was obtained. Public JSON
   previously reported only generic child failure while explicit native AST
