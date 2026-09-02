@@ -1,6 +1,6 @@
 # Binary-Operator Type-Mismatch Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL GREEN, AWAITING PUBLICATION
+Status: PUBLISHED — EXACT CI GREEN
 
 Exact base revision: `6b720aa7d372696764719ec2d25c6333f4debf92`
 
@@ -93,6 +93,28 @@ claim.
   `docs/audits/vessel_method_argument_type_admission_differential_fuzz_audit_2026-09-02.md`.
   Its minimized vessel-method argument mismatch is a separately measurable
   successor candidate, not an edit or priority change in this rung.
+
+## Publication evidence
+
+- Exact implementation revision
+  `74cc515434f3bc90e193dd9970ec39551b71d5c3` is published on
+  `origin/main`.
+- Exact CI run `33591240737` completed `30/30` success in 35 minutes 13
+  seconds. Backend comparison completed 20/20, sanitizer and emitted-program
+  ASan/UBSan evidence passed, and Windows, macOS, TSan, formal proof, and
+  self-host codegen jobs passed.
+- The full self-host job completed in 34 minutes 56 seconds with exactly one
+  `gen2 == gen3 (173300 lines)`, installed a Pergyra-built DRV-2, observed the
+  focused four-context binary-operator receipt marker, and completed the
+  installed CLI aggregate.
+- `build-linux` completed in 25 minutes 30 seconds. Its component contract
+  passed structural source inventory and removed-path ratchets, the 146-row
+  language keyword registry passed, and the SoT census remained
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- This rung is published. `diagnostic.catalog` remains `BRIDGE`; the exact
+  admission closes one reached public receipt seam rather than the remaining
+  diagnostic catalog family. The separate 114-versus-115 text-checker bridge
+  remains an explicitly recorded omission, not hidden success.
 
 ## Coordination bounds
 

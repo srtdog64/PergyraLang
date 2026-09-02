@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — binary-operator type-mismatch public JSON receipt
+## DONE lease — binary-operator type-mismatch public JSON receipt
 
 - Exact base is `6b720aa7d372696764719ec2d25c6333f4debf92`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -38,7 +38,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - The delegated fuzz task completed without implementation overlap. Its vessel
   method argument-type differential is recorded only in
   `docs/audits/vessel_method_argument_type_admission_differential_fuzz_audit_2026-09-02.md`
-  and cannot reorder or close this active lease.
+  and did not reorder or close this lease.
+- Exact implementation revision `74cc515434f3bc90e193dd9970ec39551b71d5c3`
+  is published on `origin/main`. Exact CI run `33591240737` completed `30/30`
+  success in 35 minutes 13 seconds. Full self-host completed in 34 minutes 56
+  seconds with one `gen2 == gen3 (173300 lines)`, a Pergyra-built DRV-2, the
+  focused binary-operator marker, and the installed CLI aggregate.
+- `build-linux` completed in 25 minutes 30 seconds with the structural
+  component/removed-path ratchets and 146-row language registry green. This
+  lease is DONE and authorizes no successor implementation rung without a
+  fresh production measurement against the published revision.
 
 ## DONE lease — nested collection-call arity semantic admission
 

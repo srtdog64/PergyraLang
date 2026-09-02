@@ -18,12 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — binary-operator type-mismatch public receipt local green
+## Published — binary-operator type-mismatch public receipt exact-CI green
 
-- Exact opening base is `6b720aa7d372696764719ec2d25c6333f4debf92`, equal to
-  `origin/main`; the worktree contains one locally green unpublished rung plus
-  protected unrelated untracked paths that remain outside inspection, edit,
-  and staging.
+- Exact opening base is `6b720aa7d372696764719ec2d25c6333f4debf92` and exact
+  implementation revision `74cc515434f3bc90e193dd9970ec39551b71d5c3` is
+  published on `origin/main`. Protected unrelated untracked paths remain
+  outside inspection, edit, and staging.
 - Fresh production falsifier: `bad_arith_operand`, `bad_binop_assign`,
   `bad_binop_condition`, and `bad_binop_return` retain exact Pergyra
   `binop_type_mismatch` and `Int`/`String` facts, but private JSON is empty and
@@ -40,8 +40,9 @@ percentage by themselves.
   regressions, and the complete installed CLI aggregate.
 - Diagnostic registry, SoT edge, Gate single-owner, protocol, build-source
   inventory, hard-contract, substitution-velocity, and progress ratchets pass.
-  The broad local component inventory is omitted under its observed
-  over-60-second cost and remains exact-CI evidence after publication.
+  The broad local component inventory was omitted under its observed
+  over-60-second cost; exact CI passed its structural inventory and removed-
+  path ratchets plus the 146-row language keyword registry.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
   `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.25% and
   project forecast remains 83%.
@@ -49,7 +50,11 @@ percentage by themselves.
   `docs/agent_work_directives/binop_type_mismatch_public_json_diagnostic_receipt_2026-09-02.md`
   and
   `tests/self_hosted/parity/public_binop_type_mismatch_json_diagnostic_receipt_owner.sh`.
-  Publication and exact CI are the remaining steps for this active rung.
+  Exact CI run `33591240737` completed `30/30` success in 35 minutes 13
+  seconds. Full self-host completed in 34 minutes 56 seconds with one
+  `gen2 == gen3 (173300 lines)`, a Pergyra-built DRV-2, the focused marker,
+  and the installed CLI aggregate; `build-linux` completed in 25 minutes 30
+  seconds.
 - Delegated fuzzing did not edit the compiler or SoT. Its 1,804-execution
   campaign found a stable public/native vessel-method argument-type admission
   differential and recorded it only in
