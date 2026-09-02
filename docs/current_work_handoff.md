@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Published candidate — parser statement-terminator AST JSON receipt, exact CI pending
+## Published — parser statement-terminator AST JSON receipt exact-CI green
 
 - Exact opening base is `24397904d4a2f4a9b650205fde0b3020cb251b87`, equal
   to `origin/main`; protected unrelated untracked paths remain outside
@@ -35,7 +35,7 @@ percentage by themselves.
   family are in
   `docs/agent_work_directives/parser_statement_terminator_ast_json_receipt_2026-09-03.md`.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
-  project forecast remains 83%. This is opening evidence, not completed repair
+  project forecast remains 83%. This bounded repair is not whole-row closure
   or substitution progress.
 - `ParseOneStmtCore` now consumes the existing optional terminator fact. Only
   the reached JSON-selected top-level expression branch emits the parser-owned
@@ -47,7 +47,14 @@ percentage by themselves.
   aggregate. Static diagnostic, hard-owner, SoT edge, and documentation gates
   are green. Local formal adequacy is a declared no-Coq skip. Implementation
   `66ffd0e2149b3ca03e2c804b4f7d5c42410e823b` is published on
-  `origin/main`; exact-head CI remains pending.
+  `origin/main`.
+- Exact-head workflow-dispatch run `33656673799` completed `30/30` success at
+  `64ff69ee00df4d6b6d70b6cf4c39868c5e166eea` in 33 minutes 2 seconds.
+  `build-linux` passed in 25 minutes 38 seconds. Full self-host passed in 32
+  minutes 41 seconds with `gen2 == gen3 (173470 lines)`, installed a
+  Pergyra-built DRV-2, and passed the focused AST marker plus the complete
+  installed CLI aggregate. No successor rung is inferred without a fresh
+  production executable falsifier.
 
 ## Published — array index type semantic admission exact-CI green
 

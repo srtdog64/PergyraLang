@@ -2,10 +2,10 @@
 
 마지막 업데이트: 2026-09-03
 
-현재 local executable candidate는 top-level expression statement terminator의
+가장 최근 닫힌 bounded executable rung은 top-level expression statement terminator의
 public AST JSON receipt다. 삭제 최소 `c C`는 public/native AST 모두 거절하지만,
 기존 public 경로는 JSON-selected DRV-2가 내보낸 legacy `PARSE ERROR` text를
-private receipt로 인정하지 않아 malformed-receipt만 보고했다. 구현 후보는 기존
+private receipt로 인정하지 않아 malformed-receipt만 보고했다. 구현은 기존
 `ConsumeStmtTerminatorOpt` 판정을 `ParseOneStmtCore`에서 직접 소비하고, 이미
 전달된 parser diagnostic projection이 JSON일 때만 parser-owned
 `expression_statement_terminator` receipt를 게시한다. C는 여전히 opaque relay이며
@@ -18,7 +18,11 @@ AST receipt와 complete installed CLI aggregate가 green이고, public/native는
 `check-syntax` identity를 공유한다. Static diagnostic, hard-owner, SoT edge,
 documentation gates도 green이다. 로컬 formal adequacy는 Coq/Rocq 부재를 명시한
 declared skip이다. 구현 `66ffd0e2149b3ca03e2c804b4f7d5c42410e823b`은
-`origin/main`에 게시됐고 exact-head CI가 남았다. 이 receipt seam은
+`origin/main`에 게시됐다. Exact-head workflow-dispatch run `33656673799`은
+`64ff69ee00df4d6b6d70b6cf4c39868c5e166eea`에서 33m02s, 30/30 green이다.
+`build-linux`는 25m38s에 통과했고 full self-host는 32m41s에
+`gen2 == gen3 (173470 lines)`, Pergyra-built DRV-2 설치, focused AST marker와
+complete installed CLI aggregate를 증명했다. 이 receipt seam은
 `diagnostic.catalog` 전체를 닫지 않으므로 census `88/183`,
 `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9,
 hard replacement 75%, 통합 진행도 **83%** (81~85%)를 유지한다.

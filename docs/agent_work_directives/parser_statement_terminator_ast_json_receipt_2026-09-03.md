@@ -1,6 +1,6 @@
 # Parser Statement-Terminator AST JSON Receipt
 
-Status: IMPLEMENTATION COMPLETE — PUBLISHED, EXACT CI PENDING
+Status: IMPLEMENTATION COMPLETE — PUBLISHED, EXACT CI GREEN
 
 Exact base revision: `24397904d4a2f4a9b650205fde0b3020cb251b87`
 
@@ -104,10 +104,15 @@ recovery campaign, or completion claim.
   `src/parser/ast_expr_control_accessors.c` 725/699 violation.
 - Local SoT edge and live adequacy mutations pass. The formal adequacy model is
   a declared local skip because neither `rocq` nor `coqc` is installed; exact
-  CI remains the proof owner. The broad component inventory is likewise left
-  to exact CI under the repository's 60-second local budget.
+  CI remains the proof owner. The broad component inventory was likewise left
+  to exact CI under the repository's 60-second local budget and passed there.
 - SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
   project forecast remains 83%. This closes one reached executable receipt
   seam and does not close the whole `diagnostic.catalog` row.
 - Implementation `66ffd0e2149b3ca03e2c804b4f7d5c42410e823b` is published on
-  `origin/main`. Exact-head CI remains the publication falsifier.
+  `origin/main`. Exact-head workflow-dispatch run `33656673799` at
+  `64ff69ee00df4d6b6d70b6cf4c39868c5e166eea` completed `30/30` success in
+  33 minutes 2 seconds. `build-linux` passed in 25 minutes 38 seconds. Full
+  self-host passed in 32 minutes 41 seconds with
+  `gen2 == gen3 (173470 lines)`, installed a Pergyra-built DRV-2, and passed
+  the focused AST marker plus the complete installed CLI aggregate.

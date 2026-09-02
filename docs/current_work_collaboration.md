@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — parser statement-terminator AST JSON receipt
+## DONE lease — parser statement-terminator AST JSON receipt
 
 - Exact base is `24397904d4a2f4a9b650205fde0b3020cb251b87`, equal to
   `origin/main` when this lease opened. The primary task is the sole code,
@@ -32,8 +32,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   installed CLI aggregate. Static diagnostic, hard-owner, SoT edge, and
   documentation gates are green. Local formal adequacy is a declared no-Coq
   skip. Implementation `66ffd0e2149b3ca03e2c804b4f7d5c42410e823b` is
-  published on `origin/main`; exact-head CI remains pending, so this lease
-  stays ACTIVE.
+  published on `origin/main`.
+- Exact-head workflow-dispatch run `33656673799` completed `30/30` success at
+  `64ff69ee00df4d6b6d70b6cf4c39868c5e166eea` in 33 minutes 2 seconds.
+  `build-linux` passed in 25 minutes 38 seconds. Full self-host passed in 32
+  minutes 41 seconds with `gen2 == gen3 (173470 lines)`, a Pergyra-built DRV-2,
+  the focused parser statement-terminator AST marker, and the complete
+  installed CLI aggregate. This lease is DONE; it changes neither the SoT
+  census nor project percentage and opens no successor without a fresh
+  production falsifier.
 
 ## DONE lease — array index type semantic admission
 
