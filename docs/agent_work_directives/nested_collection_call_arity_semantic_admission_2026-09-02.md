@@ -1,6 +1,6 @@
 # Nested Collection-Call Arity Semantic Admission
 
-Status: ACTIVE — LOCAL EXECUTION GREEN, PUBLICATION PENDING
+Status: PUBLISHED — EXACT CI GREEN
 
 Exact base revision: `1478c418049cdc39b32bede3c74085ef52f6de02`
 
@@ -80,8 +80,24 @@ claim.
   114-row manifest ratchet does not admit the already published 115th
   `bad_value_param_array_index_assign` golden, whose separate text checker
   reports `ok`. This rung neither changes that gate nor treats it as success.
-- Publication, exact component evidence, and exact CI remain pending. Local
-  green evidence does not close the active lease.
+- Local green evidence preceded publication and did not by itself close the
+  active lease.
+
+## Publication evidence
+
+- Exact implementation revision
+  `687d7c20bd63d12d7d5afdc9bc12ac47cca00f3a` is published on `origin/main`.
+- Exact CI run `33587272803` completed `30/30` success in 35.7 minutes.
+  `build-linux` completed in 17.6 minutes, Windows in 8.2, sanitizer in 12.5,
+  and self-host codegen bootstrap in 8.9.
+- The full self-host job completed in 35.4 minutes with exactly one
+  `gen2 == gen3 (173295 lines)`, installed a Pergyra-built DRV-2, observed the
+  focused nested-arity marker, and completed the installed CLI aggregate.
+- Linux observed the 146-row language-word inventory and component structural
+  source/removed-path ratchets green. The focused executable gate owns behavior.
+- This production artifact-graph rung is published. SoT registry counts remain
+  `88/183`, `55/32/1`; the existing CLOSED collection-call protocol row now
+  names its concrete-scalar consumer and executable evidence.
 
 ## Coordination bounds
 

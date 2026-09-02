@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — nested collection-call arity semantic admission
+## DONE lease — nested collection-call arity semantic admission
 
 - Exact base is `1478c418049cdc39b32bede3c74085ef52f6de02`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -25,8 +25,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   83%.
 - A fresh Pergyra-built DRV-2 at SHA-256 `DDB7C12...3FF189`, the focused
   production gate, existing arity receipt, language registry/golden spine, and
-  installed CLI aggregate are locally green. Publication and exact CI remain
-  with the primary task.
+  installed CLI aggregate are locally green. Exact implementation revision
+  `687d7c20` is published and CI run `33587272803` completed `30/30` success in
+  35.7 minutes with one `gen2 == gen3 (173295 lines)` and the focused marker.
 - The broader standalone semantic parity gate remains an explicitly observed
   pre-existing bridge at its 115th value-parameter index-assignment golden; it
   is not being silently counted green or pulled into this edit lease.

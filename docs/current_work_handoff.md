@@ -18,11 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — nested collection-call arity semantic admission local green, publication pending
+## Published — nested collection-call arity semantic admission exact-CI green
 
-- Exact base and current published HEAD are
-  `1478c418049cdc39b32bede3c74085ef52f6de02`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `1478c418049cdc39b32bede3c74085ef52f6de02`; exact implementation
+  revision `687d7c20bd63d12d7d5afdc9bc12ac47cca00f3a` is published on
+  `origin/main`. Protected unrelated untracked paths remain outside inspection,
+  edit, and staging.
 - Fresh production falsifier: public/native AST both accept
   `let x=SetSize(0,0)-0;`; public MIR and both direct DRV-2 diagnostic modes
   exit zero and publish `(SetSize(0, 0) - 0)`, native MIR/C reject with exact
@@ -45,14 +46,19 @@ percentage by themselves.
   focused production gate, existing arity receipt, language registry/golden
   spine, and installed CLI aggregate are locally green.
 - Static diagnostic, SoT edge, single-owner, protocol, source inventory,
-  substitution, hard-contract, and progress gates are green. Exact component
-  evidence and CI remain pending.
+  substitution, hard-contract, and progress gates are green. Exact CI run
+  `33587272803` completed `30/30` success in 35.7 minutes; full self-host took
+  35.4 minutes with one `gen2 == gen3 (173295 lines)`, a Pergyra-built DRV-2,
+  the focused nested-arity marker, and the installed CLI aggregate. Linux
+  component inventory/removed-path ratchets and the 146-row language registry
+  passed.
 - Broader-gate omission is explicit: `self-host-semantic-parity-test-smoke`
   remains pre-existing red at its fixed 114-row manifest boundary; when
   experimentally advanced to 115 it reaches the already published
   `bad_value_param_array_index_assign` golden and its separate text checker
-  reports `ok`. This active production artifact-graph rung does not change or
-  claim that checker.
+  reports `ok`. This published production artifact-graph rung does not change or
+  claim that checker. It remains a separately measurable future falsifier, not
+  a hidden failure of this published rung.
 
 ## Published — call-arity-mismatch public JSON receipt exact-CI green
 
