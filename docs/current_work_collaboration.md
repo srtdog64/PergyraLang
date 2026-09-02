@@ -34,7 +34,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   direct test-only `PgyTask` constructor that omitted the new context carrier;
   TSan and macOS failed closed at execution rather than running with default
   authority. The test constructor is repaired locally and its concurrency plus
-  focused runtime gates are green. Replacement publication/CI is pending.
+  focused runtime gates are green. Commit `b883c250` is published. Replacement
+  run `33696232268` reproduces one Windows AIR measurement drift only:
+  `04_channel_parallel` gains the context owner's `pthread_once`, moving
+  fixture-specific Sync excess 14 to 15 while every other row and the common
+  floor remain unchanged. The attributed baseline fix and a new exact run are
+  pending.
 
 ## DONE lease — codegen seed prebuild receipt
 

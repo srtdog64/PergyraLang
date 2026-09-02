@@ -67,3 +67,9 @@ evidence, not semantic authority, a SoT row, or a completion claim.
   capturing context. TSan and macOS both hit the intended invalid-context
   panic. The probe now captures through the owner; a replacement run must be
   green before retirement.
+- Replacement run `33696232268` reproduced one measured Windows AIR-dashboard
+  drift: only `04_channel_parallel` gained the `pthread_once` symbol owned by
+  default runtime-context initialization. Local remeasurement matches exactly
+  (`phys_Sync=17`, substrate-floor excess `15`); every other row is unchanged.
+  The fixture-specific attributed baseline is updated without changing the
+  common substrate floor. A further exact run remains required.

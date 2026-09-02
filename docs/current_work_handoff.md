@@ -46,6 +46,13 @@ percentage by themselves.
   macOS both failed closed in `pgy_pool_run_task`. The probe now uses the same
   context owner before direct execution; local `test-concurrency` and the
   focused three-runtime gate are green. A replacement exact run is required.
+- Replacement run `33696232268` then failed only the Windows AIR erasure
+  dashboard because `04_channel_parallel` now retains the owner-required
+  `pthread_once` used for race-free default runtime-context initialization.
+  Local remeasurement reproduces `phys_Sync=17` and leaves all other fixture
+  rows unchanged. The fixture-specific excess is attributed as `15`; the
+  universal substrate floor remains pinned at Sync 2 / Abort 1. Publish and a
+  new exact run remain before opening the next lifecycle rung.
 
 ## Published — codegen seed prebuild receipt exact-CI green
 
