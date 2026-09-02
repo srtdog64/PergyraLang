@@ -3110,7 +3110,7 @@ require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "func Sema
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureFrontierCount() -> Int"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 114;"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 115;"
 require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()"
 reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 110"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureManifestRows"
