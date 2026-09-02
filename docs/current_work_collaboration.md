@@ -30,6 +30,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   memory-concurrency, ABI lifetime, worker-boundary, and documentation gates
   are green. Commit/push and exact CI remain before this lease can become
   `DONE`.
+- Commit `b4846491` reached `origin/main`. Exact run `33695952848` then found a
+  direct test-only `PgyTask` constructor that omitted the new context carrier;
+  TSan and macOS failed closed at execution rather than running with default
+  authority. The test constructor is repaired locally and its concurrency plus
+  focused runtime gates are green. Replacement publication/CI is pending.
 
 ## DONE lease — codegen seed prebuild receipt
 

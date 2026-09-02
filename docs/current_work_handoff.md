@@ -40,6 +40,12 @@ percentage by themselves.
   This supporting runtime closure changes neither SoT counts nor the 83%
   project forecast. The next lifecycle rung is not open until this one is
   published and exact CI is observed.
+- First exact run `33695952848` exposed one honest constructor bypass:
+  `src/test_concurrency.c` manually allocated a pending `PgyTask` for its
+  cooperative-cancellation probe without capturing runtime context. TSan and
+  macOS both failed closed in `pgy_pool_run_task`. The probe now uses the same
+  context owner before direct execution; local `test-concurrency` and the
+  focused three-runtime gate are green. A replacement exact run is required.
 
 ## Published — codegen seed prebuild receipt exact-CI green
 

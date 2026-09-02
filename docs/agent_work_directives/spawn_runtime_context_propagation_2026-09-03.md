@@ -62,3 +62,8 @@ evidence, not semantic authority, a SoT row, or a completion claim.
   green on the local Windows/MSYS2 host.
 - Exact CI remains required. Local Rocq/Coq is unavailable and no formal proof
   pass is claimed by this runtime rung.
+- First exact run `33695952848` falsified one test-only direct task constructor:
+  the cooperative-cancellation probe called `pgy_pool_run_task` without
+  capturing context. TSan and macOS both hit the intended invalid-context
+  panic. The probe now captures through the owner; a replacement run must be
+  green before retirement.

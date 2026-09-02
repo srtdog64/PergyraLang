@@ -222,6 +222,7 @@ test_cancelled_pending_pool_task_runs_cooperatively(void)
     task->model = PGY_TASK_MODEL_THREAD;
     task->lane = PGY_LANE_WORKER_POOL;
     task->fn = cancelled_pending_pool_task;
+    EXPECT(pgy_runtime_context_capture_task(&task->runtime_context));
     atomic_init(&task->state, PGY_TASK_PENDING);
     task->cancel_node = pgy_cancel_node_create(NULL);
     EXPECT(pgy_task_sync_init(task, "cancelled-pending-test"));
