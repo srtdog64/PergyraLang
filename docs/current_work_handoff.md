@@ -18,43 +18,55 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Local candidate — vessel method argument-type semantic admission
+## Local candidate — native malformed-enum parser progress
 
-- Exact opening base is `6d849b168e616eab63640ac4ca5eefbe97b1e929`, equal to
-  `origin/main` when the rung opened. The worktree is intentionally dirty with
-  this candidate and one delegated fuzz audit; protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
-- Fresh production falsifier: public/native AST both accept the same vessel
-  source, but installed public MIR/C previously admitted `v.F(0)` for
-  `F(self, x: V) -> Void` while native MIR/C rejected with exact
-  `PGY_SEM_TYPE_MISMATCH`, cause `semantic:call:arg_type_mismatch`, fix
-  `align-arg-type`, expected `V`, and actual `Int`. Valid `v.F(x)` succeeds.
-- The existing member target owner already carries `V.F`, receiver offset one,
-  and the method signature. The expression verdict now consumes those facts
-  for exact-arity, graph-owned member arguments independently of return shape;
-  no member text reconstruction, root rescan, signature table, C mapping,
-  native retry, or backend repair was added.
-- General calls retain `call_arg_type_mismatch` with assignability public
-  identity. Resolved member calls use the separately registered
-  `member_call_arg_type_mismatch`, mapped by the same Pergyra receipt owner to
-  the native call-specific identity without message parsing. The vocabulary
-  count contract was corrected from stale 36 to its actual new 39 rows.
-- Fresh Pergyra-built DRV-2 SHA-256 is
-  `45D3EF8DFC97031317DF106F7E14A17B5A383961F761746131CF7FA12BE26014`.
-  Focused vessel parity, the existing thirteen-context general call receipt,
-  diagnostic registry, compiler-world contract, and complete installed CLI
-  aggregate are green. The broad component inventory exceeded its 60-second
-  local budget and was stopped without a failure; exact-head CI must own it.
-- Delegated fuzzing made 1,498 bounded executions without compiler/SoT edits.
-  It recorded a deterministic wrong-String-array-index public/native
-  differential in
-  `docs/audits/array_index_type_admission_receipt_differential_fuzz_audit_2026-09-02.md`.
-  That is a successor candidate, not current-rung progress or priority.
-- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
-  implementation volume now measures 21.29% and the project forecast remains
-  83%.
-  Next action is diff review, a scoped commit/push, exact-head CI observation,
-  and then a documentation-only publication snapshot if CI is green.
+- Exact opening base is `9090a5fa7c9c9b63aa2e774b25aaff5aa8873724`, equal to
+  `origin/main` when the rung opened. Protected unrelated untracked paths
+  remain outside inspection, edit, and staging.
+- Exact `enum({`, `enum)`, `enum[`, `enum]`, and `enum{{` inputs previously
+  stalled explicit native AST in module loading. Native HIR and later modes
+  inherited the same pre-AST stall; public tokens/AST/MIR terminated.
+- `parser_consume` intentionally reports mismatches without advancing. The enum
+  parser now guards its required name, opening brace, and each variant name.
+  Invalid body entry destroys the partial declaration and hands recovery back
+  to the existing program-parser synchronization owner. No global consume
+  change, spelling table, timeout recovery, HIR repair, or backend repair was
+  added.
+- The focused gate first failed on the one-second `enum({` canary. It now keeps
+  all five deletion minima plus `enum Body { ]` under a hard one-second native
+  AST budget, verifies public neighbor termination, and retains valid native
+  enum AST parsing. `make test-parser` and the Make-wired focused target pass.
+- Bash syntax, build-source inventory, self-host preparation, and CI-profile
+  gates are locally green. The exact directive and gate are
+  `docs/agent_work_directives/native_malformed_enum_parser_progress_2026-09-02.md`
+  and `tests/native_pipeline_malformed_enum_progress_owner.sh`.
+- This native security/progress repair does not change the SoT registry or
+  count as Pergyra substitution progress. SoT remains `88/183`,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project forecast remains
+  83%. Next action is scoped diff review, commit/push, and exact-head CI.
+
+## Published — vessel method argument-type semantic admission
+
+- Exact implementation `d50e2535c6a0b6f2469c2ebe9d396eee24bc8c4b` and
+  owner-generated language inventory correction
+  `228c2a9da34dc210036a3ead3acbc83e1cc1538f` are on `origin/main`.
+- The resolved member-call verdict consumes existing target/signature facts and
+  rejects `v.F(0)` for `F(self, x: V) -> Void` with exact native parity while
+  preserving valid `v.F(x)`. General and member-call public identities remain
+  distinct; no C mapping, native retry, text reconstruction, or second
+  signature authority was added.
+- Fresh Pergyra-built DRV-2 SHA-256
+  `45D3EF8DFC97031317DF106F7E14A17B5A383961F761746131CF7FA12BE26014`,
+  focused/general diagnostic regressions, owner ratchets, and the installed CLI
+  aggregate are green.
+- Exact run `33596448833` passed all jobs except Linux's final stale generated
+  inventory check. The corrected owner-generated inventory passes locally.
+  Full rerun `33620555065` reached 28 green jobs with no failure before the
+  unrelated docs/204 push cancelled the shared CI group. This is recorded as
+  an external cancellation, not falsely reported as a 30/30 green run.
+- Delegated fuzzing recorded the successor wrong-array-index differential only
+  in `docs/audits/array_index_type_admission_receipt_differential_fuzz_audit_2026-09-02.md`.
+  It did not edit compiler/SoT code or reorder the user-selected enum repair.
 
 ## Published — binary-operator type-mismatch public receipt exact-CI green
 

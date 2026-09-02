@@ -6,7 +6,30 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — vessel method argument-type semantic admission
+## ACTIVE lease — native malformed-enum parser progress
+
+- Exact base is `9090a5fa7c9c9b63aa2e774b25aaff5aa8873724`, equal to
+  `origin/main` when this lease opened. The primary task is the sole compiler,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- Five deletion-minimum inputs, exact `enum({`, `enum)`, `enum[`, `enum]`, and
+  `enum{{`, reach explicit native `--ast` module loading and do not terminate.
+  Public tokens/AST/MIR terminate, so HIR and later native modes merely inherit
+  a native parser-progress defect before AST publication.
+- `parser_consume` deliberately reports without consuming on mismatch. The enum
+  parser must therefore guard its required name, opening brace, and variant
+  name before entering or repeating its body loop. Changing global consume
+  semantics, adding spelling-specific branches, masking the defect with a
+  driver timeout, or repairing HIR/backend code is forbidden.
+- Exact objective and falsifier are in
+  `docs/agent_work_directives/native_malformed_enum_parser_progress_2026-09-02.md`.
+  The focused gate is
+  `tests/native_pipeline_malformed_enum_progress_owner.sh`; timeout is a hard
+  failure, all malformed cases must reject, and a valid enum must remain green.
+- This is a bounded native progress/security repair requested by the user. It
+  does not change a SoT row, count as Pergyra self-host substitution progress,
+  or authorize unrelated parser recovery work.
+
+## DONE lease — vessel method argument-type semantic admission
 
 - Exact base is `6d849b168e616eab63640ac4ca5eefbe97b1e929`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -31,7 +54,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `45D3EF8DFC97031317DF106F7E14A17B5A383961F761746131CF7FA12BE26014`,
   focused vessel parity, the thirteen-context general-call regression,
   diagnostic/compiler-world ratchets, and the installed CLI aggregate pass.
-  Commit, push, and exact-head CI observation remain with the primary task.
+  Implementation `d50e2535c6a0b6f2469c2ebe9d396eee24bc8c4b` and generated
+  inventory correction `228c2a9da34dc210036a3ead3acbc83e1cc1538f` are published.
+  Exact run `33596448833` passed every job except Linux's final generated
+  language-word inventory check; the owner-generated four-row count refresh
+  then passed locally. Full rerun `33620555065` reached 28 green jobs with no
+  failure before an unrelated concurrent docs/204 push cancelled the shared CI
+  group. The omission is external cancellation, not an inferred green run.
 - The fuzz-only task finished 1,498 bounded executions and retained exactly
   `docs/audits/array_index_type_admission_receipt_differential_fuzz_audit_2026-09-02.md`.
   Its wrong-array-index finding is a successor candidate only and does not

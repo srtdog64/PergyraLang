@@ -141,11 +141,22 @@ parser_commit_enum_variant(ASTNode *node)
 ASTNode *
 parser_parse_enum_declaration_after_keyword(Parser *parser)
 {
-    Token name_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected enum name");
+    Token name_tok;
     size_t cap = 0;
     ASTNode *node;
 
-    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after enum name");
+    /* parser_consume reports a mismatch without advancing. Required enum
+     * header tokens must therefore fail before body-loop entry, otherwise a
+     * malformed delimiter can be observed forever by the variant loop. */
+    if (!parser_check(parser, TOKEN_IDENTIFIER)) {
+        parser_error(parser, "Expected enum name");
+        return NULL;
+    }
+    name_tok = parser_advance(parser);
+    if (!parser_match(parser, TOKEN_LBRACE)) {
+        parser_error(parser, "Expected '{' after enum name");
+        return NULL;
+    }
 
     node = ast_create_node(AST_ENUM_DECL);
     node->line = name_tok.line;
@@ -170,7 +181,15 @@ parser_parse_enum_declaration_after_keyword(Parser *parser)
             continue;
         }
 
-        var_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variant name");
+        /* A failed variant-name consume would leave the same token at the
+         * loop head. Discard the partial declaration; the program parser's
+         * existing error synchronization owns the recovery step. */
+        if (!parser_check(parser, TOKEN_IDENTIFIER)) {
+            parser_error(parser, "Expected variant name");
+            ast_destroy(node);
+            return NULL;
+        }
+        var_tok = parser_advance(parser);
         idx = node->data.enum_decl.variant_count;
         if (!parser_reserve_enum_variants(parser, node, &cap, idx + 1))
             return node;

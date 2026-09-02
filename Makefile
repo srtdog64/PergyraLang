@@ -2760,6 +2760,9 @@ surface-boundary-hygiene-test-smoke: $(PGY)
 adversarial-input-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/adversarial_input_smoke.sh
 
+native-pipeline-malformed-enum-progress-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/native_pipeline_malformed_enum_progress_owner.sh
+
 emitted-c-warning-clean-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/emitted_c_warning_clean_smoke.sh
 
@@ -2930,6 +2933,7 @@ self-host-preparation-platform-test-smoke: self-host-preparation-contract-test-s
 
 self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/language_keyword_registry_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/native_pipeline_malformed_enum_progress_owner.sh
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/callable_contract_vocabulary_smoke.sh
 	"$(BASH)" tests/mir_decl_field_kind_vocabulary_smoke.sh
