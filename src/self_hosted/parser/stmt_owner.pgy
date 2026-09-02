@@ -38,7 +38,7 @@ func ParseOneStmtCore(
     let head: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(head) == 0 {
-        Exit(1);
+        ParseDiagnosticReportPublicStatementHeadUnexpectedToken(diagnostic_projection, head_start); Exit(1);
     }
     if head == "bind" {
         i = SkipWhitespaceAndComments(content, i);

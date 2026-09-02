@@ -77,6 +77,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "add `;` before the following token or end the statement with a newline"
         );
     }
+    if code == "statement_head_unexpected_token" {
+        return ParseDiagnosticRow(
+            "a token cannot begin a statement",
+            "start the statement with a supported declaration, control word, or expression name"
+        );
+    }
     return ParseDiagnosticRow(
         "the parser rejected this source",
         "check the reported source position"
@@ -106,7 +112,8 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
     if code == "callable_contract_duplicate_name" ||
         code == "callable_contract_unknown_name" ||
         code == "callable_contract_exclusive_effect" ||
-        code == "expression_statement_terminator" {
+        code == "expression_statement_terminator" ||
+        code == "statement_head_unexpected_token" {
         return ParsePublicDiagnosticIdentity(
             true, "PGY_PARSE_SYNTAX", "parse:unexpected_token", "check-syntax"
         );
@@ -170,6 +177,18 @@ func ParseDiagnosticReportExpressionStatementTerminator(
     ParseDiagnosticReport2(
         projection, "expression_statement_terminator",
         "construct", "expression_statement",
+        "source_offset", ToString(source_offset)
+    );
+}
+
+func ParseDiagnosticReportPublicStatementHeadUnexpectedToken(
+    projection: ParseDiagnosticProjection,
+    source_offset: Int
+) -> Void {
+    if !ParseDiagnosticProjectionPublishesPublicJson(projection) { return; }
+    ParseDiagnosticReport2(
+        projection, "statement_head_unexpected_token",
+        "construct", "statement",
         "source_offset", ToString(source_offset)
     );
 }

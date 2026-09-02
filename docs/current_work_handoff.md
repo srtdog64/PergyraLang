@@ -18,6 +18,42 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Candidate — parser statement-head AST JSON receipt, local green
+
+- Exact opening/current HEAD is
+  `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`; the candidate is intentionally
+  dirty and not yet published. Protected unrelated untracked paths remain
+  outside inspection, edit, and staging.
+- Exact one-byte `=` reaches the initial `ParseOneStmtCore` empty-head branch:
+  `ReadIdent` owns that no supported statement head was obtained. Public JSON
+  previously reported only generic child failure while explicit native AST
+  published `PGY_PARSE_SYNTAX` / `parse:unexpected_token` / `check-syntax` at
+  line 1, column 1; direct/public text rejection was silent.
+- The candidate publishes `statement_head_unexpected_token` only through the
+  already selected parser JSON projection. It does not inspect `=`, create a
+  second token recognizer, change expression parsing, map parser meaning in C,
+  retry native parsing, or parse legacy error text. Both expression owner files
+  are byte-identical to the opening base.
+- Fresh installed DRV-2 SHA-256
+  `1534140B2754D862473FA8B1F60B687297B6F96568BD9CD62A8A4279AB8B8901`
+  passes the focused valid/callable/terminator/statement-head AST receipt gate
+  and the complete installed-driver CLI aggregate. Preparation, hard-owner,
+  diagnostic registry, parser/lexer diagnostic, and layered diagnostic gates
+  are green.
+- The broader `parser_parity.sh` is not claimed green. It fails on
+  `async_demo.pgy` because the existing typed-AST text inventory has no
+  `ChannelSend:` source-location kind; exact `ch <- 99;` reproduces it while
+  receive and ordinary unary controls pass. The failure remains with both
+  expression owners restored, so it is recorded as a separate pre-existing
+  fail-closed registry blocker rather than hidden as this receipt's regression.
+- The CLI aggregate repeated the compiler-scale seed and missed the DRV-2
+  prebuild receipt, causing a second full emission despite unchanged semantic
+  input. This is bounded performance evidence, not a cache redesign mandate.
+- Objective card and rejected alternatives are in
+  `docs/agent_work_directives/parser_statement_head_unexpected_token_ast_json_receipt_2026-09-03.md`.
+  SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%. Exact-head CI is the publication falsifier.
+
 ## Published — parser statement-terminator AST JSON receipt exact-CI green
 
 - Exact opening base is `24397904d4a2f4a9b650205fde0b3020cb251b87`, equal

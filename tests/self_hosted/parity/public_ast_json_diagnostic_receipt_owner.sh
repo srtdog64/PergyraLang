@@ -16,6 +16,7 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 VALID_REL="examples/hello.pgy"
 INVALID_REL="tests/cases/callable_contract_vocabulary/duplicate_cap/main.pgy"
 TERMINATOR_REL="$WORK_REL/expression-statement-terminator.pgy"
+HEAD_REL="$WORK_REL/statement-head-unexpected-token.pgy"
 MALFORMED_FIXTURE="$ROOT_DIR/tests/self_hosted/parity/fixture/malformed_public_diagnostic_self_host_driver.c"
 SILENT_FIXTURE="$ROOT_DIR/tests/self_hosted/parity/fixture/silent_self_host_driver.c"
 
@@ -34,6 +35,7 @@ command -v "$CC" >/dev/null || fail "missing C compiler"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 printf 'c C' >"$ROOT_DIR/$TERMINATOR_REL"
+printf '=' >"$ROOT_DIR/$HEAD_REL"
 
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --ast "$VALID_REL") \
     >"$WORK_DIR/direct-text.ast" 2>"$WORK_DIR/direct-text.err" ||
@@ -194,6 +196,76 @@ require_text "$WORK_DIR/native-terminator-json.err" \
     "Expected ';' after expression"
 
 set +e
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --ast "$HEAD_REL") \
+    >"$WORK_DIR/direct-head-text.out" \
+    2>"$WORK_DIR/direct-head-text.err"
+direct_head_text_rc=$?
+(cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE \
+    PGY_SELF_DRIVER_BIN="$SELF_DRIVER" \
+    "$PGY" "$HEAD_REL" --ast --error-format=text) \
+    >"$WORK_DIR/public-head-text.out" \
+    2>"$WORK_DIR/public-head-text.err"
+public_head_text_rc=$?
+(cd "$ROOT_DIR" && "$SELF_DRIVER" \
+    --ast-json-diagnostic-verified "$HEAD_REL") \
+    >"$WORK_DIR/direct-head-json.out" \
+    2>"$WORK_DIR/direct-head-json.err"
+direct_head_json_rc=$?
+(cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE \
+    PGY_SELF_DRIVER_BIN="$SELF_DRIVER" PGY_DEBUG_PIPELINE_TIMING=1 \
+    "$PGY" "$HEAD_REL" --ast --error-format=json) \
+    >"$WORK_DIR/public-head-json.out" \
+    2>"$WORK_DIR/public-head-json.err"
+public_head_json_rc=$?
+(cd "$ROOT_DIR" && "$PGY" "$HEAD_REL" --native-pipeline \
+    --ast --error-format=json) >"$WORK_DIR/native-head-json.out" \
+    2>"$WORK_DIR/native-head-json.err"
+native_head_json_rc=$?
+set -e
+[[ "$direct_head_text_rc" -ne 0 && "$public_head_text_rc" -ne 0 && \
+   ! -s "$WORK_DIR/direct-head-text.out" && \
+   ! -s "$WORK_DIR/direct-head-text.err" && \
+   ! -s "$WORK_DIR/public-head-text.out" && \
+   ! -s "$WORK_DIR/public-head-text.err" ]] ||
+    fail "statement-head unexpected-token text rejection changed its silent channels"
+[[ "$direct_head_json_rc" -ne 0 && \
+   -s "$WORK_DIR/direct-head-json.out" && \
+   ! -s "$WORK_DIR/direct-head-json.err" ]] ||
+    fail "direct statement-head receipt changed its private channel"
+head -n 1 "$WORK_DIR/direct-head-json.out" | \
+    grep -Fxq 'pgy.selfhost.public-diagnostic.v1' ||
+    fail "direct statement-head receipt marker is missing"
+tail -n +2 "$WORK_DIR/direct-head-json.out" \
+    >"$WORK_DIR/expected-head.json"
+[[ "$public_head_json_rc" -ne 0 && \
+   ! -s "$WORK_DIR/public-head-json.out" ]] ||
+    fail "public statement-head rejection did not use stderr only"
+cmp -s "$WORK_DIR/expected-head.json" \
+    "$WORK_DIR/public-head-json.err" ||
+    fail "public AST did not relay the parser-owned statement-head receipt"
+! grep -Eq 'pgy\.selfhost\.public-diagnostic|\[pipeline timing\]' \
+    "$WORK_DIR/public-head-json.err" ||
+    fail "public statement-head receipt leaked its marker or retried native parsing"
+[[ "$native_head_json_rc" -ne 0 && \
+   ! -s "$WORK_DIR/native-head-json.out" && \
+   -s "$WORK_DIR/native-head-json.err" ]] ||
+    fail "native statement-head oracle changed channels"
+for fact in '"stage":"parse"' '"layer":"syntax"' \
+    '"code":"PGY_PARSE_SYNTAX"' '"cause_ir":"parse:unexpected_token"' \
+    '"fix_source":"check-syntax"'; do
+    require_text "$WORK_DIR/expected-head.json" "$fact"
+    require_text "$WORK_DIR/native-head-json.err" "$fact"
+done
+for fact in 'statement_head_unexpected_token' \
+    'construct: statement' 'source_offset: 0'; do
+    require_text "$WORK_DIR/expected-head.json" "$fact"
+done
+require_text "$WORK_DIR/native-head-json.err" \
+    '"location":{"line":1,"column":1}'
+require_text "$WORK_DIR/native-head-json.err" \
+    'Unexpected token in expression'
+
+set +e
 (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE \
     PGY_SELF_DRIVER_BIN="$WORK_DIR/missing-self-driver" \
     PGY_DEBUG_PIPELINE_TIMING=1 \
@@ -287,6 +359,8 @@ require_text "$REQUEST_OWNER" 'args[0] == "--ast-json-diagnostic-verified"'
 require_text "$READ_OWNER" 'CompileSourceToAstArtifactForPublicDiagnosticRequest('
 require_text "$PARSER_DIAGNOSTIC_OWNER" \
     'ParseDiagnosticReportExpressionStatementTerminator('
+require_text "$PARSER_DIAGNOSTIC_OWNER" \
+    'ParseDiagnosticReportPublicStatementHeadUnexpectedToken('
 require_text "$PARSER_STATEMENT_OWNER" \
     'ParseOneStmtObservedProjected('
 require_text "$PARSER_STATEMENT_OWNER" \
@@ -296,11 +370,11 @@ require_text "$PROCESS_OWNER" 'driver_self_host_public_diagnostic_wire_relay('
 require_text "$MIR_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR'
 ! grep -Fq 'pgy_exec_argv_capture_stdout(' "$MIR_OWNER" ||
     fail "MIR caller restored a second diagnostic stdout process owner"
-! grep -Eq 'PGY_PARSE_SYNTAX|parse:unexpected_token|check-syntax|callable_contract_|expression_statement_terminator|expected statement terminator' \
+! grep -Eq 'PGY_PARSE_SYNTAX|parse:unexpected_token|check-syntax|callable_contract_|expression_statement_terminator|statement_head_unexpected_token|expected statement terminator|begin a statement' \
     "$SELECTION_OWNER" "$DRIVER_OWNER" "$PROCESS_OWNER" "$MIR_OWNER" ||
     fail "C AST transport regained parser diagnostic meaning"
 ! grep -Eq 'driver_run_pipeline|compiler_emit|system\(' \
     "$DRIVER_OWNER" "$PROCESS_OWNER" "$MIR_OWNER" ||
     fail "AST diagnostic transport regained native/string-shell fallback"
 
-echo "[self-host-public-ast-json-diagnostic] AST bytes, exact callable-contract and statement-terminator parser receipts, and single opaque process owner: PASS"
+echo "[self-host-public-ast-json-diagnostic] AST bytes, exact callable-contract, statement-terminator, and statement-head unexpected-token parser receipts, and single opaque process owner: PASS"

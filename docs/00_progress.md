@@ -2,6 +2,27 @@
 
 마지막 업데이트: 2026-09-03
 
+현재 publication 대기 중인 bounded executable rung은 parser statement-head의
+public AST JSON receipt다. 정확히 한 바이트인 `=`는 expression parser에 도달하기
+전에 `ReadIdent`가 빈 statement head를 반환하는 분기에서 종료된다. 기존 public
+JSON은 generic child failure만 보고했지만 explicit native AST는 line 1, column 1의
+`PGY_PARSE_SYNTAX` / `parse:unexpected_token` / `check-syntax` identity를 소유했다.
+구현은 이 기존 empty-head fact를 JSON projection에서만
+`statement_head_unexpected_token`으로 게시한다. `=` spelling 비교, 두 번째 token
+recognizer, expression call-graph 변경, C 의미 mapping, native retry는 없다.
+
+Fresh installed DRV-2 SHA-256
+`1534140B2754D862473FA8B1F60B687297B6F96568BD9CD62A8A4279AB8B8901`에서 focused
+valid/callable/terminator/statement-head AST receipt와 complete installed CLI aggregate,
+preparation/hard/diagnostic static gate가 green이다. 다만 `parser_parity.sh` 전체는
+기존 typed-AST text registry에 `ChannelSend:` source-location kind가 없어
+`async_demo.pgy`에서 fail-closed한다. `ch <- 99;` 한 문장으로 최소화됐고 expression
+owner를 opening base와 byte-identical로 복원한 뒤에도 재현되므로 이번 receipt의
+회귀로 계산하지 않는다. Exact-head CI 전까지 candidate이며, 이 bounded repair는
+`diagnostic.catalog` 전체 폐쇄나 Pergyra-for-C 치환 증분이 아니다. 따라서 census
+`88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%, 통합
+진행도 **83%** (81~85%)를 유지한다.
+
 가장 최근 닫힌 bounded executable rung은 top-level expression statement terminator의
 public AST JSON receipt다. 삭제 최소 `c C`는 public/native AST 모두 거절하지만,
 기존 public 경로는 JSON-selected DRV-2가 내보낸 legacy `PARSE ERROR` text를

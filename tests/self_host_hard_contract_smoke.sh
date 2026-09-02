@@ -1306,6 +1306,11 @@ require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh"
 require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
     "ParseOneStmtCore" "ParserExpressionCallStatementKind(expr_fact)"
 require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
+    "ParseOneStmtCore" "ParseDiagnosticReportPublicStatementHeadUnexpectedToken("
+require_function_text "src/self_hosted/parser/diagnostic_owner.pgy" \
+    "ParseDiagnosticReportPublicStatementHeadUnexpectedToken" \
+    "if !ParseDiagnosticProjectionPublishesPublicJson(projection) { return; }"
+require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
     "ParseOneStmtObservedProjected" "ParseOneStmtCore("
 require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
     "ParseOneStmtObserved" "ParseOneStmtObservedProjected("

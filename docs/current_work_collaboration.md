@@ -6,6 +6,42 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — parser statement-head unexpected-token AST JSON receipt
+
+- Exact base is `7fe0c6d3f08ef5871b27af5869c5a8728b22ee53`, equal to
+  `origin/main` when this lease opened. The primary task is the sole code,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- The prior differential audit minimized exact one-byte `=`. Fresh `=\n`
+  measurement at the exact base confirms public JSON still reports generic
+  driver failure, direct JSON exits without any payload, and native JSON owns
+  `PGY_PARSE_SYNTAX` / `parse:unexpected_token` / `check-syntax` at line 1,
+  column 1. Direct and public text rejection remain silent.
+- Exact `=` exits before expression parsing: `ReadIdent` leaves an empty
+  statement head and `ParseOneStmtCore` exits immediately. Three expression-
+  side candidates—return-invalid, an observed wrapper, and extracted
+  primary/unary `StartKind` facts—were rejected as unnecessarily broad. Their
+  validation exposed the same `parser_parity.sh` source-location failure on
+  `async_demo.pgy`; it minimized to channel send `ch <- 99;` and remains after
+  both expression owners are restored byte-for-byte. The typed-AST text owner
+  has no `ChannelSend:` kind, so this is a separate existing fail-closed
+  registry gap, not a statement-head receipt regression.
+  The bounded candidate publishes only the existing empty statement-head fact
+  under JSON projection and neither inspects `=` nor adds a token recognizer.
+  The exact objective and forbidden fallbacks are fixed in
+  `docs/agent_work_directives/parser_statement_head_unexpected_token_ast_json_receipt_2026-09-03.md`.
+- The focused integration owner remains
+  `tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh`.
+  An `=` spelling branch, second start-token recognizer, C message mapping,
+  native retry, and expansion to unrelated parser exits are forbidden.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%. No status or progress change is claimed before
+  installed executable and exact-CI evidence.
+- Fresh installed DRV-2 SHA-256
+  `1534140B2754D862473FA8B1F60B687297B6F96568BD9CD62A8A4279AB8B8901`
+  passes the focused statement-head receipt and complete installed CLI
+  aggregate. Static hard/preparation/diagnostic gates are green. Exact-head CI
+  is still required before this lease moves to `DONE`.
+
 ## DONE lease — parser statement-terminator AST JSON receipt
 
 - Exact base is `24397904d4a2f4a9b650205fde0b3020cb251b87`, equal to
