@@ -6,6 +6,33 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — parser statement-terminator AST JSON receipt
+
+- Exact base is `24397904d4a2f4a9b650205fde0b3020cb251b87`, equal to
+  `origin/main` when this lease opened. The primary task is the sole code,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- Fresh `c C` measurement proves both installed AST paths reject, but explicit
+  native publishes `PGY_PARSE_SYNTAX` / `parse:unexpected_token` /
+  `check-syntax` while public JSON reports a malformed self-host receipt.
+- The admitted JSON projection reaches the parser, but the reached top-level
+  expression-statement terminator branch still exits through legacy text
+  `Fail`. C correctly rejects that unmarked stdout; C message recovery and
+  native retry remain forbidden.
+- The exact objective and excluded `=` family are fixed in
+  `docs/agent_work_directives/parser_statement_terminator_ast_json_receipt_2026-09-03.md`.
+  The focused integration owner is the existing
+  `tests/self_hosted/parity/public_ast_json_diagnostic_receipt_owner.sh`.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%. No status or progress change is claimed before
+  installed executable and exact-CI evidence.
+- Fresh DRV-2 SHA-256
+  `D199A71301476FFC68916E98B81C9A5D0751A9E06A0DABEA846F5E15EE1F7992`
+  passes exact direct/public text preservation, private/public JSON relay,
+  native five-axis identity, valid/callable AST controls, and the complete
+  installed CLI aggregate. Static diagnostic, hard-owner, SoT edge, and
+  documentation gates are green. Local formal adequacy is a declared no-Coq
+  skip; exact CI and publication remain pending, so this lease stays ACTIVE.
+
 ## DONE lease — array index type semantic admission
 
 - Exact base is `a77c450f34c4533d905c3c55aee51d25aaebfa7f`, equal to

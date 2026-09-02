@@ -18,6 +18,7 @@ import "stmt_loop_owner.pgy";
 import "stmt_parallel_owner.pgy";
 import "stmt_match_owner.pgy";
 import "source_location_observation_owner.pgy";
+import "diagnostic_owner.pgy";
 // Parse one statement. Returns its formatted AST lines joined by "\n";
 // empty string only if a parse error path was reached (which Exits anyway).
 // Mutually recursive with ParseBlock for `if` and `while` bodies.
@@ -27,8 +28,9 @@ func ParseOneStmtCore(
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
     inout expression_graphs: Array<AstExpressionGraphRows>,
-    location_context: ParserSourceLocationContext,
-    inout source_locations: Array<ParserSourceLocationObservation>, inout owner_kind_out: Array<Int>
+    location_context: ParserSourceLocationContext, inout source_locations: Array<ParserSourceLocationObservation>,
+    inout owner_kind_out: Array<Int>,
+    diagnostic_projection: ParseDiagnosticProjection
 ) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let head_start: Int = i;
@@ -38,7 +40,6 @@ func ParseOneStmtCore(
     if StringLength(head) == 0 {
         Exit(1);
     }
-
     if head == "bind" {
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
@@ -58,28 +59,24 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), Concat("BindStmt: ", Concat(bind_lhs, Concat(" = ", bind_rhs))));
     }
-
     if head == "if" {
         return ParseIfStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
-
     if head == "while" {
         return ParseWhileStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
-
     if head == "loop" {
         return ParseLoopStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
-
     if head == "with" {
         // `with slot<TYPE> as VAR { stmts }` — scoped slot binding.
         // AST:
@@ -129,14 +126,12 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         return with_out;
     }
-
     if head == "parallel" {
         return ParseParallelStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
-
     if head == "transaction" {
         // `transaction { ... }` owns top-level `compensate EXPR` handlers.
         // The C AST printer stores compensations on the transaction node but
@@ -182,7 +177,6 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         return tx_out;
     }
-
     if head == "defer" {
         // `defer { stmts } ;` — block with trailing semicolon. AST:
         //   Defer:
@@ -207,7 +201,6 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         return out;
     }
-
     if head == "break" {
         i = ConsumeStmtTerminator(content, i);
         if i < 0 {
@@ -216,7 +209,6 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), "Break");
     }
-
     if head == "continue" {
         i = ConsumeStmtTerminator(content, i);
         if i < 0 {
@@ -225,7 +217,6 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), "Continue");
     }
-
     if head == "fail" {
         // `fail` prints as a transaction rollback marker. A reason is present
         // only when it begins on the same source line.
@@ -253,21 +244,18 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         return AppendLine(fail_out, Concat(IndentStr(stmt_indent + 2), fail_reason));
     }
-
     if head == "match" {
         return ParseMatchStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
-
     if head == "for" {
         return ParseForStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
-
     if head == "return" {
         // `return ;`  or  `return EXPR ;`
         i = SkipWhitespaceAndComments(content, i);
@@ -294,7 +282,6 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), Concat("Return: ", val_text));
     }
-
     if head == "let" {
         // `let IDENT (: TYPE)? = EXPR ;`. The `: TYPE` annotation is
         // optional; without it the AST emits `Let: IDENT = EXPR` (no
@@ -492,10 +479,16 @@ func ParseOneStmtCore(
     }
     let expr_text: String = expr_fact.text;
     i = cursor_out[0];
-    i = ConsumeStmtTerminator(content, i);
-    if i < 0 {
-        Fail("Semicolon missing in expression statement", content, cursor_out[0]);
+    let terminator: Option<Int> = ConsumeStmtTerminatorOpt(content, i);
+    if !IsSome(terminator) {
+        if ParseDiagnosticProjectionPublishesPublicJson(diagnostic_projection) {
+            ParseDiagnosticReportExpressionStatementTerminator(
+                diagnostic_projection, SkipWhitespaceAndComments(content, i));
+            Exit(1);
+        }
+        Fail("expected statement terminator", content, i);
     }
+    i = UnwrapOption(terminator);
     ArraySet(cursor_out, 0, i);
     return Concat(IndentStr(stmt_indent), expr_text);
 }
@@ -503,14 +496,11 @@ func ParseOneStmtCore(
 // Parse a `{ stmt* }` block. Returns formatted lines joined by "\n".
 // stmt_indent is the column at which each child statement's first line
 // starts; nested blocks (if/while) compute their own deeper indents.
-func ParseOneStmtObserved(
-    content: String,
-    start: Int,
-    inout cursor_out: Array<Int>,
-    stmt_indent: Int,
+func ParseOneStmtObservedProjected(
+    content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
     inout expression_graphs: Array<AstExpressionGraphRows>,
-    location_context: ParserSourceLocationContext,
-    inout source_locations: Array<ParserSourceLocationObservation>
+    location_context: ParserSourceLocationContext, inout source_locations: Array<ParserSourceLocationObservation>,
+    diagnostic_projection: ParseDiagnosticProjection
 ) -> String {
     let observed_start: Int = SkipWhitespaceAndComments(content, start);
     let slot: Int = ParserSourceLocationReserve(
@@ -519,9 +509,19 @@ func ParseOneStmtObserved(
     let owner_kind: Array<Int> = [TypedAstKindUnknownTag()];
     let tree_text: String = ParseOneStmtCore(
         content, start, cursor_out, stmt_indent, expression_graphs,
-        location_context, source_locations, owner_kind
+        location_context, source_locations, owner_kind, diagnostic_projection
     );
     return ParserObservedStatementFinish(tree_text, slot, owner_kind[0], source_locations);
+}
+func ParseOneStmtObserved(
+    content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
+    inout expression_graphs: Array<AstExpressionGraphRows>, location_context: ParserSourceLocationContext,
+    inout source_locations: Array<ParserSourceLocationObservation>
+) -> String {
+    return ParseOneStmtObservedProjected(
+        content, start, cursor_out, stmt_indent, expression_graphs,
+        location_context, source_locations, ParseDiagnosticText
+    );
 }
 func ParseOneStmt(
     content: String,

@@ -71,6 +71,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "compile through --native-pipeline until the self-hosted compiler covers this surface"
         );
     }
+    if code == "expression_statement_terminator" {
+        return ParseDiagnosticRow(
+            "an expression is followed by a token that cannot terminate its statement",
+            "add `;` before the following token or end the statement with a newline"
+        );
+    }
     return ParseDiagnosticRow(
         "the parser rejected this source",
         "check the reported source position"
@@ -99,7 +105,8 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
 ) -> ParsePublicDiagnosticIdentity {
     if code == "callable_contract_duplicate_name" ||
         code == "callable_contract_unknown_name" ||
-        code == "callable_contract_exclusive_effect" {
+        code == "callable_contract_exclusive_effect" ||
+        code == "expression_statement_terminator" {
         return ParsePublicDiagnosticIdentity(
             true, "PGY_PARSE_SYNTAX", "parse:unexpected_token", "check-syntax"
         );
@@ -153,6 +160,17 @@ func ParseDiagnosticReportContractName(
     ParseDiagnosticReport2(
         projection, code,
         "axis", ParseDiagnosticAxisLabel(axis), "name", name
+    );
+}
+
+func ParseDiagnosticReportExpressionStatementTerminator(
+    projection: ParseDiagnosticProjection,
+    source_offset: Int
+) -> Void {
+    ParseDiagnosticReport2(
+        projection, "expression_statement_terminator",
+        "construct", "expression_statement",
+        "source_offset", ToString(source_offset)
     );
 }
 

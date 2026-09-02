@@ -2,6 +2,25 @@
 
 마지막 업데이트: 2026-09-03
 
+현재 local executable candidate는 top-level expression statement terminator의
+public AST JSON receipt다. 삭제 최소 `c C`는 public/native AST 모두 거절하지만,
+기존 public 경로는 JSON-selected DRV-2가 내보낸 legacy `PARSE ERROR` text를
+private receipt로 인정하지 않아 malformed-receipt만 보고했다. 구현 후보는 기존
+`ConsumeStmtTerminatorOpt` 판정을 `ParseOneStmtCore`에서 직접 소비하고, 이미
+전달된 parser diagnostic projection이 JSON일 때만 parser-owned
+`expression_statement_terminator` receipt를 게시한다. C는 여전히 opaque relay이며
+text mode bytes와 valid/callable AST는 바뀌지 않는다.
+
+Fresh Pergyra-built DRV-2 SHA-256
+`D199A71301476FFC68916E98B81C9A5D0751A9E06A0DABEA846F5E15EE1F7992`에서 focused
+AST receipt와 complete installed CLI aggregate가 green이고, public/native는
+`parse` / `syntax` / `PGY_PARSE_SYNTAX` / `parse:unexpected_token` /
+`check-syntax` identity를 공유한다. Static diagnostic, hard-owner, SoT edge,
+documentation gates도 green이다. 로컬 formal adequacy는 Coq/Rocq 부재를 명시한
+declared skip이며 exact CI가 남았다. 이 receipt seam은 `diagnostic.catalog` 전체를
+닫지 않으므로 census `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9,
+hard replacement 75%, 통합 진행도 **83%** (81~85%)를 유지한다.
+
 가장 최근 닫힌 bounded executable rung은 array index type semantic admission이다.
 기존 parser-owned expression graph와 scalar type fact는 `Index`의 오른쪽 자식이
 `String`임을 이미 알고 있었지만, root가 `Log(...)` 같은 call이면 마지막 semantic

@@ -15,6 +15,7 @@ WORK_REL=".tmp/self_hosted/public_ast_json_diagnostic_receipt"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 VALID_REL="examples/hello.pgy"
 INVALID_REL="tests/cases/callable_contract_vocabulary/duplicate_cap/main.pgy"
+TERMINATOR_REL="$WORK_REL/expression-statement-terminator.pgy"
 MALFORMED_FIXTURE="$ROOT_DIR/tests/self_hosted/parity/fixture/malformed_public_diagnostic_self_host_driver.c"
 SILENT_FIXTURE="$ROOT_DIR/tests/self_hosted/parity/fixture/silent_self_host_driver.c"
 
@@ -32,6 +33,7 @@ require_text() {
 command -v "$CC" >/dev/null || fail "missing C compiler"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
+printf 'c C' >"$ROOT_DIR/$TERMINATOR_REL"
 
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --ast "$VALID_REL") \
     >"$WORK_DIR/direct-text.ast" 2>"$WORK_DIR/direct-text.err" ||
@@ -114,6 +116,82 @@ for fact in '"stage":"parse"' '"layer":"syntax"' \
     'axis: capability' 'name: io_read'; do
     require_text "$WORK_DIR/expected.json" "$fact"
 done
+
+set +e
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --ast "$TERMINATOR_REL") \
+    >"$WORK_DIR/direct-terminator-text.out" \
+    2>"$WORK_DIR/direct-terminator-text.err"
+direct_terminator_text_rc=$?
+(cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE \
+    PGY_SELF_DRIVER_BIN="$SELF_DRIVER" \
+    "$PGY" "$TERMINATOR_REL" --ast --error-format=text) \
+    >"$WORK_DIR/public-terminator-text.out" \
+    2>"$WORK_DIR/public-terminator-text.err"
+public_terminator_text_rc=$?
+(cd "$ROOT_DIR" && "$SELF_DRIVER" \
+    --ast-json-diagnostic-verified "$TERMINATOR_REL") \
+    >"$WORK_DIR/direct-terminator-json.out" \
+    2>"$WORK_DIR/direct-terminator-json.err"
+direct_terminator_json_rc=$?
+(cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE \
+    PGY_SELF_DRIVER_BIN="$SELF_DRIVER" PGY_DEBUG_PIPELINE_TIMING=1 \
+    "$PGY" "$TERMINATOR_REL" --ast --error-format=json) \
+    >"$WORK_DIR/public-terminator-json.out" \
+    2>"$WORK_DIR/public-terminator-json.err"
+public_terminator_json_rc=$?
+(cd "$ROOT_DIR" && "$PGY" "$TERMINATOR_REL" --native-pipeline \
+    --ast --error-format=json) >"$WORK_DIR/native-terminator-json.out" \
+    2>"$WORK_DIR/native-terminator-json.err"
+native_terminator_json_rc=$?
+set -e
+[[ "$direct_terminator_text_rc" -ne 0 && \
+   -s "$WORK_DIR/direct-terminator-text.out" && \
+   ! -s "$WORK_DIR/direct-terminator-text.err" ]] ||
+    fail "statement-terminator text rejection changed its legacy channel"
+require_text "$WORK_DIR/direct-terminator-text.out" \
+    'PARSE ERROR: expected statement terminator'
+[[ "$public_terminator_text_rc" -ne 0 && \
+   ! -s "$WORK_DIR/public-terminator-text.err" ]] ||
+    fail "public statement-terminator text rejection changed channels"
+cmp -s "$WORK_DIR/direct-terminator-text.out" \
+    "$WORK_DIR/public-terminator-text.out" ||
+    fail "public statement-terminator text rejection differs from DRV-2"
+[[ "$direct_terminator_json_rc" -ne 0 && \
+   -s "$WORK_DIR/direct-terminator-json.out" && \
+   ! -s "$WORK_DIR/direct-terminator-json.err" ]] ||
+    fail "direct statement-terminator JSON receipt changed its private channel"
+head -n 1 "$WORK_DIR/direct-terminator-json.out" | \
+    grep -Fxq 'pgy.selfhost.public-diagnostic.v1' ||
+    fail "direct statement-terminator receipt marker is missing"
+tail -n +2 "$WORK_DIR/direct-terminator-json.out" \
+    >"$WORK_DIR/expected-terminator.json"
+[[ "$public_terminator_json_rc" -ne 0 && \
+   ! -s "$WORK_DIR/public-terminator-json.out" ]] ||
+    fail "public statement-terminator rejection did not use stderr only"
+cmp -s "$WORK_DIR/expected-terminator.json" \
+    "$WORK_DIR/public-terminator-json.err" ||
+    fail "public AST did not relay the parser-owned terminator receipt"
+! grep -Eq 'pgy\.selfhost\.public-diagnostic|\[pipeline timing\]' \
+    "$WORK_DIR/public-terminator-json.err" ||
+    fail "public terminator receipt leaked its marker or retried native parsing"
+[[ "$native_terminator_json_rc" -ne 0 && \
+   ! -s "$WORK_DIR/native-terminator-json.out" && \
+   -s "$WORK_DIR/native-terminator-json.err" ]] ||
+    fail "native statement-terminator oracle changed channels"
+for fact in '"stage":"parse"' '"layer":"syntax"' \
+    '"code":"PGY_PARSE_SYNTAX"' '"cause_ir":"parse:unexpected_token"' \
+    '"fix_source":"check-syntax"'; do
+    require_text "$WORK_DIR/expected-terminator.json" "$fact"
+    require_text "$WORK_DIR/native-terminator-json.err" "$fact"
+done
+for fact in 'expression_statement_terminator' \
+    'construct: expression_statement' 'source_offset: 2'; do
+    require_text "$WORK_DIR/expected-terminator.json" "$fact"
+done
+require_text "$WORK_DIR/native-terminator-json.err" \
+    '"location":{"line":1,"column":3}'
+require_text "$WORK_DIR/native-terminator-json.err" \
+    "Expected ';' after expression"
 
 set +e
 (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE \
@@ -199,22 +277,30 @@ PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_stdout_process
 MIR_OWNER="$ROOT_DIR/src/compiler/self_host_mir_diagnostic_stdout_owner.c"
 REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.pgy"
 READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
+PARSER_DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/parser/diagnostic_owner.pgy"
+PARSER_STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/parser/stmt_owner.pgy"
 require_text "$SELECTION_OWNER" 'flags->dump_ast && flags->diag_format == DIAG_FORMAT_JSON'
 require_text "$SELECTION_OWNER" '"--ast-json-diagnostic-verified"'
 require_text "$DRIVER_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST'
 require_text "$REQUEST_OWNER" 'DriverCliSourceAstStdout(String, Bool)'
 require_text "$REQUEST_OWNER" 'args[0] == "--ast-json-diagnostic-verified"'
 require_text "$READ_OWNER" 'CompileSourceToAstArtifactForPublicDiagnosticRequest('
+require_text "$PARSER_DIAGNOSTIC_OWNER" \
+    'ParseDiagnosticReportExpressionStatementTerminator('
+require_text "$PARSER_STATEMENT_OWNER" \
+    'ParseOneStmtObservedProjected('
+require_text "$PARSER_STATEMENT_OWNER" \
+    'ConsumeStmtTerminatorOpt(content, i)'
 require_text "$PROCESS_OWNER" 'pgy_exec_argv_capture_stdout('
 require_text "$PROCESS_OWNER" 'driver_self_host_public_diagnostic_wire_relay('
 require_text "$MIR_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR'
 ! grep -Fq 'pgy_exec_argv_capture_stdout(' "$MIR_OWNER" ||
     fail "MIR caller restored a second diagnostic stdout process owner"
-! grep -Eq 'PGY_PARSE_SYNTAX|parse:unexpected_token|check-syntax|callable_contract_' \
+! grep -Eq 'PGY_PARSE_SYNTAX|parse:unexpected_token|check-syntax|callable_contract_|expression_statement_terminator|expected statement terminator' \
     "$SELECTION_OWNER" "$DRIVER_OWNER" "$PROCESS_OWNER" "$MIR_OWNER" ||
     fail "C AST transport regained parser diagnostic meaning"
 ! grep -Eq 'driver_run_pipeline|compiler_emit|system\(' \
     "$DRIVER_OWNER" "$PROCESS_OWNER" "$MIR_OWNER" ||
     fail "AST diagnostic transport regained native/string-shell fallback"
 
-echo "[self-host-public-ast-json-diagnostic] AST bytes, exact parser receipt, and single opaque process owner: PASS"
+echo "[self-host-public-ast-json-diagnostic] AST bytes, exact callable-contract and statement-terminator parser receipts, and single opaque process owner: PASS"

@@ -488,14 +488,15 @@ func ParseDeclsInto(
         );
         let stmt_block: String = "";
         if collect_script {
-            stmt_block = ParseOneStmtObserved(
+            stmt_block = ParseOneStmtObservedProjected(
                 content, i, cursor_out, stmt_indent, statement_graphs,
-                location_context, script_source_locations
+                location_context, script_source_locations,
+                diagnostic_projection
             );
         } else {
-            stmt_block = ParseOneStmtObserved(
+            stmt_block = ParseOneStmtObservedProjected(
                 content, i, cursor_out, stmt_indent, statement_graphs,
-                location_context, source_locations
+                location_context, source_locations, diagnostic_projection
             );
         }
         i = cursor_out[0];

@@ -1306,7 +1306,9 @@ require_text "tests/self_hosted/parity/driver_rung2_owner_field_parity_owner.sh"
 require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
     "ParseOneStmtCore" "ParserExpressionCallStatementKind(expr_fact)"
 require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
-    "ParseOneStmtObserved" "ParseOneStmtCore("
+    "ParseOneStmtObservedProjected" "ParseOneStmtCore("
+require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
+    "ParseOneStmtObserved" "ParseOneStmtObservedProjected("
 require_function_text "src/self_hosted/parser/stmt_owner.pgy" \
     "ParseOneStmt" "ParseOneStmtObserved("
 require_function_text "src/self_hosted/hir/ast_expression_owner_kind_binding.pgy" \

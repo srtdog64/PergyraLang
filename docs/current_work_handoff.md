@@ -18,6 +18,36 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Local candidate — parser statement-terminator AST JSON receipt
+
+- Exact opening base is `24397904d4a2f4a9b650205fde0b3020cb251b87`, equal
+  to `origin/main`; protected unrelated untracked paths remain outside
+  inspection, edit, and staging.
+- Exact `c C` is rejected by public and explicit-native AST. Native publishes
+  the five-axis `PGY_PARSE_SYNTAX` identity at line 1, column 3, while public
+  JSON reports only a malformed self-host receipt. Direct JSON-selected DRV-2
+  emits legacy `PARSE ERROR` text without the private receipt marker.
+- The C relay is correctly fail-closed. The open bypass is the reached Pergyra
+  top-level expression-statement terminator branch ignoring the already
+  admitted parser diagnostic projection; it is not a parser-semantics or
+  C-transport defect.
+- Exact owner card, forbidden fallbacks, focused gate, and excluded silent `=`
+  family are in
+  `docs/agent_work_directives/parser_statement_terminator_ast_json_receipt_2026-09-03.md`.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers;
+  project forecast remains 83%. This is opening evidence, not completed repair
+  or substitution progress.
+- `ParseOneStmtCore` now consumes the existing optional terminator fact. Only
+  the reached JSON-selected top-level expression branch emits the parser-owned
+  `expression_statement_terminator` receipt; text mode preserves legacy bytes,
+  and C remains an opaque fail-closed relay.
+- Fresh DRV-2 SHA-256
+  `D199A71301476FFC68916E98B81C9A5D0751A9E06A0DABEA846F5E15EE1F7992`
+  passes the focused exact receipt gate and the complete installed CLI
+  aggregate. Static diagnostic, hard-owner, SoT edge, and documentation gates
+  are green. Local formal adequacy is a declared no-Coq skip; publication and
+  exact CI remain pending.
+
 ## Published — array index type semantic admission exact-CI green
 
 - Exact opening base is `a77c450f34c4533d905c3c55aee51d25aaebfa7f`, equal
