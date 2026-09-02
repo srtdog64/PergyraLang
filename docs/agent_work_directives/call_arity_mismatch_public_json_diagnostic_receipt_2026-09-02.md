@@ -1,6 +1,6 @@
 # Call-Arity-Mismatch Public JSON Diagnostic Receipt
 
-Status: ACTIVE — LOCAL EXECUTION GREEN, PUBLICATION PENDING
+Status: PUBLISHED — EXACT CI GREEN
 
 Exact base revision: `ff8aa5d09985634d03861fdb0bcb8f6f1df6c386`
 
@@ -86,8 +86,24 @@ claim.
   build-source inventory, substitution velocity, hard contract, and progress
   gates passed. The observed implementation volume is now 21.24%; SoT counts,
   blocker count, and project forecast remain unchanged.
-- Publication and exact CI observation remain pending. Local green evidence
-  does not by itself close the active lease.
+- Local green evidence preceded publication and did not by itself close the
+  active lease.
+
+## Publication evidence
+
+- Exact implementation revision
+  `fed3efdbae7b167dfd2a4375e08cfd14130f600c` is published on `origin/main`.
+- Exact CI run `33582637404` completed `30/30` success in 34.8 minutes.
+  `build-linux` completed in 25.5 minutes, `build-windows` in 10.0,
+  sanitizer in 12.8, and self-host codegen bootstrap in 8.7.
+- The full self-host job completed in 34.6 minutes with exactly one
+  `gen2 == gen3 (173292 lines)`, installed a Pergyra-built DRV-2, observed the
+  focused call-arity receipt marker, and completed the installed CLI aggregate.
+- The Linux component gate recorded that structural source inventory and
+  removed-path ratchets are green while executable parity owns behavior.
+- This rung is published. `diagnostic.catalog` remains `BRIDGE`; the exact
+  admission closes one reached public receipt seam rather than the remaining
+  diagnostic catalog family.
 
 ## Coordination bounds
 

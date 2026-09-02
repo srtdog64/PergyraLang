@@ -18,11 +18,12 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active — call-arity-mismatch public JSON receipt local green, publication pending
+## Published — call-arity-mismatch public JSON receipt exact-CI green
 
-- Exact base and current published HEAD are
-  `ff8aa5d09985634d03861fdb0bcb8f6f1df6c386`. Protected unrelated untracked
-  paths remain outside inspection, edit, and staging.
+- Exact base is `ff8aa5d09985634d03861fdb0bcb8f6f1df6c386`; exact implementation revision
+  `fed3efdbae7b167dfd2a4375e08cfd14130f600c` is published on `origin/main`.
+  Protected unrelated untracked paths remain outside inspection, edit, and
+  staging.
 - Fresh production falsifier: `bad_arity_builtin`, `bad_arity_too_many`, and
   `bad_arity_too_few` retain exact Pergyra `call_arity_mismatch` facts for
   `StringLength` or `Twice` with expected 1 and actual 0/2/0, but private JSON
@@ -45,10 +46,14 @@ percentage by themselves.
   the focused three-context MIR/C/LLVM gate, all seven affected receipt gates,
   and the installed CLI aggregate are locally green.
 - Static diagnostic, SoT edge, single-owner, protocol, source inventory,
-  substitution velocity, hard-contract, and progress gates are green. The
-  current tree is intentionally dirty for this one rung plus the delegated
-  read-only fuzz audit. Next step is exact staging, commit/push, and exact CI
-  observation; local green is not a publication claim.
+  substitution velocity, hard-contract, and progress gates are green. Exact
+  CI run `33582637404` completed `30/30` success in 34.8 minutes; its full
+  self-host job completed in 34.6 minutes with exactly one
+  `gen2 == gen3 (173292 lines)`, a Pergyra-built DRV-2, the focused marker, and
+  the installed CLI aggregate. Linux component inventory/ratchets also passed.
+- The delegated fuzz audit remains read-only evidence, not the owner or
+  priority of a successor rung. A successor must first remeasure one exact
+  production falsifier against the published revision.
 
 ## Published — value-parameter collection-mutation public JSON receipt exact-CI green
 

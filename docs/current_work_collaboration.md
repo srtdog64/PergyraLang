@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — call-arity-mismatch public JSON receipt
+## DONE lease — call-arity-mismatch public JSON receipt
 
 - Exact base is `ff8aa5d09985634d03861fdb0bcb8f6f1df6c386`, equal to
   `origin/main` when this lease opened. The primary task is the sole edit,
@@ -30,8 +30,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   21.24% and project forecast remains 83%.
 - A fresh Pergyra-built DRV-2 at SHA-256 `19BA2237...F620A`, the focused gate,
   all seven affected receipt gates, and the full installed CLI aggregate are
-  locally green. Publication and exact CI observation remain with the primary
-  task.
+  locally green. Exact implementation revision `fed3efdb` is published and CI
+  run `33582637404` completed `30/30` success in 34.8 minutes, including one
+  `gen2 == gen3 (173292 lines)` and the focused installed marker.
 - Delegated fuzzing remained read-only and recorded its bounded findings in
   `docs/audits/semantic_mir_c_receipt_coherence_fuzz_audit_2026-09-02.md`;
   that audit does not change this lease, priority, or owner.
