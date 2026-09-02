@@ -3107,6 +3107,12 @@ require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticD
 require_file "src/self_hosted/semantic/diagnostic_contract_owner.pgy"
 require_max_lines "src/self_hosted/semantic/diagnostic_contract_owner.pgy" 600
 require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "func SemanticVerdictPayloadContractReady"
+require_text "src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy" \
+    'if code == "call_arity_mismatch" {'
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" \
+    "arity_first.message != arity_second.message"
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" \
+    'unknown, "unregistered_public_diagnostic_code"'
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureFrontierCount() -> Int"
@@ -9323,6 +9329,9 @@ require_max_lines \
 require_file "tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh" 220
+require_file "tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh" 220
 require_file "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh" 165
@@ -9708,6 +9717,8 @@ require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_builtin_arg_type_mismatch_json_diagnostic_receipt_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_value_param_collection_mutation_json_diagnostic_receipt_owner.sh"'
+require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh"'
 require_text "tests/self_hosted/parity/installed_driver_cli_mode_owner.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/public_parser_callable_contract_json_diagnostic_receipt_owner.sh"'
 require_function_text "src/compiler/self_host_llvm_driver.c" \

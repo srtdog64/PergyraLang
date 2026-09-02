@@ -15,7 +15,7 @@ WORK_DIR="$ROOT_DIR/$WORK_REL"
 ASSIGN_REL="src/self_hosted/semantic/fixture/bad_assign_type.pgy"
 EXPECTED="$ROOT_DIR/src/self_hosted/semantic/expected/bad_assign_type.diag"
 LET_REL="src/self_hosted/semantic/fixture/bad_let_type.pgy"
-UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_arity_builtin.pgy"
+UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_binop_assign.pgy"
 PROBE_REL="tests/self_hosted/parity/fixture/public_mir_json_diagnostic_receipt_probe.pgy"
 DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy"
 CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy"
@@ -114,9 +114,9 @@ for fact in \
     require_text "$WORK_DIR/let.out" "$fact"
 done
 [[ "$unadmitted_rc" -ne 0 && ! -s "$WORK_DIR/unadmitted.err" ]] ||
-    fail "unadmitted arity verdict changed its private channels"
+    fail "unadmitted arithmetic verdict changed its private channels"
 ! grep -q '[^[:space:]]' "$WORK_DIR/unadmitted.out" ||
-    fail "unadmitted arity verdict gained assignment admission"
+    fail "unadmitted arithmetic verdict gained assignment admission"
 
 probe_bin="$WORK_DIR/message-independence-probe"
 [[ "$PGY" == *.exe ]] && probe_bin="$probe_bin.exe"
@@ -138,4 +138,4 @@ require_text "$CONTRACT_OWNER" \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic assignment authority"
 
-echo "[self-host-public-assign-type-mismatch-json-diagnostic] exact assignability identity, MIR/C/LLVM relay, and arity exclusion: PASS"
+echo "[self-host-public-assign-type-mismatch-json-diagnostic] exact assignability identity, MIR/C/LLVM relay, and arithmetic exclusion: PASS"

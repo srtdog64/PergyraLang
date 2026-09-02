@@ -19,7 +19,6 @@ CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy
 PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 BUILTIN_FIXTURES="bad_issome_non_option bad_unwrap_non_option"
-SAME_IDENTITY_UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_arity_builtin.pgy"
 NO_ORACLE_UNADMITTED_REL="src/self_hosted/semantic/fixture/bad_issome_none_call.pgy"
 
 fail() {
@@ -105,9 +104,7 @@ run_public_failure llvm "$WORK_DIR/bad_issome_non_option.expected.json" \
     src/self_hosted/semantic/fixture/bad_issome_non_option.pgy \
     -o "$WORK_REL/invalid-llvm.bin"
 
-for item in \
-    "same-identity:$SAME_IDENTITY_UNADMITTED_REL" \
-    "no-oracle:$NO_ORACLE_UNADMITTED_REL"; do
+for item in "no-oracle:$NO_ORACLE_UNADMITTED_REL"; do
     label="${item%%:*}"
     rel="${item#*:}"
     set +e
@@ -137,8 +134,10 @@ require_text "$DIAGNOSTIC_OWNER" '"semantic:builtin:signature_mismatch"'
 require_text "$DIAGNOSTIC_OWNER" '"match-builtin-signature"'
 require_text "$CONTRACT_OWNER" \
     'builtin_first.message != builtin_second.message'
+require_text "$CONTRACT_OWNER" \
+    'unknown, "unregistered_public_diagnostic_code"'
 ! grep -Eq 'PGY_SEM_BUILTIN_ARGS_INVALID|semantic:builtin:signature_mismatch|match-builtin-signature' \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic builtin authority"
 
-echo "[self-host-public-builtin-arg-type-mismatch-json-diagnostic] exact builtin-signature identity, IsSome/UnwrapOption contexts, MIR/C/LLVM relay, and same-identity sibling exclusion: PASS"
+echo "[self-host-public-builtin-arg-type-mismatch-json-diagnostic] exact builtin-signature identity, IsSome/UnwrapOption contexts, MIR/C/LLVM relay, and missing-oracle/unknown-code exclusion: PASS"

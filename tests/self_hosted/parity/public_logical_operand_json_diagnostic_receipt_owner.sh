@@ -19,7 +19,7 @@ CONTRACT_OWNER="$ROOT_DIR/src/self_hosted/semantic/diagnostic_contract_owner.pgy
 PROCESS_OWNER="$ROOT_DIR/src/compiler/self_host_artifact_process_owner.c"
 WIRE_OWNER="$ROOT_DIR/src/compiler/self_host_public_diagnostic_wire_owner.c"
 LOGICAL_FIXTURES="bad_logical_assign bad_logical_condition bad_logical_int bad_logical_return bad_logical_right"
-EXCLUDED_FIXTURES="bad_arity_builtin bad_binop_assign"
+EXCLUDED_FIXTURES="bad_binop_assign"
 
 fail() {
     echo "[self-host-public-logical-operand-json-diagnostic] $*" >&2
@@ -143,4 +143,4 @@ require_text "$CONTRACT_OWNER" \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic logical-operand authority"
 
-echo "[self-host-public-logical-operand-json-diagnostic] exact binary-operand identity, five semantic contexts, MIR/C/LLVM relay, and arity/arithmetic exclusion: PASS"
+echo "[self-host-public-logical-operand-json-diagnostic] exact binary-operand identity, five semantic contexts, MIR/C/LLVM relay, and arithmetic exclusion: PASS"

@@ -77,6 +77,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "match-builtin-signature"
         );
     }
+    if code == "call_arity_mismatch" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:builtin:signature_mismatch",
+            "match-builtin-signature"
+        );
+    }
     if code == "logical_operand_not_bool" {
         return SemanticPublicDiagnosticIdentity(
             true,

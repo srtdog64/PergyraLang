@@ -82,6 +82,18 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "value_param_collection_mutation", "second mutation wording"
         );
+    let arity_first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "call_arity_mismatch", "first arity wording"
+        );
+    let arity_second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "call_arity_mismatch", "second arity wording"
+        );
+    let unknown: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "unregistered_public_diagnostic_code", "unknown wording"
+        );
     let logical_first: SemanticPublicDiagnosticReceipt =
         SemanticPublicDiagnosticReceiptFromOwnedFacts(
             "logical_operand_not_bool", "first logical wording"
@@ -142,6 +154,12 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
             value_param_first, "value_param_collection_mutation"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             value_param_second, "value_param_collection_mutation"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            arity_first, "call_arity_mismatch"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            arity_second, "call_arity_mismatch"
+        ) && !SemanticPublicDiagnosticReceiptReadyFor(
+            unknown, "unregistered_public_diagnostic_code"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
             logical_first, "logical_operand_not_bool"
         ) && SemanticPublicDiagnosticReceiptReadyFor(
@@ -205,6 +223,13 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         value_param_first.cause_ir == value_param_second.cause_ir &&
         value_param_first.fix_source == value_param_second.fix_source &&
         value_param_first.message != value_param_second.message &&
+        arity_first.schema == arity_second.schema &&
+        arity_first.stage == arity_second.stage &&
+        arity_first.layer == arity_second.layer &&
+        arity_first.code == arity_second.code &&
+        arity_first.cause_ir == arity_second.cause_ir &&
+        arity_first.fix_source == arity_second.fix_source &&
+        arity_first.message != arity_second.message &&
         logical_first.schema == logical_second.schema &&
         logical_first.stage == logical_second.stage &&
         logical_first.layer == logical_second.layer &&

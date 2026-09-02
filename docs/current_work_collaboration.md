@@ -6,6 +6,36 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — call-arity-mismatch public JSON receipt
+
+- Exact base is `ff8aa5d09985634d03861fdb0bcb8f6f1df6c386`, equal to
+  `origin/main` when this lease opened. The primary task is the sole edit,
+  integration, commit/push, and exact-CI observation owner for this rung.
+- Fresh production measurement proves builtin, user-too-many, and user-too-few
+  `call_arity_mismatch` contexts retain exact function/expected/actual Pergyra
+  facts while private JSON is empty and public MIR JSON reaches only the
+  generic malformed-receipt boundary. Explicit native JSON supplies the same
+  builtin-signature identity in all three contexts.
+- The deletion target is exact admission of `call_arity_mismatch` and reuse of
+  existing wire/process owners. Grouping by the shared public identity,
+  changing already admitted builtin/value-param codes, C mapping, native
+  retry, message parsing, another semantic pass, location invention, fact
+  loss, and text-code changes are forbidden.
+- `bad_binop_assign`, missing-oracle `bad_issome_none_call`, and an unknown
+  Pergyra code are the replacement fail-closed evidence when arity is no
+  longer available as another family's unadmitted fixture.
+- Exact objective, three-context coverage, and exclusions are in
+  `docs/agent_work_directives/call_arity_mismatch_public_json_diagnostic_receipt_2026-09-02.md`.
+  SoT remains `88/183`, `55/32/1`, with 9 blockers; implementation volume is
+  21.24% and project forecast remains 83%.
+- A fresh Pergyra-built DRV-2 at SHA-256 `19BA2237...F620A`, the focused gate,
+  all seven affected receipt gates, and the full installed CLI aggregate are
+  locally green. Publication and exact CI observation remain with the primary
+  task.
+- Delegated fuzzing remained read-only and recorded its bounded findings in
+  `docs/audits/semantic_mir_c_receipt_coherence_fuzz_audit_2026-09-02.md`;
+  that audit does not change this lease, priority, or owner.
+
 ## DONE lease — value-parameter collection-mutation public JSON receipt
 
 - Exact base is `f7800aed4b710890aca3df13e2b38cc280badddd`, equal to

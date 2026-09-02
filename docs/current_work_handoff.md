@@ -18,6 +18,38 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active — call-arity-mismatch public JSON receipt local green, publication pending
+
+- Exact base and current published HEAD are
+  `ff8aa5d09985634d03861fdb0bcb8f6f1df6c386`. Protected unrelated untracked
+  paths remain outside inspection, edit, and staging.
+- Fresh production falsifier: `bad_arity_builtin`, `bad_arity_too_many`, and
+  `bad_arity_too_few` retain exact Pergyra `call_arity_mismatch` facts for
+  `StringLength` or `Twice` with expected 1 and actual 0/2/0, but private JSON
+  is empty and public MIR JSON stops at the generic malformed-receipt error.
+- Explicit native JSON fixes `PGY_SEM_BUILTIN_ARGS_INVALID`, stage `semantic`,
+  layer `type`, cause `semantic:builtin:signature_mismatch`, and fix
+  `match-builtin-signature` across all three contexts.
+- Already admitted builtin-argument and value-parameter-mutation verdicts
+  legitimately share that native public identity while retaining distinct
+  Pergyra codes. This rung may admit only `call_arity_mismatch`; it may not
+  infer a public-identity admission group.
+- Replacement negatives are unadmitted `bad_binop_assign`, missing-oracle
+  `bad_issome_none_call`, and an unknown Pergyra code. The focused falsifier is
+  `tests/self_hosted/parity/public_call_arity_mismatch_json_diagnostic_receipt_owner.sh`.
+- SoT remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers.
+  `diagnostic.catalog` remains `BRIDGE`; implementation volume is 21.24% and
+  project forecast remains 83%.
+- Exact-code receipt ownership is implemented. A fresh Pergyra-built DRV-2 at
+  SHA-256 `19BA2237BBE6059839FC06511D1F70A364FB82DE24E310920C2B05E1F96F620A`,
+  the focused three-context MIR/C/LLVM gate, all seven affected receipt gates,
+  and the installed CLI aggregate are locally green.
+- Static diagnostic, SoT edge, single-owner, protocol, source inventory,
+  substitution velocity, hard-contract, and progress gates are green. The
+  current tree is intentionally dirty for this one rung plus the delegated
+  read-only fuzz audit. Next step is exact staging, commit/push, and exact CI
+  observation; local green is not a publication claim.
+
 ## Published — value-parameter collection-mutation public JSON receipt exact-CI green
 
 - Exact base is `f7800aed4b710890aca3df13e2b38cc280badddd` and published
