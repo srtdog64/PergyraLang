@@ -132,3 +132,68 @@ zone/world 표면이 컴파일러 내부에서만 강제한다. 모듈 시스템
 파서/링커 구현, 파일-모듈 매핑, 런타임 동작, 링크 타임 성능. 성능은 4절의
 구현 게이트가 소유한다. 모델 정리를 구현 적합성이나 언어 전체 검증으로
 서술하지 않는다(`ProofSpine.v`의 부정 경계가 이 문서에도 적용된다).
+
+## 7. Self-host 이후의 독립 모듈 빌드 카드
+
+Status: **DEFERRED — SELF-HOST CLOSURE 이후**. 이 절은 용어와 경계만
+예약한다. 현재 `pgy build` 동작, module surface, SoT 상태, beta 진행률을
+바꾸지 않으며 구현 큐를 열지 않는다.
+
+| 개념 | 소유하는 경계 | 소유하지 않는 것 |
+|---|---|---|
+| `Module` | 이름, 가시성, export, semantic/authority provenance | 컴파일 묶음, 배포, 런타임 수명 |
+| `ModuleInterface` | 검증된 export 의미의 compact receipt | 원 소스와 독립된 새 semantic authority |
+| `BuildUnit` | 하나 이상의 Module을 함께 컴파일·캐시·링크하는 물리 단위 | 언어의 이름 해석과 module 의미 |
+| `Artifact` | target별 ABI/layout/code materialization | target-independent semantic contract |
+| `Package` | 버전·배포 단위 | 한 번의 컴파일 단위 |
+
+따라서 `Combat + Ability + EnemyAI`를 `Gameplay` BuildUnit으로 묶거나,
+`Combat + Ability + Network`를 `Server`로 묶는 것은 가능해야 한다. 같은
+Module을 서로 다른 target의 BuildUnit에서 재사용할 수 있지만, 하나의 link
+closure 안에서 동일 Module identity를 두 번 물리화해 이중 symbol authority를
+만들 수는 없다. 명시적 치환 계약이 없다면 충돌은 거부한다.
+
+목표 흐름은 다음과 같다.
+
+```text
+Module source
+  -> semantic admission
+  -> compact ModuleInterface
+  -> source/HIR construction evidence erase
+
+changed Module C + admitted interfaces A/B
+  -> BuildUnit projection
+  -> target Artifact
+  -> link admission
+  -> executable
+```
+
+`ModuleInterface`는 캐시 파일이 semantic authority가 되는 우회가 아니다.
+원 Module identity, producer/schema version, export identities, semantic digest,
+dependency receipts를 봉인하고, target artifact에는 별도의 ABI/layout digest와
+target identity를 요구한다. 누락·불일치·stale receipt는 소스 재해석으로
+조용히 보정하지 않고 해당 경계에서 실패한다. capability/authority envelope도
+raw manifest 문자열이 아니라 승인된 module facts의 합집합으로만 계산한다.
+
+`world`/`zone`과도 섞지 않는다. Module은 코드와 provenance 경계이고 zone은
+런타임 존재·자원 수명 경계다. 한 zone은 여러 Module의 코드를 사용할 수 있고,
+한 Module은 여러 zone에서 사용될 수 있다.
+
+물리 grouping은 언어 문법이 아니라 Seashell build manifest 정책으로 시작한다.
+generic specialization을 interface MIR, erased representation, link-time
+specialization 중 어디서 소유할지는 아직 고정하지 않는다. 실제 첫 외부
+프로젝트의 변경 그래프와 비용이 없는데 이 선택을 먼저 고정하면 운반물이
+AST/HIR/MIR/owner metadata를 모두 품는 새 거대 artifact가 될 위험이 있다.
+
+착수 순서는 다음으로 고정한다.
+
+```text
+self-host closure
+  -> evidence/identity compression 안정화
+  -> 실제 외부 프로젝트 하나
+  -> ModuleInterface 최소 운반물 측정
+  -> BuildUnit / incremental module build
+```
+
+즉 원칙은 **“모듈은 소스를 공유하지 않고 검증된 의미를 공유한다”**이지만,
+그 검증된 의미의 최소 형태는 self-host가 더 닫힌 뒤 실제 workload로 정한다.

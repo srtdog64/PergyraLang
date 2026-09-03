@@ -157,6 +157,15 @@ and are not counted as compiler substitution evidence.
 - Native Pergyra manifest DSL. Seashell uses TOML until the self-hosted parser
   and manifest graph are strong enough to justify a Pergyra-native surface.
 
+### Post-self-host BuildUnit reservation
+
+독립 모듈 빌드는 self-host closure 이후의 작업이다. 현재 `[build]`는 package
+entry와 backend를 고르는 beta surface일 뿐, Module별 독립 컴파일·interface
+artifact·incremental invalidation을 약속하지 않는다. 이후의 고정 용어와
+착수 순서는 `docs/202_module_authority_boundary_design.md` 7절이 소유한다.
+물리 grouping은 Seashell 정책이 되고 `Module` 의미론이나 `world`/`zone`
+수명에 합쳐지지 않는다.
+
 ## Diagnostics Contract
 
 - Missing file imports fail in `module_load`.
