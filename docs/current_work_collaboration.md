@@ -25,6 +25,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   is installed and the Docker daemon is unavailable, so kernel checking is
   pending exact-head Rocq 9 CI. No SoT census, self-host substitution, or
   project-percentage change is claimed.
+- First publication `67954fb0` reached Rocq 9 in run `33746751415`, which
+  rejected a tactic branch in `materialization_requires_explicit_runtime_need`:
+  after boolean destruction, `assumption` could not recover the eliminated
+  equation. The obsolete full run was cancelled immediately. The repair
+  destructures the context record and closes the explicit true branches by
+  reflexivity; exact-head kernel verification remains pending.
 
 ## DONE lease — match scrutinee expression-graph codegen
 

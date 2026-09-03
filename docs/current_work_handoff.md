@@ -54,6 +54,11 @@ percentage by themselves.
   is unavailable, so the 49-file compile, `rocqchk`, and axiom-budget verdict
   remain pending exact-head Rocq 9 CI. This supporting proof is not an SoT row,
   implementation-conformance proof, or self-host substitution increment.
+- First publication `67954fb0` reached Rocq 9 in run `33746751415`; the prover
+  rejected one `assumption` after boolean destruction in the materialization
+  theorem. The run was cancelled before the long matrix completed. The repair
+  now destructures the context record and proves the surviving true branches
+  explicitly by reflexivity; its exact-head kernel verdict is pending.
 
 ## Published self-host context — match scrutinee expression-graph codegen
 

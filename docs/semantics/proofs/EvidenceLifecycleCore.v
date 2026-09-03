@@ -181,23 +181,24 @@ Theorem materialization_requires_explicit_runtime_need : forall kind context,
   runtime_required context = true /\
   (kind = IdentityEvidence \/ kind = ValidityEvidence).
 Proof.
-  intros kind context Hmaterialize.
+  intros kind
+    [Hadmitted Hbefore Hauthority Hruntime Hdiagnostic Hredecide]
+    Hmaterialize.
   destruct kind.
   - simpl in Hmaterialize.
-    destruct (admitted context) eqn:Hadmitted; try discriminate.
-    destruct (runtime_required context) eqn:Hruntime.
-    + split; [assumption | split; [assumption | left; reflexivity]].
-    + destruct (authority_required context); discriminate.
+    destruct Hadmitted; try discriminate.
+    destruct Hruntime.
+    + split; [reflexivity | split; [reflexivity | left; reflexivity]].
+    + destruct Hauthority; discriminate.
   - simpl in Hmaterialize.
-    destruct (admitted context) eqn:Hadmitted; try discriminate.
-    destruct (runtime_required context) eqn:Hruntime.
-    + split; [assumption | split; [assumption | right; reflexivity]].
-    + destruct (authority_required context); discriminate.
+    destruct Hadmitted; try discriminate.
+    destruct Hruntime.
+    + split; [reflexivity | split; [reflexivity | right; reflexivity]].
+    + destruct Hauthority; discriminate.
   - simpl in Hmaterialize.
-    destruct (diagnostic_required context); discriminate.
+    destruct Hdiagnostic; discriminate.
   - simpl in Hmaterialize.
-    destruct (admitted context);
-      [destruct (before_last_consumer context) |]; discriminate.
+    destruct Hadmitted; [destruct Hbefore |]; discriminate.
 Qed.
 
 Theorem receipt_justified_iff_redecision_when_authority_required :
