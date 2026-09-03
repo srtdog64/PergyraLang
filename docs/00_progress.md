@@ -1,6 +1,37 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-09-03
+마지막 업데이트: 2026-09-04
+
+가장 최근 닫힌 executable prerequisite는 side-effecting `match` scrutinee의
+정확히 한 번 평가다. 기존 설치 드라이버는 Option match의 condition과 payload/다음
+case에서 같은 호출을 다시 방출해 `probe-some`과 `probe-none`을 각각 두 번
+출력했다. `SemanticAstExpressionSurfaceFacts`가 원래 의미를 유지하고 새 derived
+`SemanticAstMatchMaterializationFacts`가 stable local identity/type과 isolated binding
+graph를 봉인한다. MIR match owner는 원 graph에서 `AST_LET_DECL` 하나만 만들고 모든
+case와 payload consumer에는 synthetic LocalRef graph만 전달한다. Direct AST C도 같은
+one-temporary 규칙을 사용하며 backend-local purity 추론, text recovery, hidden runtime
+cache는 없다. 구현 `56ecb335` 뒤 type-stable readiness, by-value graph projection,
+bounded parity owner, source-scan evidence 보정까지 `cadae062`, `bcfdf6bf`,
+`f567b7c9`, `5f0ea433`에 게시됐다.
+
+Exact-head run `33779751935`은 36분 23초에 30/30 green이다. Linux는 repaired
+component cap과 source-scan digest를 포함해 23/23, backend comparison은 20/20이며
+Rocq 9, TSan, sanitizers, Windows, macOS, codegen fixed point, backend toolchain도 모두
+통과했다. Full self-host는 36분 05초에 Pergyra-built DRV-2를 설치하고
+`gen2 == gen3 (174197 lines)`와 통합 드라이버의 policy source 3건 census를
+완료했다. 로컬 full-bootstrap peak working/private 2.451/2.744GiB는 80% attention
+threshold를 넘었지만 hard limit는 넘지 않았고, 로컬 Rocq 부재는 proof pass로 세지
+않는다. 이 bounded consumer closure는 새 top-level authority나 hard Pergyra-for-C
+치환 분자가 아니므로 census는 88 authorities / 185 derived,
+`CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%)로 유지한다.
+
+다음 단일 실행 반례는 같은 fixture의 설치 source-to-LLVM 경로다. 현재 artifact 없이
+`direct MIR scalar CFG match binding LocalRef is invalid`로 fail-closed하며, reached
+owner는 `DirectMirScalarCfgAppendMatchBindingLocals`다. native retry, C round-trip,
+두 번째 type table 없이 MIR-carried scalar binding identity를 기존 local-ref plan에
+승인하는 것이 다음 계단이다. 독립 Module Build는 구현하지 않는다. 그 순서는
+`self-host closure -> evidence/identity compression -> 실제 외부 프로젝트 ->
+ModuleInterface -> BuildUnit/incremental build`로 docs 109/202에 예약돼 있다.
 
 가장 최근 닫힌 executable prerequisite는 `Array<String>` owner-handle
 양분기 이동이다. 16,171바이트의 verified MIR은 한 지역값을 같은 owner parameter로

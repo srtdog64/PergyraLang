@@ -18,14 +18,46 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — match scrutinee single-evaluation CI repair
+## Active self-host context — scalar match-binding LocalRef admission
 
-- Derived-registry closure `2eb5b3be55d4100b59ef9434cc779704705b173b`
-  is the exact published checkpoint and equals `origin/main`. The worktree
-  contains one bounded full-bootstrap borrow repair plus the protected user-owned
+- Exact checkpoint is `5f0ea43391361edb0cf7a7300b85f642d3bba1a9`, equal
+  to `origin/main`. The only worktree changes are the protected user-owned
   `examples/raid_graph_fsm/results.txt` change and three protected untracked
-  directories; those unrelated paths remain outside inspection, edit, and
-  staging.
+  directories; they remain outside inspection, edit, and staging.
+- Production entrypoint is the installed Pergyra-built DRV-2 source-to-LLVM
+  path. The just-closed source/MIR/C rung evaluates the observable Option-match
+  scrutinee exactly once. A fresh LLVM probe of
+  `match_scrutinee_single_evaluation.pgy` exits 1 without an artifact at the
+  exact diagnostic `direct MIR scalar CFG match binding LocalRef is invalid`.
+  This fail-closed result, rather than a native or C retry, is the opening
+  falsifier.
+- `MirMatchInstructionCapture` carries the MIR-owned binding spelling and type.
+  `DirectMirScalarCfgAppendMatchBindingLocals` is the reached admission owner:
+  it currently admits a single binding only when its type belongs to the
+  logical-record fact, so the scalar `Int` payload is rejected.
+  `DirectMirScalarCfgLocalRefPlan` is the existing carrier and
+  `DirectMirScalarCfgGraphPlanFromAdmitted` is the last orchestration consumer
+  before target projection.
+- Objective: admit the already carried scalar match-binding identity through
+  that owner, preserve the one-definition/synthetic-use materialization fact,
+  and execute the same four-line oracle in installed LLVM. Priority is semantic
+  identity, one owner, fail-closed mutation rejection, then representation
+  size. A second type table, source/MIR text recovery, backend-local inference,
+  native retry, C round-trip, or a special fixture route is forbidden.
+- The focused gate must compile and run the observable fixture through the
+  installed LLVM entrypoint and print exactly `probe-some`, `7`, `probe-none`,
+  `0` once each. It must also reject a missing/mismatched binding identity or
+  type without publishing an artifact. This is the sole active executable
+  rung. Module Build remains deferred until self-host closure and the later
+  evidence/identity-compression and external-workload stages.
+
+## Published self-host context — match scrutinee single evaluation
+
+- Source-scan evidence closure `5f0ea43391361edb0cf7a7300b85f642d3bba1a9`
+  is the exact published checkpoint and equals `origin/main`. The worktree
+  contains only the protected user-owned `examples/raid_graph_fsm/results.txt`
+  change and three protected untracked directories; those unrelated paths
+  remain outside inspection, edit, and staging.
 - Production entrypoint is the Pergyra-built DRV-2 source-to-MIR path followed
   by self-host C emission. `SemanticAstExpressionSurfaceFacts` retains original
   scrutinee meaning. `SemanticAstMatchMaterializationFacts` owns the
@@ -128,19 +160,20 @@ percentage by themselves.
   execution. Component contract and its execution action were green earlier
   in the same aggregate, although that local component slice exceeded the
   nominal five-minute focused budget.
-- Next action is source-scan evidence verification, explicit staging,
-  commit/push, then automatically opened full exact-head CI. Pergyra-owned LLVM
-  admission for this
-  Option binding remains a
-  separate future executable rung. Module Build is only a deferred
-  post-self-host interface reservation in docs 109/202; it opens no
-  implementation work. Documentation quality, source UTF-8, and changed shell
-  syntax gates were green before publication and will be rerun for the repair.
-  The local package/module smoke reached its generated `main.pgy` and then
-  failed because the currently installed launcher emitted a file rejected by
-  its own `fmt --check`; this stale-toolchain result is not counted green and
-  exact CI must retest with the fresh build. No authority/status census or
-  percentage change is claimed beyond the derived-carrier classification.
+- Evidence repair `5f0ea43391361edb0cf7a7300b85f642d3bba1a9` is
+  published. Exact-head run `33779751935` completed 30/30 green in 36m23s.
+  `build-linux` passed all 23 steps, including the repaired component cap and
+  source-scan owner digest; backend comparison remained 20/20 green and Rocq 9,
+  TSan, sanitizers, Windows, macOS, codegen fixed point, and backend toolchain
+  all passed. Full self-host took 36m05s, installed the Pergyra-built DRV-2,
+  proved `gen2 == gen3 (174197 lines)`, and censused all three policy sources
+  against the integrated driver (`0 in_subset`, `3 out_of_subset`). The lease is
+  closed. Local full-bootstrap memory remains explicit pressure evidence at
+  2.451GiB peak working set and 2.744GiB peak private bytes; local Rocq absence
+  is not counted as a proof pass, while the exact CI Rocq job is green. Module
+  Build remains only the deferred post-self-host reservation in docs 109/202.
+  No authority/status or percentage change is claimed: the census remains 88
+  authorities, 185 derived carriers, and `55/32/1`.
 
 ## Published supporting context — evidence lifecycle Rocq model
 

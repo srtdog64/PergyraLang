@@ -1,6 +1,6 @@
 # Match scrutinee single-evaluation lease — 2026-09-03
 
-Status: `SOURCE-SCAN EVIDENCE LOCAL GREEN — EXACT CI PENDING`
+Status: `DONE — EXACT CI 30/30 GREEN`
 
 Exact base: `513b668957cdb47627bd2bc490a45916337b2629` on
 `origin/main`.
@@ -159,3 +159,11 @@ shape, and automatically restores byte parity when it does.
   loop identity, and C/LLVM filesystem execution is green. The component
   contract and driver-source execution action also pass, with the component
   slice exceeding its nominal five-minute focused budget.
+- Evidence closure `5f0ea43391361edb0cf7a7300b85f642d3bba1a9` passed exact-head
+  run `33779751935` 30/30 in 36m23s. Linux passed all 23 steps and backend
+  comparison passed 20/20. Full self-host took 36m05s, installed the
+  Pergyra-built DRV-2, proved `gen2 == gen3 (174197 lines)`, and completed the
+  three-source policy census (`0 in_subset`, `3 out_of_subset`). The exact
+  source/MIR/C single-evaluation lease is released. Pergyra-owned LLVM scalar
+  match-binding admission remains a separate executable rung; this directive
+  does not silently widen into it.

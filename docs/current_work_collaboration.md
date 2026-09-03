@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — match scrutinee single evaluation
+## DONE implementation lease — match scrutinee single evaluation
 
 - Exact base is `513b668957cdb47627bd2bc490a45916337b2629`, equal to
   `origin/main` when the lease opened. The primary task owns the observable
@@ -61,8 +61,7 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   The exact failing full-MIR producer now exits 0 for all 7,476 routines, and
   local `self-host-driver-bootstrap-full-test-smoke` exits 0 after gen2/gen3
   equality in 1,699,815ms. Peak working/private memory was 2.451/2.744GiB,
-  above the 80% attention threshold but below the hard limit. Repair
-  publication and automatically opened full exact-head CI remain pending.
+  above the 80% attention threshold but below the hard limit.
   Pergyra-owned LLVM still does not admit this
   Option-match structural shape and is a separate future rung. Generated
   inventory, authority/status census, and project percentage do not change
@@ -78,8 +77,8 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   selection, ordinary declaration/byte parity, and canonical MIR consumption.
   The general producer is 319 lines without a cap increase or whitespace
   squeeze. Component contract plus driver-source execution and the three
-  focused hard-parity fixtures are green locally. Publication and exact-head
-  CI of this physical-owner repair remain pending.
+  focused hard-parity fixtures are green locally. The physical-owner repair
+  was published as `f567b7c929799da15e0ab97f32e29ad5fa19f8f9`.
 - CI-contract repair `f567b7c929799da15e0ab97f32e29ad5fa19f8f9` is published.
   Exact run `33775645515` passed every completed job except `build-linux`;
   backend comparison was 20/20 green and the repaired component inventory
@@ -89,8 +88,8 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   Current normalized per-file hashes produce owner-set digest
   `4578C8ACD15EDC57DD82965AEEF1E31E6001559EBEEC2BA94B313EF84326E10F`.
   The evidence repair refreshes only current hashes and keeps historical
-  performance numbers explicitly unremeasured. Publication and exact CI remain
-  pending.
+  performance numbers explicitly unremeasured. It was published as
+  `5f0ea43391361edb0cf7a7300b85f642d3bba1a9`.
 - The source-scan gate is green. The full local step-23 aggregate stopped at
   the declared proof boundary because no local Rocq/Coq exists; it is not
   counted green. Exact run `33775645515` had already passed Rocq 9. With an
@@ -98,6 +97,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   filesystem execution are green. The earlier aggregate component slice and
   its driver-source execution action are also green, but exceeded the nominal
   five-minute focused budget.
+- Exact-head run `33779751935` completed 30/30 green in 36m23s. Linux passed
+  all 23 steps, backend comparison passed 20/20, and Rocq 9, TSan, sanitizers,
+  Windows, macOS, codegen fixed point, and backend toolchain all passed. Full
+  self-host took 36m05s, installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (174197 lines)`, and completed the three-source policy census
+  (`0 in_subset`, `3 out_of_subset`). This lease is released. It changes no
+  authority/status census or project percentage; derived carriers remain 185.
 
 ## DONE supporting proof lease — evidence lifecycle compression
 
