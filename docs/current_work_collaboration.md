@@ -6,6 +6,36 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — match scrutinee single evaluation
+
+- Exact base is `513b668957cdb47627bd2bc490a45916337b2629`, equal to
+  `origin/main` when the lease opened. The primary task owns the observable
+  fixture, focused semantic oracle, owner selection, implementation,
+  integration, commit/push, and exact CI.
+- `SemanticAstExpressionSurfaceFacts` retains original scrutinee meaning.
+  `SemanticAstMatchMaterializationFacts` owns the target-neutral decision,
+  stable local identity/type, and isolated binding graph; the body bundle and
+  `SelfMirRoutineInput` carry it to `routine_match_owner.pgy`, which emits one
+  MIR definition and gives only the synthetic LocalRef graph to cases and
+  payload extraction. Direct AST C emission follows the same one-temporary
+  rule. Backend-local purity guesses and repeated graph emission are forbidden.
+- The observable fixture first proved the installed driver red by printing
+  each probe twice. A rebuilt changed-source self-host driver now prints the
+  exact four-line oracle, while the match graph-use ratchet, full component
+  contract, and focused hard parity for the Option/class-result loop fixtures
+  are green locally.
+- Native direct C/LLVM emission already evaluates the AST subject once and is
+  outside the edit scope. The legacy native MIR oracle still reconstructs the
+  expression per case, so hard parity admits only the named one-definition plus
+  synthetic-use delta and otherwise retains C byte equality and native runtime
+  equality. The exception disappears automatically when the oracle carries the
+  same definition; there is no general mismatch waiver.
+- Publication and exact-head CI remain pending. Pergyra-owned LLVM still does
+  not admit this Option-match structural shape and is a separate future rung.
+  Registries, generated inventories, SoT census, and project percentage do not
+  change. Exact objective and exclusions are in
+  `docs/agent_work_directives/match_scrutinee_single_evaluation_2026-09-03.md`.
+
 ## DONE supporting proof lease — evidence lifecycle compression
 
 - Exact base is `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de`, equal to

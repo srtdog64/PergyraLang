@@ -15,6 +15,7 @@ import "ast_expression_place_fact_owner.pgy";
 import "ast_expression_identity_resolution_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
 import "ast_iteration_graph_root_owner.pgy";
+import "ast_match_materialization_fact_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_zone_resource_carriage_rows_owner.pgy";
 
@@ -56,6 +57,10 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !bundle.iteration_types.ok { return "iteration_types"; }
     if !bundle.assignment_types.ok { return "assignment_types"; }
     if !bundle.statement_types.ok { return "statement_types"; }
+    if !SemanticAstMatchMaterializationFactsReady(
+        artifact, analysis, bundle.statement_types,
+        bundle.match_materializations
+    ) { return "match_materializations"; }
     if !SemanticAstZoneValueCarriageVerdictRowsReady(
         artifact, analysis.signatures, analysis.constructors,
         analysis.local_bindings,

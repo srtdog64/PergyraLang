@@ -18,30 +18,49 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — match scrutinee single-evaluation discovery
+## Active self-host context — match scrutinee single-evaluation candidate
 
-- Exact checkpoint is
-  `06f8ca5b2d1d3b1d9873d8c76944b05ce3210436`, equal to `origin/main` before
-  the documentation closure. The preceding match graph-consumer rung is closed
-  by exact-head run `33743159430`, and the user-requested evidence-lifecycle
-  proof integration is closed by run `33747165723`; both are 30/30 green.
-- Production entrypoint remains installed Pergyra-built DRV-2 source-to-MIR
-  followed by self-host C/LLVM emission. The first bounded falsifying candidate
-  is a side-effecting match scrutinee. Current Pergyra-built DRV-2 and explicit
-  native-pipeline C each emit three calls for `match c.Bump()`; native-pipeline
-  LLVM emits four. Native MIR carries the same expression graph in two match
-  branch rows instead of one stable evaluated value.
-- This is discovery evidence, not yet a confirmed semantic bug or an opened
-  implementation lease. `SemanticAstExpressionSurfaceFacts` owns expression
-  meaning but does not by itself own an exactly-once materialization binding.
-  The exact missing fact owner and last legitimate consumer remain to be fixed
-  only after an observable call-count fixture reproduces the behavior in the
-  installed C and LLVM entrypoints. The repeated emitted calls are observed;
-  the independent language-level oracle is the remaining falsifier.
-- The next executable action is that focused falsifier. Re-emitting a
-  side-effecting scrutinee per arm is the candidate forbidden fallback; broad
-  expression cleanup, backend-local inference, and a second semantic producer
-  remain outside the discovery. No census or percentage change is claimed.
+- Exact published checkpoint is
+  `513b668957cdb47627bd2bc490a45916337b2629`, equal to `origin/main` when the
+  implementation lease opened. The worktree contains the bounded task edits
+  plus the protected user-owned `examples/raid_graph_fsm/results.txt` change
+  and three protected untracked directories; those unrelated paths remain
+  outside inspection, edit, and staging.
+- Production entrypoint is the Pergyra-built DRV-2 source-to-MIR path followed
+  by self-host C emission. `SemanticAstExpressionSurfaceFacts` retains original
+  scrutinee meaning. `SemanticAstMatchMaterializationFacts` owns the
+  target-neutral exactly-once decision, synthetic local identity/type, and
+  isolated binding graph. `SemanticAstBodyTypeBundle` and
+  `SelfMirRoutineInput` carry it to the last orchestration consumer,
+  `routine_match_owner.pgy`.
+- The routine match owner emits one `AST_LET_DECL` from the original graph and
+  sends only its synthetic LocalRef graph to case dispatch and payload
+  extraction. Direct AST C emission applies the same stable-temporary rule.
+  Re-emission per arm, payload re-evaluation, backend-local purity inference,
+  text recovery, hidden runtime caching, and a second materialization owner are
+  forbidden fallbacks.
+- The original installed driver reproduced the semantic bug by printing both
+  `probe-some` and `probe-none` twice. A rebuilt changed-source self-host driver
+  now prints the exact four-line oracle. Its focused execution gate, match
+  graph-use owner gate, complete component contract, and hard parity for
+  `class_bump_option_match`, `class_result_chain_loop`, and
+  `class_method_result_loop` are green locally.
+- Native direct C/LLVM AST emitters already evaluate the subject once. The
+  legacy native MIR oracle alone lacks the stable definition, so parity permits
+  only a proven compiler-generated `__pgy_match_*` one-definition plus
+  synthetic-use delta. C byte equality between canonical/raw self MIR and
+  native runtime equality remain mandatory, and ordinary byte parity resumes
+  automatically once the legacy oracle carries the same definition.
+- Next action is documentation verification, explicit task-only staging,
+  commit/push, and exact-head CI. Pergyra-owned LLVM admission for this Option
+  binding remains a separate future executable rung. Module Build is only a
+  deferred post-self-host interface reservation in docs 109/202; it opens no
+  implementation work. Documentation quality, source UTF-8, and changed shell
+  syntax gates are green. The local package/module smoke reached its generated
+  `main.pgy` and then failed because the currently installed launcher emitted a
+  file rejected by its own `fmt --check`; this stale-toolchain result is not
+  counted green and exact CI must retest with the fresh build. No SoT census or
+  percentage change is claimed.
 
 ## Published supporting context — evidence lifecycle Rocq model
 

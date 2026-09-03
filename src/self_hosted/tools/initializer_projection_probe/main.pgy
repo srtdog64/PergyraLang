@@ -542,7 +542,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
     let facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
         artifact, analysis, body_types.initializer_types,
         body_types.iteration_types,
-        body_types.assignment_types, body_types.statement_types,
+        body_types.assignment_types, body_types.match_materializations,
+        body_types.statement_types,
         body_types.generic_specializations,
         SelfHostMachineLayerDeclarationEmpty()
     );
@@ -873,7 +874,8 @@ func Main() -> Void with caps env {
         ProbeInitializerFacts(body_types, mode);
     let facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
         artifact, analysis, initializer_types, body_types.iteration_types,
-        body_types.assignment_types, body_types.statement_types,
+        body_types.assignment_types, body_types.match_materializations,
+        body_types.statement_types,
         body_types.generic_specializations,
         SelfHostMachineLayerDeclarationEmpty()
     );

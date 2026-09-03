@@ -120,7 +120,7 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
     let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsBeforeCanonicalIdsObserved(
         artifact, verified.analysis, verified.body_types.initializer_types,
         verified.body_types.iteration_types,
-        verified.body_types.assignment_types,
+        verified.body_types.assignment_types, verified.body_types.match_materializations,
         verified.body_types.statement_types,
         verified.body_types.generic_specializations,
         machine_declaration, observe_pressure

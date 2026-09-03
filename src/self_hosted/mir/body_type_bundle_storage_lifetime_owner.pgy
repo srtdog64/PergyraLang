@@ -38,6 +38,11 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     let statement_verified: Array<Int> = body_types.statement_types.verified;
     let statement_diagnostic_codes: Array<String> = body_types.statement_types.diagnostic_codes;
     let statement_diagnostic_messages: Array<String> = body_types.statement_types.diagnostic_messages;
+    let match_materialization_node_ids: Array<Int> = body_types.match_materializations.node_ids;
+    let match_materialization_function_node_ids: Array<Int> = body_types.match_materializations.function_node_ids;
+    let match_materialization_type_names: Array<String> = body_types.match_materializations.type_names;
+    let match_materialization_synthetic_names: Array<String> = body_types.match_materializations.synthetic_names;
+    let match_materialization_synthetic_roots: Array<Int> = body_types.match_materializations.synthetic_graph_root_ids;
     let generic_call_node_ids: Array<Int> = body_types.generic_specializations.call_node_ids;
     let generic_owner_node_ids: Array<Int> = body_types.generic_specializations.source_owner_node_ids;
     let generic_source_lanes: Array<Int> = body_types.generic_specializations.source_lanes;
@@ -62,6 +67,9 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     CompilerRetireArrayStorage(statement_kind_tags); CompilerRetireArrayStorage(statement_expected_types);
     CompilerRetireArrayStorage(statement_inferred_types); CompilerRetireArrayStorage(statement_verified);
     CompilerRetireArrayStorage(statement_diagnostic_codes); CompilerRetireArrayStorage(statement_diagnostic_messages);
+    CompilerRetireArrayStorage(match_materialization_node_ids); CompilerRetireArrayStorage(match_materialization_function_node_ids);
+    CompilerRetireArrayStorage(match_materialization_type_names); CompilerRetireArrayStorage(match_materialization_synthetic_names);
+    CompilerRetireArrayStorage(match_materialization_synthetic_roots);
     CompilerRetireArrayStorage(generic_call_node_ids); CompilerRetireArrayStorage(generic_owner_node_ids);
     CompilerRetireArrayStorage(generic_source_lanes); CompilerRetireArrayStorage(generic_call_ordinals);
     CompilerRetireArrayStorage(generic_signature_indexes); CompilerRetireArrayStorage(generic_actual_starts);

@@ -11,6 +11,7 @@ import "ast_expression_place_fact_owner.pgy";
 import "ast_expression_identity_resolution_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
 import "ast_iteration_graph_root_owner.pgy";
+import "ast_match_materialization_fact_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_body_type_bundle_readiness_owner.pgy";
 import "ast_named_value_boundary_verdict_owner.pgy";
@@ -21,13 +22,12 @@ struct SemanticAstBodyTypeBundle {
     initializer_types: SemanticAstInitializerTypeFacts;
     iteration_types: SemanticAstIterationTypeFacts;
     assignment_types: SemanticAstAssignmentTypeFacts;
-    statement_types: SemanticAstStatementTypeFacts;
+    statement_types: SemanticAstStatementTypeFacts; match_materializations: SemanticAstMatchMaterializationFacts;
     zone_carriage: SemanticAstZoneValueCarriageVerdict;
     generic_specializations: SemanticAstGenericSpecializationFacts;
 }
 func SemanticAstBodyTypeBundleAdmissionError(
-    artifact: AstTreeArtifact,
-    message: String
+    artifact: AstTreeArtifact, message: String
 ) -> SemanticAstBodyTypeBundle {
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
@@ -36,14 +36,10 @@ func SemanticAstBodyTypeBundleAdmissionError(
         SemanticAstInitializerTypeStructuralError(artifact),
         SemanticAstIterationTypeStructuralError(artifact),
         SemanticAstAssignmentTypeStructuralError(artifact, "BodyAnalysisAdmission"),
-        SemanticAstStatementTypeStructuralError(artifact, "BodyAnalysisAdmission"),
-        SemanticAstZoneValueCarriageVerdictError(
-            "body_analysis_admission", message, -1
-        ),
-        SemanticAstGenericSpecializationError(
-            "body_analysis_admission", message,
-            empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
-        )
+        SemanticAstStatementTypeStructuralError(artifact, "BodyAnalysisAdmission"), SemanticAstMatchMaterializationError(artifact),
+        SemanticAstZoneValueCarriageVerdictError("body_analysis_admission", message, -1),
+        SemanticAstGenericSpecializationError("body_analysis_admission", message,
+            empty_ints, empty_ints, empty_ints, empty_ints, empty_strings)
     );
 }
 func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
@@ -126,6 +122,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             analysis.function_scopes, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "statement:done");
+    let match_materializations: SemanticAstMatchMaterializationFacts =
+        SemanticAstMatchMaterializationFactsAttach(artifact, analysis, statement_types);
     SemanticAstBodyTypeStage(observe_pressure, "named-boundary:start");
     let named_boundary: SemanticAstNamedValueBoundaryVerdict =
         SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
@@ -190,6 +188,9 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             generic_specializations.diagnostic_code,
             generic_specializations.diagnostic_message, -1
         );
+    } else if verdict.ok && !SemanticAstMatchMaterializationFactsReady(
+        artifact, analysis, statement_types, match_materializations) {
+        verdict = SemanticAstBodyVerdictError("match_materialization_unresolved", "semantic match materialization facts are incomplete", -1);
     } else if verdict.ok &&
         !SemanticAstIterationSyntheticGraphRootsAttach(
             artifact, analysis, iteration_types
@@ -201,7 +202,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     }
     if verdict.ok && !SemanticAstAnalysisResolveExpressionIdentities(
         artifact, analysis, initializer_types.inferred_type_names,
-        iteration_types, function_tables,
+        iteration_types, match_materializations.synthetic_graph_root_ids, function_tables,
         require_carried_expression_identities
     ) {
         verdict = SemanticAstBodyVerdictError(
@@ -220,7 +221,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");
     return SemanticAstBodyTypeBundle(
         verdict,
-        initializer_types, iteration_types, assignment_types, statement_types,
+        initializer_types, iteration_types, assignment_types, statement_types, match_materializations,
         zone_carriage, generic_specializations
     );
 }

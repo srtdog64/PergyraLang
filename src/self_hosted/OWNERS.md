@@ -327,6 +327,11 @@ inventory must not become a second fact-family owner registry.
   HIR-owned topology extension for compiler-generated foreach collection
   locals, attaches semantic overlays, and owns their stable names/root handles;
   MIR may consume those handles but may not construct a sibling graph.
+- `src/self_hosted/semantic/ast_match_materialization_fact_owner.pgy` --
+  derives one target-neutral synthetic binding and graph handle for each
+  non-scalar match scrutinee after statement typing. The original expression
+  graph remains the meaning owner; MIR evaluates it once and case branches may
+  not replay that graph.
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` -- artifact-bound
   return, condition, loop, defer, break/continue, log, exit, match/default,
   array mutation, and bare-call kind/payload rows used for statement routing.

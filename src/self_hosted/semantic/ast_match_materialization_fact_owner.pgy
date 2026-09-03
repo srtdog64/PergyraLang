@@ -1,0 +1,247 @@
+// Semantic owner for target-neutral match scrutinee materialization facts.
+//
+// A non-scalar scrutinee is one source evaluation.  Its original expression
+// graph remains the meaning owner; this fact adds one isolated binding graph
+// that MIR may use after evaluating the original graph into a synthetic local.
+
+import "ast_artifact_verdict_owner.pgy";
+import "ast_statement_type_query_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_surface_query_owner.pgy";
+
+struct SemanticAstMatchMaterializationFacts {
+    ok: Bool;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    function_node_ids: Array<Int>;
+    type_names: Array<String>;
+    synthetic_names: Array<String>;
+    synthetic_graph_root_ids: Array<Int>;
+}
+func SemanticAstMatchMaterializationError(
+    artifact: AstTreeArtifact
+) -> SemanticAstMatchMaterializationFacts {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SemanticAstMatchMaterializationFacts(
+        false, artifact.count, ints, ints, strings, strings, ints
+    );
+}
+
+func SemanticAstMatchMaterializationName(node_id: Int) -> String {
+    if node_id < 0 { return ""; }
+    return Concat("__pgy_match_", ToString(node_id));
+}
+
+func SemanticAstMatchScrutineeNeedsMaterialization(
+    ref graph: SemanticExpressionGraphFacts,
+    root: Int
+) -> Bool {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root);
+    return IsSome(kind) &&
+        !AstExpressionNodeIsScalarLeaf(UnwrapOption(kind));
+}
+
+func SemanticAstMatchMaterializationFactsAttach(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    ref statement_types: SemanticAstStatementTypeFacts
+) -> SemanticAstMatchMaterializationFacts {
+    let node_ids: Array<Int> = [];
+    let function_node_ids: Array<Int> = [];
+    let type_names: Array<String> = [];
+    let synthetic_names: Array<String> = [];
+    let synthetic_roots: Array<Int> = [];
+    if !SemanticAstStatementTypeRowsReady(statement_types) ||
+        !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, analysis.expression_surfaces
+        ) {
+        return SemanticAstMatchMaterializationError(artifact);
+    }
+
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let topology: AstExpressionArena = graph.arena.topology;
+    let graph_node_texts: Array<String> = graph.arena.node_texts;
+    let target_kinds: Array<Int> = graph.arena.call_target_kinds;
+    let target_names: Array<String> = graph.arena.call_target_names;
+    let call_return_types: Array<String> =
+        graph.arena.call_return_type_names;
+    let call_target_syntax_ids: Array<Int> =
+        graph.arena.identities.call_target_syntax_ids;
+    let runtime_call_abi_ids: Array<Int> =
+        graph.arena.identities.runtime_call_abi_ids;
+    let binding_syntax_ids: Array<Int> =
+        graph.arena.identities.binding_syntax_ids;
+    let binding_kinds: Array<Int> =
+        graph.arena.identities.binding_kinds;
+    let binding_ordinals: Array<Int> =
+        graph.arena.identities.binding_ordinals;
+    let place_kinds: Array<Int> = graph.arena.place_kinds;
+
+    let row: Int = 0;
+    while row < ArrayLength(statement_types.node_ids) {
+        if statement_types.kind_tags[row] == TypedAstKindMatchStmtTag() {
+            if statement_types.verified[row] != 1 ||
+                statement_types.inferred_type_names[row] == "" ||
+                statement_types.inferred_type_names[row] == "Unknown" {
+                return SemanticAstMatchMaterializationError(artifact);
+            }
+            let source: SemanticExpressionGraphView =
+                SemanticAstExpressionGraphForNode(
+                    analysis.expression_surfaces,
+                    statement_types.node_ids[row], AstExpressionLaneAtom()
+                );
+            if !source.ok {
+                return SemanticAstMatchMaterializationError(artifact);
+            }
+            if SemanticAstMatchScrutineeNeedsMaterialization(
+                source.graph, source.root_id
+            ) {
+                let name: String = SemanticAstMatchMaterializationName(
+                    statement_types.node_ids[row]
+                );
+                let appended: ProgramExpressionGraphAppend =
+                    ProgramExpressionGraphAppendIsolatedNode(
+                        topology, AstExpressionNodeLeaf(), name
+                    );
+                if !appended.ok {
+                    return SemanticAstMatchMaterializationError(artifact);
+                }
+                topology = appended.arena;
+                ArrayPush(graph_node_texts, name);
+                ArrayPush(target_kinds, SemanticCallTargetNone());
+                ArrayPush(target_names, "");
+                ArrayPush(call_return_types, "");
+                ArrayPush(call_target_syntax_ids, 0);
+                ArrayPush(runtime_call_abi_ids, 0);
+                ArrayPush(binding_syntax_ids, 0);
+                ArrayPush(binding_kinds, SemanticExpressionBindingNone());
+                ArrayPush(
+                    binding_ordinals,
+                    SemanticExpressionBindingOrdinalAbsent()
+                );
+                ArrayPush(place_kinds, SemanticExpressionPlaceBinding());
+                ArrayPush(node_ids, statement_types.node_ids[row]);
+                ArrayPush(
+                    function_node_ids,
+                    analysis.statements.function_node_ids[row]
+                );
+                ArrayPush(
+                    type_names, statement_types.inferred_type_names[row]
+                );
+                ArrayPush(synthetic_names, name);
+                ArrayPush(synthetic_roots, appended.root_id);
+            }
+        }
+        row = row + 1;
+    }
+
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaFromTopologyWithIdentities(
+            topology, graph_node_texts, target_kinds, target_names,
+            call_return_types,
+            SemanticExpressionIdentityRows(
+                call_target_syntax_ids, runtime_call_abi_ids,
+                binding_syntax_ids, binding_kinds, binding_ordinals
+            ),
+            place_kinds
+        );
+    let attached: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            SemanticExpressionGraphArenaReady(arena),
+            graph.roots, graph.has_roots, arena
+        );
+    let surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsWithGraph(
+            artifact, analysis.expression_surfaces, attached
+        );
+    if !surfaces.ok {
+        return SemanticAstMatchMaterializationError(artifact);
+    }
+    analysis.expression_surfaces = surfaces;
+    return SemanticAstMatchMaterializationFacts(
+        true, artifact.count, node_ids, function_node_ids, type_names,
+        synthetic_names, synthetic_roots
+    );
+}
+
+func SemanticAstMatchMaterializationFactsReady(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref statement_types: SemanticAstStatementTypeFacts,
+    ref facts: SemanticAstMatchMaterializationFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.node_ids);
+    if !facts.ok || facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.function_node_ids) != count ||
+        ArrayLength(facts.type_names) != count ||
+        ArrayLength(facts.synthetic_names) != count ||
+        ArrayLength(facts.synthetic_graph_root_ids) != count ||
+        !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, analysis.expression_surfaces
+        ) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        let statement_row: Option<Int> =
+            SemanticAstStatementTypeIndexForNode(
+                statement_types, facts.node_ids[row]
+            );
+        let root: Int = facts.synthetic_graph_root_ids[row];
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            analysis.expression_surfaces.expression_graph, root
+        );
+        let text: Option<String> = SemanticExpressionGraphNodeText(
+            analysis.expression_surfaces.expression_graph, root
+        );
+        if !IsSome(statement_row) ||
+            statement_types.kind_tags[UnwrapOption(statement_row)] !=
+                TypedAstKindMatchStmtTag() ||
+            statement_types.verified[UnwrapOption(statement_row)] != 1 ||
+            facts.function_node_ids[row] !=
+                analysis.statements.function_node_ids[
+                    UnwrapOption(statement_row)
+                ] ||
+            facts.type_names[row] !=
+                statement_types.inferred_type_names[
+                    UnwrapOption(statement_row)
+                ] ||
+            facts.synthetic_names[row] !=
+                SemanticAstMatchMaterializationName(facts.node_ids[row]) ||
+            !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeLeaf() ||
+            !IsSome(text) || UnwrapOption(text) !=
+                facts.synthetic_names[row] ||
+            analysis.expression_surfaces.expression_graph.arena
+                .call_target_kinds[root] != SemanticCallTargetNone() ||
+            analysis.expression_surfaces.expression_graph.arena
+                .place_kinds[root] != SemanticExpressionPlaceBinding() ||
+            (row > 0 && facts.node_ids[row] <= facts.node_ids[row - 1]) {
+            return false;
+        }
+        row = row + 1;
+    }
+
+    let expected_count: Int = 0;
+    let statement_row: Int = 0;
+    while statement_row < ArrayLength(statement_types.node_ids) {
+        if statement_types.kind_tags[statement_row] ==
+            TypedAstKindMatchStmtTag() {
+            let source: SemanticExpressionGraphView =
+                SemanticAstExpressionGraphForNode(
+                    analysis.expression_surfaces,
+                    statement_types.node_ids[statement_row],
+                    AstExpressionLaneAtom()
+                );
+            if !source.ok { return false; }
+            if SemanticAstMatchScrutineeNeedsMaterialization(
+                source.graph, source.root_id
+            ) {
+                expected_count = expected_count + 1;
+            }
+        }
+        statement_row = statement_row + 1;
+    }
+    return expected_count == count;
+}

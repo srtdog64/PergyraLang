@@ -189,5 +189,21 @@ func SelfMirRoutineLocalInventoryFromInput(
             local_i = binding_range.end;
         }
     }
+    let match_row: Int = 0;
+    while match_row < ArrayLength(input.match_materializations.node_ids) {
+        if input.match_materializations.function_node_ids[match_row] ==
+            function_node_id &&
+            !SelfMirRoutineLocalInventoryAppend(
+                names, types,
+                input.match_materializations.synthetic_names[match_row],
+                input.match_materializations.type_names[match_row]
+            ) {
+            return SelfMirRoutineLocalInventoryError(
+                "MIR match materialization local fact is invalid",
+                names, types
+            );
+        }
+        match_row = match_row + 1;
+    }
     return SelfMirRoutineLocalInventory(true, "", names, types);
 }

@@ -35,6 +35,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_expression_par
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_struct_value_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_match_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_match_materialization_delta_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_wrapper_match_loop_phi_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_loop_phi_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh"; source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_else_if_graph_parity_owner.sh"
 pgy_prepend_windows_runtime_paths

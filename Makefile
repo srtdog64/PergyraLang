@@ -3906,6 +3906,8 @@ self-host-generic-default-contract-parity-test-smoke: $(PGY)
 .PHONY: self-host-generic-default-contract-parity-test-smoke
 
 self-host-hard-driver-rung2-parity-test-smoke: self-host-compiler
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/match_scrutinee_single_evaluation_owner.sh
 	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
 	PGY_SELFHOST_DRIVER_BACKENDS=hard \
 	PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER="$${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-$(SELFHOST_HARD_DRIVER_FRONTIER)}" \

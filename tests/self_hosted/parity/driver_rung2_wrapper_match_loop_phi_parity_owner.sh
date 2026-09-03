@@ -9,25 +9,25 @@ pgy_selfhost_verify_driver_rung2_wrapper_match_loop_phi() {
     if [[ "$base" == "class_result_chain_loop" ]]; then
         symbol="w"
         header_result="w.3"
-        header_uses='"uses":["w.1","w.13"]'
-        merge_result="w.13"
-        merge_uses='"uses":["w.7","w.3","w.3"]'
+        header_uses='"uses":["w.1","w.14"]'
+        merge_result="w.14"
+        merge_uses='"uses":["w.8","w.3","w.3"]'
         missing_uses='"uses":["w.3","w.3"]'
         missing_label="Result class state"
     elif [[ "$base" == "class_method_result_loop" ]]; then
         symbol="acc"
         header_result="acc.4"
-        header_uses='"uses":["acc.1","acc.13"]'
-        merge_result="acc.13"
-        merge_uses='"uses":["acc.8","acc.12","acc.4"]'
+        header_uses='"uses":["acc.1","acc.14"]'
+        merge_result="acc.14"
+        merge_uses='"uses":["acc.9","acc.13","acc.4"]'
         missing_uses='"uses":["acc.12","acc.4"]'
         missing_label="Result accumulator"
     elif [[ "$base" == "class_bump_option_match" ]]; then
         symbol="c"
         header_result="c.3"
-        header_uses='"uses":["c.1","c.10"]'
-        merge_result="c.10"
-        merge_uses='"uses":["c.7","c.3"]'
+        header_uses='"uses":["c.1","c.11"]'
+        merge_result="c.11"
+        merge_uses='"uses":["c.8","c.3"]'
         missing_uses='"uses":["c.3"]'
         missing_label="Option class state"
     else

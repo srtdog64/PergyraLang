@@ -690,20 +690,26 @@ func EmitStmtList(count: Int, arena: AstArena,
             let tagged_match: Bool = LookupKindType(env, match_subject_type, "enum") == "tagged";
             let match_tmp: String = CompilerSymbolCMatchTempName(idx);
             ArrayPush(result, Concat(pad, "{\n"));
+            let match_tmp_type: String = "";
+            if !tagged_match && !option_match { match_tmp_type = AbiLayoutCLocalType("Int", env); }
+            else { match_tmp_type = AbiLayoutCLocalType(match_subject_type, env); }
+            let match_tmp_decl: String = Concat(
+                match_tmp_type, Concat(" ", Concat(match_tmp, " = "))
+            );
             if !tagged_match && !option_match {
-                let match_tmp_type: String = AbiLayoutCLocalType("Int", env);
                 let match_tmp_cast: String = AbiLayoutCValueType("Int", env);
-                let match_tmp_decl: String = Concat(match_tmp_type, " ");
-                match_tmp_decl = Concat(match_tmp_decl, match_tmp);
-                match_tmp_decl = Concat(match_tmp_decl, " = (");
-                match_tmp_decl = Concat(match_tmp_decl, match_tmp_cast);
-                match_tmp_decl = Concat(match_tmp_decl, ")(");
                 match_tmp_decl = Concat(
-                    match_tmp_decl, rendered_match_subject
+                    match_tmp_decl, Concat("(", Concat(
+                        match_tmp_cast, Concat(")(", Concat(
+                            rendered_match_subject, ")"
+                        ))
+                    ))
                 );
-                match_tmp_decl = Concat(match_tmp_decl, ");\n");
-                ArrayPush(result, Concat(inner_pad, match_tmp_decl));
+            } else {
+                match_tmp_decl = Concat(match_tmp_decl, rendered_match_subject);
             }
+            match_tmp_decl = Concat(match_tmp_decl, ";\n");
+            ArrayPush(result, Concat(inner_pad, match_tmp_decl));
             ArraySet(cur, 0, idx + 1);
             let match_case_count: Int = 0;
             while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {
@@ -716,14 +722,14 @@ func EmitStmtList(count: Int, arena: AstArena,
                     if option_match {
                         case_line = EmitOptionMatchCaseLine(
                             case_fact, match_subject_type,
-                            rendered_match_subject,
+                            match_tmp,
                             match_case_count, env
                         );
                     } else {
                         case_line = EmitMatchCaseLine(
                             tagged_match, case_fact, match_subject_type,
                             match_tmp, match_case_count,
-                            rendered_match_subject, env
+                            match_tmp, env
                         );
                     }
                     ArrayPush(result, Concat(inner_pad, case_line));
@@ -733,13 +739,13 @@ func EmitStmtList(count: Int, arena: AstArena,
                         CodegenTypeEnvStateBorrow(env_state);
                     if option_match {
                         BindOptionMatchPayload(
-                            case_fact, rendered_match_subject,
+                            case_fact, match_tmp,
                             match_subject_type,
                             case_env, env
                         );
                     } else if tagged_match {
                         BindTaggedEnumMatchPayload(
-                            case_fact, rendered_match_subject,
+                            case_fact, match_tmp,
                             match_subject_type,
                             case_env, env
                         );

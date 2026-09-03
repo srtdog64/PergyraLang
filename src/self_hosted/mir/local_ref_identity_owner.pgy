@@ -3,7 +3,8 @@
 func SelfMirLocalRefRoleValid(role: String) -> Bool {
     return role == "declaration" || role == "iteration" ||
         role == "parameter" || role == "destructure" ||
-        role == "owner-field" || role == "iteration-synthetic";
+        role == "owner-field" || role == "iteration-synthetic" ||
+        role == "match-synthetic";
 }
 
 func SelfMirLocalRefValid(value: String) -> Bool {

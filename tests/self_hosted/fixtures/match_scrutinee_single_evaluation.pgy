@@ -1,0 +1,19 @@
+func Probe(has_value: Bool) -> Option<Int> {
+    if has_value {
+        Log("probe-some");
+        return Some(7);
+    }
+    Log("probe-none");
+    return None;
+}
+
+func Main() -> Void {
+    match Probe(true) {
+        case Some(value): Log(value);
+        case None: Log(900);
+    }
+    match Probe(false) {
+        case Some(value): Log(value);
+        case None: Log(0);
+    }
+}

@@ -172,7 +172,8 @@ func SelfMirLowerMatchCaseBranch(
     build: SelfMirRoutineBuild,
     match_node_id: Int,
     match_value: String,
-    fact: SelfMirMatchCaseFact
+    fact: SelfMirMatchCaseFact,
+    match_graph: SemanticExpressionGraphView
 ) -> SelfMirRoutineBuild {
     if !SelfMirMatchCaseSubjectReady(
         input, build, match_node_id, match_value, fact
@@ -192,11 +193,6 @@ func SelfMirLowerMatchCaseBranch(
     let carried_fact: SelfMirMatchCaseFact = SelfMirMatchCaseFact(
         fact.ok, fact.pattern, fact.variant, fact.bindings, binding_types
     );
-    let match_graph: SemanticExpressionGraphView =
-        SemanticAstExpressionGraphForNode(
-            input.analysis.expression_surfaces,
-            match_node_id, AstExpressionLaneAtom()
-        );
     if !match_graph.ok {
         return SelfMirRoutineBuildError(
             build, "MIR match subject expression graph is missing"
@@ -228,6 +224,64 @@ func SelfMirLowerMatchFromArtifact(
     if match_value == "" || !IsSome(first_child) {
         return SelfMirRoutineBuildError(
             build, "MIR match subject or case inventory is missing"
+        );
+    }
+    let match_scope_local_count: Int = ArrayLength(build.local_names);
+    let match_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneAtom()
+        );
+    if !match_graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR match subject expression graph is missing"
+        );
+    }
+    let materialization_row: Option<Int> =
+        SelfMirMatchMaterializationRowForNode(
+            input.match_materializations, node_id
+        );
+    if IsSome(materialization_row) {
+        let row: Int = UnwrapOption(materialization_row);
+        let synthetic_name: String =
+            input.match_materializations.synthetic_names[row];
+        let synthetic_type: String =
+            input.match_materializations.type_names[row];
+        let source_uses: Array<String> =
+            SelfMirExpressionGraphUses(build, match_graph);
+        build = SelfMirRoutineAddLocal(
+            build, synthetic_name, synthetic_type, 1,
+            SelfMirLocalRef("match-synthetic", node_id, 0)
+        );
+        let synthetic_local: Option<Int> =
+            SelfMirRoutineLocalIndex(build, synthetic_name);
+        if !IsSome(synthetic_local) {
+            return SelfMirRoutineBuildError(
+                build, "MIR match materialization LocalRef disappeared"
+            );
+        }
+        build = SelfMirRoutineAddInstruction(
+            build, "def", "ssa-def", SelfMirSsaName(synthetic_name, 1),
+            synthetic_name, "", match_value, synthetic_type,
+            "AST_LET_DECL", source_uses
+        );
+        build = SelfMirRoutineAttachLastPrimaryLocalRef(
+            build, UnwrapOption(synthetic_local)
+        );
+        build = SelfMirRoutineAttachLastAbiTypeName(build, synthetic_type);
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, match_graph, input.machine_declaration
+        );
+        match_value = synthetic_name;
+        match_graph = SemanticExpressionGraphView(
+            true,
+            input.match_materializations.synthetic_graph_root_ids[row],
+            input.analysis.expression_surfaces.expression_graph
+        );
+    }
+    if !build.ok || !match_graph.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR match materialization fact is invalid"
         );
     }
     let entry_versions: Array<Int> =
@@ -263,7 +317,7 @@ func SelfMirLowerMatchFromArtifact(
             }
             let branch_block: Int = build.current_block;
             build = SelfMirLowerMatchCaseBranch(
-                input, build, node_id, match_value, case_fact
+                input, build, node_id, match_value, case_fact, match_graph
             );
             if !build.ok { return build; }
             let body_opt: Option<Int> = SelfMirControlBodyBlock(
@@ -361,8 +415,10 @@ func SelfMirLowerMatchFromArtifact(
     if case_count == 0 {
         return SelfMirRoutineBuildError(build, "MIR match has no cases");
     }
-    return SelfMirMergeMatchArms(
+    build = SelfMirMergeMatchArms(
         build, arm_exits, arm_versions, entry_versions,
         final_unmatched_block
     );
+    if !build.ok { return build; }
+    return SelfMirRoutineAtLocalCount(build, match_scope_local_count);
 }

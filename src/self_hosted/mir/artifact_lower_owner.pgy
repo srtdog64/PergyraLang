@@ -326,8 +326,8 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
     own artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
-    iteration_types: SemanticAstIterationTypeFacts,
-    assignment_types: SemanticAstAssignmentTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts, assignment_types: SemanticAstAssignmentTypeFacts,
+    match_materializations: SemanticAstMatchMaterializationFacts,
     statement_types: SemanticAstStatementTypeFacts,
     generic_specializations: SemanticAstGenericSpecializationFacts,
     machine_declaration: SelfHostMachineLayerDeclaration,
@@ -387,11 +387,11 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
         SelfMirInitializerRowsFromSemantic(initializer_types);
     let iteration_rows: SelfMirIterationRows =
         SelfMirIterationRowsFromSemantic(iteration_types);
-    let assignment_rows: SelfMirAssignmentRows =
-        SelfMirAssignmentRowsFromSemantic(assignment_types);
+    let assignment_rows: SelfMirAssignmentRows = SelfMirAssignmentRowsFromSemantic(assignment_types);
     let input: SelfMirRoutineInput = SelfMirRoutineInput(
         traversal_artifact, analysis,
         initializer_rows, iteration_rows, assignment_rows,
+        SelfMirMatchMaterializationRowsFromSemantic(match_materializations),
         statement_types,
         machine_declaration
     );
@@ -507,8 +507,8 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
     own artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
-    iteration_types: SemanticAstIterationTypeFacts,
-    assignment_types: SemanticAstAssignmentTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts, assignment_types: SemanticAstAssignmentTypeFacts,
+    match_materializations: SemanticAstMatchMaterializationFacts,
     statement_types: SemanticAstStatementTypeFacts,
     generic_specializations: SemanticAstGenericSpecializationFacts,
     machine_declaration: SelfHostMachineLayerDeclaration,
@@ -516,7 +516,7 @@ func SelfMirProgramFactsFromReadyArtifactObserved(
 ) -> SelfMirProgramFacts {
     let facts: SelfMirProgramFacts = SelfMirProgramFactsBeforeCanonicalIdsObserved(
         artifact, analysis, initializer_types, iteration_types,
-        assignment_types, statement_types, generic_specializations,
+        assignment_types, match_materializations, statement_types, generic_specializations,
         machine_declaration, observe_pressure
     );
     SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:start");
@@ -529,15 +529,15 @@ func SelfMirProgramFactsFromReadyArtifact(
     own artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
-    iteration_types: SemanticAstIterationTypeFacts,
-    assignment_types: SemanticAstAssignmentTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts, assignment_types: SemanticAstAssignmentTypeFacts,
+    match_materializations: SemanticAstMatchMaterializationFacts,
     statement_types: SemanticAstStatementTypeFacts,
     generic_specializations: SemanticAstGenericSpecializationFacts,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirProgramFacts {
     return SelfMirProgramFactsFromReadyArtifactObserved(
         artifact, analysis, initializer_types, iteration_types,
-        assignment_types, statement_types, generic_specializations,
+        assignment_types, match_materializations, statement_types, generic_specializations,
         machine_declaration, false
     );
 }
@@ -546,8 +546,8 @@ func SelfMirProgramFactsFromArtifact(
     own artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
-    iteration_types: SemanticAstIterationTypeFacts,
-    assignment_types: SemanticAstAssignmentTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts, assignment_types: SemanticAstAssignmentTypeFacts,
+    match_materializations: SemanticAstMatchMaterializationFacts,
     statement_types: SemanticAstStatementTypeFacts,
     generic_specializations: SemanticAstGenericSpecializationFacts,
     machine_declaration: SelfHostMachineLayerDeclaration
@@ -594,7 +594,7 @@ func SelfMirProgramFactsFromArtifact(
     }
     return SelfMirProgramFactsFromReadyArtifact(
         artifact, analysis, initializer_types, iteration_types,
-        assignment_types, statement_types, generic_specializations,
+        assignment_types, match_materializations, statement_types, generic_specializations,
         machine_declaration
     );
 }

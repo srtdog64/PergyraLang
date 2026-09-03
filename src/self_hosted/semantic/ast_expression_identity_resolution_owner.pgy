@@ -69,6 +69,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     inout analysis: SemanticAstArtifactAnalysis,
     inferred_types: Array<String>,
     iteration_types: SemanticAstIterationTypeFacts,
+    match_synthetic_graph_root_ids: Array<Int>,
     function_tables: SemanticAstExpressionFunctionTableFacts,
     require_carried_identities: Bool
 ) -> Bool {
@@ -426,6 +427,13 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                 synthetic_found = true;
             }
             iteration_row = iteration_row + 1;
+        }
+        let match_row: Int = 0;
+        while match_row < ArrayLength(match_synthetic_graph_root_ids) {
+            if match_synthetic_graph_root_ids[match_row] == tail {
+                synthetic_found = true;
+            }
+            match_row = match_row + 1;
         }
         if !synthetic_found {
             valid = false;
