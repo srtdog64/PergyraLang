@@ -72,3 +72,8 @@ compiler or runtime semantics and does not claim whole-language async safety.
 - A read-only Rocq 9 Docker attempt could not start because the Docker daemon is
   absent. Therefore exact-head `formal-proofs-rocq9` compile, `rocqchk`, and
   axiom-budget evidence remain required before this lease can close.
+- Commit `6feded443f5b5007eddee9fc60b984e518ed6252` reached
+  `origin/main`. Exact run `33724537105` failed closed in Rocq 9 at
+  `retirement_requires_await_or_transfer`: an automation-only proof left the
+  `Suspend` equality case open. The repair replaces that tactic with five
+  explicit transition cases; replacement exact-head Rocq evidence is required.

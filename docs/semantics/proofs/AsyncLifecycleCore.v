@@ -100,7 +100,12 @@ Theorem retirement_requires_await_or_transfer : forall event before after,
   event = EvAwait \/ event = EvTransfer.
 Proof.
   intros event before after Hstep Hbefore Hafter.
-  destruct Hstep; try discriminate; auto.
+  destruct Hstep.
+  - discriminate Hbefore.
+  - rewrite Hbefore in Hafter. discriminate Hafter.
+  - discriminate Hafter.
+  - left. reflexivity.
+  - right. reflexivity.
 Qed.
 
 Theorem retired_handle_cannot_be_consumed_again :

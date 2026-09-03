@@ -48,6 +48,10 @@ percentage by themselves.
   async-positioning, and documentation quality pass. The proof-spine prover
   leg is an explicit missing-prover skip and is not counted. Commit/push and
   exact-head Rocq 9 compile/kernel/axiom-budget evidence remain.
+- Commit `6feded44` is on `origin/main`. Exact run `33724537105` reached the
+  real Rocq 9 compiler and rejected an incomplete tactic proof in
+  `retirement_requires_await_or_transfer`. The repair spells out all five
+  transition cases; a replacement exact run is required.
 
 ## Published self-host context — non-entrypoint straight-line ArrayString owner move
 

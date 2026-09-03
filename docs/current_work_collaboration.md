@@ -27,6 +27,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   async-positioning, and documentation quality pass. No local prover exists;
   the declared proof-spine skip is not proof evidence. Commit/push and the
   exact Rocq 9 kernel job remain.
+- Commit `6feded44` is published. Run `33724537105` reached Rocq 9 and
+  fail-closed on an incomplete automation proof for the retirement-event
+  discriminator. The repair now handles all five transitions explicitly;
+  replacement exact CI remains.
 
 ## DONE lease — ArrayString non-entrypoint straight-line owner move
 
