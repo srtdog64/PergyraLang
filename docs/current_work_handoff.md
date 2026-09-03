@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — multiple straight-line ArrayString owner moves
+## Published self-host context — multiple straight-line ArrayString owner moves
 
 - Exact opening base is `b026f5a6eadb2e0ed3bf4ad684f47fc2d81d39e0`, equal
   to `origin/main`. Protected unrelated untracked paths remain outside
@@ -41,9 +41,19 @@ percentage by themselves.
   owned return/by-value/value-result regression gates; component, SoT edge,
   single-owner protocol, hard contract, and build inventory. Exact objective is
   in `docs/agent_work_directives/array_string_multiple_owner_moves_2026-09-03.md`.
-- Publication is pending. This is one executable consumer migration inside
+- Implementation `5b7991ab9ce2461e7397ab2e686d08f84f26cf38` and generated
+  inventory correction `c91b90a9b301731f75020d4e5cf80caa3ede417f` are on
+  `origin/main`. Initial run `33713505817` proved 28 jobs green, then
+  `build-linux` caught only the missing generated `func`/`let`/`own` counts;
+  the correction push cancelled its unfinished full self-host job. Docs-only
+  run `33714795383` is green. Explicit exact-head full run `33714869339`
+  completed 30/30 green in 32m18s: full self-host 32m00s, build-linux 21m31s,
+  sanitizers 12m01s, backend toolchain 11m11s, Windows 8m31s, codegen fixed
+  point 7m41s, macOS, TSan, Rocq 9, and backend comparison 20/20.
+- This is one executable consumer migration inside
   `abi.mir_array_string_layout_projection`, not whole-row closure or a hard
-  Pergyra-for-C substitution increment. Census remains `88/183`,
+  Pergyra-for-C substitution increment. The lease is released; no successor is
+  inferred from green CI. Census remains `88/183`,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project forecast remains
   83%.
 

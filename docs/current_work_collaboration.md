@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — multiple straight-line ArrayString owner moves
+## DONE lease — multiple straight-line ArrayString owner moves
 
 - Exact base is `b026f5a6eadb2e0ed3bf4ad684f47fc2d81d39e0`, equal to
   `origin/main` when this lease opened. The primary task is the sole code,
@@ -25,7 +25,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Local candidate is green. A regenerated Pergyra-built DRV-2 executes the
   existing single move and two independent moves in C/LLVM, while later use and
   duplicate-local transfer publish no artifact. Component, SoT, hard-contract,
-  and build inventory gates are green. Publication and exact-head CI remain.
+  and build inventory gates are green.
+- Implementation `5b7991ab` and generated inventory correction `c91b90a9` are
+  on `origin/main`. Initial run `33713505817` found only the missing generated
+  count; correction push run `33714795383` is green, and explicit exact-head
+  full run `33714869339` completed 30/30 green in 32m18s. Full self-host took
+  32m00s and build-linux 21m31s. The lease is released.
 
 ## DONE lease — structured spawn lifecycle
 

@@ -2,7 +2,7 @@
 
 마지막 업데이트: 2026-09-03
 
-가장 최근 로컬 그린 executable prerequisite는 여러 개의 직선형
+가장 최근 닫힌 executable prerequisite는 여러 개의 직선형
 `Array<String>` owner move다. source-to-MIR는 서로 다른 두 지역값을 같은 `own`
 인자로 넘기는 프로그램을 승인했지만, Pergyra move fact가 한 행만 허용해 C와 LLVM
 투영이 모두 extension code 19로 종료되는 실제 생산 반례를 재현했다. 후보 구현은
@@ -13,9 +13,17 @@ caller/operation/expression/local/callable/parameter/ABI identity를 정렬된 �
 변조는 artifact 없이 거절된다. 단일 move와 owned return/by-value/value-result
 ArrayString 회귀도 green이고, component/SoT single-owner/hard-contract/build inventory
 게이트도 green이다. 조건부·루프·member·parameter·fresh-result·literal move는 이번
-범위에서 계속 fail-closed한다. 아직 commit/push/exact-head CI 전이므로 census
-`88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%, 통합
-진행도 **83%** (81~85%)는 바뀌지 않는다.
+범위에서 계속 fail-closed한다. 구현 `5b7991ab`의 첫 run `33713505817`은 28개
+job을 green으로 만들었지만 새 Pergyra fixture의 generated language-word count가
+빠져 `build-linux`가 fail-closed했고, 보정 push가 남은 full self-host를 취소했다.
+owner generator 보정 `c91b90a9` 뒤 docs-only run `33714795383`은 green이며, 같은
+exact HEAD의 강제 full run `33714869339`은 32분 18초에 30/30 green이다. full
+self-host 32분, build-linux 21분 31초, sanitizers 12분 01초, backend toolchain
+11분 11초, Windows 8분 31초, codegen fixed point 7분 41초와 backend 20/20을
+확인했다. 이 작업은 ArrayString BRIDGE의 consumer 하나를 줄였지만 whole row나
+hard Pergyra-for-C 치환을 닫지는 않는다. 따라서 census `88/183`,
+`CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%, 통합 진행도
+**83%** (81~85%)는 바뀌지 않는다.
 
 가장 최근 닫힌 성능 executable rung은 codegen seed prebuild receipt다. unchanged semantic
 input에서 phony seed prerequisite가 약 2,200개 source graph를 다시 빌드해

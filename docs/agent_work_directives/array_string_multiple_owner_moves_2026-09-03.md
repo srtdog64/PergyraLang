@@ -1,6 +1,6 @@
 # ArrayString multiple straight-line owner moves — 2026-09-03
 
-Status: `IMPLEMENTATION CANDIDATE — LOCAL GREEN, PUBLICATION PENDING`
+Status: `PUBLISHED — EXACT-HEAD FULL CI GREEN`
 
 Exact base: `b026f5a6eadb2e0ed3bf4ad684f47fc2d81d39e0` on `origin/main`.
 
@@ -62,5 +62,17 @@ or admit general control-flow ownership analysis.
   consumed by the LLVM emitter.
 - The focused Make target, component contract, SoT edge/single-owner protocol,
   hard self-host contract, and build-source inventory are locally green. A
-  current Pergyra-built DRV-2 was regenerated successfully. Commit, push, and
-  exact-head CI remain pending; census stays `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+  current Pergyra-built DRV-2 was regenerated successfully. Census stays
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Implementation `5b7991ab9ce2461e7397ab2e686d08f84f26cf38` reached
+  `origin/main`. Its push run `33713505817` proved 28 jobs green but found the
+  generated language-word implementation inventory had not counted the two new
+  Pergyra fixtures; `build-linux` failed closed and the later correction push
+  cancelled the still-running full self-host job.
+- Owner-generator correction
+  `c91b90a9b301731f75020d4e5cf80caa3ede417f` updates only the exact `func`,
+  `let`, and `own` implementation counts. Docs-only push run `33714795383` is
+  green. An explicit exact-head full run `33714869339` then completed 30/30
+  green in 32m18s: full self-host 32m00s, build-linux 21m31s, sanitizers 12m01s,
+  backend toolchain 11m11s, Windows 8m31s, codegen fixed point 7m41s, macOS,
+  TSan, Rocq 9, and backend comparison 20/20. The lease is released.
