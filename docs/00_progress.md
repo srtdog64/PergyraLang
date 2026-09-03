@@ -2,17 +2,17 @@
 
 마지막 업데이트: 2026-09-04
 
-가장 최근 닫힌 executable prerequisite는 side-effecting `match` scrutinee의
-정확히 한 번 평가다. 기존 설치 드라이버는 Option match의 condition과 payload/다음
-case에서 같은 호출을 다시 방출해 `probe-some`과 `probe-none`을 각각 두 번
-출력했다. `SemanticAstExpressionSurfaceFacts`가 원래 의미를 유지하고 새 derived
-`SemanticAstMatchMaterializationFacts`가 stable local identity/type과 isolated binding
-graph를 봉인한다. MIR match owner는 원 graph에서 `AST_LET_DECL` 하나만 만들고 모든
-case와 payload consumer에는 synthetic LocalRef graph만 전달한다. Direct AST C도 같은
-one-temporary 규칙을 사용하며 backend-local purity 추론, text recovery, hidden runtime
-cache는 없다. 구현 `56ecb335` 뒤 type-stable readiness, by-value graph projection,
-bounded parity owner, source-scan evidence 보정까지 `cadae062`, `bcfdf6bf`,
-`f567b7c9`, `5f0ea433`에 게시됐다.
+현재 executable candidate `0a8b186c`는 그 exactly-once Option match MIR을 설치
+DRV-2의 LLVM 경로까지 연장한다. distinct instruction-scoped match binding은 local
+inventory에서 합쳐지지 않고, wire owner는 원래 declared-source-local prefix만
+검사한다. 같은 이름의 binding은 기존 CFG dominance fact로 유일한 innermost scope를
+선택한다. Option<Int> condition과 C/LLVM projection은 persisted
+`DirectMirOptionMatchAbiFact`의 tag, field name/index, extension을 소비하며 source text,
+backend-local layout 추론, native retry, C round-trip은 없다. 설치 C/LLVM은 정확히
+`probe-some`, `7`, `probe-none`, `0`을 출력하고 binding-type/Option-tag 변이는 양쪽에서
+artifact 없이 실패한다. 기존 Option<Int>/payload-enum 회귀, complete component
+contract, bounded driver bootstrap, 설치 DRV-2가 로컬 green이며 exact-head CI는 아직
+대기 중이다.
 
 Exact-head run `33779751935`은 36분 23초에 30/30 green이다. Linux는 repaired
 component cap과 source-scan digest를 포함해 23/23, backend comparison은 20/20이며
@@ -25,11 +25,11 @@ threshold를 넘었지만 hard limit는 넘지 않았고, 로컬 Rocq 부재는 
 치환 분자가 아니므로 census는 88 authorities / 185 derived,
 `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%)로 유지한다.
 
-다음 단일 실행 반례는 같은 fixture의 설치 source-to-LLVM 경로다. 현재 artifact 없이
-`direct MIR scalar CFG match binding LocalRef is invalid`로 fail-closed하며, reached
-owner는 `DirectMirScalarCfgAppendMatchBindingLocals`다. native retry, C round-trip,
-두 번째 type table 없이 MIR-carried scalar binding identity를 기존 local-ref plan에
-승인하는 것이 다음 계단이다. 독립 Module Build는 구현하지 않는다. 그 순서는
+현재 단일 실행 rung은 이 candidate의 exact-head CI 검증이다. 원격 full fixed point와
+전체 플랫폼 matrix가 green이 되기 전에는 다음 구현 seam을 열지 않는다. 이 bounded
+consumer closure는 새 top-level authority나 hard Pergyra-for-C 치환 분자가 아니므로
+census는 88 authorities / 185 derived, `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도
+**83%** (81~85%)로 유지한다. 독립 Module Build는 구현하지 않는다. 그 순서는
 `self-host closure -> evidence/identity compression -> 실제 외부 프로젝트 ->
 ModuleInterface -> BuildUnit/incremental build`로 docs 109/202에 예약돼 있다.
 

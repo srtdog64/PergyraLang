@@ -18,38 +18,45 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — scalar match-binding LocalRef admission
+## Active self-host context — Option<Int> match CFG exact-CI verification
 
-- Exact checkpoint is `5f0ea43391361edb0cf7a7300b85f642d3bba1a9`, equal
-  to `origin/main`. The only worktree changes are the protected user-owned
-  `examples/raid_graph_fsm/results.txt` change and three protected untracked
-  directories; they remain outside inspection, edit, and staging.
+- Executable checkpoint is `0a8b186c545d9f237c40393114bc5b2d408b6067`;
+  its exact-head CI is pending. The previous published `origin/main` checkpoint
+  is `f6837b36157f0a97890831b6734083164e323ade`. The protected user-owned
+  `examples/raid_graph_fsm/results.txt` change and the three protected untracked
+  directories remain outside inspection, edit, and staging.
 - Production entrypoint is the installed Pergyra-built DRV-2 source-to-LLVM
-  path. The just-closed source/MIR/C rung evaluates the observable Option-match
-  scrutinee exactly once. A fresh LLVM probe of
-  `match_scrutinee_single_evaluation.pgy` exits 1 without an artifact at the
-  exact diagnostic `direct MIR scalar CFG match binding LocalRef is invalid`.
-  This fail-closed result, rather than a native or C retry, is the opening
-  falsifier.
-- `MirMatchInstructionCapture` carries the MIR-owned binding spelling and type.
-  `DirectMirScalarCfgAppendMatchBindingLocals` is the reached admission owner:
-  it currently admits a single binding only when its type belongs to the
-  logical-record fact, so the scalar `Int` payload is rejected.
-  `DirectMirScalarCfgLocalRefPlan` is the existing carrier and
-  `DirectMirScalarCfgGraphPlanFromAdmitted` is the last orchestration consumer
-  before target projection.
-- Objective: admit the already carried scalar match-binding identity through
-  that owner, preserve the one-definition/synthetic-use materialization fact,
-  and execute the same four-line oracle in installed LLVM. Priority is semantic
-  identity, one owner, fail-closed mutation rejection, then representation
-  size. A second type table, source/MIR text recovery, backend-local inference,
-  native retry, C round-trip, or a special fixture route is forbidden.
-- The focused gate must compile and run the observable fixture through the
-  installed LLVM entrypoint and print exactly `probe-some`, `7`, `probe-none`,
-  `0` once each. It must also reject a missing/mismatched binding identity or
-  type without publishing an artifact. This is the sole active executable
-  rung. Module Build remains deferred until self-host closure and the later
-  evidence/identity-compression and external-workload stages.
+  path for `match_scrutinee_single_evaluation.pgy`. The former fail-closed
+  diagnostic `direct MIR scalar CFG match binding LocalRef is invalid` is now
+  replaced by a Pergyra-owned Option<Int> match condition and C/LLVM target
+  projection. Both installed targets print exactly `probe-some`, `7`,
+  `probe-none`, `0`; the original side-effecting scrutinee is evaluated once.
+- `MirMatchInstructionCapture` owns source match spelling/type. Distinct
+  instruction-scoped binding rows survive local inventory. The wire owner sees
+  only the original declared-source-local prefix, and
+  `DirectMirScalarCfgScopedMatchBindingLocalOperandRow` resolves a same-spelled
+  binding only through the unique innermost dominating true-successor scope.
+  `DirectMirOptionMatchAbiFact` owns Option tags, field name/index, and target
+  extension; neither backend reconstructs physical layout.
+- The last orchestration consumer is
+  `DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch`.
+  Missing/mutated binding type and mutated Option tag each fail for both C and
+  LLVM without publishing an artifact. A second local/type table, source-text
+  recovery, backend-local tag inference, native retry, C round-trip, or a
+  fixture-named route remains forbidden.
+- Local evidence is green: the focused installed C/LLVM gate, existing
+  Option<Int> and payload-enum match regressions, complete component contract,
+  official bounded driver bootstrap, installed DRV-2 build, shell syntax,
+  mutation Python compilation, owner line caps, and diff checks. The formal
+  bootstrap emitted the existing one unreachable-statement warning and zero
+  errors. Full gen2/gen3 and the remote matrix were not run locally; exact-head
+  CI owns them.
+- No authority/status or percentage change is claimed: the census remains 88
+  authorities, 185 derived carriers, and `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+  Module Build remains deferred in the order `self-host closure ->
+  evidence/identity compression -> real external project -> ModuleInterface ->
+  BuildUnit/incremental build`. Until exact CI is green, this verification is
+  the sole active executable rung; do not open another implementation seam.
 
 ## Published self-host context — match scrutinee single evaluation
 

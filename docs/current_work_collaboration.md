@@ -6,6 +6,28 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE verification lease — Option<Int> match CFG projection
+
+- Exact base is `f6837b36157f0a97890831b6734083164e323ade`; executable
+  candidate is `0a8b186c545d9f237c40393114bc5b2d408b6067`. The primary task
+  owns docs integration, selective publication, and exact-head CI. No parallel
+  task may edit this executable rung or publish from the shared checkout.
+- Objective is the installed DRV-2 source-to-LLVM replacement for the already
+  canonical one-definition Option<Int> match MIR. Match capture and scoped
+  LocalRef identity are the semantic inputs; the existing Option ABI receipt
+  owns target layout; the typed-expression core is the last orchestration
+  consumer. Native retry, source recovery, backend tag inference, and a second
+  local/type inventory are forbidden.
+- The candidate prints the exact four-line observable oracle through installed
+  C and LLVM. Binding-type and Option-tag mutations fail closed without an
+  artifact on both targets. Existing Option<Int> and payload-enum match parity,
+  the complete component contract, bounded driver bootstrap, and installed
+  DRV-2 build are green locally.
+- Exact-head CI remains the only open work. Full local fixed point was not
+  repeated. This lease changes no SoT census or project percentage and does not
+  open Module Build. The coordination contract is
+  `docs/agent_work_directives/option_int_match_cfg_projection_2026-09-04.md`.
+
 ## DONE implementation lease — match scrutinee single evaluation
 
 - Exact base is `513b668957cdb47627bd2bc490a45916337b2629`, equal to
