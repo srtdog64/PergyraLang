@@ -97,7 +97,7 @@ for backend in c llvm; do
             fail "LLVM artifact omitted Array<String> representation"
         grep -Fq 'ptr %pgy.param.1.mutref' "$artifact" ||
             fail "LLVM signature omitted the value-result pointer"
-        grep -Fq '%pgy.param.1.local = alloca %pgy.array.string' "$artifact" ||
+        grep -Fq '%pgy.param.1.local = alloca { ptr, i64, i64, ptr }, align 8' "$artifact" ||
             fail "LLVM callable omitted addressable copy-in storage"
         [[ "$(grep -Fc '.copyout.' "$artifact")" -ge 6 ]] ||
             fail "LLVM callable omitted early/fallthrough copy-out"

@@ -1,0 +1,13 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void {
+    let first: Array<String> = [];
+    let second: Array<String> = [];
+    ArrayPushOwnedString(first, Concat("first", "-array"));
+    ArrayPushOwnedString(second, Concat("second", "-array"));
+    ReleaseOwnedArray(first);
+    ReleaseOwnedArray(second);
+    Log("released-two");
+}

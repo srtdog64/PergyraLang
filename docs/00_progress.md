@@ -2,6 +2,21 @@
 
 마지막 업데이트: 2026-09-03
 
+가장 최근 로컬 그린 executable prerequisite는 여러 개의 직선형
+`Array<String>` owner move다. source-to-MIR는 서로 다른 두 지역값을 같은 `own`
+인자로 넘기는 프로그램을 승인했지만, Pergyra move fact가 한 행만 허용해 C와 LLVM
+투영이 모두 extension code 19로 종료되는 실제 생산 반례를 재현했다. 후보 구현은
+caller/operation/expression/local/callable/parameter/ABI identity를 정렬된 병렬 행으로
+한 번 봉인하고, 공통 cleanup policy가 정확한 `(routine, local)` 행만 소비하게 한다.
+두 독립 move는 C/LLVM에서 정확히 `released-two`를 출력하고 두 caller cleanup이
+사라지며, 같은 local의 두 번째 move와 기존 later-use/carriage/pass/layout/target
+변조는 artifact 없이 거절된다. 단일 move와 owned return/by-value/value-result
+ArrayString 회귀도 green이고, component/SoT single-owner/hard-contract/build inventory
+게이트도 green이다. 조건부·루프·member·parameter·fresh-result·literal move는 이번
+범위에서 계속 fail-closed한다. 아직 commit/push/exact-head CI 전이므로 census
+`88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%, 통합
+진행도 **83%** (81~85%)는 바뀌지 않는다.
+
 가장 최근 닫힌 성능 executable rung은 codegen seed prebuild receipt다. unchanged semantic
 input에서 phony seed prerequisite가 약 2,200개 source graph를 다시 빌드해
 `gen2.c`는 byte-identical인데 Windows `gen2.exe`의 물리 해시만 바꾸고, 그 결과

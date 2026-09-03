@@ -18,6 +18,35 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — multiple straight-line ArrayString owner moves
+
+- Exact opening base is `b026f5a6eadb2e0ed3bf4ad684f47fc2d81d39e0`, equal
+  to `origin/main`. Protected unrelated untracked paths remain outside
+  inspection, edit, and staging.
+- Production entrypoint: installed Pergyra-built DRV-2 direct-MIR C/LLVM
+  projection. Direct bypass being deleted: rejecting a second independent
+  last-use `Array<String>` owner-parameter transfer because the Pergyra move
+  receipt was scalar, after source-to-MIR admission had already succeeded.
+- Fact owner: `DirectMirScalarProgramOwnedArrayStringMoveFact`, now one ordered
+  digest-sealed row set over exact caller/operation/expression/local/callable/
+  parameter and ABI identities. Last consumer: the shared ArrayString cleanup
+  policy used by C and LLVM emitters.
+- Forbidden fallback: backend type/name inference, source or MIR rescan,
+  unconditional caller cleanup, one-row ceiling, duplicate local retirement,
+  later use, or ABI drift. Conditional/loop/member/parameter/fresh-result/
+  literal moves remain outside this rung and fail closed.
+- Local evidence is green: regenerated Pergyra-built DRV-2; single and two-move
+  exact C/LLVM execution; no caller cleanup for moved locals; use-after-move,
+  duplicate-local, carriage/pass/layout/target negatives without artifacts;
+  owned return/by-value/value-result regression gates; component, SoT edge,
+  single-owner protocol, hard contract, and build inventory. Exact objective is
+  in `docs/agent_work_directives/array_string_multiple_owner_moves_2026-09-03.md`.
+- Publication is pending. This is one executable consumer migration inside
+  `abi.mir_array_string_layout_projection`, not whole-row closure or a hard
+  Pergyra-for-C substitution increment. Census remains `88/183`,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project forecast remains
+  83%.
+
 ## Published supporting concurrency context — structured spawn lifecycle
 
 - Exact opening base is `a1d3e116f40566f164aef98ba98b931dc01cbe5f`, equal

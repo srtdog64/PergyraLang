@@ -36,10 +36,12 @@ command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
 grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveFact' "$FACT" ||
     fail "move fact is missing"
+grep -Fq 'caller_routines: Array<Int>' "$FACT" ||
+    fail "move fact does not own an ordered row set"
 grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(' "$ADMISSION" ||
     fail "move admission omits last-use proof"
-grep -Fq 'candidates != 1' "$ADMISSION" ||
-    fail "move admission does not fail closed on multiple moves"
+! grep -Fq 'candidates != 1' "$ADMISSION" ||
+    fail "move admission restored its one-row ceiling"
 grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(' "$CLEANUP" ||
     fail "cleanup policy does not consume the move fact"
 for owner in "$C_OWNER" "$LLVM_OWNER"; do

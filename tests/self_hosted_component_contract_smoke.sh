@@ -19745,7 +19745,7 @@ reject_text \
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy" 100
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy" 120
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy"
 require_max_lines \
@@ -19761,6 +19761,9 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" \
     "func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(" \
+    "ArrayPush(caller_routines, routine)"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" \
     "candidates != 1"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy" \
@@ -19793,6 +19796,14 @@ require_file \
     "tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh" 160
+require_file \
+    "tests/self_hosted/parity/direct_mir_scalar_multiple_owned_array_string_parameters_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_multiple_owned_array_string_parameters_owner.sh" 100
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_multiple_owned_array_string_parameters.pgy"
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_duplicate_owned_array_string_parameter_move.pgy"
 require_text \
     "tests/self_hosted/parity/direct_mir_multi_routine_mutations.py" \
     'kind.startswith("owned-array-string-parameter-")'

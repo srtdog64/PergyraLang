@@ -47,13 +47,13 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
         !DirectMirScalarProgramExpressionSetReady(expressions) {
         return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
     }
-    let candidates: Int = 0;
-    let call_operation: Int = -1;
-    let call_expression: Int = -1;
-    let caller_routine: Int = -1;
-    let moved_local: Int = -1;
-    let callable: Int = -1;
-    let parameter_ordinal: Int = -1;
+    let caller_routines: Array<Int> = [];
+    let call_operations: Array<Int> = [];
+    let call_expressions: Array<Int> = [];
+    let moved_locals: Array<Int> = [];
+    let callables_used: Array<Int> = [];
+    let parameter_ordinals: Array<Int> = [];
+    let abi_layout_ids: Array<Int> = [];
     let graph: Int = 0;
     while graph < ArrayLength(expressions.graph_starts) {
         let node: Int = expressions.graph_starts[graph];
@@ -79,9 +79,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                             "owner-handle" &&
                         callables.parameter_types[parameter] ==
                             CompilerAbiLayoutArrayStringTypeName() {
-                        candidates = candidates + 1;
-                        if candidates != 1 || ordinal >=
-                                ArrayLength(arguments) || node !=
+                        if ordinal >= ArrayLength(arguments) || node !=
                                 expressions.graph_roots[graph] {
                             return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
                         }
@@ -111,12 +109,13 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                                 local_row) {
                             return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
                         }
-                        call_operation = operation;
-                        call_expression = graph;
-                        caller_routine = routine;
-                        moved_local = local_row;
-                        callable = target;
-                        parameter_ordinal = ordinal;
+                        ArrayPush(caller_routines, routine);
+                        ArrayPush(call_operations, operation);
+                        ArrayPush(call_expressions, graph);
+                        ArrayPush(moved_locals, local_row);
+                        ArrayPush(callables_used, target);
+                        ArrayPush(parameter_ordinals, ordinal);
+                        ArrayPush(abi_layout_ids, abi.layout_id);
                     }
                     ordinal = ordinal + 1;
                 }
@@ -125,19 +124,19 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
         }
         graph = graph + 1;
     }
-    if candidates == 0 {
+    if ArrayLength(caller_routines) == 0 {
         return DirectMirScalarProgramOwnedArrayStringMoveFactCanonicalEmpty();
     }
     let source: DirectMirScalarProgramOwnedArrayStringMoveFact =
         DirectMirScalarProgramOwnedArrayStringMoveFact(
-            true, 0, true, caller_routine, call_operation,
-            call_expression, moved_local, callable, parameter_ordinal,
-            abi.layout_id);
+            true, 0, true, caller_routines, call_operations,
+            call_expressions, moved_locals, callables_used,
+            parameter_ordinals, abi_layout_ids);
     let fact: DirectMirScalarProgramOwnedArrayStringMoveFact =
         DirectMirScalarProgramOwnedArrayStringMoveFact(
             true, DirectMirScalarProgramOwnedArrayStringMoveFactDigest(source),
-            true, caller_routine, call_operation, call_expression,
-            moved_local, callable, parameter_ordinal, abi.layout_id);
+            true, caller_routines, call_operations, call_expressions,
+            moved_locals, callables_used, parameter_ordinals, abi_layout_ids);
     if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(fact, abi) {
         return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
     }

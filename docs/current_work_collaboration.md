@@ -6,6 +6,27 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — multiple straight-line ArrayString owner moves
+
+- Exact base is `b026f5a6eadb2e0ed3bf4ad684f47fc2d81d39e0`, equal to
+  `origin/main` when this lease opened. The primary task is the sole code,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- Production MIR admission succeeds for two independent `Array<String>` locals
+  moved into the same `own` parameter, but both C and LLVM projection fail
+  closed with scalar extension readiness code 19 because the move receipt is
+  artificially scalar.
+- The bounded target is one target-neutral row set for multiple last-use moves
+  in the entrypoint's existing single straight-line block. Conditional, loop,
+  member, parameter, literal, and fresh-result moves remain fail-closed.
+- Exact objective, owner boundary, and falsifiers are fixed in
+  `docs/agent_work_directives/array_string_multiple_owner_moves_2026-09-03.md`.
+  This prerequisite does not close the whole ArrayString ABI row or change the
+  SoT census and project percentage by itself.
+- Local candidate is green. A regenerated Pergyra-built DRV-2 executes the
+  existing single move and two independent moves in C/LLVM, while later use and
+  duplicate-local transfer publish no artifact. Component, SoT, hard-contract,
+  and build inventory gates are green. Publication and exact-head CI remain.
+
 ## DONE lease — structured spawn lifecycle
 
 - Exact base is `a1d3e116f40566f164aef98ba98b931dc01cbe5f`, equal to
