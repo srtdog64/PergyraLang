@@ -107,8 +107,29 @@ percentage by themselves.
   320-line producer boundary and the new call edge; it is green locally,
   including its driver-source MIR execution action. Focused hard parity for
   the three match/result-loop fixtures is also green.
-- Next action is explicit CI-contract repair staging, commit/push, then the
-  automatically opened full exact-head CI. Pergyra-owned LLVM
+- CI-contract repair `f567b7c929799da15e0ab97f32e29ad5fa19f8f9` is published.
+  Exact run `33775645515` passed TSan, Rocq 9, macOS, Windows, sanitizers,
+  codegen fixed point, backend toolchain publication, and backend comparison
+  20/20. Linux push again passed 22 of 23 steps and passed the repaired
+  component inventory; the next ratchet rejected the stale source-scan owner
+  digest. The changed identity-resolution owner now admits match synthetic
+  graph roots beside iteration roots. The current four-file callable owner-set
+  digest is `4578C8ACD15EDC57DD82965AEEF1E31E6001559EBEEC2BA94B313EF84326E10F`;
+  only this current-hash metadata is refreshed, while retained performance
+  measurements remain explicitly unremeasured. The run was cancelled with
+  full self-host still active.
+- The refreshed source-scan gate is green locally. The exact step-23 aggregate
+  reached `sot_authority_adequacy_smoke.sh` and failed closed because no local
+  `rocq`/`coqc` exists; that is not counted as proof success. Run
+  `33775645515` had already kernel-checked Rocq 9 green before cancellation.
+  With the missing prover explicitly declared as a skip, every remaining
+  step-23 ratchet is green locally: SoT edge, likeness, TextBuilder,
+  source-scan, compiler-world, resource-flow, loop-flow, and C/LLVM filesystem
+  execution. Component contract and its execution action were green earlier
+  in the same aggregate, although that local component slice exceeded the
+  nominal five-minute focused budget.
+- Next action is source-scan evidence verification, explicit staging,
+  commit/push, then automatically opened full exact-head CI. Pergyra-owned LLVM
   admission for this
   Option binding remains a
   separate future executable rung. Module Build is only a deferred

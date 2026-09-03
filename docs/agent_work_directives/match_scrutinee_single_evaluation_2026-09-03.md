@@ -1,6 +1,6 @@
 # Match scrutinee single-evaluation lease — 2026-09-03
 
-Status: `CI CONTRACT REPAIR LOCAL GREEN — EXACT CI PENDING`
+Status: `SOURCE-SCAN EVIDENCE LOCAL GREEN — EXACT CI PENDING`
 
 Exact base: `513b668957cdb47627bd2bc490a45916337b2629` on
 `origin/main`.
@@ -142,3 +142,20 @@ shape, and automatically restores byte parity when it does.
   is 319 lines. Component contract, its driver-source execution action, and
   hard parity for `class_bump_option_match`, `class_result_chain_loop`, and
   `class_method_result_loop` are green locally. Exact-head CI remains pending.
+- CI-contract repair `f567b7c929799da15e0ab97f32e29ad5fa19f8f9` reached exact
+  run `33775645515`. All completed jobs except Linux build were green, including
+  backend comparison 20/20. Linux passed the repaired component inventory,
+  then the source-scan ratchet found the callable owner-set digest stale after
+  match synthetic roots were added to identity resolution. The run was
+  cancelled while full self-host remained active.
+- Normalized current owner hashes produce set digest
+  `4578C8ACD15EDC57DD82965AEEF1E31E6001559EBEEC2BA94B313EF84326E10F`.
+  The checked evidence updates current hash metadata only and marks the retained
+  performance figures unremeasured. Exact-head CI owns the final verdict.
+- The refreshed source-scan gate is green. The local step-23 aggregate is not
+  called green because it fail-closed at the missing local Rocq/Coq boundary;
+  exact run `33775645515` had already passed Rocq 9. After explicitly declaring
+  that local skip, every later ratchet through compiler-world, MIR resource and
+  loop identity, and C/LLVM filesystem execution is green. The component
+  contract and driver-source execution action also pass, with the component
+  slice exceeding its nominal five-minute focused budget.

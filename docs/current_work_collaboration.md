@@ -80,6 +80,24 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   squeeze. Component contract plus driver-source execution and the three
   focused hard-parity fixtures are green locally. Publication and exact-head
   CI of this physical-owner repair remain pending.
+- CI-contract repair `f567b7c929799da15e0ab97f32e29ad5fa19f8f9` is published.
+  Exact run `33775645515` passed every completed job except `build-linux`;
+  backend comparison was 20/20 green and the repaired component inventory
+  passed. The next source-scan ratchet found its recorded callable owner-set
+  digest stale because the identity resolver now recognizes match synthetic
+  graph roots. The run was cancelled while full self-host remained active.
+  Current normalized per-file hashes produce owner-set digest
+  `4578C8ACD15EDC57DD82965AEEF1E31E6001559EBEEC2BA94B313EF84326E10F`.
+  The evidence repair refreshes only current hashes and keeps historical
+  performance numbers explicitly unremeasured. Publication and exact CI remain
+  pending.
+- The source-scan gate is green. The full local step-23 aggregate stopped at
+  the declared proof boundary because no local Rocq/Coq exists; it is not
+  counted green. Exact run `33775645515` had already passed Rocq 9. With an
+  explicit missing-prover skip, all later step-23 ratchets through C/LLVM
+  filesystem execution are green. The earlier aggregate component slice and
+  its driver-source execution action are also green, but exceeded the nominal
+  five-minute focused budget.
 
 ## DONE supporting proof lease — evidence lifecycle compression
 
