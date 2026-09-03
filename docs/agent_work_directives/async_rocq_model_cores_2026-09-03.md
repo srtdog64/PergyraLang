@@ -1,6 +1,6 @@
 # Async Rocq model cores — 2026-09-03
 
-Status: `ACTIVE — ROCQ 9 KERNEL GREEN; FINAL EXACT-HEAD MATRIX PENDING`
+Status: `IMPLEMENTATION COMPLETE — EXACT CI GREEN`
 
 Exact base: `eed7f7229699770bcda656e7a2947a5f043cbfcc` on `origin/main`.
 
@@ -87,4 +87,12 @@ compiler or runtime semantics and does not claim whole-language async safety.
   unsafe kernel features. These four are direction models, not claims that the
   corresponding compiler/runtime rungs have landed. Their stale prose about
   current scope/context behavior is corrected and guarded by
-  `async-direction-adequacy-test-smoke`; a final exact-head matrix remains.
+  `async-direction-adequacy-test-smoke` in commit `5cea5ad5`.
+- Exact run `33726110262` for `5cea5ad5feba31533b8db0fa6ce3b8d11b2a1c96`
+  completed 30/30 green in 36m33s. Rocq 9.0.1 compiled and kernel-verified all
+  48 proof files in 3m08s, retained exactly the two existing `SlotCalculus`
+  abstractions, and reported no admits or unsafe kernel features; the planted
+  `Admitted` self-test also failed closed as required. Linux, full self-host,
+  sanitizers, Windows, macOS, TSan, codegen bootstrap, toolchain, and backend
+  comparison 20/20 all passed. This supporting lease is released without
+  changing the SoT census or project percentage.

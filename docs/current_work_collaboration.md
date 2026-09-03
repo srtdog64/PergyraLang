@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — async Rocq model cores
+## DONE lease — async Rocq model cores
 
 - Exact base is `eed7f7229699770bcda656e7a2947a5f043cbfcc`, equal to
   `origin/main` when this lease opened. The primary task is the sole proof,
@@ -35,8 +35,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   run `33725481715` kernel-verified the 48-file corpus with the existing two
   `SlotCalculus` abstractions and no admits. The proof relations are retained,
   while stale comments that described historical/forbidden counterexamples as
-  current implementation facts are corrected and negatively gated. Final
-  exact-head full CI remains before this supporting lease closes.
+  current implementation facts are corrected and negatively gated by
+  `5cea5ad5`.
+- Exact run `33726110262` for `5cea5ad5` completed 30/30 green in 36m33s.
+  Rocq 9.0.1 compiled and kernel-verified all 48 proof files in 3m08s with the
+  two declared `SlotCalculus` abstractions, no admits, and no unsafe kernel
+  features; the axiom-budget negative self-test bit as required. Full
+  self-host, Linux/Windows/macOS, sanitizer/TSan, codegen bootstrap, toolchain,
+  and backend comparison 20/20 also passed. The supporting lease is released;
+  no SoT or project-percentage increment is claimed.
 
 ## DONE lease — ArrayString non-entrypoint straight-line owner move
 

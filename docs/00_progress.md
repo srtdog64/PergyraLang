@@ -2,7 +2,7 @@
 
 마지막 업데이트: 2026-09-03
 
-현재 열린 supporting formal rung은 비동기 lifetime과 runtime authority carriage의
+가장 최근 닫힌 supporting formal rung은 비동기 lifetime과 runtime authority carriage의
 Rocq 모델이다. `AsyncLifecycleCore.v`는 named Future의 `Absent/Live/Retired/Diverged`
 상태와 spawn/suspend/Cancel/await/own-transfer를 분리하고, `Live`에서 정상
 scope-closed 상태로 가는 모든 trace에는 await 또는 explicit own transfer가 있음을
@@ -24,7 +24,14 @@ share/lend/move capability flow, suspension revalidation, deterministic subset�
 방향 모델을 추가했고 run `33725481715`은 48개 proof corpus를 기존 `SlotCalculus`
 추상 2개, admit 0개, unsafe kernel feature 0개로 검증했다. 네 추가 모델은 구현 완료
 주장이 아니며, historical/forbidden 반례를 현재 구현으로 오기한 설명은 교정하고
-negative adequacy gate로 재발을 막았다. 최종 exact-head 전체 matrix만 남았다.
+negative adequacy gate로 재발을 막았다. 교정 commit `5cea5ad5`의 exact run
+`33726110262`은 36분 33초에 30/30 green이다. Rocq 9.0.1은 48개 proof를 3분
+8초에 compile/`rocqchk`했고 기존 `SlotCalculus` 추상 2개 외에는 admit/unsafe
+kernel feature가 없었으며, planted-`Admitted` self-test도 fail-closed했다. full
+self-host 35분 53초, build-linux 17분 46초, sanitizers 12분 34초, Windows 9분
+3초, macOS 2분 1초, TSan 23초, codegen bootstrap 8분 50초, backend toolchain
+8분 19초, backend 20/20까지 모두 통과했다. supporting proof이므로 census와
+진행률은 위 수치 그대로다.
 
 가장 최근 닫힌 executable prerequisite는 비진입 함수의 직선형
 `Array<String>` owner move다. 기존 digest-sealed move 행의 `(routine, local)`

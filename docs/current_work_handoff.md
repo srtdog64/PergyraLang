@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active supporting context — async Rocq model cores
+## Published supporting context — async Rocq model cores
 
 - Exact opening base is `eed7f7229699770bcda656e7a2947a5f043cbfcc`, equal
   to `origin/main`. Protected unrelated untracked paths remain outside
@@ -59,7 +59,19 @@ percentage by themselves.
   no unsafe kernel features. The scope-tree, lend/move, resume revalidation,
   and deterministic-subset cores are design proofs rather than implementation
   completion. Stale comments that reversed current lifecycle/context facts are
-  corrected and guarded; final exact-head full CI is still required.
+  corrected and negatively gated by `5cea5ad5`.
+- Exact run `33726110262` for
+  `5cea5ad5feba31533b8db0fa6ce3b8d11b2a1c96` completed 30/30 green in
+  36m33s. Rocq 9.0.1 compiled and kernel-verified all 48 proof files in 3m08s
+  with only the two declared `SlotCalculus` abstractions, no admits, and no
+  unsafe kernel features; its planted-`Admitted` self-test failed closed.
+  Full self-host took 35m53s, build-linux 17m46s, sanitizers 12m34s, Windows
+  9m03s, macOS 2m01s, TSan 23s, codegen bootstrap 8m50s, backend toolchain
+  8m19s, and backend comparison passed 20/20. The lease is released without
+  changing census `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, or the
+  83% forecast. The working tree still preserves the user-owned EOL-only
+  `examples/raid_graph_fsm/results.txt` change and the three protected
+  untracked paths; none was staged or inspected.
 
 ## Published self-host context — non-entrypoint straight-line ArrayString owner move
 
