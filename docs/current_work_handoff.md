@@ -59,8 +59,18 @@ percentage by themselves.
   The repair gives the two bindings type-stable distinct names. The exact
   local CI stage, `self-host-codegen-bootstrap-seed-test-smoke`, now exits 0
   and reports seed artifacts ready after building gen0/gen1/gen2.
-- Next action is explicit repair-only staging, commit/push, and a fresh
-  exact-head CI. Pergyra-owned LLVM admission for this Option binding remains a
+- Repair `cadae062a775deca1be40008da1136c126d98dbe` is published. Exact run
+  `33762482359` proved the repaired backend toolchain green in 11m15s and
+  published the compiler pair. Sanitizer, TSan, Rocq 9, Windows, macOS, and
+  self-host codegen fixed-point were also green. Linux push completed 22 of 23
+  steps and then failed only because the generated language-word implementation
+  inventory had not counted the new fixture. The obsolete run was cancelled.
+  The canonical generator now changes only the eight fixture-file counts for
+  words present in that fixture; generator `--check` and the complete 146-row
+  registry smoke are green locally.
+- Next action is explicit generated-inventory-and-handoff staging,
+  commit/push, and a fresh exact-head CI. Pergyra-owned LLVM admission for this
+  Option binding remains a
   separate future executable rung. Module Build is only a deferred
   post-self-host interface reservation in docs 109/202; it opens no
   implementation work. Documentation quality, source UTF-8, and changed shell

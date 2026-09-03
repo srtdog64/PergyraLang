@@ -37,8 +37,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   was cancelled after that first decisive failure. The bounded repair names
   the bindings `statement_type_row` and `scan_row`; the exact local
   `self-host-codegen-bootstrap-seed-test-smoke` now exits 0 and produces the
-  gen2 seed artifacts. Repair publication and a fresh exact-head CI remain
-  pending. Pergyra-owned LLVM still does not admit this Option-match structural
+  gen2 seed artifacts.
+- Repair `cadae062a775deca1be40008da1136c126d98dbe` is published. Exact run
+  `33762482359` passed the repaired backend toolchain in 11m15s, plus
+  sanitizer, TSan, Rocq 9, Windows, macOS, and self-host codegen fixed-point.
+  The Linux push target passed 22 of 23 steps, then its final preparation
+  contract rejected the generated language-word implementation inventory: the
+  new fixture was absent from its fixture-file counts. The run was cancelled.
+  Canonical regeneration changes only the eight affected fixture counts;
+  generator check and the 146-row registry gate are green locally. Inventory
+  publication and a fresh exact-head CI remain pending. Pergyra-owned LLVM
+  still does not admit this Option-match structural
   shape and is a separate future rung. Registries, generated inventories, SoT
   census, and project percentage do not change. Exact objective and exclusions are in
   `docs/agent_work_directives/match_scrutinee_single_evaluation_2026-09-03.md`.

@@ -1,6 +1,6 @@
 # Match scrutinee single-evaluation lease — 2026-09-03
 
-Status: `IMPLEMENTATION PUBLISHED — SEED REPAIR LOCAL GREEN, EXACT CI PENDING`
+Status: `SEED REPAIR EXACT GREEN — GENERATED INVENTORY REPAIR PENDING`
 
 Exact base: `513b668957cdb47627bd2bc490a45916337b2629` on
 `origin/main`.
@@ -97,3 +97,14 @@ shape, and automatically restores byte parity when it does.
   `self-host-codegen-bootstrap-seed-test-smoke`, exits 0 and reports gen2
   codegen/parser seed artifacts ready. A fresh exact-head run owns the final
   Linux seed and full-matrix verdict.
+- Repair `cadae062a775deca1be40008da1136c126d98dbe` reached exact run
+  `33762482359`. The backend toolchain and compiler-pair publication are green
+  in 11m15s, as are sanitizer, TSan, Rocq 9, Windows, macOS, and self-host
+  codegen fixed-point. Linux push passed 22 of 23 steps and failed only at the
+  final preparation contract because the generated language-word
+  implementation inventory did not yet count the new fixture. The run was
+  cancelled after this decisive result.
+- Canonical `render_language_keyword_registry.py --write` changes only the
+  eight fixture-file counts for language words present in the new fixture.
+  Generator `--check` and `language_keyword_registry_smoke.sh` are green. The
+  next exact head owns the complete-matrix verdict.
