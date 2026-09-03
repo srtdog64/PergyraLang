@@ -39,7 +39,7 @@ percentage by themselves.
   transfer moves the obligation; C/LLVM consume the canonical constructed
   Future kind; and cascade diagnostics are suppressed after the owned move
   error or after an already unavailable handle.
-- `test-semantic` is 2861/0. The focused gate has 19 positive and 18
+- `test-semantic` is 2863/0. The focused gate has 19 positive and 18
   fail-closed fixtures across C/LLVM, bounded execution, exact `1`, `11`, and
   `3\n11` transfer output, and stable JSON diagnostics. Diagnostic, semantic
   shape/size, CFG, loop/parameter summary, ownership, memory/concurrency,
@@ -47,7 +47,13 @@ percentage by themselves.
   LLVM smoke gates are green. `test-all` also completes through transpiler
   925/0, RIR 26/0, MIR 162/0, HIR 25/0, and its remaining frontend/runtime
   batteries after legacy bare/borrowed-Future fixtures were migrated.
-- Commit/push and exact-head CI remain pending. The unrelated opening-base size
+- Implementation commit `cf66092b594f9e83525d3df9da68e56e7446186f` was
+  pushed. Its exact CI run `33707737803` exposed one common self-host seed
+  regression: a statically non-returning `while true` was incorrectly rejected
+  as a missing return. The function boundary now rejects only a reachable
+  fallthrough; the exact failing `self-host-codegen-bootstrap-seed-test-smoke`
+  is locally green. Repair commit/push and replacement exact-head CI remain
+  pending. The unrelated opening-base size
   violations remain `pgy_runtime_lib_io_string_exports.h` 618/600 and
   `ast_expr_control_accessors.c` 725/699; neither owner is in this rung. SoT
   remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project

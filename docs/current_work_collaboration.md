@@ -23,13 +23,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   detach are forbidden.
 - Exact objective, owners, edit boundary, and falsifiers are fixed in
   `docs/agent_work_directives/structured_spawn_lifecycle_2026-09-03.md`.
-  Local implementation and integration evidence are green: semantic 2861/0,
+  Local implementation and integration evidence are green: semantic 2863/0,
   focused C/LLVM 19 positive/18 negative with exact transfer output, and the
   full LLVM smoke suite. `test-all` completes after the transpiler, RIR, and
   MIR fixtures that encoded bare/borrowed Future disposal were migrated to
-  valid structured ownership. Commit/push and exact-head CI remain before this
-  lease can become `DONE`. This lease changes neither SoT counts nor the 83%
-  project forecast.
+  valid structured ownership. Exact run `33707737803` then falsified the
+  non-Void boundary for a statically non-returning `while true`; the boundary
+  now diagnoses reachable fallthrough rather than absence of a return bit, and
+  the exact self-host seed target is locally green. Repair publication and
+  replacement exact-head CI remain before this lease can become `DONE`. This
+  lease changes neither SoT counts nor the 83% project forecast.
 
 ## DONE lease — spawn runtime context propagation
 

@@ -71,7 +71,9 @@ evidence, not compiler semantics, a SoT row, or a completion claim.
 
 ## Local evidence
 
-- `test-semantic`: 2861 passed, 0 failed.
+- `test-semantic`: 2863 passed, 0 failed. This includes the CFG distinction
+  between a reachable value-return fallthrough and a statically non-returning
+  infinite loop.
 - `structured-spawn-lifecycle-test-smoke`: 19 positive and 18 fail-closed
   fixtures; C/LLVM exact runtime output, bounded execution, and stable JSON
   diagnostic identity.

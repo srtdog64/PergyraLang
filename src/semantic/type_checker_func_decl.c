@@ -305,7 +305,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         has_body_flow = true;
         if (!type_equals(return_type, TYPE_VOID)
             && return_type != TYPE_UNKNOWN
-            && !body_flow.must_return) {
+            && body_flow.has_fallthrough) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_MISSING_RETURN,
                 PGY_CAUSE_CFG_MISSING_RETURN,

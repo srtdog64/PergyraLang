@@ -258,6 +258,28 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("CFG body flow accepts a non-returning static infinite loop");
+    {
+        const char *source =
+            "func Halt() -> Int {\n"
+            "    while true {\n"
+            "        continue;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("CFG body flow accepts static single-iteration for all-path return");
     {
         const char *source =
