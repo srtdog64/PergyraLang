@@ -19797,6 +19797,18 @@ require_file \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh" 160
 require_file \
+    "tests/self_hosted/parity/direct_mir_scalar_non_entrypoint_owned_array_string_parameter_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_non_entrypoint_owned_array_string_parameter_owner.sh" 120
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_nested_caller_owned_array_string_parameter.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_nested_caller_owned_array_string_parameter.pgy" 20
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_nested_caller_owned_array_string_parameter_use_after_move.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_nested_caller_owned_array_string_parameter_use_after_move.pgy" 20
+require_file \
     "tests/self_hosted/parity/direct_mir_scalar_multiple_owned_array_string_parameters_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_multiple_owned_array_string_parameters_owner.sh" 100
@@ -19818,6 +19830,8 @@ for move_mutation in \
 done
 require_text "Makefile" \
     "self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke: self-host-compiler"
+require_text "Makefile" \
+    'direct_mir_scalar_non_entrypoint_owned_array_string_parameter_owner.sh'
 require_text "Makefile" \
     "self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke"
 require_function_text \

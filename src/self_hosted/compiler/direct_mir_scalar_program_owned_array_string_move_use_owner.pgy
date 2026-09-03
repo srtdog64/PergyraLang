@@ -3,23 +3,17 @@
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
-
 func DirectMirScalarProgramExpressionGraphLocalUseCount(
     ref expressions: DirectMirScalarProgramExpressionSet,
     graph: Int, local_row: Int
 ) -> Int {
-    if graph < 0 || graph >= ArrayLength(expressions.graph_starts) {
-        return -1;
-    }
+    if graph < 0 || graph >= ArrayLength(expressions.graph_starts) { return -1; }
     let count: Int = 0;
     let node: Int = expressions.graph_starts[graph];
     let end: Int = node + expressions.graph_counts[graph];
     while node < end {
-        if expressions.node_kinds[node] ==
-                DirectMirScalarProgramExprLocal() &&
-            expressions.node_local_rows[node] == local_row {
-            count = count + 1;
-        }
+        if expressions.node_kinds[node] == DirectMirScalarProgramExprLocal() &&
+            expressions.node_local_rows[node] == local_row { count = count + 1; }
         node = node + 1;
     }
     return count;
@@ -31,51 +25,76 @@ func DirectMirScalarProgramOperationUsesLocal(
     operation: Int, local_row: Int
 ) -> Bool {
     if storage.operations.left_locals[operation] == local_row ||
-        storage.operations.right_locals[operation] == local_row {
-        return true;
-    }
+        storage.operations.right_locals[operation] == local_row { return true; }
     let left: Int = storage.operations.left_values[operation];
     let right: Int = storage.operations.right_values[operation];
     if (left >= 0 && storage.values.value_local_rows[left] == local_row) ||
         (right >= 0 && storage.values.value_local_rows[right] == local_row) {
-        return true;
-    }
+        return true; }
     return DirectMirScalarProgramExpressionGraphLocalUseCount(
-            expressions, storage.operations.expression_rows[operation],
-            local_row) > 0 ||
+        expressions, storage.operations.expression_rows[operation], local_row) > 0 ||
         DirectMirScalarProgramExpressionGraphLocalUseCount(
-            expressions,
-            storage.operations.secondary_expression_rows[operation],
-            local_row) > 0;
+        expressions, storage.operations.secondary_expression_rows[operation],
+        local_row) > 0;
+}
+
+func DirectMirScalarProgramRoutinePartitionStart(
+    ref counts: Array<Int>, routine: Int
+) -> Int {
+    if routine < 0 || routine >= ArrayLength(counts) { return -1; }
+    let start: Int = 0;
+    let row: Int = 0;
+    while row < routine {
+        if counts[row] < 0 { return -1; }
+        start = start + counts[row];
+        row = row + 1;
+    }
+    return start;
 }
 
 func DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
-    operation: Int, graph: Int, local_row: Int
+    routine: Int, operation: Int, graph: Int, local_row: Int
 ) -> Bool {
-    if ArrayLength(storage.routines.operation_counts) != 2 ||
-        ArrayLength(storage.routines.block_counts) != 2 ||
-        storage.routines.block_counts[0] != 1 ||
-        ArrayLength(storage.blocks.operation_starts) < 1 ||
-        storage.blocks.operation_starts[0] != 0 ||
-        storage.blocks.operation_counts[0] !=
-            storage.routines.operation_counts[0] ||
-        storage.blocks.succ_true[0] >= 0 || storage.blocks.succ_false[0] >= 0 ||
-        storage.blocks.condition_expression_rows[0] >= 0 ||
-        storage.blocks.return_expression_rows[0] >= 0 ||
+    let routine_count: Int = ArrayLength(storage.routines.operation_counts);
+    if routine_count != ArrayLength(storage.routines.block_counts) ||
+        routine_count != ArrayLength(storage.routines.local_counts) ||
+        routine < 0 || routine >= routine_count ||
+        storage.routines.block_counts[routine] != 1 { return false; }
+    let block: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.block_counts, routine);
+    let operation_start: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.operation_counts, routine);
+    let local_start: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.local_counts, routine);
+    if block < 0 || operation_start < 0 || local_start < 0 ||
+        block >= ArrayLength(storage.blocks.operation_starts) ||
+        block >= ArrayLength(storage.blocks.operation_counts) ||
+        block >= ArrayLength(storage.blocks.succ_true) ||
+        block >= ArrayLength(storage.blocks.succ_false) ||
+        block >= ArrayLength(storage.blocks.condition_expression_rows) ||
+        block >= ArrayLength(storage.blocks.return_expression_rows) ||
+        operation < operation_start || operation >= operation_start +
+            storage.routines.operation_counts[routine] ||
+        local_row < local_start || local_row >=
+            local_start + storage.routines.local_counts[routine] ||
+        storage.blocks.operation_starts[block] != operation_start ||
+        storage.blocks.operation_counts[block] !=
+            storage.routines.operation_counts[routine] ||
+        storage.blocks.succ_true[block] >= 0 ||
+        storage.blocks.succ_false[block] >= 0 ||
+        storage.blocks.condition_expression_rows[block] >= 0 ||
+        storage.blocks.return_expression_rows[block] >= 0 ||
         expressions.graph_roots[graph] + 1 !=
             expressions.graph_starts[graph] + expressions.graph_counts[graph] ||
         DirectMirScalarProgramExpressionGraphLocalUseCount(
-            expressions, graph, local_row) != 1 {
-        return false;
-    }
-    let end: Int = storage.routines.operation_counts[0];
+            expressions, graph, local_row) != 1 { return false; }
+    let end: Int = operation_start + storage.routines.operation_counts[routine];
     let later: Int = operation + 1;
     while later < end {
         if DirectMirScalarProgramOperationUsesLocal(
-                storage, expressions, later, local_row) { return false; }
-        later = later + 1;
-    }
+            storage, expressions, later, local_row) { return false; }
+        later = later + 1; }
     return true;
 }

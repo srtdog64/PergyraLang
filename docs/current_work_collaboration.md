@@ -6,6 +6,34 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — ArrayString non-entrypoint straight-line owner move
+
+- Exact base is `fabf8ede617f4539d042ccf5ff8dc35cc4f1cd70`, equal to
+  `origin/main` when this lease opened. The primary task is the sole code,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- A three-routine production source reaches verified MIR, then both direct C
+  and LLVM projection fail closed with extension code 19 because the existing
+  move producer and readiness proof require caller routine zero even though the
+  fact and shared cleanup consumer already key each row by `(routine, local)`.
+- The bounded target admits the same last-use move in any admitted single-block
+  caller routine. Conditional/loop/member/formal/fresh-result/literal moves and
+  semantic named-boundary changes remain fail-closed.
+- Exact objective, owner boundary, edit scope, and falsifiers are fixed in
+  `docs/agent_work_directives/array_string_non_entrypoint_owner_move_2026-09-03.md`.
+  This prerequisite does not close the ArrayString ABI row or change the SoT
+  census and project percentage by itself.
+- A current-source Pergyra-built DRV-2 now executes the entrypoint,
+  non-entrypoint, and multiple-move fixtures in C/LLVM. Exact caller cleanup is
+  retired, while entrypoint/non-entrypoint later use, duplicate retirement, and
+  carriage/pass/layout/target mutations publish no artifact. Owned-return,
+  by-value, and value-result regressions are green.
+- The component contract caught and forced two structural corrections: the
+  last-use owner is compressed to its 100-line cap, and the new 98-line
+  non-entrypoint executable gate is separate from the 132-line entrypoint gate.
+  Component, SoT edge, Gate, protocol, hard-contract, and build inventory now
+  pass. Commit/push and exact-head CI remain before this lease can become
+  `DONE`.
+
 ## DONE lease — multiple straight-line ArrayString owner moves
 
 - Exact base is `b026f5a6eadb2e0ed3bf4ad684f47fc2d81d39e0`, equal to

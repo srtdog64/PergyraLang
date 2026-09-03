@@ -18,6 +18,36 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — non-entrypoint straight-line ArrayString owner move
+
+- Exact opening base is `fabf8ede617f4539d042ccf5ff8dc35cc4f1cd70`, equal
+  to `origin/main`. Protected unrelated untracked paths remain outside
+  inspection, edit, and staging.
+- Production entrypoint: installed Pergyra-built DRV-2 direct-MIR C/LLVM
+  projection. Direct bypass being deleted: rejecting a last-use
+  `Array<String>` owner-parameter transfer solely because its single-block
+  caller is not the entrypoint routine, after verified MIR already exists.
+- Fact owner: the existing ordered, digest-sealed
+  `DirectMirScalarProgramOwnedArrayStringMoveFact`. Last consumer: the shared
+  ArrayString cleanup policy for C/LLVM. The fact now consumes routine-owned
+  operation, block, and local partitions instead of requiring routine zero.
+- Forbidden fallback: routine/callable names, source/MIR rescan, backend move
+  inference, unconditional cleanup suppression, later use, duplicate
+  retirement, or ABI drift. Conditional/loop/member/formal/fresh-result/literal
+  moves remain fail-closed.
+- Local evidence is green with a current-source Pergyra-built DRV-2: existing
+  entrypoint and multiple moves plus the new three-routine non-entrypoint move
+  execute in C/LLVM; moved caller cleanup is absent; both later-use shapes and
+  carriage/pass/layout/target/duplicate mutations publish no artifact. Owned
+  return, by-value, and value-result regressions pass. Component, SoT edge,
+  single-owner protocol, hard contract, and build inventory pass.
+- Exact objective and observed evidence are in
+  `docs/agent_work_directives/array_string_non_entrypoint_owner_move_2026-09-03.md`.
+  Commit/push and exact-head CI remain. This is a bounded consumer migration,
+  not whole-row closure or a hard Pergyra-for-C substitution increment. Census
+  remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project
+  forecast remains 83%.
+
 ## Published self-host context — multiple straight-line ArrayString owner moves
 
 - Exact opening base is `b026f5a6eadb2e0ed3bf4ad684f47fc2d81d39e0`, equal

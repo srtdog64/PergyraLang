@@ -2,6 +2,23 @@
 
 마지막 업데이트: 2026-09-03
 
+현재 열린 executable prerequisite는 비진입 함수의 직선형 `Array<String>` owner
+move다. 세 함수짜리 source는 검증 MIR 11,538바이트까지 만들지만 기존 move 증명이
+caller routine 0과 전체 2-routine 형상을 요구해 C/LLVM 투영이 extension code 19로
+종료됐다. 후보 구현은 새 소유자를 만들지 않고 기존 digest-sealed move 행이 이미
+가진 `(routine, local)` identity를 사용한다. caller별 operation/block/local flat
+partition을 소비하고, 정확히 한 블록이며 successor·condition·return expression·후속
+사용이 없는 경우에만 정리를 넘긴다. 현재 소스로 재생성한 DRV-2에서 기존 진입점,
+두 독립 move, 새 비진입 함수 move가 C/LLVM 모두 실행되며 새 경로는 정확히
+`nested-released`를 출력한다. 양쪽 later-use와 duplicate/carriage/pass/layout/target
+변조는 artifact 없이 거절되고, owned return/by-value/value-result 회귀도 green이다.
+component/SoT single-owner/protocol/hard-contract/build inventory가 green이다. 조건부,
+loop, member, formal, fresh-result, literal move는 계속 fail-closed한다. 아직
+commit/push와 exact-head CI 전이므로 lease는 ACTIVE다. 이 bounded consumer migration은
+ArrayString BRIDGE 전체를 닫지 않으며 census `88/183`,
+`CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%, 통합 진행도
+**83%** (81~85%)는 바뀌지 않는다.
+
 가장 최근 닫힌 executable prerequisite는 여러 개의 직선형
 `Array<String>` owner move다. source-to-MIR는 서로 다른 두 지역값을 같은 `own`
 인자로 넘기는 프로그램을 승인했지만, Pergyra move fact가 한 행만 허용해 C와 LLVM

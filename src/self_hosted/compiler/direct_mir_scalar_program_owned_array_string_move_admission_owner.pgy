@@ -90,7 +90,10 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                         let routine: Int =
                             DirectMirScalarProgramRoutineForOperation(
                                 storage.routines.operation_counts, operation);
-                        if target != 1 || routine != 0 ||
+                        let local_start: Int =
+                            DirectMirScalarProgramRoutinePartitionStart(
+                                storage.routines.local_counts, routine);
+                        if target != 1 || routine < 0 || local_start < 0 ||
                             expressions.node_kinds[argument] !=
                                 DirectMirScalarProgramExprLocal() ||
                             expressions.node_types[argument] !=
@@ -100,12 +103,12 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                         }
                         let local_row: Int =
                             expressions.node_local_rows[argument];
-                        if local_row < 0 || local_row >=
-                                storage.routines.local_counts[0] ||
+                        if local_row < local_start || local_row >= local_start +
+                                storage.routines.local_counts[routine] ||
                             storage.values.local_types[local_row] !=
                                 CompilerAbiLayoutArrayStringTypeName() ||
                             !DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(
-                                storage, expressions, operation, graph,
+                                storage, expressions, routine, operation, graph,
                                 local_row) {
                             return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
                         }

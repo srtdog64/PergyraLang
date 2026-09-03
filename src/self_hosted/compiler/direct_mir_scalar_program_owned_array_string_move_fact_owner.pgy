@@ -56,7 +56,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactReady(
         fact.present != (count > 0) { return false; }
     let row: Int = 0;
     while row < count {
-        if fact.caller_routines[row] != 0 ||
+        if fact.caller_routines[row] < 0 ||
             fact.call_operation_rows[row] < 0 ||
             fact.call_expression_rows[row] < 0 || fact.local_rows[row] < 0 ||
             fact.callable_ordinals[row] <= 0 ||

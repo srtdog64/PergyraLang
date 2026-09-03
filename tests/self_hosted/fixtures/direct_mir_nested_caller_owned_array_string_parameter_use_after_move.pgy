@@ -1,0 +1,14 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func BuildAndRelease() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("nested", "-caller"));
+    ReleaseOwnedArray(values);
+    Log(ArrayLength(values));
+}
+
+func Main() -> Void {
+    BuildAndRelease();
+}
