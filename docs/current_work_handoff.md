@@ -18,51 +18,59 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — logical-record `Option<Int>` field materialization
+## Active self-host context — bounded successor falsifier discovery
 
 - Exact published checkpoint is
-  `41e8bf6fe466d72c85b9880cda66fc5535ce991a`, equal to
-  `origin/main`. Exact-head run `33801981740` completed 30/30 green in 36m06s;
-  full self-host installed DRV-2, proved `gen2 == gen3 (174543 lines)`, and
-  correctly classified the policy corpus as `3 in_subset / 0 out_of_subset`.
+  `62e4b0c56ee22f052ae94436fac5bd99912acbd4`, equal to
+  `origin/main`. Exact-head run `33810319796` completed 30/30 green in 36m35s;
+  full self-host took 36m18s, installed DRV-2, proved
+  `gen2 == gen3 (174625 lines)`, and classified the policy corpus as
+  `3 in_subset / 0 out_of_subset`.
   The protected user-owned `examples/raid_graph_fsm/results.txt` change and three
   protected untracked directories remain outside inspection, edit, and staging.
-- Production falsifier is
-  `tests/self_hosted/fixtures/direct_mir_five_routine_unsupported_nominal.pgy`.
-  Native C and LLVM execute it as `11`, but installed DRV-2 source-C rejects
-  `Metadata { Bool, Option<Int> }` at field materialization and direct C/LLVM
-  reject its ABI-free `Metadata` callable route. Self and native MIR both carry
-  `Metadata` with layout id zero, `required=false`, and null layout, so inventing
-  a nominal physical row would contradict the producer evidence.
-- Objective: make installed DRV-2 source-C and direct C/LLVM admit, compile, and
-  execute this exact program while retaining ABI-free logical-record identity.
-  Priority is semantic record identity, explicit Option materialization receipt,
-  shared target projections, then a negative ratchet. The fact owner remains
-  `DirectMirScalarProgramLogicalRecordFact` for ordered fields; one bounded
-  pre-backend projection may derive the existing `DirectMirOptionMatchAbiFact`
-  from the canonical Option layout contract when such a field is present.
-- Last legitimate consumers are the C/LLVM logical-record field-type and
-  preamble emitters and source-C `AbiLayoutCFieldType`. Forbidden fallbacks are
-  source spelling or program-root rescans, missing-required-layout recovery,
-  backend-local geometry, whole-nominal physical promotion, fixture/routine-name
-  routing, native retry, and C round-trip.
-- The focused gate must prove source-C plus direct C/LLVM runtime `11`, exact
-  emitted field representations, and `Option<Long>` mutation failure without an
-  artifact on both direct targets. Existing logical-record, Option<Int>, ABI-row,
-  component, installed-driver, and exact-head CI gates remain required.
-  This is one reached seam inside `selfhost.semantic_artifact_admission`, not a
-  new general ABI project. Module Build remains deferred in the order
+- No implementation lease is open. The next action is bounded, read-only
+  successor discovery through the installed production entrypoint: reproduce
+  one real semantic-admission failure, identify its existing fact owner and last
+  orchestration consumer, and name one focused parity/negative gate before any
+  edit. A historical BRIDGE row, fixture count, generated artifact, or plausible
+  architecture gap is not by itself a successor rung.
+- Priority remains semantic identity and one SoT, owner-directed facts, fallback
+  deletion, then a negative ratchet. Forbidden discovery shortcuts are broad SoT
+  cleanup, general query/cache work, source/program-root rescans, native retry,
+  C round-trip, backend-local semantic inference, and opening more than one
+  executable rung. Module Build remains deferred in the order
   `self-host closure -> evidence/identity compression -> real external project ->
   ModuleInterface -> BuildUnit/incremental build`.
-- The local candidate now passes that focused gate: all three paths print `11`,
-  the MIR record remains id-zero/null-layout, and the `Option<Long>` mutation
-  fails without an artifact on direct C and LLVM. Existing Option<Int>,
-  two-Int nominal, multi-logical-record, ABI-row C/LLVM manifest, language
-  registry, SoT edge, shell syntax, diff check, and the complete component
-  contract are green. Exact-source DRV-2
+
+## Published self-host context — logical-record `Option<Int>` field materialization
+
+- Implementation `62e4b0c56ee22f052ae94436fac5bd99912acbd4` is
+  published. Installed DRV-2 source-C and direct C/LLVM compile and execute
+  `Metadata { Bool, Option<Int> }` as exact `11` while self/native MIR retain
+  layout id zero, `required=false`, and null nominal layout. `Option<Long>`
+  mutation fails both direct targets without an artifact.
+- `DirectMirScalarProgramLogicalRecordFact` keeps ordered field identity. The
+  bounded pre-backend logical-record Option owner derives the existing
+  `DirectMirOptionMatchAbiFact` only for an already-admitted exact `Option<Int>`
+  field from the shared Option ABI contract. C/LLVM field maps and source-C
+  `AbiLayoutCFieldType` are the last consumers. No source/program-root rescan,
+  nominal-layout invention, backend-local geometry, native retry, C round-trip,
+  or fixture/routine-name route was added.
+- The focused runtime/representation/negative gate, adjacent Option and
+  logical-record gates, ABI-row manifest, component contract, language registry,
+  SoT edge, syntax, and diff checks are green. Exact-source DRV-2
   `F4209097FC00473592F006A120AE3A60924AC72CCF3D6631A0AD2B893F720672`
-  (6,604,600 bytes) is installed, and the focused plus three adjacent runtime
-  gates are green against it. Selective publication and exact-head CI remain.
+  (6,604,600 bytes) passed the focused and three adjacent runtime gates locally.
+- Exact-head run `33810319796` completed 30/30 green in 36m35s. Full self-host
+  took 36m18s, installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (174625 lines)`, and reported the corrected policy census
+  `3 in_subset / 0 out_of_subset`. Linux took 17m57s, codegen fixed point 9m03s,
+  sanitizers 12m45s, Windows 8m59s, Rocq 9 1m43s, macOS 2m45s, TSan 18s, and
+  backend comparison stayed 20/20 green.
+- This is one bounded consumer closure inside
+  `selfhost.semantic_artifact_admission`, not a new top-level authority or a
+  whole-row closure. Census and forecast therefore remain 88 authorities / 185
+  derived, `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%).
 
 ## Published self-host context — Option<Int> match CFG projection
 

@@ -2,16 +2,16 @@
 
 마지막 업데이트: 2026-09-04
 
-최신 published checkpoint `41e8bf6f`의 exact-head run `33801981740`은 36분
-6초에 30/30 green이다. Full self-host는 Pergyra-built DRV-2를 설치하고
-`gen2 == gen3 (174543 lines)`를 증명했다. 수정된 production CLI corpus gate는 세
+최신 published checkpoint `62e4b0c5`의 exact-head run `33810319796`은 36분
+35초에 30/30 green이다. Full self-host는 36분 18초에 Pergyra-built DRV-2를
+설치하고 `gen2 == gen3 (174625 lines)`를 증명했다. Production CLI corpus gate는 세
 정책 소스를 모두 실제 `--emit-c-verified` 경로와 같은 comparator/runtime profile로
 실행해 `3 in_subset / 0 out_of_subset`를 확인했다. 앞선 run `33797037572`의
 `0 in_subset / 3 out_of_subset`는 stale DRV-2 호출의 usage rejection을 controlled
 refusal로 잘못 센 harness 결과였으며, subset 사실로는 폐기한다. 해당 run의 다른
 30/30 CI와 fixed-point 증거는 유효하다.
 
-현재 local executable candidate는 다음 실제 실패를 닫는 중이다.
+가장 최근 닫힌 executable seam은 다음 실제 실패였다.
 `Metadata { Bool, Option<Int> }`는 native C/LLVM에서 `11`을 실행하지만, 기존 설치
 DRV-2 source-C는 필드를 거절하고 direct C/LLVM은 ABI-free `Metadata` callable을
 거절했다. Self/native MIR 모두 이 record를 layout id 0, required false, null layout로
@@ -20,22 +20,24 @@ inventory가 정확히 `Option<Int>`를 포함할 때만 canonical Option contra
 `DirectMirOptionMatchAbiFact`를 materialize하고, C/LLVM emitter가 그 receipt의 타입을
 소비한다. Source-C는 기존 ABI row의 `Option<Int>`만 field-allowed로 승격한다.
 
-현재 변경 소스로 만든 DRV-2에서 source-C, direct C, direct LLVM은 모두 정확히
+변경 소스로 만든 DRV-2에서 source-C, direct C, direct LLVM은 모두 정확히
 `11`을 출력하고 record의 null-layout MIR은 유지된다. `Option<Long>` 변이는 양쪽 direct
 target에서 artifact 없이 실패한다. 새 focused gate와 기존 Option<Int>, two-Int nominal,
 multi-logical-record, ABI-row C/LLVM manifest, language registry, SoT edge, shell/diff,
 complete component contract가 green이다. Exact-source DRV-2
 `F4209097FC00473592F006A120AE3A60924AC72CCF3D6631A0AD2B893F720672`
 (6,604,600 bytes)를 설치했고 focused 및 인접 회귀 세 개도 그 바이너리에서 다시
-green이다. Publication 및 exact-head CI는 아직 남았으므로 이 문단은 완료 주장이
-아니다.
+green이다. 구현 `62e4b0c5`를 publish했고 exact-head CI가 위 fixed-point와
+corrected corpus census를 확인했다.
 
 이 bounded consumer closure는 새 top-level authority나 hard Pergyra-for-C 치환
 분자가 아니다. census는 88 authorities / 185 derived,
 `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%)로 유지한다. 독립
 Module Build는 구현하지 않으며 순서는 `self-host closure -> evidence/identity
 compression -> 실제 외부 프로젝트 -> ModuleInterface -> BuildUnit/incremental build`로
-docs 109/202에 예약돼 있다.
+docs 109/202에 예약돼 있다. 다음 작업은 installed production entrypoint에서 실제
+후속 semantic-admission 실패 하나를 재현하고 owner/last consumer/negative gate를
+확정하는 bounded read-only discovery다. 재현 전에는 새 구현 lease를 열지 않는다.
 
 가장 최근 닫힌 executable prerequisite는 `Array<String>` owner-handle
 양분기 이동이다. 16,171바이트의 verified MIR은 한 지역값을 같은 owner parameter로

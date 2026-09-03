@@ -6,7 +6,20 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — logical-record `Option<Int>` field materialization
+## READ-ONLY coordination state — bounded successor falsifier discovery
+
+- Exact published base is `62e4b0c56ee22f052ae94436fac5bd99912acbd4`,
+  equal to `origin/main`. No implementation or publication lease is open. A
+  task may inspect an independent read-only evidence scope, but it must not edit
+  compiler semantics, registries, gates, or handoff state until the primary task
+  records one reproduced production falsifier, its fact owner, last consumer,
+  forbidden fallback, and integration gate here.
+- Discovery is limited to the installed production entrypoint and bounded
+  existing fixtures/corpora. General SoT cleanup, query/cache design, Module
+  Build implementation, fixture-volume work, and parallel implementation on a
+  guessed gap are out of scope. Findings are evidence, not progress or a lease.
+
+## DONE implementation lease — logical-record `Option<Int>` field materialization
 
 - Exact base is `41e8bf6fe466d72c85b9880cda66fc5535ce991a`, equal to
   `origin/main` when this lease opened. The primary task owns the bounded
@@ -34,7 +47,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   complete component contract are green. Exact-source DRV-2
   `F4209097FC00473592F006A120AE3A60924AC72CCF3D6631A0AD2B893F720672`
   is installed and the focused plus three adjacent runtime gates are green
-  against it. Selective publication and exact-head CI remain owned by this lease.
+  against it. Implementation `62e4b0c56ee22f052ae94436fac5bd99912acbd4`
+  is published. Exact-head run `33810319796` completed 30/30 green in 36m35s;
+  full self-host installed DRV-2, proved `gen2 == gen3 (174625 lines)`, and
+  classified the policy corpus as `3 in_subset / 0 out_of_subset`. This lease is
+  released. It changes no SoT census or project percentage and does not open
+  Module Build.
 
 ## DONE verification lease — Option<Int> match CFG projection
 
