@@ -1,0 +1,82 @@
+// Sealed path coverage carried by the sole owned Array<String> move fact.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+struct DirectMirScalarProgramOwnedArrayStringMoveCoverageFact {
+    let valid: Bool;
+    let digest: Int;
+    let kinds: Array<Int>;
+    let call_block_rows: Array<Int>;
+    let branch_block_rows: Array<Int>;
+    let merge_block_rows: Array<Int>;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveStraightCoverage() -> Int {
+    return 1;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveAlternativeCoverage() -> Int {
+    return 2;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageInvalid(
+) -> DirectMirScalarProgramOwnedArrayStringMoveCoverageFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramOwnedArrayStringMoveCoverageFact(
+        false, 0, rows, rows, rows, rows);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageDigest(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirScalarCfgHashInts(311L, fact.kinds);
+    hash = DirectMirScalarCfgHashInts(hash, fact.call_block_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.branch_block_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.merge_block_rows);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageReady(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact,
+    count: Int
+) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramOwnedArrayStringMoveCoverageDigest(fact) ||
+        count != ArrayLength(fact.kinds) ||
+        count != ArrayLength(fact.call_block_rows) ||
+        count != ArrayLength(fact.branch_block_rows) ||
+        count != ArrayLength(fact.merge_block_rows) { return false; }
+    let row: Int = 0;
+    while row < count {
+        let kind: Int = fact.kinds[row];
+        if fact.call_block_rows[row] < 0 ||
+            (kind == DirectMirScalarProgramOwnedArrayStringMoveStraightCoverage() &&
+             (fact.branch_block_rows[row] != -1 ||
+              fact.merge_block_rows[row] != -1)) ||
+            (kind == DirectMirScalarProgramOwnedArrayStringMoveAlternativeCoverage() &&
+             (fact.branch_block_rows[row] < 0 ||
+              fact.merge_block_rows[row] < 0 ||
+              fact.call_block_rows[row] == fact.branch_block_rows[row] ||
+              fact.call_block_rows[row] == fact.merge_block_rows[row] ||
+              fact.branch_block_rows[row] == fact.merge_block_rows[row])) ||
+            (kind != DirectMirScalarProgramOwnedArrayStringMoveStraightCoverage() &&
+             kind != DirectMirScalarProgramOwnedArrayStringMoveAlternativeCoverage()) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageCanonicalEmpty(
+) -> DirectMirScalarProgramOwnedArrayStringMoveCoverageFact {
+    let rows: Array<Int> = [];
+    let source: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact =
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageFact(
+            true, 0, rows, rows, rows, rows);
+    return DirectMirScalarProgramOwnedArrayStringMoveCoverageFact(
+        true,
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageDigest(source),
+        rows, rows, rows, rows);
+}

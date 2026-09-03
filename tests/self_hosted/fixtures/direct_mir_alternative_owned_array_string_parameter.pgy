@@ -1,0 +1,19 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func BuildAndRelease(select_first: Bool) -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("branch", "-owner"));
+    if select_first {
+        ReleaseOwnedArray(values);
+    } else {
+        ReleaseOwnedArray(values);
+    }
+    Log("branch-released");
+}
+
+func Main() -> Void {
+    BuildAndRelease(true);
+    BuildAndRelease(false);
+}

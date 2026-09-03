@@ -530,9 +530,16 @@ def main():
                 raise SystemExit("fixture has no owned Array<String> call")
             node["call_target_syntax_id"] = 0
         else:
-            raise SystemExit(
-                f"unknown owned Array<String> mutation: {kind}"
-            )
+            raise SystemExit(f"unknown owned Array<String> mutation: {kind}")
+    elif kind == "owned-array-string-alternative-missing-edge":
+        routine = next((row for row in document.get("routines", []) if row.get(
+            "name") == "BuildAndRelease"), None)
+        if routine is None or len(routine.get("blocks", [])) != 4:
+            raise SystemExit("fixture has no four-block alternative caller")
+        branch = routine["blocks"][0]
+        if branch.get("succ_true") != 1 or branch.get("succ_false") != 2:
+            raise SystemExit("fixture alternative edges drifted")
+        branch["succ_false"] = 3
     elif kind.startswith("array-string-readonly-ref-"):
         param = array_string_readonly_ref_param(document)
         if param is None:

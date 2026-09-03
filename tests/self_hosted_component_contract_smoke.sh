@@ -19747,6 +19747,22 @@ require_file \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy" 120
 require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy" 90
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy" 170
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_query_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_query_owner.pgy" 50
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy" 180
+require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy" 100
@@ -19757,7 +19773,7 @@ require_max_lines \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" \
     "func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(" \
-    "DirectMirScalarProgramOwnedArrayStringMoveIsLastUse("
+    "DirectMirScalarProgramOwnedArrayStringMoveCoverageFromProgram("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" \
     "func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(" \
@@ -19777,6 +19793,10 @@ require_function_text \
     "func DirectMirScalarProgramArrayStringLocalCleanupRequired(" \
     "DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal("
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy" \
+    "func DirectMirScalarCfgProgramExtensionReadinessCode(" \
+    "DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan("
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy" \
     "func DirectMirScalarProgramCStringArrayCleanup(" \
     "DirectMirScalarProgramArrayStringLocalCleanupRequired("
@@ -19792,6 +19812,26 @@ require_file \
     "tests/self_hosted/fixtures/direct_mir_owned_array_string_parameter_use_after_move.pgy"
 require_max_lines \
     "tests/self_hosted/fixtures/direct_mir_owned_array_string_parameter_use_after_move.pgy" 20
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_alternative_owned_array_string_parameter.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_alternative_owned_array_string_parameter.pgy" 20
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_one_sided_owned_array_string_parameter.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_one_sided_owned_array_string_parameter.pgy" 20
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_alternative_owned_array_string_parameter_use_after_move.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_alternative_owned_array_string_parameter_use_after_move.pgy" 20
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_duplicate_arm_owned_array_string_parameter.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_duplicate_arm_owned_array_string_parameter.pgy" 20
+require_file \
+    "tests/self_hosted/parity/direct_mir_alternative_owned_array_string_parameter_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_alternative_owned_array_string_parameter_owner.sh" 130
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh"
 require_max_lines \

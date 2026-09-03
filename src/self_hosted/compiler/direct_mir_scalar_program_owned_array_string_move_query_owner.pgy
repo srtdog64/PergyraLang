@@ -1,0 +1,37 @@
+// ABI and cleanup queries over the sealed owned Array<String> move fact.
+
+import "direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+
+func DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact,
+    ref abi: DirectMirScalarProgramArrayStringAbiFact
+) -> Bool {
+    if !DirectMirScalarProgramOwnedArrayStringMoveFactReady(fact) {
+        return false;
+    }
+    if !fact.present { return true; }
+    if !DirectMirScalarProgramArrayStringAbiFactReady(abi) { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(fact.abi_layout_ids) {
+        if fact.abi_layout_ids[row] != abi.layout_id { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(
+    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact,
+    routine: Int, local_row: Int
+) -> Bool {
+    if !DirectMirScalarProgramOwnedArrayStringMoveFactReady(fact) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(fact.caller_routines) {
+        if fact.caller_routines[row] == routine &&
+            fact.local_rows[row] == local_row { return true; }
+        row = row + 1;
+    }
+    return false;
+}

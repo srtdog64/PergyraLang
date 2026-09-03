@@ -327,6 +327,7 @@ src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_plan_fact_owner.pgy 
 src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_source_fact_owner.pgy | DirectMirScalarCfgStringArrayGraphAt | projection.direct_mir_string_array_push | projection
 src/self_hosted/compiler/direct_mir_scalar_program_array_string_boundary_fact_owner.pgy | DirectMirScalarProgramArrayStringBoundaryFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy | DirectMirScalarProgramOwnedArrayStringMoveFact | projection.direct_mir_scalar_cfg_program_extension | projection
+src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy | DirectMirScalarProgramOwnedArrayStringMoveCoverageFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_fact_owner.pgy | DirectMirScalarProgramBuiltinSignatureFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_callable_fact_owner.pgy | DirectMirScalarCfgProgramCallableFact | projection.direct_mir_scalar_cfg_program_extension | projection
 src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_fact_owner.pgy | DirectMirScalarProgramExpressionKindFact | projection.direct_mir_scalar_cfg_program_extension | projection
@@ -1643,6 +1644,29 @@ formal ordinal. Common C/LLVM call, checked-set, and copyout emitters remain the
 last consumers. No move/lifetime authority, opcode, layout owner, or backend MIR
 read was added, so the registry census stays
 `49 CLOSED / 36 BRIDGE / 1 ACTIVE`.
+
+### Bounded alternative owner-move coverage
+
+The `projection.direct_mir_scalar_cfg_program_extension` and
+`abi.mir_array_string_layout_projection` rows now also consume bounded
+all-path evidence carried inside the existing
+`DirectMirScalarProgramOwnedArrayStringMoveFact`. Supporting coverage
+fact/admission, query, and final-plan readiness files split responsibilities but
+do not create another top-level owner. The move fact digest seals exact call,
+branch, arm, merge, local, callable, parameter, and ABI identity; final
+GraphPlan readiness cross-checks those rows against the CFG before the shared
+cleanup policy may retire caller cleanup.
+
+`tests/self_hosted/parity/direct_mir_alternative_owned_array_string_parameter_owner.sh`
+proves the bounded four-block diamond in C and LLVM and rejects one-sided,
+later-use, duplicate-arm, missing-edge, carriage, pass-shape, and ABI-layout
+counterexamples without artifact publication. Authority/status census remains
+88 and `55/32/1`; the derived-carrier inventory is now 184 because this
+projection is explicitly classified. The registry rows remain `BRIDGE`:
+references there to conditional moves now mean shapes beyond this
+single binary diamond, including loops, nested alternatives, early exits,
+break/continue, and formal/member/literal/fresh-result ownership flow. Census
+status and project percentage are unchanged.
 
 The fixed canary now stops at raw routine index1111
 `CompilerSymbolCIdentifier`, source syntax ID28197, at `stage=local_inventory`.

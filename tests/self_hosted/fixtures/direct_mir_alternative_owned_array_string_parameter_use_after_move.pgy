@@ -1,0 +1,18 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func BuildAndUse(select_first: Bool) -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("branch", "-use"));
+    if select_first {
+        ReleaseOwnedArray(values);
+    } else {
+        ReleaseOwnedArray(values);
+    }
+    Log(ArrayLength(values));
+}
+
+func Main() -> Void {
+    BuildAndUse(true);
+}

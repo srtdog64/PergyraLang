@@ -1,0 +1,18 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func MaybeRelease(select_first: Bool) -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("one", "-sided"));
+    if select_first {
+        ReleaseOwnedArray(values);
+    } else {
+        Log("retained");
+    }
+}
+
+func Main() -> Void {
+    MaybeRelease(true);
+    MaybeRelease(false);
+}

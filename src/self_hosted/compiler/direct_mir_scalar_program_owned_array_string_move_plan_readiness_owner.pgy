@@ -1,0 +1,159 @@
+// Final GraphPlan cross-check for sealed owned Array<String> move coverage.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_use_owner.pgy";
+
+func DirectMirScalarProgramOwnedArrayStringMovePlanOperationUsesLocal(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, local_row: Int
+) -> Bool {
+    if plan.operation_left_locals[operation] == local_row ||
+        plan.operation_right_locals[operation] == local_row { return true; }
+    let left: Int = plan.operation_left_values[operation];
+    let right: Int = plan.operation_right_values[operation];
+    if (left >= 0 && plan.value_local_rows[left] == local_row) ||
+        (right >= 0 && plan.value_local_rows[right] == local_row) {
+        return true;
+    }
+    return DirectMirScalarProgramExpressionGraphLocalUseCount(
+        plan.program.expressions,
+        plan.program.operation_expression_rows[operation], local_row) > 0 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            plan.program.expressions,
+            plan.program.operation_secondary_expression_rows[operation],
+            local_row) > 0;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMovePlanBlockUsesLocal(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    block: Int, local_row: Int
+) -> Bool {
+    let operation: Int = plan.block_operation_starts[block];
+    let end: Int = operation + plan.block_operation_counts[block];
+    while operation < end {
+        if DirectMirScalarProgramOwnedArrayStringMovePlanOperationUsesLocal(
+                plan, operation, local_row) { return true; }
+        operation = operation + 1;
+    }
+    return DirectMirScalarProgramExpressionGraphLocalUseCount(
+        plan.program.expressions,
+        plan.program.block_condition_expression_rows[block], local_row) > 0 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            plan.program.expressions,
+            plan.program.block_return_expression_rows[block], local_row) > 0;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMovePlanOperationBlock(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, operation: Int
+) -> Int {
+    let block: Int = plan.routines.block_starts[routine];
+    let end: Int = block + plan.routines.block_counts[routine];
+    while block < end {
+        let first: Int = plan.block_operation_starts[block];
+        if operation >= first && operation < first +
+                plan.block_operation_counts[block] { return block; }
+        block = block + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveStraightReadyForPlan(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, operation: Int, graph: Int,
+    local_row: Int, call_block: Int
+) -> Bool {
+    if plan.routines.block_counts[routine] != 1 ||
+        call_block != plan.routines.block_starts[routine] ||
+        plan.block_succ_true[call_block] >= 0 ||
+        plan.block_succ_false[call_block] >= 0 ||
+        plan.program.block_condition_expression_rows[call_block] >= 0 ||
+        plan.program.block_return_expression_rows[call_block] >= 0 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            plan.program.expressions, graph, local_row) != 1 { return false; }
+    let later: Int = operation + 1;
+    let end: Int = plan.routines.operation_starts[routine] +
+        plan.routines.operation_counts[routine];
+    while later < end {
+        if DirectMirScalarProgramOwnedArrayStringMovePlanOperationUsesLocal(
+                plan, later, local_row) { return false; }
+        later = later + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveAlternativeReadyForPlan(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    routine: Int, operation: Int, graph: Int, local_row: Int,
+    call_block: Int, branch: Int, merge: Int
+) -> Bool {
+    if plan.routines.block_counts[routine] != 4 ||
+        branch != plan.routines.block_starts[routine] ||
+        call_block < 0 || merge < 0 ||
+        DirectMirScalarCfgRoutinePartitionBlockOwner(
+            plan.routines, call_block) != routine ||
+        DirectMirScalarCfgRoutinePartitionBlockOwner(
+            plan.routines, merge) != routine ||
+        (plan.block_succ_true[branch] != call_block &&
+         plan.block_succ_false[branch] != call_block) ||
+        plan.program.block_condition_expression_rows[branch] < 0 ||
+        plan.block_operation_starts[call_block] != operation ||
+        plan.block_operation_counts[call_block] != 1 ||
+        plan.block_succ_true[call_block] != merge ||
+        plan.block_succ_false[call_block] >= 0 ||
+        plan.program.block_condition_expression_rows[call_block] >= 0 ||
+        plan.program.block_return_expression_rows[call_block] >= 0 ||
+        plan.block_succ_true[merge] >= 0 ||
+        plan.block_succ_false[merge] >= 0 ||
+        plan.program.block_condition_expression_rows[merge] >= 0 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            plan.program.expressions, graph, local_row) != 1 ||
+        DirectMirScalarProgramOwnedArrayStringMovePlanBlockUsesLocal(
+            plan, merge, local_row) { return false; }
+    return true;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let fact: DirectMirScalarProgramOwnedArrayStringMoveFact =
+        plan.program.owned_array_string_move;
+    if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
+            fact, plan.program.array_string_abi) { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(fact.caller_routines) {
+        let routine: Int = fact.caller_routines[row];
+        let operation: Int = fact.call_operation_rows[row];
+        let graph: Int = fact.call_expression_rows[row];
+        let local_row: Int = fact.local_rows[row];
+        if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+            operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
+            graph < 0 || graph >= ArrayLength(
+                plan.program.expressions.graph_starts) ||
+            local_row < plan.routines.local_starts[routine] ||
+            local_row >= plan.routines.local_starts[routine] +
+                plan.routines.local_counts[routine] ||
+            DirectMirScalarCfgRoutinePartitionOperationOwner(
+                plan.routines, operation) != routine ||
+            plan.program.operation_expression_rows[operation] != graph ||
+            DirectMirScalarProgramOwnedArrayStringMovePlanOperationBlock(
+                plan, routine, operation) !=
+                fact.coverage.call_block_rows[row] { return false; }
+        let kind: Int = fact.coverage.kinds[row];
+        if kind == DirectMirScalarProgramOwnedArrayStringMoveStraightCoverage() {
+            if !DirectMirScalarProgramOwnedArrayStringMoveStraightReadyForPlan(
+                    plan, routine, operation, graph, local_row,
+                    fact.coverage.call_block_rows[row]) { return false; }
+        } else if kind ==
+                DirectMirScalarProgramOwnedArrayStringMoveAlternativeCoverage() {
+            if !DirectMirScalarProgramOwnedArrayStringMoveAlternativeReadyForPlan(
+                    plan, routine, operation, graph, local_row,
+                    fact.coverage.call_block_rows[row],
+                    fact.coverage.branch_block_rows[row],
+                    fact.coverage.merge_block_rows[row]) { return false; }
+        } else { return false; }
+        row = row + 1;
+    }
+    return true;
+}

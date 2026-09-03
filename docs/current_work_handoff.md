@@ -18,6 +18,44 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
+## Active self-host context — ArrayString all-path alternative owner move
+
+- Exact opening base is `f8913fcedf6c5012ccf7edcad996c252ae913955`, equal
+  to `origin/main`; the user-owned EOL-only results change and three protected
+  untracked paths remain outside inspection, edit, and staging.
+- Production entrypoint is installed Pergyra-built DRV-2 source-to-MIR followed
+  by direct MIR C/LLVM projection. The bounded target is one named
+  `Array<String>` local moved through the same admitted owner-handle parameter
+  in both arms of an `if/else`.
+- `DirectMirScalarProgramOwnedArrayStringMoveFact` remains the fact owner. The
+  shared cleanup policy is the last consumer and may suppress routine-exit
+  cleanup only when exact CFG evidence proves retirement on every reachable
+  normal alternative.
+- Forbidden fallbacks are branch-OR closure, a one-sided move, any-row cleanup
+  suppression, runtime moved flags, backend-local ownership analysis, text or
+  AST/MIR rescans, name matching, cloning, and a second move owner. Loops,
+  early exits, member/formal/literal/fresh-result moves, and general ownership
+  flow remain outside this rung.
+- Discovery produced 16,171-byte positive and 14,623-byte one-sided verified
+  MIR; the opening driver rejected both C/LLVM projections with code 19 and no
+  artifact. The implementation keeps one move fact, seals alternative CFG
+  coverage in its digest, and rechecks it at final GraphPlan readiness.
+  Objective and falsifiers remain fixed in
+  `docs/agent_work_directives/array_string_alternative_branch_owner_move_2026-09-03.md`.
+- Fresh installed Pergyra-built DRV-2 is 6,575,689 bytes, SHA-256
+  `BE96C2C9AAA2412CEAE079D3E9E39CC94053F5A86CCC60F3B6AD997524F6E99E`.
+  Focused all-path C/LLVM execution plus seven negative classes is green in
+  6.3 seconds; prior straight entrypoint/non-entrypoint/two-local gates are
+  green in a 7.4-second parallel run. The component inventory is green but
+  exceeded its nominal 60-second static budget because it also executes a
+  driver-source MIR action. SoT edge is green at 88 authorities / 184 derived
+  carriers / `55/32/1`; canonical language-word inventory regeneration and its
+  registry/parser gates are green. Next action is publication and exact-head CI.
+- Current registry is 88 authorities / 184 derived carriers,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, and project forecast 83%. The one
+  added carrier is a projection nested under the existing move fact, not a new
+  authority or a progress decrement. No progress increment is claimed yet.
+
 ## Published supporting context — async Rocq model cores
 
 - Exact opening base is `eed7f7229699770bcda656e7a2947a5f043cbfcc`, equal

@@ -1,7 +1,8 @@
 // Sole derivation of the bounded owner-handle Array<String> caller move.
 
 import "direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy";
-import "direct_mir_scalar_program_owned_array_string_move_use_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy";
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 
@@ -106,10 +107,7 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                         if local_row < local_start || local_row >= local_start +
                                 storage.routines.local_counts[routine] ||
                             storage.values.local_types[local_row] !=
-                                CompilerAbiLayoutArrayStringTypeName() ||
-                            !DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(
-                                storage, expressions, routine, operation, graph,
-                                local_row) {
+                                CompilerAbiLayoutArrayStringTypeName() {
                             return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
                         }
                         ArrayPush(caller_routines, routine);
@@ -130,15 +128,24 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
     if ArrayLength(caller_routines) == 0 {
         return DirectMirScalarProgramOwnedArrayStringMoveFactCanonicalEmpty();
     }
+    let coverage: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact =
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageFromProgram(
+            storage, expressions, caller_routines, call_operations,
+            call_expressions, moved_locals, callables_used,
+            parameter_ordinals, abi_layout_ids);
+    if !DirectMirScalarProgramOwnedArrayStringMoveCoverageReady(
+            coverage, ArrayLength(caller_routines)) {
+        return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
+    }
     let source: DirectMirScalarProgramOwnedArrayStringMoveFact =
         DirectMirScalarProgramOwnedArrayStringMoveFact(
-            true, 0, true, caller_routines, call_operations,
+            true, 0, true, coverage, caller_routines, call_operations,
             call_expressions, moved_locals, callables_used,
             parameter_ordinals, abi_layout_ids);
     let fact: DirectMirScalarProgramOwnedArrayStringMoveFact =
         DirectMirScalarProgramOwnedArrayStringMoveFact(
             true, DirectMirScalarProgramOwnedArrayStringMoveFactDigest(source),
-            true, caller_routines, call_operations, call_expressions,
+            true, coverage, caller_routines, call_operations, call_expressions,
             moved_locals, callables_used, parameter_ordinals, abi_layout_ids);
     if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(fact, abi) {
         return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();

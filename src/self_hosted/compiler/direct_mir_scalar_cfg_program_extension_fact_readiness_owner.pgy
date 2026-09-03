@@ -4,6 +4,7 @@ import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_admission_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
 
 func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Int {
     if !fact.valid {

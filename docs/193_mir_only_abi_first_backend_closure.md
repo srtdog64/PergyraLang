@@ -798,6 +798,32 @@ the consumer rejects a removed fact, and C remains read-only. Broad
 boundaries; they are not a prerequisite for every owner-sized implementation
 commit.
 
+### Bounded all-path ArrayString owner move
+
+The current CFG/cleanup candidate extends the existing
+`DirectMirScalarProgramOwnedArrayStringMoveFact`; it does not create a second
+ownership authority. A four-block `if/else` may retire one named local only
+when both successor arms contain the same admitted owner-handle call identity,
+each arm contains exactly one transfer, both converge on the same terminal
+merge, and the merge has no use of that local. The fact seals straight or
+alternative coverage together with call-block, branch-block, and merge-block
+rows. Extension and GraphPlan digests carry that identity, and final plan
+readiness rechecks the rows against the sealed CFG before either backend emits.
+
+The shared cleanup policy remains the only last consumer. C and LLVM do not
+perform branch-local ownership analysis. One-sided transfer, later use after
+merge, duplicate transfer in one arm, missing branch coverage, and forged
+callable/parameter/ABI identity all fail before artifact publication. This is
+bounded alternative retirement, not branch-OR dataflow: loops, early exits,
+break/continue, nested alternatives, formal/member/literal/fresh-result moves,
+and general ownership flow remain separate rungs.
+
+The focused gate is
+`tests/self_hosted/parity/direct_mir_alternative_owned_array_string_parameter_owner.sh`.
+It produces MIR once, executes both C and LLVM artifacts for true and false
+inputs, checks callee cleanup and absent caller cleanup, and runs the negative
+fixtures and mutations through both projections.
+
 ### Bootstrap boundary
 
 The focused MIR/ABI-first lane is green, but compiler-scale codegen bootstrap

@@ -2,6 +2,27 @@
 
 마지막 업데이트: 2026-09-03
 
+현재 publication 전 executable candidate는 `Array<String>` owner-handle
+양분기 이동이다. 16,171바이트의 verified MIR은 한 지역값을 같은 owner parameter로
+`if/else` 양쪽에서 넘기며, 기존 DRV-2는 C/LLVM 투영을 모두 extension code 19로
+거절했다. 수정본은 기존 `DirectMirScalarProgramOwnedArrayStringMoveFact`의 digest 안에
+직선/양분기 call-block·branch·merge 증거를 봉인하고 최종 GraphPlan readiness에서
+CFG와 다시 교차검증한다. 공통 cleanup policy만 이 fact를 소비하며 백엔드별 분석이나
+runtime moved flag는 없다. Fresh Pergyra-built DRV-2
+`BE96C2C9AAA2412CEAE079D3E9E39CC94053F5A86CCC60F3B6AD997524F6E99E`
+(6,575,689 bytes)에서 C/LLVM은 true/false 실행을 모두 통과하고 caller cleanup을
+제거했으며 callee cleanup은 보존했다. one-sided, merge 뒤 재사용, 같은 arm 중복,
+missing edge, carriage/pass/ABI 위조는 양쪽에서 모두 무산출물로 실패했다. 새 focused
+gate는 6.3초, 기존 직선·비진입·복수-local 회귀 3개는 병렬 7.4초에 green이다.
+component inventory 전체는 green이지만 정적 예산 60초를 넘겨 실행 래칫까지 묶인
+현 gate 자체가 별도 성능 부채다. 이 bounded consumer migration은 아직 publication과
+exact-head CI 전이며, 완료 후에도 ArrayString BRIDGE 전체를 닫지 않는다. 권한자와
+상태 census는 88개 및 `CLOSED=55 BRIDGE=32 ACTIVE=1`로 그대로지만, 기존 fact에
+종속된 coverage carrier 등록으로 derived inventory는 183에서 184가 됐다. 이는
+구조적 분모 증가이지 진행도 하락이나 새 권한자가 아니며 통합 진행도는 바꾸지 않는다.
+새 Pergyra 파일로 변한 language-word implementation inventory는 canonical generator로
+재생성했고 146-row registry check와 typed parser selector gate가 green이다.
+
 가장 최근 닫힌 supporting formal rung은 비동기 lifetime과 runtime authority carriage의
 Rocq 모델이다. `AsyncLifecycleCore.v`는 named Future의 `Absent/Live/Retired/Diverged`
 상태와 spawn/suspend/Cancel/await/own-transfer를 분리하고, `Live`에서 정상

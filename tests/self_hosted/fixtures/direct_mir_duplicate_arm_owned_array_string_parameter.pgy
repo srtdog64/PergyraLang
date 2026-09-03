@@ -1,0 +1,18 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func DuplicateArmMove(select_first: Bool) -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("duplicate", "-arm"));
+    if select_first {
+        ReleaseOwnedArray(values);
+        ReleaseOwnedArray(values);
+    } else {
+        ReleaseOwnedArray(values);
+    }
+}
+
+func Main() -> Void {
+    DuplicateArmMove(true);
+}

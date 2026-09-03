@@ -1,0 +1,157 @@
+// Bounded derivation of straight-line or complete if/else move coverage.
+
+import "direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_use_owner.pgy";
+
+func DirectMirScalarProgramOwnedArrayStringMoveOperationBlock(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    routine: Int, operation: Int
+) -> Int {
+    let start: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.block_counts, routine);
+    if start < 0 { return -1; }
+    let block: Int = start;
+    let end: Int = start + storage.routines.block_counts[routine];
+    while block < end {
+        let first: Int = storage.blocks.operation_starts[block];
+        if operation >= first && operation < first +
+                storage.blocks.operation_counts[block] { return block; }
+        block = block + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveBlockUsesLocal(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    block: Int, local_row: Int
+) -> Bool {
+    let operation: Int = storage.blocks.operation_starts[block];
+    let end: Int = operation + storage.blocks.operation_counts[block];
+    while operation < end {
+        if DirectMirScalarProgramOperationUsesLocal(
+                storage, expressions, operation, local_row) { return true; }
+        operation = operation + 1;
+    }
+    return DirectMirScalarProgramExpressionGraphLocalUseCount(
+        expressions, storage.blocks.condition_expression_rows[block],
+        local_row) > 0 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            expressions, storage.blocks.return_expression_rows[block],
+            local_row) > 0;
+}
+
+func DirectMirScalarProgramOwnedArrayStringAlternativeMovePairReady(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref callers: Array<Int>, ref operations: Array<Int>,
+    ref graphs: Array<Int>, ref locals: Array<Int>,
+    ref callables: Array<Int>, ref parameters: Array<Int>,
+    ref layouts: Array<Int>, row: Int, pair: Int
+) -> Bool {
+    if row == pair || callers[row] != callers[pair] ||
+        locals[row] != locals[pair] || callables[row] != callables[pair] ||
+        parameters[row] != parameters[pair] || layouts[row] != layouts[pair] ||
+        storage.routines.block_counts[callers[row]] != 4 { return false; }
+    let branch: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.block_counts, callers[row]);
+    let left: Int = DirectMirScalarProgramOwnedArrayStringMoveOperationBlock(
+        storage, callers[row], operations[row]);
+    let right: Int = DirectMirScalarProgramOwnedArrayStringMoveOperationBlock(
+        storage, callers[row], operations[pair]);
+    if branch < 0 || left < 0 || right < 0 || left == right ||
+        ((storage.blocks.succ_true[branch] != left ||
+          storage.blocks.succ_false[branch] != right) &&
+         (storage.blocks.succ_true[branch] != right ||
+          storage.blocks.succ_false[branch] != left)) ||
+        storage.blocks.condition_expression_rows[branch] < 0 ||
+        storage.blocks.operation_starts[left] != operations[row] ||
+        storage.blocks.operation_counts[left] != 1 ||
+        storage.blocks.operation_starts[right] != operations[pair] ||
+        storage.blocks.operation_counts[right] != 1 ||
+        storage.blocks.succ_false[left] >= 0 ||
+        storage.blocks.succ_false[right] >= 0 ||
+        storage.blocks.succ_true[left] < 0 ||
+        storage.blocks.succ_true[left] != storage.blocks.succ_true[right] ||
+        storage.blocks.condition_expression_rows[left] >= 0 ||
+        storage.blocks.condition_expression_rows[right] >= 0 ||
+        storage.blocks.return_expression_rows[left] >= 0 ||
+        storage.blocks.return_expression_rows[right] >= 0 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            expressions, graphs[row], locals[row]) != 1 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            expressions, graphs[pair], locals[row]) != 1 { return false; }
+    let merge: Int = storage.blocks.succ_true[left];
+    let routine_end: Int = branch + storage.routines.block_counts[callers[row]];
+    return merge > branch && merge < routine_end && merge != left &&
+        merge != right && storage.blocks.succ_true[merge] < 0 &&
+        storage.blocks.succ_false[merge] < 0 &&
+        storage.blocks.condition_expression_rows[merge] < 0 &&
+        !DirectMirScalarProgramOwnedArrayStringMoveBlockUsesLocal(
+            storage, expressions, merge, locals[row]);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageFromProgram(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref callers: Array<Int>, ref operations: Array<Int>,
+    ref graphs: Array<Int>, ref locals: Array<Int>,
+    ref callables: Array<Int>, ref parameters: Array<Int>,
+    ref layouts: Array<Int>
+) -> DirectMirScalarProgramOwnedArrayStringMoveCoverageFact {
+    let kinds: Array<Int> = [];
+    let call_blocks: Array<Int> = [];
+    let branch_blocks: Array<Int> = [];
+    let merge_blocks: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(callers) {
+        let call_block: Int =
+            DirectMirScalarProgramOwnedArrayStringMoveOperationBlock(
+                storage, callers[row], operations[row]);
+        if call_block < 0 {
+            return DirectMirScalarProgramOwnedArrayStringMoveCoverageInvalid();
+        }
+        if DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(
+                storage, expressions, callers[row], operations[row],
+                graphs[row], locals[row]) {
+            ArrayPush(kinds,
+                DirectMirScalarProgramOwnedArrayStringMoveStraightCoverage());
+            ArrayPush(call_blocks, call_block);
+            ArrayPush(branch_blocks, -1);
+            ArrayPush(merge_blocks, -1);
+        } else {
+            let pair: Int = -1;
+            let candidate: Int = 0;
+            while candidate < ArrayLength(callers) {
+                if candidate != row && callers[candidate] == callers[row] &&
+                    locals[candidate] == locals[row] {
+                    if pair >= 0 {
+                        return DirectMirScalarProgramOwnedArrayStringMoveCoverageInvalid();
+                    }
+                    pair = candidate;
+                }
+                candidate = candidate + 1;
+            }
+            if pair < 0 ||
+                !DirectMirScalarProgramOwnedArrayStringAlternativeMovePairReady(
+                    storage, expressions, callers, operations, graphs, locals,
+                    callables, parameters, layouts, row, pair) {
+                return DirectMirScalarProgramOwnedArrayStringMoveCoverageInvalid();
+            }
+            let branch: Int = DirectMirScalarProgramRoutinePartitionStart(
+                storage.routines.block_counts, callers[row]);
+            ArrayPush(kinds,
+                DirectMirScalarProgramOwnedArrayStringMoveAlternativeCoverage());
+            ArrayPush(call_blocks, call_block);
+            ArrayPush(branch_blocks, branch);
+            ArrayPush(merge_blocks, storage.blocks.succ_true[call_block]);
+        }
+        row = row + 1;
+    }
+    let source: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact =
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageFact(
+            true, 0, kinds, call_blocks, branch_blocks, merge_blocks);
+    return DirectMirScalarProgramOwnedArrayStringMoveCoverageFact(
+        true, DirectMirScalarProgramOwnedArrayStringMoveCoverageDigest(source),
+        kinds, call_blocks, branch_blocks, merge_blocks);
+}

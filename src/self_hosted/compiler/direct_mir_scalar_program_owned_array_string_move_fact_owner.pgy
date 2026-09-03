@@ -1,12 +1,13 @@
 // Admitted caller-local moves into owner-handle Array<String> parameters.
 
 import "direct_mir_scalar_cfg_hash_owner.pgy";
-import "direct_mir_scalar_program_array_string_abi_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy";
 
 struct DirectMirScalarProgramOwnedArrayStringMoveFact {
     let valid: Bool;
     let digest: Int;
     let present: Bool;
+    let coverage: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact;
     let caller_routines: Array<Int>;
     let call_operation_rows: Array<Int>;
     let call_expression_rows: Array<Int>;
@@ -20,14 +21,17 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactInvalid(
 ) -> DirectMirScalarProgramOwnedArrayStringMoveFact {
     let rows: Array<Int> = [];
     return DirectMirScalarProgramOwnedArrayStringMoveFact(
-        false, 0, false, rows, rows, rows, rows, rows, rows, rows);
+        false, 0, false,
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageInvalid(),
+        rows, rows, rows, rows, rows, rows, rows);
 }
 
 func DirectMirScalarProgramOwnedArrayStringMoveFactDigest(
     ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact
 ) -> Int {
     if !fact.valid { return 0; }
-    let hash: Long = DirectMirScalarCfgHashInts(307L, fact.caller_routines);
+    let hash: Long = DirectMirCfgHashInt(307L, fact.coverage.digest);
+    hash = DirectMirScalarCfgHashInts(hash, fact.caller_routines);
     hash = DirectMirScalarCfgHashInts(hash, fact.call_operation_rows);
     hash = DirectMirScalarCfgHashInts(hash, fact.call_expression_rows);
     hash = DirectMirScalarCfgHashInts(hash, fact.local_rows);
@@ -53,6 +57,8 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactReady(
         count != ArrayLength(fact.callable_ordinals) ||
         count != ArrayLength(fact.parameter_ordinals) ||
         count != ArrayLength(fact.abi_layout_ids) ||
+        !DirectMirScalarProgramOwnedArrayStringMoveCoverageReady(
+            fact.coverage, count) ||
         fact.present != (count > 0) { return false; }
     let row: Int = 0;
     while row < count {
@@ -62,12 +68,33 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactReady(
             fact.callable_ordinals[row] <= 0 ||
             fact.parameter_ordinals[row] < 0 ||
             fact.abi_layout_ids[row] <= 0 { return false; }
-        let prior: Int = 0;
-        while prior < row {
-            if fact.caller_routines[prior] == fact.caller_routines[row] &&
-                fact.local_rows[prior] == fact.local_rows[row] { return false; }
-            prior = prior + 1;
+        let matches: Int = 0;
+        let other: Int = 0;
+        while other < count {
+            if fact.caller_routines[other] == fact.caller_routines[row] &&
+                fact.local_rows[other] == fact.local_rows[row] {
+                matches = matches + 1;
+                if fact.callable_ordinals[other] !=
+                        fact.callable_ordinals[row] ||
+                    fact.parameter_ordinals[other] !=
+                        fact.parameter_ordinals[row] ||
+                    fact.abi_layout_ids[other] != fact.abi_layout_ids[row] ||
+                    fact.coverage.kinds[other] != fact.coverage.kinds[row] ||
+                    fact.coverage.branch_block_rows[other] !=
+                        fact.coverage.branch_block_rows[row] ||
+                    fact.coverage.merge_block_rows[other] !=
+                        fact.coverage.merge_block_rows[row] ||
+                    (other != row && fact.coverage.call_block_rows[other] ==
+                        fact.coverage.call_block_rows[row]) { return false; }
+            }
+            other = other + 1;
         }
+        if (fact.coverage.kinds[row] ==
+                DirectMirScalarProgramOwnedArrayStringMoveStraightCoverage() &&
+             matches != 1) ||
+            (fact.coverage.kinds[row] ==
+                DirectMirScalarProgramOwnedArrayStringMoveAlternativeCoverage() &&
+             matches != 2) { return false; }
         row = row + 1;
     }
     return true;
@@ -76,43 +103,13 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactReady(
 func DirectMirScalarProgramOwnedArrayStringMoveFactCanonicalEmpty(
 ) -> DirectMirScalarProgramOwnedArrayStringMoveFact {
     let rows: Array<Int> = [];
+    let coverage: DirectMirScalarProgramOwnedArrayStringMoveCoverageFact =
+        DirectMirScalarProgramOwnedArrayStringMoveCoverageCanonicalEmpty();
     let source: DirectMirScalarProgramOwnedArrayStringMoveFact =
         DirectMirScalarProgramOwnedArrayStringMoveFact(
-            true, 0, false, rows, rows, rows, rows, rows, rows, rows);
+            true, 0, false, coverage,
+            rows, rows, rows, rows, rows, rows, rows);
     return DirectMirScalarProgramOwnedArrayStringMoveFact(
         true, DirectMirScalarProgramOwnedArrayStringMoveFactDigest(source),
-        false, rows, rows, rows, rows, rows, rows, rows);
-}
-
-func DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
-    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact,
-    ref abi: DirectMirScalarProgramArrayStringAbiFact
-) -> Bool {
-    if !DirectMirScalarProgramOwnedArrayStringMoveFactReady(fact) {
-        return false;
-    }
-    if !fact.present { return true; }
-    if !DirectMirScalarProgramArrayStringAbiFactReady(abi) { return false; }
-    let row: Int = 0;
-    while row < ArrayLength(fact.abi_layout_ids) {
-        if fact.abi_layout_ids[row] != abi.layout_id { return false; }
-        row = row + 1;
-    }
-    return true;
-}
-
-func DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(
-    ref fact: DirectMirScalarProgramOwnedArrayStringMoveFact,
-    routine: Int, local_row: Int
-) -> Bool {
-    if !DirectMirScalarProgramOwnedArrayStringMoveFactReady(fact) {
-        return false;
-    }
-    let row: Int = 0;
-    while row < ArrayLength(fact.caller_routines) {
-        if fact.caller_routines[row] == routine &&
-            fact.local_rows[row] == local_row { return true; }
-        row = row + 1;
-    }
-    return false;
+        false, coverage, rows, rows, rows, rows, rows, rows, rows);
 }

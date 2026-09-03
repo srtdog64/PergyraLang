@@ -6,6 +6,32 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — ArrayString all-path alternative owner move
+
+- Exact base is `f8913fcedf6c5012ccf7edcad996c252ae913955`, equal to
+  `origin/main` when this lease opened. The primary task is the sole owner of
+  the move-fact, CFG proof, cleanup policy, focused fixtures/gate, integration,
+  commit/push, and exact-CI scope.
+- Production target is installed Pergyra-built DRV-2 source-to-MIR followed by
+  direct MIR C/LLVM projection. The bounded case moves one named
+  `Array<String>` local through the same owner-handle parameter in both arms of
+  an admitted `if/else`.
+- `DirectMirScalarProgramOwnedArrayStringMoveFact` remains the owner. Routine
+  cleanup may be suppressed only after exact CFG evidence proves every normal
+  alternative retires the local; one-sided move and branch-OR closure are
+  forbidden.
+- The discovery fixture must first reproduce the current production failure.
+  Exact objective, last consumer, forbidden fallbacks, and falsifiers are in
+  `docs/agent_work_directives/array_string_alternative_branch_owner_move_2026-09-03.md`.
+  This rung changes no authority/status census or percentage before executable
+  substitution and publication. Its nested coverage fact raises the derived-
+  carrier inventory from 183 to 184 without creating a new authority.
+- Discovery reproduced verified-MIR success followed by C/LLVM extension code
+  19. The fresh Pergyra-built DRV-2 now executes the two complete alternatives
+  in both backends, while one-sided/later-use/duplicate-arm/missing-edge and
+  ABI identity negatives publish no artifact. Focused and three prior owner-
+  move regression gates are green; publication and exact-head CI remain.
+
 ## DONE lease — async Rocq model cores
 
 - Exact base is `eed7f7229699770bcda656e7a2947a5f043cbfcc`, equal to

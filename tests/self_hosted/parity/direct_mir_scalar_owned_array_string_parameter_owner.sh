@@ -21,12 +21,13 @@ MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations
 FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy"
 ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy"
 USE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy"
+COVERAGE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy"
 CLEANUP="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy"
 C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_cleanup_owner.pgy"
 LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
-for owner in "$FACT" "$ADMISSION" "$USE_OWNER" "$CLEANUP" "$C_OWNER" \
+for owner in "$FACT" "$ADMISSION" "$USE_OWNER" "$COVERAGE" "$CLEANUP" "$C_OWNER" \
         "$LLVM_OWNER" "$MUTATIONS"; do
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
 done
@@ -38,7 +39,7 @@ grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveFact' "$FACT" ||
     fail "move fact is missing"
 grep -Fq 'caller_routines: Array<Int>' "$FACT" ||
     fail "move fact does not own an ordered row set"
-grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(' "$ADMISSION" ||
+grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(' "$COVERAGE" ||
     fail "move admission omits last-use proof"
 ! grep -Fq 'candidates != 1' "$ADMISSION" ||
     fail "move admission restored its one-row ceiling"

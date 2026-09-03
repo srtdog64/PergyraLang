@@ -11,6 +11,7 @@ import "direct_mir_scalar_cfg_program_statement_admission_owner.pgy";
 import "direct_mir_scalar_program_process_exit_owner.pgy";
 import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
 import "direct_mir_scalar_program_enum_exhaustive_match_owner.pgy";
+import "direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy";
 func DirectMirScalarCfgProgramExpressionUseCount(
     ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
 ) -> Int {
@@ -197,6 +198,9 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     }
     if !DirectMirScalarProgramArrayStringBoundaryReadyForPlan(plan) {
         return 14;
+    }
+    if !DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(plan) {
+        return 23;
     }
     if !DirectMirScalarProgramRuntimeValueLifecycleReady(plan) { return 22; }
     return 0;
