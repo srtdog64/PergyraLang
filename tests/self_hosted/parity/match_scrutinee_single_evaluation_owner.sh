@@ -65,6 +65,12 @@ grep -Fq '"AST_LET_DECL", source_uses' "$ROOT_DIR/$MIR_OWNER" ||
     fail "MIR match owner no longer defines the scrutinee value once"
 grep -Fq 'match_value = synthetic_name;' "$ROOT_DIR/$MIR_OWNER" ||
     fail "MIR cases no longer consume the synthetic match value"
+grep -Fq 'SelfMirMatchSyntheticGraphView(' "$ROOT_DIR/$MIR_OWNER" ||
+    fail "MIR match owner no longer projects the synthetic graph by value"
+if grep -Fq 'input.analysis.expression_surfaces.expression_graph' \
+    "$ROOT_DIR/$MIR_OWNER"; then
+    fail "MIR match owner stored a graph directly from its borrowed input"
+fi
 [[ "$(grep -Fc 'SemanticAstExpressionGraphForNode(' "$ROOT_DIR/$MIR_OWNER")" -eq 1 ]] ||
     fail "MIR match owner re-opened the source graph per case"
 

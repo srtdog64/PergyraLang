@@ -167,6 +167,21 @@ func SelfMirMatchBindingTypes(
     return false;
 }
 
+func SelfMirMatchSyntheticGraphView(
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    synthetic_graph_root_id: Int
+) -> SemanticExpressionGraphView {
+    return SemanticExpressionGraphView(
+        synthetic_graph_root_id >= 0 &&
+            synthetic_graph_root_id <
+                SemanticExpressionGraphArenaNodeCount(
+                    expression_surfaces.expression_graph.arena
+                ),
+        synthetic_graph_root_id,
+        expression_surfaces.expression_graph
+    );
+}
+
 func SelfMirLowerMatchCaseBranch(
     ref input: SelfMirRoutineInput,
     build: SelfMirRoutineBuild,
@@ -273,10 +288,9 @@ func SelfMirLowerMatchFromArtifact(
             build, match_graph, input.machine_declaration
         );
         match_value = synthetic_name;
-        match_graph = SemanticExpressionGraphView(
-            true,
-            input.match_materializations.synthetic_graph_root_ids[row],
-            input.analysis.expression_surfaces.expression_graph
+        match_graph = SelfMirMatchSyntheticGraphView(
+            input.analysis.expression_surfaces,
+            input.match_materializations.synthetic_graph_root_ids[row]
         );
     }
     if !build.ok || !match_graph.ok {

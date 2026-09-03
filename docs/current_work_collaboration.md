@@ -1,6 +1,6 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-09-03 (Asia/Seoul)
+Updated: 2026-09-04 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
@@ -52,8 +52,18 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   fact-shaped file as unclassified. The fact is now registered as a
   `selfhost.expression_surface` derived projection: authority/status census
   stays 88 and `55/32/1`, while derived carriers rise from 184 to 185.
-  Registry publication, docs-only validation, and workflow-dispatch full
-  exact-head CI remain pending. Pergyra-owned LLVM still does not admit this
+- Registry closure `2eb5b3be55d4100b59ef9434cc779704705b173b` passed docs-only
+  run `33766760335`. Its manually dispatched full run `33766884880` reached
+  Linux full bootstrap and rejected one direct constructor store from
+  `ref input`'s nested expression graph; the later TextBuilder diagnostics were
+  cascades. The repair uses one responsibility-named by-value projection,
+  validates the synthetic graph root, and gates the forbidden direct store.
+  The exact failing full-MIR producer now exits 0 for all 7,476 routines, and
+  local `self-host-driver-bootstrap-full-test-smoke` exits 0 after gen2/gen3
+  equality in 1,699,815ms. Peak working/private memory was 2.451/2.744GiB,
+  above the 80% attention threshold but below the hard limit. Repair
+  publication and automatically opened full exact-head CI remain pending.
+  Pergyra-owned LLVM still does not admit this
   Option-match structural shape and is a separate future rung. Generated
   inventory, authority/status census, and project percentage do not change
   further. Exact objective and exclusions are in

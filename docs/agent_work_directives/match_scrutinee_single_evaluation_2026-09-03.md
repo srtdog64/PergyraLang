@@ -1,6 +1,6 @@
 # Match scrutinee single-evaluation lease — 2026-09-03
 
-Status: `SEED REPAIR EXACT GREEN — DERIVED REGISTRY REPAIR PENDING`
+Status: `FULL-BOOTSTRAP BORROW REPAIR LOCAL GREEN — EXACT CI PENDING`
 
 Exact base: `513b668957cdb47627bd2bc490a45916337b2629` on
 `origin/main`.
@@ -116,3 +116,17 @@ shape, and automatically restores byte parity when it does.
   meaning while this carrier records only the exactly-once materialization
   decision and stable synthetic reference. Derived carriers therefore rise
   from 184 to 185, with 88 authorities and `55/32/1` unchanged.
+- Registry closure `2eb5b3be55d4100b59ef9434cc779704705b173b` passed docs-only
+  run `33766760335`. Full exact-head run `33766884880` then failed only when
+  Linux full bootstrap saw `SelfMirLowerMatchFromArtifact(ref input, ...)`
+  store the nested borrowed expression graph in a newly constructed view. The
+  26 later TextBuilder diagnostics were cascades, not independent owners.
+- `SelfMirMatchSyntheticGraphView` now receives expression-surface facts by
+  value, validates the synthetic root, and constructs the view without
+  retaining `ref input` provenance. The focused gate rejects any return of the
+  direct nested graph store. The observable fixture remains exact-once green.
+- The exact `full_mir_seed` reproduction exits 0 after all 7,476 routines and
+  writes a 278,796,939-byte MIR artifact. Local full driver bootstrap also
+  exits 0 and proves gen2/gen3 fixed point in 1,699,815ms. Its 2.451GiB peak
+  working set and 2.744GiB peak private bytes cross the 80% attention threshold
+  without crossing the hard limit; exact-head CI owns the final matrix verdict.

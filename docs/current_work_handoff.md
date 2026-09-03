@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-09-03 (Asia/Seoul)
+Updated: 2026-09-04 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -20,9 +20,9 @@ percentage by themselves.
 
 ## Active self-host context — match scrutinee single-evaluation CI repair
 
-- Generated-inventory closure `12dd5a2eb6c204e2959d32ae52c8478efc4cff0d`
+- Derived-registry closure `2eb5b3be55d4100b59ef9434cc779704705b173b`
   is the exact published checkpoint and equals `origin/main`. The worktree
-  contains one bounded derived-registry repair plus the protected user-owned
+  contains one bounded full-bootstrap borrow repair plus the protected user-owned
   `examples/raid_graph_fsm/results.txt` change and three protected untracked
   directories; those unrelated paths remain outside inspection, edit, and
   staging.
@@ -75,8 +75,26 @@ percentage by themselves.
   `selfhost.expression_surface` meaning plus the owned statement result type.
   It is now registered as a derived projection, raising derived carriers from
   184 to 185 while authorities and `55/32/1` remain unchanged.
-- Next action is explicit registry-and-handoff staging, commit/push, docs-only
-  validation, then workflow-dispatch full exact-head CI. Pergyra-owned LLVM
+- Registry closure `2eb5b3be55d4100b59ef9434cc779704705b173b`
+  passed docs-only run `33766760335`. Manually dispatched exact-head full run
+  `33766884880` then reached the Linux full bootstrap and exposed one real
+  error: `SelfMirLowerMatchFromArtifact(ref input, ...)` stored
+  `input.analysis.expression_surfaces.expression_graph` in a constructed
+  `SemanticExpressionGraphView`. The compiler rejected that longer-lived alias
+  of a borrowed boundary; the following 26 TextBuilder errors were cascades.
+- The bounded repair projects the synthetic graph from a by-value
+  `SemanticAstExpressionSurfaceFacts`, matching the established iteration
+  owner shape, validates the synthetic root range, and negatively gates the
+  direct nested graph store. The observable exact-once runtime gate is green.
+  The exact failing `full_mir_seed` call now exits 0 after lowering and
+  validating 7,476 routines and writing a 278,796,939-byte MIR artifact. Local
+  `self-host-driver-bootstrap-full-test-smoke` also exits 0: gen2/gen3 fixed
+  point completed in 1,699,815ms with 2.451GiB peak working set and 2.744GiB
+  peak private bytes. This crosses the pressure owner's 80% attention threshold
+  but not its hard limit, so it remains explicit performance evidence rather
+  than a green-capacity claim.
+- Next action is explicit repair-and-handoff staging, commit/push, then the
+  automatically opened full exact-head CI. Pergyra-owned LLVM
   admission for this
   Option binding remains a
   separate future executable rung. Module Build is only a deferred
