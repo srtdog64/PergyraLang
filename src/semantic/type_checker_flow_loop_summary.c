@@ -85,7 +85,9 @@ loop_flow_capture_states(SemanticContext *ctx,
         return false;
     if (snapshot->count > 0
         && (snapshot->symbol_indices == NULL || snapshot->states == NULL
-            || snapshot->used_states == NULL || snapshot->access_masks == NULL
+            || snapshot->used_states == NULL
+            || snapshot->future_states == NULL
+            || snapshot->access_masks == NULL
             || snapshot->slot_states == NULL || snapshot->sem_states == NULL
             || snapshot->pool_ids == NULL))
         return false;
@@ -106,6 +108,9 @@ loop_flow_capture_states(SemanticContext *ctx,
         fact->stable_index = snapshot->symbol_indices[i];
         fact->is_consumed = snapshot->states[i];
         fact->is_used = snapshot->used_states[i];
+        /* Future lifecycle is a transient semantic containment proof. The
+         * private loop summary carries it; no backend consumes or reconstructs
+         * it from the exported resource-flow ABI. */
         fact->access_mask = snapshot->access_masks[i];
         fact->slot_state = (int32_t)snapshot->slot_states[i];
         fact->semantic_state = (int32_t)snapshot->sem_states[i];

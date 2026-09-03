@@ -2,8 +2,9 @@ func Worker() -> Int {
     return 1;
 }
 
-func Main() -> Void {
+async func Main() -> Void {
     Log(IsCancelled());
     let pending: Future<Int> = spawn Worker();
     Log(Cancel(pending));
+    let joined: Int = await pending;
 }

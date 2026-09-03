@@ -1,0 +1,12 @@
+async func RetireRemote(own task: RemoteFuture<Int>) -> Void {
+    let result: Result<Int> = await task;
+    Log(Unwrap(result));
+}
+
+async func Main() -> Void {
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(dev, 11);
+    let pending: RemoteFuture<Int> = SubmitDeviceRead(dev);
+    RetireRemote(pending);
+    ReleaseDeviceSlot(dev);
+}

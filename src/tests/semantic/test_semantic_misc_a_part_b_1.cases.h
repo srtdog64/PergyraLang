@@ -169,9 +169,10 @@
             "func Inspect(ref value: Int) -> Int {\n"
             "    return value;\n"
             "}\n"
-            "func Main() -> Void with effects remote {\n"
+            "async func Main() -> Void with effects remote {\n"
             "    let value: Int = 10;\n"
             "    let pending: Future<Int> = spawn Inspect(value);\n"
+            "    let completed: Int = await pending;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

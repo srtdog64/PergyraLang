@@ -120,7 +120,7 @@ test_rir_lowering(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         const char *src =
-            "async func JoinRemote(pending: RemoteFuture<Int>) -> Void {\n"
+            "async func JoinRemote(own pending: RemoteFuture<Int>) -> Void {\n"
             "    let result = await pending;\n"
             "}\n";
         bool ok = lower_rir_from_source(src, &hir, &rir);

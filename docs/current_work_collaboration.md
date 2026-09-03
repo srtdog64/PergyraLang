@@ -6,7 +6,32 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — spawn runtime context propagation
+## ACTIVE lease — structured spawn lifecycle
+
+- Exact base is `a1d3e116f40566f164aef98ba98b931dc01cbe5f`, equal to
+  `origin/main` when this lease opened. The primary task is the sole code,
+  focused-gate, integration, commit/push, and exact-CI owner for this rung.
+- Objective: a Future/RemoteFuture owned by a lexical or function scope must
+  be joined on every normal path or transferred through an explicit `own`
+  parameter before that scope exits. Cancel is a request and cannot retire the
+  handle.
+- The semantic symbol lifecycle fact and flow snapshots are the owner/carrier.
+  Branch and loop joins are path alternatives; parallel task joins are
+  simultaneous execution and therefore use a distinct merge rule.
+- Runtime AsyncScope wiring, implicit drain/cancel, backend cleanup, branch OR
+  false closure, Future return/default/ref parameter escape, new syntax, and
+  detach are forbidden.
+- Exact objective, owners, edit boundary, and falsifiers are fixed in
+  `docs/agent_work_directives/structured_spawn_lifecycle_2026-09-03.md`.
+  Local implementation and integration evidence are green: semantic 2861/0,
+  focused C/LLVM 19 positive/18 negative with exact transfer output, and the
+  full LLVM smoke suite. `test-all` completes after the transpiler, RIR, and
+  MIR fixtures that encoded bare/borrowed Future disposal were migrated to
+  valid structured ownership. Commit/push and exact-head CI remain before this
+  lease can become `DONE`. This lease changes neither SoT counts nor the 83%
+  project forecast.
+
+## DONE lease — spawn runtime context propagation
 
 - Exact base is `a6ba51a996438c7de089a6cd495b20b6a6b74844`, equal to
   `origin/main` when this lease opened. The primary task is the sole code,
@@ -38,8 +63,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   run `33696232268` reproduces one Windows AIR measurement drift only:
   `04_channel_parallel` gains the context owner's `pthread_once`, moving
   fixture-specific Sync excess 14 to 15 while every other row and the common
-  floor remain unchanged. The attributed baseline fix and a new exact run are
-  pending.
+  floor remain unchanged. Attribution commit `a1d3e116` reached `origin/main`.
+- Exact run `33697540462` completed GREEN 30/30 in 36m53s. Full self-host took
+  35m52s; build-linux 19m55s, Windows 9m30s, sanitizers 12m45s, TSan, macOS,
+  Rocq 9, codegen bootstrap, and all 20 backend shards are green. The runtime
+  authority carriage lease is retired.
 
 ## DONE lease — codegen seed prebuild receipt
 

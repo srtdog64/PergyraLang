@@ -306,6 +306,8 @@ type_check_statement_flow_dispatch(ASTNode *node, SemanticContext *ctx,
         FlowFlags flags;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         flags = type_check_block_flow(node, ctx, loop_flow);
+        semantic_future_require_scope_retired(
+            ctx->scope, node, ctx, "block exit");
         scope_exit(&ctx->scope);
         return flags;
     }

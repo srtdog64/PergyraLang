@@ -123,12 +123,13 @@ test_program_emit_head(void)
         spawn->data.spawn_expr.function = call;
 
         ASTNode *main_body = ast_create_block();
-        ast_add_statement(main_body, spawn);
+        ast_add_statement(main_body, ast_create_await_expression(spawn));
         ASTNode *main = calloc(1, sizeof(ASTNode));
         main->type = AST_FUNC_DECL;
         main->data.func_decl.name = pergyra_strdup("Main");
         main->data.func_decl.return_type = make_type_node("Void");
         main->data.func_decl.body = main_body;
+        main->is_async_decl = true;
 
         ASTNode *stmts[2] = { identity, main };
         ASTNode *prog = make_program(stmts, 2);

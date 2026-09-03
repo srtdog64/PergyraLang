@@ -13,13 +13,16 @@ sequential trap, futurelock-class deadlocks), see
 `docs/114_async_model_positioning.md`. This file is the contract; that file
 is the rationale.
 
-Executable gate: `make memory-concurrency-model-test-smoke`.
+Executable gates: `make memory-concurrency-model-test-smoke` and
+`make structured-spawn-lifecycle-test-smoke`.
 
 ## Stable Execution Surface
 
 - `parallel` is the core execution primitive.
 - Named `spawn Worker(args...)` is beta-stable when the callee declaration
-  exposes parameter, effect, and ownership facts.
+  exposes parameter, effect, and ownership facts. Its completion handle is an
+  affine lexical obligation: bind it directly or await it immediately, then
+  retire it on every normal path before leaving the owning scope.
 - `async func`/`await` is beta-stable for copy-only values and checked futures.
   `await` is a completion join only; it does not own lifetime, cancellation,
   failure classification, or parallel structure.
@@ -47,9 +50,10 @@ Executable gate: `make memory-concurrency-model-test-smoke`.
 - Every execution boundary restores the surrounding context after the task
   returns. Local coroutines additionally restore scheduler context before
   `yield`/`await` switches and rebind their own captured context when resumed.
-- This authority-carriage contract does not by itself provide structured task
-  containment. Until the lifecycle rung below is implemented, the existing
-  future/await lifetime rules still apply.
+- Authority carriage and structured containment have separate owners. Runtime
+  task records carry the captured context; semantic Future lifecycle flow now
+  proves that a named spawn is joined or explicitly transferred before its
+  lexical owner exits. The runtime does not invent an implicit drain fallback.
 
 Implementation checkpoint: `src/runtime/pgy_runtime_context.h` owns task
 capture and the shared budget-state reference. `PgyTask` and `PgyCoroTask` are
@@ -224,20 +228,45 @@ contract owners.
 - `await` is a completion join, but the named `Future<T>` or
   `RemoteFuture<T>` handle is consumed by the join. The runtime frees the task
   handle on await, so the semantic checker marks a named awaited handle
-  consumed and rejects double-await / await-after-cancel reuse through the
-  normal move/release diagnostic path.
-- This is not a general must-await or guaranteed-finalizer rule. A still-live
-  named future is not currently rejected merely because its function exits.
-  Only structured `parallel` owns join-before-continuation in the current
-  language contract.
+  consumed and rejects double-await and use after an affine transfer.
+- A named `Future<T>` or `RemoteFuture<T>` must be retired on every normal path
+  before its lexical scope or function exits. Retirement is either `await` or
+  transfer to an explicit `own Future<T>`/`own RemoteFuture<T>` parameter; the
+  receiving function inherits the same obligation.
+- `spawn` is admitted only as the direct initializer of an immutable binding
+  or as the direct operand of `await`. Bare spawn expressions, mutable Future
+  bindings, Future-to-Future `let` aliases, borrowed/default Future parameters,
+  Future return boundaries, and branch-dependent live/retired state are
+  semantic errors.
+- This rule does not make `async` a lifetime structure and does not add a
+  hidden finalizer. The affine Future binding and lexical flow fact own the
+  obligation; `parallel` retains its own block join contract.
 - Inline `await spawn Worker(args...)` is valid because the temporary handle is
   consumed immediately and never creates a reusable binding.
 - A task condition-variable wait failure is an internal invariant violation;
   `await` must not continue as if the task completed normally.
 
+Implementation checkpoint: `src/semantic/type_checker_future_lifecycle.c`
+owns admission, retirement, transfer, and scope-exit rejection.
+`ResourceConsumeSnapshot` carries the state across if/match/loop/parallel flow;
+alternative paths must agree, while a structured parallel join combines the
+executed task states. Static boolean branches, provably non-empty literal
+ranges including their final `continue`, `while true`, and literal match
+selection exclude impossible paths, unreachable returns and loop exits, and
+exact zero-iteration loop bodies;
+unknown conditions remain conservative. `make
+structured-spawn-lifecycle-test-smoke` pins nineteen positive and eighteen
+fail-closed production fixtures across both C and LLVM semantic entrypoints,
+exact transfer execution output, the stable `PGY_SEM_TASK_LIFECYCLE`,
+single-owner diagnostics without type-mismatch cascades, move-after-transfer,
+and parallel double-consume diagnostics.
+
 ## Cancellation Contract
 
 - `Cancel(Future<T>)` and `Cancel(RemoteFuture<T>)` are copy-only for beta.
+- `Cancel(...)` requests cooperative cancellation; it neither joins nor frees
+  the completion handle. The caller must still `await` it or transfer it to an
+  explicit `own Future` parameter before leaving the owning scope.
 - Ownership-bearing future payload cancellation is explicitly rejected until
   task-boundary cleanup summaries prove where movable/anchored/subject/token
   payloads are released or observed.
@@ -250,6 +279,8 @@ contract owners.
 - backend compare for `parallel_channel_sum`
 - backend compare for `parallel_channel_dual`
 - backend compare for `triple_paradigm`
+- the structured spawn lifecycle gate for immutable ownership, join/transfer,
+  and negative exit-path cases
 
 ## Explicitly Out Of Beta
 

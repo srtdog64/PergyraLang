@@ -154,6 +154,8 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
             }
             return TYPE_UNKNOWN;
         }
+        if (!semantic_future_validate_use(sym, expr, ctx))
+            return TYPE_UNKNOWN;
         if ((type_is_general_boundary_type(sym->type, ctx)
              || type_is_constructed_named(sym->type, "Array")
              || type_is_move_token(sym->type))
@@ -331,7 +333,15 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_REMOTE);
         {
             ASTNode *awaited = ast_await_expression(expr);
-            Type *future_type = type_check_expression(awaited, ctx);
+            SemanticSpawnHandleUse saved_spawn_use = ctx->spawn_handle_use;
+            size_t diagnostic_base = ctx->diagnostic_count;
+            Type *future_type;
+            if (awaited != NULL && awaited->type == AST_SPAWN_EXPR) {
+                ctx->spawn_handle_use =
+                    SEMANTIC_SPAWN_HANDLE_IMMEDIATE_AWAIT;
+            }
+            future_type = type_check_expression(awaited, ctx);
+            ctx->spawn_handle_use = saved_spawn_use;
             bool is_local_future = future_type != NULL
                 && type_equals(type_constructed_constructor(future_type),
                     TYPE_FUTURE);
@@ -359,19 +369,18 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
                         return TYPE_UNKNOWN;
                     }
                     Symbol *awaited_sym = lookup_identifier_symbol(awaited, ctx);
-                    if (awaited_sym != NULL) {
-                        awaited_sym->is_consumed = true;
-                        awaited_sym->is_used = true;
-                    }
+                    semantic_future_complete(awaited_sym);
                     Type *result_args[1] = { inner };
                     return type_create_constructed(TYPE_RESULT, result_args, 1);
                 }
                 Symbol *awaited_sym = lookup_identifier_symbol(awaited, ctx);
-                if (awaited_sym != NULL) {
-                    awaited_sym->is_consumed = true;
-                    awaited_sym->is_used = true;
-                }
+                semantic_future_complete(awaited_sym);
                 return inner;
+            }
+            if (future_type == TYPE_UNKNOWN
+                && semantic_future_use_failure_was_reported(awaited,
+                    diagnostic_base, ctx)) {
+                return TYPE_UNKNOWN;
             }
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_AWAIT_NON_FUTURE, PGY_FIX_AWAIT_FUTURE_TYPE,

@@ -11,6 +11,7 @@ flow_snapshot_count_fits(size_t count)
 {
     return count <= SIZE_MAX / sizeof(Symbol *)
         && count <= SIZE_MAX / sizeof(bool)
+        && count <= SIZE_MAX / sizeof(PgyFutureLifecycleState)
         && count <= SIZE_MAX / sizeof(uint8_t)
         && count <= SIZE_MAX / sizeof(SlotState)
         && count <= SIZE_MAX / sizeof(QubitSemanticState)
@@ -22,6 +23,8 @@ flow_snapshot_tracks_classify(const Symbol *sym, SemanticContext *ctx)
 {
     OwnershipTypeClass ownership;
 
+    if (semantic_type_is_future_handle(sym->type))
+        return true;
     if (type_is_resource_handle(sym->type))
         return true;
 
@@ -99,6 +102,8 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 size_t *new_symbol_indices = calloc(next_capacity, sizeof(size_t));
                 bool *new_states = calloc(next_capacity, sizeof(bool));
                 bool *new_used_states = calloc(next_capacity, sizeof(bool));
+                PgyFutureLifecycleState *new_future_states =
+                    calloc(next_capacity, sizeof(PgyFutureLifecycleState));
                 uint8_t *new_access_masks = calloc(next_capacity,
                                                     sizeof(uint8_t));
                 SlotState *new_slot_states = calloc(next_capacity, sizeof(SlotState));
@@ -107,13 +112,15 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 int32_t *new_pools = calloc(next_capacity, sizeof(int32_t));
                 if (new_symbols == NULL || new_symbol_indices == NULL
                     || new_states == NULL
-                    || new_used_states == NULL || new_access_masks == NULL
+                    || new_used_states == NULL || new_future_states == NULL
+                    || new_access_masks == NULL
                     || new_slot_states == NULL
                     || new_sem == NULL || new_pools == NULL) {
                     free(new_symbols);
                     free(new_symbol_indices);
                     free(new_states);
                     free(new_used_states);
+                    free(new_future_states);
                     free(new_access_masks);
                     free(new_slot_states);
                     free(new_sem);
@@ -128,6 +135,8 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                            snap.count * sizeof(size_t));
                     memcpy(new_states, snap.states, snap.count * sizeof(bool));
                     memcpy(new_used_states, snap.used_states, snap.count * sizeof(bool));
+                    memcpy(new_future_states, snap.future_states,
+                           snap.count * sizeof(PgyFutureLifecycleState));
                     memcpy(new_access_masks, snap.access_masks,
                            snap.count * sizeof(uint8_t));
                     memcpy(new_slot_states, snap.slot_states,
@@ -140,6 +149,7 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 free(snap.symbol_indices);
                 free(snap.states);
                 free(snap.used_states);
+                free(snap.future_states);
                 free(snap.access_masks);
                 free(snap.slot_states);
                 free(snap.sem_states);
@@ -148,6 +158,7 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 snap.symbol_indices = new_symbol_indices;
                 snap.states = new_states;
                 snap.used_states = new_used_states;
+                snap.future_states = new_future_states;
                 snap.access_masks = new_access_masks;
                 snap.slot_states = new_slot_states;
                 snap.sem_states = new_sem;
@@ -156,7 +167,8 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
             }
             if (snap.symbols == NULL || snap.symbol_indices == NULL
                 || snap.states == NULL
-                || snap.used_states == NULL || snap.access_masks == NULL
+                || snap.used_states == NULL || snap.future_states == NULL
+                || snap.access_masks == NULL
                 || snap.slot_states == NULL
                 || snap.sem_states == NULL || snap.pool_ids == NULL) {
                 destroy_resource_snapshot(&snap);
@@ -175,6 +187,7 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
             }
             snap.states[snap.count] = sym->is_consumed;
             snap.used_states[snap.count] = sym->is_used;
+            snap.future_states[snap.count] = sym->future_lifecycle_state;
             snap.access_masks[snap.count] = sym->slot_flow_access_mask;
             snap.slot_states[snap.count] = sym->slot_info.state;
             snap.sem_states[snap.count] = sym->qubit_info.semantic_state;
@@ -192,69 +205,6 @@ snapshot_resource_states(SemanticContext *ctx)
 {
     return snapshot_resource_states_from_scope(ctx != NULL ? ctx->scope : NULL,
         ctx);
-}
-
-void
-merge_resource_states_or(ResourceConsumeSnapshot *dst,
-                         const ResourceConsumeSnapshot *src)
-{
-    if (dst == NULL || src == NULL)
-        return;
-    if (!dst->valid || !src->valid) {
-        dst->valid = false;
-        return;
-    }
-    if (dst->count != src->count) {
-        dst->valid = false;
-        return;
-    }
-    if ((dst->count > 0
-            && (dst->symbols == NULL || dst->states == NULL
-                || dst->used_states == NULL || dst->access_masks == NULL
-                || dst->slot_states == NULL || dst->sem_states == NULL
-                || dst->pool_ids == NULL))
-        || (src->count > 0
-            && (src->symbols == NULL || src->states == NULL
-                || src->used_states == NULL || src->access_masks == NULL
-                || src->slot_states == NULL || src->sem_states == NULL
-                || src->pool_ids == NULL))) {
-        dst->valid = false;
-        return;
-    }
-
-    for (size_t i = 0; i < dst->count; i++) {
-        size_t src_index = SIZE_MAX;
-        for (size_t j = 0; j < src->count; j++) {
-            bool identity_matches;
-            if (src->symbol_indices != NULL && dst->symbol_indices != NULL
-                && src->symbol_indices[j] != RESOURCE_FLOW_INDEX_NONE
-                && dst->symbol_indices[i] != RESOURCE_FLOW_INDEX_NONE) {
-                identity_matches =
-                    src->symbol_indices[j] == dst->symbol_indices[i];
-            } else {
-                identity_matches = src->symbols[j] == dst->symbols[i];
-            }
-            if (identity_matches) {
-                src_index = j;
-                break;
-            }
-        }
-        if (src_index == SIZE_MAX) {
-            dst->valid = false;
-            return;
-        }
-
-        dst->states[i] = dst->states[i] || src->states[src_index];
-        dst->used_states[i] = dst->used_states[i]
-            || src->used_states[src_index];
-        dst->access_masks[i] |= src->access_masks[src_index];
-        if (src->slot_states[src_index] > dst->slot_states[i])
-            dst->slot_states[i] = src->slot_states[src_index];
-        if (src->sem_states[src_index] > dst->sem_states[i])
-            dst->sem_states[i] = src->sem_states[src_index];
-        if (dst->pool_ids[i] < 0)
-            dst->pool_ids[i] = src->pool_ids[src_index];
-    }
 }
 
 static bool

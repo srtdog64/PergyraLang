@@ -1,6 +1,6 @@
 # Spawn Runtime Context Propagation
 
-Status: ACTIVE — LOCAL GREEN, PUBLICATION/EXACT CI PENDING
+Status: DONE — PUBLISHED AND EXACT CI GREEN
 
 Exact base revision: `a6ba51a996438c7de089a6cd495b20b6a6b74844`
 
@@ -60,8 +60,7 @@ evidence, not semantic authority, a SoT row, or a completion claim.
   C-extern contracts, parallel-production, memory-concurrency,
   runtime-authority, ABI-lifetime, worker-boundary, and documentation gates are
   green on the local Windows/MSYS2 host.
-- Exact CI remains required. Local Rocq/Coq is unavailable and no formal proof
-  pass is claimed by this runtime rung.
+- Local Rocq/Coq is unavailable; exact CI supplied the Rocq 9 proof pass.
 - First exact run `33695952848` falsified one test-only direct task constructor:
   the cooperative-cancellation probe called `pgy_pool_run_task` without
   capturing context. TSan and macOS both hit the intended invalid-context
@@ -72,4 +71,9 @@ evidence, not semantic authority, a SoT row, or a completion claim.
   default runtime-context initialization. Local remeasurement matches exactly
   (`phys_Sync=17`, substrate-floor excess `15`); every other row is unchanged.
   The fixture-specific attributed baseline is updated without changing the
-  common substrate floor. A further exact run remains required.
+  common substrate floor.
+- Attribution commit `a1d3e116f40566f164aef98ba98b931dc01cbe5f` is on
+  `origin/main`. Exact run `33697540462` completed GREEN 30/30 in 36m53s;
+  full self-host, build-linux, Windows, sanitizers, TSan, macOS, Rocq 9,
+  codegen bootstrap, and all 20 backend shards passed. This directive is
+  retired.

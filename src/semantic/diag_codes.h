@@ -65,6 +65,7 @@
 #define PGY_CODE_SEM_MOVE_TOKEN_MISUSE          "PGY_SEM_MOVE_TOKEN_MISUSE"
 #define PGY_CODE_SEM_MOVE_FROM_RELEASED         "PGY_SEM_MOVE_FROM_RELEASED"
 #define PGY_CODE_SEM_OWNER_NOT_CONSUMED         "PGY_SEM_OWNER_NOT_CONSUMED"
+#define PGY_CODE_SEM_TASK_LIFECYCLE             "PGY_SEM_TASK_LIFECYCLE"
 #define PGY_CODE_SEM_PARALLEL_SLOT_CONFLICT     "PGY_SEM_PARALLEL_SLOT_CONFLICT"
 #define PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK    "PGY_SEM_PARALLEL_SLOT_RACE_RISK"
 #define PGY_CODE_SEM_EFFECT_CONFLICT            "PGY_SEM_EFFECT_CONFLICT"
@@ -189,6 +190,7 @@
 
 /* --- Semantic: ownership / move / handles --- */
 #define PGY_CAUSE_BORROW_ESCAPE                 "semantic:borrow_escape"
+#define PGY_CAUSE_TASK_LIFECYCLE                "semantic:task:lifecycle"
 #define PGY_CAUSE_MOVE_ONLY_ASSIGNMENT_REBIND   "semantic:move_only:assignment_rebind"
 #define PGY_CAUSE_MOVE_FROM_RELEASED            "semantic:move:from_released"
 #define PGY_CAUSE_OWNER_NOT_CONSUMED            "semantic:owner:not_consumed"
@@ -436,6 +438,7 @@
 /* --- meta / structural --- */
 #define PGY_FIX_AWAIT_FUTURE                    "await-future"
 #define PGY_FIX_AWAIT_FUTURE_TYPE               "await-future-type"
+#define PGY_FIX_AWAIT_TASK_BEFORE_EXIT          "await-task-before-exit"
 #define PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION     "break-cycle-via-indirection"
 #define PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE \
                                                 "change-ref-to-own-or-stop-escape"

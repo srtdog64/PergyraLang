@@ -34,6 +34,8 @@ type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
     flags = type_check_block_flow(ast_with_body(node), ctx, loop_flow);
 
     scope_auto_release_slots(ctx->scope);
+    semantic_future_require_scope_retired(
+        ctx->scope, node, ctx, "with scope exit");
     scope_exit(&ctx->scope);
     return flags;
 }

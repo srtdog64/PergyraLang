@@ -146,5 +146,10 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
         consume_qubit_value(value, ctx, "returned");
     }
 
+    /* A return exits every lexical scope up to the nearest function.  No
+     * live completion handle may be discarded by that control-flow edge. */
+    semantic_future_require_function_retired(
+        ctx->scope, node, ctx, "return");
+
     return !ctx->has_error;
 }

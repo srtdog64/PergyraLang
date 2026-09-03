@@ -425,6 +425,9 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
                 scope_declare(ctx->scope, elem_sym);
         }
         (void)type_check_statement_flow(task, ctx, NULL);
+        semantic_future_require_scope_retired(
+            ctx->scope, task != NULL ? task : node,
+            ctx, "parallel task exit");
         task_snap = snapshot_resource_states_from_scope(
             ctx->scope != NULL ? ctx->scope->parent : NULL, ctx);
         if (!task_snap.valid) {
@@ -482,7 +485,7 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
                         : "<resource>");
             }
         }
-        merge_resource_snapshots_or(&joined, &has_joined, &task_snap);
+        merge_resource_snapshots_parallel(&joined, &has_joined, &task_snap);
         if (has_joined && !joined.valid) {
             semantic_error(ctx, task != NULL ? task : node,
                 "Resource snapshot merge failed while checking parallel tasks");

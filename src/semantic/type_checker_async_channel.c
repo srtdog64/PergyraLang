@@ -285,6 +285,7 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
     Type *args[1];
     Type *inner;
 
+    (void)semantic_future_admit_spawn(expr, ctx);
     semantic_record_body_summary(ctx, BODY_SUMMARY_SPAWNS_TASK);
     semantic_record_effect(ctx, EFFECT_REMOTE);
     if (semantic_reject_active_slot_view_boundary(expr, ctx,

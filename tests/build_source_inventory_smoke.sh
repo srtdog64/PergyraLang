@@ -593,6 +593,11 @@ if ! grep -Fq 'self-host-domain-runtime-zone-sync-test-smoke' \
     echo "[build-source-inventory] zone carriage semantic admission must stay executable in Linux CI" >&2
     missing=1
 fi
+if ! grep -Fq 'structured-spawn-lifecycle-test-smoke' \
+    "$ROOT_DIR/scripts/ci_push_linux_steps.sh"; then
+    echo "[build-source-inventory] structured spawn lifecycle must stay load-bearing in Linux push CI" >&2
+    missing=1
+fi
 
 bash4_lint_dirs=(tests)
 if [[ -d "$ROOT_DIR/tests/self_hosted/parity" ]]; then

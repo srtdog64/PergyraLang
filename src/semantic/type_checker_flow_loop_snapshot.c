@@ -14,6 +14,7 @@ resource_snapshot_count_fits(size_t count)
     return count <= SIZE_MAX / sizeof(Symbol *)
         && count <= SIZE_MAX / sizeof(size_t)
         && count <= SIZE_MAX / sizeof(bool)
+        && count <= SIZE_MAX / sizeof(PgyFutureLifecycleState)
         && count <= SIZE_MAX / sizeof(uint8_t)
         && count <= SIZE_MAX / sizeof(SlotState)
         && count <= SIZE_MAX / sizeof(QubitSemanticState)
@@ -41,6 +42,8 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
         if (a->states[i] != b->states[i])
             return false;
         if (a->used_states[i] != b->used_states[i])
+            return false;
+        if (a->future_states[i] != b->future_states[i])
             return false;
         if (a->access_masks[i] != b->access_masks[i])
             return false;
@@ -72,6 +75,7 @@ resource_snapshot_availability_equal(const ResourceConsumeSnapshot *a,
             return false;
         }
         if (a->states[i] != b->states[i]
+            || a->future_states[i] != b->future_states[i]
             || a->slot_states[i] != b->slot_states[i]
             || a->sem_states[i] != b->sem_states[i]
             || a->pool_ids[i] != b->pool_ids[i]) {
@@ -101,13 +105,16 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
     dst.symbol_indices = calloc(src->count, sizeof(size_t));
     dst.states = calloc(src->count, sizeof(bool));
     dst.used_states = calloc(src->count, sizeof(bool));
+    dst.future_states = calloc(src->count,
+                               sizeof(PgyFutureLifecycleState));
     dst.access_masks = calloc(src->count, sizeof(uint8_t));
     dst.slot_states = calloc(src->count, sizeof(SlotState));
     dst.sem_states = calloc(src->count, sizeof(QubitSemanticState));
     dst.pool_ids = calloc(src->count, sizeof(int32_t));
     if (dst.symbols == NULL || dst.symbol_indices == NULL
         || dst.states == NULL
-        || dst.used_states == NULL || dst.access_masks == NULL
+        || dst.used_states == NULL || dst.future_states == NULL
+        || dst.access_masks == NULL
         || dst.slot_states == NULL
         || dst.sem_states == NULL || dst.pool_ids == NULL) {
         destroy_resource_snapshot(&dst);
@@ -120,6 +127,8 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
            src->count * sizeof(size_t));
     memcpy(dst.states, src->states, src->count * sizeof(bool));
     memcpy(dst.used_states, src->used_states, src->count * sizeof(bool));
+    memcpy(dst.future_states, src->future_states,
+           src->count * sizeof(PgyFutureLifecycleState));
     memcpy(dst.access_masks, src->access_masks, src->count * sizeof(uint8_t));
     memcpy(dst.slot_states, src->slot_states, src->count * sizeof(SlotState));
     memcpy(dst.sem_states, src->sem_states,
@@ -152,6 +161,28 @@ merge_resource_snapshots_or(ResourceConsumeSnapshot *dst,
     }
 
     merge_resource_states_or(dst, src);
+}
+
+void
+merge_resource_snapshots_parallel(ResourceConsumeSnapshot *dst,
+                                  bool *dst_initialized,
+                                  const ResourceConsumeSnapshot *src)
+{
+    if (dst == NULL || dst_initialized == NULL || src == NULL)
+        return;
+    if (!*dst_initialized) {
+        ResourceConsumeSnapshot copy = copy_resource_snapshot(src);
+        if (!copy.valid || (src->count > 0 && copy.count != src->count)) {
+            destroy_resource_snapshot(&copy);
+            dst->valid = false;
+            *dst_initialized = true;
+            return;
+        }
+        *dst = copy;
+        *dst_initialized = true;
+        return;
+    }
+    merge_resource_states_parallel(dst, src);
 }
 
 void

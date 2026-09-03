@@ -36,12 +36,11 @@ parallel (i in lo..hi) join with sum
 
 ## 2. 구멍의 정직한 목록 (우선순위순)
 
-1. **중첩 병렬 = 도달 가능한 데드락 클래스 (미방어)**. pool worker가
-   유저 코드 안에서 같은 풀로 fan-out 후 `pgy_await`하면
-   `pthread_cond_wait`로 블록 — 일 돕기(help)도 큐 드레인도 없다. worker
-   N개가 전부 그렇게 블록하면 서브태스크는 큐에서 영원히 대기 = 고전적
-   pool-starvation 데드락. 정적 거절도 미확인, 런타임 가드도 없음.
-   docs/181의 sibling channel-dep 거절은 이 클래스를 안 덮는다.
+1. **중첩 병렬 pool-starvation — CLOSED (2026-07-17)**. pool worker의
+   `pgy_await`가 대상 완료 전 큐의 일을 help-first로 실행한다. 강제 중첩
+   목격자는 수정 전 timeout, 수정 후 C/LLVM 모두 GREEN이며 P-A1이 상세
+   증거를 소유한다. 이것을 구조적 spawn lifecycle의 미착지 근거로 다시
+   세지 않는다.
 2. **채널 blocked-send 간헐 hang (LLVM leg) — open**. 칩 task_863abddf.
    stress 게이트(`parallel-backpressure-stress-test-smoke`)는 64/64 green이나
    root cause 미상, "repeated CI green 전까지 닫지 않음" 상태.
@@ -51,8 +50,10 @@ parallel (i in lo..hi) join with sum
 4. **반응형 표면 미구현**: docs/181 Form B `parallel on (lane) { every /
    continuous }`는 R2 실행 의미론부터 미착수 — BDFL 결정 3건 대기
    (docs/182 §3: 시작 의미론 / cancel 표면 / 단일-lane).
-5. **행동 목격자 얇음**(docs/179 축2-3): blocked-send/recv, spawn lifecycle,
-   release 순서, budget 고갈, cap 거부 × 양 백엔드의 체계적 corpus 부재.
+5. **행동 목격자 얇음**(docs/179 축2-3): spawn lifecycle의 backend-neutral
+   semantic corpus는 2026-09-03 `structured-spawn-lifecycle-test-smoke`로
+   착지했다. blocked-send/recv, runtime release 순서, budget 고갈, cap 거부
+   × 양 백엔드의 체계적 corpus는 여전히 남는다.
 
 + 별개 칩: §7 RED-1 — generic specialization 안의 `parallel`이 C leg에서
   "invalid storage class"(task_6fd52632, noisy-fail이라 silent-wrong 아님).
@@ -77,8 +78,15 @@ budget은 부모의 exact `PgyBudgetState` owner를 공유한다. Inline/Pinned,
 BlockingPool, LocalAsync, WorkerPool, MovableScheduler 실행 경계와 coroutine
 yield/await는 bind/restore를 수행한다. `runtime-spawn-context-propagation-
 test-smoke`가 inline/C-extern/LLVM runtime에서 이 executor-invariant를
-검증한다. 이것은 §4의 구조적 task containment를 대신하지 않으며, parent
-context lifetime은 다음 lifecycle rung의 소유 대상이다.
+검증한다. 2026-09-03 이후 이름 있는 spawn의 parent-context lifetime은
+affine Future lexical obligation이 보장한다. 런타임 `AsyncScope`나 숨은
+drain이 아니라 semantic owner와 fail-closed scope-exit gate가 소유하며,
+unsupported detach와 나머지 multi-tenant 자원은 별도 과제다.
+정적 boolean/literal match와 최소 1회가 증명된 loop는 불가능한 대안 상태를
+합류시키지 않고, 미지 조건과 0회 가능 loop는 계속 보수적으로 합류하되,
+정확히 0회인 literal range의 본문과 정적으로 도달 불가한 loop exit는
+합류하지 않는다. 전용 게이트는 양 백엔드의 19 positive/18 negative corpus,
+반복 실패의 단일 소유 진단, ABI 실행 정답을 고정한다.
 
 ## 4. 단계별 계획
 

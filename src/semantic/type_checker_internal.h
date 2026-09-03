@@ -79,6 +79,37 @@ bool semantic_reject_active_slot_view_boundary(ASTNode *site,
                                                const char *resume_detail,
                                                const char *fix_action);
 bool type_is_general_boundary_type(const Type *type, SemanticContext *ctx);
+bool semantic_type_is_future_handle(const Type *type);
+bool semantic_future_admit_spawn(ASTNode *site, SemanticContext *ctx);
+void semantic_future_initialize_binding(Symbol *symbol,
+                                        ASTNode *initializer,
+                                        ASTNode *binding_site,
+                                        SemanticContext *ctx);
+void semantic_future_initialize_parameter(Symbol *symbol);
+void semantic_future_complete(Symbol *symbol);
+void semantic_future_transfer_argument(ASTNode *argument,
+                                       SemanticContext *ctx);
+bool semantic_future_validate_use(Symbol *symbol,
+                                  ASTNode *site,
+                                  SemanticContext *ctx);
+bool semantic_future_use_is_invalid(ASTNode *expression,
+                                    SemanticContext *ctx);
+bool semantic_future_use_failure_was_reported(ASTNode *expression,
+                                              size_t diagnostic_base,
+                                              SemanticContext *ctx);
+bool semantic_future_require_scope_retired(Scope *scope,
+                                           ASTNode *site,
+                                           SemanticContext *ctx,
+                                           const char *boundary);
+bool semantic_future_require_function_retired(Scope *scope,
+                                              ASTNode *site,
+                                              SemanticContext *ctx,
+                                              const char *boundary);
+bool semantic_future_require_until(Scope *scope,
+                                   Scope *stop_exclusive,
+                                   ASTNode *site,
+                                   SemanticContext *ctx,
+                                   const char *boundary);
 bool type_is_capability_bearing(const Type *type);
 bool type_is_worker_boundary_unsafe_storage(const Type *type);
 const char *worker_boundary_storage_display_name(const Type *type);

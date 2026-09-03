@@ -1,0 +1,3 @@
+async func DropTask(own task: Future<Int>) -> Void {
+    Log(0);
+}

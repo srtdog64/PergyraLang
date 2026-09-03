@@ -115,6 +115,7 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_async_part_a_1.cases.h"
 #include "tests/semantic/test_semantic_async_part_a_2.cases.h"
 #include "tests/semantic/test_semantic_async_part_b.cases.h"
+#include "tests/semantic/test_semantic_structured_spawn.cases.h"
 #include "tests/semantic/test_semantic_effects_part_a_1.cases.h"
 #include "tests/semantic/test_semantic_effects_part_a_2.cases.h"
 #include "tests/semantic/test_semantic_effects_part_b_1.cases.h"
@@ -198,6 +199,7 @@ main(void)
     test_parallel_family_semantics();
     test_parallel_context_semantics();
     test_parallel_execution_semantics();
+    test_structured_spawn_lifecycle();
     test_effect_inference();
     test_type_resolution_graph();
     test_misc_grammar_edges();

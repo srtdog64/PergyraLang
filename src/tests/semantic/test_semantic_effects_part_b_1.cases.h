@@ -53,9 +53,9 @@
     {
         SemanticContext *ctx = semantic_context_create();
 
-        ASTNode *func = ast_create_function("Dispatch");
-        func->data.func_decl.return_type = ast_create_type("Int");
-        func->data.func_decl.body = ast_create_block();
+        ASTNode *func = ast_create_async_function("Dispatch", true);
+        func->data.async_func_decl.return_type = ast_create_type("Int");
+        func->data.async_func_decl.body = ast_create_block();
 
         ASTNode *channel = ast_create_let_declaration("ch");
         ASTNode *capacity = make_number(1, 1);
@@ -63,20 +63,23 @@
         channel->data.let_decl.type = make_generic_type("Channel", "Int");
         channel->data.let_decl.initializer =
             make_call("Channel", channel_args, 1, 1);
-        ast_add_statement(func->data.func_decl.body, channel);
+        ast_add_statement(func->data.async_func_decl.body, channel);
 
         ASTNode *pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =
             ast_create_spawn_expression(make_number(42, 2));
-        ast_add_statement(func->data.func_decl.body, pending);
+        ast_add_statement(func->data.async_func_decl.body, pending);
 
         ASTNode *send = ast_create_channel_send(make_identifier("ch", 3),
                                                 make_number(7, 3));
-        ast_add_statement(func->data.func_decl.body, send);
+        ast_add_statement(func->data.async_func_decl.body, send);
+
+        ast_add_statement(func->data.async_func_decl.body,
+            ast_create_await_expression(make_identifier("pending", 4)));
 
         ASTNode *ret = ast_create_return_statement();
         ret->data.return_stmt.value = make_number(1, 4);
-        ast_add_statement(func->data.func_decl.body, ret);
+        ast_add_statement(func->data.async_func_decl.body, ret);
 
         type_check_func_decl(func, ctx);
 
@@ -297,6 +300,8 @@
         pending->data.let_decl.initializer =
             ast_create_spawn_expression(make_number(42, 4));
         ast_add_statement(method->data.func_decl.body, pending);
+        ast_add_statement(method->data.func_decl.body,
+            ast_create_await_expression(make_identifier("pending", 5)));
 
         vault->data.class_decl.methods = calloc(1, sizeof(ASTNode *));
         vault->data.class_decl.methods[0] = method;
@@ -304,7 +309,12 @@
         ast_add_statement(program, vault);
         (void)ast_assign_stable_ids(program);
         ctx->program_root = program;
+        /* This focused summary test constructs the method AST directly. Keep
+         * the surrounding checker in an async-capable context so the joined
+         * spawn remains valid without changing the method/action union shape. */
+        ctx->in_async_func = true;
         type_check_class_decl(vault, ctx);
+        ctx->in_async_func = false;
 
         vsym = symbol_create_variable("v",
             scope_lookup(ctx->scope, "Vault")->type, 2, 1);
@@ -349,10 +359,13 @@
 
         lambda->data.lambda_expr.return_type = ast_create_type("Void");
         lambda->data.lambda_expr.body = ast_create_block();
+        lambda->data.lambda_expr.is_async = true;
         pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =
             ast_create_spawn_expression(make_number(42, 2));
         ast_add_statement(lambda->data.lambda_expr.body, pending);
+        ast_add_statement(lambda->data.lambda_expr.body,
+            ast_create_await_expression(make_identifier("pending", 3)));
         ret = ast_create_return_statement();
         ast_add_statement(lambda->data.lambda_expr.body, ret);
 
@@ -391,10 +404,13 @@
 
         lambda->data.lambda_expr.return_type = ast_create_type("Void");
         lambda->data.lambda_expr.body = ast_create_block();
+        lambda->data.lambda_expr.is_async = true;
         pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =
             ast_create_spawn_expression(make_number(7, 2));
         ast_add_statement(lambda->data.lambda_expr.body, pending);
+        ast_add_statement(lambda->data.lambda_expr.body,
+            ast_create_await_expression(make_identifier("pending", 3)));
         ret = ast_create_return_statement();
         ast_add_statement(lambda->data.lambda_expr.body, ret);
 

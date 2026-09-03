@@ -50,6 +50,7 @@ test_parallel_family_semantics(void)
         ASTNode *spawn = ast_create_spawn_expression(num);
         spawn->line = 1; spawn->column = 1;
 
+        ctx->spawn_handle_use = SEMANTIC_SPAWN_HANDLE_BINDING;
         Type *t = type_check_spawn_expr(spawn, ctx);
         EXPECT(t != NULL);
         EXPECT(t->kind == TYPE_KIND_CONSTRUCTED);

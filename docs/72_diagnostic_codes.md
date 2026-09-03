@@ -557,6 +557,23 @@ A built-in intrinsic (`Rc*`, `Weak*`, `Box*`, `Move`, `Clone`, `BoxArray`, ...) 
 - **Reason**: `RemoteFuture<T>` is a one-shot result, not a slot; direct access does not have a well-defined semantic.
 - **Fix**: `await` the future to obtain the `Result<T, E>` and operate on that.
 
+#### `PGY_SEM_TASK_LIFECYCLE`
+
+A `Future<T>` or `RemoteFuture<T>` completion handle has no direct owner,
+crosses a normal scope/function exit while live, or has branch-dependent
+live/retired state.
+
+- **Reason**: a completion handle is an affine lexical obligation. Bare spawn,
+  mutable rebinding, borrowing, or returning it could orphan the task or lose
+  the only join obligation. `Cancel(...)` requests cancellation but does not
+  join or free the handle.
+- **Fix**: bind `spawn` directly to an immutable local (or await it
+  immediately), then `await` on every normal path; alternatively transfer the
+  named handle to an explicit `own Future` parameter that assumes the same
+  obligation.
+- **cause_ir**: `semantic:task:lifecycle`
+- **fix_source**: `await-task-before-exit`
+
 #### `PGY_SEM_ANCHORED_HANDLE_COPY`
 
 An anchored resource handle (`Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`) was bound into a new `let` without moving; the handle identity would now be duplicated.

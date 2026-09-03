@@ -12,6 +12,7 @@ typedef struct
     size_t               *symbol_indices;
     bool                 *states;
     bool                 *used_states;
+    PgyFutureLifecycleState *future_states;
     uint8_t              *access_masks;
     SlotState            *slot_states;
     QubitSemanticState   *sem_states;
@@ -29,6 +30,8 @@ void restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
                                          SemanticContext *ctx);
 void merge_resource_states_or(ResourceConsumeSnapshot *dst,
                               const ResourceConsumeSnapshot *src);
+void merge_resource_states_parallel(ResourceConsumeSnapshot *dst,
+                                    const ResourceConsumeSnapshot *src);
 bool resource_snapshot_has_parallel_conflict(const ResourceConsumeSnapshot *base,
                                              const ResourceConsumeSnapshot *joined,
                                              const ResourceConsumeSnapshot *task,

@@ -43,6 +43,16 @@ type_check_loop_control_flow(ASTNode *node, SemanticContext *ctx,
     if (!flow_validate_loop_control(ctx, node, kind, label))
         return FLOW_NONE;
 
+    /* break/continue discard inner lexical scopes but preserve bindings in
+     * the target loop scope for the loop-state join. */
+    semantic_future_require_until(
+        ctx->scope,
+        loop_flow != NULL ? loop_flow->loop_scope : NULL,
+        node, ctx, kind);
+
+    if (ctx->future_lifecycle_unreachable_depth > 0)
+        return is_break ? FLOW_BREAK : FLOW_CONTINUE;
+
     snap = snapshot_resource_states_from_scope(
         loop_flow != NULL && loop_flow->loop_scope != NULL
             ? loop_flow->loop_scope

@@ -47,6 +47,9 @@ for required in \
     "ChannelDestroy(Channel<T>)" \
     "Future Await Contract" \
     "handle is consumed by the join" \
+    "affine lexical obligation" \
+    "PGY_SEM_TASK_LIFECYCLE" \
+    "structured-spawn-lifecycle-test-smoke" \
     "returned \`DispatchResult\` owns its role-id strings" \
     "Cancel(Future<T>)" \
     "Capture-bearing detached async block stability" \
@@ -57,6 +60,12 @@ for required in \
         exit 1
     fi
 done
+
+if grep -Fq "A still-live named future is not currently rejected" \
+    "$MODEL_DOC"; then
+    echo "[memory-concurrency] legacy orphan-spawn contract returned" >&2
+    exit 1
+fi
 
 for required_boundary_witness_guard in \
     "PgyBoundaryWitnessSummary" \
@@ -573,10 +582,12 @@ for required_llvm_await_guard in \
     fi
 done
 for required_semantic_await_consume_guard in \
-    "awaited_sym->is_consumed = true" \
+    "semantic_future_complete(awaited_sym)" \
+    "PGY_FUTURE_LIFECYCLE_RETIRED" \
     "await consumes a named local Future handle"; do
     if ! grep -Fq "$required_semantic_await_consume_guard" \
         "$ROOT_DIR/src/semantic/type_checker_expr.c" \
+        "$ROOT_DIR/src/semantic/type_checker_future_lifecycle.c" \
         "$ROOT_DIR/src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" \
         "$ROOT_DIR/src/tests/semantic/test_semantic_misc_a_part_b_2.cases.h"; then
         echo "[memory-concurrency] semantic await must consume named Future handles: $required_semantic_await_consume_guard" >&2

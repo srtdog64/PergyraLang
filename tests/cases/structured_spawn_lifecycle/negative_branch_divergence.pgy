@@ -1,0 +1,10 @@
+async func Worker() -> Int {
+    return 1;
+}
+
+async func Main(flag: Bool) -> Void {
+    let pending: Future<Int> = spawn Worker();
+    if flag {
+        Log(await pending);
+    }
+}

@@ -45,6 +45,9 @@ ResourceConsumeSnapshot copy_resource_snapshot(
 void merge_resource_snapshots_or(ResourceConsumeSnapshot *dst,
                                  bool *dst_initialized,
                                  const ResourceConsumeSnapshot *src);
+void merge_resource_snapshots_parallel(ResourceConsumeSnapshot *dst,
+                                       bool *dst_initialized,
+                                       const ResourceConsumeSnapshot *src);
 void loop_flow_record(LoopFlowState *loop_flow,
                       bool is_break,
                       const ResourceConsumeSnapshot *state);

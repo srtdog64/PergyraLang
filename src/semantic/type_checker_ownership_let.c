@@ -40,6 +40,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     Type *init_type;
     Type *decl_type;
     Type *lambda_expected_type = NULL;
+    SemanticSpawnHandleUse saved_spawn_use = ctx->spawn_handle_use;
 
     /* Check for duplicate in current scope */
     if (scope_lookup_current(ctx->scope, name) != NULL) {
@@ -64,6 +65,11 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     bool saved_capture_allowed = ctx->capture_allowed_let_init;
     ctx->capture_allowed_let_init =
         (init != NULL && init->type == AST_LAMBDA_EXPR);
+
+    /* Only a direct let initializer owns a spawned handle. This mode is reset
+     * by the spawn checker before it descends into the spawned call. */
+    if (init != NULL && init->type == AST_SPAWN_EXPR)
+        ctx->spawn_handle_use = SEMANTIC_SPAWN_HANDLE_BINDING;
 
     /* Normal variable declaration with type inference */
     if (init != NULL && init->type == AST_LAMBDA_EXPR && ann != NULL) {
@@ -96,6 +102,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             ? ownership_let_normalize_type(type_check_expression(init, ctx))
             : TYPE_VOID;
     }
+    ctx->spawn_handle_use = saved_spawn_use;
     ctx->capture_allowed_let_init = saved_capture_allowed;
     if (init != NULL)
         mark_world_embedded_zone_arguments(init, ctx);
@@ -517,6 +524,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         sym->slot_info.state = SLOT_STATE_CLAIMED;
 
     sym->is_mut_binding = ast_let_is_mutable(node);
+    semantic_future_initialize_binding(sym, init, node, ctx);
     ownership_let_record_slice_split_fact(node, ctx, sym, decl_type);
 
     /* Set qubit semantic state for QubitSlot variables */

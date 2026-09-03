@@ -536,6 +536,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     }
     semantic_maybe_print_type_resolution_stats(ctx);
 
+    semantic_future_require_scope_retired(
+        ctx->scope, program, ctx, "program exit");
+
     free(topo_order);
     return !ctx->has_error;
 }

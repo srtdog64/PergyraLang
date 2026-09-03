@@ -18,7 +18,42 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active supporting concurrency context — spawn runtime authority carriage
+## Active supporting concurrency context — structured spawn lifecycle
+
+- Exact opening base is `a1d3e116f40566f164aef98ba98b931dc01cbe5f`, equal
+  to `origin/main`; protected unrelated untracked paths remain outside
+  inspection, edit, and staging.
+- Objective: reject a Future/RemoteFuture that leaves its lexical/function
+  owner live; preserve Cancel as request-only; and distinguish path-alternative
+  branch/loop merges from simultaneous parallel-task merges.
+- The semantic symbol lifecycle fact is the owner and flow snapshots are its
+  carrier. Runtime AsyncScope, implicit drain/cancel, backend cleanup, default
+  or borrowed Future parameters, Future return escape, and new syntax are not
+  part of this rung.
+- The objective card and exact falsifying fixtures are in
+  `docs/agent_work_directives/structured_spawn_lifecycle_2026-09-03.md`.
+  Local implementation is green: lifecycle state follows lexical/function
+  symbols through alternative, loop, and simultaneous-parallel merges; static
+  reachability excludes impossible branch states, unreachable loop exits, and
+  exact zero-iteration bodies; `own`
+  transfer moves the obligation; C/LLVM consume the canonical constructed
+  Future kind; and cascade diagnostics are suppressed after the owned move
+  error or after an already unavailable handle.
+- `test-semantic` is 2861/0. The focused gate has 19 positive and 18
+  fail-closed fixtures across C/LLVM, bounded execution, exact `1`, `11`, and
+  `3\n11` transfer output, and stable JSON diagnostics. Diagnostic, semantic
+  shape/size, CFG, loop/parameter summary, ownership, memory/concurrency,
+  source inventory, compiler cluster, build-pressure, post-selfhost, and full
+  LLVM smoke gates are green. `test-all` also completes through transpiler
+  925/0, RIR 26/0, MIR 162/0, HIR 25/0, and its remaining frontend/runtime
+  batteries after legacy bare/borrowed-Future fixtures were migrated.
+- Commit/push and exact-head CI remain pending. The unrelated opening-base size
+  violations remain `pgy_runtime_lib_io_string_exports.h` 618/600 and
+  `ast_expr_control_accessors.c` 725/699; neither owner is in this rung. SoT
+  remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project
+  forecast remains 83%.
+
+## Published supporting concurrency context — spawn runtime authority carriage
 
 - Exact opening base is `a6ba51a996438c7de089a6cd495b20b6a6b74844`, equal
   to `origin/main`; protected unrelated untracked paths remain outside
@@ -33,13 +68,12 @@ percentage by themselves.
   `class=capability-denied` before IO_WRITE. The focused gate, runtime-context,
   lane-scheduler, M:N, sandbox, runtime BC/C-extern, parallel-production,
   memory-concurrency, runtime-authority, ABI-lifetime, worker-boundary, and
-  documentation gates are locally green. No exact-CI claim is made yet.
+  documentation gates are locally green.
 - Canonical execution wording is in `docs/113_memory_concurrency_model.md`.
   The objective card is
   `docs/agent_work_directives/spawn_runtime_context_propagation_2026-09-03.md`.
   This supporting runtime closure changes neither SoT counts nor the 83%
-  project forecast. The next lifecycle rung is not open until this one is
-  published and exact CI is observed.
+  project forecast.
 - First exact run `33695952848` exposed one honest constructor bypass:
   `src/test_concurrency.c` manually allocated a pending `PgyTask` for its
   cooperative-cancellation probe without capturing runtime context. TSan and
@@ -51,8 +85,12 @@ percentage by themselves.
   `pthread_once` used for race-free default runtime-context initialization.
   Local remeasurement reproduces `phys_Sync=17` and leaves all other fixture
   rows unchanged. The fixture-specific excess is attributed as `15`; the
-  universal substrate floor remains pinned at Sync 2 / Abort 1. Publish and a
-  new exact run remain before opening the next lifecycle rung.
+  universal substrate floor remains pinned at Sync 2 / Abort 1. Attribution
+  commit `a1d3e116` is on `origin/main`.
+- Exact run `33697540462` completed GREEN 30/30 in 36m53s. Full self-host took
+  35m52s; build-linux 19m55s, Windows 9m30s, sanitizers 12m45s, TSan, macOS,
+  Rocq 9, codegen bootstrap, and all 20 backend shards are green. This lease is
+  DONE and the lifecycle rung above is now active.
 
 ## Published — codegen seed prebuild receipt exact-CI green
 

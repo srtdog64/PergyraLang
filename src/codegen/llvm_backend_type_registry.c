@@ -91,6 +91,12 @@ llvm_registry_type_kind(const char *type_name)
         return LLVM_REGISTRY_TYPE_QUEUE;
     if (pgy_kind == PGY_TK_SET)
         return LLVM_REGISTRY_TYPE_SET;
+    if (pgy_kind == PGY_TK_CHANNEL)
+        return LLVM_REGISTRY_TYPE_CHANNEL;
+    if (pgy_kind == PGY_TK_FUTURE)
+        return LLVM_REGISTRY_TYPE_FUTURE;
+    if (pgy_kind == PGY_TK_REMOTE_FUTURE)
+        return LLVM_REGISTRY_TYPE_REMOTE_FUTURE;
 
     spec = (const LLVMRegistryTypeSpec *)bsearch(&type_name,
         specs,

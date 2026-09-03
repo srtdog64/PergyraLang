@@ -1,0 +1,11 @@
+async func Worker() -> Int {
+    return 1;
+}
+
+async func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    match 1 {
+        case 1: Log(await pending);
+        default: Log(0);
+    }
+}

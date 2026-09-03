@@ -54,11 +54,14 @@ grant is a fail-closed regression, not a fallback.
 ## Boundary that remains open
 
 This rung does not claim complete multi-tenant sandboxing. Capability and
-budget authority now cross runtime lane tasks, but the parent context lifetime
-is not yet owned by a structured spawn scope. Cancellation roots, scheduler
-instances, task-handle containment, asset namespaces, linear memory, random
-streams, and diagnostics still have process/TLS owners or incomplete
-cross-instance evidence. They require their own carriage and negative tests
-before `ContentInstance` can be called a complete isolation boundary. The
-current context is therefore a runtime ownership rung, not a release-security
-claim.
+budget authority cross runtime lane tasks, and the named-spawn surface now
+keeps the parent context live indirectly by rejecting a live Future at lexical
+or function exit. That containment is owned by
+`type_checker_future_lifecycle.c`, not by the unused runtime `AsyncScope` API,
+and it deliberately provides no implicit drain fallback. Cancellation roots,
+scheduler instances, unsupported detached tasks, asset namespaces, linear
+memory, random streams, and diagnostics still have process/TLS owners or
+incomplete cross-instance evidence. They require their own carriage and
+negative tests before `ContentInstance` can be called a complete isolation
+boundary. The current context is therefore a runtime ownership rung, not a
+release-security claim.

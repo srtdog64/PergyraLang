@@ -1,0 +1,3 @@
+async func DropRemote(own task: RemoteFuture<Int>) -> Void {
+    Log(0);
+}

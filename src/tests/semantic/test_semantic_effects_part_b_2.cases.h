@@ -12,10 +12,13 @@
 
         lambda->data.lambda_expr.return_type = ast_create_type("Void");
         lambda->data.lambda_expr.body = ast_create_block();
+        lambda->data.lambda_expr.is_async = true;
         pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =
             ast_create_spawn_expression(make_number(9, 2));
         ast_add_statement(lambda->data.lambda_expr.body, pending);
+        ast_add_statement(lambda->data.lambda_expr.body,
+            ast_create_await_expression(make_identifier("pending", 3)));
         ret = ast_create_return_statement();
         ast_add_statement(lambda->data.lambda_expr.body, ret);
 
@@ -127,8 +130,9 @@
     {
         const char *source =
             "/// @effects local\n"
-            "func Dispatch() -> Int {\n"
+            "async func Dispatch() -> Int {\n"
             "    let pending = spawn 42;\n"
+            "    let completed = await pending;\n"
             "    return 1;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -150,8 +154,9 @@
     TEST("signature effects must cover derived body effects");
     {
         const char *source =
-            "func Dispatch() -> Int with effects local {\n"
+            "async func Dispatch() -> Int with effects local {\n"
             "    let pending = spawn 42;\n"
+            "    let completed = await pending;\n"
             "    return 1;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -173,8 +178,9 @@
     TEST("signature effects may exactly match derived body effects");
     {
         const char *source =
-            "func Dispatch() -> Int with effects remote {\n"
+            "async func Dispatch() -> Int with effects remote {\n"
             "    let pending = spawn 42;\n"
+            "    let completed = await pending;\n"
             "    return 1;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -195,8 +201,9 @@
     {
         const char *source =
             "/// @effects remote\n"
-            "func Dispatch() -> Int {\n"
+            "async func Dispatch() -> Int {\n"
             "    let pending = spawn 42;\n"
+            "    let completed = await pending;\n"
             "    return 1;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -237,9 +244,10 @@
     TEST("effect-flow: if branch effect joins into function contract");
     {
         const char *source =
-            "func Dispatch(flag: Bool) -> Int with effects remote {\n"
+            "async func Dispatch(flag: Bool) -> Int with effects remote {\n"
             "    if flag {\n"
             "        let pending = spawn 42;\n"
+            "        let completed = await pending;\n"
             "    }\n"
             "    return 1;\n"
             "}\n";
@@ -260,10 +268,11 @@
     TEST("effect-flow: match case effect joins into function contract");
     {
         const char *source =
-            "func Dispatch(flag: Bool) -> Int with effects remote {\n"
+            "async func Dispatch(flag: Bool) -> Int with effects remote {\n"
             "    match flag {\n"
             "        case true:\n"
             "            let pending = spawn 42;\n"
+            "            let completed = await pending;\n"
             "            return 1;\n"
             "        default:\n"
             "            return 2;\n"
@@ -286,9 +295,10 @@
     TEST("effect-flow: while body effect joins into function contract");
     {
         const char *source =
-            "func Dispatch(flag: Bool) -> Int with effects remote {\n"
+            "async func Dispatch(flag: Bool) -> Int with effects remote {\n"
             "    while flag {\n"
             "        let pending = spawn 42;\n"
+            "        let completed = await pending;\n"
             "        return 1;\n"
             "    }\n"
             "    return 0;\n"
@@ -310,9 +320,10 @@
     TEST("effect-flow: for body effect joins into function contract");
     {
         const char *source =
-            "func Dispatch() -> Int with effects remote {\n"
+            "async func Dispatch() -> Int with effects remote {\n"
             "    for i in 0..3 {\n"
             "        let pending = spawn i;\n"
+            "        let completed = await pending;\n"
             "    }\n"
             "    return 0;\n"
             "}\n";
@@ -412,11 +423,12 @@
             "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
-            "func Dispatch(flag: Bool) -> Int with effects remote, secure {\n"
+            "async func Dispatch(flag: Bool) -> Int with effects remote, secure {\n"
             "    if flag {\n"
             "        let s: SecureSlot<Bot> = Bot(1);\n"
             "    } else {\n"
             "        let pending = spawn 42;\n"
+            "        let completed = await pending;\n"
             "    }\n"
             "    return 1;\n"
             "}\n";
@@ -486,7 +498,7 @@
             "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
-            "func Mixed(flag: Int) -> Void with effects secure, remote {\n"
+            "async func Mixed(flag: Int) -> Void with effects secure, remote {\n"
             "    match flag {\n"
             "        case 0:\n"
             "            let s: SecureSlot<Bot> = Bot(1);\n"
@@ -495,6 +507,7 @@
             "            return;\n"
             "        default:\n"
             "            let pending = spawn 42;\n"
+            "            let completed = await pending;\n"
             "            return;\n"
             "    }\n"
             "}\n";

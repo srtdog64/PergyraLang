@@ -22,6 +22,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     bool prev_async = ctx->in_async_func;
     const char *prev_module_path = ctx->current_module_path;
     bool has_effect_contract = false;
+    SemanticBodyFlowSummary body_flow = {0};
+    bool has_body_flow = false;
     uint32_t declared_effects =
         declared_effects_from_function_node(node, ctx, &has_effect_contract);
 
@@ -293,16 +295,17 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             p->param_mode = param != NULL ? param->mode : PARAM_MODE_DEFAULT;
             symbol_mark_declaration(
                 p, ast_func_param_stable_id(param), false);
+            semantic_future_initialize_parameter(p);
         }
         scope_declare(ctx->scope, p);
     }
 
     if (ast_func_body(node) != NULL) {
-        SemanticBodyFlowSummary flow_summary = {0};
-        semantic_check_body_flow_summary(ast_func_body(node), ctx, &flow_summary);
+        semantic_check_body_flow_summary(ast_func_body(node), ctx, &body_flow);
+        has_body_flow = true;
         if (!type_equals(return_type, TYPE_VOID)
             && return_type != TYPE_UNKNOWN
-            && !flow_summary.must_return) {
+            && !body_flow.must_return) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_MISSING_RETURN,
                 PGY_CAUSE_CFG_MISSING_RETURN,
@@ -318,12 +321,17 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "- or change the function return type to Void if falling through is intended",
                 name != NULL ? name : "<anonymous>",
                 return_type->name != NULL ? return_type->name : "<unknown>",
-                flow_summary.has_fallthrough ? "yes" : "no",
-                flow_summary.has_return ? "yes" : "no",
-                flow_summary.has_break ? "yes" : "no",
-                flow_summary.has_continue ? "yes" : "no",
-                flow_summary.has_defer ? "yes" : "no");
+                body_flow.has_fallthrough ? "yes" : "no",
+                body_flow.has_return ? "yes" : "no",
+                body_flow.has_break ? "yes" : "no",
+                body_flow.has_continue ? "yes" : "no",
+                body_flow.has_defer ? "yes" : "no");
         }
+    }
+
+    if (has_body_flow && body_flow.has_fallthrough) {
+        semantic_future_require_scope_retired(
+            ctx->scope, node, ctx, "function fallthrough");
     }
 
     semantic_check_param_summary_escapes(node, param_count, param_types,

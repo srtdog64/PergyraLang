@@ -323,6 +323,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
 
     case STDLIB_BODY_CANCEL: {
         Type *task_type;
+        size_t diagnostic_base;
+        bool invalid_future_use;
 
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
@@ -333,8 +335,15 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 "move cancel")) {
             return TYPE_UNKNOWN;
         }
+        diagnostic_base = ctx->diagnostic_count;
+        invalid_future_use = semantic_future_use_is_invalid(arg0, ctx);
         task_type = stdlib_body_normalize_type(
             type_check_expression(arg0, ctx));
+        if (task_type == TYPE_UNKNOWN
+            && (invalid_future_use
+                || ctx->diagnostic_count > diagnostic_base)) {
+            return TYPE_UNKNOWN;
+        }
         if (!type_is_future_like(task_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
                 "Cancel requires Future<T> or RemoteFuture<T>, got '%s'",

@@ -16,12 +16,13 @@ test_parallel_family_emit(void)
         spawn_node->data.spawn_expr.function = make_identifier("DoWork", 1);
 
         ASTNode *main_body = ast_create_block();
-        ast_add_statement(main_body, spawn_node);
+        ast_add_statement(main_body, ast_create_await_expression(spawn_node));
         ASTNode *main_fn = calloc(1, sizeof(ASTNode));
         main_fn->type = AST_FUNC_DECL;
         main_fn->data.func_decl.name = pergyra_strdup("Main");
         main_fn->data.func_decl.return_type = make_type_node("Void");
         main_fn->data.func_decl.body = main_body;
+        main_fn->is_async_decl = true;
 
         ASTNode *stmts[2] = { worker, main_fn };
         ASTNode *prog = make_program(stmts, 2);

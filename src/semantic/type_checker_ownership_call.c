@@ -152,8 +152,10 @@ semantic_check_subject_call_argument(ASTNode *arg_expr,
             true)) {
         return true;
     }
-    if (pmode == PARAM_MODE_OWN)
+    if (pmode == PARAM_MODE_OWN) {
         consume_qubit_value(arg_expr, ctx, "moved");
+        semantic_future_transfer_argument(arg_expr, ctx);
+    }
     return true;
 }
 
@@ -180,8 +182,10 @@ semantic_check_value_boundary_call_argument(ASTNode *arg_expr,
             true)) {
         return true;
     }
-    if (pmode == PARAM_MODE_OWN)
+    if (pmode == PARAM_MODE_OWN) {
         consume_qubit_value(arg_expr, ctx, "moved");
+        semantic_future_transfer_argument(arg_expr, ctx);
+    }
     return true;
 }
 

@@ -1120,10 +1120,11 @@ func Worker() -> Int {
     return 1;
 }
 
-func Main() -> Void {
+async func Main() -> Void {
     let pending: Future<Int> = spawn Worker();
     let cancelled: Bool = Cancel(pending);
     Log(cancelled);
+    let joined: Int = await pending;
 }
 EOF
 run_case "cancel_future" "$TMPDIR/cancel_future.pgy" "true"

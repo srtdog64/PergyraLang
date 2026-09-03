@@ -1,0 +1,13 @@
+async func Worker() -> Int {
+    return 1;
+}
+
+async func RetireTask(own task: Future<Int>) -> Void {
+    Log(await task);
+}
+
+async func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    RetireTask(pending);
+    Log(Cancel(pending));
+}

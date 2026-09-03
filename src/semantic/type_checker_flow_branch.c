@@ -4,6 +4,8 @@
 #include "type_checker_flow_internal.h"
 #include "type_checker_flow_effects.h"
 
+#include <string.h>
+
 static bool
 flow_expr_is_static_literal(const ASTNode *node)
 {
@@ -11,6 +13,95 @@ flow_expr_is_static_literal(const ASTNode *node)
         && (node->type == AST_NUMBER
             || node->type == AST_STRING
             || node->type == AST_BOOLEAN);
+}
+
+static bool
+flow_static_literals_equal(const ASTNode *subject,
+                           const ASTNode *pattern,
+                           bool *equal_out)
+{
+    if (!flow_expr_is_static_literal(subject)
+        || !flow_expr_is_static_literal(pattern)
+        || subject->type != pattern->type) {
+        return false;
+    }
+
+    bool equal = false;
+    switch (subject->type) {
+    case AST_NUMBER:
+        equal = ast_number_value(subject) == ast_number_value(pattern);
+        break;
+    case AST_STRING: {
+        const char *subject_value = ast_string_value(subject);
+        const char *pattern_value = ast_string_value(pattern);
+        equal = subject_value != NULL && pattern_value != NULL
+            && strcmp(subject_value, pattern_value) == 0;
+        break;
+    }
+    case AST_BOOLEAN:
+        equal = ast_boolean_value(subject) == ast_boolean_value(pattern);
+        break;
+    default:
+        return false;
+    }
+
+    if (equal_out != NULL)
+        *equal_out = equal;
+    return true;
+}
+
+/* Return true only when reachability is proven. Unknown pattern or guard
+ * shapes remain conservatively reachable and are not allowed to suppress a
+ * later case/default path. */
+static bool
+flow_match_case_static_reachability(const ASTNode *subject,
+                                    const ASTNode *match_case,
+                                    bool *reachable_out)
+{
+    ASTNode *guard = ast_match_case_guard(match_case);
+    bool guard_value = true;
+    if (guard != NULL
+        && flow_static_bool_value(guard, &guard_value)
+        && !guard_value) {
+        if (reachable_out != NULL)
+            *reachable_out = false;
+        return true;
+    }
+
+    size_t pattern_count = ast_match_case_pattern_count(match_case);
+    bool saw_unknown_pattern = false;
+    bool matched = false;
+    if (pattern_count == 0 && ast_match_case_pattern(match_case) != NULL)
+        pattern_count = 1;
+
+    for (size_t i = 0; i < pattern_count; i++) {
+        ASTNode *pattern = ast_match_case_pattern_count(match_case) > 0
+            ? ast_match_case_pattern_at(match_case, i)
+            : ast_match_case_pattern(match_case);
+        bool equal = false;
+        if (!flow_static_literals_equal(subject, pattern, &equal)) {
+            saw_unknown_pattern = true;
+        } else if (equal) {
+            matched = true;
+            break;
+        }
+    }
+
+    if (!matched && saw_unknown_pattern)
+        return false;
+    if (!matched) {
+        if (reachable_out != NULL)
+            *reachable_out = false;
+        return true;
+    }
+    if (guard != NULL
+        && !flow_static_bool_value(guard, &guard_value)) {
+        return false;
+    }
+
+    if (reachable_out != NULL)
+        *reachable_out = guard_value;
+    return true;
 }
 
 static bool
@@ -45,6 +136,11 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     FlowFlags then_flags = FLOW_NONE;
     uint32_t then_effect_delta = EFFECT_NONE;
     uint32_t else_effect_delta = EFFECT_NONE;
+    bool condition_value = false;
+    bool condition_known = flow_static_bool_value(
+        ast_if_condition(node), &condition_value);
+    bool then_reachable = !condition_known || condition_value;
+    bool else_reachable = !condition_known || !condition_value;
 
     if (!base.valid) {
         semantic_error(ctx, node,
@@ -62,15 +158,22 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
 
     restore_resource_states(&base);
     ctx->current_function_effects = effect_base;
+    if (!then_reachable)
+        ctx->future_lifecycle_unreachable_depth++;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     then_flags = type_check_block_flow(ast_if_then_branch(node), ctx, loop_flow);
+    semantic_future_require_scope_retired(
+        ctx->scope, ast_if_then_branch(node), ctx, "if branch exit");
     scope_exit(&ctx->scope);
+    if (!then_reachable)
+        ctx->future_lifecycle_unreachable_depth--;
     then_effect_delta = effect_delta_from_baseline(effect_base,
         ctx->current_function_effects);
     if ((then_flags & FLOW_HAS_DEFER) != 0)
         branch_has_defer = true;
-    flags |= flow_terminating_flags(then_flags);
-    if (flow_has_fallthrough(then_flags)) {
+    if (then_reachable)
+        flags |= flow_terminating_flags(then_flags);
+    if (then_reachable && flow_has_fallthrough(then_flags)) {
         ResourceConsumeSnapshot then_snap = snapshot_resource_states(ctx);
         if (!then_snap.valid) {
             semantic_error(ctx, ast_if_then_branch(node) != NULL
@@ -87,16 +190,23 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         FlowFlags else_flags = FLOW_NONE;
         restore_resource_states(&base);
         ctx->current_function_effects = effect_base;
+        if (!else_reachable)
+            ctx->future_lifecycle_unreachable_depth++;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         else_flags =
             type_check_statement_flow(ast_if_else_branch(node), ctx, loop_flow);
+        semantic_future_require_scope_retired(
+            ctx->scope, ast_if_else_branch(node), ctx, "else branch exit");
         scope_exit(&ctx->scope);
+        if (!else_reachable)
+            ctx->future_lifecycle_unreachable_depth--;
         else_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
         if ((else_flags & FLOW_HAS_DEFER) != 0)
             branch_has_defer = true;
-        flags |= flow_terminating_flags(else_flags);
-        if (flow_has_fallthrough(else_flags)) {
+        if (else_reachable)
+            flags |= flow_terminating_flags(else_flags);
+        if (else_reachable && flow_has_fallthrough(else_flags)) {
             ResourceConsumeSnapshot else_snap = snapshot_resource_states(ctx);
             if (!else_snap.valid) {
                 semantic_error(ctx, ast_if_else_branch(node),
@@ -106,7 +216,7 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
             destroy_resource_snapshot(&else_snap);
             flags |= FLOW_FALLTHROUGH;
         }
-    } else {
+    } else if (else_reachable) {
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
         flags |= FLOW_FALLTHROUGH;
         else_effect_delta = EFFECT_NONE;
@@ -117,15 +227,18 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         flow_reject_dynamic_defer_control(ctx, node, "if");
     }
 
-    flow_record_branch_effect_conflict_labeled(ctx, node,
-        then_effect_delta, "then branch",
-        else_effect_delta,
-        ast_if_else_branch(node) != NULL
-            ? "else branch"
-            : "implicit fallthrough path");
-    ctx->current_function_effects = type_effect_mask_join(
-        effect_base,
-        type_effect_mask_join(then_effect_delta, else_effect_delta));
+    if (then_reachable && else_reachable) {
+        flow_record_branch_effect_conflict_labeled(ctx, node,
+            then_effect_delta, "then branch",
+            else_effect_delta,
+            ast_if_else_branch(node) != NULL
+                ? "else branch"
+                : "implicit fallthrough path");
+    }
+    ctx->current_function_effects = type_effect_mask_join(effect_base,
+        type_effect_mask_join(
+            then_reachable ? then_effect_delta : EFFECT_NONE,
+            else_reachable ? else_effect_delta : EFFECT_NONE));
 
     if (has_fallthrough && !fallthrough.valid) {
         semantic_error(ctx, node,
@@ -156,6 +269,7 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
     ResourceConsumeSnapshot fallthrough = {0};
     bool has_fallthrough = false;
     bool match_has_defer = false;
+    bool prior_static_match = false;
     FlowFlags flags = FLOW_NONE;
 
     if (!base.valid) {
@@ -180,8 +294,16 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
     for (size_t i = 0; i < ast_match_case_count(node); i++) {
         ASTNode *mc = ast_match_case_at(node, i);
         uint32_t case_effect_delta = EFFECT_NONE;
+        bool case_reachable = true;
+        bool case_reachability_known =
+            flow_match_case_static_reachability(subject, mc,
+                                                &case_reachable);
+        if (prior_static_match)
+            case_reachable = false;
         restore_resource_states(&base);
         ctx->current_function_effects = effect_base;
+        if (!case_reachable)
+            ctx->future_lifecycle_unreachable_depth++;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
 
         if (ast_match_case_pattern(mc) != NULL)
@@ -201,26 +323,32 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
 
         FlowFlags case_flags =
             type_check_block_flow(ast_match_case_body(mc), ctx, loop_flow);
+        semantic_future_require_scope_retired(
+            ctx->scope, mc, ctx, "match case exit");
         scope_exit(&ctx->scope);
+        if (!case_reachable)
+            ctx->future_lifecycle_unreachable_depth--;
         if ((case_flags & FLOW_HAS_DEFER) != 0)
             match_has_defer = true;
         case_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
-        if (merged_effect_delta != EFFECT_NONE) {
+        if (case_reachable && merged_effect_delta != EFFECT_NONE) {
             flow_record_branch_effect_conflict_labeled(ctx, mc,
                 merged_effect_delta, "merged prior cases",
                 case_effect_delta, "current case");
-        } else if (have_previous_case_delta) {
+        } else if (case_reachable && have_previous_case_delta) {
             flow_record_branch_effect_conflict_labeled(ctx, mc,
                 previous_case_delta, "previous case",
                 case_effect_delta, "current case");
         }
-        merged_effect_delta =
-            type_effect_mask_join(merged_effect_delta, case_effect_delta);
-        previous_case_delta = case_effect_delta;
-        have_previous_case_delta = true;
-        flags |= flow_terminating_flags(case_flags);
-        if (flow_has_fallthrough(case_flags)) {
+        if (case_reachable) {
+            merged_effect_delta =
+                type_effect_mask_join(merged_effect_delta, case_effect_delta);
+            previous_case_delta = case_effect_delta;
+            have_previous_case_delta = true;
+            flags |= flow_terminating_flags(case_flags);
+        }
+        if (case_reachable && flow_has_fallthrough(case_flags)) {
             ResourceConsumeSnapshot case_snap = snapshot_resource_states(ctx);
             if (!case_snap.valid) {
                 semantic_error(ctx, mc,
@@ -232,34 +360,45 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
             destroy_resource_snapshot(&case_snap);
             flags |= FLOW_FALLTHROUGH;
         }
+        if (!prior_static_match && case_reachability_known && case_reachable)
+            prior_static_match = true;
     }
 
     if (ast_match_default_body(node) != NULL) {
         FlowFlags default_flags = FLOW_NONE;
         uint32_t default_effect_delta = EFFECT_NONE;
+        bool default_reachable = !prior_static_match;
         restore_resource_states(&base);
         ctx->current_function_effects = effect_base;
+        if (!default_reachable)
+            ctx->future_lifecycle_unreachable_depth++;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         default_flags =
             type_check_block_flow(ast_match_default_body(node), ctx, loop_flow);
+        semantic_future_require_scope_retired(
+            ctx->scope, node, ctx, "match default exit");
         scope_exit(&ctx->scope);
+        if (!default_reachable)
+            ctx->future_lifecycle_unreachable_depth--;
         if ((default_flags & FLOW_HAS_DEFER) != 0)
             match_has_defer = true;
         default_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
-        if (merged_effect_delta != EFFECT_NONE) {
+        if (default_reachable && merged_effect_delta != EFFECT_NONE) {
             flow_record_branch_effect_conflict_labeled(ctx, node,
                 merged_effect_delta, "merged explicit cases",
                 default_effect_delta, "default case");
-        } else if (have_previous_case_delta) {
+        } else if (default_reachable && have_previous_case_delta) {
             flow_record_branch_effect_conflict_labeled(ctx, node,
                 previous_case_delta, "previous case",
                 default_effect_delta, "default case");
         }
-        merged_effect_delta =
-            type_effect_mask_join(merged_effect_delta, default_effect_delta);
-        flags |= flow_terminating_flags(default_flags);
-        if (flow_has_fallthrough(default_flags)) {
+        if (default_reachable) {
+            merged_effect_delta = type_effect_mask_join(
+                merged_effect_delta, default_effect_delta);
+            flags |= flow_terminating_flags(default_flags);
+        }
+        if (default_reachable && flow_has_fallthrough(default_flags)) {
             ResourceConsumeSnapshot default_snap = snapshot_resource_states(ctx);
             if (!default_snap.valid) {
                 semantic_error(ctx, ast_match_default_body(node),
@@ -271,7 +410,8 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
             destroy_resource_snapshot(&default_snap);
             flags |= FLOW_FALLTHROUGH;
         }
-    } else if (!match_stmt_has_total_case_coverage(node, subj_type, ctx)) {
+    } else if (!prior_static_match
+               && !match_stmt_has_total_case_coverage(node, subj_type, ctx)) {
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
         flags |= FLOW_FALLTHROUGH;
     }

@@ -428,7 +428,7 @@ test_mir_lowering_part_a(void)
     {
         const char *src =
             "func Worker() -> Int { return 1; }\n"
-            "async func AwaitKinds(pending: RemoteFuture<Int>) -> Void {\n"
+            "async func AwaitKinds(own pending: RemoteFuture<Int>) -> Void {\n"
             "    let f: Future<Int> = spawn Worker();\n"
             "    let localValue = await f;\n"
             "    let remoteValue = await pending;\n"

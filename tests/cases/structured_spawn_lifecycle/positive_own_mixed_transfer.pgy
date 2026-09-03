@@ -1,0 +1,22 @@
+async func Worker() -> Int {
+    return 3;
+}
+
+async func RetireLocal(own task: Future<Int>) -> Void {
+    Log(await task);
+}
+
+async func RetireRemote(own task: RemoteFuture<Int>) -> Void {
+    let result: Result<Int> = await task;
+    Log(Unwrap(result));
+}
+
+async func Main() -> Void {
+    let local_pending: Future<Int> = spawn Worker();
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(dev, 11);
+    let remote_pending: RemoteFuture<Int> = SubmitDeviceRead(dev);
+    RetireLocal(local_pending);
+    RetireRemote(remote_pending);
+    ReleaseDeviceSlot(dev);
+}

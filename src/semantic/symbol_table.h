@@ -73,6 +73,22 @@ typedef enum
 } QubitSemanticState;
 
 /*
+ * Future/RemoteFuture completion-handle lifecycle.
+ *
+ * NONE      - not an owned completion handle in this scope
+ * LIVE      - the scope owns a handle that still requires await/transfer
+ * RETIRED   - await completed or ownership moved to an `own` parameter
+ * DIVERGED  - alternative CFG paths disagree between LIVE and RETIRED
+ */
+typedef enum
+{
+    PGY_FUTURE_LIFECYCLE_NONE,
+    PGY_FUTURE_LIFECYCLE_LIVE,
+    PGY_FUTURE_LIFECYCLE_RETIRED,
+    PGY_FUTURE_LIFECYCLE_DIVERGED
+} PgyFutureLifecycleState;
+
+/*
  * Symbol - one entry in the symbol table
  */
 struct Symbol
@@ -86,6 +102,8 @@ struct Symbol
     bool       is_forward_placeholder;
     bool       is_used;
     bool       is_consumed;
+    PgyFutureLifecycleState future_lifecycle_state;
+    bool       future_lifecycle_reported;
     bool       is_parameter;
     ParamMode  param_mode;
     bool       embedded_in_world;

@@ -1,6 +1,6 @@
 # Async And Concurrency
 
-Last updated: 2026-04-26
+Last updated: 2026-09-03
 
 This document is the user-facing guide for the current beta async/concurrency
 surface. The frozen contract is `docs/113_memory_concurrency_model.md`; the
@@ -10,8 +10,10 @@ Pergyra does not treat `async` as the umbrella concept for every concurrent
 operation. The model is decomposed:
 
 - `parallel` expresses structured parallel execution.
-- named `spawn Worker(args...)` creates a task and returns a checked future.
-- `await` joins a future; it is not a lifetime or cancellation policy.
+- named `spawn Worker(args...)` creates a task and returns an affine checked
+  future whose binding must be retired within its lexical scope.
+- `await` joins and retires a future; it is not a cancellation policy or an
+  `async`-owned lifetime structure.
 - `Channel<T>` / `select` express streaming transport.
 - `Cancel` / `IsCancelled` express cooperative cancellation.
 - `Result<T>` expresses fallible completion.
@@ -24,7 +26,7 @@ operation. The model is decomposed:
 control continues after the block.
 
 ```pergyra
-func Main() -> Void {
+async func Main() -> Void {
     parallel {
         Log("left");
         Log("right");
@@ -65,6 +67,20 @@ Beta intentionally keeps the stable task-producing form named. Anonymous async
 spawn bodies are parser-accepted in some places but semantically rejected for
 beta because capture lifetime and cleanup summaries are not closed.
 
+The returned handle has one owner. Use an immutable direct binding and retire
+it with `await` on every normal path, or pass it to an explicit `own
+Future<T>` parameter whose callee assumes the same obligation. A bare `spawn`,
+`let mut` Future, Future-to-Future `let` alias, borrowed Future parameter,
+Future return, scope exit with a live handle, or branch where only one path
+retires the handle is rejected.
+Immediate `await spawn Worker(...)` is the only unbound form.
+
+Literal control flow is not treated as a fictitious alternative. For example,
+an `if true` join, a literal one-iteration range, or a selected literal `match`
+arm may retire the handle when that path is provably the only normal exit.
+Dynamic conditions remain conservative and must retire the handle on every
+possible normal path.
+
 ## 3. `async` / `await`
 
 `async func` marks a coroutine/suspension-capable declaration. `await` joins a
@@ -75,7 +91,7 @@ async func Worker() -> Int {
     return 7;
 }
 
-func Main() -> Void {
+async func Main() -> Void {
     let pending: Future<Int> = spawn Worker();
     let value: Int = await pending;
     Log(value);
@@ -167,16 +183,20 @@ func Worker() -> Int {
     return 0;
 }
 
-func Main() -> Void {
+async func Main() -> Void {
     let pending: Future<Int> = spawn Worker();
     let requested: Bool = Cancel(pending);
     Log(requested);
+    let value: Int = await pending;
+    Log(value);
 }
 ```
 
 Rules:
 
 - `Cancel(Future<T>)` and `Cancel(RemoteFuture<T>)` request cancellation.
+- cancellation does not join or free the handle; `await` (or an explicit
+  `own Future` transfer) is still required before scope exit.
 - `IsCancelled()` observes cancellation inside the current task.
 - Spawned async descendants inherit the cancellation chain in the current
   runtime model.

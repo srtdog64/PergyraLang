@@ -66,6 +66,21 @@ type_check_func_validate_return_boundary(ASTNode *node,
                                          SemanticContext *ctx,
                                          Type *return_type)
 {
+    if (semantic_type_is_future_handle(return_type)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TASK_LIFECYCLE,
+            PGY_CAUSE_TASK_LIFECYCLE,
+            PGY_FIX_AWAIT_TASK_BEFORE_EXIT,
+            ast_func_return_type(node),
+            "Future cannot cross a return boundary in the beta structured-spawn contract.\n"
+            "Reason:\n"
+            "- returning a completion handle moves its join obligation beyond the declaring scope\n"
+            "- beta transfer is explicit only through an 'own Future<T>' parameter\n"
+            "Fix:\n"
+            "- await the Future and return its completed value\n"
+            "- or pass the Future to a named function through an own parameter");
+        return;
+    }
     if (type_is_constructed_named(return_type, "Channel")) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_TYPE_MISMATCH,
@@ -133,6 +148,24 @@ type_check_func_validate_param_boundary(ASTNode *node,
             "Fix:\n"
             "- create and consume the TextBuilder inside one function owner scope\n"
             "- pass the finished String across the function boundary instead");
+        return;
+    }
+
+    if (semantic_type_is_future_handle(param_type)
+        && param->mode != PARAM_MODE_OWN) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TASK_LIFECYCLE,
+            PGY_CAUSE_TASK_LIFECYCLE,
+            PGY_FIX_AWAIT_TASK_BEFORE_EXIT,
+            node,
+            "Future parameters require explicit 'own'.\n"
+            "Reason:\n"
+            "- await frees the completion handle, so default/ref carriage would alias one runtime handle\n"
+            "- the caller must transfer its join obligation to exactly one callee\n"
+            "Fix:\n"
+            "- declare 'own %s: %s' and await or transfer it on every callee path",
+            param->name != NULL ? param->name : "task",
+            type_name_or_unknown(param_type));
         return;
     }
 

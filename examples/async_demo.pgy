@@ -50,4 +50,6 @@ async func Main() -> Void {
     let cancellable: Future<Int> = spawn Inc(40);
     let requested: Bool = Cancel(cancellable);
     Log(requested);
+    let cancelledValue: Int = await cancellable;
+    Log(cancelledValue);
 }

@@ -195,6 +195,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         Type *param_type = type_function_param_type(sym->type, i);
         OwnershipTypeClass declared_param_ownership =
             semantic_classify_ownership_type(param_type, ctx);
+        size_t argument_diagnostic_base = ctx->diagnostic_count;
+        bool invalid_future_use =
+            semantic_future_use_is_invalid(arg_expr, ctx);
         Type *arg_type = declared_param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
             ? type_check_qubit_use(arg_expr, ctx)
             : type_check_expression(arg_expr, ctx);
@@ -227,6 +230,11 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
         if (call_arg_types != NULL)
             call_arg_types[i] = arg_type;
+        if (arg_type == TYPE_UNKNOWN
+            && (invalid_future_use
+                || ctx->diagnostic_count > argument_diagnostic_base)) {
+            continue;
+        }
 
         OwnershipTypeClass param_ownership =
             semantic_classify_ownership_type(param_type, ctx);

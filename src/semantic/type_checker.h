@@ -45,6 +45,13 @@ typedef struct FunctionParamFlowSummaryStore FunctionParamFlowSummaryStore;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
+typedef enum
+{
+    SEMANTIC_SPAWN_HANDLE_UNOWNED = 0,
+    SEMANTIC_SPAWN_HANDLE_BINDING,
+    SEMANTIC_SPAWN_HANDLE_IMMEDIATE_AWAIT
+} SemanticSpawnHandleUse;
+
 
 typedef enum
 {
@@ -121,6 +128,9 @@ struct SemanticContext
                                     * compiles pay zero cost; the LSP turns it on
                                     * (advisories are an editor recognition aid). */
     bool         in_async_func;  /* Inside async func              */
+    SemanticSpawnHandleUse spawn_handle_use; /* Direct spawn owner site */
+    size_t       future_lifecycle_unreachable_depth;
+                                    /* Static flow path excluded from joins */
     bool         in_parallel;    /* Inside parallel block          */
     bool         in_parallel_join_expr; /* Inside an expression-form
                                     * parallel join body (docs/181 R2):

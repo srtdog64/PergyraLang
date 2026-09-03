@@ -1,0 +1,7 @@
+async func Worker() -> Int {
+    return 1;
+}
+
+async func Leak() -> Future<Int> {
+    return spawn Worker();
+}

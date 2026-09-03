@@ -44,14 +44,16 @@ for term in \
     "orthogonal capability" \
     "installed self-host path also does not yet reach" \
     "full C/LLVM self-host parity gate is therefore red" \
-    "function-exit must-await rule" \
+    "affine named-spawn Future lifecycle" \
+    "not a general \`!Forget\`" \
     "Unknown required facts fail closed"; do
     require_text "docs/106_ownership_model_comparison.md" "$term"
 done
 
 for term in \
-    "not a general must-await or guaranteed-finalizer rule" \
-    'structured `parallel` owns join-before-continuation'; do
+    "hidden finalizer" \
+    "affine Future binding and lexical flow fact" \
+    "block join contract"; do
     require_text "docs/113_memory_concurrency_model.md" "$term"
 done
 

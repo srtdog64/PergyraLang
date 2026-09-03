@@ -133,17 +133,18 @@ whole-self-host claim.
 
 | Axis | Rust 2026 direction | Pergyra current evidence | Status / open work |
 |---|---|---|---|
-| scoped fork/join | `!Forget` can make a scoped handle non-evadable | structured `parallel` join contract | bounded; executor depth remains scaffolded |
+| scoped fork/join | `!Forget` can make a scoped handle non-evadable | structured `parallel` plus affine named-spawn Future lifecycle | bounded for beta Future handles; executor depth remains scaffolded |
 | authority-aware lane choice | not the proposal's primary axis | one evidence classifier and fail-closed contradiction matrix | bounded; precise capture and runtime propagation remain open |
 | arbitrary immovable user type | proposed `!Move` capability | no general equivalent | candidate `relocatable` fact, not current SoT |
 | guaranteed finalizer for arbitrary type | proposed `!Forget` capability | certified cleanup slices only | candidate `must_finalize` consumption fact, not current SoT |
 
 The scoped advantage applies to structured `parallel`, whose syntax joins
-before continuation. A named `spawn` returns `Future<T>`; `await` consumes that
-handle and prevents reuse, but the current semantic checker has no general
-function-exit must-await rule for a still-live future. Pergyra therefore does
-not yet have a general safe-scoped-spawn answer equivalent to the proposed
-`!Forget` handle guarantee.
+before continuation, and to named `spawn`, whose `Future<T>` is now an affine
+lexical obligation. `await` consumes the handle; every normal scope/function
+exit rejects a live or path-divergent handle, and an explicit `own Future`
+parameter is the only transfer boundary. This is a bounded Future lifecycle
+rule, not a general `!Forget` or guaranteed-finalizer capability for arbitrary
+user types.
 
 Observed on 2026-08-03, `execution-lane-policy-test-smoke` is green for the
 12-row native decision table and 13-row AIR producer table. After its Windows

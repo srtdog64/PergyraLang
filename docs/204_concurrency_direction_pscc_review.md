@@ -68,7 +68,7 @@ Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 | 7 | mode를 표면에 노출하지 않고 파생 fact로 | 정전 | `docs/146` §4 "lane the evidence unlocked"; `docs/114` §8 "no user-selectable scheduler" |
 | 8 | `async` ≠ parallel | 정전 | `docs/53` §5.3 |
 | 8-9 | `async`는 lifetime 구조체; `async scope` 도입 | **정정** | §2.1 |
-| 9 | 고아 task 금지(structured) | 채택 | `docs/113` "still-live named future is not currently rejected" = 현재 **비계약**; `src/runtime/async/async_scope.h:57-71` `AsyncScope*`는 소비자 0 — §3.1 |
+| 9 | 고아 task 금지(structured) | **정전(2026-09-03 착지)** | `type_checker_future_lifecycle.c`; `structured-spawn-lifecycle-test-smoke`; 런타임 `AsyncScope*`는 여전히 소비자 0이며 SoT가 아님 — §3.1 |
 | 10 | `detach`는 별도 권한 | **정정** | `detach`는 zone 절(`src/parser/parser_domain_zone.c:251`); task detach는 `async` 블록 lowering에 암묵(`llvm_stmt_parallel_async.c:539-541`) — §2.5 |
 | 11-12 | revocable capability; share/split/lend/move | **정정**(번역) | `docs/178` Copy/Channel/Exclusivity/Disjointness + `ref`/`own`/`inout` — §2.4; 런타임 캐리어 부재는 §3.5 |
 | 13-14 | `LiveRef`는 await를 못 넘고 `SlotRef{slot,generation}`은 넘는다; resume 시 재검증 | 채택(절반은 정전) | pin/view는 이미 await·spawn·parallel·channel을 못 넘음(`docs/113`, `docs/114` §4); `SlotHandle{slotId,typeTag,generation}`(`src/runtime/slot_manager.h:122-127`), `PgyPinnedView{slotId,generation,mode,valid}`(`:167-175`); 재검증은 `docs/107`이 이름 붙인 "checked suspension contract" — §3.3 |
@@ -108,7 +108,7 @@ Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 - `await` = 완료 join **만**(`docs/113` §Future Await Contract).
 
 정정된 문장: **"구조적 수명은 scope 구문(parallel 블록, intent step,
-그리고 향후 구조화될 spawn 범위)이 소유한다. `async`는 '중단될 수 있다'는
+그리고 affine Future가 소유하는 lexical spawn 범위)가 소유한다. `async`는 '중단될 수 있다'는
 가시성만 남긴다."** 제안이 `async scope`로 얻으려던 것 — 자식이 부모보다
 오래 살 수 없다 — 는 §3.1의 구조적 spawn 범위로 얻는다. 새 키워드는 없다.
 
@@ -258,22 +258,34 @@ pin/raw, authority clear")이다. 따라서 이동성은 capability 트리에 �
 
 ### 3.1 구조적 spawn 범위 — 고아 task 금지
 
-현재 계약: "still-live named future is not currently rejected merely
-because its function exits. Only structured `parallel` owns
-join-before-continuation"(`docs/113`). 즉 이름 있는 `spawn`은 **고아가
-될 수 있다**. 이것은 `docs/198` 수명 bug corpus(orphan task, cancellation
-leak)의 정면이고, `docs/186` 구멍 1(중첩 병렬 pool-starvation 데드락 —
-정적 거절도 런타임 가드도 없음)의 뿌리와 맞닿는다.
+2026-09-03 착지: **이름 있는 `spawn`의 `Future<T>`/`RemoteFuture<T>`는
+affine lexical obligation이다.** 직접 immutable `let`으로 소유하거나 즉시
+`await`해야 하며, 모든 정상 경로에서 scope/function exit 전에 `await` 또는
+명시적 `own Future` 인계로 retire해야 한다. `Cancel`은 요청일 뿐 join/free가
+아니므로 여전히 retire 의무가 남는다. 한 분기만 retire한 상태, bare spawn,
+mutable Future, Future-to-Future `let` alias, borrowed/default Future parameter,
+Future 반환은
+`PGY_SEM_TASK_LIFECYCLE`로 fail closed한다.
 
-채택: **`spawn`은 그것을 감싼 scope(parallel 블록 또는 intent step, 없으면
-함수 본문) 안에서 join되거나 명시적으로 분리되어야 한다.** 함수 exit 시
-live handle은 거절(semantic error). 취소는 부모→자식으로 전파(현재 런타임
-모델과 일치, `docs/114` §5).
+소유자는 `src/semantic/type_checker_future_lifecycle.c`, 흐름 캐리어는
+`ResourceConsumeSnapshot`, 실행 반증은
+`make structured-spawn-lifecycle-test-smoke`다. 런타임의
+`AsyncScopeCreate/Spawn/Cancel/WaitAll`은 여전히 생산 소비자 0이며 이 계약의
+SoT가 아니다. 컴파일러가 숨은 wait-all/finalizer를 삽입하지도 않는다.
 
-앵커: 런타임에 `AsyncScopeCreate/Spawn/Cancel/WaitAll`이 이미 컴파일되나
-소비자가 없다(`src/runtime/async/async_scope.h:57-71`; 조사 §2). 컴파일러
-소비자를 붙이면 되는 자리다. 중첩 병렬은 scope 트리에서 부모 worker가
-자식을 **help/drain**하도록 lane facade에서 처리 — 구멍 1의 방어.
+경로 합류는 정적 도달성까지 포함한다. `if true/false`, literal `match`,
+최소 1회 literal range, `while true`는 불가능한 zero/alternate 경로를
+Future 상태에 섞지 않는다. 조건이 동적이면 기존처럼 모든 가능한 정상
+경로가 같은 retire 상태에 도달해야 한다. 정확히 0회인 literal range와 정적
+분기 안의 도달 불가 loop exit는 상태 합류에서 제외하며, 이미 unavailable인
+handle의 반복 사용은 후속 type-mismatch 없이 소유 진단 하나만 낸다. 전용
+corpus는 C/LLVM 양쪽에서 19 positive, 18 fail-closed와 exact ABI transfer
+출력을 고정한다.
+
+중첩 병렬 pool-starvation은 이 수명 문제와 별개이며 이미 2026-07-17
+help-first await와 `nested_parallel_witness_smoke.sh`로 닫혔다(`docs/186`
+P-A1). 구조적 spawn 착지를 그 데드락의 미구현 방어라고 설명한 이전 문장은
+정정한다.
 
 분리(detach)의 철자는 여기서 정한다. 후보는 `spawn` 수식어(예: `spawn
 background Worker(args)`)이며 zone `detach` 절과 충돌하지 않는다. 권한은
@@ -332,8 +344,9 @@ WorkerPool/MovableScheduler는 task body 전 해당 컨텍스트를 bind하고 �
 nested help-run, coroutine suspension을 실행한다. worker 기본 grant, 자식의
 환경 재독, 독립 budget 초기화는 negative ratchet으로 금지된다.
 
-남은 것: lend/move edge가 마스크를 더 좁히는 흐름 분석, 구조적 scope가 부모
-budget owner의 수명을 보장하는 §3.1, 그리고 capability non-forgery의 정리다.
+남은 것: lend/move edge가 마스크를 더 좁히는 흐름 분석, unsupported detach의
+독립 lifetime owner, 그리고 capability non-forgery의 정리다. 이름 있는 spawn의
+부모 budget-owner 수명은 §3.1의 lexical Future 의무가 이제 보장한다.
 따라서 이 착지는 Authority carriage이지 완전한 multi-tenant 격리 주장이
 아니다.
 

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "type_checker_internal.h"
+#include "diag_codes.h"
 
 static Type *
 lambda_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
@@ -80,6 +81,19 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
             if (param_sym != NULL) {
                 param_sym->is_parameter = true;
                 param_sym->param_mode = PARAM_MODE_DEFAULT;
+                if (semantic_type_is_future_handle(param_type)) {
+                    semantic_error_with_hints(ctx,
+                        PGY_CODE_SEM_TASK_LIFECYCLE,
+                        PGY_CAUSE_TASK_LIFECYCLE,
+                        PGY_FIX_AWAIT_TASK_BEFORE_EXIT,
+                        param,
+                        "Lambda Future parameters are not supported in the beta structured-spawn contract.\n"
+                        "Reason:\n"
+                        "- lambda parameters have no explicit own transfer mode\n"
+                        "- default carriage would alias one completion handle\n"
+                        "Fix:\n"
+                        "- use a named function with an 'own Future<T>' parameter");
+                }
                 scope_declare(ctx->scope, param_sym);
             }
         }
@@ -125,9 +139,14 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
     if (lambda_body != NULL && lambda_body->type == AST_BLOCK) {
         bool saved_in_async = ctx->in_async_func;
         Type *saved_return = ctx->current_return;
+        SemanticBodyFlowSummary flow_summary = {0};
         ctx->in_async_func = ast_lambda_is_async(expr);
         ctx->current_return = return_type;
-        type_check_block(lambda_body, ctx);
+        semantic_check_body_flow_summary(lambda_body, ctx, &flow_summary);
+        if (flow_summary.has_fallthrough) {
+            semantic_future_require_scope_retired(
+                ctx->scope, lambda_body, ctx, "lambda fallthrough");
+        }
         ctx->current_return = saved_return;
         ctx->in_async_func = saved_in_async;
     }

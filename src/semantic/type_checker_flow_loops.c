@@ -111,20 +111,25 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     }
 
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
-    ResourceConsumeSnapshot merged = copy_resource_snapshot(&base);
-    ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
     bool known_iterations = false;
     size_t known_cap = for_loop_known_iteration_cap(node, &known_iterations);
+    bool merged_initialized = !known_iterations || known_cap == 0;
+    ResourceConsumeSnapshot merged = merged_initialized
+        ? copy_resource_snapshot(&base)
+        : (ResourceConsumeSnapshot){0};
+    ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
     bool has_break_exit = false;
     bool body_must_return = false;
     bool dynamic_defer_rejected = false;
-    size_t max_iterations = (known_iterations && known_cap <= 1)
-        ? 1
-        : (base.count + 1);
-    if (max_iterations == 0)
+    size_t max_iterations = known_iterations && known_cap == 0
+        ? 0
+        : (known_iterations && known_cap == 1 ? 1 : (base.count + 1));
+    if (!known_iterations && max_iterations == 0)
         max_iterations = 1;
 
-    if (!base.valid || !merged.valid || !entry.valid) {
+    if (!base.valid
+        || (merged_initialized && !merged.valid)
+        || !entry.valid) {
         semantic_error(ctx, node,
             "Resource snapshot allocation failed before for-loop analysis");
         ctx->loop_depth--;
@@ -164,6 +169,9 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         loop_flow_summary_note_body_check(ctx, node, "for");
         body_flags = type_check_block_flow(body, ctx, &loop_flow);
+        semantic_future_require_scope_retired(
+            ctx->scope, body != NULL ? body : node,
+            ctx, "for body exit");
         scope_exit(&ctx->scope);
         if (!dynamic_defer_rejected
             && (body_flags & FLOW_HAS_DEFER) != 0
@@ -186,16 +194,23 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
                 destroy_loop_flow_state(&loop_flow);
                 break;
             }
-            merge_resource_states_or(&merged, &body_snap);
+            merge_resource_snapshots_or(&merged, &merged_initialized,
+                                        &body_snap);
             merge_resource_snapshots_or(&backedge, &has_backedge, &body_snap);
             destroy_resource_snapshot(&body_snap);
         }
 
-        if (loop_flow.has_continue_states)
+        if (loop_flow.has_continue_states) {
             merge_resource_snapshots_or(&backedge, &has_backedge,
                                         &loop_flow.continue_states);
+            if (known_iterations && known_cap == 1) {
+                merge_resource_snapshots_or(&merged, &merged_initialized,
+                                            &loop_flow.continue_states);
+            }
+        }
         if (loop_flow.has_break_states)
-            merge_resource_states_or(&merged, &loop_flow.break_states);
+            merge_resource_snapshots_or(&merged, &merged_initialized,
+                                        &loop_flow.break_states);
         if (loop_flow.has_break_states)
             has_break_exit = true;
         if (!has_backedge && (body_flags & FLOW_RETURN) != 0)
@@ -203,7 +218,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
 
         destroy_loop_flow_state(&loop_flow);
 
-        if ((has_backedge && !backedge.valid) || !merged.valid) {
+        if ((has_backedge && !backedge.valid)
+            || (merged_initialized && !merged.valid)) {
             semantic_error(ctx, node,
                 "Resource snapshot merge failed while checking for-loop flow");
             destroy_resource_snapshot(&backedge);
@@ -228,6 +244,10 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     FlowFlags result_flags = FLOW_FALLTHROUGH;
     if (known_iterations && known_cap > 0 && !has_break_exit && body_must_return)
         result_flags = FLOW_RETURN;
+    if (!merged_initialized) {
+        destroy_resource_snapshot(&merged);
+        merged = copy_resource_snapshot(&base);
+    }
     if (ctx->diagnostic_count == diagnostic_base) {
         loop_flow_summary_record(ctx, node, &base, &merged,
                                  effect_base, merged_effect_delta,
@@ -299,14 +319,19 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     }
 
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
-    ResourceConsumeSnapshot merged = copy_resource_snapshot(&base);
+    bool merged_initialized = !condition_static_true;
+    ResourceConsumeSnapshot merged = merged_initialized
+        ? copy_resource_snapshot(&base)
+        : (ResourceConsumeSnapshot){0};
     ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
     bool dynamic_defer_rejected = false;
     size_t max_iterations = base.count + 1;
     if (max_iterations == 0)
         max_iterations = 1;
 
-    if (!base.valid || !merged.valid || !entry.valid) {
+    if (!base.valid
+        || (merged_initialized && !merged.valid)
+        || !entry.valid) {
         semantic_error(ctx, node,
             "Resource snapshot allocation failed before while-loop analysis");
         ctx->loop_depth--;
@@ -358,6 +383,10 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         loop_flow_summary_note_body_check(ctx, node, "while");
         body_flags = type_check_block_flow(ast_while_body(node), ctx, &loop_flow);
+        semantic_future_require_scope_retired(
+            ctx->scope,
+            ast_while_body(node) != NULL ? ast_while_body(node) : node,
+            ctx, "while body exit");
         scope_exit(&ctx->scope);
         if (!dynamic_defer_rejected
             && (body_flags & FLOW_HAS_DEFER) != 0
@@ -382,7 +411,10 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
                 destroy_loop_flow_state(&loop_flow);
                 break;
             }
-            merge_resource_states_or(&merged, &body_snap);
+            if (!condition_static_true) {
+                merge_resource_snapshots_or(&merged, &merged_initialized,
+                                            &body_snap);
+            }
             merge_resource_snapshots_or(&backedge, &has_backedge, &body_snap);
             destroy_resource_snapshot(&body_snap);
         }
@@ -391,7 +423,8 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
             merge_resource_snapshots_or(&backedge, &has_backedge,
                                         &loop_flow.continue_states);
         if (loop_flow.has_break_states)
-            merge_resource_states_or(&merged, &loop_flow.break_states);
+            merge_resource_snapshots_or(&merged, &merged_initialized,
+                                        &loop_flow.break_states);
         if (loop_flow.has_break_states)
             has_break_exit = true;
         if (!has_backedge && (body_flags & FLOW_RETURN) != 0)
@@ -399,7 +432,8 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
 
         destroy_loop_flow_state(&loop_flow);
 
-        if ((has_backedge && !backedge.valid) || !merged.valid) {
+        if ((has_backedge && !backedge.valid)
+            || (merged_initialized && !merged.valid)) {
             semantic_error(ctx, node,
                 "Resource snapshot merge failed while checking while-loop flow");
             destroy_resource_snapshot(&backedge);
@@ -422,8 +456,12 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     }
 
     FlowFlags result_flags = FLOW_FALLTHROUGH;
-    if (!has_break_exit && condition_static_true && body_must_return)
-        result_flags = FLOW_RETURN;
+    if (condition_static_true && !has_break_exit)
+        result_flags = body_must_return ? FLOW_RETURN : FLOW_NONE;
+    if (!merged_initialized) {
+        destroy_resource_snapshot(&merged);
+        merged = copy_resource_snapshot(&base);
+    }
     if (ctx->diagnostic_count == diagnostic_base) {
         loop_flow_summary_record(ctx, node, &base, &merged,
                                  effect_base, merged_effect_delta,

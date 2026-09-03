@@ -124,6 +124,8 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                 for (size_t j = 1; j < ast_block_statement_count(c); j++)
                     (void)type_check_statement_flow_boundary(
                         ast_block_statement(c, j), ctx);
+                semantic_future_require_scope_retired(
+                    ctx->scope, c, ctx, "select case exit");
                 scope_exit(&ctx->scope);
             } else {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_SELECT_CASE_INVALID, PGY_CAUSE_SELECT_CASE_SHAPE, PGY_FIX_START_WITH_CHANNEL_RECV, c,
