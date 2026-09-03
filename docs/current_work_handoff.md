@@ -21,25 +21,29 @@ percentage by themselves.
 ## Active self-host context — match scrutinee single-evaluation discovery
 
 - Exact checkpoint is
-  `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de`, equal to `origin/main` before
-  the user-requested evidence-lifecycle proof integration. The preceding match
-  graph-consumer rung is closed by exact-head run `33743159430` (30/30 green).
+  `06f8ca5b2d1d3b1d9873d8c76944b05ce3210436`, equal to `origin/main` before
+  the documentation closure. The preceding match graph-consumer rung is closed
+  by exact-head run `33743159430`, and the user-requested evidence-lifecycle
+  proof integration is closed by run `33747165723`; both are 30/30 green.
 - Production entrypoint remains installed Pergyra-built DRV-2 source-to-MIR
   followed by self-host C/LLVM emission. The first bounded falsifying candidate
-  is a side-effecting match scrutinee: current generated C was observed to
-  splice the graph-rendered expression into more than one case/payload site.
+  is a side-effecting match scrutinee. Current Pergyra-built DRV-2 and explicit
+  native-pipeline C each emit three calls for `match c.Bump()`; native-pipeline
+  LLVM emits four. Native MIR carries the same expression graph in two match
+  branch rows instead of one stable evaluated value.
 - This is discovery evidence, not yet a confirmed semantic bug or an opened
   implementation lease. `SemanticAstExpressionSurfaceFacts` owns expression
   meaning but does not by itself own an exactly-once materialization binding.
   The exact missing fact owner and last legitimate consumer remain to be fixed
   only after an observable call-count fixture reproduces the behavior in the
-  installed C and LLVM entrypoints.
+  installed C and LLVM entrypoints. The repeated emitted calls are observed;
+  the independent language-level oracle is the remaining falsifier.
 - The next executable action is that focused falsifier. Re-emitting a
   side-effecting scrutinee per arm is the candidate forbidden fallback; broad
   expression cleanup, backend-local inference, and a second semantic producer
   remain outside the discovery. No census or percentage change is claimed.
 
-## Active supporting context — evidence lifecycle Rocq model
+## Published supporting context — evidence lifecycle Rocq model
 
 - Exact base is `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de`. The canonical owner remains
   `docs/semantics/09_abstraction_loss_contracts.md`; the bounded model and scope
@@ -51,14 +55,22 @@ percentage by themselves.
   interpretation/representation measures.
 - Local adequacy, abstraction-loss, documentation, shell syntax, formal static
   inventory, and diff checks pass. No local prover exists and the Docker daemon
-  is unavailable, so the 49-file compile, `rocqchk`, and axiom-budget verdict
-  remain pending exact-head Rocq 9 CI. This supporting proof is not an SoT row,
-  implementation-conformance proof, or self-host substitution increment.
+  was unavailable; exact-head Rocq 9 CI therefore owns the kernel verdict.
+  This supporting proof is not an SoT row, implementation-conformance proof,
+  or self-host substitution increment.
 - First publication `67954fb0` reached Rocq 9 in run `33746751415`; the prover
   rejected one `assumption` after boolean destruction in the materialization
   theorem. The run was cancelled before the long matrix completed. The repair
   now destructures the context record and proves the surviving true branches
-  explicitly by reflexivity; its exact-head kernel verdict is pending.
+  explicitly by reflexivity.
+- Repair `06f8ca5b2d1d3b1d9873d8c76944b05ce3210436` is on `origin/main`.
+  Exact-head run `33747165723` completed 30/30 green in 36m05s. Rocq 9.0.1
+  compiled and kernel-verified all 49 proofs with only the two existing
+  `SlotCalculus` abstractions, no admits, and no unsafe kernel features; its
+  planted `Admitted` self-test failed closed. Full self-host took 35m45s,
+  installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (173911 lines)`, and completed the three-source policy census.
+  The proof lease is released with no census or percentage change.
 
 ## Published self-host context — match scrutinee expression-graph codegen
 

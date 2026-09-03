@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE supporting proof lease — evidence lifecycle compression
+## DONE supporting proof lease — evidence lifecycle compression
 
 - Exact base is `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de`, equal to
   `origin/main` when this lease opened. A delegated task prepared the bounded
@@ -30,7 +30,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   after boolean destruction, `assumption` could not recover the eliminated
   equation. The obsolete full run was cancelled immediately. The repair
   destructures the context record and closes the explicit true branches by
-  reflexivity; exact-head kernel verification remains pending.
+  reflexivity.
+- Repair `06f8ca5b2d1d3b1d9873d8c76944b05ce3210436` is published. Exact-head run
+  `33747165723` completed 30/30 green in 36m05s. Rocq 9.0.1 compiled and
+  kernel-verified all 49 proof files with only the two existing `SlotCalculus`
+  abstractions, no admits, and no unsafe kernel features; the planted
+  `Admitted` self-test failed closed. Full self-host took 35m45s, installed the
+  Pergyra-built DRV-2, proved `gen2 == gen3 (173911 lines)`, and completed the
+  three-source policy census. The supporting lease is released without an SoT
+  census, self-host substitution, or project-percentage change.
 
 ## DONE lease — match scrutinee expression-graph codegen
 

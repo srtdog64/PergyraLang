@@ -16,7 +16,8 @@ prove that an abstraction faithfully represents the real fact it replaced.
 Every compiler or tooling boundary loses information:
 
 ```text
-source bytes -> tokens -> AST -> HIR/DIR/RIR -> MIR -> AIR -> C/LLVM -> binary
+codegen:      source bytes -> tokens -> AST -> HIR/RIR -> MIR -> C/LLVM -> binary
+verification:                         AST/DIR/HIR/RIR/MIR -> AIR
 ```
 
 Loss is not automatically a bug. Hidden loss is the bug. A Pergyra abstraction
