@@ -37,9 +37,14 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 LABEL="selfhost-bootstrap-policy-corpus"
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
+fi
 # Overridable so an isolated run (or a probe against a locally built driver
 # pair) does not have to share .tmp with a concurrent bootstrap session.
 DRIVER_BUILD="${PGY_SELFHOST_DRIVER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/bootstrap}"
@@ -57,23 +62,24 @@ for bin in "$SEED_BIN" "$ORACLE_BIN"; do
     pgy_binary_is_runnable_here "$bin" || fail "driver artifact is not runnable on this host: $bin -- stale cross-platform .tmp; reseed with make self-host-driver-bootstrap-test-smoke"
 done
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
+pgy_selfhost_select_emitted_c_compile_profile \
+    || fail "emitted C compile profile is invalid"
 
 # ---- the corpus table -------------------------------------------------------
 # name | manifest source | native golden | declared status
 # Statuses are EMPIRICAL pins, not aspirations. Promote a row to in_subset in
 # the same change that makes the driver actually eat it.
 CORPUS=(
-    "chunk_policy|src/self_hosted/parallel/chunk_policy_manifest.pgy|src/self_hosted/parallel/expected_chunk_policy_manifest.txt|out_of_subset"
-    "lane_policy|src/self_hosted/parallel/lane_policy_manifest.pgy|src/self_hosted/parallel/expected_lane_policy_manifest.txt|out_of_subset"
-    "reachability|src/self_hosted/compiler/reachability_manifest.pgy|src/self_hosted/compiler/expected_reachability_manifest.txt|out_of_subset"
+    "chunk_policy|src/self_hosted/parallel/chunk_policy_manifest.pgy|src/self_hosted/parallel/expected_chunk_policy_manifest.txt|in_subset"
+    "lane_policy|src/self_hosted/parallel/lane_policy_manifest.pgy|src/self_hosted/parallel/expected_lane_policy_manifest.txt|in_subset"
+    "reachability|src/self_hosted/compiler/reachability_manifest.pgy|src/self_hosted/compiler/expected_reachability_manifest.txt|in_subset"
 )
 
 emit_via() { # $1=label $2=bin $3=source_rel $4=out_c ; rc 0 = emitted clean C
     local label="$1" bin="$2" src_rel="$3" out_c="$4"
     rm -f "$out_c" "$BUILD_DIR/$label.out" "$BUILD_DIR/$label.err"
-    if ! (cd "$ROOT_DIR" && "$bin" "$src_rel" \
-        "$(pgy_selfhost_path_relative_to_root "$out_c")" \
-        >"$BUILD_DIR/$label.out" 2>"$BUILD_DIR/$label.err"); then
+    if ! (cd "$ROOT_DIR" && "$bin" "$src_rel" --emit-c-verified \
+        >"$out_c" 2>"$BUILD_DIR/$label.err"); then
         return 1
     fi
     [[ -s "$out_c" ]] || return 1
@@ -117,7 +123,13 @@ for row in "${CORPUS[@]}"; do
                 || fail "'$name': oracle driver failed where the self-built one succeeded"
             pgy_selfhost_compare_expected_text_artifact_file_with_owner \
                 "$LABEL:$name" "$BUILD_DIR" "$oracle_c" "$self_c" "emitted_c"
-            "$CC" "$self_c" -o "$BUILD_DIR/${name}_self.exe" \
+            compile_command=("$CC" -x c -std=c11)
+            compile_command+=("${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]}")
+            if pgy_selfhost_emitted_c_uses_runtime_headers "$self_c"; then
+                compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+            fi
+            compile_command+=("$self_c" -o "$BUILD_DIR/${name}_self.exe")
+            "${compile_command[@]}" \
                 2>"$BUILD_DIR/${name}_cc.err" \
                 || { cat "$BUILD_DIR/${name}_cc.err" >&2; fail "'$name': self-emitted C failed to compile"; }
             (cd "$ROOT_DIR" && "$BUILD_DIR/${name}_self.exe" 2>"$BUILD_DIR/${name}_run.err" \

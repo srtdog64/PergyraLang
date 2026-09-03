@@ -16857,6 +16857,10 @@ require_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
 require_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
     'PGY_SELFHOST_POLICY_CORPUS_BUILD_DIR'
 require_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
+    '"$bin" "$src_rel" --emit-c-verified'
+reject_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
+    '|out_of_subset"'
+require_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
     "bootstrap refusal was not a controlled CODEGEN ERROR"
 reject_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
     "__CHUNK_STATUS__"
