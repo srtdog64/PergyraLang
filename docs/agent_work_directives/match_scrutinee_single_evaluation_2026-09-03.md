@@ -1,6 +1,6 @@
 # Match scrutinee single-evaluation lease — 2026-09-03
 
-Status: `SEED REPAIR EXACT GREEN — GENERATED INVENTORY REPAIR PENDING`
+Status: `SEED REPAIR EXACT GREEN — DERIVED REGISTRY REPAIR PENDING`
 
 Exact base: `513b668957cdb47627bd2bc490a45916337b2629` on
 `origin/main`.
@@ -108,3 +108,11 @@ shape, and automatically restores byte parity when it does.
   eight fixture-file counts for language words present in the new fixture.
   Generator `--check` and `language_keyword_registry_smoke.sh` are green. The
   next exact head owns the complete-matrix verdict.
+- Inventory closure `12dd5a2eb6c204e2959d32ae52c8478efc4cff0d` reached
+  docs-only run `33766129864`. Documentation, the language registry, and the
+  post-self-host manifest passed; the SoT edge then correctly rejected the new
+  `*_fact_owner.pgy` as unclassified. It is a projection of
+  `selfhost.expression_surface`, not an authority: the original graph retains
+  meaning while this carrier records only the exactly-once materialization
+  decision and stable synthetic reference. Derived carriers therefore rise
+  from 184 to 185, with 88 authorities and `55/32/1` unchanged.

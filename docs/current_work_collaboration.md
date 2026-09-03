@@ -46,10 +46,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   new fixture was absent from its fixture-file counts. The run was cancelled.
   Canonical regeneration changes only the eight affected fixture counts;
   generator check and the 146-row registry gate are green locally. Inventory
-  publication and a fresh exact-head CI remain pending. Pergyra-owned LLVM
-  still does not admit this Option-match structural
-  shape and is a separate future rung. Registries, generated inventories, SoT
-  census, and project percentage do not change. Exact objective and exclusions are in
+  closure `12dd5a2eb6c204e2959d32ae52c8478efc4cff0d` is published.
+- Its docs-only run `33766129864` passed documentation, language registry, and
+  post-self-host manifest checks, then the SoT edge rejected the new
+  fact-shaped file as unclassified. The fact is now registered as a
+  `selfhost.expression_surface` derived projection: authority/status census
+  stays 88 and `55/32/1`, while derived carriers rise from 184 to 185.
+  Registry publication, docs-only validation, and workflow-dispatch full
+  exact-head CI remain pending. Pergyra-owned LLVM still does not admit this
+  Option-match structural shape and is a separate future rung. Generated
+  inventory, authority/status census, and project percentage do not change
+  further. Exact objective and exclusions are in
   `docs/agent_work_directives/match_scrutinee_single_evaluation_2026-09-03.md`.
 
 ## DONE supporting proof lease — evidence lifecycle compression

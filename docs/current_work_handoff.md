@@ -20,9 +20,9 @@ percentage by themselves.
 
 ## Active self-host context — match scrutinee single-evaluation CI repair
 
-- Implementation commit `56ecb3359d00509541bef3840091d450fc3614ed` is the
-  exact published checkpoint and equals `origin/main`. The worktree contains
-  one bounded seed-compiler repair plus the protected user-owned
+- Generated-inventory closure `12dd5a2eb6c204e2959d32ae52c8478efc4cff0d`
+  is the exact published checkpoint and equals `origin/main`. The worktree
+  contains one bounded derived-registry repair plus the protected user-owned
   `examples/raid_graph_fsm/results.txt` change and three protected untracked
   directories; those unrelated paths remain outside inspection, edit, and
   staging.
@@ -68,8 +68,16 @@ percentage by themselves.
   The canonical generator now changes only the eight fixture-file counts for
   words present in that fixture; generator `--check` and the complete 146-row
   registry smoke are green locally.
-- Next action is explicit generated-inventory-and-handoff staging,
-  commit/push, and a fresh exact-head CI. Pergyra-owned LLVM admission for this
+- Its docs-only run `33766129864` passed documentation quality, the 146-row
+  language registry, and the post-self-host manifest, then the SoT edge
+  correctly rejected the new fact-shaped file as unclassified. The
+  materialization fact is not a new authority: it projects the existing
+  `selfhost.expression_surface` meaning plus the owned statement result type.
+  It is now registered as a derived projection, raising derived carriers from
+  184 to 185 while authorities and `55/32/1` remain unchanged.
+- Next action is explicit registry-and-handoff staging, commit/push, docs-only
+  validation, then workflow-dispatch full exact-head CI. Pergyra-owned LLVM
+  admission for this
   Option binding remains a
   separate future executable rung. Module Build is only a deferred
   post-self-host interface reservation in docs 109/202; it opens no
@@ -78,8 +86,8 @@ percentage by themselves.
   The local package/module smoke reached its generated `main.pgy` and then
   failed because the currently installed launcher emitted a file rejected by
   its own `fmt --check`; this stale-toolchain result is not counted green and
-  exact CI must retest with the fresh build. No SoT census or percentage change
-  is claimed.
+  exact CI must retest with the fresh build. No authority/status census or
+  percentage change is claimed beyond the derived-carrier classification.
 
 ## Published supporting context — evidence lifecycle Rocq model
 

@@ -244,6 +244,7 @@ src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy | SemanticAstGener
 src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy | SemanticAstSignatureTypeExpressionFacts | selfhost.function_declaration_rows | local_view
 src/self_hosted/semantic/try_expression_fact_owner.pgy | SemanticTryOperand | selfhost.expression_graph | bridge
 src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy | SemanticExpressionGraphFacts | selfhost.expression_graph | bridge
+src/self_hosted/semantic/ast_match_materialization_fact_owner.pgy | SemanticAstMatchMaterializationFactsAttach | selfhost.expression_surface | projection
 src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy | SemanticAstExpressionFunctionTableFacts | selfhost.function_declaration_rows | projection
 src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy | SemanticAstIntentActionCallFact | selfhost.intent_declaration_rows | local_view
 src/self_hosted/semantic/delimited_range_fact_owner.pgy | SemanticDelimitedRangeFacts | semantic.symbol_type_graph | local_view
@@ -1661,8 +1662,8 @@ cleanup policy may retire caller cleanup.
 proves the bounded four-block diamond in C and LLVM and rejects one-sided,
 later-use, duplicate-arm, missing-edge, carriage, pass-shape, and ABI-layout
 counterexamples without artifact publication. Authority/status census remains
-88 and `55/32/1`; the derived-carrier inventory is now 184 because this
-projection is explicitly classified. The registry rows remain `BRIDGE`:
+88 and `55/32/1`; the derived-carrier inventory was 184 at this checkpoint
+because this projection was explicitly classified. The registry rows remain `BRIDGE`:
 references there to conditional moves now mean shapes beyond this
 single binary diamond, including loops, nested alternatives, early exits,
 break/continue, and formal/member/literal/fresh-result ownership flow. Census
@@ -1726,3 +1727,16 @@ the first failure from row 17851 to row 18392. The next RED is routine 1197
 `stage=admitted-type`. That existing member-rebind type join is the next
 consumer seam; it is not permission for a new operation, V, cache, shard,
 timeout, cap, or top-level SoT row.
+
+## Match scrutinee single-evaluation projection
+
+`SemanticAstMatchMaterializationFactsAttach` is a projection of the existing
+`selfhost.expression_surface` authority, joined with the already-owned
+statement result type. It decides whether a non-scalar match scrutinee needs a
+stable synthetic LocalRef and carries that isolated binding graph to MIR; the
+original expression graph remains the meaning owner. It may not reinterpret
+source text, infer backend purity, or become a second match authority.
+
+Classifying this fact-shaped carrier raises only the derived inventory from
+184 to 185. The authority/status census remains 88 and `55/32/1`; no SoT row,
+blocker count, hard-substitution numerator, or project percentage changes.
