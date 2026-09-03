@@ -18,40 +18,48 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — fresh production bypass discovery
+## Active self-host context — match scrutinee expression-graph codegen
 
-- Exact checkpoint is
-  `65807bb35f57cd800b9a9d7a7b32c74c6d60fe82`, equal to `origin/main`.
-  Its docs-only run `33740183865` passed the classifier and Linux documentation
-  target; nine unrelated jobs were intentionally skipped. The user-owned
-  EOL-only results change and the
-  three protected untracked paths remain outside inspection, edit, and staging.
-- Objective is to observe one fresh C-owned production compiler bypass that
-  reaches an existing complete Pergyra owner, then fix the next executable
-  rung's objective card before editing implementation. Priority is exact
-  production entrypoint, direct bypass, existing fact owner, last orchestration
-  consumer, no-fallback negative, and focused execution gate.
-- Fact owner and last consumer are `Unknown` until that trace is observed. This
-  discovery state authorizes no general SoT cleanup, query/cache work, new
-  owner, compatibility read, synthetic progress fixture, or percentage change.
-- The historical 35,814,796-byte MIR at
-  `.tmp/multi-routine-generalization/routine-index-fixture.mir.json` is not a
-  current falsifier: current DRV-2 rejects it in 0.35s with
-  `MIR machine-layer facts are missing or invalid` because the artifact predates
-  the current machine-layer schema. Its old `CompilerSymbolCIdentifier`
-  frontier must not be revived as active evidence.
-- The first read-only entrypoint slice is recorded in
-  `docs/audits/2026-09-03_fresh_production_bypass_entrypoint_audit.md`. Default
-  MIR/C/LLVM/source-inspection/package/LSP routes delegate to installed Pergyra
-  owners; REPL compilation also delegates, while explicit native opt-outs,
-  process/session UI, and host compile/link are legitimate boundaries. RIR,
-  AIR, and HIR public modes fail closed because no installed Pergyra fact owner
-  is declared. No fresh semantic bypass was observed, so no implementation
-  lease is open.
-- The next action is a read-only current-source check of the frozen nine
-  executable/process blocker categories. Open an implementation directive and
-  edit scope only after one bypass, Pergyra owner, last consumer, and
-  falsifying execution are all concrete.
+- Exact opening checkpoint is
+  `8f1a35d334c8506fc0e8ecf71c6df6fb4b6ca284`, equal to `origin/main`.
+  Its docs-only run `33740685311` passed change classification and the Linux
+  Markdown contract target; unrelated jobs were intentionally skipped. The
+  user-owned EOL-only results change and the three protected untracked paths
+  remain outside inspection, edit, and staging.
+- Production entrypoint is installed Pergyra-built DRV-2 source-to-MIR followed
+  by self-host C emission. The bounded seam covers scalar, Option, and
+  tagged-enum match scrutinees, including method-call and class-field forms.
+- `SemanticAstExpressionSurfaceFacts` owns the atom-lane
+  `SemanticExpressionGraphView` already required for match. `stmt_emit.pgy` is
+  the last consumer: it must render that graph once and give the rendered C
+  expression to the match-shape owners. `IntEval(match_subject, env)` and
+  match-owner `RewriteExpr(...)` are forbidden fallbacks.
+- The exact objective and scope are fixed in
+  `docs/agent_work_directives/match_scrutinee_expression_graph_codegen_2026-09-03.md`.
+  A changed-source C DRV-2 binary is 5,810,176 bytes, SHA-256
+  `9BAA7208AAF9B6046E14391AD4CD3597D17FD616D8304DF994387790DB8519D0`.
+  The static old-path ratchet, hard contract, and focused C producer/source/MIR
+  parity for `match_case_int`, `option_match`, `enum_match`,
+  `class_bump_option_match`, and `class_holds_enum_field` are green.
+- The broad component inventory was stopped after five minutes because it
+  exceeded the static-gate budget; its reached
+  `driver-source-mir-execution-action` slice passed, but the interrupted gate is
+  not counted green. The next action is exact-file review, commit/push, and
+  exact-head CI. No authority/status or project-percentage change is claimed.
+
+## Published discovery context — production bypass entrypoints
+
+- The read-only audit is recorded in
+  `docs/audits/2026-09-03_fresh_production_bypass_entrypoint_audit.md` and
+  published by `8f1a35d3`. Default MIR/C/LLVM/source-inspection/package/LSP
+  routes delegate to installed Pergyra owners; explicit native opt-outs,
+  process/session UI, and host compile/link are legitimate boundaries. No
+  top-level hidden semantic fallback was observed.
+- RIR, AIR, and HIR public modes fail closed because no installed Pergyra owner
+  is declared. The historical 35,814,796-byte MIR is stale and current DRV-2
+  rejects it for missing machine-layer facts. The current implementation rung
+  instead came from the first frozen-blocker category: a graph fact already
+  reached MIR while its final match codegen consumer still reopened text.
 
 ## Published self-host context — ArrayString all-path alternative owner move
 

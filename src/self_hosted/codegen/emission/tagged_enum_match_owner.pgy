@@ -7,7 +7,6 @@ import "../type_facts/type_env.pgy";
 import "../type_facts/type_env_state_lifetime_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
-import "expr_rewrite.pgy";
 
 func EmitMatchCaseValue(pattern: String, subject_type: String, env: CodegenTypeEnv) -> String {
     let enum_fact_opt: Option<EnumLiteralProjectionFact> = EnumLiteralProjectionFactOpt(pattern, subject_type, env);
@@ -17,7 +16,7 @@ func EmitMatchCaseValue(pattern: String, subject_type: String, env: CodegenTypeE
 }
 
 func EmitTaggedEnumMatchCondition(
-    match_value: String,
+    rendered_match_value: String,
     subject_type: String,
     ref fact: AstMatchCasePatternFact,
     env: CodegenTypeEnv
@@ -36,14 +35,14 @@ func EmitTaggedEnumMatchCondition(
         Die(Concat("tagged enum match tag fact is missing: ", variant));
     }
     let condition: String = "((";
-    condition = Concat(condition, RewriteExpr(match_value, env));
+    condition = Concat(condition, rendered_match_value);
     condition = Concat(condition, ").tag == ");
     return Concat(condition, Concat(tag, ")"));
 }
 
 func BindTaggedEnumMatchPayload(
     ref fact: AstMatchCasePatternFact,
-    match_value: String,
+    rendered_match_value: String,
     subject_type: String,
     inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv
@@ -67,7 +66,7 @@ func BindTaggedEnumMatchPayload(
             ));
         }
         let c_value: String = "(";
-        c_value = Concat(c_value, RewriteExpr(match_value, env));
+        c_value = Concat(c_value, rendered_match_value);
         c_value = Concat(c_value, ").");
         c_value = Concat(
             c_value, CompilerSymbolCFieldName(fact.variant)
@@ -92,14 +91,14 @@ func EmitMatchCaseLine(
     subject_type: String,
     match_tmp: String,
     match_case_count: Int,
-    match_value: String,
+    rendered_match_value: String,
     env: CodegenTypeEnv
 ) -> String {
     let prefix: String = "if (";
     if match_case_count != 0 { prefix = "} else if ("; }
     if tagged_match {
         let condition: String = EmitTaggedEnumMatchCondition(
-            match_value, subject_type, fact, env
+            rendered_match_value, subject_type, fact, env
         );
         if match_case_count == 0 { return Concat("if ", Concat(condition, " {\n")); }
         return Concat("} else if ", Concat(condition, " {\n"));

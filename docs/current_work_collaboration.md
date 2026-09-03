@@ -6,6 +6,25 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE lease — match scrutinee expression-graph codegen
+
+- Exact base is `8f1a35d334c8506fc0e8ecf71c6df6fb4b6ca284`, equal to
+  `origin/main` when this lease opened. The primary task owns the bounded
+  codegen edit, negative ratchet, focused parity, integration, commit/push,
+  and exact-CI scope.
+- Production target is installed self-host C emission for scalar, Option, and
+  tagged-enum `match` scrutinees. Semantic/MIR already require the atom-lane
+  expression graph, but the final codegen consumer re-entered
+  `IntEval`/`RewriteExpr` from the statement text.
+- `SemanticAstExpressionSurfaceFacts` remains the owner. `stmt_emit.pgy` is the
+  last consumer and must pass a graph-rendered C expression to the match-shape
+  owners. Text reclassification at that boundary is forbidden.
+- Exact objective, edit boundary, and falsifiers are in
+  `docs/agent_work_directives/match_scrutinee_expression_graph_codegen_2026-09-03.md`.
+  The changed-source C driver and five-fixture focused parity are green;
+  exact-head CI is pending. No authority/status census or project-percentage
+  change is claimed.
+
 ## DONE lease — ArrayString all-path alternative owner move
 
 - Exact base is `f8913fcedf6c5012ccf7edcad996c252ae913955`, equal to
@@ -44,8 +63,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   bounded lease is released without changing the authority/status census or
   project percentage.
 - Documentation closure `65807bb3` is published; docs-only run `33740183865`
-  passed its classifier and Linux documentation target. No implementation
-  lease is currently open; the fresh-bypass entrypoint audit is read-only.
+  passed its classifier and Linux documentation target. The later read-only
+  production-entrypoint audit is published separately; it opened no semantic
+  implementation by itself.
 
 ## DONE lease — async Rocq model cores
 

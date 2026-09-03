@@ -7,7 +7,6 @@ import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../hir/ast_match_pattern_fact_owner.pgy";
 import "function_binding_env_owner.pgy";
-import "expr_rewrite.pgy";
 
 func CodegenOptionMatchInnerTypeOrDie(
     subject_type: String,
@@ -33,7 +32,7 @@ func CodegenOptionMatchInnerTypeOrDie(
 func EmitOptionMatchCaseLine(
     ref fact: AstMatchCasePatternFact,
     subject_type: String,
-    match_value: String,
+    rendered_match_value: String,
     match_case_count: Int,
     env: CodegenTypeEnv
 ) -> String {
@@ -46,12 +45,12 @@ func EmitOptionMatchCaseLine(
     if fact.variant == "None" && ArrayLength(fact.bindings) == 0 {
         condition = Concat(
             "!", Concat(OptionResultRuntimeCOptionIsSomeFn(),
-            Concat("(", Concat(RewriteExpr(match_value, env), ")")))
+            Concat("(", Concat(rendered_match_value, ")")))
         );
     } else if fact.variant == "Some" && ArrayLength(fact.bindings) == 1 {
         condition = Concat(
             OptionResultRuntimeCOptionIsSomeFn(),
-            Concat("(", Concat(RewriteExpr(match_value, env), ")"))
+            Concat("(", Concat(rendered_match_value, ")"))
         );
     } else {
         Die(Concat("Option match case shape is invalid: ", fact.pattern));
@@ -63,7 +62,7 @@ func EmitOptionMatchCaseLine(
 
 func BindOptionMatchPayload(
     ref fact: AstMatchCasePatternFact,
-    match_value: String,
+    rendered_match_value: String,
     subject_type: String,
     inout env_state: CodegenTypeEnvState,
     env: CodegenTypeEnv
@@ -78,7 +77,7 @@ func BindOptionMatchPayload(
         CodegenOptionMatchInnerTypeOrDie(subject_type, env);
     let c_value: String = Concat(
         OptionResultRuntimeCOptionUnwrapFn(),
-        Concat("(", Concat(RewriteExpr(match_value, env), ")"))
+        Concat("(", Concat(rendered_match_value, ")"))
     );
     CodegenTypeEnvStateAppendTypedValueBinding(
         env_state, env, fact.bindings[0], inner_type,

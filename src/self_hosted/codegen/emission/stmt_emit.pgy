@@ -675,6 +675,13 @@ func EmitStmtList(count: Int, arena: AstArena,
         }
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindMatchStmtTag()) {
             let match_subject: String = CodegenSemanticMatchSubjectOrDie(statements, idx);
+            let match_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneAtom()
+                );
+            let rendered_match_subject: String = RewriteExprWithSemanticGraph(
+                match_subject, env, match_graph
+            );
             let match_subject_type: String =
                 CodegenSemanticStatementInferredTypeOrDie(
                     body_types.statement_types, idx, TypedAstKindMatchStmtTag()
@@ -691,7 +698,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                 match_tmp_decl = Concat(match_tmp_decl, " = (");
                 match_tmp_decl = Concat(match_tmp_decl, match_tmp_cast);
                 match_tmp_decl = Concat(match_tmp_decl, ")(");
-                match_tmp_decl = Concat(match_tmp_decl, IntEval(match_subject, env));
+                match_tmp_decl = Concat(
+                    match_tmp_decl, rendered_match_subject
+                );
                 match_tmp_decl = Concat(match_tmp_decl, ");\n");
                 ArrayPush(result, Concat(inner_pad, match_tmp_decl));
             }
@@ -706,13 +715,15 @@ func EmitStmtList(count: Int, arena: AstArena,
                     let case_line: String = "";
                     if option_match {
                         case_line = EmitOptionMatchCaseLine(
-                            case_fact, match_subject_type, match_subject,
+                            case_fact, match_subject_type,
+                            rendered_match_subject,
                             match_case_count, env
                         );
                     } else {
                         case_line = EmitMatchCaseLine(
                             tagged_match, case_fact, match_subject_type,
-                            match_tmp, match_case_count, match_subject, env
+                            match_tmp, match_case_count,
+                            rendered_match_subject, env
                         );
                     }
                     ArrayPush(result, Concat(inner_pad, case_line));
@@ -722,12 +733,14 @@ func EmitStmtList(count: Int, arena: AstArena,
                         CodegenTypeEnvStateBorrow(env_state);
                     if option_match {
                         BindOptionMatchPayload(
-                            case_fact, match_subject, match_subject_type,
+                            case_fact, rendered_match_subject,
+                            match_subject_type,
                             case_env, env
                         );
                     } else if tagged_match {
                         BindTaggedEnumMatchPayload(
-                            case_fact, match_subject, match_subject_type,
+                            case_fact, rendered_match_subject,
+                            match_subject_type,
                             case_env, env
                         );
                     }
