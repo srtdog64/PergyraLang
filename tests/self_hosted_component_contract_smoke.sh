@@ -10078,11 +10078,17 @@ require_text "tests/self_host_live_replacement_smoke.sh" \
     '--canonicalize-oracle-mir-json "$live_arg"'
 require_file "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" 320
+require_file "tests/self_hosted/parity/driver_rung2_match_materialization_delta_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_match_materialization_delta_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_driver_rung2_consume_canonical_match_mir"
+require_text "tests/self_hosted/parity/driver_rung2_match_materialization_delta_owner.sh" \
+    "pgy_selfhost_driver_rung2_match_materialization_delta"
 require_file "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh" 80
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     "driver_rung2_canonical_declaration_order_owner.sh"
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+require_text "tests/self_hosted/parity/driver_rung2_match_materialization_delta_owner.sh" \
     "pgy_selfhost_verify_driver_rung2_canonical_declaration_order"
 require_text "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh" \
     "native role-order adversary drifted"

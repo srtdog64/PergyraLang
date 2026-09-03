@@ -68,6 +68,18 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   inventory, authority/status census, and project percentage do not change
   further. Exact objective and exclusions are in
   `docs/agent_work_directives/match_scrutinee_single_evaluation_2026-09-03.md`.
+- Borrow repair `bcfdf6bfc045943178d5efb257c7e74619962126` is published.
+  Exact run `33771971085` passed every completed job except `build-linux`:
+  that job passed 22/23 steps, then the component inventory found the general
+  MIR producer at 332 lines against its 320-line cap. The obsolete run was
+  cancelled while full self-host was still active; backend comparison was
+  already 20/20 green.
+- The existing match-materialization delta owner now owns canonical input
+  selection, ordinary declaration/byte parity, and canonical MIR consumption.
+  The general producer is 319 lines without a cap increase or whitespace
+  squeeze. Component contract plus driver-source execution and the three
+  focused hard-parity fixtures are green locally. Publication and exact-head
+  CI of this physical-owner repair remain pending.
 
 ## DONE supporting proof lease — evidence lifecycle compression
 

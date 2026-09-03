@@ -34,3 +34,25 @@ pgy_selfhost_driver_rung2_match_materialization_delta() {
     echo "[self-host-parity:driver-rung2] $backend/$base admits the bounded legacy-oracle match materialization delta"
     return 0
 }
+
+pgy_selfhost_driver_rung2_consume_canonical_match_mir() {
+    local machine_fixture="$1" backend="$2" base="$3" driver_bin="$4"
+    local mir_json="$5" self_mir_json="$6" oracle_canonical="$7"
+    local self_canonical="$8" actual_raw="$9" err="${10}"
+    local canonical_consume="$oracle_canonical"
+
+    if pgy_selfhost_driver_rung2_match_materialization_delta \
+        "$backend" "$base" "$oracle_canonical" "$self_mir_json"; then
+        canonical_consume="$self_canonical"
+    else
+        pgy_selfhost_verify_driver_rung2_canonical_declaration_order \
+            "$backend" "$base" "$mir_json" "$self_mir_json" \
+            "$oracle_canonical" "$self_canonical"
+        pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+            "driver-rung2:$backend:$base:mir-json" "$BUILD_DIR" \
+            "$oracle_canonical" "$self_canonical" "mir_json"
+    fi
+    pgy_selfhost_driver_rung2_consume_mir "$machine_fixture" "$driver_bin" \
+        "$(pgy_selfhost_path_relative_to_root "$canonical_consume")" \
+        "$actual_raw" "$err"
+}

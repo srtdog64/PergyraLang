@@ -1,6 +1,6 @@
 # Match scrutinee single-evaluation lease — 2026-09-03
 
-Status: `FULL-BOOTSTRAP BORROW REPAIR LOCAL GREEN — EXACT CI PENDING`
+Status: `CI CONTRACT REPAIR LOCAL GREEN — EXACT CI PENDING`
 
 Exact base: `513b668957cdb47627bd2bc490a45916337b2629` on
 `origin/main`.
@@ -130,3 +130,15 @@ shape, and automatically restores byte parity when it does.
   exits 0 and proves gen2/gen3 fixed point in 1,699,815ms. Its 2.451GiB peak
   working set and 2.744GiB peak private bytes cross the 80% attention threshold
   without crossing the hard limit; exact-head CI owns the final matrix verdict.
+- Borrow repair `bcfdf6bfc045943178d5efb257c7e74619962126` reached exact run
+  `33771971085`. TSan, Rocq 9, macOS, Windows, sanitizers, codegen fixed point,
+  backend toolchain publication, and backend comparison 20/20 were green.
+  Linux push passed 22 of 23 steps, then its final component inventory rejected
+  the general MIR producer at 332 lines against its 320-line cap. The run was
+  cancelled with full self-host still active.
+- The cap is unchanged. Canonical oracle/self selection, ordinary declaration
+  and byte parity, and the selected MIR consumption now live in the existing
+  match-materialization delta owner. The general producer calls that policy and
+  is 319 lines. Component contract, its driver-source execution action, and
+  hard parity for `class_bump_option_match`, `class_result_chain_loop`, and
+  `class_method_result_loop` are green locally. Exact-head CI remains pending.

@@ -93,7 +93,21 @@ percentage by themselves.
   peak private bytes. This crosses the pressure owner's 80% attention threshold
   but not its hard limit, so it remains explicit performance evidence rather
   than a green-capacity claim.
-- Next action is explicit repair-and-handoff staging, commit/push, then the
+- Borrow repair `bcfdf6bfc045943178d5efb257c7e74619962126` is published.
+  Exact run `33771971085` passed TSan, Rocq 9, macOS, Windows, sanitizers,
+  codegen fixed point, backend toolchain publication, and backend comparison
+  20/20. Linux push passed 22 of 23 steps, then the component inventory
+  rejected `driver_rung2_mir_producer_parity_owner.sh` at 332 lines against
+  its 320-line cap. The run was cancelled with full self-host still active.
+- The bounded CI repair does not raise the cap or compress whitespace. The
+  existing match-materialization delta owner now owns canonical oracle/self
+  selection, declaration-order/byte parity on the ordinary path, and the final
+  canonical MIR consume call. The general producer returns to 319 lines and
+  only orchestrates that owner. The component contract now checks both the
+  320-line producer boundary and the new call edge; it is green locally,
+  including its driver-source MIR execution action. Focused hard parity for
+  the three match/result-loop fixtures is also green.
+- Next action is explicit CI-contract repair staging, commit/push, then the
   automatically opened full exact-head CI. Pergyra-owned LLVM
   admission for this
   Option binding remains a
