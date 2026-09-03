@@ -172,9 +172,10 @@ parallel (i in lo..hi)                // index 모드
 | `move` (영구 이전) | `own` 캐리지; **Channel** 증거(프로토콜 이동) | `docs/113` Channel Contract; `Token<T>`는 spawn/channel을 못 넘음 |
 
 새로 필요한 것은 어휘가 아니라 두 가지다: (a) `lend`의 **복귀**를 자식
-종료 시점에 fact로 닫는 것 — 지금은 join 의미론에 암묵 — 과 (b) 이
-capability edge를 **런타임이 실제로 나르는 것**(§3.5 — 지금은 나르지
-않는다).
+종료 시점에 fact로 닫는 것 — 지금은 join 의미론에 암묵 — 과 (b) exact
+parent context capture를 넘어 각 share/split/lend/move edge를 **런타임이
+구분해 나르는 것**이다. §3.5의 공통 context 전파는 2026-09-03 착지했지만,
+evidence별 edge 캐리지는 아직 방향 모델이다.
 
 ### 2.5 task `detach`는 zone `detach`와 충돌한다
 
@@ -464,7 +465,7 @@ rwlock 즉시 제거.
 
 | 제안의 정리 | Pergyra 대응 | 상태 |
 |---|---|---|
-| 1. Capability Non-Forgery | capability 마스크는 매니페스트/env grant로만 넓어짐; 생성 시 자식은 부모 마스크의 snapshot(향후 edge로 축소) | `AsyncContextCore.v`가 exact mask/budget-owner/instance capture와 lane·suspension 보존을 bounded model로 증명; `CapabilityFlowCore.v`가 share/lend/move 생성 전반의 non-forgery(`run_bounded`)·대여 유일성(`loan_uniquely_held`)·반환 복원을 증명하고 executor-default 읽기를 반례(`tls_default_forges`)로 고정. runtime/adequacy gate가 구현에 결박 |
+| 1. Capability Non-Forgery | capability 마스크는 매니페스트/env grant로만 넓어짐; 생성 시 자식은 부모 마스크의 snapshot(향후 edge로 축소) | `AsyncContextCore.v`가 **현재 구현된** exact mask/budget-owner/instance capture와 lane·suspension 보존을 bounded model로 증명하고 runtime adequacy gate가 구현에 결박. `CapabilityFlowCore.v`는 아직 구현되지 않은 lend/move까지 포함한 **방향 모델**의 non-forgery(`run_bounded`)·대여 유일성(`loan_uniquely_held`)·반환 복원과, 이미 금지된 executor-default 우회 반례(`tls_default_forges`)를 증명 |
 | 2. Data-Race Freedom | `docs/semantics/proofs/WitnessDataRace.v` + `op_guard` 목격자 | 허용 부분집합에 대해 형태 존재 |
 | 3. Slot Temporal Safety | `docs/semantics/proofs/SuspensionRevalidationCore.v` — `stale_never_resolves`, `resolved_means_same_incarnation`; 미검증 deref가 새 점유자를 건드리는 `unchecked_deref_hits_new_occupant` 반례 | **기계검증** (동시성 판; 단일 컨텍스트는 `SlotCalculus.v`); resume 시 자동 resolve 방출은 §4 item 5 |
 | 4. Structured Task Containment | §3.1 | `AsyncLifecycleCore.v`가 named handle 하나의 affine flow(await/own transfer 없이는 scope closure 불가, suspend·Cancel 비-retire, 대안 경로 fail-closed)를, `AsyncScopeCore.v`가 그 위의 scope tree(고아 없음 `run_no_orphan`, 하위 트리 취소 `cancel_reaches_descendants`, detach는 capability `background_only_via_detach`)를 bounded model로 증명; 구조화 이전 규칙의 고아는 반례 `orphan_reachable_unstructured` |

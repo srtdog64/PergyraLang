@@ -44,14 +44,22 @@ percentage by themselves.
   The static adequacy gate and exact Rocq 9 kernel CI are required. No local
   prover is installed. This supporting proof changes neither SoT census nor the
   83% project forecast.
-- Local static candidate is green: async adequacy, proof-spine contract,
-  async-positioning, and documentation quality pass. The proof-spine prover
-  leg is an explicit missing-prover skip and is not counted. Commit/push and
-  exact-head Rocq 9 compile/kernel/axiom-budget evidence remain.
-- Commit `6feded44` is on `origin/main`. Exact run `33724537105` reached the
-  real Rocq 9 compiler and rejected an incomplete tactic proof in
-  `retirement_requires_await_or_transfer`. The repair spells out all five
-  transition cases; a replacement exact run is required.
+- Local current-owner adequacy, direction-model adequacy, proof-spine contract,
+  async positioning, and documentation quality pass. The proof-spine prover
+  leg is an explicit missing-prover skip and is not counted.
+- Commit `6feded44` is on `origin/main`. Run `33724537105` reached Rocq 9 and
+  rejected an incomplete tactic proof in
+  `retirement_requires_await_or_transfer`; repair `b5da5329` spells out all
+  five transition cases. Run `33724801136` then passed Rocq compile,
+  `rocqchk`, and the axiom-budget self-test before a later shared-branch push
+  cancelled its remaining matrix.
+- Concurrent commit `0a11b4b2` adds four bounded direction models above the
+  two landed-contract cores. Run `33725481715` kernel-verified all 48 proof
+  files with exactly two existing `SlotCalculus` abstractions, no admits, and
+  no unsafe kernel features. The scope-tree, lend/move, resume revalidation,
+  and deterministic-subset cores are design proofs rather than implementation
+  completion. Stale comments that reversed current lifecycle/context facts are
+  corrected and guarded; final exact-head full CI is still required.
 
 ## Published self-host context — non-entrypoint straight-line ArrayString owner move
 

@@ -113,9 +113,10 @@ returns it) or `move` (for good); a child `return`s its loan; a task may
 
 ### What is not established
 
-Sub-lending a borrowed cap is outside the model. The lend/return carriage is
-docs/204 §2.4's fact vocabulary, not a landed runtime edge; the runtime today
-carries `share` (exact capture).
+Split is outside this core because `docs/178` owns it as Disjointness evidence;
+sub-lending a borrowed cap is also outside the model. The lend/return carriage
+is docs/204 §2.4's fact vocabulary, not a landed runtime edge; the runtime
+today carries `share` (exact capture).
 
 ## 3. `SuspensionRevalidationCore.v` — a stale reference never resolves
 

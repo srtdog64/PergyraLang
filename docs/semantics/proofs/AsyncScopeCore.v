@@ -354,11 +354,12 @@ Proof.
 Qed.
 
 (* ===================================================================== *)
-(* 6. Refutation: the current contract admits an orphan                   *)
+(* 6. Refutation: the forbidden pre-lifecycle rule admits an orphan       *)
 (*                                                                        *)
-(* docs/113: a still-live named future is not rejected when its function  *)
-(* exits. In the model that is a close with no join guard. Three steps    *)
-(* from the empty world reach a running task whose scope is gone.         *)
+(* Before cf66092b, a still-live named Future was not rejected when its    *)
+(* function exited. The current checker rejects that path. In the model,   *)
+(* the historical alternative is close-without-join; three steps from the *)
+(* empty world reach a running task whose scope is gone.                   *)
 (* ===================================================================== *)
 
 Inductive unstructured_step : Config -> Config -> Prop :=

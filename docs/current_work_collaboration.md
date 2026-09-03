@@ -23,14 +23,20 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `docs/agent_work_directives/async_rocq_model_cores_2026-09-03.md`.
   `async-model-adequacy-test-smoke` and the Rocq 9 kernel CI are the integration
   gates. This supporting proof changes neither SoT census nor project percent.
-- Local static candidate is green: async adequacy, proof-spine contract,
-  async-positioning, and documentation quality pass. No local prover exists;
-  the declared proof-spine skip is not proof evidence. Commit/push and the
-  exact Rocq 9 kernel job remain.
+- Local async/current-owner adequacy, direction-model adequacy, proof-spine
+  contract, async positioning, and documentation quality pass. No local prover
+  exists; the declared proof-spine skip is not proof evidence.
 - Commit `6feded44` is published. Run `33724537105` reached Rocq 9 and
   fail-closed on an incomplete automation proof for the retirement-event
-  discriminator. The repair now handles all five transitions explicitly;
-  replacement exact CI remains.
+  discriminator. Repair `b5da5329` handles all five transitions explicitly;
+  run `33724801136` passed Rocq compile, `rocqchk`, and the axiom-budget
+  self-test before a later shared-branch push cancelled the remaining matrix.
+- Concurrent commit `0a11b4b2` adds four docs/204 direction models. Its exact
+  run `33725481715` kernel-verified the 48-file corpus with the existing two
+  `SlotCalculus` abstractions and no admits. The proof relations are retained,
+  while stale comments that described historical/forbidden counterexamples as
+  current implementation facts are corrected and negatively gated. Final
+  exact-head full CI remains before this supporting lease closes.
 
 ## DONE lease — ArrayString non-entrypoint straight-line owner move
 

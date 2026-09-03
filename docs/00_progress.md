@@ -15,10 +15,16 @@ Cancel-as-cleanup, executor-default grant, termination/fairness/full-memory/whol
 먼저 검증하고, exact-head Rocq 9 kernel CI가 최종 증명 판정이다. 이 supporting work는
 census `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%,
 통합 진행도 **83%** (81~85%)를 바꾸지 않는다.
-현재 local candidate의 async adequacy, proof-spine static contract,
-async-positioning, documentation-quality는 green이다. proof-spine의 prover leg는
-실행기 부재를 선언한 skip이며 proof 성공으로 세지 않는다. Commit/push와 exact-head
-Rocq 9 compile/`rocqchk`/axiom-budget 검사가 남았다.
+현재 local candidate의 current-owner adequacy, direction-model adequacy,
+proof-spine static contract, async-positioning, documentation-quality는 green이다.
+proof-spine의 로컬 prover leg는 실행기 부재를 선언한 skip이며 proof 성공으로 세지
+않는다. 대신 `b5da5329`의 run `33724801136`은 두 landed-contract core를 Rocq 9에서
+compile/`rocqchk`/axiom-budget self-test까지 통과했다. 이어 `0a11b4b2`가 scope tree,
+share/lend/move capability flow, suspension revalidation, deterministic subset의 네
+방향 모델을 추가했고 run `33725481715`은 48개 proof corpus를 기존 `SlotCalculus`
+추상 2개, admit 0개, unsafe kernel feature 0개로 검증했다. 네 추가 모델은 구현 완료
+주장이 아니며, historical/forbidden 반례를 현재 구현으로 오기한 설명은 교정하고
+negative adequacy gate로 재발을 막았다. 최종 exact-head 전체 matrix만 남았다.
 
 가장 최근 닫힌 executable prerequisite는 비진입 함수의 직선형
 `Array<String>` owner move다. 기존 digest-sealed move 행의 `(routine, local)`

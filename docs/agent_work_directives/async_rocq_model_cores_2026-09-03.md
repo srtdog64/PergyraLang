@@ -1,6 +1,6 @@
 # Async Rocq model cores — 2026-09-03
 
-Status: `ACTIVE — LOCAL STATIC CANDIDATE GREEN; ROCQ CI PENDING`
+Status: `ACTIVE — ROCQ 9 KERNEL GREEN; FINAL EXACT-HEAD MATRIX PENDING`
 
 Exact base: `eed7f7229699770bcda656e7a2947a5f043cbfcc` on `origin/main`.
 
@@ -76,4 +76,15 @@ compiler or runtime semantics and does not claim whole-language async safety.
   `origin/main`. Exact run `33724537105` failed closed in Rocq 9 at
   `retirement_requires_await_or_transfer`: an automation-only proof left the
   `Suspend` equality case open. The repair replaces that tactic with five
-  explicit transition cases; replacement exact-head Rocq evidence is required.
+  explicit transition cases.
+- Repair `b5da5329` reached `origin/main`. Run `33724801136` then passed the
+  Rocq 9 compile, `rocqchk`, and live axiom-budget negative self-test; its full
+  matrix was cancelled only when the shared branch advanced.
+- Concurrent follow-up `0a11b4b2` added four bounded direction cores for the
+  scope tree, share/lend/move capability flow, suspension revalidation, and the
+  deterministic subset. Run `33725481715` kernel-verified all 48 proof files
+  with exactly the existing two `SlotCalculus` abstractions, no admits, and no
+  unsafe kernel features. These four are direction models, not claims that the
+  corresponding compiler/runtime rungs have landed. Their stale prose about
+  current scope/context behavior is corrected and guarded by
+  `async-direction-adequacy-test-smoke`; a final exact-head matrix remains.

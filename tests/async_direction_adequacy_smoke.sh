@@ -37,6 +37,13 @@ require_text() {
         fail "$rel no longer contains \"$text\" -- $why"
 }
 
+reject_text() {
+    local rel="$1" text="$2" why="$3"
+    if grep -Fq -- "$text" "$ROOT_DIR/$rel"; then
+        fail "$rel still contains forbidden stale claim \"$text\" -- $why"
+    fi
+}
+
 for f in "$SCOPE" "$CAPS" "$SUSP" "$DET" "$DOC"; do
     require_file "$f"
 done
@@ -123,6 +130,25 @@ require_text "src/runtime/pgy_parallel_spawn.h" \
     "the spawn path must capture the parent; without it tls_default_forges describes the tree"
 require_text "src/runtime/pgy_runtime_capability.h" "PGY_CAP_ALL" \
     "CapabilityFlowCore's default_all is this mask"
+
+# The counterexamples describe forbidden or historical relations, never the
+# current implementation. Keep that distinction executable so a proof comment
+# cannot silently reverse the live owner facts.
+reject_text "$SCOPE" "the current contract admits an orphan" \
+    "the current Future lifecycle checker rejects live handles at scope exit"
+reject_text "$SCOPE" "a still-live named future is not rejected" \
+    "that sentence described the pre-cf66092b rule only"
+reject_text "$CAPS" "the CURRENT runtime" \
+    "the current runtime captures the parent task context"
+reject_text "$CAPS" "no spawn path propagates it" \
+    "all current task carriers call pgy_runtime_context_capture_task"
+reject_text "docs/204_concurrency_direction_pscc_review.md" \
+    "§3.5 — 지금은 나르지" \
+    "exact parent-context carriage is landed; only evidence-specific edges remain directional"
+require_text "$CAPS" "Split is owned by Disjointness" \
+    "CapabilityFlowCore must not absorb docs/178's split evidence"
+require_text "$DOC" "Split is outside this core" \
+    "the companion boundary must expose the omitted split discipline"
 
 # SuspensionRevalidationCore models the generational handle.
 require_text "src/runtime/slot_manager.h" "generation" \

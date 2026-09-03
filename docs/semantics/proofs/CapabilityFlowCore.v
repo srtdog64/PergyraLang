@@ -2,9 +2,9 @@
   CapabilityFlowCore.v  --  capability non-forgery across task creation, and
   the lend/return discipline of a borrowed capability.
 
-  Companion to docs/204 §2.4 (share/split/lend/move are carriage facts), §3.5
-  (the runtime context is _Thread_local and is not propagated across spawn)
-  and §5 theorem 1 (Capability Non-Forgery).
+  Companion to docs/204 §2.4 (capability carriage; split remains the separate
+  Disjointness evidence), §3.5 (task creation captures the parent's
+  _Thread_local runtime context), and §5 theorem 1 (Capability Non-Forgery).
 
   Capabilities here are AUTHORITY BITS -- the mask a task may exercise
   (src/runtime/pgy_runtime_capability.h: PGY_CAP_IO_READ, NETWORK, CLOCK,
@@ -34,19 +34,20 @@
     [lend_then_return_round_trip]  the discipline is satisfiable end to end.
 
   Refutation.
-    [tls_default_forges]   the CURRENT runtime binds the capability context
-                           per thread (_Thread_local) and does not propagate it
-                           across spawn, so a pool worker evaluates against the
-                           default context, whose mask is PGY_CAP_ALL. Modelled
-                           as a spawn whose child mask is the full default,
-                           this reaches a mask outside a narrowed manifest in
-                           one step: the sandboxed program's worker holds
-                           `network` although the manifest granted only
-                           `io_read`. This is docs/204 §3.5's gap as a theorem.
+    [tls_default_forges]   a FORBIDDEN executor that reads the per-thread
+                           default instead of the captured parent context gets
+                           PGY_CAP_ALL. Modelled as a spawn whose child mask is
+                           the full default, this reaches a mask outside a
+                           narrowed manifest in one step: the sandboxed
+                           program's worker holds `network` although the
+                           manifest granted only `io_read`. The current runtime
+                           prevents this through pgy_runtime_context_capture_task.
 
-  Negative scope. No enforcement claim: the runtime rung that binds the parent
-  context into the child is docs/204 §4 item 1. Sub-lending a borrowed cap is
-  outside the model (a lender lends only what it owns outright).
+  Negative scope. Exact parent capture is landed; share/lend/move flow beyond
+  exact capture remains a direction model, not a runtime enforcement claim.
+  Split is owned by Disjointness and is not modelled here. Sub-lending a
+  borrowed cap is also outside the model (a lender lends only what it owns
+  outright).
 *)
 
 Require Import Coq.Lists.List.
@@ -462,12 +463,12 @@ Proof.
 Qed.
 
 (* ===================================================================== *)
-(* 6. Refutation: the current per-thread default context forges           *)
+(* 6. Refutation: reading the executor's default context would forge      *)
 (*                                                                        *)
-(* src/runtime/pgy_runtime_context.h binds the capability context as       *)
-(* _Thread_local; no spawn path propagates it, so a pool worker evaluates  *)
-(* its gates against the default context, whose mask is PGY_CAP_ALL.       *)
-(* Modelled: a spawn that gives the child the full default mask.            *)
+(* The runtime context is _Thread_local, but every current task carrier     *)
+(* captures the parent and binds that capture at execution. This relation   *)
+(* instead models the forbidden bypass: a spawn that gives the child the    *)
+(* executor's full default mask.                                            *)
 (* ===================================================================== *)
 
 Definition default_all : Mask := fun _ => true.
