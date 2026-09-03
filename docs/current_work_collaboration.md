@@ -31,6 +31,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   in both backends, while one-sided/later-use/duplicate-arm/missing-edge and
   ABI identity negatives publish no artifact. Focused and three prior owner-
   move regression gates are green; publication and exact-head CI remain.
+- First publication `c12a03d4` exposed one full-bootstrap-only borrow boundary:
+  a local binding copied the move field out of borrowed `ref plan`. Run
+  `33734309099` was cancelled after that exact diagnostic; the repair directly
+  consumes the borrowed field. Native oracle compile and all four focused/
+  regression gates are green. Repair publication and exact-head CI remain.
 
 ## DONE lease — async Rocq model cores
 

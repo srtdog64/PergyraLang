@@ -117,16 +117,20 @@ func DirectMirScalarProgramOwnedArrayStringMoveAlternativeReadyForPlan(
 func DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Bool {
-    let fact: DirectMirScalarProgramOwnedArrayStringMoveFact =
-        plan.program.owned_array_string_move;
     if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
-            fact, plan.program.array_string_abi) { return false; }
+            plan.program.owned_array_string_move,
+            plan.program.array_string_abi) { return false; }
     let row: Int = 0;
-    while row < ArrayLength(fact.caller_routines) {
-        let routine: Int = fact.caller_routines[row];
-        let operation: Int = fact.call_operation_rows[row];
-        let graph: Int = fact.call_expression_rows[row];
-        let local_row: Int = fact.local_rows[row];
+    while row < ArrayLength(
+            plan.program.owned_array_string_move.caller_routines) {
+        let routine: Int =
+            plan.program.owned_array_string_move.caller_routines[row];
+        let operation: Int =
+            plan.program.owned_array_string_move.call_operation_rows[row];
+        let graph: Int =
+            plan.program.owned_array_string_move.call_expression_rows[row];
+        let local_row: Int =
+            plan.program.owned_array_string_move.local_rows[row];
         if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
             operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
             graph < 0 || graph >= ArrayLength(
@@ -139,19 +143,26 @@ func DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(
             plan.program.operation_expression_rows[operation] != graph ||
             DirectMirScalarProgramOwnedArrayStringMovePlanOperationBlock(
                 plan, routine, operation) !=
-                fact.coverage.call_block_rows[row] { return false; }
-        let kind: Int = fact.coverage.kinds[row];
+                plan.program.owned_array_string_move.coverage.call_block_rows[row] {
+            return false;
+        }
+        let kind: Int =
+            plan.program.owned_array_string_move.coverage.kinds[row];
         if kind == DirectMirScalarProgramOwnedArrayStringMoveStraightCoverage() {
             if !DirectMirScalarProgramOwnedArrayStringMoveStraightReadyForPlan(
                     plan, routine, operation, graph, local_row,
-                    fact.coverage.call_block_rows[row]) { return false; }
+                    plan.program.owned_array_string_move.coverage.call_block_rows[row]) {
+                return false;
+            }
         } else if kind ==
                 DirectMirScalarProgramOwnedArrayStringMoveAlternativeCoverage() {
             if !DirectMirScalarProgramOwnedArrayStringMoveAlternativeReadyForPlan(
                     plan, routine, operation, graph, local_row,
-                    fact.coverage.call_block_rows[row],
-                    fact.coverage.branch_block_rows[row],
-                    fact.coverage.merge_block_rows[row]) { return false; }
+                    plan.program.owned_array_string_move.coverage.call_block_rows[row],
+                    plan.program.owned_array_string_move.coverage.branch_block_rows[row],
+                    plan.program.owned_array_string_move.coverage.merge_block_rows[row]) {
+                return false;
+            }
         } else { return false; }
         row = row + 1;
     }

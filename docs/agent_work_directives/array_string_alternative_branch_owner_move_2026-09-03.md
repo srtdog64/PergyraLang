@@ -83,3 +83,12 @@ one-sided conditional moves, general ownership flow, or close the registry row.
 - The new Pergyra source/fixture inventory changed only the generated language-
   word implementation counts. The canonical generator rewrote that inventory;
   the 146-row registry check and typed parser-selector parity are green.
+- First publication `c12a03d4`, run `33734309099`, reached the full self-host
+  native oracle and rejected a local `fact` binding derived from borrowed
+  `ref plan`; later TextBuilder diagnostics were cascades. The repair consumes
+  `plan.program.owned_array_string_move` directly, as the diagnostic requires.
+  Local native oracle compilation now reports 0 errors and the four pre-existing
+  warnings. Rebuilt DRV-2 is 6,575,177 bytes, SHA-256
+  `7AA5F5371B654438368F235D90F129BD16FE9BC652975764C1804C052F17E0D0`;
+  focused and prior owner-move regressions are green. The already-red run was
+  cancelled after useful logs were captured; repair exact-head CI is pending.

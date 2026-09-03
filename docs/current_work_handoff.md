@@ -42,8 +42,8 @@ percentage by themselves.
   coverage in its digest, and rechecks it at final GraphPlan readiness.
   Objective and falsifiers remain fixed in
   `docs/agent_work_directives/array_string_alternative_branch_owner_move_2026-09-03.md`.
-- Fresh installed Pergyra-built DRV-2 is 6,575,689 bytes, SHA-256
-  `BE96C2C9AAA2412CEAE079D3E9E39CC94053F5A86CCC60F3B6AD997524F6E99E`.
+- Fresh installed Pergyra-built DRV-2 is 6,575,177 bytes, SHA-256
+  `7AA5F5371B654438368F235D90F129BD16FE9BC652975764C1804C052F17E0D0`.
   Focused all-path C/LLVM execution plus seven negative classes is green in
   6.3 seconds; prior straight entrypoint/non-entrypoint/two-local gates are
   green in a 7.4-second parallel run. The component inventory is green but
@@ -51,6 +51,14 @@ percentage by themselves.
   driver-source MIR action. SoT edge is green at 88 authorities / 184 derived
   carriers / `55/32/1`; canonical language-word inventory regeneration and its
   registry/parser gates are green. Next action is publication and exact-head CI.
+- First publication is `c12a03d481bc6f9ee8b78d2dba7ab2183d9662b1`.
+  Run `33734309099` passed TSan, Rocq 9, macOS, Windows, codegen fixed point and
+  many backend shards, then full self-host native oracle rejected one local
+  binding that extended `ref plan` borrow provenance. The later TextBuilder
+  messages were cascades. The run was cancelled to avoid spending on obsolete
+  remaining jobs. The local binding is removed; native oracle compile is now
+  0 errors with four pre-existing warnings, and focused plus three regression
+  gates are green. Publish this repair, then require a new exact-head full run.
 - Current registry is 88 authorities / 184 derived carriers,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, and project forecast 83%. The one
   added carrier is a projection nested under the existing move fact, not a new

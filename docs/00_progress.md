@@ -9,8 +9,8 @@
 직선/양분기 call-block·branch·merge 증거를 봉인하고 최종 GraphPlan readiness에서
 CFG와 다시 교차검증한다. 공통 cleanup policy만 이 fact를 소비하며 백엔드별 분석이나
 runtime moved flag는 없다. Fresh Pergyra-built DRV-2
-`BE96C2C9AAA2412CEAE079D3E9E39CC94053F5A86CCC60F3B6AD997524F6E99E`
-(6,575,689 bytes)에서 C/LLVM은 true/false 실행을 모두 통과하고 caller cleanup을
+`7AA5F5371B654438368F235D90F129BD16FE9BC652975764C1804C052F17E0D0`
+(6,575,177 bytes)에서 C/LLVM은 true/false 실행을 모두 통과하고 caller cleanup을
 제거했으며 callee cleanup은 보존했다. one-sided, merge 뒤 재사용, 같은 arm 중복,
 missing edge, carriage/pass/ABI 위조는 양쪽에서 모두 무산출물로 실패했다. 새 focused
 gate는 6.3초, 기존 직선·비진입·복수-local 회귀 3개는 병렬 7.4초에 green이다.
@@ -22,6 +22,14 @@ exact-head CI 전이며, 완료 후에도 ArrayString BRIDGE 전체를 닫지 �
 구조적 분모 증가이지 진행도 하락이나 새 권한자가 아니며 통합 진행도는 바꾸지 않는다.
 새 Pergyra 파일로 변한 language-word implementation inventory는 canonical generator로
 재생성했고 146-row registry check와 typed parser selector gate가 green이다.
+첫 publication `c12a03d4`의 run `33734309099`은 TSan, Rocq 9, macOS, Windows,
+codegen fixed point와 다수 backend shard를 green으로 만든 뒤 full self-host native
+oracle에서 `ref plan`의 move field를 지역 `fact`로 복사한 borrow-provenance 연장을
+정확히 거절했다. 뒤 TextBuilder 오류는 그 분석 중단의 연쇄 진단이었다. 보정본은
+지역 복사를 삭제하고 borrowed field를 함수 경계 안에서 직접 소비한다. 로컬 native
+oracle 전체 driver compile은 0 errors/기존 warnings 4건, 새 focused gate 5.6초와
+기존 회귀 3개를 포함한 병렬 실행은 6.3초에 green이다. 이미 red인 첫 run의 남은
+작업은 비용 절감을 위해 취소했으며 보정 exact-head CI가 최종 publication 판정이다.
 
 가장 최근 닫힌 supporting formal rung은 비동기 lifetime과 runtime authority carriage의
 Rocq 모델이다. `AsyncLifecycleCore.v`는 named Future의 `Absent/Live/Retired/Diverged`
