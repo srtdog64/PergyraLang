@@ -22,6 +22,8 @@ The mathematical proof source of truth has moved into the proof pack folder:
 - [docs/semantics/proofs/MachineLayerCore.v](semantics/proofs/MachineLayerCore.v)
 - [docs/semantics/proofs/DelegationBoundaryCore.v](semantics/proofs/DelegationBoundaryCore.v)
 - [docs/semantics/proofs/LossCompositionCore.v](semantics/proofs/LossCompositionCore.v)
+- [docs/semantics/proofs/EvidenceLifecycleCore.v](semantics/proofs/EvidenceLifecycleCore.v)
+- [docs/semantics/proofs/EvidenceLifecycleCore.md](semantics/proofs/EvidenceLifecycleCore.md)
 - [docs/semantics/proofs/ResourceMachineBridge.v](semantics/proofs/ResourceMachineBridge.v)
 - [docs/semantics/proofs/PergyraMulCost.v](semantics/proofs/PergyraMulCost.v)
 - [docs/semantics/proofs/PergyraMulCost.md](semantics/proofs/PergyraMulCost.md)
@@ -57,6 +59,11 @@ whole-language proof. The proof spine makes that negative boundary explicit.
 `AsyncLifecycleCore.v` and `AsyncContextCore.v` separately model the current
 named-Future lifecycle and task-context carriage contracts; neither assigns
 lifetime or authority ownership to the `async` marker itself.
+`EvidenceLifecycleCore.v` models the evidence-compression rule from
+`09_abstraction_loss_contracts.md`: construction payload may disappear after
+discharge and its last semantic consumer while the established authority
+continues through a compact carrier. It is a bounded model, not implementation
+adequacy or SoT/self-host progress.
 The four direction cores (`AsyncScopeCore.v`, `CapabilityFlowCore.v`,
 `SuspensionRevalidationCore.v`, `DeterministicSubsetCore.v`) model the
 scope-tree, capability-flow, suspension-revalidation, and schedule-independence

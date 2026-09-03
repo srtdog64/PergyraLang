@@ -172,6 +172,16 @@ Mechanized artifacts:
   cumulative loss vectors and compiler-derived mechanism bounds. Local budgets
   do not imply a path budget; derivation requires observational equivalence and
   an observable-cost bound.
+- [proofs/EvidenceLifecycleCore.v](proofs/EvidenceLifecycleCore.v): Rocq/Coq
+  model of the evidence-lifecycle aesthetic owned by
+  `09_abstraction_loss_contracts.md`. It separates rich-payload disposition from
+  the compact carrier of established authority, proves construction evidence
+  erases only after admission and its last consumer, rejects unjustified
+  receipts, and makes semantic-interpretation count plus abstract
+  representation size monotone non-increasing. The companion
+  [scope note](proofs/EvidenceLifecycleCore.md) and adequacy gate forbid treating
+  this bounded model as implementation conformance, SoT closure, or self-host
+  substitution progress.
 - [proofs/ArchitectureBoundaryCores.md](proofs/ArchitectureBoundaryCores.md):
   scope and ownership map connecting those three models to
   `MachineLayerCore.v` without claiming implementation adequacy.

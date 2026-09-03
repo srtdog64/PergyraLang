@@ -16,6 +16,7 @@ semantics remain under this directory and in the linked top-level contracts.
 | Concern | Canonical Document |
 |---|---|
 | Abstraction loss | [`09_abstraction_loss_contracts.md`](09_abstraction_loss_contracts.md) |
+| Evidence lifecycle model | [`proofs/EvidenceLifecycleCore.md`](proofs/EvidenceLifecycleCore.md) |
 | Behavior closure gaps | [`10_behavior_contract_closure_gaps.md`](10_behavior_contract_closure_gaps.md) |
 | Machine-neutral compute | [`18_machine_neutral_compute.md`](18_machine_neutral_compute.md) |
 | Theory foundations | [`19_theoretical_foundations.md`](19_theoretical_foundations.md) |

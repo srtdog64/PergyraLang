@@ -72,6 +72,8 @@ METHODOLOGY_COQ="$PROOF_DIR/proofs/VerificationMethodology.v"
 PROOF_SPINE_COQ="$PROOF_DIR/proofs/ProofSpine.v"
 DELEGATION_BOUNDARY_COQ="$PROOF_DIR/proofs/DelegationBoundaryCore.v"
 LOSS_COMPOSITION_COQ="$PROOF_DIR/proofs/LossCompositionCore.v"
+EVIDENCE_LIFECYCLE_COQ="$PROOF_DIR/proofs/EvidenceLifecycleCore.v"
+EVIDENCE_LIFECYCLE_DOC="$PROOF_DIR/proofs/EvidenceLifecycleCore.md"
 RESOURCE_MACHINE_BRIDGE_COQ="$PROOF_DIR/proofs/ResourceMachineBridge.v"
 ARCHITECTURE_BOUNDARY_DOC="$PROOF_DIR/proofs/ArchitectureBoundaryCores.md"
 SOT_AUTHORITY_COQ="$PROOF_DIR/proofs/SoTAuthority.v"
@@ -117,6 +119,8 @@ require_file "$METHODOLOGY_COQ" "docs/semantics/proofs/VerificationMethodology.v
 require_file "$PROOF_SPINE_COQ" "docs/semantics/proofs/ProofSpine.v"
 require_file "$DELEGATION_BOUNDARY_COQ" "docs/semantics/proofs/DelegationBoundaryCore.v"
 require_file "$LOSS_COMPOSITION_COQ" "docs/semantics/proofs/LossCompositionCore.v"
+require_file "$EVIDENCE_LIFECYCLE_COQ" "docs/semantics/proofs/EvidenceLifecycleCore.v"
+require_file "$EVIDENCE_LIFECYCLE_DOC" "docs/semantics/proofs/EvidenceLifecycleCore.md"
 require_file "$RESOURCE_MACHINE_BRIDGE_COQ" "docs/semantics/proofs/ResourceMachineBridge.v"
 require_file "$ARCHITECTURE_BOUNDARY_DOC" "docs/semantics/proofs/ArchitectureBoundaryCores.md"
 require_file "$SOT_AUTHORITY_COQ" "docs/semantics/proofs/SoTAuthority.v"
@@ -191,6 +195,33 @@ Evidence strength is not interchangeable:
 ## Executable Invariant: Preservation Carry
 ## Proof Obligation: Bounded Approximation Visibility
 That syntax is a design sketch only.
+TERMS
+
+require_terms "$EVIDENCE_LIFECYCLE_COQ" "docs/semantics/proofs/EvidenceLifecycleCore.v" <<'TERMS'
+Inductive EvidenceClass
+Inductive EvidenceDisposition
+Definition project_evidence
+Definition ReceiptJustified
+Theorem missing_admission_fails_closed
+Theorem identity_reference_carries_authority
+Theorem validity_summarizes_to_receipt
+Theorem construction_erasure_preserves_established_authority
+Theorem construction_erasure_requires_discharge_and_last_consumer
+Theorem materialization_requires_explicit_runtime_need
+Theorem receipt_justified_iff_redecision_when_authority_required
+Theorem no_redecision_means_no_receipt_justification
+Theorem justified_validity_receipt_carries_authority
+Theorem compression_step_transitive
+Theorem compression_trace_nonincreasing
+Theorem admitted_interpretation_does_not_reopen
+TERMS
+
+require_terms "$EVIDENCE_LIFECYCLE_DOC" "docs/semantics/proofs/EvidenceLifecycleCore.md" <<'TERMS'
+## Objective card
+not a second authority
+does not close any SoT registry row
+Semantic entropy
+representation_units
 TERMS
 
 require_terms "$PROOF_DIR/00_proof_contract.md" "docs/semantics/00_proof_contract.md" <<'TERMS'
@@ -1022,6 +1053,7 @@ docs/semantics/proofs/MachineLayerCore.v \
 docs/semantics/proofs/AuthorityDelegationCore.v \
 docs/semantics/proofs/DelegationBoundaryCore.v \
 docs/semantics/proofs/LossCompositionCore.v \
+docs/semantics/proofs/EvidenceLifecycleCore.v \
 docs/semantics/proofs/ResourceMachineBridge.v \
 docs/semantics/proofs/UnifiedCore.v \
 docs/semantics/proofs/CompensationCore.v \

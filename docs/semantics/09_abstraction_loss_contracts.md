@@ -1,6 +1,6 @@
 # Abstraction Loss Contracts
 
-Last updated: 2026-06-24
+Last updated: 2026-09-03
 
 Status: `beta-proof-obligation`
 
@@ -101,6 +101,66 @@ The chain World -> Zone -> Roster -> Role -> Intent -> Slot is therefore not a
 mandatory runtime object graph. It is a verification spine. C and LLVM may
 materialize only the parts whose AIR/MIR/ABI facts prove runtime necessity.
 ```
+
+## Evidence Lifecycle Aesthetic
+
+The major aesthetic is:
+
+> Carry the authority established by evidence to its last legitimate consumer;
+> do not carry the entire construction history merely because it once proved
+> that authority.
+
+In shorter form: **prove richly, carry minimally**. Pergyra is explicit about
+meaning, not committed to preserving every intermediate history. Once an owner
+has admitted a semantic decision, a later consumer receives the smallest carrier
+that prevents it from deciding that meaning again. Rich provenance may remain in
+a diagnostic sidecar, but it does not stay in the main IR as peer authority.
+
+Evidence falls into four lifetime classes:
+
+| Evidence class | Examples | Default lifetime |
+|---|---|---|
+| Identity | `TypeId`, `BindingId`, `IntentId`, capability/authority identity | `Reference` until its last legitimate consumer; `Materialize` only when runtime meaning requires it. |
+| Validity | ownership admission, call/type/layout validity | `Summarize` to a bounded fact or receipt after discharge. |
+| Diagnostic | source span, original spelling, failure provenance | `Reference` through a sidecar while diagnostics/debugging need it. |
+| Construction | candidate lists, inference scratch graphs, AST traversal history, temporary proof search | `Retain` only through the last semantic consumer, then `Erase`. |
+
+The complete lifecycle vocabulary is:
+
+| Operation | Meaning |
+|---|---|
+| `Retain` | Keep the rich evidence because an admitted semantic consumer still needs it, or because discharge has not happened. |
+| `Reference` | Carry stable identity/provenance without copying the construction payload. |
+| `Summarize` | Seal validity into the minimum sufficient fact or receipt. |
+| `Materialize` | Produce a machine/runtime representation only at a verified physical boundary. |
+| `Erase` | Delete proof-construction data after discharge and its last legitimate consumer. |
+
+These five operations refine, rather than replace, the AIR compression budgets.
+`Reference` names identity carriage and `Materialize` names the verified physical
+projection. `forbid` remains the budget verdict when erasure or summarization
+would change meaning or when required evidence is absent.
+
+A receipt earns its place exactly when removing it would force a downstream
+consumer to make the semantic decision again. Otherwise it is ceremony, not a
+new layer. `Owner -> Evidence -> Admission -> Receipt -> Plan -> Projection` is
+therefore not a mandatory pipeline template: each boundary must name the actual
+decision it seals and the last consumer that would otherwise reopen it.
+
+The desired progression is:
+
+```text
+many possible interpretations -> one admitted fact -> stable identity/receipt
+rich construction evidence     -> bounded summary   -> erased proof-only data
+```
+
+Semantic uncertainty and representation payload should be monotone
+non-increasing along a declared compression path. This is a design admissibility
+rule, not a claim that every compiler artifact or every byte count already
+shrinks. [`proofs/EvidenceLifecycleCore.v`](proofs/EvidenceLifecycleCore.v)
+machine-checks the bounded lifecycle model; its companion
+[`proofs/EvidenceLifecycleCore.md`](proofs/EvidenceLifecycleCore.md) fixes the
+model/implementation boundary. Neither artifact owns live compiler semantics or
+closes an SoT row.
 
 ## Loss Composition
 

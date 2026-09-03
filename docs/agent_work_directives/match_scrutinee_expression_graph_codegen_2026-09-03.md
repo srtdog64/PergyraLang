@@ -1,6 +1,6 @@
 # Match scrutinee expression-graph codegen lease — 2026-09-03
 
-Status: `IMPLEMENTED — LOCAL FOCUSED GREEN; EXACT CI PENDING`
+Status: `DONE — PUBLISHED; EXACT CI GREEN`
 
 Exact base: `8f1a35d334c8506fc0e8ecf71c6df6fb4b6ca284` on
 `origin/main`.
@@ -58,3 +58,18 @@ materialization/lifetime changes, new syntax, or registry closure.
   budget; its reached `driver-source-mir-execution-action` slice passed. This
   interruption is not recorded as a green component gate and exact CI remains
   the integration authority.
+
+## Publication evidence
+
+- Commit `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de` is published on
+  `origin/main`.
+- Exact-head run `33743159430` completed 30/30 jobs green in 35m45s. Full
+  self-host took 35m25s, installed the Pergyra-built DRV-2, and proved
+  `gen2 == gen3 (173911 lines)`. The three-source policy census completed with
+  `0 in_subset, 3 out_of_subset`.
+- Linux completed in 19m50s, Rocq 9 in 1m49s, sanitizers in 11m37s, Windows in
+  7m35s, macOS in 2m39s, the codegen fixed point in 7m01s, and backend compare
+  passed all twenty shards.
+- This consumer migration changes neither the registry census
+  `88 authorities / 184 derived carriers / CLOSED=55 BRIDGE=32 ACTIVE=1` nor
+  the 83% project forecast. The lease is released.

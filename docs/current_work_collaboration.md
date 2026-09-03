@@ -6,7 +6,27 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — match scrutinee expression-graph codegen
+## ACTIVE supporting proof lease — evidence lifecycle compression
+
+- Exact base is `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de`, equal to
+  `origin/main` when this lease opened. A delegated task prepared the bounded
+  Rocq model, canonical aesthetic wording, adequacy gate, and proof inventory
+  registration; the primary task owns review, integration, commit/push, and
+  exact Rocq 9 CI.
+- `docs/semantics/09_abstraction_loss_contracts.md` remains the policy owner.
+  `EvidenceLifecycleCore.v` is a supporting model of rich construction
+  evidence becoming a compact authority carrier and then erasing after its
+  last semantic consumer. It is not a compiler fact owner.
+- The lease may edit only the canonical loss contract, its proof companion,
+  proof indexes/inventory, adequacy gate, Makefile registration, this ledger,
+  and the handoff. It must not edit the next self-host executable rung.
+- Local owner/manifest adequacy, abstraction-loss, documentation, shell syntax,
+  formal static inventory, and diff checks are green. No local Rocq/Coq prover
+  is installed and the Docker daemon is unavailable, so kernel checking is
+  pending exact-head Rocq 9 CI. No SoT census, self-host substitution, or
+  project-percentage change is claimed.
+
+## DONE lease — match scrutinee expression-graph codegen
 
 - Exact base is `8f1a35d334c8506fc0e8ecf71c6df6fb4b6ca284`, equal to
   `origin/main` when this lease opened. The primary task owns the bounded
@@ -21,9 +41,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   owners. Text reclassification at that boundary is forbidden.
 - Exact objective, edit boundary, and falsifiers are in
   `docs/agent_work_directives/match_scrutinee_expression_graph_codegen_2026-09-03.md`.
-  The changed-source C driver and five-fixture focused parity are green;
-  exact-head CI is pending. No authority/status census or project-percentage
-  change is claimed.
+  The changed-source C driver and five-fixture focused parity are green.
+- Commit `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de` is published. Exact-head run
+  `33743159430` completed 30/30 green in 35m45s. Full self-host took 35m25s,
+  installed the Pergyra-built DRV-2, and proved
+  `gen2 == gen3 (173911 lines)`; Linux, Windows, macOS, sanitizers, TSan, Rocq
+  9, codegen bootstrap, and backend comparison 20/20 also passed. The lease is
+  released without an authority/status census or project-percentage change.
 
 ## DONE lease — ArrayString all-path alternative owner move
 

@@ -18,7 +18,44 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — match scrutinee expression-graph codegen
+## Active self-host context — match scrutinee single-evaluation discovery
+
+- Exact checkpoint is
+  `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de`, equal to `origin/main` before
+  the user-requested evidence-lifecycle proof integration. The preceding match
+  graph-consumer rung is closed by exact-head run `33743159430` (30/30 green).
+- Production entrypoint remains installed Pergyra-built DRV-2 source-to-MIR
+  followed by self-host C/LLVM emission. The first bounded falsifying candidate
+  is a side-effecting match scrutinee: current generated C was observed to
+  splice the graph-rendered expression into more than one case/payload site.
+- This is discovery evidence, not yet a confirmed semantic bug or an opened
+  implementation lease. `SemanticAstExpressionSurfaceFacts` owns expression
+  meaning but does not by itself own an exactly-once materialization binding.
+  The exact missing fact owner and last legitimate consumer remain to be fixed
+  only after an observable call-count fixture reproduces the behavior in the
+  installed C and LLVM entrypoints.
+- The next executable action is that focused falsifier. Re-emitting a
+  side-effecting scrutinee per arm is the candidate forbidden fallback; broad
+  expression cleanup, backend-local inference, and a second semantic producer
+  remain outside the discovery. No census or percentage change is claimed.
+
+## Active supporting context — evidence lifecycle Rocq model
+
+- Exact base is `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de`. The canonical owner remains
+  `docs/semantics/09_abstraction_loss_contracts.md`; the bounded model and scope
+  note are `docs/semantics/proofs/EvidenceLifecycleCore.v` and `.md`.
+- The model distinguishes identity, validity, diagnostic, and construction
+  evidence; makes `Retain`, `Reference`, `Summarize`, `Materialize`, and
+  `Erase` explicit; proves fail-closure on missing admission, guarded
+  construction erasure, receipt justification, and non-increasing abstract
+  interpretation/representation measures.
+- Local adequacy, abstraction-loss, documentation, shell syntax, formal static
+  inventory, and diff checks pass. No local prover exists and the Docker daemon
+  is unavailable, so the 49-file compile, `rocqchk`, and axiom-budget verdict
+  remain pending exact-head Rocq 9 CI. This supporting proof is not an SoT row,
+  implementation-conformance proof, or self-host substitution increment.
+
+## Published self-host context — match scrutinee expression-graph codegen
 
 - Exact opening checkpoint is
   `8f1a35d334c8506fc0e8ecf71c6df6fb4b6ca284`, equal to `origin/main`.
@@ -44,8 +81,14 @@ percentage by themselves.
 - The broad component inventory was stopped after five minutes because it
   exceeded the static-gate budget; its reached
   `driver-source-mir-execution-action` slice passed, but the interrupted gate is
-  not counted green. The next action is exact-file review, commit/push, and
-  exact-head CI. No authority/status or project-percentage change is claimed.
+  not counted green.
+- Commit `b3a1f1ee271d3e24488525b9f21c7d0d2deff9de` is on `origin/main`.
+  Exact-head run `33743159430` completed 30/30 green in 35m45s. Full self-host
+  took 35m25s, installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (173911 lines)`, and completed the three-source policy census;
+  Linux, Windows, macOS, sanitizer/TSan, Rocq 9, codegen fixed point, toolchain,
+  and backend comparison 20/20 all passed. The lease is released without an
+  authority/status census or project-percentage change.
 
 ## Published discovery context — production bypass entrypoints
 
