@@ -43,6 +43,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   build-linux took 18m02s, codegen fixed point 8m19s, and Rocq 9 1m51s. The
   bounded lease is released without changing the authority/status census or
   project percentage.
+- Documentation closure `65807bb3` is published; docs-only run `33740183865`
+  passed its classifier and Linux documentation target. No implementation
+  lease is currently open; the fresh-bypass entrypoint audit is read-only.
 
 ## DONE lease — async Rocq model cores
 

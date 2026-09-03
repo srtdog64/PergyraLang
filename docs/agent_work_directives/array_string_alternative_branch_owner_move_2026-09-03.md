@@ -100,3 +100,5 @@ one-sided conditional moves, general ownership flow, or close the registry row.
   policy census passed. `build-linux` completed in 18m02s, codegen fixed point
   in 8m19s, and Rocq 9 in 1m51s. The lease is closed; no authority/status or
   project-percentage increment is claimed for this bounded consumer migration.
+- Documentation closure `65807bb3` is on `origin/main`; docs-only run
+  `33740183865` passed its classifier and Linux documentation target.

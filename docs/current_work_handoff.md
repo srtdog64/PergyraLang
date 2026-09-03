@@ -21,8 +21,10 @@ percentage by themselves.
 ## Active self-host context — fresh production bypass discovery
 
 - Exact checkpoint is
-  `da81921bf8b89052a39dccac9007410f1dd94234`, equal to `origin/main` before
-  this documentation refresh. The user-owned EOL-only results change and the
+  `65807bb35f57cd800b9a9d7a7b32c74c6d60fe82`, equal to `origin/main`.
+  Its docs-only run `33740183865` passed the classifier and Linux documentation
+  target; nine unrelated jobs were intentionally skipped. The user-owned
+  EOL-only results change and the
   three protected untracked paths remain outside inspection, edit, and staging.
 - Objective is to observe one fresh C-owned production compiler bypass that
   reaches an existing complete Pergyra owner, then fix the next executable
@@ -38,10 +40,18 @@ percentage by themselves.
   `MIR machine-layer facts are missing or invalid` because the artifact predates
   the current machine-layer schema. Its old `CompilerSymbolCIdentifier`
   frontier must not be revived as active evidence.
-- The next action is a read-only audit of current production bypasses and the
-  nine executable/process blockers. Open an implementation directive and edit
-  scope only after one bypass, Pergyra owner, last consumer, and falsifying
-  execution are all concrete.
+- The first read-only entrypoint slice is recorded in
+  `docs/audits/2026-09-03_fresh_production_bypass_entrypoint_audit.md`. Default
+  MIR/C/LLVM/source-inspection/package/LSP routes delegate to installed Pergyra
+  owners; REPL compilation also delegates, while explicit native opt-outs,
+  process/session UI, and host compile/link are legitimate boundaries. RIR,
+  AIR, and HIR public modes fail closed because no installed Pergyra fact owner
+  is declared. No fresh semantic bypass was observed, so no implementation
+  lease is open.
+- The next action is a read-only current-source check of the frozen nine
+  executable/process blocker categories. Open an implementation directive and
+  edit scope only after one bypass, Pergyra owner, last consumer, and
+  falsifying execution are all concrete.
 
 ## Published self-host context — ArrayString all-path alternative owner move
 
