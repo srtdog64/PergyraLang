@@ -18,7 +18,7 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active supporting concurrency context — structured spawn lifecycle
+## Published supporting concurrency context — structured spawn lifecycle
 
 - Exact opening base is `a1d3e116f40566f164aef98ba98b931dc01cbe5f`, equal
   to `origin/main`; protected unrelated untracked paths remain outside
@@ -47,13 +47,13 @@ percentage by themselves.
   LLVM smoke gates are green. `test-all` also completes through transpiler
   925/0, RIR 26/0, MIR 162/0, HIR 25/0, and its remaining frontend/runtime
   batteries after legacy bare/borrowed-Future fixtures were migrated.
-- Implementation commit `cf66092b594f9e83525d3df9da68e56e7446186f` was
-  pushed. Its exact CI run `33707737803` exposed one common self-host seed
-  regression: a statically non-returning `while true` was incorrectly rejected
-  as a missing return. The function boundary now rejects only a reachable
-  fallthrough; the exact failing `self-host-codegen-bootstrap-seed-test-smoke`
-  is locally green. Repair commit/push and replacement exact-head CI remain
-  pending. The unrelated opening-base size
+- Implementation commit `cf66092b594f9e83525d3df9da68e56e7446186f` and
+  repair `74416398f2e53b02a7f60424e477255c0c524f9d` are pushed. The first exact
+  run `33707737803` exposed a common self-host seed regression: a statically
+  non-returning `while true` was incorrectly rejected as a missing return. The
+  function boundary now rejects only a reachable fallthrough; the exact local
+  seed gate is green, and replacement run `33708971493` completed 30/30 green
+  in 36m28s. The unrelated opening-base size
   violations remain `pgy_runtime_lib_io_string_exports.h` 618/600 and
   `ast_expr_control_accessors.c` 725/699; neither owner is in this rung. SoT
   remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project

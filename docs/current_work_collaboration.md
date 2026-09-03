@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — structured spawn lifecycle
+## DONE lease — structured spawn lifecycle
 
 - Exact base is `a1d3e116f40566f164aef98ba98b931dc01cbe5f`, equal to
   `origin/main` when this lease opened. The primary task is the sole code,
@@ -29,10 +29,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   MIR fixtures that encoded bare/borrowed Future disposal were migrated to
   valid structured ownership. Exact run `33707737803` then falsified the
   non-Void boundary for a statically non-returning `while true`; the boundary
-  now diagnoses reachable fallthrough rather than absence of a return bit, and
-  the exact self-host seed target is locally green. Repair publication and
-  replacement exact-head CI remain before this lease can become `DONE`. This
-  lease changes neither SoT counts nor the 83% project forecast.
+  now diagnoses reachable fallthrough rather than absence of a return bit.
+  Repair `74416398f2e53b02a7f60424e477255c0c524f9d` is published, the exact
+  self-host seed target is locally green, and replacement run `33708971493`
+  completed 30/30 green in 36m28s. The lease is released. This work changes
+  neither SoT counts nor the 83% project forecast.
 
 ## DONE lease — spawn runtime context propagation
 
