@@ -60,6 +60,7 @@ func DirectMirScalarProgramAppendOptionIntTryOperand(
     inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
     ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts,
+    ref index: MirRoutineFactIndex,
     global_row: Int, local_instruction: Int,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref types: DirectMirScalarCfgValueTypePlan,
@@ -79,7 +80,8 @@ func DirectMirScalarProgramAppendOptionIntTryOperand(
     let expression_row: Int = ArrayLength(expressions.graph_starts); let use_offset: Int = 0;
     let admission: DirectMirScalarProgramExpressionAdmission =
         DirectMirScalarProgramAppendExpression(
-            expressions, instruction, uses, global_row, local_instruction,
+            expressions, instruction, uses, index,
+            global_row, local_instruction,
             locals, types, wire, local_offset, parameter_types, signature,
             callables, logical_record, payload_free_enum, referenced_enum,
             "expr0_graph", use_offset, true,

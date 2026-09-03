@@ -1,0 +1,13 @@
+// Dispatch the disjoint Option<Int> value and match-condition families.
+
+import "direct_mir_scalar_program_option_int_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_option_int_match_expression_readiness_owner.pgy";
+
+func DirectMirScalarProgramOptionIntExpressionFamilyNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let match_ready: Option<Bool> =
+        DirectMirScalarProgramOptionIntMatchExpressionNodeReady(facts, node);
+    if IsSome(match_ready) { return match_ready; }
+    return DirectMirScalarProgramOptionIntExpressionNodeReady(facts, node);
+}

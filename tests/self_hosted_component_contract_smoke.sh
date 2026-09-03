@@ -20977,8 +20977,8 @@ require_function_text \
     "func DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(" \
     "MirMatchInstructionCaptureFromTable(instruction)"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_owner.pgy" \
-    "func DirectMirScalarCfgProgramAppendTypedExpressionField(" \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_core_owner.pgy" \
+    "func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(" \
     "DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy" \
@@ -22495,10 +22495,13 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExprCallableParameterCall() -> Int { return 121; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_option_int_match_expression_kind_owner.pgy" \
+    "func DirectMirScalarProgramExprOptionIntMatch() -> Int { return 122; }"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExpressionKindLast(" \
-    "DirectMirScalarProgramExprCallableParameterCall()"
+    "DirectMirScalarProgramExprOptionIntMatch()"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
 require_max_lines \

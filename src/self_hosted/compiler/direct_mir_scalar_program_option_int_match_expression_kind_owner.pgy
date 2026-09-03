@@ -1,0 +1,5 @@
+// Target-neutral expression identity for an admitted Option<Int> match case.
+
+func DirectMirScalarProgramExprOptionIntMatch() -> Int { return 122; }
+func DirectMirScalarProgramOptionIntMatchSomeVariant() -> Int { return 0; }
+func DirectMirScalarProgramOptionIntMatchNoneVariant() -> Int { return 1; }

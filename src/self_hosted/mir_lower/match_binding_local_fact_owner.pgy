@@ -147,19 +147,8 @@ func BuildMirMatchBindingLocalFacts(
                         valid = false;
                         validation_stage = "match_binding_type";
                     } else {
-                        let existing: String = "";
-                        let row: Int = 0;
-                        while row < ArrayLength(names) {
-                            if names[row] == name { existing = types[row]; }
-                            row = row + 1;
-                        }
-                        if existing == "" {
-                            ArrayPush(names, name);
-                            ArrayPush(types, type_name);
-                        } else if existing != type_name {
-                            ArrayPush(names, name);
-                            ArrayPush(types, type_name);
-                        }
+                        ArrayPush(names, name);
+                        ArrayPush(types, type_name);
                     }
                     binding = binding + 1;
                 }

@@ -1,0 +1,32 @@
+// C accessors projected only from the admitted Option<Int> ABI receipt.
+
+import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_option_match_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCOptionIntAccessorPreamble(
+    ref fact: DirectMirOptionMatchAbiFact,
+    ref abi: DirectMirOptionMatchAbiProjection,
+    type_name: String
+) -> String {
+    let output: String = Concat(
+        "static bool pgy_scalar_option_int_is_some(",
+        Concat(type_name, " value) { return value."));
+    output = Concat(output, Concat(fact.tag_name, Concat(" == ",
+        Concat(fact.some_tag, "; }\n"))));
+    output = Concat(output, "static ");
+    output = Concat(output, abi.c_print_type);
+    output = Concat(output, " pgy_scalar_option_int_payload(");
+    output = Concat(output, type_name);
+    output = Concat(output, " value) { return (");
+    output = Concat(output, abi.c_print_type);
+    output = Concat(output, ")value.");
+    output = Concat(output, fact.value_name);
+    output = Concat(output, "; }\n");
+    output = Concat(output, Concat("static ", Concat(abi.c_print_type,
+        Concat(" pgy_scalar_option_int_unwrap(",
+        Concat(type_name, " value) {\n    if (value.")))));
+    output = Concat(output, Concat(fact.tag_name, Concat(" != ",
+        Concat(fact.some_tag, Concat(") { abort(); }\n    return (",
+        Concat(abi.c_print_type, ")value."))))));
+    return Concat(output, Concat(fact.value_name, ";\n}\n"));
+}

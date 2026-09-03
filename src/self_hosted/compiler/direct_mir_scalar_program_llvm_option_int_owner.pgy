@@ -121,6 +121,24 @@ func DirectMirScalarProgramLlvmOptionIntPreamble(
     output = Concat(output, "\n  ret i1 %ok\n}\n\n");
     output = Concat(output, "define internal ");
     output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, " @pgy.scalar.option.int.payload(");
+    output = Concat(output, t);
+    output = Concat(output,
+        " %value) {\nentry:\n  %payload.raw = extractvalue ");
+    output = Concat(output, t);
+    output = Concat(output, " %value, ");
+    output = Concat(output, ToString(abi.value_index));
+    output = Concat(output, "\n  %payload.extended = ");
+    output = Concat(output, abi.llvm_print_extension);
+    output = Concat(output, " ");
+    output = Concat(output, abi.llvm_value_type);
+    output = Concat(output, " %payload.raw to ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, "\n  ret ");
+    output = Concat(output, abi.llvm_print_type);
+    output = Concat(output, " %payload.extended\n}\n\n");
+    output = Concat(output, "define internal ");
+    output = Concat(output, abi.llvm_print_type);
     output = Concat(output, " @pgy.scalar.option.int.unwrap(");
     output = Concat(output, t);
     output = Concat(output,

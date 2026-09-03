@@ -1,0 +1,31 @@
+// Match-condition admission carries the reached Option ABI into one CFG branch.
+
+import "direct_mir_scalar_cfg_program_instruction_expression_core_owner.pgy";
+
+func DirectMirScalarCfgProgramAppendMatchConditionExpression(
+    inout expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref index: MirRoutineFactIndex,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, parameter_types: Array<String>,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref option_int_abi: DirectMirOptionMatchAbiFact
+) -> Option<Int> {
+    let use_offset: Int = 0;
+    return DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
+        expressions, failure, instruction, uses, index, global_row,
+        local_instruction, locals, types, wire, local_offset,
+        parameter_types, signature, callables, logical_record,
+        payload_free_enum, referenced_enum, option_int_abi,
+        "expr0_graph", use_offset, true,
+        CompilerAbiLayoutBoolTypeName(), -1);
+}

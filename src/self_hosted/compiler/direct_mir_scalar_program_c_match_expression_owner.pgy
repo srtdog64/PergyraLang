@@ -1,0 +1,17 @@
+// C projection dispatch for the admitted scalar-program match families.
+
+import "direct_mir_scalar_program_option_int_match_target_expression_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_target_expression_owner.pgy";
+
+func DirectMirScalarProgramCMatchExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, left: String, arguments: Array<String>,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> Option<String> {
+    let option_match: Option<String> =
+        DirectMirScalarProgramCOptionIntMatchExpressionAt(
+            expressions, node, left);
+    if IsSome(option_match) { return option_match; }
+    return DirectMirScalarProgramCPayloadEnumExpressionAt(
+        expressions, node, left, arguments, referenced_enum);
+}

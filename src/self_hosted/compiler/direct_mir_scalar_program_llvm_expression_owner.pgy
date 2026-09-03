@@ -13,7 +13,7 @@ import "direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy";
 import "direct_mir_scalar_program_llvm_int_wrap_expression_owner.pgy";
-import "direct_mir_scalar_program_payload_enum_target_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_match_expression_owner.pgy";
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
     let instructions: String;
@@ -214,19 +214,19 @@ func DirectMirScalarProgramLlvmExpressionAt(
             node_instructions = empty_record_array.instructions;
             value = empty_record_array.value;
         } else {
-            let payload_enum:
-                DirectMirScalarProgramLlvmPayloadEnumExpression =
-                DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
+            let match_value:
+                DirectMirScalarProgramLlvmMatchExpression =
+                DirectMirScalarProgramLlvmMatchExpressionAt(
                     expressions, node, result, left, arguments,
                     argument_types, nominal, logical_record,
                     payload_free_enum, referenced_enum);
-            if payload_enum.matched {
-                if !payload_enum.valid {
+            if match_value.matched {
+                if !match_value.valid {
                     return DirectMirScalarProgramLlvmExpression(
                         false, "", "", "");
                 }
-                node_instructions = payload_enum.instructions;
-                value = payload_enum.value;
+                node_instructions = match_value.instructions;
+                value = match_value.value;
             } else {
             let runtime_value: DirectMirScalarProgramLlvmStringExpression =
                 DirectMirScalarProgramLlvmExternalRuntimeExpressionAt(
@@ -343,9 +343,9 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 node_instructions = Concat(node_instructions, "\n");
                 }
                 }
+                }
             }
-            }
-            }
+        }
             }
         }
         ArrayPush(chunks, node_instructions);

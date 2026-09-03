@@ -6,7 +6,7 @@ import "direct_mir_scalar_program_expression_mutation_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_owner.pgy";
 import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
 import "direct_mir_scalar_cfg_value_type_owner.pgy";
-import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
+import "direct_mir_scalar_cfg_scoped_match_binding_operand_owner.pgy";
 import "direct_mir_scalar_program_literal_expression_admission_owner.pgy";
 import "direct_mir_scalar_program_array_int_populated_literal_admission_owner.pgy";
 import "direct_mir_scalar_program_array_string_nested_literal_owner.pgy";
@@ -22,7 +22,7 @@ import "direct_mir_scalar_program_declared_callable_value_admission_owner.pgy";
 func DirectMirScalarProgramAppendExpression(
     facts: DirectMirScalarProgramExpressionSet,
     ref instruction: JsonObjectFactTable,
-    ref uses: MirRoutineInstructionUseFacts,
+    ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
     global_row: Int, local_instruction: Int,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref value_types: DirectMirScalarCfgValueTypePlan,
@@ -319,9 +319,9 @@ func DirectMirScalarProgramAppendExpression(
                     return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-alias", node);
                 }
                 let bound_local: Int = identity.bound_local; let operand: DirectMirScalarCfgLeafOperand =
-                    DirectMirScalarCfgLeafOperandFromOwners(
-                        uses, global_row, expected_uses, local_instruction,
-                        node, sequence.arena.node_texts[node],
+                    DirectMirScalarCfgLeafOrScopedMatchBindingOperandFromOwners(
+                        uses, index, global_row, expected_uses,
+                        local_instruction, node, sequence.arena.node_texts[node],
                         locals.value_names, locals, wire,
                         graph_field == "expr0_graph");
                 let operand_local: Int = operand.local_row;

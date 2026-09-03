@@ -31,6 +31,7 @@ struct MirRoutineFactIndex {
     let instruction_facts: MirRoutineInstructionFactBundle;
     let source_local_names: Array<String>;
     let source_local_types: Array<String>;
+    let declared_source_local_count: Int;
     let source_syntax_id: String;
     let iteration_type_facts: MirIterationTypeFacts;
     let function_param_flow_parameter_indices: Array<Int>;
@@ -292,8 +293,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
             local_cursor = local_bounds[1];
         }
     }
-
-    let match_locals: MirMatchBindingLocalFacts = BuildMirMatchBindingLocalFacts(
+    let declared_source_local_count: Int = ArrayLength(source_local_names); let match_locals: MirMatchBindingLocalFacts = BuildMirMatchBindingLocalFacts(
         routines, routine_row, source_local_names, source_local_types
     );
     source_local_names = match_locals.names;
@@ -306,7 +306,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         block_succ_false, block_has_conditional_branch, block_structural_merges,
         block_instruction_starts,
         block_instruction_counts, instruction_facts,
-        source_local_names, source_local_types, source_syntax_id, iteration_type_facts,
+        source_local_names, source_local_types, declared_source_local_count, source_syntax_id, iteration_type_facts,
         function_param_flow_parameter_indices, function_param_flow_masks,
         resource_flow_symbol_declared_count, resource_flow_stable_indices,
         resource_flow_declaration_syntax_ids, resource_flow_symbol_kinds,

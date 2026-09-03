@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
 import "direct_mir_option_match_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_c_option_int_accessor_preamble_owner.pgy";
 
 func DirectMirScalarProgramCOptionIntTypeName() -> String {
     return "pgy_scalar_option_int";
@@ -60,16 +61,8 @@ func DirectMirScalarProgramCOptionIntPreamble(
     output = Concat(output, Concat(type_name, " result = {"));
     output = Concat(output, Concat(fact.none_tag,
         ", 0};\n    return result;\n}\n"));
-    output = Concat(output, Concat("static bool pgy_scalar_option_int_is_some(",
-        Concat(type_name, " value) { return value.")));
-    output = Concat(output, Concat(fact.tag_name, Concat(" == ",
-        Concat(fact.some_tag, "; }\n"))));
-    output = Concat(output, Concat("static ", Concat(abi.c_print_type,
-        Concat(" pgy_scalar_option_int_unwrap(",
-        Concat(type_name, " value) {\n    if (value.")))));
-    output = Concat(output, Concat(fact.tag_name, Concat(" != ",
-        Concat(fact.some_tag, Concat(") { abort(); }\n    return (",
-        Concat(abi.c_print_type, ")value."))))));
-    output = Concat(output, Concat(fact.value_name, ";\n}\n"));
+    output = Concat(output,
+        DirectMirScalarProgramCOptionIntAccessorPreamble(
+            fact, abi, type_name));
     return output;
 }

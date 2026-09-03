@@ -31,7 +31,7 @@ func DirectMirScalarCfgWireLocalRefsRequired(
         return true;
     }
     let row: Int = 0;
-    while row < ArrayLength(index.source_local_names) {
+    while row < index.declared_source_local_count {
         let prior: Int = 0;
         while prior < row {
             if index.source_local_names[prior] ==
@@ -60,6 +60,13 @@ func DirectMirScalarCfgWireLocalRefsFromOwners(
 ) -> DirectMirScalarCfgWireLocalRefs {
     let empty: DirectMirScalarCfgWireLocalRefs =
         DirectMirScalarCfgWireLocalRefsEmpty();
+    if index.declared_source_local_count < 0 ||
+        index.declared_source_local_count >
+            ArrayLength(index.source_local_names) ||
+        ArrayLength(index.source_local_names) !=
+            ArrayLength(index.source_local_types) {
+        return empty;
+    }
     let required: Bool = DirectMirScalarCfgWireLocalRefsRequired(
         admitted, index
     );

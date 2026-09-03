@@ -32,7 +32,7 @@ func DirectMirScalarCfgProgramAppendStatement(
     source: String,
     ref capture: MirRoutineInstructionScalarCapture,
     ref instruction: JsonObjectFactTable,
-    ref uses: MirRoutineInstructionUseFacts,
+    ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
     global_row: Int, local_instruction: Int,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref types: DirectMirScalarCfgValueTypePlan,
@@ -94,7 +94,7 @@ func DirectMirScalarCfgProgramAppendStatement(
         if capture.arg0 == "ArraySet" {
             let index_opt: Option<Int> =
                 DirectMirScalarCfgProgramAppendTypedExpressionField(
-                    expressions, failure, instruction, uses, global_row,
+                    expressions, failure, instruction, uses, index, global_row,
                     local_instruction, locals, types, wire, local_offset,
                     parameter_types, signature, callables, logical_record,
                     payload_free_enum, referenced_enum,
@@ -110,7 +110,8 @@ func DirectMirScalarCfgProgramAppendStatement(
     }
     let expression_row_opt: Option<Int> =
         DirectMirScalarCfgProgramAppendTypedExpression(
-            expressions, failure, instruction, uses, global_row, local_instruction,
+            expressions, failure, instruction, uses, index,
+            global_row, local_instruction,
             locals, types, wire, local_offset, parameter_types, signature,
             callables, logical_record, payload_free_enum, referenced_enum,
             use_offset, expected_type);

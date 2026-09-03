@@ -13,6 +13,7 @@ import "direct_mir_scalar_program_array_bool_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_comparison_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_numeric_cast_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_int_match_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprLocal() -> Int { return 1; }
 func DirectMirScalarProgramExprParameter() -> Int { return 2; }
 func DirectMirScalarProgramExprIntLiteral() -> Int { return 3; }
@@ -70,5 +71,5 @@ func DirectMirScalarProgramExprNotEqualPayloadFreeEnum() -> Int { return 119; }
 func DirectMirScalarProgramExprDeclaredCallable() -> Int { return 120; }
 func DirectMirScalarProgramExprCallableParameterCall() -> Int { return 121; }
 func DirectMirScalarProgramExpressionKindLast() -> Int {
-    return DirectMirScalarProgramExprCallableParameterCall();
+    return DirectMirScalarProgramExprOptionIntMatch();
 }

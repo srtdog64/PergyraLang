@@ -1,0 +1,105 @@
+// Option<Int> match cases consume the admitted Option ABI and produce one
+// target-neutral condition node. Match-binding identity remains instruction-
+// scoped; target emitters may project the receipt but cannot guess its tags.
+
+import "direct_mir_scalar_program_expression_mutation_owner.pgy";
+import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_option_int_match_expression_kind_owner.pgy";
+import "direct_mir_scalar_cfg_local_ref_plan_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+import "../mir_lower/match_json_fact_owner.pgy";
+
+func DirectMirScalarProgramOptionIntMatchConditionFromInstruction(
+    facts: DirectMirScalarProgramExpressionSet,
+    ref instruction: JsonObjectFactTable, expression_row: Int,
+    global_row: Int, local_offset: Int,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref option_int_abi: DirectMirOptionMatchAbiFact
+) -> DirectMirScalarProgramExpressionSet {
+    if !JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_MATCH_CASE") {
+        return facts;
+    }
+    let invalid: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSetInvalid(facts);
+    let match_fact: MirMatchInstructionCapture =
+        MirMatchInstructionCaptureFromTable(instruction);
+    if !facts.valid || expression_row < 0 ||
+        expression_row + 1 != ArrayLength(facts.graph_starts) ||
+        !DirectMirOptionMatchAbiFactReady(option_int_abi) ||
+        !match_fact.valid || match_fact.pattern_count != 1 ||
+        match_fact.variant == "" {
+        return invalid;
+    }
+    let value_node: Int = facts.graph_roots[expression_row];
+    if value_node < facts.graph_starts[expression_row] ||
+        value_node >= facts.graph_starts[expression_row] +
+            facts.graph_counts[expression_row] ||
+        value_node >= ArrayLength(facts.node_types) ||
+        facts.node_types[value_node] != option_int_abi.type_name ||
+        facts.node_kinds[value_node] != DirectMirScalarProgramExprLocal() {
+        return invalid;
+    }
+    let variant: Int = -1;
+    let binding_local: Int = -1;
+    if match_fact.variant == "Some" {
+        if match_fact.binding_count != 1 ||
+            match_fact.binding_type_count != 1 ||
+            match_fact.binding_type != CompilerAbiLayoutIntTypeName() ||
+            match_fact.pattern != Concat(match_fact.variant, Concat(
+                "(", Concat(match_fact.binding, ")"))) {
+            return invalid;
+        }
+        let identity: String = SelfMirLocalRef(
+            "destructure", signature.source_syntax_id, global_row);
+        binding_local = DirectMirScalarCfgLocalIdentityRow(
+            locals.local_ref_value_ids, identity);
+        if binding_local < 0 ||
+            binding_local >= ArrayLength(locals.local_names) ||
+            locals.local_names[binding_local] != match_fact.binding ||
+            locals.local_ref_kinds[binding_local] !=
+                DirectMirScalarCfgLocalRefMatchBinding() {
+            return invalid;
+        }
+        variant = DirectMirScalarProgramOptionIntMatchSomeVariant();
+    } else if match_fact.variant == "None" {
+        if match_fact.binding_count != 0 ||
+            match_fact.binding_type_count != 0 ||
+            match_fact.pattern != match_fact.variant {
+            return invalid;
+        }
+        variant = DirectMirScalarProgramOptionIntMatchNoneVariant();
+    } else {
+        return invalid;
+    }
+    let graph_counts: Array<Int> = facts.graph_counts;
+    let graph_roots: Array<Int> = facts.graph_roots;
+    let kinds: Array<Int> = facts.node_kinds;
+    let types: Array<String> = facts.node_types;
+    let lefts: Array<Int> = facts.node_lefts;
+    let rights: Array<Int> = facts.node_rights;
+    let local_rows: Array<Int> = facts.node_local_rows;
+    let params: Array<Int> = facts.node_parameter_ordinals;
+    let members: Array<Int> = facts.node_member_ordinals;
+    let literals: Array<String> = facts.node_literals;
+    let callables: Array<Int> = facts.node_callable_rows;
+    let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
+    let condition_node: Int = ArrayLength(kinds);
+    let stored_binding: Int = -1;
+    if binding_local >= 0 { stored_binding = binding_local + local_offset; }
+    DirectMirScalarProgramAppendExpressionNode(
+        kinds, types, lefts, rights, local_rows, params, members,
+        literals, callables, runtime_ids,
+        DirectMirScalarProgramExprOptionIntMatch(),
+        CompilerAbiLayoutBoolTypeName(), value_node, -1,
+        stored_binding, -1, variant, "", -1, -1);
+    ArraySet(graph_counts, expression_row,
+        facts.graph_counts[expression_row] + 1);
+    ArraySet(graph_roots, expression_row, condition_node);
+    return DirectMirScalarProgramExpressionSet(
+        true, 0, facts.graph_global_rows, facts.graph_starts,
+        graph_counts, graph_roots, kinds, types, lefts, rights,
+        local_rows, params, members, literals, callables, runtime_ids,
+        facts.nary_operands);
+}

@@ -2715,6 +2715,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_direct_local_operand_owner.pgy`
   -- exact `(instruction,node)` LocalRef-to-iteration-slot resolution after
   ValueId admission; duplicate or missing identities fail closed.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_scoped_match_binding_operand_owner.pgy`
+  -- instruction-scoped match-binding resolution through the true-successor
+  CFG scope and the existing dominance fact. Same-spelled bindings select only
+  the unique innermost dominating scope; incomparable candidates fail closed.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy` --
   exact conditional LocalRef wire decoding and shape admission.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy`
@@ -2800,6 +2804,13 @@ inventory must not become a second fact-family owner registry.
   parameters bind only through persisted syntax IDs/ordinals, never display
   text. Rejected def/Log/branch/return rows use the shared expression
   diagnostic owner rather than a silent `None` at the routine boundary.
+- `src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_core_owner.pgy`,
+  `direct_mir_scalar_cfg_program_instruction_expression_owner.pgy`, and
+  `direct_mir_scalar_cfg_program_match_condition_expression_owner.pgy`
+  -- one typed expression-admission core, its ordinary public routes, and the
+  match-only route that carries the admitted Option ABI. The core appends one
+  graph and selects the existing enum or Option match owner by its admitted
+  root type; callers cannot reopen the source graph or invent an Option layout.
 - `src/self_hosted/compiler/direct_mir_scalar_program_declared_callable_value_admission_owner.pgy`
   -- declared-routine leaf admission by persisted syntax ID, followed by
   display-name and canonical callable-signature cross-seals; it never searches
@@ -2861,6 +2872,14 @@ inventory must not become a second fact-family owner registry.
   -- the reached Some/None/IsSome/UnwrapOption identities, canonical builtin
   registry projection, and exact typed node shapes for the first non-scalar
   value family in the shared program expression arena.
+- `src/self_hosted/compiler/direct_mir_scalar_program_option_int_match_expression_kind_owner.pgy`,
+  `direct_mir_scalar_program_option_int_match_condition_owner.pgy`,
+  `direct_mir_scalar_program_option_int_match_expression_readiness_owner.pgy`,
+  and `direct_mir_scalar_program_option_int_expression_family_readiness_owner.pgy`
+  -- the target-neutral Option<Int> match identity, exact Some/None source-fact
+  admission, match-node shape, and disjoint readiness dispatch. A Some binding
+  is identified by its instruction-scoped LocalRef; a missing ABI receipt or
+  malformed pattern fails before either target is selected.
 - `src/self_hosted/compiler/direct_mir_scalar_program_option_int_abi_owner.pgy`
   -- the one program-wide Option<Int> representation receipt captured from the
   persisted required MIR ABI row. Expression and complete by-value parameter
@@ -2872,6 +2891,14 @@ inventory must not become a second fact-family owner registry.
   -- target projections and expression materialization for that admitted ABI.
   Both targets consume the shared tag/value/print mapping and do not recreate
   an Option layout from the surface type name.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_option_int_accessor_preamble_owner.pgy`,
+  `direct_mir_scalar_program_option_int_match_target_expression_owner.pgy`,
+  `direct_mir_scalar_program_c_match_expression_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_match_expression_owner.pgy`
+  -- receipt-derived Option accessors, C/LLVM Option match projection, and the
+  two target match-family dispatch seams. They consume the admitted field index,
+  field name, extension, and tags; payload access never guesses a physical
+  layout and does not re-evaluate the source scrutinee.
 - `src/self_hosted/compiler/direct_mir_scalar_program_option_int_try_admission_owner.pgy`
   -- the reached try-let control-flow admission. It strips only the persisted
   unary try root, normalizes its operand through the shared expression owner,

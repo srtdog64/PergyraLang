@@ -17,7 +17,7 @@ func DirectMirScalarCfgProgramAppendDefinition(
     inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
     result: Int,
     ref instruction: JsonObjectFactTable,
-    ref uses: MirRoutineInstructionUseFacts,
+    ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
     global_row: Int, local_instruction: Int,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref types: DirectMirScalarCfgValueTypePlan,
@@ -41,13 +41,13 @@ func DirectMirScalarCfgProgramAppendDefinition(
     if root_kind == AstExpressionNodeTry() {
         operation_kind = DirectMirScalarCfgOpOptionIntTryDefinition();
         expression_row_opt = DirectMirScalarProgramAppendOptionIntTryOperand(
-            expressions, failure, instruction, uses, global_row, local_instruction,
+            expressions, failure, instruction, uses, index, global_row, local_instruction,
             locals, types, wire, local_offset, parameter_types, callables,
             logical_record, payload_free_enum,
             referenced_enum, signature, types.value_types[result]);
     } else {
         expression_row_opt = DirectMirScalarCfgProgramAppendTypedExpression(
-            expressions, failure, instruction, uses, global_row, local_instruction,
+            expressions, failure, instruction, uses, index, global_row, local_instruction,
             locals, types, wire, local_offset, parameter_types, signature,
             callables, logical_record, payload_free_enum, referenced_enum,
             0, types.value_types[result]);

@@ -1,0 +1,86 @@
+// C/LLVM projection for the target-neutral Option<Int> match condition.
+// The preamble helpers are generated from the admitted ABI receipt; this
+// owner only combines those helpers with the instruction-scoped binding row.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_option_int_match_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
+
+func DirectMirScalarProgramCOptionIntMatchExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, left: String
+) -> Option<String> {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprOptionIntMatch() {
+        return None;
+    }
+    if left == "" { return Some(""); }
+    let variant: Int = expressions.node_member_ordinals[node];
+    let binding: Int = expressions.node_local_rows[node];
+    if variant == DirectMirScalarProgramOptionIntMatchSomeVariant() &&
+            binding >= 0 {
+        let value: String = Concat("(pgy_local_", ToString(binding));
+        value = Concat(value, " = pgy_scalar_option_int_payload(");
+        value = Concat(value, left);
+        value = Concat(value, "), pgy_scalar_option_int_is_some(");
+        value = Concat(value, left);
+        return Some(Concat(value, "))"));
+    }
+    if variant == DirectMirScalarProgramOptionIntMatchNoneVariant() &&
+            binding == -1 {
+        return Some(Concat("(!pgy_scalar_option_int_is_some(",
+            Concat(left, "))")));
+    }
+    return Some("");
+}
+
+func DirectMirScalarProgramLlvmOptionIntMatchExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, result: String, left: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprOptionIntMatch() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    if left == "" {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", "");
+    }
+    let variant: Int = expressions.node_member_ordinals[node];
+    let binding: Int = expressions.node_local_rows[node];
+    let option_type: String = DirectMirScalarProgramLlvmOptionIntTypeName();
+    let output: String = "";
+    if variant == DirectMirScalarProgramOptionIntMatchSomeVariant() &&
+            binding >= 0 {
+        let payload: String = Concat(result, ".payload");
+        output = Concat(output, Concat("  ", payload));
+        output = Concat(output, Concat(
+            " = call i64 @pgy.scalar.option.int.payload(", option_type));
+        output = Concat(output, Concat(" ", Concat(left, ")\n")));
+        output = Concat(output, Concat("  store i64 ", payload));
+        output = Concat(output, Concat(", ptr %pgy.local.",
+            Concat(ToString(binding), ", align 1\n")));
+        output = Concat(output, Concat("  ", result));
+        output = Concat(output, Concat(
+            " = call i1 @pgy.scalar.option.int.is_some(", option_type));
+        output = Concat(output, Concat(" ", Concat(left, ")\n")));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, result);
+    }
+    if variant == DirectMirScalarProgramOptionIntMatchNoneVariant() &&
+            binding == -1 {
+        let present: String = Concat(result, ".present");
+        output = Concat(output, Concat("  ", present));
+        output = Concat(output, Concat(
+            " = call i1 @pgy.scalar.option.int.is_some(", option_type));
+        output = Concat(output, Concat(" ", Concat(left, ")\n")));
+        output = Concat(output, Concat("  ", result));
+        output = Concat(output, Concat(" = xor i1 ",
+            Concat(present, ", true\n")));
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, output, result);
+    }
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, false, "", "");
+}

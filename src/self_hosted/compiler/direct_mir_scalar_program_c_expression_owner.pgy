@@ -10,7 +10,7 @@ import "direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy";
 import "direct_mir_scalar_program_c_numeric_cast_expression_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_c_external_runtime_expression_owner.pgy";
-import "direct_mir_scalar_program_payload_enum_target_expression_owner.pgy";
+import "direct_mir_scalar_program_c_match_expression_owner.pgy";
 import "../lib/json_emit.pgy";
 func DirectMirScalarProgramCLocalName(row: Int) -> String { return Concat("pgy_local_", ToString(row)); }
 func DirectMirScalarProgramCExpressionValues(
@@ -139,13 +139,13 @@ func DirectMirScalarProgramCExpressionValues(
         } else if kind == DirectMirScalarProgramExprGreaterInt() || kind == DirectMirScalarProgramExprGreaterLong() { value = Concat("(", Concat(left, Concat(" > ", Concat(right, ")"))));
         } else if kind == DirectMirScalarProgramExprLessEqualInt() { value = Concat("(", Concat(left, Concat(" <= ", Concat(right, ")"))));
         } else {
-            let payload_enum: Option<String> =
-                DirectMirScalarProgramCPayloadEnumExpressionAt(
+            let match_value: Option<String> =
+                DirectMirScalarProgramCMatchExpressionAt(
                     expressions, node, left, arguments, referenced_enum);
-            if IsSome(payload_enum) {
-                value = UnwrapOption(payload_enum);
+            if IsSome(match_value) {
+                value = UnwrapOption(match_value);
                 if value == "" {
-                    Die("direct MIR scalar C payload-enum expression is invalid");
+                    Die("direct MIR scalar C match expression is invalid");
                 }
             } else {
             let runtime_value: Option<String> =

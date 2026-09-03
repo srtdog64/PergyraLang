@@ -1,0 +1,94 @@
+// One typed expression admission core; public routes supply their ABI envelope.
+
+import "direct_mir_scalar_program_expression_admission_owner.pgy";
+import "direct_mir_scalar_cfg_program_extension_fact_owner.pgy";
+import "direct_mir_scalar_program_int_literal_expression_row_owner.pgy";
+import "direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_match_condition_owner.pgy";
+import "direct_mir_scalar_program_option_int_match_condition_owner.pgy";
+
+func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
+    inout expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref index: MirRoutineFactIndex,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, parameter_types: Array<String>,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref option_int_abi: DirectMirOptionMatchAbiFact,
+    graph_field: String, inout use_offset: Int,
+    require_all_uses: Bool, expected_type: String, source_root: Int
+) -> Option<Int> {
+    let expression_row: Int = ArrayLength(expressions.graph_starts);
+    let admission: DirectMirScalarProgramExpressionAdmission =
+        DirectMirScalarProgramAppendExpression(
+            expressions, instruction, uses, index, global_row,
+            local_instruction, locals, types, wire, local_offset,
+            parameter_types, signature, callables, logical_record,
+            payload_free_enum, referenced_enum, graph_field, use_offset,
+            require_all_uses, expected_type, false, source_root);
+    if !admission.valid {
+        if !failure.present { failure = admission.failure; }
+        return None;
+    }
+    let appended: DirectMirScalarProgramExpressionSet = admission.facts;
+    let match_capture: MirMatchInstructionCapture =
+        MirMatchInstructionCaptureFromTable(instruction);
+    if JsonObjectFactStringFieldEquals(
+            instruction, "source_type", "AST_MATCH_CASE") &&
+        match_capture.valid && match_capture.variant != "" {
+        let value_node: Int = admission.facts.graph_roots[expression_row];
+        if value_node >= 0 && value_node <
+                ArrayLength(admission.facts.node_types) &&
+            admission.facts.node_types[value_node] ==
+                CompilerAbiLayoutOptionIntTypeName() {
+            appended =
+                DirectMirScalarProgramOptionIntMatchConditionFromInstruction(
+                    admission.facts, instruction, expression_row, global_row,
+                    local_offset, signature, locals, option_int_abi);
+        } else {
+            appended =
+                DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
+                    admission.facts, instruction, expression_row, global_row,
+                    local_offset, signature, locals, referenced_enum);
+        }
+    } else {
+        appended =
+            DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
+                admission.facts, instruction, expression_row,
+                payload_free_enum);
+    }
+    if !appended.valid {
+        if !failure.present {
+            failure = DirectMirScalarProgramExpressionAdmissionFailureAt(
+                "enum-match", -1);
+        }
+        return None;
+    }
+    if ArrayLength(appended.graph_starts) != expression_row + 1 {
+        if !failure.present {
+            failure = DirectMirScalarProgramExpressionAdmissionFailureAt(
+                "admitted-cardinality", -1);
+        }
+        return None;
+    }
+    let root: Int = appended.graph_roots[expression_row];
+    if (expected_type != "" && appended.node_types[root] != expected_type) ||
+            appended.node_types[root] == "" {
+        if !failure.present {
+            failure = DirectMirScalarProgramExpressionAdmissionFailureAt(
+                "admitted-type", root);
+        }
+        return None;
+    }
+    expressions = appended;
+    return Some(expression_row);
+}

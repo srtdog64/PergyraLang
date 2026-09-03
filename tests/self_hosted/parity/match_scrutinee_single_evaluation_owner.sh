@@ -2,8 +2,7 @@
 # A match scrutinee is one expression evaluation, not one evaluation per case
 # condition or payload extraction. Native/self agreement alone is insufficient
 # because those paths historically shared the duplication. This bounded rung
-# targets the Pergyra-owned source/MIR/C path; the public Pergyra-owned LLVM path
-# does not yet admit this Option-match structural shape.
+# targets one canonical Pergyra-owned MIR artifact and both C/LLVM projections.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -19,6 +18,15 @@ SOURCE="tests/self_hosted/fixtures/match_scrutinee_single_evaluation.pgy"
 CODEGEN_OWNER="src/self_hosted/codegen/emission/stmt_emit.pgy"
 SEMANTIC_OWNER="src/self_hosted/semantic/ast_match_materialization_fact_owner.pgy"
 MIR_OWNER="src/self_hosted/mir/routine_match_owner.pgy"
+MATCH_LOCAL_FACT_OWNER="src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy"
+WIRE_OWNER="src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy"
+SCOPED_LOCAL_OWNER="src/self_hosted/compiler/direct_mir_scalar_cfg_scoped_match_binding_operand_owner.pgy"
+OPTION_MATCH_OWNER="src/self_hosted/compiler/direct_mir_scalar_program_option_int_match_condition_owner.pgy"
+OPTION_MATCH_TARGET="src/self_hosted/compiler/direct_mir_scalar_program_option_int_match_target_expression_owner.pgy"
+OPTION_C_OWNER="src/self_hosted/compiler/direct_mir_scalar_program_c_option_int_owner.pgy"
+OPTION_C_ACCESSOR_OWNER="src/self_hosted/compiler/direct_mir_scalar_program_c_option_int_accessor_preamble_owner.pgy"
+OPTION_LLVM_OWNER="src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_int_owner.pgy"
+MUTATIONS="tests/self_hosted/parity/match_scrutinee_single_evaluation_mutations.py"
 WORK_REL=".tmp/self_hosted/match_scrutinee_single_evaluation"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 
@@ -40,8 +48,15 @@ fi
 [[ -f "$ROOT_DIR/$CODEGEN_OWNER" ]] || fail "missing owner: $CODEGEN_OWNER"
 [[ -f "$ROOT_DIR/$SEMANTIC_OWNER" ]] || fail "missing owner: $SEMANTIC_OWNER"
 [[ -f "$ROOT_DIR/$MIR_OWNER" ]] || fail "missing owner: $MIR_OWNER"
+for owner in "$MATCH_LOCAL_FACT_OWNER" "$WIRE_OWNER" "$SCOPED_LOCAL_OWNER" \
+        "$OPTION_MATCH_OWNER" "$OPTION_MATCH_TARGET" "$OPTION_C_OWNER" \
+        "$OPTION_C_ACCESSOR_OWNER" "$OPTION_LLVM_OWNER" "$MUTATIONS"; do
+    [[ -f "$ROOT_DIR/$owner" ]] || fail "missing owner: $owner"
+done
 CC="${CC:-cc}"
+CLANG="${PGY_SELFHOST_CLANG:-clang}"
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
+command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
 grep -Fq 'let match_tmp_type: String = "";' \
     "$ROOT_DIR/$CODEGEN_OWNER" ||
@@ -73,6 +88,24 @@ if grep -Fq 'input.analysis.expression_surfaces.expression_graph' \
 fi
 [[ "$(grep -Fc 'SemanticAstExpressionGraphForNode(' "$ROOT_DIR/$MIR_OWNER")" -eq 1 ]] ||
     fail "MIR match owner re-opened the source graph per case"
+grep -Fq 'ArrayPush(names, name);' "$ROOT_DIR/$MATCH_LOCAL_FACT_OWNER" ||
+    fail "match-binding fact owner merged instruction-scoped identities"
+! grep -Fq 'let existing: String' "$ROOT_DIR/$MATCH_LOCAL_FACT_OWNER" ||
+    fail "match-binding fact owner reintroduced name/type deduplication"
+grep -Fq 'index.declared_source_local_count' "$ROOT_DIR/$WIRE_OWNER" ||
+    fail "wire collision owner includes instruction-scoped match facts"
+grep -Fq 'MirRoutineBlockDominates(index, scope, use_block)' \
+    "$ROOT_DIR/$SCOPED_LOCAL_OWNER" ||
+    fail "match binding use no longer consumes CFG dominance"
+grep -Fq 'DirectMirOptionMatchAbiFactReady(option_int_abi)' \
+    "$ROOT_DIR/$OPTION_MATCH_OWNER" ||
+    fail "Option match condition bypasses its ABI receipt"
+grep -Fq 'pgy_scalar_option_int_payload' "$ROOT_DIR/$OPTION_MATCH_TARGET" ||
+    fail "Option match target omitted payload binding"
+grep -Fq 'fact.value_name' "$ROOT_DIR/$OPTION_C_ACCESSOR_OWNER" ||
+    fail "C Option payload helper guessed the ABI field"
+grep -Fq 'ToString(abi.value_index)' "$ROOT_DIR/$OPTION_LLVM_OWNER" ||
+    fail "LLVM Option payload helper guessed the ABI field index"
 
 suffix=""
 [[ "$PGY" == *.exe ]] && suffix=".exe"
@@ -118,5 +151,68 @@ for backend in c; do
     fi
 done
 
-echo "[self-host-match-single-evaluation] installed C evaluates each" \
-     "side-effecting match scrutinee exactly once"
+mir_rel="$WORK_REL/program.mir.json"
+mir="$ROOT_DIR/$mir_rel"
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-verified "$SOURCE" \
+    -o "$mir_rel") >"$WORK_DIR/mir.out" 2>"$WORK_DIR/mir.err" || {
+        cat "$WORK_DIR/mir.out" "$WORK_DIR/mir.err" >&2
+        fail "self-host driver could not produce canonical MIR"
+    }
+[[ -s "$mir" ]] || fail "self-host driver published no canonical MIR"
+
+for backend in c llvm; do
+    extension="$backend"
+    [[ "$backend" == llvm ]] && extension="ll"
+    artifact_rel="$WORK_REL/program.$extension"
+    artifact="$ROOT_DIR/$artifact_rel"
+    binary="$WORK_DIR/mir-$backend-program$suffix"
+    (cd "$ROOT_DIR" && "$SELF_DRIVER" "--mir-json-backend=$backend" \
+        "$mir_rel" -o "$artifact_rel") \
+        >"$WORK_DIR/$backend.project.out" \
+        2>"$WORK_DIR/$backend.project.err" || {
+            cat "$WORK_DIR/$backend.project.out" \
+                "$WORK_DIR/$backend.project.err" >&2
+            fail "$backend projection rejected canonical match MIR"
+        }
+    [[ -s "$artifact" ]] || fail "$backend projection published no artifact"
+    if [[ "$backend" == c ]]; then
+        pgy_selfhost_driver_rung2_compile_emitted 0 "$artifact" "$binary" \
+            "$WORK_DIR/$backend.compile.log" || {
+                cat "$WORK_DIR/$backend.compile.log" >&2
+                fail "projected C artifact did not compile"
+            }
+    else
+        "$CLANG" -x ir "$artifact" -o "$binary" \
+            >"$WORK_DIR/$backend.compile.out" \
+            2>"$WORK_DIR/$backend.compile.err" || {
+                cat "$WORK_DIR/$backend.compile.err" >&2
+                fail "projected LLVM artifact did not compile"
+            }
+    fi
+    "$binary" | tr -d '\r' >"$WORK_DIR/$backend.mir.run.out"
+    cmp -s "$WORK_DIR/expected.out" "$WORK_DIR/$backend.mir.run.out" ||
+        fail "$backend canonical-MIR runtime output drifted"
+done
+
+for mutation in binding-type option-tag; do
+    mutated_rel="$WORK_REL/$mutation.mir.json"
+    mutated="$ROOT_DIR/$mutated_rel"
+    python "$ROOT_DIR/$MUTATIONS" "$mir" "$mutation" "$mutated"
+    for backend in c llvm; do
+        output_rel="$WORK_REL/$mutation.$backend"
+        output="$ROOT_DIR/$output_rel"
+        rm -f "$output"
+        if (cd "$ROOT_DIR" && "$SELF_DRIVER" \
+            "--mir-json-backend=$backend" "$mutated_rel" -o "$output_rel") \
+            >"$WORK_DIR/$mutation.$backend.out" \
+            2>"$WORK_DIR/$mutation.$backend.err"; then
+            fail "$backend accepted $mutation mutation"
+        fi
+        [[ ! -e "$output" ]] ||
+            fail "$backend published an artifact for $mutation mutation"
+    done
+done
+
+echo "[self-host-match-single-evaluation] installed C plus canonical-MIR" \
+     "C/LLVM evaluate each side-effecting match scrutinee exactly once;" \
+     "owned negatives fail closed"

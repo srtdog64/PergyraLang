@@ -1,0 +1,28 @@
+// Exact shape of a normalized Option<Int> match condition.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_option_int_match_expression_kind_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramOptionIntMatchExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    if facts.node_kinds[node] != DirectMirScalarProgramExprOptionIntMatch() {
+        return None;
+    }
+    let left: Int = facts.node_lefts[node];
+    let variant: Int = facts.node_member_ordinals[node];
+    let binding: Int = facts.node_local_rows[node];
+    let shape: Bool = left >= 0 && facts.node_rights[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        facts.node_callable_rows[node] == -1 &&
+        facts.node_types[node] == CompilerAbiLayoutBoolTypeName() &&
+        facts.node_types[left] == CompilerAbiLayoutOptionIntTypeName();
+    if !shape { return Some(false); }
+    return Some(
+        (variant == DirectMirScalarProgramOptionIntMatchSomeVariant() &&
+         binding >= 0) ||
+        (variant == DirectMirScalarProgramOptionIntMatchNoneVariant() &&
+         binding == -1));
+}

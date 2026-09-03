@@ -259,7 +259,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 let definition: DirectMirScalarCfgProgramDefinitionRoute =
                     DirectMirScalarCfgProgramRouteDefinition(
                         operations, expressions, expression_failure, source,
-                        capture, instruction, input.use_facts, global_row,
+                        capture, instruction, input.use_facts, input.index,
+                        global_row,
                         local_instruction, locals, types, input.wire,
                         local_offset, value_offset, parameter_types, callables,
                         logical_record, payload_free_enum, referenced_enum,
@@ -283,7 +284,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 let statement: DirectMirScalarCfgProgramStatementAdmission =
                     DirectMirScalarCfgProgramAppendStatement(
                         operations, expressions, expression_failure, source, capture, instruction,
-                        input.use_facts, global_row, local_instruction, locals,
+                        input.use_facts, input.index, global_row,
+                        local_instruction, locals,
                         types, input.wire, local_offset, parameter_types,
                         callables, logical_record, payload_free_enum,
                         referenced_enum, signature,
@@ -318,12 +320,15 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 } else {
                     if instruction_row + 1 != input.index.block_instruction_counts[block] || input.index.block_succ_true[block] < 0 ||
                         input.index.block_succ_false[block] < 0 { DirectMirScalarCfgProgramBranchTopologyAdmissionFailed(routine_ordinal, block, global_row, source); return invalid; }
-                    let condition_row_opt: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpression(
-                        expressions, expression_failure, instruction, input.use_facts, global_row, local_instruction,
+                    let condition_row_opt: Option<Int> =
+                        DirectMirScalarCfgProgramAppendMatchConditionExpression(
+                        expressions, expression_failure, instruction,
+                        input.use_facts, input.index, global_row,
+                        local_instruction,
                         locals, types, input.wire, local_offset,
                         parameter_types, signature, callables,
-                        logical_record, payload_free_enum, referenced_enum, 0,
-                        CompilerAbiLayoutBoolTypeName());
+                        logical_record, payload_free_enum, referenced_enum,
+                        option_int_abi);
                     if !IsSome(condition_row_opt) { DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row, source, expression_failure); return invalid; }
                     condition_row = UnwrapOption(condition_row_opt);
                 }
@@ -353,7 +358,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 }
                 let return_row_opt: Option<Int> =
                     DirectMirScalarCfgProgramAppendTypedExpression(
-                    expressions, expression_failure, instruction, input.use_facts, global_row,
+                    expressions, expression_failure, instruction,
+                    input.use_facts, input.index, global_row,
                     local_instruction, locals, types, input.wire,
                         local_offset, parameter_types, signature, callables,
                         logical_record, payload_free_enum, referenced_enum, 0,

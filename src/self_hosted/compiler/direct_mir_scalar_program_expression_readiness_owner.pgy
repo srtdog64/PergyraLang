@@ -8,7 +8,7 @@ import "direct_mir_scalar_program_case_math_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_call_readiness_owner.pgy";
 import "direct_mir_scalar_program_string_search_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_string_transform_expression_readiness_owner.pgy";
-import "direct_mir_scalar_program_option_int_expression_readiness_owner.pgy";
+import "direct_mir_scalar_program_option_int_expression_family_readiness_owner.pgy";
 import "direct_mir_scalar_program_option_string_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_option_bool_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_result_int_expression_readiness_owner.pgy";
@@ -71,6 +71,9 @@ func DirectMirScalarProgramExpressionNodeReady(
     if IsSome(payload_enum_ready) {
         return UnwrapOption(payload_enum_ready);
     }
+    let option_ready: Option<Bool> =
+        DirectMirScalarProgramOptionIntExpressionFamilyNodeReady(facts, node);
+    if IsSome(option_ready) { return UnwrapOption(option_ready); }
     if member != -1 { return false; }
     let cast_ready: Option<Bool> = DirectMirScalarProgramNumericCastExpressionNodeReady(facts, node); if IsSome(cast_ready) { return UnwrapOption(cast_ready); }
     let comparison_ready: Option<Bool> = DirectMirScalarProgramComparisonExpressionNodeReady(facts, node);
@@ -90,9 +93,6 @@ func DirectMirScalarProgramExpressionNodeReady(
     let transform_ready: Option<Bool> =
         DirectMirScalarProgramStringTransformExpressionNodeReady(facts, node);
     if IsSome(transform_ready) { return UnwrapOption(transform_ready); }
-    let option_ready: Option<Bool> =
-        DirectMirScalarProgramOptionIntExpressionNodeReady(facts, node);
-    if IsSome(option_ready) { return UnwrapOption(option_ready); }
     let option_string_ready: Option<Bool> = DirectMirScalarProgramOptionStringExpressionNodeReady(facts, node);
     if IsSome(option_string_ready) { return UnwrapOption(option_string_ready); }
     let option_bool_ready: Option<Bool> =

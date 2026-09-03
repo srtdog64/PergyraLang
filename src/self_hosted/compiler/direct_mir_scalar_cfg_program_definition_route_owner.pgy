@@ -28,6 +28,7 @@ func DirectMirScalarCfgProgramRouteDefinition(
     ref capture: MirRoutineInstructionScalarCapture,
     ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts,
+    ref index: MirRoutineFactIndex,
     global_row: Int, local_instruction: Int,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref types: DirectMirScalarCfgValueTypePlan,
@@ -55,14 +56,14 @@ func DirectMirScalarCfgProgramRouteDefinition(
         let use_offset: Int = member_rebind.use_prefix_count;
         let target_expression: Option<Int> =
             DirectMirScalarCfgProgramAppendTypedExpressionField(
-                expressions, failure, instruction, uses, global_row,
+                expressions, failure, instruction, uses, index, global_row,
                 local_instruction, locals, types, wire, local_offset,
                 parameter_types, signature, callables, logical_record,
                 payload_free_enum, referenced_enum, "expr1_graph", use_offset, false,
                 member_rebind.member_type, -1);
         let value_expression: Option<Int> =
             DirectMirScalarCfgProgramAppendTypedExpression(
-                expressions, failure, instruction, uses, global_row,
+                expressions, failure, instruction, uses, index, global_row,
                 local_instruction, locals, types, wire, local_offset,
                 parameter_types, signature, callables, logical_record,
                 payload_free_enum, referenced_enum, use_offset,
@@ -87,14 +88,14 @@ func DirectMirScalarCfgProgramRouteDefinition(
         let use_offset: Int = nested_indexed.use_prefix_count;
         let target_expression: Option<Int> =
             DirectMirScalarCfgProgramAppendTypedExpressionField(
-                expressions, failure, instruction, uses, global_row,
+                expressions, failure, instruction, uses, index, global_row,
                 local_instruction, locals, types, wire, local_offset,
                 parameter_types, signature, callables, logical_record,
                 payload_free_enum, referenced_enum, "expr1_graph", use_offset, false,
                 nested_indexed.element_type, -1);
         let value_expression: Option<Int> =
             DirectMirScalarCfgProgramAppendTypedExpression(
-                expressions, failure, instruction, uses, global_row,
+                expressions, failure, instruction, uses, index, global_row,
                 local_instruction, locals, types, wire, local_offset,
                 parameter_types, signature, callables, logical_record,
                 payload_free_enum, referenced_enum, use_offset,
@@ -128,7 +129,7 @@ func DirectMirScalarCfgProgramRouteDefinition(
         } else {
             index_expression =
                 DirectMirScalarCfgProgramAppendTypedExpressionField(
-                    expressions, failure, instruction, uses, global_row,
+                    expressions, failure, instruction, uses, index, global_row,
                     local_instruction, locals, types, wire, local_offset,
                     parameter_types, signature, callables, logical_record,
                     payload_free_enum, referenced_enum, "expr1_graph", use_offset, false,
@@ -137,7 +138,7 @@ func DirectMirScalarCfgProgramRouteDefinition(
         }
         let value_expression: Option<Int> =
             DirectMirScalarCfgProgramAppendTypedExpression(
-                expressions, failure, instruction, uses, global_row,
+                expressions, failure, instruction, uses, index, global_row,
                 local_instruction, locals, types, wire, local_offset,
                 parameter_types, signature, callables, logical_record,
                 payload_free_enum, referenced_enum, use_offset,
@@ -168,7 +169,7 @@ func DirectMirScalarCfgProgramRouteDefinition(
     }
     let definition: DirectMirScalarCfgProgramDefinitionAdmission =
         DirectMirScalarCfgProgramAppendDefinition(
-            operations, expressions, failure, result, instruction, uses,
+            operations, expressions, failure, result, instruction, uses, index,
             global_row, local_instruction, locals, types, wire, local_offset,
             value_offset, parameter_types, callables, logical_record,
             payload_free_enum, referenced_enum, signature);
