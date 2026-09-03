@@ -1,6 +1,6 @@
 # Match scrutinee single-evaluation lease — 2026-09-03
 
-Status: `LOCAL CANDIDATE GREEN — PUBLICATION AND EXACT CI PENDING`
+Status: `IMPLEMENTATION PUBLISHED — SEED REPAIR LOCAL GREEN, EXACT CI PENDING`
 
 Exact base: `513b668957cdb47627bd2bc490a45916337b2629` on
 `origin/main`.
@@ -87,3 +87,13 @@ shape, and automatically restores byte parity when it does.
   self-canonical MIR through C byte and runtime comparison. It waives raw
   oracle MIR byte equality only while the oracle lacks the named synthetic
   match def; no general mismatch or fallback is accepted.
+- Implementation commit `56ecb3359d00509541bef3840091d450fc3614ed`
+  reached exact run `33759932471`. Its backend-compare toolchain job failed
+  while the seed compiler generated the new readiness owner because two scoped
+  bindings reused `statement_row` with incompatible `Option<Int>` and `Int`
+  types. The run was cancelled after this first decisive failure.
+- The bounded repair gives those bindings distinct, type-stable names:
+  `statement_type_row` and `scan_row`. The same local CI stage,
+  `self-host-codegen-bootstrap-seed-test-smoke`, exits 0 and reports gen2
+  codegen/parser seed artifacts ready. A fresh exact-head run owns the final
+  Linux seed and full-matrix verdict.

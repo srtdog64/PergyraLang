@@ -30,10 +30,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   synthetic-use delta and otherwise retains C byte equality and native runtime
   equality. The exception disappears automatically when the oracle carries the
   same definition; there is no general mismatch waiver.
-- Publication and exact-head CI remain pending. Pergyra-owned LLVM still does
-  not admit this Option-match structural shape and is a separate future rung.
-  Registries, generated inventories, SoT census, and project percentage do not
-  change. Exact objective and exclusions are in
+- Implementation `56ecb3359d00509541bef3840091d450fc3614ed` is published.
+  Exact run `33759932471` exposed one seed-only compiler constraint in
+  `backend-compare-toolchain-linux`: two scoped locals named `statement_row`
+  were merged even though one was `Option<Int>` and the other `Int`. The run
+  was cancelled after that first decisive failure. The bounded repair names
+  the bindings `statement_type_row` and `scan_row`; the exact local
+  `self-host-codegen-bootstrap-seed-test-smoke` now exits 0 and produces the
+  gen2 seed artifacts. Repair publication and a fresh exact-head CI remain
+  pending. Pergyra-owned LLVM still does not admit this Option-match structural
+  shape and is a separate future rung. Registries, generated inventories, SoT
+  census, and project percentage do not change. Exact objective and exclusions are in
   `docs/agent_work_directives/match_scrutinee_single_evaluation_2026-09-03.md`.
 
 ## DONE supporting proof lease — evidence lifecycle compression

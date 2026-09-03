@@ -18,14 +18,14 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — match scrutinee single-evaluation candidate
+## Active self-host context — match scrutinee single-evaluation CI repair
 
-- Exact published checkpoint is
-  `513b668957cdb47627bd2bc490a45916337b2629`, equal to `origin/main` when the
-  implementation lease opened. The worktree contains the bounded task edits
-  plus the protected user-owned `examples/raid_graph_fsm/results.txt` change
-  and three protected untracked directories; those unrelated paths remain
-  outside inspection, edit, and staging.
+- Implementation commit `56ecb3359d00509541bef3840091d450fc3614ed` is the
+  exact published checkpoint and equals `origin/main`. The worktree contains
+  one bounded seed-compiler repair plus the protected user-owned
+  `examples/raid_graph_fsm/results.txt` change and three protected untracked
+  directories; those unrelated paths remain outside inspection, edit, and
+  staging.
 - Production entrypoint is the Pergyra-built DRV-2 source-to-MIR path followed
   by self-host C emission. `SemanticAstExpressionSurfaceFacts` retains original
   scrutinee meaning. `SemanticAstMatchMaterializationFacts` owns the
@@ -51,16 +51,25 @@ percentage by themselves.
   synthetic-use delta. C byte equality between canonical/raw self MIR and
   native runtime equality remain mandatory, and ordinary byte parity resumes
   automatically once the legacy oracle carries the same definition.
-- Next action is documentation verification, explicit task-only staging,
-  commit/push, and exact-head CI. Pergyra-owned LLVM admission for this Option
-  binding remains a separate future executable rung. Module Build is only a
-  deferred post-self-host interface reservation in docs 109/202; it opens no
+- First exact-head run `33759932471` failed in
+  `backend-compare-toolchain-linux` while the seed compiler generated
+  `SemanticAstMatchMaterializationFactsReady`: the same Pergyra local name was
+  first inferred as `Option<Int>` and later as `Int`, and the current seed
+  merged those scoped bindings. The obsolete run was cancelled immediately.
+  The repair gives the two bindings type-stable distinct names. The exact
+  local CI stage, `self-host-codegen-bootstrap-seed-test-smoke`, now exits 0
+  and reports seed artifacts ready after building gen0/gen1/gen2.
+- Next action is explicit repair-only staging, commit/push, and a fresh
+  exact-head CI. Pergyra-owned LLVM admission for this Option binding remains a
+  separate future executable rung. Module Build is only a deferred
+  post-self-host interface reservation in docs 109/202; it opens no
   implementation work. Documentation quality, source UTF-8, and changed shell
-  syntax gates are green. The local package/module smoke reached its generated
-  `main.pgy` and then failed because the currently installed launcher emitted a
-  file rejected by its own `fmt --check`; this stale-toolchain result is not
-  counted green and exact CI must retest with the fresh build. No SoT census or
-  percentage change is claimed.
+  syntax gates were green before publication and will be rerun for the repair.
+  The local package/module smoke reached its generated `main.pgy` and then
+  failed because the currently installed launcher emitted a file rejected by
+  its own `fmt --check`; this stale-toolchain result is not counted green and
+  exact CI must retest with the fresh build. No SoT census or percentage change
+  is claimed.
 
 ## Published supporting context — evidence lifecycle Rocq model
 

@@ -185,7 +185,7 @@ func SemanticAstMatchMaterializationFactsReady(
     }
     let row: Int = 0;
     while row < count {
-        let statement_row: Option<Int> =
+        let statement_type_row: Option<Int> =
             SemanticAstStatementTypeIndexForNode(
                 statement_types, facts.node_ids[row]
             );
@@ -196,17 +196,17 @@ func SemanticAstMatchMaterializationFactsReady(
         let text: Option<String> = SemanticExpressionGraphNodeText(
             analysis.expression_surfaces.expression_graph, root
         );
-        if !IsSome(statement_row) ||
-            statement_types.kind_tags[UnwrapOption(statement_row)] !=
+        if !IsSome(statement_type_row) ||
+            statement_types.kind_tags[UnwrapOption(statement_type_row)] !=
                 TypedAstKindMatchStmtTag() ||
-            statement_types.verified[UnwrapOption(statement_row)] != 1 ||
+            statement_types.verified[UnwrapOption(statement_type_row)] != 1 ||
             facts.function_node_ids[row] !=
                 analysis.statements.function_node_ids[
-                    UnwrapOption(statement_row)
+                    UnwrapOption(statement_type_row)
                 ] ||
             facts.type_names[row] !=
                 statement_types.inferred_type_names[
-                    UnwrapOption(statement_row)
+                    UnwrapOption(statement_type_row)
                 ] ||
             facts.synthetic_names[row] !=
                 SemanticAstMatchMaterializationName(facts.node_ids[row]) ||
@@ -224,14 +224,14 @@ func SemanticAstMatchMaterializationFactsReady(
     }
 
     let expected_count: Int = 0;
-    let statement_row: Int = 0;
-    while statement_row < ArrayLength(statement_types.node_ids) {
-        if statement_types.kind_tags[statement_row] ==
+    let scan_row: Int = 0;
+    while scan_row < ArrayLength(statement_types.node_ids) {
+        if statement_types.kind_tags[scan_row] ==
             TypedAstKindMatchStmtTag() {
             let source: SemanticExpressionGraphView =
                 SemanticAstExpressionGraphForNode(
                     analysis.expression_surfaces,
-                    statement_types.node_ids[statement_row],
+                    statement_types.node_ids[scan_row],
                     AstExpressionLaneAtom()
                 );
             if !source.ok { return false; }
@@ -241,7 +241,7 @@ func SemanticAstMatchMaterializationFactsReady(
                 expected_count = expected_count + 1;
             }
         }
-        statement_row = statement_row + 1;
+        scan_row = scan_row + 1;
     }
     return expected_count == count;
 }
