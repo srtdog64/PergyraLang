@@ -11,8 +11,12 @@ inventory에서 합쳐지지 않고, wire owner는 원래 declared-source-local 
 backend-local layout 추론, native retry, C round-trip은 없다. 설치 C/LLVM은 정확히
 `probe-some`, `7`, `probe-none`, `0`을 출력하고 binding-type/Option-tag 변이는 양쪽에서
 artifact 없이 실패한다. 기존 Option<Int>/payload-enum 회귀, complete component
-contract, bounded driver bootstrap, 설치 DRV-2가 로컬 green이며 exact-head CI는 아직
-대기 중이다.
+contract, bounded driver bootstrap, 설치 DRV-2가 로컬 green이다. Exact-head run
+`33797037572`도 약 35분 55초에 30/30 green이다. Full self-host는 35분 36초에
+Pergyra-built DRV-2를 설치하고 `gen2 == gen3 (174543 lines)`와 policy corpus
+`0 in_subset / 3 out_of_subset`를 확인했다. Linux 22분 13초, codegen fixed point
+7분 36초, Windows 8분 16초, sanitizers 13분 1초, Rocq 9 1분 40초, macOS 2분
+4초, TSan 16초, backend comparison 20/20도 모두 green이다.
 
 Exact-head run `33779751935`은 36분 23초에 30/30 green이다. Linux는 repaired
 component cap과 source-scan digest를 포함해 23/23, backend comparison은 20/20이며
@@ -25,13 +29,15 @@ threshold를 넘었지만 hard limit는 넘지 않았고, 로컬 Rocq 부재는 
 치환 분자가 아니므로 census는 88 authorities / 185 derived,
 `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%)로 유지한다.
 
-현재 단일 실행 rung은 이 candidate의 exact-head CI 검증이다. 원격 full fixed point와
-전체 플랫폼 matrix가 green이 되기 전에는 다음 구현 seam을 열지 않는다. 이 bounded
-consumer closure는 새 top-level authority나 hard Pergyra-for-C 치환 분자가 아니므로
+이 bounded consumer closure는 새 top-level authority나 hard Pergyra-for-C 치환
+분자가 아니므로
 census는 88 authorities / 185 derived, `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도
 **83%** (81~85%)로 유지한다. 독립 Module Build는 구현하지 않는다. 그 순서는
 `self-host closure -> evidence/identity compression -> 실제 외부 프로젝트 ->
 ModuleInterface -> BuildUnit/incremental build`로 docs 109/202에 예약돼 있다.
+다음 구현 seam은 아직 정하지 않았다. 유일한 ACTIVE registry row인
+`selfhost.semantic_artifact_admission`에서 설치 DRV-2가 실제로 타는 direct bypass 또는
+missing carried fact 하나를 실행 반례로 재현한 뒤에만 다음 rung을 연다.
 
 가장 최근 닫힌 executable prerequisite는 `Array<String>` owner-handle
 양분기 이동이다. 16,171바이트의 verified MIR은 한 지역값을 같은 owner parameter로

@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE verification lease — Option<Int> match CFG projection
+## DONE verification lease — Option<Int> match CFG projection
 
 - Exact base is `f6837b36157f0a97890831b6734083164e323ade`; executable
   candidate is `0a8b186c545d9f237c40393114bc5b2d408b6067`. The primary task
@@ -23,9 +23,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   artifact on both targets. Existing Option<Int> and payload-enum match parity,
   the complete component contract, bounded driver bootstrap, and installed
   DRV-2 build are green locally.
-- Exact-head CI remains the only open work. Full local fixed point was not
-  repeated. This lease changes no SoT census or project percentage and does not
-  open Module Build. The coordination contract is
+- Exact-head run `33797037572` completed 30/30 green in about 35m55s. Full
+  self-host took 35m36s, installed DRV-2, proved
+  `gen2 == gen3 (174543 lines)`, and recorded `0 in_subset / 3 out_of_subset`;
+  backend comparison was 20/20. This lease is released. It changes no SoT
+  census or project percentage and does not open Module Build. The coordination
+  record is
   `docs/agent_work_directives/option_int_match_cfg_projection_2026-09-04.md`.
 
 ## DONE implementation lease — match scrutinee single evaluation

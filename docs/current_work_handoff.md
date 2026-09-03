@@ -18,45 +18,58 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — Option<Int> match CFG exact-CI verification
+## Active self-host context — successor discovery after Option match closure
 
-- Executable checkpoint is `0a8b186c545d9f237c40393114bc5b2d408b6067`;
-  its exact-head CI is pending. The previous published `origin/main` checkpoint
-  is `f6837b36157f0a97890831b6734083164e323ade`. The protected user-owned
-  `examples/raid_graph_fsm/results.txt` change and the three protected untracked
-  directories remain outside inspection, edit, and staging.
-- Production entrypoint is the installed Pergyra-built DRV-2 source-to-LLVM
-  path for `match_scrutinee_single_evaluation.pgy`. The former fail-closed
-  diagnostic `direct MIR scalar CFG match binding LocalRef is invalid` is now
-  replaced by a Pergyra-owned Option<Int> match condition and C/LLVM target
-  projection. Both installed targets print exactly `probe-some`, `7`,
-  `probe-none`, `0`; the original side-effecting scrutinee is evaluated once.
-- `MirMatchInstructionCapture` owns source match spelling/type. Distinct
-  instruction-scoped binding rows survive local inventory. The wire owner sees
-  only the original declared-source-local prefix, and
-  `DirectMirScalarCfgScopedMatchBindingLocalOperandRow` resolves a same-spelled
-  binding only through the unique innermost dominating true-successor scope.
-  `DirectMirOptionMatchAbiFact` owns Option tags, field name/index, and target
-  extension; neither backend reconstructs physical layout.
-- The last orchestration consumer is
-  `DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch`.
-  Missing/mutated binding type and mutated Option tag each fail for both C and
-  LLVM without publishing an artifact. A second local/type table, source-text
-  recovery, backend-local tag inference, native retry, C round-trip, or a
-  fixture-named route remains forbidden.
-- Local evidence is green: the focused installed C/LLVM gate, existing
-  Option<Int> and payload-enum match regressions, complete component contract,
-  official bounded driver bootstrap, installed DRV-2 build, shell syntax,
-  mutation Python compilation, owner line caps, and diff checks. The formal
-  bootstrap emitted the existing one unreachable-statement warning and zero
-  errors. Full gen2/gen3 and the remote matrix were not run locally; exact-head
-  CI owns them.
-- No authority/status or percentage change is claimed: the census remains 88
-  authorities, 185 derived carriers, and `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Exact published checkpoint is
+  `645b86c93c1f5cb4014d05e971d25dc65a4810c7`, equal to
+  `origin/main`. Exact-head run `33797037572` is green. The protected
+  user-owned `examples/raid_graph_fsm/results.txt` change and three protected
+  untracked directories remain outside inspection, edit, and staging.
+- The Option<Int> match CFG execution rung is closed and recorded immediately
+  below. Do not extend it into another match refactor, Module Build, a general
+  query/cache system, or an unrelated SoT cleanup.
+- The one ACTIVE registry row remains
+  `selfhost.semantic_artifact_admission`. No successor implementation seam is
+  selected yet. The next bounded action is read-only discovery from an installed
+  DRV-2 production entrypoint: identify one direct C/native bypass or missing
+  Pergyra-carried fact in that row, name its existing owner and last consumer,
+  and reproduce one executable falsifier before editing source.
+- The discovery result must choose one hard-substitution rung, not a list of
+  plausible tasks. If no production bypass is reproduced, record that evidence
+  and keep the row ACTIVE rather than converting an inference into progress.
   Module Build remains deferred in the order `self-host closure ->
   evidence/identity compression -> real external project -> ModuleInterface ->
-  BuildUnit/incremental build`. Until exact CI is green, this verification is
-  the sole active executable rung; do not open another implementation seam.
+  BuildUnit/incremental build`.
+
+## Published self-host context — Option<Int> match CFG projection
+
+- Implementation `0a8b186c545d9f237c40393114bc5b2d408b6067` and docs
+  checkpoint `645b86c93c1f5cb4014d05e971d25dc65a4810c7` are published.
+  Production installed DRV-2 C and LLVM print exactly `probe-some`, `7`,
+  `probe-none`, `0`; the side-effecting match scrutinee executes once.
+- `MirMatchInstructionCapture` owns source pattern facts. Distinct
+  instruction-scoped binding rows survive local inventory, wire collision
+  checks stop at the declared-source-local prefix, and same-spelled bindings
+  resolve only through a unique innermost dominating CFG scope.
+  `DirectMirOptionMatchAbiFact` owns tags, field name/index, and extension.
+- The final orchestration consumer is
+  `DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch`.
+  Binding-type and Option-tag mutations fail for both targets without an
+  artifact. Source recovery, backend layout inference, native retry, C
+  round-trip, and fixture-named routing remain negatively gated.
+- Local focused C/LLVM execution, existing Option<Int>/payload-enum regressions,
+  complete component contract, bounded driver bootstrap, installed DRV-2,
+  owner caps, syntax, generated language registry, and documentation are green.
+- Exact-head run `33797037572` completed 30/30 green in about 35m55s. Full
+  self-host took 35m36s, installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (174543 lines)`, and censused the policy corpus as
+  `0 in_subset / 3 out_of_subset`. Linux took 22m13s, codegen fixed point
+  7m36s, Windows 8m16s, sanitizers 13m01s, Rocq 9 1m40s, macOS 2m04s,
+  TSan 16s, and backend comparison stayed 20/20 green.
+- The `upload-artifact@v4` Node 20 compatibility annotation is an external
+  action deprecation warning, not a compiler failure. No authority/status or
+  percentage changes: 88 authorities, 185 derived carriers, and
+  `CLOSED=55 BRIDGE=32 ACTIVE=1` remain current.
 
 ## Published self-host context — match scrutinee single evaluation
 
