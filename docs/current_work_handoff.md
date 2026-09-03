@@ -18,7 +18,38 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — non-entrypoint straight-line ArrayString owner move
+## Active supporting context — async Rocq model cores
+
+- Exact opening base is `eed7f7229699770bcda656e7a2947a5f043cbfcc`, equal
+  to `origin/main`. Protected unrelated untracked paths remain outside
+  inspection, edit, and staging.
+- Objective: machine-check the already-landed named Future structured-lifecycle
+  and spawn runtime-context carriage contracts without making `async` own
+  lifetime or making the proof model a semantic authority.
+- Fact owners remain `src/semantic/type_checker_future_lifecycle.c`, its symbol
+  lifecycle carrier, and `src/runtime/pgy_runtime_context.h`. Two bounded Rocq
+  cores separately model lifecycle and context; `ProofSpine.v` connects only
+  those bounded claims.
+- Required theorems: a live trace reaches an admissible scope exit only through
+  await/explicit own transfer; suspend and Cancel cannot retire; alternative
+  CFG disagreement fails closed; spawn capture preserves both capability masks,
+  exact budget owner, and instance identity; lane/suspend-resume preserves task
+  context; task return restores the surrounding context.
+- Forbidden claims and fallbacks: hidden drain/finalizer, Cancel-as-cleanup,
+  branch-OR closure, executor-default authority, fresh child budget, new async
+  syntax, AIR lowering, `Axiom`/`Admitted`, termination, fairness, full memory
+  safety, detach/capture safety, or whole-language verification.
+- Exact objective and falsifiers are in
+  `docs/agent_work_directives/async_rocq_model_cores_2026-09-03.md`.
+  The static adequacy gate and exact Rocq 9 kernel CI are required. No local
+  prover is installed. This supporting proof changes neither SoT census nor the
+  83% project forecast.
+- Local static candidate is green: async adequacy, proof-spine contract,
+  async-positioning, and documentation quality pass. The proof-spine prover
+  leg is an explicit missing-prover skip and is not counted. Commit/push and
+  exact-head Rocq 9 compile/kernel/axiom-budget evidence remain.
+
+## Published self-host context — non-entrypoint straight-line ArrayString owner move
 
 - Exact opening base is `fabf8ede617f4539d042ccf5ff8dc35cc4f1cd70`, equal
   to `origin/main`. Protected unrelated untracked paths remain outside
@@ -43,7 +74,10 @@ percentage by themselves.
   single-owner protocol, hard contract, and build inventory pass.
 - Exact objective and observed evidence are in
   `docs/agent_work_directives/array_string_non_entrypoint_owner_move_2026-09-03.md`.
-  Commit/push and exact-head CI remain. This is a bounded consumer migration,
+  Commit `eed7f7229699770bcda656e7a2947a5f043cbfcc` is published. Exact run
+  `33720973406` completed 30/30 green in 35m36s, including full self-host,
+  Linux/Windows/macOS, sanitizers, TSan, Rocq 9, and all twenty backend-compare
+  shards. This is a bounded consumer migration,
   not whole-row closure or a hard Pergyra-for-C substitution increment. Census
   remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, with 9 blockers; project
   forecast remains 83%.

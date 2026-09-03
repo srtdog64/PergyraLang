@@ -84,6 +84,9 @@ INTENT_OBLIGATIONS_COQ="$PROOF_DIR/proofs/IntentObligations.v"
 INTENT_SPINE_COQ="$PROOF_DIR/proofs/IntentSpine.v"
 INTENT_CONFLICT_COQ="$PROOF_DIR/proofs/IntentConflict.v"
 AUTHORITY_IRREDUCIBILITY_COQ="$PROOF_DIR/proofs/AuthorityIrreducibility.v"
+ASYNC_LIFECYCLE_COQ="$PROOF_DIR/proofs/AsyncLifecycleCore.v"
+ASYNC_CONTEXT_COQ="$PROOF_DIR/proofs/AsyncContextCore.v"
+ASYNC_MODEL_DOC="$PROOF_DIR/proofs/AsyncModelCores.md"
 MINIMAL_POSITION_DOC="$PROOF_DIR/20_minimal_verification_position.md"
 WITNESS_DOC="$PROOF_DIR/10_ability_witness_evidence.md"
 BOUNDARY_WITNESS_HEADER="$ROOT_DIR/src/semantic/boundary_witness.h"
@@ -126,6 +129,9 @@ require_file "$INTENT_OBLIGATIONS_COQ" "docs/semantics/proofs/IntentObligations.
 require_file "$INTENT_SPINE_COQ" "docs/semantics/proofs/IntentSpine.v"
 require_file "$INTENT_CONFLICT_COQ" "docs/semantics/proofs/IntentConflict.v"
 require_file "$AUTHORITY_IRREDUCIBILITY_COQ" "docs/semantics/proofs/AuthorityIrreducibility.v"
+require_file "$ASYNC_LIFECYCLE_COQ" "docs/semantics/proofs/AsyncLifecycleCore.v"
+require_file "$ASYNC_CONTEXT_COQ" "docs/semantics/proofs/AsyncContextCore.v"
+require_file "$ASYNC_MODEL_DOC" "docs/semantics/proofs/AsyncModelCores.md"
 require_file "$MINIMAL_POSITION_DOC" "docs/semantics/20_minimal_verification_position.md"
 require_file "$WITNESS_DOC" "docs/semantics/10_ability_witness_evidence.md"
 require_file "$BOUNDARY_WITNESS_HEADER" "src/semantic/boundary_witness.h"
@@ -848,6 +854,10 @@ Theorem complete_spine_connects_certificate_pipeline
 Theorem complete_spine_connects_methodology
 NodeSoTAuthority
 Theorem complete_spine_connects_sot_authority
+NodeAsyncLifecycleCore
+NodeAsyncContextCore
+StructuredAsyncConnected
+Theorem complete_spine_connects_structured_async
 Theorem complete_spine_is_not_whole_language_verification
 Inductive RemainingObligation
 Theorem whole_language_ready_requires_pin_exceptional_cleanup
@@ -1034,6 +1044,8 @@ docs/semantics/proofs/GenericAxisCarriage.v \
 docs/semantics/proofs/ReadingConfluence.v \
 docs/semantics/proofs/BinaryAdequacy.v \
 docs/semantics/proofs/GuardWitnessBinding.v \
+docs/semantics/proofs/AsyncLifecycleCore.v \
+docs/semantics/proofs/AsyncContextCore.v \
 docs/semantics/proofs/ParallelSchedulingCore.v \
 docs/semantics/proofs/ParallelReductionCore.v \
 docs/semantics/proofs/PergyraMulCost.v"

@@ -50,6 +50,9 @@ for rel in \
     docs/semantics/proofs/ProofCarryingIR.v \
     docs/semantics/proofs/VerificationMethodology.v \
     docs/semantics/proofs/SoTAuthority.v \
+    docs/semantics/proofs/AsyncLifecycleCore.v \
+    docs/semantics/proofs/AsyncContextCore.v \
+    docs/semantics/proofs/AsyncModelCores.md \
     docs/semantics/proofs/ParallelSchedulingCore.v \
     docs/semantics/proofs/ParallelReductionCore.v \
     docs/semantics/proofs/ParallelModelCores.md \
@@ -116,6 +119,10 @@ require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_spine_auth
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_owner_does_not_imply_rung_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "SFMachineLayerTransition"
 require_text "docs/semantics/proofs/SoTAuthority.v" "SOMachineLayer"
+require_text "docs/semantics/proofs/AsyncLifecycleCore.v" "Theorem live_trace_to_closed_scope_has_retirement"
+require_text "docs/semantics/proofs/AsyncLifecycleCore.v" "Theorem cancel_cannot_close_scope"
+require_text "docs/semantics/proofs/AsyncContextCore.v" "Theorem capture_preserves_exact_authority"
+require_text "docs/semantics/proofs/AsyncContextCore.v" "Theorem task_return_restores_surrounding_context"
 require_text "docs/semantics/proofs/ParallelSchedulingCore.v" "Theorem help_first_progress"
 require_text "docs/semantics/proofs/ParallelSchedulingCore.v" "Theorem park_only_deadlocks"
 require_text "docs/semantics/proofs/ParallelSchedulingCore.v" "Theorem cyclic_await_deadlocks"
@@ -158,6 +165,10 @@ for term in \
     "Theorem complete_spine_connects_methodology" \
     "NodeSoTAuthority" \
     "Theorem complete_spine_connects_sot_authority" \
+    "NodeAsyncLifecycleCore" \
+    "NodeAsyncContextCore" \
+    "StructuredAsyncConnected" \
+    "Theorem complete_spine_connects_structured_async" \
     "NodeParallelSchedulingCore" \
     "NodeParallelReductionCore" \
     "Theorem complete_spine_connects_parallel_progress" \
@@ -181,6 +192,9 @@ require_text "docs/semantics/proofs/ProofSpine.md" "IntentObligations.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "IntentSpine.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "IntentConflict.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "AuthorityIrreducibility.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "structured async"
+require_text "docs/semantics/proofs/ProofSpine.md" "AsyncLifecycleCore.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "AsyncContextCore.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "architecture boundary"
 require_text "docs/semantics/proofs/ProofSpine.md" "DelegationBoundaryCore.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "LossCompositionCore.v"

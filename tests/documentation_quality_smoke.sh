@@ -344,6 +344,7 @@ proof_spine_terms=(
     "unified machine"
     "certificate pipeline"
     "verification methodology"
+    "structured async"
 )
 for term in "${proof_spine_terms[@]}"; do
     require_text "docs/semantics/proofs/ProofSpine.md" "$term"

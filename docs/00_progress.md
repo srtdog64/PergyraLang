@@ -2,22 +2,37 @@
 
 마지막 업데이트: 2026-09-03
 
-현재 열린 executable prerequisite는 비진입 함수의 직선형 `Array<String>` owner
-move다. 세 함수짜리 source는 검증 MIR 11,538바이트까지 만들지만 기존 move 증명이
-caller routine 0과 전체 2-routine 형상을 요구해 C/LLVM 투영이 extension code 19로
-종료됐다. 후보 구현은 새 소유자를 만들지 않고 기존 digest-sealed move 행이 이미
-가진 `(routine, local)` identity를 사용한다. caller별 operation/block/local flat
-partition을 소비하고, 정확히 한 블록이며 successor·condition·return expression·후속
-사용이 없는 경우에만 정리를 넘긴다. 현재 소스로 재생성한 DRV-2에서 기존 진입점,
-두 독립 move, 새 비진입 함수 move가 C/LLVM 모두 실행되며 새 경로는 정확히
-`nested-released`를 출력한다. 양쪽 later-use와 duplicate/carriage/pass/layout/target
-변조는 artifact 없이 거절되고, owned return/by-value/value-result 회귀도 green이다.
-component/SoT single-owner/protocol/hard-contract/build inventory가 green이다. 조건부,
-loop, member, formal, fresh-result, literal move는 계속 fail-closed한다. 아직
-commit/push와 exact-head CI 전이므로 lease는 ACTIVE다. 이 bounded consumer migration은
-ArrayString BRIDGE 전체를 닫지 않으며 census `88/183`,
-`CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%, 통합 진행도
-**83%** (81~85%)는 바뀌지 않는다.
+현재 열린 supporting formal rung은 비동기 lifetime과 runtime authority carriage의
+Rocq 모델이다. `AsyncLifecycleCore.v`는 named Future의 `Absent/Live/Retired/Diverged`
+상태와 spawn/suspend/Cancel/await/own-transfer를 분리하고, `Live`에서 정상
+scope-closed 상태로 가는 모든 trace에는 await 또는 explicit own transfer가 있음을
+증명 대상으로 둔다. `AsyncContextCore.v`는 부모 capability mask, exact shared budget
+owner, instance identity의 capture와 6개 lane·yield/await resume·주변 context 복원을
+모델링한다. 두 모델은 semantic lifecycle owner와 runtime context owner를 대체하지
+않으며 adequacy gate로만 결박한다. `Axiom`/`Admitted`, async-as-lifetime, hidden drain,
+Cancel-as-cleanup, executor-default grant, termination/fairness/full-memory/whole-language
+주장은 금지한다. 로컬에는 Rocq/Coq가 없어 static adequacy와 corpus registration을
+먼저 검증하고, exact-head Rocq 9 kernel CI가 최종 증명 판정이다. 이 supporting work는
+census `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, hard replacement 75%,
+통합 진행도 **83%** (81~85%)를 바꾸지 않는다.
+현재 local candidate의 async adequacy, proof-spine static contract,
+async-positioning, documentation-quality는 green이다. proof-spine의 prover leg는
+실행기 부재를 선언한 skip이며 proof 성공으로 세지 않는다. Commit/push와 exact-head
+Rocq 9 compile/`rocqchk`/axiom-budget 검사가 남았다.
+
+가장 최근 닫힌 executable prerequisite는 비진입 함수의 직선형
+`Array<String>` owner move다. 기존 digest-sealed move 행의 `(routine, local)`
+identity가 caller별 operation/block/local partition을 소비하도록 바꿔 정확히 한
+직선형 블록의 마지막 사용만 승인한다. 현재 소스로 재생성한 DRV-2에서 기존
+진입점, 두 독립 move, 새 비진입 함수 move가 C/LLVM 모두 실행되고 새 경로는
+`nested-released`를 출력한다. later-use와 duplicate/carriage/pass/layout/target
+변조는 artifact 없이 거절되며 owned return/by-value/value-result 회귀도 green이다.
+구현 `eed7f722`의 exact run `33720973406`은 35분 36초에 30/30 green이다. full
+self-host 35분 15초, build-linux 21분 49초, sanitizers 12분 55초, codegen bootstrap
+8분 57초, Windows 9분, Rocq 9, TSan, macOS, backend 20/20을 확인했다. 조건부,
+loop, member, formal, fresh-result, literal move는 계속 fail-closed하며 이 bounded
+consumer migration은 ArrayString BRIDGE 전체를 닫지 않는다. 따라서 census와
+진행률은 위와 같다.
 
 가장 최근 닫힌 executable prerequisite는 여러 개의 직선형
 `Array<String>` owner move다. source-to-MIR는 서로 다른 두 지역값을 같은 `own`

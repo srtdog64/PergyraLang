@@ -275,6 +275,15 @@ Mechanized artifacts:
   declaration identity, and three
   statement-routing facts and their
   codegen consumers; it is not a whole-compiler SoT proof.
+- [proofs/AsyncLifecycleCore.v](proofs/AsyncLifecycleCore.v): bounded Rocq
+  model of the named Future lifecycle. It proves suspend/Cancel
+  non-retirement, single await/own-transfer consumption, trace-level
+  structured containment, and fail-closed alternative CFG merge.
+- [proofs/AsyncContextCore.v](proofs/AsyncContextCore.v): bounded Rocq model
+  of task runtime-context carriage. It proves exact capability-mask, budget
+  owner, and instance capture, lane/suspension preservation, and surrounding
+  context restoration. [proofs/AsyncModelCores.md](proofs/AsyncModelCores.md)
+  fixes the shared claim and implementation-adequacy boundary.
 - [sot_owner_spine_registry.md](sot_owner_spine_registry.md): machine-gated
   28-row declaration of 15 architectural fact families plus thirteen bounded
   self-host closure facts, stable handles, unique owners,
@@ -285,7 +294,8 @@ Mechanized artifacts:
   safety, axis ownership, intent core, unified machine, architecture boundary,
   formal-kernel,
   basis-selection,
-  certificate pipeline, verification-methodology, and SoT-authority groups. Its negative
+  certificate pipeline, verification-methodology, SoT-authority, and bounded
+  structured-async groups. Its negative
   theorem states that a complete spine is still not whole-language verification.
 
 ## Beta Proof Boundary
@@ -304,6 +314,9 @@ Stable proof scope:
   and Slot runtime layers. Slot alone is not advertised as a borrow checker.
 - Runtime observability: `last`, `history`, `active`, `recent`.
 - Execution: `parallel` conflict/failure baseline.
+- Structured async: named Future containment and task-context carriage only;
+  termination, scheduler fairness, detached capture, and a full memory model
+  remain outside the mechanized claim.
 - Backends: MIR-equivalent C and LLVM behavior for the frozen subset.
 - AIR abstraction safety: verification-only synthesis IR for stable intent/boundary drift checks.
 - Abstraction loss contracts: stable compiler and tooling boundaries must name

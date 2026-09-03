@@ -61,6 +61,12 @@ carriers only. `make runtime-spawn-context-propagation-test-smoke` executes the
 inline, C-extern, and LLVM runtime materializations across every lane and pins
 nested help-run plus coroutine suspension restoration.
 
+Formal boundary: `docs/semantics/proofs/AsyncContextCore.v` proves exact mask,
+budget-owner, and instance capture plus lane/suspension preservation and
+surrounding-context restoration for the bounded model. It does not replace the
+runtime owner or prove scheduler termination/fairness. The implementation/model
+binding is `make async-model-adequacy-test-smoke`.
+
 ## Happens-Before Contract
 
 - A `parallel { ... }` block joins before control continues after the block.
@@ -260,6 +266,13 @@ fail-closed production fixtures across both C and LLVM semantic entrypoints,
 exact transfer execution output, the stable `PGY_SEM_TASK_LIFECYCLE`,
 single-owner diagnostics without type-mismatch cascades, move-after-transfer,
 and parallel double-consume diagnostics.
+
+Formal boundary: `docs/semantics/proofs/AsyncLifecycleCore.v` proves that a
+trace beginning with a live named handle can reach a scope-closed state only if
+the trace contains await or explicit own transfer. It also proves suspend and
+Cancel non-retirement, one-shot consumption, alternative-path fail-closure,
+and the distinct simultaneous-parallel merge. This is structured containment
+for the modeled beta subset, not whole-language async verification.
 
 ## Cancellation Contract
 

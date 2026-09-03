@@ -42,6 +42,8 @@ Inductive ProofNode : Type :=
   | NodeProofCarryingIR
   | NodeVerificationMethodology
   | NodeSoTAuthority
+  | NodeAsyncLifecycleCore
+  | NodeAsyncContextCore
   | NodeParallelSchedulingCore
   | NodeParallelReductionCore.
 
@@ -56,6 +58,7 @@ Inductive SpineClaim : Type :=
   | CertificatePipelineConnected
   | VerificationMethodologyConnected
   | SoTAuthorityConnected
+  | StructuredAsyncConnected
   | ParallelProgressConnected
   | WholeLanguageVerified.
 
@@ -98,6 +101,8 @@ Definition ProofSpineComplete (s : ProofNode -> Prop) : Prop :=
   HasNode s NodeProofCarryingIR /\
   HasNode s NodeVerificationMethodology /\
   HasNode s NodeSoTAuthority /\
+  HasNode s NodeAsyncLifecycleCore /\
+  HasNode s NodeAsyncContextCore /\
   HasNode s NodeParallelSchedulingCore /\
   HasNode s NodeParallelReductionCore.
 
@@ -150,6 +155,12 @@ Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
       HasNode s NodeVerificationMethodology
   | SoTAuthorityConnected =>
       HasNode s NodeSoTAuthority
+  (* Structured async connects two deliberately independent owners: semantic
+     Future lifetime and runtime authority carriage. `async` itself owns
+     neither, and this claim does not include termination or fairness. *)
+  | StructuredAsyncConnected =>
+      HasNode s NodeAsyncLifecycleCore /\
+      HasNode s NodeAsyncContextCore
   (* Parallel execution is safe only if all three hold at once: the scheduler
      always has a step (no deadlock), the join is schedule- and worker-count
      invariant (no nondeterminism), and concurrent slot access is
@@ -269,6 +280,14 @@ Proof.
   intros s Hcomplete.
   unfold PermitsClaim.
   apply complete_spine_has_node. exact Hcomplete.
+Qed.
+
+Theorem complete_spine_connects_structured_async :
+  forall s, ProofSpineComplete s -> PermitsClaim s StructuredAsyncConnected.
+Proof.
+  intros s Hcomplete.
+  unfold PermitsClaim.
+  split; apply complete_spine_has_node; exact Hcomplete.
 Qed.
 
 Theorem complete_spine_connects_parallel_progress :

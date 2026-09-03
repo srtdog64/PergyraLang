@@ -6,7 +6,29 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — ArrayString non-entrypoint straight-line owner move
+## ACTIVE lease — async Rocq model cores
+
+- Exact base is `eed7f7229699770bcda656e7a2947a5f043cbfcc`, equal to
+  `origin/main` when this lease opened. The primary task is the sole proof,
+  adequacy-gate, integration, commit/push, and exact-CI owner for this work.
+- The bounded target is two independent models: structured Future lifecycle and
+  task runtime-context carriage. Compiler/runtime behavior is frozen; the live
+  C owners remain semantic authority.
+- The proof must establish trace-level await/transfer containment, Cancel and
+  suspend non-retirement, alternative-path fail-closure, exact parent context
+  capture, lane/suspension preservation, and surrounding-context restoration.
+  It must add no axiom or `Admitted` and must not claim termination, fairness,
+  detached-capture safety, full memory safety, or whole-language verification.
+- Exact objective, edit boundary, and falsifiers are fixed in
+  `docs/agent_work_directives/async_rocq_model_cores_2026-09-03.md`.
+  `async-model-adequacy-test-smoke` and the Rocq 9 kernel CI are the integration
+  gates. This supporting proof changes neither SoT census nor project percent.
+- Local static candidate is green: async adequacy, proof-spine contract,
+  async-positioning, and documentation quality pass. No local prover exists;
+  the declared proof-spine skip is not proof evidence. Commit/push and the
+  exact Rocq 9 kernel job remain.
+
+## DONE lease — ArrayString non-entrypoint straight-line owner move
 
 - Exact base is `fabf8ede617f4539d042ccf5ff8dc35cc4f1cd70`, equal to
   `origin/main` when this lease opened. The primary task is the sole code,
@@ -31,8 +53,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   last-use owner is compressed to its 100-line cap, and the new 98-line
   non-entrypoint executable gate is separate from the 132-line entrypoint gate.
   Component, SoT edge, Gate, protocol, hard-contract, and build inventory now
-  pass. Commit/push and exact-head CI remain before this lease can become
-  `DONE`.
+  pass. Commit `eed7f7229699770bcda656e7a2947a5f043cbfcc` is on
+  `origin/main`; exact run `33720973406` completed 30/30 green in 35m36s,
+  including full self-host, Linux/Windows/macOS, sanitizers, TSan, Rocq 9, and
+  all twenty backend-compare shards. The lease is released.
 
 ## DONE lease — multiple straight-line ArrayString owner moves
 

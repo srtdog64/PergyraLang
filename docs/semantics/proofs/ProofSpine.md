@@ -28,7 +28,10 @@ present before a proof-pack-level claim can be made.
   `AxisOwnership.v`;
 - certificate pipeline: `ProofCarryingIR.v` and `IRMinimality.v`;
 - verification methodology: `VerificationMethodology.v`;
-- bounded-rung SoT authority: `SoTAuthority.v`.
+- bounded-rung SoT authority: `SoTAuthority.v`;
+- structured async: `AsyncLifecycleCore.v` and `AsyncContextCore.v`. This
+  connects named-Future containment to task-context carriage without making
+  the `async` marker own either responsibility.
 
 ## Negative Boundary
 
@@ -96,6 +99,11 @@ remaining obligation blocks that stronger claim.
   by an explicit projection binding;
 - `SoTAuthority.v` keeps hard-substitution closure tied to owner completeness,
   owner uniqueness, authority-only semantic reads, and zero fallback reads;
+- `AsyncLifecycleCore.v` and `AsyncContextCore.v` keep structured async tied to
+  separate lifecycle and authority-carriage owners; the first proves live
+  trace containment and the second exact parent-context preservation;
+- `async_model_adequacy_smoke.sh` binds those model transitions to the semantic
+  Future state/merge owner and runtime context capture/bind/restore paths;
 - `sot_authority_adequacy_smoke.sh` binds the first concrete model row to the
   live semantic array-literal owner and codegen consumer, and mutation-tests
   missing-owner and reintroduced-fallback rejection;

@@ -26,6 +26,9 @@ The mathematical proof source of truth has moved into the proof pack folder:
 - [docs/semantics/proofs/PergyraMulCost.v](semantics/proofs/PergyraMulCost.v)
 - [docs/semantics/proofs/PergyraMulCost.md](semantics/proofs/PergyraMulCost.md)
 - [docs/semantics/proofs/ArchitectureBoundaryCores.md](semantics/proofs/ArchitectureBoundaryCores.md)
+- [docs/semantics/proofs/AsyncLifecycleCore.v](semantics/proofs/AsyncLifecycleCore.v)
+- [docs/semantics/proofs/AsyncContextCore.v](semantics/proofs/AsyncContextCore.v)
+- [docs/semantics/proofs/AsyncModelCores.md](semantics/proofs/AsyncModelCores.md)
 - [docs/semantics/proofs/ProofSpine.v](semantics/proofs/ProofSpine.v)
 
 Related rigor audits:
@@ -46,6 +49,9 @@ compiler code exists: stratified links, unique export resolution, and
 authority provenance, with size-quantified load theorems (docs/202). Do not
 describe model theorems as implementation adequacy, completed beta proof, or a
 whole-language proof. The proof spine makes that negative boundary explicit.
+`AsyncLifecycleCore.v` and `AsyncContextCore.v` separately model the current
+named-Future lifecycle and task-context carriage contracts; neither assigns
+lifetime or authority ownership to the `async` marker itself.
 
 Run the proof-pack drift gate with:
 

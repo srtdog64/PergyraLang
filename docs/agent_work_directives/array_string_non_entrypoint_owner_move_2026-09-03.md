@@ -1,6 +1,6 @@
 # ArrayString non-entrypoint straight-line owner move — 2026-09-03
 
-Status: `ACTIVE — LOCAL CANDIDATE GREEN`
+Status: `IMPLEMENTATION COMPLETE — EXACT CI GREEN`
 
 Exact base: `fabf8ede617f4539d042ccf5ff8dc35cc4f1cd70` on `origin/main`.
 
@@ -69,3 +69,8 @@ or admit general control-flow ownership analysis.
   focused gates are 132 and 98 lines. Component, SoT edge, Gate single-owner,
   protocol registry, hard contract, and build-source inventory are green.
   Registry census remains `88/183`, `CLOSED=55 BRIDGE=32 ACTIVE=1`.
+- Implementation commit `eed7f7229699770bcda656e7a2947a5f043cbfcc`
+  is on `origin/main`. Exact push run `33720973406` completed 30/30 green in
+  35m36s: full self-host 35m15s, build-linux 21m49s, sanitizers 12m55s,
+  codegen bootstrap 8m57s, Windows 9m00s, Rocq 9, TSan, macOS, and all twenty
+  backend-compare shards. The lease is released.

@@ -26,6 +26,7 @@ runtime execution.
 | Async positioning | [`../114_async_model_positioning.md`](../114_async_model_positioning.md) |
 | Direction decision and proposal review | [`../204_concurrency_direction_pscc_review.md`](../204_concurrency_direction_pscc_review.md) |
 | Spawn runtime authority carriage | [`../113_memory_concurrency_model.md`](../113_memory_concurrency_model.md) — Spawn Runtime Authority Contract; executable gate `runtime-spawn-context-propagation-test-smoke` |
+| Structured async Rocq models | [`../semantics/proofs/AsyncModelCores.md`](../semantics/proofs/AsyncModelCores.md) — lifecycle containment and task-context carriage; adequacy gate `async-model-adequacy-test-smoke` |
 
 Implementation readiness must be read from the work-order documents and their
 gates. The presence of a design link is not an implementation claim.

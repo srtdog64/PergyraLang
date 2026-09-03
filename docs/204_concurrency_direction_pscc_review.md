@@ -464,10 +464,10 @@ rwlock 즉시 제거.
 
 | 제안의 정리 | Pergyra 대응 | 상태 |
 |---|---|---|
-| 1. Capability Non-Forgery | capability 마스크는 매니페스트/env grant로만 넓어짐; 생성 시 자식은 부모 마스크의 snapshot(향후 edge로 축소) | spawn runtime 계약·양 runtime 실행 게이트 착지, 정리 없음 |
+| 1. Capability Non-Forgery | capability 마스크는 매니페스트/env grant로만 넓어짐; 생성 시 자식은 부모 마스크의 snapshot(향후 edge로 축소) | `AsyncContextCore.v`가 exact mask/budget-owner/instance capture와 lane·suspension 보존을 bounded model로 증명; runtime/adequacy gate가 구현에 결박. 전체 grant-source 정리는 아님 |
 | 2. Data-Race Freedom | `docs/semantics/proofs/WitnessDataRace.v` + `op_guard` 목격자 | 허용 부분집합에 대해 형태 존재 |
 | 3. Slot Temporal Safety | generation 검사 + §3.3 재검증 | 런타임 검사 있음, 정리 없음 |
-| 4. Structured Task Containment | §3.1 | 없음 |
+| 4. Structured Task Containment | §3.1 | `AsyncLifecycleCore.v`가 live trace의 scope closure에는 await/explicit own transfer가 필요하고 suspend·Cancel은 retire하지 않으며 대안 경로 불일치는 fail-closed함을 bounded model로 증명 |
 | 5. Deterministic Parallel Subset | §2.6·§3.4 | 산문 계약만 |
 
 주장 범위는 `docs/113` "Explicitly Out Of Beta"를 그대로 따른다:
