@@ -1,6 +1,6 @@
 # ArrayString all-path alternative owner move — 2026-09-03
 
-Status: `ACTIVE — LOCAL EXECUTABLE GREEN; PUBLICATION/EXACT CI PENDING`
+Status: `PUBLISHED — EXACT-HEAD FULL CI GREEN`
 
 Exact base: `f8913fcedf6c5012ccf7edcad996c252ae913955` on
 `origin/main`.
@@ -91,4 +91,12 @@ one-sided conditional moves, general ownership flow, or close the registry row.
   warnings. Rebuilt DRV-2 is 6,575,177 bytes, SHA-256
   `7AA5F5371B654438368F235D90F129BD16FE9BC652975764C1804C052F17E0D0`;
   focused and prior owner-move regressions are green. The already-red run was
-  cancelled after useful logs were captured; repair exact-head CI is pending.
+  cancelled after useful logs were captured.
+- Repair `da81921bf8b89052a39dccac9007410f1dd94234` is published on
+  `origin/main`. Exact-head run `33736375620` completed 30/30 green in 36m40s.
+  Full self-host completed in 36m22s, installed the Pergyra-built DRV-2, and
+  proved the integrated MIR-consumer fixed point at
+  `gen2 == gen3 (173909 lines)` before the installed CLI and three-source
+  policy census passed. `build-linux` completed in 18m02s, codegen fixed point
+  in 8m19s, and Rocq 9 in 1m51s. The lease is closed; no authority/status or
+  project-percentage increment is claimed for this bounded consumer migration.

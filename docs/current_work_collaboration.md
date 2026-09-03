@@ -6,7 +6,7 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE lease — ArrayString all-path alternative owner move
+## DONE lease — ArrayString all-path alternative owner move
 
 - Exact base is `f8913fcedf6c5012ccf7edcad996c252ae913955`, equal to
   `origin/main` when this lease opened. The primary task is the sole owner of
@@ -30,12 +30,19 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   19. The fresh Pergyra-built DRV-2 now executes the two complete alternatives
   in both backends, while one-sided/later-use/duplicate-arm/missing-edge and
   ABI identity negatives publish no artifact. Focused and three prior owner-
-  move regression gates are green; publication and exact-head CI remain.
+  move regression gates are green.
 - First publication `c12a03d4` exposed one full-bootstrap-only borrow boundary:
   a local binding copied the move field out of borrowed `ref plan`. Run
   `33734309099` was cancelled after that exact diagnostic; the repair directly
   consumes the borrowed field. Native oracle compile and all four focused/
-  regression gates are green. Repair publication and exact-head CI remain.
+  regression gates are green.
+- Repair `da81921bf8b89052a39dccac9007410f1dd94234` is on `origin/main`.
+  Exact-head run `33736375620` completed 30/30 green in 36m40s. Full self-host
+  took 36m22s and proved `gen2 == gen3 (173909 lines)`, Pergyra-built DRV-2
+  installation, installed CLI behavior, and the three-source policy census;
+  build-linux took 18m02s, codegen fixed point 8m19s, and Rocq 9 1m51s. The
+  bounded lease is released without changing the authority/status census or
+  project percentage.
 
 ## DONE lease — async Rocq model cores
 

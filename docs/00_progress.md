@@ -2,7 +2,7 @@
 
 마지막 업데이트: 2026-09-03
 
-현재 publication 전 executable candidate는 `Array<String>` owner-handle
+가장 최근 닫힌 executable prerequisite는 `Array<String>` owner-handle
 양분기 이동이다. 16,171바이트의 verified MIR은 한 지역값을 같은 owner parameter로
 `if/else` 양쪽에서 넘기며, 기존 DRV-2는 C/LLVM 투영을 모두 extension code 19로
 거절했다. 수정본은 기존 `DirectMirScalarProgramOwnedArrayStringMoveFact`의 digest 안에
@@ -15,8 +15,8 @@ runtime moved flag는 없다. Fresh Pergyra-built DRV-2
 missing edge, carriage/pass/ABI 위조는 양쪽에서 모두 무산출물로 실패했다. 새 focused
 gate는 6.3초, 기존 직선·비진입·복수-local 회귀 3개는 병렬 7.4초에 green이다.
 component inventory 전체는 green이지만 정적 예산 60초를 넘겨 실행 래칫까지 묶인
-현 gate 자체가 별도 성능 부채다. 이 bounded consumer migration은 아직 publication과
-exact-head CI 전이며, 완료 후에도 ArrayString BRIDGE 전체를 닫지 않는다. 권한자와
+현 gate 자체가 별도 성능 부채다. 이 bounded consumer migration은 ArrayString
+BRIDGE 전체를 닫지 않는다. 권한자와
 상태 census는 88개 및 `CLOSED=55 BRIDGE=32 ACTIVE=1`로 그대로지만, 기존 fact에
 종속된 coverage carrier 등록으로 derived inventory는 183에서 184가 됐다. 이는
 구조적 분모 증가이지 진행도 하락이나 새 권한자가 아니며 통합 진행도는 바꾸지 않는다.
@@ -29,7 +29,14 @@ oracle에서 `ref plan`의 move field를 지역 `fact`로 복사한 borrow-prove
 지역 복사를 삭제하고 borrowed field를 함수 경계 안에서 직접 소비한다. 로컬 native
 oracle 전체 driver compile은 0 errors/기존 warnings 4건, 새 focused gate 5.6초와
 기존 회귀 3개를 포함한 병렬 실행은 6.3초에 green이다. 이미 red인 첫 run의 남은
-작업은 비용 절감을 위해 취소했으며 보정 exact-head CI가 최종 publication 판정이다.
+작업은 비용 절감을 위해 취소했다. 보정
+`da81921bf8b89052a39dccac9007410f1dd94234`의 exact-head run `33736375620`은
+36분 40초에 30/30 green으로 끝났다. Full self-host는 36분 22초에 Pergyra-built
+DRV-2 설치, `gen2 == gen3 (173909 lines)`, installed CLI와 policy source 3건
+census를 통과했다. `build-linux`는 18분 2초, codegen fixed point는 8분 19초,
+Rocq 9은 1분 51초였다. 이 원격 폐쇄는 bounded consumer migration의 증거를
+완성하지만 새 top-level authority 폐쇄나 hard Pergyra-for-C 치환 분자는 아니므로
+census와 83% 통합 진행도는 그대로다.
 
 가장 최근 닫힌 supporting formal rung은 비동기 lifetime과 runtime authority carriage의
 Rocq 모델이다. `AsyncLifecycleCore.v`는 named Future의 `Absent/Live/Retired/Diverged`

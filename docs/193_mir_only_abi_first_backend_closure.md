@@ -826,9 +826,13 @@ fixtures and mutations through both projections.
 
 ### Bootstrap boundary
 
-The focused MIR/ABI-first lane is green, but compiler-scale codegen bootstrap
-is not. A seed-only regeneration attempt did not emit `gen1.c`; it was stopped
-after roughly 15 minutes at 8.98 GB working set and 12.5 GB private bytes to
-avoid exhausting the workstation. This is the already isolated codegen string
-amplification blocker, not evidence that DRV-2 lacks a semantic fact. No fixed
-point or whole-compiler bootstrap claim follows from the focused lane.
+The historical monolithic seed-only regeneration exceeded the workstation
+memory budget, but it is no longer the production bootstrap shape. The bounded
+artifact composition separately owns current-source MIR production and
+MIR-to-C consumption, compares Pergyra seed evidence with the native oracle,
+and then requires byte-identical gen2/gen3 C. Exact-head run `33736375620` for
+`da81921bf8b89052a39dccac9007410f1dd94234` completed 30/30 green: full
+self-host installed the Pergyra-built DRV-2 and proved
+`gen2 == gen3 (173909 lines)` in 36m22s. This is compiler-scale fixed-point
+evidence; it does not by itself promote the remaining `BRIDGE` rows or
+authorize restoring one overlapping whole-program lifetime.

@@ -18,7 +18,32 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — ArrayString all-path alternative owner move
+## Active self-host context — fresh production bypass discovery
+
+- Exact checkpoint is
+  `da81921bf8b89052a39dccac9007410f1dd94234`, equal to `origin/main` before
+  this documentation refresh. The user-owned EOL-only results change and the
+  three protected untracked paths remain outside inspection, edit, and staging.
+- Objective is to observe one fresh C-owned production compiler bypass that
+  reaches an existing complete Pergyra owner, then fix the next executable
+  rung's objective card before editing implementation. Priority is exact
+  production entrypoint, direct bypass, existing fact owner, last orchestration
+  consumer, no-fallback negative, and focused execution gate.
+- Fact owner and last consumer are `Unknown` until that trace is observed. This
+  discovery state authorizes no general SoT cleanup, query/cache work, new
+  owner, compatibility read, synthetic progress fixture, or percentage change.
+- The historical 35,814,796-byte MIR at
+  `.tmp/multi-routine-generalization/routine-index-fixture.mir.json` is not a
+  current falsifier: current DRV-2 rejects it in 0.35s with
+  `MIR machine-layer facts are missing or invalid` because the artifact predates
+  the current machine-layer schema. Its old `CompilerSymbolCIdentifier`
+  frontier must not be revived as active evidence.
+- The next action is a read-only audit of current production bypasses and the
+  nine executable/process blockers. Open an implementation directive and edit
+  scope only after one bypass, Pergyra owner, last consumer, and falsifying
+  execution are all concrete.
+
+## Published self-host context — ArrayString all-path alternative owner move
 
 - Exact opening base is `f8913fcedf6c5012ccf7edcad996c252ae913955`, equal
   to `origin/main`; the user-owned EOL-only results change and three protected
@@ -50,7 +75,7 @@ percentage by themselves.
   exceeded its nominal 60-second static budget because it also executes a
   driver-source MIR action. SoT edge is green at 88 authorities / 184 derived
   carriers / `55/32/1`; canonical language-word inventory regeneration and its
-  registry/parser gates are green. Next action is publication and exact-head CI.
+  registry/parser gates are green.
 - First publication is `c12a03d481bc6f9ee8b78d2dba7ab2183d9662b1`.
   Run `33734309099` passed TSan, Rocq 9, macOS, Windows, codegen fixed point and
   many backend shards, then full self-host native oracle rejected one local
@@ -58,11 +83,18 @@ percentage by themselves.
   messages were cascades. The run was cancelled to avoid spending on obsolete
   remaining jobs. The local binding is removed; native oracle compile is now
   0 errors with four pre-existing warnings, and focused plus three regression
-  gates are green. Publish this repair, then require a new exact-head full run.
+  gates are green. Repair
+  `da81921bf8b89052a39dccac9007410f1dd94234` is published on `origin/main`.
+- Exact-head run `33736375620` completed 30/30 green in 36m40s. Full self-host
+  took 36m22s, installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (173909 lines)`, and completed installed CLI plus three-source
+  policy-corpus checks. `build-linux` took 18m02s, codegen fixed point 8m19s,
+  and Rocq 9 1m51s. The bounded rung and its collaboration lease are closed.
 - Current registry is 88 authorities / 184 derived carriers,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`, blocker 9, and project forecast 83%. The one
   added carrier is a projection nested under the existing move fact, not a new
-  authority or a progress decrement. No progress increment is claimed yet.
+  authority or a progress decrement. No project-percentage increment is
+  claimed for this bounded consumer migration.
 
 ## Published supporting context — async Rocq model cores
 
