@@ -9,6 +9,12 @@ func SelfMirOptionAbiRepresentation() -> Int { return 1; }
 func SelfMirOptionAbiDiscriminant() -> String { return "tag"; }
 func SelfMirOptionAbiSomeTag() -> Int { return 0; }
 func SelfMirOptionAbiNoneTag() -> Int { return 1; }
+func SelfMirOptionIntAbiValueSize() -> Int { return 4; }
+func SelfMirOptionIntAbiValueAlign() -> Int { return 4; }
+func SelfMirOptionIntAbiRuntimeFunction() -> String {
+    return "pgy_option_some_Int";
+}
+func SelfMirOptionIntAbiInnerCType() -> String { return "int32_t"; }
 
 func SelfMirOptionAbiAlignUp(value: Int, align: Int) -> Int {
     if value < 0 || align <= 0 { return 0 - 1; }

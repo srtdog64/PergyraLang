@@ -222,9 +222,9 @@ func SelfMirJsonStaticAbiLayout(type_name: String) -> String {
     }
     if type_name == "Option<Int>" {
         ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiTagFieldName(), 0, SelfMirOptionAbiTagSize(), SelfMirOptionAbiTagAlign()));
-        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiValueFieldName(), SelfMirOptionAbiValueOffset(4), 4, 4));
+        ArrayPush(fields, SelfMirJsonAbiLayoutField(SelfMirOptionAbiValueFieldName(), SelfMirOptionAbiValueOffset(SelfMirOptionIntAbiValueAlign()), SelfMirOptionIntAbiValueSize(), SelfMirOptionIntAbiValueAlign()));
         return SelfMirJsonAbiLayoutRow(
-            type_name, SelfMirOptionAbiSize(4, 4), SelfMirOptionAbiAlign(4), fields, "pgy_option_some_Int", "int32_t", SelfMirOptionAbiRepresentation(), SelfMirOptionAbiDiscriminant(), SelfMirOptionAbiSomeTag(), SelfMirOptionAbiNoneTag()
+            type_name, SelfMirOptionAbiSize(SelfMirOptionIntAbiValueSize(), SelfMirOptionIntAbiValueAlign()), SelfMirOptionAbiAlign(SelfMirOptionIntAbiValueAlign()), fields, SelfMirOptionIntAbiRuntimeFunction(), SelfMirOptionIntAbiInnerCType(), SelfMirOptionAbiRepresentation(), SelfMirOptionAbiDiscriminant(), SelfMirOptionAbiSomeTag(), SelfMirOptionAbiNoneTag()
         );
     }
     if type_name == "Option<Long>" {

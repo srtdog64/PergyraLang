@@ -1,4 +1,5 @@
-// Referencing an unprojected nominal must fail even beside an admitted Pair.
+// Historical path: Metadata is an ABI-free logical record whose Option<Int>
+// terminal field must join the canonical Option receipt before target emission.
 
 struct Pair {
     left: Int;

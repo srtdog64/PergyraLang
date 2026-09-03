@@ -34,7 +34,7 @@ command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 grep -Fq 'declarations.field_identities' "$FACT_OWNER" ||
     fail "logical record does not consume declaration field identity"
-grep -Fq 'declarations.source_module_paths[declaration_row]' "$FACT_OWNER" ||
+grep -Fq 'declarations.source_module_paths[declaration_row]' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" ||
     fail "logical record does not cross-seal declaration provenance"
 grep -Fq 'admitted.routines.instruction_abi_type_names' "$FACT_OWNER" ||
     fail "local-only record discovery does not consume admitted instruction ABI identity"

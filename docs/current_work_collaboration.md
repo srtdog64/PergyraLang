@@ -6,6 +6,36 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — logical-record `Option<Int>` field materialization
+
+- Exact base is `41e8bf6fe466d72c85b9880cda66fc5535ce991a`, equal to
+  `origin/main` when this lease opened. The primary task owns the bounded
+  logical-record/Option ABI join, C/LLVM field projections, source-C field
+  admission, focused executable/negative gate, registry/docs integration, and
+  publication. No parallel task may edit or publish this executable rung.
+- The observed production falsifier is
+  `direct_mir_five_routine_unsupported_nominal.pgy`: native C/LLVM print `11`,
+  installed source-C rejects the `Option<Int>` field, and direct C/LLVM reject
+  the ABI-free `Metadata` callable. Both MIR producers intentionally omit a
+  physical `Metadata` layout, so `DirectMirScalarProgramLogicalRecordFact` keeps
+  field identity and a bounded pre-backend projection must carry the existing
+  canonical Option receipt.
+- Last consumers are source-C `AbiLayoutCFieldType` and the direct C/LLVM
+  logical-record preamble/type maps. Program-root rescans, missing-layout
+  recovery, backend-local layout guesses, physical promotion of `Metadata`,
+  fixture-name/count routing, native retry, and C round-trip are forbidden.
+  Integration requires source-C and direct C/LLVM exact runtime `11`, emitted
+  representation checks, an artifact-free `Option<Long>` negative, and the
+  existing logical-record/Option/ABI/component gates.
+- The local candidate now meets those focused conditions. All three positive
+  paths print `11`; direct C/LLVM preserve the id-zero/null-layout record and
+  reject `Option<Long>` without output. Option<Int>, two-Int nominal,
+  multi-logical-record, ABI-row manifest, language registry, SoT edge, and the
+  complete component contract are green. Exact-source DRV-2
+  `F4209097FC00473592F006A120AE3A60924AC72CCF3D6631A0AD2B893F720672`
+  is installed and the focused plus three adjacent runtime gates are green
+  against it. Selective publication and exact-head CI remain owned by this lease.
+
 ## DONE verification lease — Option<Int> match CFG projection
 
 - Exact base is `f6837b36157f0a97890831b6734083164e323ade`; executable
@@ -25,8 +55,12 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   DRV-2 build are green locally.
 - Exact-head run `33797037572` completed 30/30 green in about 35m55s. Full
   self-host took 35m36s, installed DRV-2, proved
-  `gen2 == gen3 (174543 lines)`, and recorded `0 in_subset / 3 out_of_subset`;
-  backend comparison was 20/20. This lease is released. It changes no SoT
+  `gen2 == gen3 (174543 lines)`; backend comparison was 20/20. Its `0
+  in_subset / 3 out_of_subset` corpus line was a stale CLI harness
+  misclassification, not a compiler subset result. Repair `41e8bf6f` uses the
+  installed production route, and exact run `33801981740` completed 30/30 green
+  with the corrected `3 in_subset / 0 out_of_subset` result. This lease is
+  released. It changes no SoT
   census or project percentage and does not open Module Build. The coordination
   record is
   `docs/agent_work_directives/option_int_match_cfg_projection_2026-09-04.md`.

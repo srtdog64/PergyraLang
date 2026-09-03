@@ -18285,6 +18285,14 @@ require_file \
     "tests/self_hosted/parity/direct_mir_scalar_two_int_nominal_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_two_int_nominal_owner.sh" 180
+require_file \
+    "tests/self_hosted/parity/direct_mir_scalar_logical_record_option_int_field_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_logical_record_option_int_field_owner.sh" 180
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy" 90
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy" \
     "DirectMirNominalDeclarationAbiFactFromDocument("

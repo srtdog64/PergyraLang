@@ -76,6 +76,7 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutRowTargetAbiAt(0) == CompilerAbiLayoutSelfHostedCAbi() &&
         CompilerAbiLayoutRowSizeAlignAt(0) == CompilerAbiLayoutTargetCDefaultSizeAlign() &&
         CompilerAbiLayoutRowMaterializationFor(CompilerAbiLayoutIntTypeName()) == CompilerAbiLayoutFieldAllowedMaterialization() &&
+        CompilerAbiLayoutRowMaterializationFor(CompilerAbiLayoutOptionIntTypeName()) == CompilerAbiLayoutFieldAllowedMaterialization() &&
         CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutOptionStringTypeName()) == CompilerAbiLayoutOptionStringCValueType() &&
         CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutLongTypeName()) == CompilerAbiLayoutLongCValueType() &&
         CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutDoubleTypeName()) == CompilerAbiLayoutDoubleCValueType() &&
@@ -440,8 +441,8 @@ func CompilerAbiLayoutRuntimeValueOnlyMaterialization() -> String {
 }
 
 func CompilerAbiLayoutRowMaterializationAt(index: Int) -> String {
-    if (index >= 0 && index <= 6) || index == 10 || index == 11 || index == 12 || index == 16 { return CompilerAbiLayoutFieldAllowedMaterialization(); }
-    if (index >= 7 && index <= 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutRuntimeValueOnlyMaterialization(); }
+    if (index >= 0 && index <= 6) || index == 8 || index == 10 || index == 11 || index == 12 || index == 16 { return CompilerAbiLayoutFieldAllowedMaterialization(); }
+    if (index == 7 || index == 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutRuntimeValueOnlyMaterialization(); }
     if index == 18 || index == 19 || index == 20 { return CompilerAbiLayoutRuntimeValueOnlyMaterialization(); }
     return "";
 }

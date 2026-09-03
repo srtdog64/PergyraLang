@@ -82,6 +82,7 @@ func DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(
     type_name: String
 ) -> Bool {
     return DirectMirScalarProgramLogicalRecordScalarFieldTypeReady(type_name) ||
+        type_name == CompilerAbiLayoutOptionIntTypeName() ||
         type_name == CompilerAbiLayoutArrayIntTypeName() ||
         type_name == CompilerAbiLayoutArrayBoolTypeName() ||
         type_name == CompilerAbiLayoutArrayStringTypeName();

@@ -5,6 +5,7 @@ import "direct_mir_scalar_program_array_string_boundary_admission_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
+import "direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
 
 func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScalarCfgProgramExtensionFact) -> Int {
     if !fact.valid {
@@ -31,6 +32,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
                 fact.nominal_abi) &&
             DirectMirScalarProgramLogicalRecordReadyForExpressions(
                 fact.logical_record, fact.expressions) &&
+            DirectMirScalarProgramLogicalRecordOptionIntAbiReady(
+                fact.logical_record, fact.option_int_abi) &&
             DirectMirScalarProgramReferencedEnumReadyForExpressions(
                 fact.referenced_enum, fact.expressions) &&
             DirectMirScalarProgramPayloadFreeEnumReadyForExpressions(
@@ -93,6 +96,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
             fact.nominal_abi) { return 11; }
     if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
             fact.logical_record, fact.expressions) { return 12; }
+    if !DirectMirScalarProgramLogicalRecordOptionIntAbiReady(
+            fact.logical_record, fact.option_int_abi) { return 20; }
     if !DirectMirScalarProgramReferencedEnumReadyForExpressions(
             fact.referenced_enum, fact.expressions) ||
         !DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(

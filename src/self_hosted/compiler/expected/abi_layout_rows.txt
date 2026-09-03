@@ -8,7 +8,7 @@ count=21
 5|Array<String>|pgy_as|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported
 6|Array<CodegenAstTextNode>|pgy_CodegenAstTextNode_array|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported
 7|Result<Int>|pgy_result_int|is_ok,value|bool_result|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
-8|Option<Int>|pgy_option_int|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
+8|Option<Int>|pgy_option_int|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|field_allowed|unsupported
 9|Option<String>|pgy_option_string|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
 10|Long|int64_t|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0
 11|Double|double|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0.0

@@ -18,28 +18,51 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — successor discovery after Option match closure
+## Active self-host context — logical-record `Option<Int>` field materialization
 
 - Exact published checkpoint is
-  `645b86c93c1f5cb4014d05e971d25dc65a4810c7`, equal to
-  `origin/main`. Exact-head run `33797037572` is green. The protected
-  user-owned `examples/raid_graph_fsm/results.txt` change and three protected
-  untracked directories remain outside inspection, edit, and staging.
-- The Option<Int> match CFG execution rung is closed and recorded immediately
-  below. Do not extend it into another match refactor, Module Build, a general
-  query/cache system, or an unrelated SoT cleanup.
-- The one ACTIVE registry row remains
-  `selfhost.semantic_artifact_admission`. No successor implementation seam is
-  selected yet. The next bounded action is read-only discovery from an installed
-  DRV-2 production entrypoint: identify one direct C/native bypass or missing
-  Pergyra-carried fact in that row, name its existing owner and last consumer,
-  and reproduce one executable falsifier before editing source.
-- The discovery result must choose one hard-substitution rung, not a list of
-  plausible tasks. If no production bypass is reproduced, record that evidence
-  and keep the row ACTIVE rather than converting an inference into progress.
-  Module Build remains deferred in the order `self-host closure ->
-  evidence/identity compression -> real external project -> ModuleInterface ->
-  BuildUnit/incremental build`.
+  `41e8bf6fe466d72c85b9880cda66fc5535ce991a`, equal to
+  `origin/main`. Exact-head run `33801981740` completed 30/30 green in 36m06s;
+  full self-host installed DRV-2, proved `gen2 == gen3 (174543 lines)`, and
+  correctly classified the policy corpus as `3 in_subset / 0 out_of_subset`.
+  The protected user-owned `examples/raid_graph_fsm/results.txt` change and three
+  protected untracked directories remain outside inspection, edit, and staging.
+- Production falsifier is
+  `tests/self_hosted/fixtures/direct_mir_five_routine_unsupported_nominal.pgy`.
+  Native C and LLVM execute it as `11`, but installed DRV-2 source-C rejects
+  `Metadata { Bool, Option<Int> }` at field materialization and direct C/LLVM
+  reject its ABI-free `Metadata` callable route. Self and native MIR both carry
+  `Metadata` with layout id zero, `required=false`, and null layout, so inventing
+  a nominal physical row would contradict the producer evidence.
+- Objective: make installed DRV-2 source-C and direct C/LLVM admit, compile, and
+  execute this exact program while retaining ABI-free logical-record identity.
+  Priority is semantic record identity, explicit Option materialization receipt,
+  shared target projections, then a negative ratchet. The fact owner remains
+  `DirectMirScalarProgramLogicalRecordFact` for ordered fields; one bounded
+  pre-backend projection may derive the existing `DirectMirOptionMatchAbiFact`
+  from the canonical Option layout contract when such a field is present.
+- Last legitimate consumers are the C/LLVM logical-record field-type and
+  preamble emitters and source-C `AbiLayoutCFieldType`. Forbidden fallbacks are
+  source spelling or program-root rescans, missing-required-layout recovery,
+  backend-local geometry, whole-nominal physical promotion, fixture/routine-name
+  routing, native retry, and C round-trip.
+- The focused gate must prove source-C plus direct C/LLVM runtime `11`, exact
+  emitted field representations, and `Option<Long>` mutation failure without an
+  artifact on both direct targets. Existing logical-record, Option<Int>, ABI-row,
+  component, installed-driver, and exact-head CI gates remain required.
+  This is one reached seam inside `selfhost.semantic_artifact_admission`, not a
+  new general ABI project. Module Build remains deferred in the order
+  `self-host closure -> evidence/identity compression -> real external project ->
+  ModuleInterface -> BuildUnit/incremental build`.
+- The local candidate now passes that focused gate: all three paths print `11`,
+  the MIR record remains id-zero/null-layout, and the `Option<Long>` mutation
+  fails without an artifact on direct C and LLVM. Existing Option<Int>,
+  two-Int nominal, multi-logical-record, ABI-row C/LLVM manifest, language
+  registry, SoT edge, shell syntax, diff check, and the complete component
+  contract are green. Exact-source DRV-2
+  `F4209097FC00473592F006A120AE3A60924AC72CCF3D6631A0AD2B893F720672`
+  (6,604,600 bytes) is installed, and the focused plus three adjacent runtime
+  gates are green against it. Selective publication and exact-head CI remain.
 
 ## Published self-host context — Option<Int> match CFG projection
 
@@ -62,8 +85,13 @@ percentage by themselves.
   owner caps, syntax, generated language registry, and documentation are green.
 - Exact-head run `33797037572` completed 30/30 green in about 35m55s. Full
   self-host took 35m36s, installed the Pergyra-built DRV-2, proved
-  `gen2 == gen3 (174543 lines)`, and censused the policy corpus as
-  `0 in_subset / 3 out_of_subset`. Linux took 22m13s, codegen fixed point
+  `gen2 == gen3 (174543 lines)`. Its reported policy census of
+  `0 in_subset / 3 out_of_subset` is superseded: the old gate invoked a stale
+  DRV-2 CLI shape and misclassified usage rejection as a controlled refusal.
+  Repair `41e8bf6fe466d72c85b9880cda66fc5535ce991a` runs the production
+  `--emit-c-verified` route with the shared comparator/runtime profile; exact
+  run `33801981740` then proved all three rows in-subset and completed 30/30
+  green in 36m06s. Linux took 22m13s, codegen fixed point
   7m36s, Windows 8m16s, sanitizers 13m01s, Rocq 9 1m40s, macOS 2m04s,
   TSan 16s, and backend comparison stayed 20/20 green.
 - The `upload-artifact@v4` Node 20 compatibility annotation is an external

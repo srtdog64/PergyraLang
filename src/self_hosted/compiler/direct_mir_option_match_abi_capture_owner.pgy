@@ -3,6 +3,7 @@
 
 import "direct_mir_option_match_abi_fact_owner.pgy";
 import "../codegen/text/text_owner.pgy";
+import "../mir/option_abi_layout_contract_owner.pgy";
 
 func DirectMirOptionMatchAbiFactFromCapture(
     own row: MirAbiLayoutRowCapture
@@ -10,19 +11,30 @@ func DirectMirOptionMatchAbiFactFromCapture(
     let layout_id: Int = MirAbiLayoutIdFromCapture(row);
     if !row.valid || layout_id <= 0 ||
         row.type_name != CompilerAbiLayoutOptionIntTypeName() ||
-        row.size_text != "8" || row.align_text != "4" ||
+        row.size_text != ToString(SelfMirOptionAbiSize(
+            SelfMirOptionIntAbiValueSize(), SelfMirOptionIntAbiValueAlign())) ||
+        row.align_text != ToString(
+            SelfMirOptionAbiAlign(SelfMirOptionIntAbiValueAlign())) ||
         ArrayLength(row.field_names) != 2 ||
         ArrayLength(row.field_offsets) != 2 ||
         ArrayLength(row.field_sizes) != 2 ||
         ArrayLength(row.field_aligns) != 2 ||
-        row.field_names[0] != "tag" || row.field_offsets[0] != "0" ||
-        row.field_sizes[0] != "4" || row.field_aligns[0] != "4" ||
-        row.field_names[1] != "value" || row.field_offsets[1] != "4" ||
-        row.field_sizes[1] != "4" || row.field_aligns[1] != "4" ||
-        row.runtime_fn != "pgy_option_some_Int" ||
-        row.inner_c_type != "int32_t" || row.representation_text != "1" ||
-        row.discriminant != "tag" || row.primary_tag_text != "0" ||
-        row.secondary_tag_text != "1" || row.niche_none_pattern != "" {
+        row.field_names[0] != SelfMirOptionAbiTagFieldName() ||
+        row.field_offsets[0] != "0" ||
+        row.field_sizes[0] != ToString(SelfMirOptionAbiTagSize()) ||
+        row.field_aligns[0] != ToString(SelfMirOptionAbiTagAlign()) ||
+        row.field_names[1] != SelfMirOptionAbiValueFieldName() ||
+        row.field_offsets[1] != ToString(SelfMirOptionAbiValueOffset(
+            SelfMirOptionIntAbiValueAlign())) ||
+        row.field_sizes[1] != ToString(SelfMirOptionIntAbiValueSize()) ||
+        row.field_aligns[1] != ToString(SelfMirOptionIntAbiValueAlign()) ||
+        row.runtime_fn != SelfMirOptionIntAbiRuntimeFunction() ||
+        row.inner_c_type != SelfMirOptionIntAbiInnerCType() ||
+        row.representation_text != ToString(SelfMirOptionAbiRepresentation()) ||
+        row.discriminant != SelfMirOptionAbiDiscriminant() ||
+        row.primary_tag_text != ToString(SelfMirOptionAbiSomeTag()) ||
+        row.secondary_tag_text != ToString(SelfMirOptionAbiNoneTag()) ||
+        row.niche_none_pattern != "" {
         Die("direct MIR Option match ABI layout is unsupported or mutated");
     }
     let fact: DirectMirOptionMatchAbiFact = DirectMirOptionMatchAbiFact(

@@ -470,6 +470,18 @@ calls cannot diverge. Mixed encodings fail closed. The focused gate includes an
 unreferenced same-shape declaration and rejects identity, field-order, layout,
 and pass-shape drift.
 
+The reached GraphPlan v80 extension admits exactly `Option<Int>` as another
+terminal logical-record field without promoting the record to a physical ABI
+row. `DirectMirScalarProgramLogicalRecordOptionIntAbiFromFact` reads only the
+already admitted ordered field inventory and materializes the existing
+`DirectMirOptionMatchAbiFact` from the canonical Option layout contract before
+either backend runs. Source-C separately admits the existing `Option<Int>` ABI
+row as a field. The focused gate executes source-C and direct C/LLVM as `11`,
+preserves the record's id-zero/null-layout MIR receipt, and rejects
+`Option<Long>` on both direct targets without an artifact. Program-root scans,
+missing-layout recovery, backend-local geometry, and nominal physical promotion
+remain forbidden.
+
 GraphPlan v40 admits direct ArrayInt returns without adding a fact family or
 changing the v36 carrier schema. `DirectMirRoutineSignatureFact` owns return
 identity; `DirectMirScalarProgramArrayIntValueResultFact` joins matching

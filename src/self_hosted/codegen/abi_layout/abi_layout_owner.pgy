@@ -205,7 +205,9 @@ func AbiLayoutCLocalType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
 func AbiLayoutCFieldType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) && !CompilerAbiLayoutFieldAllowed(type_name) {
-        Die(Concat("struct/class fields must be Int/Long/Bool/Float/Double/String/previous struct, got: ", type_name));
+        Die(Concat(
+            "struct/class field type is not admitted by the ABI row owner: ",
+            type_name));
     }
     return AbiLayoutCValueType(type_name, struct_env);
 }

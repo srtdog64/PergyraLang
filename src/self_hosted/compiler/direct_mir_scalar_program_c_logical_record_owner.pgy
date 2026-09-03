@@ -2,7 +2,7 @@
 
 import "direct_mir_scalar_program_logical_record_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy";
-
+import "direct_mir_scalar_program_c_option_int_owner.pgy";
 func DirectMirScalarProgramCLogicalRecordTypeName(
     ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
 ) -> String {
@@ -17,6 +17,7 @@ func DirectMirScalarProgramCLogicalRecordFieldType(
     if type_name == CompilerAbiLayoutBoolTypeName() { return "bool"; }
     if type_name == CompilerAbiLayoutIntTypeName() { return "int64_t"; }
     if type_name == CompilerAbiLayoutStringTypeName() { return CompilerAbiLayoutStringCValueType(); }
+    if type_name == CompilerAbiLayoutOptionIntTypeName() { return DirectMirScalarProgramCOptionIntTypeName(); }
     if type_name == CompilerAbiLayoutArrayIntTypeName() { return CompilerAbiLayoutArrayIntCValueType(); }
     if type_name == CompilerAbiLayoutArrayBoolTypeName() { return CompilerAbiLayoutArrayBoolCValueType(); }
     if type_name == CompilerAbiLayoutArrayStringTypeName() { return CompilerAbiLayoutArrayStringCValueType(); }

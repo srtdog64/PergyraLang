@@ -9,6 +9,7 @@ import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
+import "direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
 
 struct DirectMirScalarProgramExtensionAbiSeal {
     let valid: Bool;
@@ -66,6 +67,9 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     } else if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
             route.logical_record, expressions) {
         stage = "logical-record";
+    } else if !DirectMirScalarProgramLogicalRecordOptionIntAbiReady(
+            route.logical_record, option_int) {
+        stage = "logical-record-option-int";
     } else if !DirectMirScalarProgramReferencedEnumReadyForExpressions(
             route.referenced_enum, expressions) ||
         !DirectMirScalarProgramReferencedEnumPayloadFreeProjectionReady(

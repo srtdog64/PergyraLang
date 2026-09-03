@@ -1,0 +1,72 @@
+// Materializes the canonical Option<Int> ABI receipt only when an already
+// admitted ABI-free logical record owns an Option<Int> terminal field.
+
+import "direct_mir_option_match_abi_capture_owner.pgy";
+import "direct_mir_scalar_program_option_int_abi_owner.pgy";
+import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "../mir/option_abi_layout_contract_owner.pgy";
+
+func DirectMirScalarProgramLogicalRecordOptionIntRequired(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> Bool {
+    let field: Int = 0;
+    while field < ArrayLength(logical_record.field_types) {
+        if logical_record.field_types[field] ==
+                CompilerAbiLayoutOptionIntTypeName() {
+            return true;
+        }
+        field = field + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramLogicalRecordOptionIntAbiFromFact(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirOptionMatchAbiFact {
+    if !DirectMirScalarProgramLogicalRecordFactReady(logical_record) {
+        Die("direct MIR logical record Option<Int> input is invalid");
+    }
+    if !DirectMirScalarProgramLogicalRecordOptionIntRequired(logical_record) {
+        return DirectMirOptionMatchAbiFactEmpty();
+    }
+    let value_size: Int = SelfMirOptionIntAbiValueSize();
+    let value_align: Int = SelfMirOptionIntAbiValueAlign();
+    let names: Array<String> = [
+        SelfMirOptionAbiTagFieldName(), SelfMirOptionAbiValueFieldName()
+    ];
+    let offsets: Array<String> = [
+        "0", ToString(SelfMirOptionAbiValueOffset(value_align))
+    ];
+    let sizes: Array<String> = [
+        ToString(SelfMirOptionAbiTagSize()), ToString(value_size)
+    ];
+    let aligns: Array<String> = [
+        ToString(SelfMirOptionAbiTagAlign()), ToString(value_align)
+    ];
+    let capture: MirAbiLayoutRowCapture = MirAbiLayoutRowCapture(
+        true, CompilerAbiLayoutOptionIntTypeName(),
+        ToString(SelfMirOptionAbiSize(value_size, value_align)),
+        ToString(SelfMirOptionAbiAlign(value_align)), names, offsets, sizes,
+        aligns, SelfMirOptionIntAbiRuntimeFunction(),
+        SelfMirOptionIntAbiInnerCType(),
+        ToString(SelfMirOptionAbiRepresentation()),
+        SelfMirOptionAbiDiscriminant(),
+        ToString(SelfMirOptionAbiSomeTag()),
+        ToString(SelfMirOptionAbiNoneTag()), ""
+    );
+    return DirectMirOptionMatchAbiFactFromCapture(capture);
+}
+
+func DirectMirScalarProgramLogicalRecordOptionIntAbiReady(
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref option_int: DirectMirOptionMatchAbiFact
+) -> Bool {
+    if !DirectMirScalarProgramLogicalRecordFactReady(logical_record) {
+        return false;
+    }
+    if DirectMirScalarProgramLogicalRecordOptionIntRequired(logical_record) {
+        return DirectMirOptionMatchAbiFactReady(option_int);
+    }
+    return DirectMirScalarProgramOptionIntAbiCanonicalEmpty(option_int) ||
+        DirectMirOptionMatchAbiFactReady(option_int);
+}

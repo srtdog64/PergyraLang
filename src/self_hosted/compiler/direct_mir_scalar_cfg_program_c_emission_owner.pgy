@@ -247,6 +247,8 @@ func DirectMirScalarCfgEmitProgramC(
     TextBuilderAppend(output, DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime, array_string_projection));
     TextBuilderAppend(output, DirectMirScalarProgramCTwoIntNominalPreamble(
         plan.program.nominal_abi, target));
+    TextBuilderAppend(output,
+        DirectMirScalarProgramCOptionResultPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordPreamble(
         plan.program.logical_record, target));
     TextBuilderAppend(output,
@@ -257,8 +259,6 @@ func DirectMirScalarCfgEmitProgramC(
         plan.program.referenced_enum, plan.program.nominal_abi,
         plan.program.logical_record, plan.program.payload_free_enum,
         plan.program.array_string_abi, array_string_projection, int_c_type));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramCOptionResultPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarCfgStringCPreamble(
         plan, runtime.string_concat));
     let runtime_header_owns_print: Bool =

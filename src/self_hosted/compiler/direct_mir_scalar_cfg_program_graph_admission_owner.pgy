@@ -6,6 +6,7 @@ import "direct_mir_scalar_cfg_graph_plan_seal_owner.pgy";
 import "direct_mir_scalar_cfg_program_admission_owner.pgy";
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_option_match_abi_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
 
 func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -36,7 +37,8 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
         DirectMirScalarProgramExpressionSetEmpty();
     let cfg_digests: Array<Int> = [];
     let option_int_abi: DirectMirOptionMatchAbiFact =
-        DirectMirOptionMatchAbiFactEmpty();
+        DirectMirScalarProgramLogicalRecordOptionIntAbiFromFact(
+            route.logical_record);
     let result_int_abi: DirectMirResultIntAbiFact =
         DirectMirResultIntAbiFactEmpty();
     let option_string_abi: DirectMirOptionMatchAbiFact =

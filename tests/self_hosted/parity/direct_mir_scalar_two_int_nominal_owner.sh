@@ -14,7 +14,6 @@ CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/direct_mir_scalar_two_int_nominal"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_four_routine_two_int_nominal.pgy"
-UNSUPPORTED_REL="tests/self_hosted/fixtures/direct_mir_five_routine_unsupported_nominal.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
@@ -62,7 +61,7 @@ done
 if grep -Eq 'routine_count[[:space:]]*==[[:space:]]*4' "$ROUTE_OWNER"; then
     fail "nominal support regressed to a fixture-count route"
 fi
-grep -Fq 'DirectMirScalarProgramCallableRouteEnvelopeAssess(' \
+grep -Fq 'DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(' \
     "$ADMISSION_OWNER" || fail "route admission reconstructs callable policy"
 grep -Fq 'DirectMirScalarProgramRouteAdmissionDie(' "$TERMINAL_OWNER" ||
     fail "terminal projector discards the scalar route receipt"
@@ -122,36 +121,6 @@ for backend in c llvm; do
     "$bin" | tr -d '\r' >"$WORK_DIR/$backend.run"
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$backend.run" ||
         fail "$backend runtime output drifted"
-done
-
-unsupported_mir_rel="$WORK_REL/unsupported-nominal.mir.json"
-(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "$UNSUPPORTED_REL" -o "$unsupported_mir_rel") \
-    >"$WORK_DIR/unsupported.producer.out" \
-    2>"$WORK_DIR/unsupported.producer.err" || {
-        cat "$WORK_DIR/unsupported.producer.out" \
-            "$WORK_DIR/unsupported.producer.err" >&2
-        fail "unsupported nominal MIR production failed"
-    }
-for backend in c llvm; do
-    output_rel="$WORK_REL/unsupported-nominal.$backend"
-    output="$ROOT_DIR/$output_rel"
-    rm -f "$output"
-    if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
-        "$unsupported_mir_rel" -o "$output_rel") \
-        >"$WORK_DIR/unsupported.$backend.out" \
-        2>"$WORK_DIR/unsupported.$backend.err"; then
-        fail "$backend accepted a referenced unsupported nominal"
-    fi
-    [[ ! -e "$output" ]] ||
-        fail "$backend published a referenced unsupported nominal"
-    # v39 admits by-value logical records only when every field is terminal or
-    # an admitted record dependency. Metadata's Option<Int> field remains
-    # outside that exact owner and must fail closed at the callable envelope.
-    diagnostic='direct MIR scalar program route rejected: owner=callable-route-envelope stage=return-type routine=1 name=KeepMetadata parameter=-1 type=Metadata carriage='
-    grep -Fq "$diagnostic" "$WORK_DIR/unsupported.$backend.out" \
-        "$WORK_DIR/unsupported.$backend.err" ||
-        fail "$backend discarded the exact unsupported nominal receipt"
 done
 
 mutated_rel="$WORK_REL/two-int-nominal-abi-layout.mir.json"
