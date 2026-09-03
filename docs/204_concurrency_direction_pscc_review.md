@@ -464,11 +464,11 @@ rwlock 즉시 제거.
 
 | 제안의 정리 | Pergyra 대응 | 상태 |
 |---|---|---|
-| 1. Capability Non-Forgery | capability 마스크는 매니페스트/env grant로만 넓어짐; 생성 시 자식은 부모 마스크의 snapshot(향후 edge로 축소) | `AsyncContextCore.v`가 exact mask/budget-owner/instance capture와 lane·suspension 보존을 bounded model로 증명; runtime/adequacy gate가 구현에 결박. 전체 grant-source 정리는 아님 |
+| 1. Capability Non-Forgery | capability 마스크는 매니페스트/env grant로만 넓어짐; 생성 시 자식은 부모 마스크의 snapshot(향후 edge로 축소) | `AsyncContextCore.v`가 exact mask/budget-owner/instance capture와 lane·suspension 보존을 bounded model로 증명; `CapabilityFlowCore.v`가 share/lend/move 생성 전반의 non-forgery(`run_bounded`)·대여 유일성(`loan_uniquely_held`)·반환 복원을 증명하고 executor-default 읽기를 반례(`tls_default_forges`)로 고정. runtime/adequacy gate가 구현에 결박 |
 | 2. Data-Race Freedom | `docs/semantics/proofs/WitnessDataRace.v` + `op_guard` 목격자 | 허용 부분집합에 대해 형태 존재 |
-| 3. Slot Temporal Safety | generation 검사 + §3.3 재검증 | 런타임 검사 있음, 정리 없음 |
-| 4. Structured Task Containment | §3.1 | `AsyncLifecycleCore.v`가 live trace의 scope closure에는 await/explicit own transfer가 필요하고 suspend·Cancel은 retire하지 않으며 대안 경로 불일치는 fail-closed함을 bounded model로 증명 |
-| 5. Deterministic Parallel Subset | §2.6·§3.4 | 산문 계약만 |
+| 3. Slot Temporal Safety | `docs/semantics/proofs/SuspensionRevalidationCore.v` — `stale_never_resolves`, `resolved_means_same_incarnation`; 미검증 deref가 새 점유자를 건드리는 `unchecked_deref_hits_new_occupant` 반례 | **기계검증** (동시성 판; 단일 컨텍스트는 `SlotCalculus.v`); resume 시 자동 resolve 방출은 §4 item 5 |
+| 4. Structured Task Containment | §3.1 | `AsyncLifecycleCore.v`가 named handle 하나의 affine flow(await/own transfer 없이는 scope closure 불가, suspend·Cancel 비-retire, 대안 경로 fail-closed)를, `AsyncScopeCore.v`가 그 위의 scope tree(고아 없음 `run_no_orphan`, 하위 트리 취소 `cancel_reaches_descendants`, detach는 capability `background_only_via_detach`)를 bounded model로 증명; 구조화 이전 규칙의 고아는 반례 `orphan_reachable_unstructured` |
+| 5. Deterministic Parallel Subset | `docs/semantics/proofs/DeterministicSubsetCore.v` — `commute`, `run_permutation`, `deterministic_subset`; 쓰기 충돌 쌍의 `write_conflict_is_schedule_dependent` 반례 | **기계검증** (task 단위 인터리빙; fold는 `ParallelReductionCore.v`; workers 1/2/4/8 실행 게이트는 §4 item 6) |
 
 주장 범위는 `docs/113` "Explicitly Out Of Beta"를 그대로 따른다:
 `unsafe`·베타 외 표면에 DRF를 약속하지 않는다.
@@ -523,6 +523,7 @@ rwlock 즉시 제거.
 - `docs/198_market_safety_positioning.md` — 우선순위와 한 문장
 - `docs/107_beta_stable_subset.md` — 베타 폐쇄, "checked suspension contract"
 - `docs/132_unsafe_capability_scope.md` — FFI 경계
+- `docs/semantics/proofs/AsyncModelCores.md`, `docs/semantics/proofs/AsyncDirectionCores.md` — §5 정리의 Rocq core와 반례
 
 ---
 

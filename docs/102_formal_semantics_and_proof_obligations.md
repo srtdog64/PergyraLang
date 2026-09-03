@@ -29,6 +29,11 @@ The mathematical proof source of truth has moved into the proof pack folder:
 - [docs/semantics/proofs/AsyncLifecycleCore.v](semantics/proofs/AsyncLifecycleCore.v)
 - [docs/semantics/proofs/AsyncContextCore.v](semantics/proofs/AsyncContextCore.v)
 - [docs/semantics/proofs/AsyncModelCores.md](semantics/proofs/AsyncModelCores.md)
+- [docs/semantics/proofs/AsyncScopeCore.v](semantics/proofs/AsyncScopeCore.v)
+- [docs/semantics/proofs/CapabilityFlowCore.v](semantics/proofs/CapabilityFlowCore.v)
+- [docs/semantics/proofs/SuspensionRevalidationCore.v](semantics/proofs/SuspensionRevalidationCore.v)
+- [docs/semantics/proofs/DeterministicSubsetCore.v](semantics/proofs/DeterministicSubsetCore.v)
+- [docs/semantics/proofs/AsyncDirectionCores.md](semantics/proofs/AsyncDirectionCores.md)
 - [docs/semantics/proofs/ProofSpine.v](semantics/proofs/ProofSpine.v)
 
 Related rigor audits:
@@ -52,6 +57,11 @@ whole-language proof. The proof spine makes that negative boundary explicit.
 `AsyncLifecycleCore.v` and `AsyncContextCore.v` separately model the current
 named-Future lifecycle and task-context carriage contracts; neither assigns
 lifetime or authority ownership to the `async` marker itself.
+The four direction cores (`AsyncScopeCore.v`, `CapabilityFlowCore.v`,
+`SuspensionRevalidationCore.v`, `DeterministicSubsetCore.v`) model the
+scope-tree, capability-flow, suspension-revalidation, and schedule-independence
+disciplines docs/204 adopts, each with a machine-checked counterexample for the
+unstructured alternative; `AsyncDirectionCores.md` fixes their claim boundary.
 
 Run the proof-pack drift gate with:
 

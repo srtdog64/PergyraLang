@@ -1046,6 +1046,10 @@ docs/semantics/proofs/BinaryAdequacy.v \
 docs/semantics/proofs/GuardWitnessBinding.v \
 docs/semantics/proofs/AsyncLifecycleCore.v \
 docs/semantics/proofs/AsyncContextCore.v \
+docs/semantics/proofs/AsyncScopeCore.v \
+docs/semantics/proofs/CapabilityFlowCore.v \
+docs/semantics/proofs/SuspensionRevalidationCore.v \
+docs/semantics/proofs/DeterministicSubsetCore.v \
 docs/semantics/proofs/ParallelSchedulingCore.v \
 docs/semantics/proofs/ParallelReductionCore.v \
 docs/semantics/proofs/PergyraMulCost.v"

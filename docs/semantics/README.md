@@ -284,6 +284,23 @@ Mechanized artifacts:
   owner, and instance capture, lane/suspension preservation, and surrounding
   context restoration. [proofs/AsyncModelCores.md](proofs/AsyncModelCores.md)
   fixes the shared claim and implementation-adequacy boundary.
+- [proofs/AsyncScopeCore.v](proofs/AsyncScopeCore.v): scope-tree containment.
+  No orphan task under structured open/spawn/complete/cancel/close/detach,
+  cancellation reaches every descendant scope, detach only through a
+  capability; the pre-structured-lifecycle rule is refuted in three steps.
+- [proofs/CapabilityFlowCore.v](proofs/CapabilityFlowCore.v): capability
+  non-forgery across share/lend/move task creation, loan uniqueness and
+  restoration on return; an executor reading the per-thread default instead
+  of capturing the parent is refuted against a narrowed manifest.
+- [proofs/SuspensionRevalidationCore.v](proofs/SuspensionRevalidationCore.v):
+  slot temporal safety across a suspension. A stale generational reference
+  never resolves after a despawn, a resolved one names the same incarnation;
+  dereferencing by slot id alone is refuted against a respawned slot.
+- [proofs/DeterministicSubsetCore.v](proofs/DeterministicSubsetCore.v):
+  footprint-independent task bodies commute, so every schedule of an admitted
+  family ends in the canonical index-order state; a write-conflicting pair is
+  refuted. [proofs/AsyncDirectionCores.md](proofs/AsyncDirectionCores.md)
+  fixes the four cores' claim boundary.
 - [sot_owner_spine_registry.md](sot_owner_spine_registry.md): machine-gated
   28-row declaration of 15 architectural fact families plus thirteen bounded
   self-host closure facts, stable handles, unique owners,
