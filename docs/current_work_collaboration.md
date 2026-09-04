@@ -8,8 +8,10 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE discovery lease — source payload-enum variant provenance
 
-- Exact base is completed direct-MIR checkpoint
-  `123f088949a9d62095b0f181dadd387959b22064`. Read-only attacks proved that
+- Exact base is negative-ratcheted checkpoint
+  `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747`, containing parser-safe
+  implementation `bbeb75d7bfeeeda1dc703699d127838ab8c21876` after substantive
+  checkpoint `123f088949a9d62095b0f181dadd387959b22064`. Read-only attacks proved that
   the source semantic/MIR producer still emits verified MIR for a value
   constructed as `Right(Int)` and projected as `Left._0`, and for a value
   constructed as `Number(Int)` and projected as `Text._0`.
@@ -36,13 +38,20 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 - Adversarial valid-variant, future-SSA, and stale-SSA mutations exposed three
   prior holes. Plan readiness now joins member variant to constructor variant,
   while leaf readiness consumes the canonical latest-dominating-local-value
-  fact. All three fail without artifacts on both targets.
+  fact. All three fail without artifacts on both targets. Descendant
+  `bbeb75d7bfeeeda1dc703699d127838ab8c21876` changes only two reserved-word
+  variable names required by the native parser.
 - Fresh DRV-2
-  `9AEE8FC490042BE8B22361F9284B257DDCDA5D68E16E1BC4A1F2E982376AF5EB`
+  `3434BC935781C3D5E869E9E90DCD9F600EAB9FED64939338146AA42D805BBB4D`
   (6,675,205 bytes) executes exact `10`, `4`, `5`, `7`; nine negatives and
   three adjacent gates pass. Component inventory, generated 146-word registry,
   script syntax, diff, and SoT edge are green. Census/forecast remain 88/185,
-  `55/32/1`, and 83% (81-85%). Exact remote CI is pending publication.
+  `55/32/1`, and 83% (81-85%). Run `33888474407` found the reserved identifiers
+  in Linux native-oracle emission; 28 jobs succeeded, that job failed, and
+  `build-linux` ended cancelled after the cancellation request. Exact local
+  native-oracle replay is green after `bbeb75d7`;
+  `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747` adds the fast recurrence
+  ratchet, and replacement remote CI remains pending.
 - Independent successor findings are read-only in
   `docs/audits/2026-09-05_counterexample_attack_results.md`. This lease is
   released; protected user paths were not staged.

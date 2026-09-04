@@ -20,7 +20,10 @@ percentage by themselves.
 
 ## Active self-host context — source payload-enum variant-provenance discovery
 
-- Exact discovery base is completed direct-MIR checkpoint
+- Exact discovery base is negative-ratcheted checkpoint
+  `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747`. It contains parser-safe
+  implementation `bbeb75d7bfeeeda1dc703699d127838ab8c21876`, a two-identifier
+  correction of substantive checkpoint
   `123f088949a9d62095b0f181dadd387959b22064`. The direct boundary is now
   fail-closed, but the installed source semantic/MIR producer still accepts
   `Pair.Right(31)` followed by `value.Left._0`, and `Mixed.Number(13)` followed
@@ -64,9 +67,11 @@ percentage by themselves.
   constructor definition of the same local and variant. Leaf admission now
   consumes the canonical latest-dominating-local-value fact, so future and
   stale SSA selections fail closed instead of collapsing to one physical
-  local.
+  local. Parser-safe descendant
+  `bbeb75d7bfeeeda1dc703699d127838ab8c21876` renames two accidental
+  reserved-word `local` variables to `local_row`.
 - Fresh Pergyra-built DRV-2 is 6,675,205 bytes with SHA-256
-  `9AEE8FC490042BE8B22361F9284B257DDCDA5D68E16E1BC4A1F2E982376AF5EB`.
+  `3434BC935781C3D5E869E9E90DCD9F600EAB9FED64939338146AA42D805BBB4D`.
   The focused installed gate executes exact `10`, `4`, `5`, `7` through both
   direct targets and rejects nine mutations without artifacts. Existing
   payload-free enum match, compile-time declaration erasure, and payload
@@ -77,8 +82,14 @@ percentage by themselves.
   remains 88 authorities / 185 derived carriers and
   `CLOSED=55 BRIDGE=32 ACTIVE=1`; this bounded consumer replacement does not
   change the 83% (81-85%) forecast, strict beta 83%, or hard replacement 75%.
-  Exact-head remote CI is not claimed until the commits are published and the
-  corresponding run completes.
+  First exact-head run `33888474407` found the reserved identifiers in Linux
+  native-oracle emission. Its cancellation request left 28 jobs successful,
+  that self-host job failed, and the still-running `build-linux` job cancelled.
+  The exact native-oracle command and a fresh
+  Pergyra-built driver are green locally after `bbeb75d7`; replacement remote
+  CI is not claimed until its corresponding run completes. Static checkpoint
+  `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747` rejects the exact
+  `let local:` recurrence in both owners before the long bootstrap.
 - Protected user-owned paths remain outside inspection, edit, and staging:
   `examples/raid_graph_fsm/results.txt`, `docs/compiler_architectures/`,
   `pgy-80135c2c/`, and `pgy-91d769ec/`. Module Build remains design-only and

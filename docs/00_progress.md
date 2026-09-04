@@ -2,14 +2,15 @@
 
 마지막 업데이트: 2026-09-05
 
-최신 implementation checkpoint `123f0889`는 `tagged_union`의 direct-MIR
-payload-enum program projection을 닫았다. enum 선언만으로 payload-free match
+최신 parser-safe implementation checkpoint `bbeb75d7`은 substantive checkpoint
+`123f0889`의 `tagged_union` direct-MIR payload-enum program projection을 닫는다.
+enum 선언만으로 payload-free match
 route를 선택하던 경로를 삭제하고 실제 `AST_MATCH_CASE`가 있을 때만 그 route를
 claim한다. Straight-line payload enum은 admitted declaration, ABI type,
 expression-graph, SSA-use fact에서 하나의 target-neutral scalar plan을 만들며 C와
 LLVM이 같은 계획을 소비한다. Fresh Pergyra-built DRV-2는 6,675,205 bytes,
 SHA-256
-`9AEE8FC490042BE8B22361F9284B257DDCDA5D68E16E1BC4A1F2E982376AF5EB`다.
+`3434BC935781C3D5E869E9E90DCD9F600EAB9FED64939338146AA42D805BBB4D`다.
 
 반례 공격은 양성 실행만으로 보이지 않던 세 구멍을 찾았다. 다른 유효 variant의
 payload를 읽으면 C/LLVM이 다른 값을 내거나 C가 access violation을 냈고, 미래
@@ -22,6 +23,16 @@ payload, ordinal, graph, future/stale SSA를 포함한 9개 변이는 모두 art
 match-binding, complete component inventory/old-path ratchet, 146-word registry,
 script syntax, scoped diff, SoT edge도 같은 candidate에서 green이다. Exact-head 원격
 CI는 publication 뒤 해당 run이 끝나기 전까지 주장하지 않는다.
+
+첫 exact-head run `33888474407`은 Linux native-oracle source emission에서 새
+owner 두 곳의 변수명 `local`이 예약어임을 잡았다. Pergyra-built seed는 이를
+허용했지만 native parser는 `PGY_PARSE_SYNTAX`로 거절했다. `bbeb75d7`은 두 이름만
+`local_row`로 고쳤고, 로컬에서 동일 native-oracle emission은 0 errors, fresh
+Pergyra-built DRV-2와 focused/인접 회귀는 모두 green이다. 실패가 확정된 첫 run은
+취소를 요청했고 최종적으로 28개 job은 success, self-host job은 failure, 당시 진행
+중이던 `build-linux`는 cancelled가 됐다. Replacement exact-head CI가 최종 원격
+증거를 소유한다. Static checkpoint `4bf7d988`은 두 owner의 `let local:` 재등장을
+긴 bootstrap 전에 component contract에서 거절한다.
 
 다음 단일 활성 작업은 source semantic/MIR producer의 wrong-variant gap에 대한
 bounded discovery다. `Right(31)`로 만든 값을 `Left._0`로 읽는 경우와

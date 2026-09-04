@@ -8,11 +8,17 @@ Observed repository base:
 Completed direct-MIR repair checkpoint:
 `123f088949a9d62095b0f181dadd387959b22064`.
 
+Native-parser identifier repair:
+`bbeb75d7bfeeeda1dc703699d127838ab8c21876`.
+
+Static recurrence ratchet:
+`4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747`.
+
 Fresh candidate DRV-2:
 
 - size: `6,675,205` bytes;
 - SHA-256:
-  `9AEE8FC490042BE8B22361F9284B257DDCDA5D68E16E1BC4A1F2E982376AF5EB`.
+  `3434BC935781C3D5E869E9E90DCD9F600EAB9FED64939338146AA42D805BBB4D`.
 
 This document is adversarial scheduling evidence. It owns no compiler
 semantics, SoT status, progress percentage, active implementation fact, or
@@ -238,6 +244,18 @@ one target-neutral admitted plan now preserves the positive result, joins
 payload member selection to constructor provenance, rejects future/stale SSA,
 and keeps the payload-free real-match route green. It does not close the
 source language's inactive-variant access.
+
+The first published exact-head run `33888474407` found that the two new owners
+used reserved word `local` as a variable name. The Pergyra-built seed accepted
+that spelling, but the Linux native-oracle parser rejected it while emitting
+the integrated driver. Checkpoint `bbeb75d7` renames only those variables to
+`local_row`. A local replay of the exact native-oracle source emission then
+completed with zero errors, and a fresh Pergyra-built DRV-2 passed the focused
+and adjacent gates. Checkpoint `4bf7d988` makes the fast component contract
+reject `let local:` in both reached owners. The cancellation request followed the decisive failure;
+28 jobs finished successfully, the failing self-host job remained failed, and
+the still-running `build-linux` job ended cancelled. Replacement CI is
+separate publication evidence.
 
 The next contiguous work item is a bounded read-only discovery at the source
 semantic/MIR producer. It must determine whether an existing environment or
