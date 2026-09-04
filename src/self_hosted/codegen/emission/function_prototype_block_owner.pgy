@@ -34,9 +34,7 @@ func CodegenFunctionPrototypeBlock(
         let name: String = CodegenSemanticFunctionNameOrDie(signatures, i);
         let c_name: String = CompilerSymbolCQualifiedName(owner, name);
         if !CodegenSemanticFunctionUsesDirectHostEntrypoint(
-            signatures.entrypoint_selection,
-            SemanticAstFunctionSignatureCount(signatures), i
-        ) {
+            signatures.entrypoint_selection, SemanticAstFunctionSignatureCount(signatures), i) {
             TextBuilderAppend(output, AbiLayoutCReturnType(
                 CodegenSemanticFunctionReturnTypeOrDie(signatures, i),
                 struct_env
@@ -44,7 +42,6 @@ func CodegenFunctionPrototypeBlock(
             TextBuilderAppend(output, " ");
             TextBuilderAppend(output, c_name);
             TextBuilderAppend(output, "(");
-
             let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
                 signatures, i
             );
