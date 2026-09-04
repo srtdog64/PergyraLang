@@ -57,9 +57,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   recipe gates were executed directly with the same installed driver and all
   passed; CI still owns the aggregate target itself.
 - Exact local implementation checkpoint is
-  `3b3a0a0f33109446eeb878beff56bb0c1135f99a`. The following handoff refresh is
-  documentation-only; publication and exact-head Actions state must be checked
-  rather than inferred from this ledger.
+  `3b3a0a0f33109446eeb878beff56bb0c1135f99a`; handoff checkpoint
+  `d2b0775ccc8201b0677cf91115598f2ad46085bb` is also published. Exact run
+  `33861720387` has remote Rocq among 28 green jobs, while `build-linux`
+  failed only because the generated language-word implementation inventory
+  lagged the new source. The authoritative renderer refresh and its focused
+  registry/documentation gates are green locally. A published descendant still
+  needs exact full-matrix evidence; do not infer completion from this ledger.
 - Linux CI consumes the already installed driver through
   `self-host-replacement-frontier-installed-test-smoke`; its dry-run contains
   zero self-host bootstrap commands. The standalone wrapper retains exactly one

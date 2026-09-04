@@ -20,10 +20,15 @@ percentage by themselves.
 
 ## Active self-host context — role override declaration carriage
 
-- Exact lease base is `d2ee067c8863740cb0b5cdcafe697d354aeda102`, equal to
-  `origin/main` when discovery began. Published predecessor
-  `e9a3042dd340b4048210a83b7d50073b2ff4df61` remains exact-CI green at 30/30
-  in run `33834712111`.
+- Exact lease base was `d2ee067c8863740cb0b5cdcafe697d354aeda102`.
+  Implementation `3b3a0a0f33109446eeb878beff56bb0c1135f99a` and handoff
+  checkpoint `d2b0775ccc8201b0677cf91115598f2ad46085bb` are published.
+  Exact run `33861720387` had remote Rocq among 28 green jobs, but
+  `build-linux` failed in its final preparation-contract step because the
+  generated language-word implementation inventory had not been refreshed.
+  The authoritative renderer now produces the refreshed inventory and its
+  focused registry/documentation gates pass locally; a published descendant
+  still needs exact full-matrix evidence before this lease can close.
 - The bounded installed census selected
   `tests/cases/backend_compare/role_override_mir/main.pgy`. Installed tokens
   succeed, but installed AST and source-MIR fail before MIR. Native AST carries
@@ -61,12 +66,13 @@ percentage by themselves.
   CI now invokes the installed replacement-frontier aggregate after its one
   initial driver build; the installed target has zero bootstrap commands while
   the standalone wrapper has exactly one. Local SoT binding/negative checks
-  pass with an explicitly declared prover skip; Rocq kernel validation and
-  exact-head remote CI remain the next falsifiers.
-- Exact implementation checkpoint is
-  `3b3a0a0f33109446eeb878beff56bb0c1135f99a`; the following handoff refresh is
-  documentation-only. Publication and exact-head CI state must be verified
-  against `origin/main` rather than inferred from this snapshot. The user-owned
+  pass with an explicitly declared prover skip. Rocq kernel validation is green
+  in run `33861720387`; exact descendant full-matrix CI remains the next
+  falsifier.
+- The CI repair refreshes only the generated language-word implementation
+  inventory plus this navigation state; it changes no compiler source or SoT
+  status. Publication and exact-head CI state must be verified against
+  `origin/main` rather than inferred from this snapshot. The user-owned
   `examples/raid_graph_fsm/results.txt` and the three protected untracked
   directories remain outside inspection, edit, and staging; no scoped source
   change remains after the implementation checkpoint.
