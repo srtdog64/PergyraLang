@@ -18,60 +18,57 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — enum-variant/builtin collision carriage
+## Active self-host context — tagged-enum payload statement-type carriage
 
-- Exact lease base is `004ae6b5b47b7fc6757167c93b00c054da4c42f6`, equal
-  to `origin/main` when discovery began. Its parent implementation/evidence run
-  `33866524326` completed 30/30 green in 30m08s, and exact docs run
-  `33869095345` completed both intended jobs green with nine jobs skipped by
-  design. The role-override lease below is released.
-- A bounded current-source census found the first installed production red at
-  `tests/cases/backend_compare/tagged_union/main.pgy`. Public installed tokens
-  and AST succeed and the AST is byte-equal to native text, but public
-  `--mir-json` rejects at `SemanticAstExpressionSurfaceFacts` with
-  `call_target_input`; explicit `--native-pipeline --mir-json` succeeds.
-  Payload enums without the colliding `None` variant already passed installed
-  MIR, so this was not a general enum or parser gap.
-- Objective: make the installed production source-to-MIR path preserve the
-  existing-symbol precedence used when one unqualified enum variant collides
-  with a builtin callable. Priority is exact enum identity, one collision
-  policy, builtin meaning preservation, artifact-free rejection of accidental
-  rebinding, then patch size. `SemanticAstEnumFacts` owns the ordered declared
-  enum/variant rows; `SemanticAstExpressionFunctionTableFacts` owns their
-  callable projection and is consumed by
-  `SemanticExpressionGraphCallTargetCaptureFromSignatures` before the installed
-  source-MIR publication path.
-- The production entrypoint closed by this rung is public
-  `pgy --mir-json <source>`. Explicit native MIR is frozen oracle evidence, not
-  a compatibility fallback. The default C/LLVM compile is a later consumer and
-  is not claimed closed by this source-to-MIR replacement. Forbidden paths are
-  a `None` spelling special case, fixture or enum-name routing, source/AST
-  rescan after the typed enum rows, duplicate callable rebinding, native retry,
-  C round-trip, or weakening the canonical builtin signature prefix.
-- The local implementation gives occupied builtins and earlier declarations
-  precedence for the unqualified callable row while every enum variant retains
-  its qualified row. Fresh installed DRV-2 now emits `tagged_union` MIR; the
-  public result is byte-equal to its installed owner and canonical-equal to the
-  explicit native oracle. The stable negative
-  `enum_variant_builtin_collision_rejected.pgy` cannot assign builtin `None`
-  (`Option<Unknown>`) to `Shape`, emits no MIR, and does not retry native. The
-  adjacent `enum_multi_payload` control remains public/installed/native equal.
-  `semantic_enum_variant_builtin_collision_installed_owner.sh`,
-  `semantic_function_table_owner_smoke.sh`, and
-  `semantic_enum_fact_lifetime_owner_smoke.sh` are green locally.
-- The next falsifying boundary is deliberately separate: this same fixture's
-  installed MIR reaches neither direct C nor direct LLVM because the
-  payload-free enum-match route currently claims every enum declaration; the
-  source-C path also lacks a statement result type for direct payload member
-  reads. Runtime `10`, `4`, `5`, `7` belongs to that successor executable rung,
-  not to the completed callable-collision claim.
+- Exact lease base is implementation checkpoint
+  `19fa565a8042c6351ed9947e0eba17285b0857cd`. The predecessor collision rung
+  below is locally green and committed; remote publication and exact CI remain
+  pending at this snapshot.
+- The next production red is public
+  `pgy tests/cases/backend_compare/tagged_union/main.pgy --backend=c`: installed
+  source-to-MIR is now green, but source-C emission fails at statement node 9
+  with `missing semantic statement result type`. Explicit native C executes
+  exact lines `10`, `4`, `5`, `7`.
+- Objective: carry the parser-owned `c.Circle._0` payload-member identity into
+  the semantic statement result type consumed by `EmitLog`. Priority is the
+  declared enum payload ordinal/type, graph identity, artifact-free invalid-
+  ordinal rejection, absence of fallback, then patch size.
+  `SemanticAstEnumFacts` owns variant payload types;
+  `SemanticExpressionGraphEnumPayloadTypeName` is the typed graph projection;
+  `SemanticAstStatementTypeFacts` is the last semantic consumer before
+  `CodegenSemanticStatementInferredTypeOrDie` and C emission.
+- Forbidden paths are payload-text parsing, a `Shape`/`Circle`/fixture branch,
+  treating every member as `Int`, source/AST rescan after admitted facts,
+  unchecked payload ordinals, native retry, C round-trip, or widening the
+  direct-MIR LLVM/backend route in this C-only rung.
+- The focused falsifier is public installed C execution of exact
+  `10`, `4`, `5`, `7`, equal to the explicit native C oracle with no native
+  timing on the public path. A missing payload ordinal must fail before artifact
+  publication, and the initializer payload projection plus a non-colliding enum
+  control must remain green. Direct MIR C/LLVM projection is the next separate
+  rung after this source-C consumer closes.
 - Registry and forecast remain 88 authorities / 185 derived carriers,
-  `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%) until executable evidence
-  justifies a change. The user-owned `examples/raid_graph_fsm/results.txt` and
-  three protected untracked directories remain outside inspection, edit, and
-  staging. Module Build remains design-only and post-self-host in the order
-  `self-host closure -> evidence/identity compression -> real external project ->
-  ModuleInterface -> BuildUnit/incremental build`.
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%). The user-owned
+  `examples/raid_graph_fsm/results.txt` and three protected untracked
+  directories remain outside inspection, edit, and staging. Module Build stays
+  design-only until self-host closure.
+
+## Published self-host context — enum-variant/builtin collision carriage
+
+- Implementation checkpoint is
+  `19fa565a8042c6351ed9947e0eba17285b0857cd`, based on
+  `004ae6b5b47b7fc6757167c93b00c054da4c42f6`. It gives occupied builtins and
+  earlier declarations precedence for an unqualified callable row while every
+  enum variant retains its qualified row; it contains no `None` spelling or
+  fixture route.
+- Public/direct installed MIR is byte-equal and canonical-equal to the explicit
+  native oracle for `tagged_union` and adjacent `enum_multi_payload`. The stable
+  collision negative retains builtin `None` as `Option<Unknown>`, rejects its
+  assignment to `Shape`, publishes no MIR, and never retries native.
+- The focused installed gate, callable-table smoke, enum-lifetime smoke, shell
+  syntax check, and complete `self_hosted_component_contract_smoke.sh` are green
+  locally. Exact remote CI is pending; this paragraph must be updated rather
+  than treating local evidence as published-CI evidence.
 
 ## Published self-host context — role override declaration carriage
 

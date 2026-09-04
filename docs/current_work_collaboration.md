@@ -6,38 +6,37 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — enum-variant/builtin collision carriage
+## ACTIVE implementation lease — tagged-enum payload statement-type carriage
 
-- Exact lease base is `004ae6b5b47b7fc6757167c93b00c054da4c42f6`, equal
-  to `origin/main` when the bounded installed census began. The first current
-  production red is `tests/cases/backend_compare/tagged_union/main.pgy`:
-  installed tokens/AST succeed, native MIR succeeds, and installed MIR rejects
-  at `call_target_input`. A non-colliding multi-payload enum passes, isolating
-  the `None` short-name collision with the canonical builtin table. That
-  pre-change rejection is now repaired locally.
-- Objective: carry existing-symbol precedence through the typed enum callable
-  projection without rebinding the colliding short name. `SemanticAstEnumFacts`
-  owns ordered enum rows; `SemanticAstExpressionFunctionTableFacts` owns the
-  callable projection; call-target capture is the last semantic consumer before
-  installed source-MIR publication. This lease closes public
-  `pgy --mir-json`; default source compilation is a distinct downstream rung
-  and explicit native MIR remains only a frozen test oracle.
-- Forbidden overlap and fallback: no `None` spelling branch, fixture/name route,
-  source or AST rescan, duplicate callable rebinding, native retry, C round-trip,
-  builtin-prefix weakening, unrelated parser/world work, or Module Build
-  implementation. No other implementation task may edit or publish this rung.
-- The local candidate preserves the qualified variant row and lets an occupied
-  builtin keep the unqualified row. Its focused installed gate proves byte-
-  equal public/direct MIR, canonical native agreement for `tagged_union` and
-  the adjacent `enum_multi_payload`, artifact-free `let_type_mismatch` for the
-  colliding negative, and no native retry. The callable-table and enum-lifetime
-  owner smokes are also green.
-- Direct C/LLVM payload-member execution is explicitly outside this lease. Its
-  first observed blockers are an over-broad payload-free enum-match route and a
-  missing source-C statement payload type. Those become the successor rung
-  only after this lease is published. Census and forecast stay 88/185,
-  `55/32/1`, and 83% (81-85%). Protected user paths remain outside inspection,
-  edit, and staging.
+- Exact lease base is `19fa565a8042c6351ed9947e0eba17285b0857cd`.
+  Public installed source-to-MIR now succeeds for `tagged_union`, while public
+  C emission fails at statement node 9 with a missing result type. Explicit
+  native C executes exact `10`, `4`, `5`, `7`.
+- Objective: carry declaration-owned payload ordinal/type through
+  `SemanticExpressionGraphEnumPayloadTypeName` into
+  `SemanticAstStatementTypeFacts`, the last semantic consumer before
+  `CodegenSemanticStatementInferredTypeOrDie` and `EmitLog`.
+- Forbidden overlap and fallback: no source-text payload parser, enum or fixture
+  spelling branch, blanket `Int`, source/AST rescan, unchecked ordinal, native
+  retry, C round-trip, direct-MIR LLVM/backend route change, unrelated parser
+  work, or Module Build implementation. No other task may edit this rung.
+- Integration requires public installed C output exactly equal to the explicit
+  native oracle (`10`, `4`, `5`, `7`), no public native timing, artifact-free
+  invalid payload ordinal rejection, and green initializer/adjacent controls.
+  Census and forecast remain 88/185, `55/32/1`, and 83% (81-85%). Protected
+  user paths remain outside inspection, edit, and staging.
+
+## DONE implementation lease — enum-variant/builtin collision carriage
+
+- Implementation `19fa565a8042c6351ed9947e0eba17285b0857cd` preserves
+  existing-symbol precedence for the unqualified enum callable projection and
+  retains every qualified variant row without spelling-specific policy.
+- Public/direct installed MIR and the explicit native oracle agree for
+  `tagged_union` and adjacent `enum_multi_payload`. The collision negative fails
+  with `let_type_mismatch`, emits no MIR, and does not retry native.
+- The focused installed gate, callable-table and enum-lifetime smokes, and the
+  complete component contract are green locally. Push and exact CI are pending
+  at this snapshot.
 
 ## DONE implementation lease — role override declaration carriage
 
