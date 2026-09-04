@@ -56,6 +56,11 @@ for rel in \
     docs/semantics/proofs/ParallelSchedulingCore.v \
     docs/semantics/proofs/ParallelReductionCore.v \
     docs/semantics/proofs/ParallelModelCores.md \
+    docs/semantics/proofs/AsyncScopeCore.v \
+    docs/semantics/proofs/CapabilityFlowCore.v \
+    docs/semantics/proofs/SuspensionRevalidationCore.v \
+    docs/semantics/proofs/DeterministicSubsetCore.v \
+    docs/semantics/proofs/AsyncDirectionCores.md \
     docs/semantics/sot_owner_spine_registry.md \
     docs/semantics/proofs/ProofSpine.v \
     docs/semantics/proofs/ProofSpine.md \
@@ -130,6 +135,16 @@ require_text "docs/semantics/proofs/ParallelSchedulingCore.v" "Theorem help_in_c
 require_text "docs/semantics/proofs/ParallelReductionCore.v" "Theorem join_schedule_invariant"
 require_text "docs/semantics/proofs/ParallelReductionCore.v" "Theorem chunk_tiles"
 require_text "docs/semantics/proofs/ParallelReductionCore.v" "Theorem join_chunk_count_invariant"
+require_text "docs/semantics/proofs/AsyncScopeCore.v" "Theorem run_no_orphan"
+require_text "docs/semantics/proofs/AsyncScopeCore.v" "Theorem cancel_reaches_descendants"
+require_text "docs/semantics/proofs/AsyncScopeCore.v" "Theorem orphan_reachable_unstructured"
+require_text "docs/semantics/proofs/CapabilityFlowCore.v" "Theorem run_bounded"
+require_text "docs/semantics/proofs/CapabilityFlowCore.v" "Theorem loan_uniquely_held"
+require_text "docs/semantics/proofs/CapabilityFlowCore.v" "Theorem tls_default_forges"
+require_text "docs/semantics/proofs/SuspensionRevalidationCore.v" "Theorem stale_never_resolves"
+require_text "docs/semantics/proofs/SuspensionRevalidationCore.v" "Theorem unchecked_deref_hits_new_occupant"
+require_text "docs/semantics/proofs/DeterministicSubsetCore.v" "Theorem deterministic_subset"
+require_text "docs/semantics/proofs/DeterministicSubsetCore.v" "Example write_conflict_is_schedule_dependent"
 # Status counts are owned and validated by scripts/sot_registry_gate.py. This
 # smoke only proves the registry exposes its derived summary; copying a count
 # here would create a second authority and go stale on the next owner move.
@@ -172,6 +187,13 @@ for term in \
     "NodeParallelSchedulingCore" \
     "NodeParallelReductionCore" \
     "Theorem complete_spine_connects_parallel_progress" \
+    "NodeAsyncScopeCore" \
+    "NodeCapabilityFlowCore" \
+    "NodeSuspensionRevalidationCore" \
+    "NodeDeterministicSubsetCore" \
+    "AsyncDirectionConnected" \
+    "Theorem complete_spine_connects_async_direction" \
+    "Theorem async_direction_discharges_no_obligation" \
     "Theorem complete_spine_is_not_whole_language_verification" \
     "Theorem whole_language_ready_requires_pin_exceptional_cleanup" \
     "Theorem whole_language_ready_requires_parser_to_ast_manifest" \
@@ -195,6 +217,12 @@ require_text "docs/semantics/proofs/ProofSpine.md" "AuthorityIrreducibility.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "structured async"
 require_text "docs/semantics/proofs/ProofSpine.md" "AsyncLifecycleCore.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "AsyncContextCore.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "async direction"
+require_text "docs/semantics/proofs/ProofSpine.md" "AsyncScopeCore.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "CapabilityFlowCore.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "SuspensionRevalidationCore.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "DeterministicSubsetCore.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "async_direction_adequacy_smoke.sh"
 require_text "docs/semantics/proofs/ProofSpine.md" "architecture boundary"
 require_text "docs/semantics/proofs/ProofSpine.md" "DelegationBoundaryCore.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "LossCompositionCore.v"

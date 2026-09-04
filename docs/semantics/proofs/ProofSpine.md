@@ -31,7 +31,13 @@ present before a proof-pack-level claim can be made.
 - bounded-rung SoT authority: `SoTAuthority.v`;
 - structured async: `AsyncLifecycleCore.v` and `AsyncContextCore.v`. This
   connects named-Future containment to task-context carriage without making
-  the `async` marker own either responsibility.
+  the `async` marker own either responsibility;
+- async direction: `AsyncScopeCore.v`, `CapabilityFlowCore.v`,
+  `SuspensionRevalidationCore.v`, and `DeterministicSubsetCore.v`, each
+  connected to the landed node it refines (`AsyncLifecycleCore.v`,
+  `AsyncContextCore.v`, `SlotCalculus.v`, `ParallelReductionCore.v`). These
+  model the disciplines `docs/204` adopts above the landed contracts; the
+  spine proves the claim discharges no remaining obligation.
 
 ## Negative Boundary
 
@@ -104,6 +110,14 @@ remaining obligation blocks that stronger claim.
   trace containment and the second exact parent-context preservation;
 - `async_model_adequacy_smoke.sh` binds those model transitions to the semantic
   Future state/merge owner and runtime context capture/bind/restore paths;
+- `AsyncScopeCore.v`, `CapabilityFlowCore.v`, `SuspensionRevalidationCore.v`,
+  and `DeterministicSubsetCore.v` keep the async direction tied to a scope
+  tree, a manifest-bounded capability mask, a generational slot reference,
+  and a footprint-independent task family, each with a machine-checked
+  counterexample for the unstructured alternative;
+- `async_direction_adequacy_smoke.sh` binds those four models to `docs/113`,
+  the dormant `AsyncScope` skeleton, the runtime context owner, the
+  generational handle, and the index-order fold;
 - `sot_authority_adequacy_smoke.sh` binds the first concrete model row to the
   live semantic array-literal owner and codegen consumer, and mutation-tests
   missing-owner and reintroduced-fallback rejection;

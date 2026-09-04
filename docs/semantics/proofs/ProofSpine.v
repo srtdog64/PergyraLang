@@ -45,7 +45,11 @@ Inductive ProofNode : Type :=
   | NodeAsyncLifecycleCore
   | NodeAsyncContextCore
   | NodeParallelSchedulingCore
-  | NodeParallelReductionCore.
+  | NodeParallelReductionCore
+  | NodeAsyncScopeCore
+  | NodeCapabilityFlowCore
+  | NodeSuspensionRevalidationCore
+  | NodeDeterministicSubsetCore.
 
 Inductive SpineClaim : Type :=
   | RuntimeSafetyConnected
@@ -60,6 +64,7 @@ Inductive SpineClaim : Type :=
   | SoTAuthorityConnected
   | StructuredAsyncConnected
   | ParallelProgressConnected
+  | AsyncDirectionConnected
   | WholeLanguageVerified.
 
 Inductive RemainingObligation : Type :=
@@ -104,7 +109,11 @@ Definition ProofSpineComplete (s : ProofNode -> Prop) : Prop :=
   HasNode s NodeAsyncLifecycleCore /\
   HasNode s NodeAsyncContextCore /\
   HasNode s NodeParallelSchedulingCore /\
-  HasNode s NodeParallelReductionCore.
+  HasNode s NodeParallelReductionCore /\
+  HasNode s NodeAsyncScopeCore /\
+  HasNode s NodeCapabilityFlowCore /\
+  HasNode s NodeSuspensionRevalidationCore /\
+  HasNode s NodeDeterministicSubsetCore.
 
 Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
   match c with
@@ -170,6 +179,22 @@ Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
       HasNode s NodeParallelSchedulingCore /\
       HasNode s NodeParallelReductionCore /\
       HasNode s NodeWitnessDataRace
+  (* The async direction cores model disciplines docs/204 adopts above the
+     landed contracts: a scope tree over the per-handle lifecycle, lend/move
+     carriage over exact capture, revalidation across a suspension over the
+     one-context slot calculus, and schedule independence of the task
+     bodies over the index-order fold. Each direction node is connected to
+     the landed node it refines, so the claim is about the design and its
+     anchor, never about a landed compiler rung. *)
+  | AsyncDirectionConnected =>
+      HasNode s NodeAsyncScopeCore /\
+      HasNode s NodeAsyncLifecycleCore /\
+      HasNode s NodeCapabilityFlowCore /\
+      HasNode s NodeAsyncContextCore /\
+      HasNode s NodeSuspensionRevalidationCore /\
+      HasNode s NodeSlotCalculus /\
+      HasNode s NodeDeterministicSubsetCore /\
+      HasNode s NodeParallelReductionCore
   | WholeLanguageVerified => False
   end.
 
@@ -296,6 +321,29 @@ Proof.
   intros s Hcomplete.
   unfold PermitsClaim.
   repeat split; apply complete_spine_has_node; exact Hcomplete.
+Qed.
+
+Theorem complete_spine_connects_async_direction :
+  forall s, ProofSpineComplete s -> PermitsClaim s AsyncDirectionConnected.
+Proof.
+  intros s Hcomplete.
+  unfold PermitsClaim.
+  repeat split; apply complete_spine_has_node; exact Hcomplete.
+Qed.
+
+(* A direction claim is not a landed-rung claim. Connecting the direction
+   cores discharges no remaining obligation: the scope tree's cancellation
+   step in AsyncScopeCore.v says nothing about pin cleanup on that path. *)
+Theorem async_direction_discharges_no_obligation :
+  forall s d,
+    PermitsClaim s AsyncDirectionConnected ->
+    HasOpenRemainingObligation d ->
+    ~ WholeLanguageVerificationReady s d.
+Proof.
+  intros s d _ [o Hopen] [_ Hall].
+  apply Hopen.
+  unfold AllRemainingObligationsDischarged in Hall.
+  destruct o; tauto.
 Qed.
 
 Theorem complete_spine_is_not_whole_language_verification :
