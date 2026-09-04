@@ -6,21 +6,39 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — lowercase source entrypoint selection
+## ACTIVE discovery lease — installed source-LLVM lowercase entrypoint envelope
 
-- Exact implementation checkpoint is
-  `62e4b0c56ee22f052ae94436fac5bd99912acbd4`; exact discovery/lease base is
-  docs checkpoint `2617f8b81519794f6d2a080400e8dcc248223765`, equal to
-  `origin/main` when this lease opened. The primary task exclusively owns this
-  executable rung, its semantic/codegen edits, focused gate, handoff refresh,
-  commit, push, and exact-head CI. No parallel task may edit or publish it.
-- The installed production falsifier is
+- Exact published base is `bd02e79f83f418bcbc3fe48caaf3487ef18e311f`,
+  equal to `origin/main`; exact-head run `33823024566` is 30/30 green. This
+  lease is read-only. No task may edit or publish a successor implementation
+  until the objective card names the fact owner, last orchestration consumer,
+  forbidden fallback, and focused falsifier gate.
+- The reached production red is public installed source-to-LLVM for
+  `tests/cases/backend_compare/entry_lowercase_main/main.pgy`. The admitted
+  self-MIR carries lowercase `main`, while the current direct-MIR literal-Log
+  envelope remains uppercase-specific and fails closed. Source-C and native
+  C/LLVM execute exact `lowercase-main`; native retry and C round-trip are
+  forbidden.
+- Discovery may inspect only this reached direct-MIR envelope and its existing
+  owner/consumer chain. It must not open a general query/cache engine, expand
+  literal-Log shapes, change the entrypoint row's status, or begin Module Build.
+  Module Build remains deferred through self-host closure, evidence/identity
+  compression, and one real external workload.
+
+## DONE implementation lease — lowercase source entrypoint selection
+
+- Exact discovery/lease base was docs checkpoint
+  `2617f8b81519794f6d2a080400e8dcc248223765`. Implementation
+  `d3452345f0ca3a7ca483007a0ae23c757bf1105f` and cap repair
+  `bd02e79f83f418bcbc3fe48caaf3487ef18e311f` are published; this lease is
+  released.
+- The initial installed production falsifier was
   `tests/cases/backend_compare/entry_lowercase_main/main.pgy`: installed
   source-C/source-LLVM/self-MIR reject lowercase `main` at semantic cardinality,
   while native C/LLVM execute exact `lowercase-main` and native MIR selects
   routine `main`. `docs/124_syntax_pattern_matrix.md` already declares this
   spelling as a driver entry path.
-- Existing owner `SemanticAstFunctionSignatureFacts` must issue one selected
+- Existing owner `SemanticAstFunctionSignatureFacts` now issues one selected
   signature identity using `Main` first and lowercase `main` only as fallback.
   The artifact verdict and source-C codegen view/prototype/function/program
   emission are the last consumers. Consumer-local name tests, AST/source
@@ -32,6 +50,11 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   ratchets deleting the consumer name reads. Direct-MIR literal-Log projection
   remains a separate fail-closed seam if still red. This repairs an overclaimed
   `CLOSED` row; census and percentage do not move. Module Build stays deferred.
+- The first exact run `33821520140` found only a 243/240 prototype-owner line
+  cap in the Linux aggregate. The cap stayed fixed and the owner returned to
+  240 lines. Replacement run `33823024566` completed 30/30 green in 25m01s,
+  installed DRV-2, proved `gen2 == gen3 (174777 lines)`, and classified the
+  production policy corpus as `3 in_subset / 0 out_of_subset`.
 
 ## DONE implementation lease — logical-record `Option<Int>` field materialization
 

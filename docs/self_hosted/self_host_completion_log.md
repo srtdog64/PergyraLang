@@ -12298,3 +12298,30 @@ Released/default replacement remains 0%.
   the receipt is 65,130 implementation LOC, 192,814 compiler-core LOC, 19.58%,
   default C emit `substituting`, and full default compile `open`. Remote CI,
   full GraphPlan aggregate, commit, push, and publication remain unrun.
+
+## 2026-09-04 - Lowercase entrypoint semantic identity and source-C execution
+
+- The documented/native lowercase `func main()` path was a production
+  self-host falsifier: installed semantic admission, self-MIR, and source-C
+  rejected it while native C/LLVM executed exact `lowercase-main`.
+- `SemanticAstFunctionSignatureFacts` now carries one selected entrypoint fact.
+  Uppercase `Main` owns the primary tier and lowercase `main` is used only when
+  that tier is absent. Artifact admission and source-C projection/prototype/
+  function/program emitters consume the selected identity; their independent
+  name scans are removed and negatively gated.
+- Installed self-MIR preserves one lowercase routine identity. Installed
+  source-C materializes one distinct user body plus one host wrapper call and
+  executes the golden output. Worker-only and crossed index/spelling mutations
+  fail without an artifact; uppercase `Main` remains green. Direct-MIR LLVM is
+  deliberately outside this closure and remains the next observed red.
+- Implementation `d3452345` is published. Exact run `33821520140` exposed a
+  single 243/240 shrink-only cap in the prototype owner; the cap stayed fixed
+  and repair `bd02e79f` returned the file to 240 lines. Replacement run
+  `33823024566` completed 30/30 green in 25m01s, installed the Pergyra-built
+  DRV-2, proved `gen2 == gen3 (174777 lines)`, and reported
+  `3 in_subset / 0 out_of_subset` for the production policy corpus.
+- This is a repair inside already-CLOSED `selfhost.entrypoint_selection`, not a
+  new authority or hard-replacement numerator. Census remains 88 authorities /
+  185 derived and `55/32/1`; integrated forecast remains 83% (81-85%). Module
+  Build stays deferred until self-host closure, evidence/identity compression,
+  and one real external workload.

@@ -2,7 +2,31 @@
 
 마지막 업데이트: 2026-09-04
 
-최신 published checkpoint `62e4b0c5`의 exact-head run `33810319796`은 36분
+최신 published checkpoint `bd02e79f`의 exact-head run `33823024566`은 25분
+01초에 30/30 green이다. Full self-host는 24분 22초에 Pergyra-built DRV-2를
+설치하고 `gen2 == gen3 (174777 lines)`를 증명했으며 production policy corpus는
+`3 in_subset / 0 out_of_subset`였다. Linux는 24개 push step을 21분 45초에
+통과했고, codegen fixed point 9분 02초, sanitizers 12분 56초, Windows 7분 54초,
+Rocq 9 1분 46초, macOS 2분 09초, TSan 14초, backend comparison 20/20이 모두
+green이다.
+
+이번 bounded repair는 lowercase `func main()`을 semantic signature owner의 단일
+선택 fact로 만들었다. `Main`이 있으면 우선하고 없을 때만 `main`을 고르며, artifact
+admission과 source-C의 마지막 소비자들은 이름을 다시 스캔하지 않는다. Installed
+self-MIR은 lowercase identity를 보존하고 source-C는 별도 user body와 host wrapper를
+정확히 한 번씩 물리화해 `lowercase-main`을 실행한다. Worker-only와 crossed
+identity/spelling 변이는 artifact 없이 실패한다. 첫 run `33821520140`이 발견한
+243/240 prototype-owner cap은 상한을 올리지 않고 240줄로 복원했다.
+
+이는 이미 `CLOSED`인 `selfhost.entrypoint_selection`의 과장된 범위를 수리한 것이며
+새 authority나 hard substitution 분자가 아니다. Census는 88 authorities / 185
+derived, `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%)로
+유지한다. 다음 관측된 red는 같은 fixture의 installed source-LLVM이 lowercase self-MIR을
+받은 뒤 direct-MIR literal-Log program envelope에서 실패하는 경계다. 다음 작업은 이
+도달 경계의 owner/last consumer/forbidden fallback/negative gate를 확정하는 bounded
+read-only discovery이며, 그 전에는 구현 lease를 열지 않는다.
+
+그 직전 published checkpoint `62e4b0c5`의 exact-head run `33810319796`은 36분
 35초에 30/30 green이다. Full self-host는 36분 18초에 Pergyra-built DRV-2를
 설치하고 `gen2 == gen3 (174625 lines)`를 증명했다. Production CLI corpus gate는 세
 정책 소스를 모두 실제 `--emit-c-verified` 경로와 같은 comparator/runtime profile로
@@ -11,7 +35,7 @@
 refusal로 잘못 센 harness 결과였으며, subset 사실로는 폐기한다. 해당 run의 다른
 30/30 CI와 fixed-point 증거는 유효하다.
 
-가장 최근 닫힌 executable seam은 다음 실제 실패였다.
+그 checkpoint가 닫은 executable seam은 다음 실제 실패였다.
 `Metadata { Bool, Option<Int> }`는 native C/LLVM에서 `11`을 실행하지만, 기존 설치
 DRV-2 source-C는 필드를 거절하고 direct C/LLVM은 ABI-free `Metadata` callable을
 거절했다. Self/native MIR 모두 이 record를 layout id 0, required false, null layout로
@@ -35,9 +59,9 @@ corrected corpus census를 확인했다.
 `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%)로 유지한다. 독립
 Module Build는 구현하지 않으며 순서는 `self-host closure -> evidence/identity
 compression -> 실제 외부 프로젝트 -> ModuleInterface -> BuildUnit/incremental build`로
-docs 109/202에 예약돼 있다. 다음 작업은 installed production entrypoint에서 실제
-후속 semantic-admission 실패 하나를 재현하고 owner/last consumer/negative gate를
-확정하는 bounded read-only discovery다. 재현 전에는 새 구현 lease를 열지 않는다.
+docs 109/202에 예약돼 있다. 당시 후속 작업은 installed production entrypoint에서
+실제 semantic-admission 실패 하나를 재현하고 owner/last consumer/negative gate를
+확정하는 bounded read-only discovery였다.
 
 가장 최근 닫힌 executable prerequisite는 `Array<String>` owner-handle
 양분기 이동이다. 16,171바이트의 verified MIR은 한 지역값을 같은 owner parameter로

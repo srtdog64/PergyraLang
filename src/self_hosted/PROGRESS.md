@@ -1,5 +1,28 @@
 # Self-Host Progress
 
+## Completed self-host context - 2026-09-04 lowercase entrypoint selection
+
+- Lowercase `func main()` was already a documented/native entry spelling, but
+  installed self-MIR and source-C rejected it before publication. The semantic
+  signature owner now issues one selected identity: uppercase `Main` is the
+  primary tier and lowercase `main` is the fallback. Artifact admission and all
+  source-C consumers use that identity instead of rescanning names.
+- Installed self-MIR preserves one lowercase routine. Installed source-C emits
+  one user body and one host wrapper call and executes exact `lowercase-main`.
+  Worker-only and crossed selection/spelling mutations publish no artifact;
+  uppercase `Main` remains green. The focused gate does not claim direct-MIR
+  LLVM, whose separate literal-Log envelope is still red.
+- Implementation `d3452345` and fixed-cap repair `bd02e79f` are published.
+  First run `33821520140` found the prototype owner at 243/240 lines; the cap was
+  not raised. Exact replacement run `33823024566` completed 30/30 green in
+  25m01s, installed DRV-2, proved `gen2 == gen3 (174777 lines)`, and censused
+  the policy corpus as `3 in_subset / 0 out_of_subset`.
+- This repairs the already-CLOSED entrypoint row and does not increase progress.
+  Census remains 88 authorities / 185 carriers / `55/32/1`, integrated 83%
+  (81-85%), strict beta 83%, and hard replacement 75%. Module Build remains
+  design-only until self-host closure, evidence compression, and one external
+  workload establish the minimum interface receipt.
+
 ## Completed self-host context - 2026-09-01 AST public JSON diagnostic receipt
 
 - Public `SOURCE --ast --error-format=json` previously stopped at the C

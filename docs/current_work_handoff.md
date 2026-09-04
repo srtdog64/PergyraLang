@@ -18,44 +18,58 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — lowercase source entrypoint selection
+## Active self-host context — next installed source-LLVM falsifier discovery
 
-- Exact implementation checkpoint is
-  `62e4b0c56ee22f052ae94436fac5bd99912acbd4`; its exact-head run
-  `33810319796` completed 30/30 green in 36m35s, installed DRV-2, proved
-  `gen2 == gen3 (174625 lines)`, and classified the policy corpus as
-  `3 in_subset / 0 out_of_subset`. Discovery and this lease start from docs
-  checkpoint `2617f8b81519794f6d2a080400e8dcc248223765`, equal to
-  `origin/main` when the lease opened. The protected user-owned
+- Exact published checkpoint is
+  `bd02e79f83f418bcbc3fe48caaf3487ef18e311f`, equal to `origin/main`.
+  Exact-head run `33823024566` completed 30/30 green in 25m01s. Full self-host
+  took 24m22s, installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (174777 lines)`, and classified the production policy corpus as
+  `3 in_subset / 0 out_of_subset`. The protected user-owned
   `examples/raid_graph_fsm/results.txt` change and three protected untracked
   directories remain outside inspection, edit, and staging.
-- Production falsifier is
-  `tests/cases/backend_compare/entry_lowercase_main/main.pgy`: installed
-  source-C, source-LLVM, and self-MIR reject it with
-  `entrypoint_cardinality` and publish no artifact, while native C/LLVM execute
-  exact `lowercase-main` and native MIR carries routine `main`. The language
-  contract already lists lowercase `func main()` as a driver entry path.
-- Objective: the existing `SemanticAstFunctionSignatureFacts` owner issues one
-  selected entrypoint signature identity with native-compatible uppercase
-  `Main` priority and lowercase `main` fallback. Semantic admission and source-C
-  materialization consume that identity; they do not rescan names. Priority is
-  semantic identity/one SoT, exact native priority, consumer migration, old-read
-  deletion, then an artifact-free negative ratchet. Last source-C consumers are
-  the artifact verdict, semantic signature codegen view, prototype block,
-  function emitter, and program emitter.
-- Forbidden paths are independent `Main || main` checks in consumers,
-  AST/source rescans, method-name admission, a C-only lowercase exception,
-  fixture-name routing, native retry, C round-trip, an unsealed selected
-  index/node/name, and claiming direct-MIR backend closure if its separate
-  literal-Log envelope remains unsupported. The focused gate requires installed
-  source-C runtime `lowercase-main`, self-MIR selected routine `main`, distinct
-  lowercase user C symbol plus exactly one host-wrapper call, worker-only and
-  crossed-selection artifact-free negatives, and an uppercase `Main`
-  regression. This repairs the already `CLOSED` entrypoint row; it does not
-  change census or progress percentage.
+- No successor implementation lease is open. The next observed production red
+  is the public installed source-to-LLVM route for
+  `tests/cases/backend_compare/entry_lowercase_main/main.pgy`: semantic
+  admission and self-MIR now preserve lowercase routine `main`, but the current
+  direct-MIR literal-Log projection rejects its program envelope. Source-C and
+  native C/LLVM already execute exact `lowercase-main`; native retry remains
+  forbidden and absent. This is a falsifier observation, not a completed owner
+  selection or a new closure claim.
+- The next bounded step is read-only discovery: identify the existing fact owner,
+  the last orchestration consumer, the exact uppercase-only read to retire, and
+  one focused source-LLVM parity/negative gate. Do not edit the direct-MIR owner
+  family until that objective card is fixed. Do not infer general entrypoint,
+  literal-Log, or whole-backend closure from the one-instruction fixture.
 - Module Build remains design-only and deferred in the order
   `self-host closure -> evidence/identity compression -> real external project ->
   ModuleInterface -> BuildUnit/incremental build`.
+
+## Published self-host context — lowercase source entrypoint selection
+
+- Implementation `d3452345f0ca3a7ca483007a0ae23c757bf1105f` and owner-cap
+  repair `bd02e79f83f418bcbc3fe48caaf3487ef18e311f` are published. The existing
+  semantic signature owner now issues one selected entrypoint identity with
+  uppercase `Main` priority and lowercase `main` fallback. Artifact admission,
+  semantic codegen view, prototype/function emission, and the host wrapper
+  consume that identity without independent name scans.
+- Installed self-MIR retains exactly one lowercase routine identity. Installed
+  source-C emits one distinct user body, one host `int main`, and one wrapper
+  call; it executes exact `lowercase-main`. A worker-only mutation and crossed
+  selected index/spelling fail without an artifact, and uppercase `Main`
+  remains green. The focused gate deliberately does not claim the separate
+  direct-MIR backend envelope.
+- First exact implementation run `33821520140` passed every completed parallel
+  axis but found the prototype owner at 243 lines against its 240-line
+  shrink-only cap. The cap was not raised: the same semantic call was compacted
+  back to 240 lines. Replacement run `33823024566` completed 30/30 green;
+  Linux passed all 24 push steps in 21m45s, codegen fixed point took 9m02s,
+  sanitizers 12m56s, Windows 7m54s, Rocq 9 1m46s, macOS 2m09s, TSan 14s, and
+  backend comparison stayed 20/20 green.
+- This repairs the already `CLOSED` `selfhost.entrypoint_selection` row. It is
+  not a new top-level authority or hard-substitution numerator: census and
+  forecast remain 88 authorities / 185 derived,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%).
 
 ## Published self-host context — logical-record `Option<Int>` field materialization
 
