@@ -139,11 +139,13 @@ func DirectMirRoleOverrideDeclarationMethodName(
     return UnwrapOption(name);
 }
 
-func DirectMirRoleOverrideGraphIdentitiesAbsent(
-    ref sequence: MirExpressionGraphSequence
+func DirectMirRoleOverrideGraphIdentitiesMatch(
+    ref sequence: MirExpressionGraphSequence,
+    target_row: Int, target_syntax_id: Int
 ) -> Bool {
     let count: Int = sequence.ready_node_count;
-    if !sequence.ok || count < 1 ||
+    if !sequence.ok || count < 1 || target_row < -1 || target_row >= count ||
+        (target_row >= 0) != (target_syntax_id > 0) ||
         ArrayLength(sequence.arena.identities.call_target_syntax_ids) != count ||
         ArrayLength(sequence.arena.identities.runtime_call_abi_ids) != count ||
         ArrayLength(sequence.arena.identities.binding_syntax_ids) != count ||
@@ -153,7 +155,10 @@ func DirectMirRoleOverrideGraphIdentitiesAbsent(
     }
     let row: Int = 0;
     while row < count {
-        if sequence.arena.identities.call_target_syntax_ids[row] != 0 ||
+        let expected_target_id: Int = 0;
+        if row == target_row { expected_target_id = target_syntax_id; }
+        if sequence.arena.identities.call_target_syntax_ids[row] !=
+                expected_target_id ||
             sequence.arena.identities.runtime_call_abi_ids[row] != 0 ||
             sequence.arena.identities.binding_syntax_ids[row] != 0 ||
             sequence.arena.identities.binding_kinds[row] !=
@@ -273,7 +278,8 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         );
     let literal: DirectMirHelloProjection =
         DirectMirHelloGraphProjection(instruction);
-    if !literal.valid || !DirectMirRoleOverrideGraphIdentitiesAbsent(sequence) ||
+    if !literal.valid || !DirectMirRoleOverrideGraphIdentitiesMatch(
+            sequence, -1, 0) ||
         sequence.ready_node_count != 1 || ArrayLength(sequence.roots) != 1 ||
         sequence.roots[0] != 0 || capture.expr0 != literal.literal ||
         sequence.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
@@ -291,7 +297,7 @@ func DirectMirRoleOverrideConstructorGraphValue(
     ref sequence: MirExpressionGraphSequence,
     subject_name: String
 ) -> Option<Int> {
-    if !DirectMirRoleOverrideGraphIdentitiesAbsent(sequence) ||
+    if !DirectMirRoleOverrideGraphIdentitiesMatch(sequence, -1, 0) ||
         sequence.ready_node_count != 4 || ArrayLength(sequence.roots) != 1 ||
         sequence.roots[0] != 3 ||
         sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
@@ -323,11 +329,11 @@ func DirectMirRoleOverrideConstructorGraphValue(
 
 func DirectMirRoleOverrideMemberGraphReady(
     ref sequence: MirExpressionGraphSequence,
-    local_name: String,
-    method_name: String,
-    target_name: String
+    local_name: String, method_name: String, target_name: String,
+    target_syntax_id: Int
 ) -> Bool {
-    return DirectMirRoleOverrideGraphIdentitiesAbsent(sequence) &&
+    return DirectMirRoleOverrideGraphIdentitiesMatch(
+            sequence, 3, target_syntax_id) &&
         sequence.ready_node_count == 4 && ArrayLength(sequence.roots) == 1 &&
         sequence.roots[0] == 3 &&
         sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
@@ -355,7 +361,7 @@ func DirectMirRoleOverrideMainFromRoutine(
     routine_row: Int,
     subject_name: String,
     method_name: String,
-    source_module_path: String
+    source_module_path: String, member_target_syntax_id: Int
 ) -> DirectMirRoleOverrideMainFact {
     let invalid: DirectMirRoleOverrideMainFact =
         InvalidDirectMirRoleOverrideMainFact();
@@ -470,7 +476,8 @@ func DirectMirRoleOverrideMainFromRoutine(
     );
     if !IsSome(constructor_value) ||
         !DirectMirRoleOverrideMemberGraphReady(
-            log_graph, local_name, method_name, target_name
+            log_graph, local_name, method_name, target_name,
+            member_target_syntax_id
         ) {
         return invalid;
     }
@@ -758,7 +765,7 @@ func DirectMirRoleOverrideProgramIdentityFromAdmitted(
         DirectMirRoleOverrideMainFromRoutine(
             admitted, main_row,
             admitted.routines.declarations.names[subject_row],
-            subject_method_name, module_path
+            subject_method_name, module_path, subject_literal.source_syntax_id
         );
     if !subject_literal.valid || !role_literal.valid || !main.valid {
         Die("direct MIR role override routine facts are invalid");

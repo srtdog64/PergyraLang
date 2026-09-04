@@ -10,7 +10,6 @@ source = pathlib.Path(sys.argv[1])
 target = pathlib.Path(sys.argv[2])
 baseline = json.loads(source.read_text(encoding="utf-8"))
 
-
 def declaration(document, kind):
     rows = [row for row in document["decls"] if row["kind"] == kind]
     if len(rows) != 1:
@@ -82,6 +81,14 @@ emit("member-target", "negative", lambda d: main_instruction(
     d, 1
 )["expr0_graph"]["nodes"][3].__setitem__(
     "call_target_name", "OverrideSurface_Name"
+))
+emit("member-target-id-zero", "negative", lambda d: main_instruction(
+    d, 1
+)["expr0_graph"]["nodes"][3].__setitem__("call_target_syntax_id", 0))
+emit("member-target-id-wrong", "negative", lambda d: main_instruction(
+    d, 1
+)["expr0_graph"]["nodes"][3].__setitem__(
+    "call_target_syntax_id", routine(d, "OverrideSurface")["source_syntax_id"]
 ))
 emit("constructor-target", "negative", lambda d: main_instruction(
     d, 0
