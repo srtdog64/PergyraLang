@@ -23,10 +23,16 @@ percentage by themselves.
 - Exact executable checkpoint is
   `506c25272637203ee6bb8a0f6b9462d2a6f226fd`, repairing the published
   audit/resume checkpoint `67ab142efb74e9010ea57034e370dcacbfeb77e3`.
-  The separately user-owned dirty paths remain
+  Exact integration-evidence checkpoint
+  `63bed984af9f1b5324dc505b45fcebf6920697f7` descends through the concurrently
+  published proof-spine checkpoint
+  `a7d0228e5f0d9a63107761b45db3baa9574bd9c1`. The separately user-owned dirty
+  paths remain
   `examples/raid_graph_fsm/results.txt`,
   `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/`; they
-  were not inspected, edited, or staged.
+  were not inspected, edited, or staged. Concurrent other-task paths
+  `src/compiler/self_host_llvm_driver.c` and `caf_probe_tmp.pgy` were likewise
+  left untouched and unstaged at this snapshot.
 - Objective: reject a payload projection unless source semantics proves the
   receiver's active enum constructor before MIR publication. The fact owner is
   `SemanticAstEnumPayloadVariantProvenanceVerdict`; its last legitimate
@@ -75,6 +81,17 @@ percentage by themselves.
   `506c2527` consumes that ID instead of restoring identity absence, adds zero
   and wrong-ID falsifiers, and refreshes the inventory through its canonical
   generator. Both exact failed gates and the broader local ratchets are green.
+- Run `33917501829` at `47aaf032` was concurrency-cancelled without a failure
+  after seven jobs passed when the other task published `a7d0228e`. Exact
+  descendant run `33918274707` then completed 29/30: full self-host bootstrap,
+  the strengthened Rocq proof spine, every platform/sanitizer/codegen job, and
+  all twenty backend shards passed. The prior role-override and language-word
+  failures also passed. `build-linux` reached the final preparation contract
+  and exposed only the stale callable owner-set hash in
+  `benchmarks/selfhost_source_scan_owner_evidence.json`. Checkpoint
+  `63bed984` records the exact current set/file hashes and explicitly retains
+  the old performance figures as unremeasured; its focused source-scan gate is
+  green locally.
 - The active next action is the exact documentation checkpoint, one push, and
   replacement exact-head CI. Do not open affine-Future, Zone spawn ABI, root-JSON,
   duplicate InstructionId, Module Build, or another SoT seam before that

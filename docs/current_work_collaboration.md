@@ -79,6 +79,17 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   the source 5/21 and complete component ratchets locally. This documentation
   checkpoint, publication, and replacement exact CI remain integration work;
   no census or percentage change is claimed.
+- Run `33917501829` at `47aaf032` was concurrency-cancelled after seven green
+  jobs when the independent proof-spine checkpoint `a7d0228e` was published.
+  Its exact descendant run `33918274707` completed 29/30: the updated Rocq
+  spine, full self-host bootstrap, platforms, sanitizers, codegen, and twenty
+  backend shards passed, as did both prior Linux repairs. The only remaining
+  `build-linux` failure was the stale callable owner-set hash reached at the
+  end of the preparation contract. Evidence checkpoint
+  `63bed984af9f1b5324dc505b45fcebf6920697f7` updates only exact current hashes,
+  retains the historical performance observations as unremeasured, and passes
+  `tests/self_host_source_scan_owner_smoke.sh` locally. Replacement exact-head
+  CI remains publication work.
 
 ## DONE implementation lease — direct-MIR tagged-enum payload program
 

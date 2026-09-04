@@ -1,6 +1,6 @@
 # Counterexample attack results — 2026-09-05
 
-Status: `READ-ONLY CAMPAIGN COMPLETE — SOURCE RUNG PUBLISHED; FIRST CI 29/30; INTEGRATION REPAIR LOCALLY GREEN; SUCCESSOR REDS NOT REPAIRED`
+Status: `READ-ONLY CAMPAIGN COMPLETE — SOURCE RUNG PUBLISHED; TWO CI RUNS REACHED 29/30; FINAL INTEGRATION EVIDENCE LOCALLY GREEN; SUCCESSOR REDS NOT REPAIRED`
 
 Observed repository base:
 `b4cfb0f2ef883d8f5b80ef96eafd89c1898c3d30`.
@@ -22,6 +22,9 @@ Published audit/resume checkpoint:
 
 Local integration repair checkpoint:
 `506c25272637203ee6bb8a0f6b9462d2a6f226fd`.
+
+Local source-scan evidence checkpoint:
+`63bed984af9f1b5324dc505b45fcebf6920697f7`.
 
 Fresh candidate DRV-2:
 
@@ -202,6 +205,18 @@ and fourteen source negatives. The language registry, source 5/21 gate, hard
 contract, and complete component inventory/removed-path ratchet are green
 locally. Replacement exact-head CI remains pending; none of this changes a SoT
 registry state or the 83% forecast.
+
+Run `33917501829` at `47aaf032` was then concurrency-cancelled after seven
+green jobs by independent proof-spine descendant `a7d0228e`. Exact descendant
+run `33918274707` completed 29/30. It proved the updated Rocq corpus, full
+self-host fixed point, every platform/sanitizer/codegen job, all twenty backend
+shards, and both preceding Linux repairs. The sole failure was reached later in
+the preparation contract: `self_host_source_scan_owner_smoke.sh` still pinned
+the pre-change callable owner-set hash. Checkpoint `63bed984` updates that set
+hash and the changed identity-resolution owner hash, names source revision
+`95148fdc`, and explicitly says the historical performance figures were not
+remeasured. The exact source-scan gate is green locally. Replacement CI remains
+pending, so this is integration evidence rather than a SoT closure claim.
 
 This evidence closes neither arbitrary alias analysis nor a whole-language CFG
 theorem. Member/index/function-return provenance, loop projections, generic
