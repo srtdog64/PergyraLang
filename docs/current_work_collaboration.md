@@ -6,25 +6,44 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — tagged-enum payload statement-type carriage
+## ACTIVE implementation lease — direct-MIR tagged-enum payload program
 
-- Exact lease base is `19fa565a8042c6351ed9947e0eba17285b0857cd`.
-  Public installed source-to-MIR now succeeds for `tagged_union`, while public
-  C emission fails at statement node 9 with a missing result type. Explicit
-  native C executes exact `10`, `4`, `5`, `7`.
-- Objective: carry declaration-owned payload ordinal/type through
-  `SemanticExpressionGraphEnumPayloadTypeName` into
-  `SemanticAstStatementTypeFacts`, the last semantic consumer before
-  `CodegenSemanticStatementInferredTypeOrDie` and `EmitLog`.
-- Forbidden overlap and fallback: no source-text payload parser, enum or fixture
-  spelling branch, blanket `Int`, source/AST rescan, unchecked ordinal, native
-  retry, C round-trip, direct-MIR LLVM/backend route change, unrelated parser
-  work, or Module Build implementation. No other task may edit this rung.
-- Integration requires public installed C output exactly equal to the explicit
-  native oracle (`10`, `4`, `5`, `7`), no public native timing, artifact-free
-  invalid payload ordinal rejection, and green initializer/adjacent controls.
-  Census and forecast remain 88/185, `55/32/1`, and 83% (81-85%). Protected
-  user paths remain outside inspection, edit, and staging.
+- Exact lease base is `517664e44fc07a6bcc3b3bb227c5d72bf6e5f896`.
+  Its installed MIR producer is green, but direct C and LLVM both reject the
+  one-block/seven-instruction `tagged_union` artifact without output because an
+  enum declaration alone claims the payload-free value-match CFG route.
+- Objective: use the admitted declaration, instruction, expression-graph, and
+  SSA-use facts to distinguish a straight-line payload enum from a real
+  payload-free match, then feed one target-neutral plan to both backends.
+  `MirMachineLayerAdmittedJsonInput` owns the facts,
+  `DirectMirEnumValueMatchRouteFactFromAdmitted` owns the conflicting route,
+  and `CompileAdmittedDirectMirForTargetObserved` is the last orchestration
+  consumer.
+- Forbidden overlap and fallback: no fixture/name route, rendered-expression
+  parsing, scalar-`Int` collapse, AST/source rescan, backend-local plan, native
+  retry, C round-trip, weakened value-match negatives, unrelated parser work,
+  or Module Build implementation. No other task may edit this rung.
+- Integration requires one unchanged MIR artifact to execute exact
+  `10`, `4`, `5`, `7` through direct C and LLVM, artifact-free declaration/
+  variant/payload/ordinal/graph/use mutations, and the existing payload-free
+  enum value-match gate green. Census and forecast remain 88/185, `55/32/1`,
+  and 83% (81-85%). Protected user paths remain outside inspection, edit, and
+  staging.
+
+## DONE implementation lease — tagged-enum payload statement-type carriage
+
+- Implementation `517664e44fc07a6bcc3b3bb227c5d72bf6e5f896` carries the
+  declaration-owned graph projection into statement type facts only after the
+  ordinary semantic verdict succeeds. Installed/native C execute exact
+  `10`, `4`, `5`, `7`; adjacent multi-payload output remains exact, and an
+  invalid ordinal fails without an artifact or native retry.
+- Fresh DRV-2 is 6,666,053 bytes with SHA-256
+  `031E365B9493266F35BFB08708D4B1A3B61A808130A656A02BEB2D61E8F7CB38`.
+  Focused and related owner gates, the generated registry, and complete
+  component contract are green locally. Run `33873073635` exposed only the
+  stale generated inventory in Linux before cancellation; its canonical repair
+  is in the implementation commit. Exact replacement run `33876582198` is
+  pending. Module Build remains design-only and post-self-host.
 
 ## DONE implementation lease — enum-variant/builtin collision carriage
 

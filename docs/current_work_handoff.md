@@ -18,40 +18,72 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — tagged-enum payload statement-type carriage
+## Active self-host context — direct-MIR tagged-enum payload program projection
 
 - Exact lease base is implementation checkpoint
-  `19fa565a8042c6351ed9947e0eba17285b0857cd`. The predecessor collision rung
-  below is locally green and committed; remote publication and exact CI remain
-  pending at this snapshot.
-- The next production red is public
-  `pgy tests/cases/backend_compare/tagged_union/main.pgy --backend=c`: installed
-  source-to-MIR is now green, but source-C emission fails at statement node 9
-  with `missing semantic statement result type`. Explicit native C executes
-  exact lines `10`, `4`, `5`, `7`.
-- Objective: carry the parser-owned `c.Circle._0` payload-member identity into
-  the semantic statement result type consumed by `EmitLog`. Priority is the
-  declared enum payload ordinal/type, graph identity, artifact-free invalid-
-  ordinal rejection, absence of fallback, then patch size.
-  `SemanticAstEnumFacts` owns variant payload types;
-  `SemanticExpressionGraphEnumPayloadTypeName` is the typed graph projection;
-  `SemanticAstStatementTypeFacts` is the last semantic consumer before
-  `CodegenSemanticStatementInferredTypeOrDie` and C emission.
-- Forbidden paths are payload-text parsing, a `Shape`/`Circle`/fixture branch,
-  treating every member as `Int`, source/AST rescan after admitted facts,
-  unchecked payload ordinals, native retry, C round-trip, or widening the
-  direct-MIR LLVM/backend route in this C-only rung.
-- The focused falsifier is public installed C execution of exact
-  `10`, `4`, `5`, `7`, equal to the explicit native C oracle with no native
-  timing on the public path. A missing payload ordinal must fail before artifact
-  publication, and the initializer payload projection plus a non-colliding enum
-  control must remain green. Direct MIR C/LLVM projection is the next separate
-  rung after this source-C consumer closes.
+  `517664e44fc07a6bcc3b3bb227c5d72bf6e5f896`, published on `origin/main`.
+  Its installed source-to-MIR producer emits the admitted `tagged_union` MIR,
+  but both `--mir-json-backend=c` and `--mir-json-backend=llvm` fail without an
+  artifact at `direct MIR CFG block inventory or program structure is invalid`.
+- The admitted program has one payload-bearing enum declaration, one `Main`
+  routine, one block, and seven instructions. It has no `AST_MATCH_CASE` row:
+  three enum constructors and four `Log` expression graphs carry the variant
+  and payload-member identities. Nevertheless,
+  `DirectMirEnumValueMatchRouteFactFromAdmitted` currently claims every program
+  containing an enum declaration and sends this straight-line program to the
+  payload-free three-to-six-block match plan.
+- Objective: classify the straight-line payload-enum program from admitted MIR
+  facts and project one target-neutral plan to C and LLVM. Priority is exact
+  declaration/variant/payload identity, route specificity, one shared plan,
+  artifact-free mutation rejection, then patch size. The fact owner is
+  `MirMachineLayerAdmittedJsonInput` (declaration rows, routine rows, and owned
+  expression graphs); the route decision owner is
+  `DirectMirEnumValueMatchRouteFactFromAdmitted`; the last orchestration
+  consumer is `CompileAdmittedDirectMirForTargetObserved`.
+- The direct bypass to delete is `enum declaration exists -> enum value-match
+  CFG plan`. Forbidden replacements are fixture or `Shape`/`Circle` spelling,
+  rendered `expr0` parsing, treating payload enums as scalar integers,
+  source/AST rescan, backend-local reconstruction, native retry, C round-trip,
+  weakening the payload-free enum-match negatives, or Module Build work.
+- The focused falsifier is direct C and LLVM execution of exact `10`, `4`, `5`,
+  `7` from one unchanged installed MIR artifact. Variant name, payload count or
+  type, ordinal, expression-graph edge, and SSA-use mutations must fail before
+  artifact publication; `one_mir_enum_value_match_projection.sh` must remain
+  green for the payload-free real-match route.
 - Registry and forecast remain 88 authorities / 185 derived carriers,
   `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%). The user-owned
   `examples/raid_graph_fsm/results.txt` and three protected untracked
   directories remain outside inspection, edit, and staging. Module Build stays
   design-only until self-host closure.
+
+## Published self-host context — tagged-enum payload statement-type carriage
+
+- Implementation `517664e44fc07a6bcc3b3bb227c5d72bf6e5f896` is published.
+  `SemanticAstStatementTypeFacts` consumes the existing declaration-owned
+  `SemanticExpressionGraphEnumPayloadTypeName` projection only after the general
+  graph verdict succeeds, so it fills a payload type without hiding an earlier
+  semantic error. The owner remains at its 540-line cap and contains no enum,
+  variant, ordinal, or fixture spelling route.
+- Fresh Pergyra-built DRV-2 is 6,666,053 bytes with SHA-256
+  `031E365B9493266F35BFB08708D4B1A3B61A808130A656A02BEB2D61E8F7CB38`.
+  Installed/public and explicit native C execute exact `10`, `4`, `5`, `7`;
+  adjacent `enum_multi_payload` executes exact `0`, `75`, `28`, `120`, `81`.
+  An out-of-range payload ordinal fails on both paths without publishing an
+  artifact or retrying native.
+- The focused gate, callable-table owner, enum-fact lifetime, expression-
+  environment lifetime, collision regression, generated 146-word inventory,
+  shell syntax, and complete component contract are green locally. The broad
+  initializer projection probe is not counted: it already lacked the required
+  syntax-bound callable row on the exact base and explicit native pipeline; no
+  attempted repair to that unrelated stale probe remains in the tree.
+- Earlier run `33873073635` found the generated implementation inventory stale
+  in Linux preparation step 23 and was cancelled by the replacement push. The
+  canonical generator changed only its three affected counts; the exact failing
+  registry gate is green locally. Replacement run `33876582198` tracks
+  `517664e4` and is pending at this snapshot.
+- This is a bounded consumer repair, not a new authority or hard-substitution
+  numerator. Module Build remains design-only in
+  `docs/202_module_authority_boundary_design.md` and stays post-self-host.
 
 ## Published self-host context — enum-variant/builtin collision carriage
 

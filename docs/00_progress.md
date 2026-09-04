@@ -2,6 +2,34 @@
 
 마지막 업데이트: 2026-09-04
 
+최신 implementation checkpoint `517664e4`는 `tagged_union`의 source-C 마지막
+statement-type 소비자를 닫았다. 선언이 소유한 enum variant payload 타입을 기존
+expression-graph projection에서 `SemanticAstStatementTypeFacts`로 운반하며, 일반
+semantic verdict가 성공한 뒤에만 빠진 타입을 보충한다. 설치 경로와 native C는
+정확히 `10`, `4`, `5`, `7`을 실행하고, 인접 다중 payload enum은
+`0`, `75`, `28`, `120`, `81`을 유지한다. 존재하지 않는 payload ordinal은 양쪽
+경로에서 artifact 없이 거절되고 설치 경로는 native로 재시도하지 않는다. Fresh
+DRV-2는 6,666,053 bytes, SHA-256
+`031E365B9493266F35BFB08708D4B1A3B61A808130A656A02BEB2D61E8F7CB38`다.
+
+직전 run `33873073635`는 Linux preparation의 generated language-word inventory
+drift를 찾은 뒤 새 push로 취소됐다. Canonical generator가 영향받은 세 count만
+갱신했고 정확히 실패했던 146-word registry gate는 local green이다. Replacement
+run `33876582198`은 `517664e4`를 대상으로 대기 중이므로 exact-head CI green은
+아직 주장하지 않는다.
+
+다음 단일 활성 rung은 같은 installed MIR artifact의 direct C/LLVM projection이다.
+현재 둘 다 payload enum 선언만 보고 payload-free value-match CFG route를 잘못
+선택해 `direct MIR CFG block inventory or program structure is invalid`로 artifact 없이
+실패한다. Admitted artifact는 한 enum, 한 routine, 한 block, 일곱 instruction이며
+`AST_MATCH_CASE`가 없다. 다음 작업은 이 route를 admitted declaration/instruction/
+expression-graph facts로 분리하고, 하나의 target-neutral payload-enum plan이 C와
+LLVM에서 정확히 `10`, `4`, `5`, `7`을 실행하게 하는 것이다. Census 88/185,
+`CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%), strict beta 83%,
+hard replacement 75%는 그대로다. Module Build는
+`self-host closure -> evidence/identity compression -> 실제 외부 프로젝트 ->
+ModuleInterface -> BuildUnit/incremental build` 뒤로 계속 유보한다.
+
 Implementation checkpoint `3b3a0a0f`는 `d2ee067c` 위에서
 `role_override_mir`의 installed production red를 닫는다. Self parser는
 `override func`를 별도 AST kind로 보존하고, `SemanticAstRoleFacts`가 direct
