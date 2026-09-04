@@ -5623,6 +5623,15 @@ require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "struct SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsFromArtifact"
+require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" \
+    "entrypoint_selection: SemanticAstEntrypointSelectionFact;"
+require_file "src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy" 120
+require_text "src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy" \
+    "func SemanticAstEntrypointSelectionObserve("
+require_text "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" \
+    "SemanticAstEntrypointSelectionMatchesAccumulator("
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "module_paths: Array<String>;"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionModulePathAt("
 require_file "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy"
@@ -6076,11 +6085,30 @@ require_text "src/self_hosted/semantic/ast_body_verdict_owner.pgy" "func Semanti
 reject_text "src/self_hosted/semantic/ast_body_verdict_owner.pgy" "FactsFromArtifact("
 reject_text "src/self_hosted/semantic/ast_body_verdict_owner.pgy" "CheckBody("
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" '"entrypoint_cardinality"'
-require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "SemanticAstFunctionNameAt(signatures, i)"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "SemanticAstEntrypointCandidateCount("
+reject_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    'UnwrapOption(name) == "Main"'
 reject_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactIsMainFunction"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let main_count: Int"
 require_text "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" "func CodegenSemanticSelectedFunctionNode"
+require_text "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" \
+    "SemanticAstEntrypointSignatureIndex("
+reject_text "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" \
+    '== "Main"'
+reject_text "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" \
+    '== "main"'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenSemanticSelectedFunctionNode("
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "HostIORuntimeCLowercaseEntrypointWrapper("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "CodegenSemanticFunctionUsesDirectHostEntrypoint("
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    'name == "Main"'
+require_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" \
+    "signatures.entrypoint_selection,"
+reject_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" \
+    'c_name != "Main"'
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsMainFunction"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'exactly one `Main` function is required'
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'at most one `Main` function is allowed'
@@ -6539,6 +6567,18 @@ require_text "scripts/ci_push_linux_steps.sh" \
     'self-host-callable-parameter-identity-replacement-test-smoke'
 require_text "scripts/ci_linux_steps.sh" \
     'self-host-callable-parameter-identity-replacement-test-smoke'
+require_file "tests/cases/backend_compare/entry_lowercase_main/expected.stdout"
+require_file "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" 180
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    '"$SELF_DRIVER" --emit-mir-json-verified "$SOURCE"'
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    'Code: entrypoint_cardinality'
+require_text "scripts/ci_push_linux_steps.sh" \
+    'self-host-lowercase-entrypoint-replacement-test-smoke'
+require_text "scripts/ci_linux_steps.sh" \
+    'self-host-lowercase-entrypoint-replacement-test-smoke'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionCallTargetFactContractReady()"
 reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \

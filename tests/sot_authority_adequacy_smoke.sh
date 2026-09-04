@@ -27,6 +27,7 @@ EXPRESSION_SURFACE_QUERY_OWNER="src/self_hosted/semantic/ast_expression_surface_
 TYPE_SURFACE_OWNER="src/self_hosted/semantic/ast_type_surface_fact_owner.pgy"
 KIND_SURFACE_OWNER="src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy"
 SIGNATURE_OWNER="src/self_hosted/semantic/ast_signature_fact_owner.pgy"
+ENTRYPOINT_POLICY_OWNER="src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy"
 ARRAY_GRAPH_OWNER="src/self_hosted/parser/expression_graph_owner.pgy"
 ARRAY_CONSUMER="src/self_hosted/codegen/emission/stmt_emit.pgy"
 EXPRESSION_GRAPH_OWNER="src/self_hosted/hir/ast_expression_graph_owner.pgy"
@@ -239,6 +240,7 @@ require_file "$EXPRESSION_SURFACE_OWNER"
 require_file "$TYPE_SURFACE_OWNER"
 require_file "$KIND_SURFACE_OWNER"
 require_file "$SIGNATURE_OWNER"
+require_file "$ENTRYPOINT_POLICY_OWNER"
 require_file "$ARRAY_GRAPH_OWNER"
 require_file src/self_hosted/parser/expression_graph_contract_owner.pgy
 require_text src/self_hosted/parser/expression_graph_contract_owner.pgy ParserExpressionArrayLiteralGraphContractReady
@@ -380,6 +382,26 @@ check_kind_surface_owner_copy "$ROOT_DIR/$KIND_SURFACE_OWNER" ||
     fail "live semantic kind-surface owner does not provide usage rows"
 check_signature_owner_copy "$ROOT_DIR/$SIGNATURE_OWNER" ||
     fail "live semantic signature owner does not provide entrypoint rows"
+require_text "$SIGNATURE_OWNER" \
+    "entrypoint_selection: SemanticAstEntrypointSelectionFact;"
+require_text "$SIGNATURE_OWNER" \
+    'import "ast_entrypoint_selection_policy_owner.pgy";'
+require_text "$ENTRYPOINT_POLICY_OWNER" \
+    "func SemanticAstEntrypointSelectionObserve("
+require_text "$ENTRYPOINT_POLICY_OWNER" \
+    "func SemanticAstEntrypointUsesLowercaseSpelling("
+require_text "$ENTRYPOINT_POLICY_OWNER" "lowercase_spelling: Bool;"
+require_text "$ENTRYPOINT_POLICY_OWNER" 'name == "Main"'
+require_text "$ENTRYPOINT_POLICY_OWNER" 'name == "main"'
+require_text "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" \
+    "SemanticAstEntrypointSelectionMatchesAccumulator("
+require_text "$ENTRYPOINT_VERDICT_CONSUMER" \
+    "SemanticAstEntrypointCandidateCount("
+reject_text "$ENTRYPOINT_VERDICT_CONSUMER" 'UnwrapOption(name) == "Main"'
+require_text "$ENTRYPOINT_PROJECTION_CONSUMER" \
+    "SemanticAstEntrypointSignatureIndex("
+reject_text "$ENTRYPOINT_PROJECTION_CONSUMER" '== "Main"'
+reject_text "$ENTRYPOINT_PROJECTION_CONSUMER" '== "main"'
 check_array_consumer_copy "$ROOT_DIR/$ARRAY_CONSUMER" ||
     fail "live array codegen consumer reopened text recovery"
 reject_text "$OWNER" "initializer_array_bodies"
@@ -432,7 +454,7 @@ require_text "$PROGRAM_EMITTER" "CodegenSemanticKindIs("
 require_text "$PROGRAM_EMITTER" "TypedAstKindAbilityDeclTag()"
 require_text "$PROGRAM_EMITTER" "TypedAstKindEventDeclTag()"
 require_text "$ENTRYPOINT_VERDICT_CONSUMER" \
-    "SemanticAstFunctionNameAt(signatures, i)"
+    "SemanticAstEntrypointCandidateCount("
 reject_text "$ENTRYPOINT_VERDICT_CONSUMER" \
     "func SemanticAstArtifactIsMainFunction"
 require_text "$ENTRYPOINT_PROJECTION_CONSUMER" \

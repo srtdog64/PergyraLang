@@ -86,7 +86,7 @@ speed and order-independent declarations as first-class compiler constraints.
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Program entry | `main`, `static void Main`, `fn main` | `func Main()` and lowercase `func main()` driver entry paths | `partial` | Lowercase entry C/LLVM parity is gated by `entry_lowercase_main`; richer return/args policy remains partial. |
+| Program entry | `main`, `static void Main`, `fn main` | `func Main()` and lowercase `func main()` driver entry paths | `partial` | `entry_lowercase_main` now gates native C/LLVM exact output plus installed self-host MIR identity and source-C execution. The separate direct-MIR LLVM literal-Log envelope and richer return/args policy remain partial. |
 | Top-level function | `fn`, `def`, `function`, method | `func name(args) -> T` | `stable` | Baseline behavior. |
 | Namespace/module block | `namespace`, `mod`, ES module | `namespace name { ... }` | `stable` | Namespaces are stable; package resolver is separate. |
 | File import | `import`, `use`, `using` | `import "path.pgy";` | `stable` | Resolver subset is stable enough for beta examples; namespace export/import C/LLVM parity is gated by `namespace_export_import`. |

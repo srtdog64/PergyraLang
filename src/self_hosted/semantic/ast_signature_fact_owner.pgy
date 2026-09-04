@@ -6,12 +6,14 @@ import "ast_type_name_canonical_owner.pgy";
 import "ast_generic_parameter_fact_owner.pgy";
 import "ast_signature_type_expression_fact_owner.pgy";
 import "ast_action_contract_fact_owner.pgy";
+import "ast_entrypoint_selection_policy_owner.pgy";
 struct SemanticAstFunctionSignatureFacts {
     ok: Bool;
     diagnostic_code: String;
     diagnostic_message: String;
     diagnostic_fact: SemanticDiagnosticMessageFact;
     artifact_node_count: Int;
+    entrypoint_selection: SemanticAstEntrypointSelectionFact;
     action_contracts: SemanticAstActionContractFacts;
     function_node_ids: Array<Int>;
     module_paths: Array<String>;
@@ -34,9 +36,7 @@ struct SemanticAstFunctionOwnerFact {
     name: String;
     runtime_callable: Bool;
 }
-
-func SemanticAstFunctionAbilityDefaultRows(
-    arena: AstArena,
+func SemanticAstFunctionAbilityDefaultRows(arena: AstArena,
     function_node_id: Int,
     inout names: Array<String>,
     inout default_type_names: Array<String>
@@ -54,7 +54,6 @@ func SemanticAstFunctionAbilityDefaultRows(
     );
     return parsed;
 }
-
 func SemanticAstFunctionOwnerFactFromArena(
     arena: AstArena,
     function_node_id: Int
@@ -105,7 +104,6 @@ func SemanticAstFunctionOwnerFactFromArena(
     }
     return Some(SemanticAstFunctionOwnerFact("", true));
 }
-
 func SemanticAstFunctionSignatureFactsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstFunctionSignatureFacts {
@@ -124,6 +122,8 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     let param_names: Array<String> = [];
     let param_types: Array<String> = [];
     let param_modes: Array<Int> = [];
+    let entrypoint_accumulator: SemanticAstEntrypointSelectionAccumulator =
+        SemanticAstEntrypointSelectionAccumulatorEmpty();
     let ok: Bool = AstTreeArtifactReady(artifact);
     let diagnostic_fact: SemanticDiagnosticMessageFact =
         SemanticDiagnosticMessageFactEmpty();
@@ -134,7 +134,6 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             "owner", "AstTreeArtifact"
         );
     }
-
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
         if !TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
@@ -363,6 +362,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         ArrayPush(owner_names, UnwrapOption(owner).name);
         ArrayPush(runtime_callables, UnwrapOption(owner).runtime_callable);
         ArrayPush(names, UnwrapOption(name));
+        SemanticAstEntrypointSelectionObserve(entrypoint_accumulator, UnwrapOption(owner).name, UnwrapOption(owner).runtime_callable, UnwrapOption(name), ArrayLength(function_node_ids) - 1);
         ArrayPush(return_types, return_type);
         ArrayPush(generic_starts, generic_start);
         ArrayPush(
@@ -399,10 +399,12 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             "missing_fact", action_contracts.diagnostic_message
         );
     }
+    let entrypoint: SemanticAstEntrypointSelectionFact =
+        SemanticAstEntrypointSelectionFinish(entrypoint_accumulator);
     return SemanticAstFunctionSignatureFacts(
         ok, diagnostic_fact.code,
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
-        artifact.count, action_contracts,
+        artifact.count, entrypoint, action_contracts,
         function_node_ids, module_paths, owner_names, runtime_callables,
         names, return_types,
         type_expressions,
@@ -411,7 +413,6 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         param_types, param_modes
     );
 }
-
 func SemanticAstFunctionSignatureCount(
     ref facts: SemanticAstFunctionSignatureFacts
 ) -> Int {

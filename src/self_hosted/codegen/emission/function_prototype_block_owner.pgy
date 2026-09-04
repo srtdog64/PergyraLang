@@ -33,7 +33,10 @@ func CodegenFunctionPrototypeBlock(
         let owner: String = CodegenSemanticFunctionOwnerOrDie(signatures, i);
         let name: String = CodegenSemanticFunctionNameOrDie(signatures, i);
         let c_name: String = CompilerSymbolCQualifiedName(owner, name);
-        if c_name != "Main" {
+        if !CodegenSemanticFunctionUsesDirectHostEntrypoint(
+            signatures.entrypoint_selection,
+            SemanticAstFunctionSignatureCount(signatures), i
+        ) {
             TextBuilderAppend(output, AbiLayoutCReturnType(
                 CodegenSemanticFunctionReturnTypeOrDie(signatures, i),
                 struct_env

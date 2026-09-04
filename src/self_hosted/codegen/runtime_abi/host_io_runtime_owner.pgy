@@ -145,6 +145,28 @@ func HostIORuntimeCArgsCapturePrefix() -> String {
     return block;
 }
 
+func HostIORuntimeCLowercaseEntrypointWrapper(
+    uses_args: Bool,
+    machine_startup: String,
+    user_body_name: String
+) -> String {
+    let block: String = Concat(
+        "\n", Concat(HostIORuntimeCEntrypointSignature(uses_args), "\n{\n")
+    );
+    if uses_args {
+        block = Concat(block, HostIORuntimeCArgsCapturePrefix());
+    }
+    block = Concat(block, machine_startup);
+    block = Concat(block, Concat("    ", Concat(user_body_name, "();\n")));
+    block = Concat(
+        block,
+        Concat("    return ", Concat(
+            HostIORuntimeCEntrypointSuccessValue(), ";\n}\n"
+        ))
+    );
+    return block;
+}
+
 func HostIORuntimeCArgsBlock() -> String {
     let block: String = "";
     block = Concat(block, Concat("static int ", Concat(HostIORuntimeCArgcGlobal(), " = 0;\n")));

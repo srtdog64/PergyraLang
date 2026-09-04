@@ -145,7 +145,13 @@ func CompilerSymbolCIdentifier(source_name: String) -> String {
     }
     return out;
 }
+func CompilerSymbolCLowercaseEntrypointBodyName() -> String {
+    return CompilerSymbolCIdentifier("__pgy_user_main_lowercase");
+}
 func CompilerSymbolCQualifiedName(owner_name: String, member_name: String) -> String {
+    if StringLength(StringTrim(owner_name)) == 0 && member_name == "main" {
+        return CompilerSymbolCLowercaseEntrypointBodyName();
+    }
     let member_symbol: String = CompilerSymbolCIdentifier(member_name);
     if StringLength(StringTrim(owner_name)) == 0 {
         return member_symbol;

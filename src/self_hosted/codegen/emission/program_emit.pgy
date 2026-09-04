@@ -30,6 +30,7 @@ import "../runtime_abi/zone_runtime_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/machine_layer_runtime_binding_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
 import "type_declaration_emit_owner.pgy";
 import "program_function_definition_block_owner.pgy";
 import "extern_prototype_block_owner.pgy";
@@ -205,10 +206,9 @@ func CheckCUnitFromSemanticArtifact(
     if require_entrypoint && !saw_function { Die("no function found in AST"); }
     return true;
 }
-// Ready core for an analysis admitted by the semantic owner. The semantic
-// fact-family arrays are immutable in this call graph.  Keep this core free of
-// whole-artifact reconstruction: the fixed-size artifact identity is checked
-// here, while checked compatibility entrypoints remain above.
+// Ready core for an analysis admitted by the semantic owner. Fact-family arrays
+// are immutable here; keep this core free of whole-artifact reconstruction while
+// checked compatibility entrypoints remain above.
 func GenerateCUnitFromReadySemanticFacts(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
@@ -371,6 +371,7 @@ func GenerateCUnitFromReadySemanticFacts(
     if observe_pressure { Log("[codegen-pressure-stage] runtime-usage:done"); }
     if !usage.nominal_record_arrays.ok { Die("nominal record array usage facts are incomplete"); }
     let uses_args: Bool = usage.uses_args;
+    let lowercase_entrypoint: Bool = CodegenSemanticEntrypointUsesLowercaseSpelling(signatures.entrypoint_selection, SemanticAstFunctionSignatureCount(signatures));
     if usage.uses_machine_layer &&
         !SelfHostMachineLayerDeclarationReady(machine_declaration) {
         Die("self-host machine-layer startup declaration is missing");
@@ -589,6 +590,7 @@ func GenerateCUnitFromReadySemanticFacts(
     TextBuilderAppend(output, admitted_intent_definition_block);
     if observe_pressure { Log("[codegen-pressure-stage] output-prefix:done"); }
     TextBuilderAppend(output, definition_block);
+    if lowercase_entrypoint { TextBuilderAppend(output, HostIORuntimeCLowercaseEntrypointWrapper(uses_args, machine_startup, CompilerSymbolCLowercaseEntrypointBodyName())); }
     let owned_definition_block: Array<String> = [definition_block];
     ArrayDropOwnedStrings(owned_definition_block);
     let generated_c: String = TextBuilderFinish(output, output_allocator);

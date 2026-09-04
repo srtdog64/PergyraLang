@@ -214,6 +214,10 @@ inventory must not become a second fact-family owner registry.
   function owner, name, formal-generic, parameter, mode, and return signature
   facts, including ordered function node/name identity for entrypoint
   cardinality, selection, and top-level function declaration routing.
+- `src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy` --
+  canonical top-level runtime-callable entrypoint policy: uppercase `Main`
+  owns the primary tier and lowercase `main` is its fallback; signature facts
+  carry the one selected index, candidate cardinality, and source spelling tier.
 - `src/self_hosted/semantic/ast_signature_param_node_query_owner.pgy` -- exact
   parameter-type lookup by canonical formal-parameter SyntaxNodeId; missing or
   duplicate identities fail closed instead of falling back to a name.

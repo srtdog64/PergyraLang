@@ -74,25 +74,54 @@ func CodegenSemanticFunctionNameOrDie(
     return UnwrapOption(name);
 }
 
+func CodegenSemanticFunctionIsEntrypoint(
+    selection: SemanticAstEntrypointSelectionFact,
+    signature_count: Int,
+    signature_index: Int
+) -> Bool {
+    return SemanticAstEntrypointSelectionContains(
+        selection, signature_index, signature_count
+    );
+}
+
+func CodegenSemanticEntrypointUsesLowercaseSpelling(
+    selection: SemanticAstEntrypointSelectionFact,
+    signature_count: Int
+) -> Bool {
+    return SemanticAstEntrypointUsesLowercaseSpelling(
+        selection, signature_count
+    );
+}
+
+func CodegenSemanticFunctionUsesDirectHostEntrypoint(
+    selection: SemanticAstEntrypointSelectionFact,
+    signature_count: Int,
+    signature_index: Int
+) -> Bool {
+    return CodegenSemanticFunctionIsEntrypoint(
+        selection, signature_count, signature_index
+    ) && !CodegenSemanticEntrypointUsesLowercaseSpelling(
+        selection, signature_count
+    );
+}
+
 func CodegenSemanticSelectedFunctionNode(
     facts: SemanticAstFunctionSignatureFacts,
     require_entrypoint: Bool
 ) -> Option<Int> {
-    let fallback: Option<Int> = None;
-    let signature_index: Int = 0;
-    while signature_index < SemanticAstFunctionSignatureCount(facts) {
-        let node_id: Int = CodegenSemanticFunctionNodeOrDie(
-            facts, signature_index
-        );
-        if CodegenSemanticFunctionNameOrDie(facts, signature_index) == "Main" {
-            return Some(node_id);
-        }
-        if !require_entrypoint && !IsSome(fallback) {
-            fallback = Some(node_id);
-        }
-        signature_index = signature_index + 1;
+    let selected: Option<Int> = SemanticAstEntrypointSignatureIndex(
+        facts.entrypoint_selection,
+        SemanticAstFunctionSignatureCount(facts)
+    );
+    if IsSome(selected) {
+        return Some(CodegenSemanticFunctionNodeOrDie(
+            facts, UnwrapOption(selected)
+        ));
     }
-    return fallback;
+    if require_entrypoint || SemanticAstFunctionSignatureCount(facts) == 0 {
+        return None;
+    }
+    return Some(CodegenSemanticFunctionNodeOrDie(facts, 0));
 }
 
 func CodegenSemanticFunctionReturnTypeOrDie(

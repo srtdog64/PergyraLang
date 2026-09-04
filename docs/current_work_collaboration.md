@@ -6,18 +6,32 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## READ-ONLY coordination state — bounded successor falsifier discovery
+## ACTIVE implementation lease — lowercase source entrypoint selection
 
-- Exact published base is `62e4b0c56ee22f052ae94436fac5bd99912acbd4`,
-  equal to `origin/main`. No implementation or publication lease is open. A
-  task may inspect an independent read-only evidence scope, but it must not edit
-  compiler semantics, registries, gates, or handoff state until the primary task
-  records one reproduced production falsifier, its fact owner, last consumer,
-  forbidden fallback, and integration gate here.
-- Discovery is limited to the installed production entrypoint and bounded
-  existing fixtures/corpora. General SoT cleanup, query/cache design, Module
-  Build implementation, fixture-volume work, and parallel implementation on a
-  guessed gap are out of scope. Findings are evidence, not progress or a lease.
+- Exact implementation checkpoint is
+  `62e4b0c56ee22f052ae94436fac5bd99912acbd4`; exact discovery/lease base is
+  docs checkpoint `2617f8b81519794f6d2a080400e8dcc248223765`, equal to
+  `origin/main` when this lease opened. The primary task exclusively owns this
+  executable rung, its semantic/codegen edits, focused gate, handoff refresh,
+  commit, push, and exact-head CI. No parallel task may edit or publish it.
+- The installed production falsifier is
+  `tests/cases/backend_compare/entry_lowercase_main/main.pgy`: installed
+  source-C/source-LLVM/self-MIR reject lowercase `main` at semantic cardinality,
+  while native C/LLVM execute exact `lowercase-main` and native MIR selects
+  routine `main`. `docs/124_syntax_pattern_matrix.md` already declares this
+  spelling as a driver entry path.
+- Existing owner `SemanticAstFunctionSignatureFacts` must issue one selected
+  signature identity using `Main` first and lowercase `main` only as fallback.
+  The artifact verdict and source-C codegen view/prototype/function/program
+  emission are the last consumers. Consumer-local name tests, AST/source
+  rescans, method admission, backend-only exceptions, fixture routing, native
+  retry, C round-trip, and crossed selected identity are forbidden.
+- Integration requires installed source-C exact runtime, self-MIR selected name,
+  distinct lowercase user symbol plus one host wrapper call, worker-only and
+  selected-identity artifact-free negatives, uppercase regression, and static
+  ratchets deleting the consumer name reads. Direct-MIR literal-Log projection
+  remains a separate fail-closed seam if still red. This repairs an overclaimed
+  `CLOSED` row; census and percentage do not move. Module Build stays deferred.
 
 ## DONE implementation lease — logical-record `Option<Int>` field materialization
 

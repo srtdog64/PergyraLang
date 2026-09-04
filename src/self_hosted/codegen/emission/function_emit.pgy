@@ -253,7 +253,10 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     CodegenAstArenaExpectBody(arena, count, cur);
     CodegenAstArenaExpectBlock(arena, count, cur);
     let stmt_indent: Int = f_indent + 6;
-    let is_main: Bool = name == "Main";
+    let is_main: Bool = CodegenSemanticFunctionUsesDirectHostEntrypoint(
+        signatures.entrypoint_selection,
+        SemanticAstFunctionSignatureCount(signatures), signature_index
+    );
     let body_ret: String = ret_type;
     if is_main {
         body_ret = AbiLayoutCEntrypointBodyReturnType();

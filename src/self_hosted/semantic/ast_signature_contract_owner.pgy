@@ -28,6 +28,16 @@ func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
         facts.param_types[UnwrapOption(second_param)] == "Int" &&
         facts.owner_names[1] == "" && facts.runtime_callables[1] &&
         facts.names[1] == "Main" &&
+        facts.entrypoint_selection.signature_index == 1 &&
+        facts.entrypoint_selection.candidate_count == 1 &&
+        !facts.entrypoint_selection.lowercase_spelling &&
+        SemanticAstEntrypointSelectionContains(
+            facts.entrypoint_selection, 1,
+            SemanticAstFunctionSignatureCount(facts)
+        ) && !SemanticAstEntrypointSelectionContains(
+            facts.entrypoint_selection, 0,
+            SemanticAstFunctionSignatureCount(facts)
+        ) &&
         facts.return_types[1] == "Void" &&
         facts.owner_names[2] == "SourceUnit" &&
         facts.runtime_callables[2] && facts.names[2] == "Read" &&
@@ -35,6 +45,61 @@ func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
         IsSome(action_self) &&
         facts.param_types[UnwrapOption(action_self)] == "SourceUnit";
     if !valid_rows {
+        return false;
+    }
+    let crossed_selection: SemanticAstFunctionSignatureFacts = facts;
+    crossed_selection.entrypoint_selection.signature_index = 0;
+    if SemanticAstFunctionSignatureFactsMatchArtifact(
+        artifact, crossed_selection
+    ) {
+        return false;
+    }
+    let crossed_spelling: SemanticAstFunctionSignatureFacts = facts;
+    crossed_spelling.entrypoint_selection.lowercase_spelling = true;
+    if SemanticAstFunctionSignatureFactsMatchArtifact(
+        artifact, crossed_spelling
+    ) {
+        return false;
+    }
+    let lowercase_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Class: Box\n    Fields:\n    Methods:\n      Function: Main\n        Parameters:\n          self\n        Returns: Void\n        Body:\n          Block:\n  Function: main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    let lowercase_facts: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(lowercase_artifact);
+    let lowercase_selection: Option<Int> =
+        SemanticAstEntrypointSignatureIndex(
+            lowercase_facts.entrypoint_selection,
+            SemanticAstFunctionSignatureCount(lowercase_facts)
+        );
+    if !SemanticAstFunctionSignatureFactsMatchArtifact(
+        lowercase_artifact, lowercase_facts
+    ) || !IsSome(lowercase_selection) ||
+        !SemanticAstEntrypointUsesLowercaseSpelling(
+            lowercase_facts.entrypoint_selection,
+            SemanticAstFunctionSignatureCount(lowercase_facts)
+        ) ||
+        lowercase_facts.names[UnwrapOption(lowercase_selection)] != "main" {
+        return false;
+    }
+    let priority_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    let priority_facts: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(priority_artifact);
+    let priority_selection: Option<Int> =
+        SemanticAstEntrypointSignatureIndex(
+            priority_facts.entrypoint_selection,
+            SemanticAstFunctionSignatureCount(priority_facts)
+        );
+    if !SemanticAstFunctionSignatureFactsMatchArtifact(
+        priority_artifact, priority_facts
+    ) || priority_facts.entrypoint_selection.candidate_count != 1 ||
+        !IsSome(priority_selection) ||
+        SemanticAstEntrypointUsesLowercaseSpelling(
+            priority_facts.entrypoint_selection,
+            SemanticAstFunctionSignatureCount(priority_facts)
+        ) ||
+        priority_facts.names[UnwrapOption(priority_selection)] != "Main" {
         return false;
     }
     let stale: AstTreeArtifact = AstTreeArtifactFromText(

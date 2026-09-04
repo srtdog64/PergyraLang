@@ -201,7 +201,13 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
     let i: Int = 0;
     let next_generic_start: Int = 0;
     let next_param_start: Int = 0;
+    let entrypoint_accumulator: SemanticAstEntrypointSelectionAccumulator =
+        SemanticAstEntrypointSelectionAccumulatorEmpty();
     while i < n {
+        SemanticAstEntrypointSelectionObserve(
+            entrypoint_accumulator, facts.owner_names[i],
+            facts.runtime_callables[i], facts.names[i], i
+        );
         if facts.generic_starts[i] != next_generic_start ||
             facts.generic_counts[i] < 0 ||
             facts.generic_starts[i] + facts.generic_counts[i] > gn ||
@@ -223,6 +229,9 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
     if next_generic_start != gn || next_param_start != pn {
         return false;
     }
+    if !SemanticAstEntrypointSelectionMatchesAccumulator(
+        facts.entrypoint_selection, entrypoint_accumulator
+    ) { return false; }
     let function_count: Int = 0;
     let node_id: Int = 0;
     while node_id < artifact.count {

@@ -195,7 +195,7 @@ func SemanticFix(code: String) -> String {
         return "repair the parser artifact producer instead of reconstructing syntax downstream";
     }
     if code == "entrypoint_cardinality" {
-        return "declare exactly one Main function for an executable program";
+        return "declare one Main function, or one lowercase main when Main is absent";
     }
     if code == "function_signature_invalid" {
         return "repair the parser-owned function signature fact instead of inferring it in codegen";

@@ -1,0 +1,106 @@
+// Entrypoint selection policy over canonical semantic signature rows.
+// Uppercase Main is the primary language spelling; lowercase main is used
+// only when the primary tier is absent. Methods and signature-only members
+// never become program entrypoints.
+
+struct SemanticAstEntrypointSelectionFact {
+    signature_index: Int;
+    candidate_count: Int;
+    lowercase_spelling: Bool;
+}
+
+struct SemanticAstEntrypointSelectionAccumulator {
+    uppercase_count: Int;
+    uppercase_index: Int;
+    lowercase_count: Int;
+    lowercase_index: Int;
+}
+
+func SemanticAstEntrypointSelectionAccumulatorEmpty(
+) -> SemanticAstEntrypointSelectionAccumulator {
+    return SemanticAstEntrypointSelectionAccumulator(0, -1, 0, -1);
+}
+
+func SemanticAstEntrypointSelectionObserve(
+    inout accumulator: SemanticAstEntrypointSelectionAccumulator,
+    owner_name: String,
+    runtime_callable: Bool,
+    name: String,
+    signature_index: Int
+) -> Void {
+    if owner_name != "" || !runtime_callable { return; }
+    if name == "Main" {
+        accumulator.uppercase_count = accumulator.uppercase_count + 1;
+        accumulator.uppercase_index = signature_index;
+    } else if name == "main" {
+        accumulator.lowercase_count = accumulator.lowercase_count + 1;
+        accumulator.lowercase_index = signature_index;
+    }
+}
+
+func SemanticAstEntrypointSelectionFinish(
+    accumulator: SemanticAstEntrypointSelectionAccumulator
+) -> SemanticAstEntrypointSelectionFact {
+    let selected_count: Int = accumulator.lowercase_count;
+    let selected_index: Int = accumulator.lowercase_index;
+    let lowercase_spelling: Bool = selected_count == 1;
+    if accumulator.uppercase_count > 0 {
+        selected_count = accumulator.uppercase_count;
+        selected_index = accumulator.uppercase_index;
+        lowercase_spelling = false;
+    }
+    if selected_count != 1 {
+        selected_index = -1;
+        lowercase_spelling = false;
+    }
+    return SemanticAstEntrypointSelectionFact(
+        selected_index, selected_count, lowercase_spelling
+    );
+}
+
+func SemanticAstEntrypointSelectionMatchesAccumulator(
+    fact: SemanticAstEntrypointSelectionFact,
+    accumulator: SemanticAstEntrypointSelectionAccumulator
+) -> Bool {
+    let expected: SemanticAstEntrypointSelectionFact =
+        SemanticAstEntrypointSelectionFinish(accumulator);
+    return fact.signature_index == expected.signature_index &&
+        fact.candidate_count == expected.candidate_count &&
+        fact.lowercase_spelling == expected.lowercase_spelling;
+}
+
+func SemanticAstEntrypointCandidateCount(
+    fact: SemanticAstEntrypointSelectionFact
+) -> Int {
+    return fact.candidate_count;
+}
+
+func SemanticAstEntrypointSignatureIndex(
+    fact: SemanticAstEntrypointSelectionFact,
+    signature_count: Int
+) -> Option<Int> {
+    if fact.candidate_count != 1 || fact.signature_index < 0 ||
+        fact.signature_index >= signature_count {
+        return None;
+    }
+    return Some(fact.signature_index);
+}
+
+func SemanticAstEntrypointSelectionContains(
+    fact: SemanticAstEntrypointSelectionFact,
+    signature_index: Int,
+    signature_count: Int
+) -> Bool {
+    let selected: Option<Int> = SemanticAstEntrypointSignatureIndex(
+        fact, signature_count
+    );
+    return IsSome(selected) && UnwrapOption(selected) == signature_index;
+}
+
+func SemanticAstEntrypointUsesLowercaseSpelling(
+    fact: SemanticAstEntrypointSelectionFact,
+    signature_count: Int
+) -> Bool {
+    return fact.lowercase_spelling &&
+        IsSome(SemanticAstEntrypointSignatureIndex(fact, signature_count));
+}

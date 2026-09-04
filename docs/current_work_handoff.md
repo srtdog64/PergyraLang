@@ -18,27 +18,42 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — bounded successor falsifier discovery
+## Active self-host context — lowercase source entrypoint selection
 
-- Exact published checkpoint is
-  `62e4b0c56ee22f052ae94436fac5bd99912acbd4`, equal to
-  `origin/main`. Exact-head run `33810319796` completed 30/30 green in 36m35s;
-  full self-host took 36m18s, installed DRV-2, proved
+- Exact implementation checkpoint is
+  `62e4b0c56ee22f052ae94436fac5bd99912acbd4`; its exact-head run
+  `33810319796` completed 30/30 green in 36m35s, installed DRV-2, proved
   `gen2 == gen3 (174625 lines)`, and classified the policy corpus as
-  `3 in_subset / 0 out_of_subset`.
-  The protected user-owned `examples/raid_graph_fsm/results.txt` change and three
-  protected untracked directories remain outside inspection, edit, and staging.
-- No implementation lease is open. The next action is bounded, read-only
-  successor discovery through the installed production entrypoint: reproduce
-  one real semantic-admission failure, identify its existing fact owner and last
-  orchestration consumer, and name one focused parity/negative gate before any
-  edit. A historical BRIDGE row, fixture count, generated artifact, or plausible
-  architecture gap is not by itself a successor rung.
-- Priority remains semantic identity and one SoT, owner-directed facts, fallback
-  deletion, then a negative ratchet. Forbidden discovery shortcuts are broad SoT
-  cleanup, general query/cache work, source/program-root rescans, native retry,
-  C round-trip, backend-local semantic inference, and opening more than one
-  executable rung. Module Build remains deferred in the order
+  `3 in_subset / 0 out_of_subset`. Discovery and this lease start from docs
+  checkpoint `2617f8b81519794f6d2a080400e8dcc248223765`, equal to
+  `origin/main` when the lease opened. The protected user-owned
+  `examples/raid_graph_fsm/results.txt` change and three protected untracked
+  directories remain outside inspection, edit, and staging.
+- Production falsifier is
+  `tests/cases/backend_compare/entry_lowercase_main/main.pgy`: installed
+  source-C, source-LLVM, and self-MIR reject it with
+  `entrypoint_cardinality` and publish no artifact, while native C/LLVM execute
+  exact `lowercase-main` and native MIR carries routine `main`. The language
+  contract already lists lowercase `func main()` as a driver entry path.
+- Objective: the existing `SemanticAstFunctionSignatureFacts` owner issues one
+  selected entrypoint signature identity with native-compatible uppercase
+  `Main` priority and lowercase `main` fallback. Semantic admission and source-C
+  materialization consume that identity; they do not rescan names. Priority is
+  semantic identity/one SoT, exact native priority, consumer migration, old-read
+  deletion, then an artifact-free negative ratchet. Last source-C consumers are
+  the artifact verdict, semantic signature codegen view, prototype block,
+  function emitter, and program emitter.
+- Forbidden paths are independent `Main || main` checks in consumers,
+  AST/source rescans, method-name admission, a C-only lowercase exception,
+  fixture-name routing, native retry, C round-trip, an unsealed selected
+  index/node/name, and claiming direct-MIR backend closure if its separate
+  literal-Log envelope remains unsupported. The focused gate requires installed
+  source-C runtime `lowercase-main`, self-MIR selected routine `main`, distinct
+  lowercase user C symbol plus exactly one host-wrapper call, worker-only and
+  crossed-selection artifact-free negatives, and an uppercase `Main`
+  regression. This repairs the already `CLOSED` entrypoint row; it does not
+  change census or progress percentage.
+- Module Build remains design-only and deferred in the order
   `self-host closure -> evidence/identity compression -> real external project ->
   ModuleInterface -> BuildUnit/incremental build`.
 
