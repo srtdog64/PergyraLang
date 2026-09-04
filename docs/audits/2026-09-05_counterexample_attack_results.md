@@ -1,6 +1,6 @@
 # Counterexample attack results — 2026-09-05
 
-Status: `READ-ONLY CAMPAIGN COMPLETE — SOURCE RUNG LOCALLY GREEN; PUBLICATION PENDING; SUCCESSOR REDS NOT REPAIRED`
+Status: `READ-ONLY CAMPAIGN COMPLETE — SOURCE RUNG PUBLISHED; FIRST CI 29/30; INTEGRATION REPAIR LOCALLY GREEN; SUCCESSOR REDS NOT REPAIRED`
 
 Observed repository base:
 `b4cfb0f2ef883d8f5b80ef96eafd89c1898c3d30`.
@@ -17,11 +17,17 @@ Static recurrence ratchet:
 Local source-semantic active-variant repair checkpoint:
 `95148fdc490cf8e859f4341e54a442d565de97dd`.
 
+Published audit/resume checkpoint:
+`67ab142efb74e9010ea57034e370dcacbfeb77e3`.
+
+Local integration repair checkpoint:
+`506c25272637203ee6bb8a0f6b9462d2a6f226fd`.
+
 Fresh candidate DRV-2:
 
-- size: `6,675,205` bytes;
+- size: `6,710,592` bytes;
 - SHA-256:
-  `3434BC935781C3D5E869E9E90DCD9F600EAB9FED64939338146AA42D805BBB4D`.
+  `FB37EA36D92E9C28B6BB7162F87BA00E733255AD5E46B24A166578713DF75847`.
 
 This document is adversarial scheduling evidence. It owns no compiler
 semantics, SoT status, progress percentage, active implementation fact, or
@@ -167,8 +173,8 @@ agree again; the wrong-variant external-MIR mutation remains rejected.
 
 Observed local candidate evidence:
 
-- Pergyra-built DRV-2: 6,710,593 bytes, SHA-256
-  `F3AF72692A1AA2F799E3363E324093DCBD571D24DDF8A3EC038DFC9193C873FA`;
+- Pergyra-built DRV-2: 6,710,592 bytes, SHA-256
+  `FB37EA36D92E9C28B6BB7162F87BA00E733255AD5E46B24A166578713DF75847`;
 - the focused source gate accepts five positive flow families and rejects 21
   counterexamples with exact public diagnostic identity across MIR, C, and
   LLVM, with no failed artifact publication;
@@ -181,6 +187,21 @@ Observed local candidate evidence:
   row after `binding_syntax_id` became a separate fifth column, and the gate
   still named pre-split owner locations. The repair moves the same ID to its
   owned column and retargets checks; it does not mint a second identity fact.
+
+Exact run `33911747694` at published head `67ab142e` completed 29/30. Full
+self-host bootstrap, Rocq 9, Windows, macOS, TSan, sanitizers, codegen
+bootstrap, and all twenty backend shards passed. `build-linux` found two exact
+integration residues. Its role-override adjacent gate still required every
+expression-graph identity to be absent, so it rejected the now-correct stable
+member target ID. The language-word occurrence inventory also predated the new
+owners. Repair `506c2527` makes the sealed role-override identity consume the
+subject method's exact syntax ID, adds zero-ID and wrong-role-ID mutations, and
+regenerates the occurrence inventory from the 146-row owner. The role gate now
+passes eight C/LLVM runtime legs, three permutations, twelve MIR negatives,
+and fourteen source negatives. The language registry, source 5/21 gate, hard
+contract, and complete component inventory/removed-path ratchet are green
+locally. Replacement exact-head CI remains pending; none of this changes a SoT
+registry state or the 83% forecast.
 
 This evidence closes neither arbitrary alias analysis nor a whole-language CFG
 theorem. Member/index/function-return provenance, loop projections, generic

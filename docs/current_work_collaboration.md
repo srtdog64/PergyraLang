@@ -9,7 +9,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 ## ACTIVE publication lease — source payload-enum active-variant proof
 
 - Exact executable checkpoint is
-  `95148fdc490cf8e859f4341e54a442d565de97dd`, based on
+  `506c25272637203ee6bb8a0f6b9462d2a6f226fd`, repairing published checkpoint
+  `67ab142efb74e9010ea57034e370dcacbfeb77e3`; the semantic implementation
+  entered at `95148fdc490cf8e859f4341e54a442d565de97dd`, based on
   `01f280a3566fb581d0f65d7783e678eee6c987d9`;
   the direct-MIR predecessor is the negative-ratcheted checkpoint
   `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747`. Independent attacks first proved
@@ -59,16 +61,24 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   retry, unrelated successor work, or Module Build.
 - Integration gate is
   `tests/self_hosted/parity/semantic_tagged_enum_payload_variant_provenance_owner.sh`.
-  The fresh Pergyra-built DRV-2 is 6,710,593 bytes with SHA-256
-  `F3AF72692A1AA2F799E3363E324093DCBD571D24DDF8A3EC038DFC9193C873FA`.
+  The fresh Pergyra-built DRV-2 is 6,710,592 bytes with SHA-256
+  `FB37EA36D92E9C28B6BB7162F87BA00E733255AD5E46B24A166578713DF75847`.
   It accepts five exact positive flows and rejects 21 counterexamples with the
   same owned receipt and no MIR/C/LLVM artifact. The direct-MIR general/C/LLVM
   gate preserves exact `10`, `4`, `5`, `7` and rejects nine mutations; the
   statement-type, enum-collision, enum-lifetime, diagnostic-catalog,
   expression-identity, hard-contract, compiler-world, and complete component
-  inventory/removed-path gates are also green. This documentation checkpoint,
-  publication, and exact CI remain integration work; no census or percentage
-  change is claimed.
+  inventory/removed-path gates are also green. Exact run `33911747694` at
+  `67ab142e` completed 29/30: every platform, proof, sanitizer, bootstrap, and
+  backend shard passed, while `build-linux` exposed two integration residues.
+  The role-override sealed owner still required member-call identity absence
+  after the graph began carrying the stable target ID, and the generated
+  language-word occurrence inventory was stale. Repair `506c2527` requires the
+  target ID to equal the subject method ID, rejects zero and wrong-method IDs,
+  refreshes the generated inventory, and passes both exact failed gates plus
+  the source 5/21 and complete component ratchets locally. This documentation
+  checkpoint, publication, and replacement exact CI remain integration work;
+  no census or percentage change is claimed.
 
 ## DONE implementation lease — direct-MIR tagged-enum payload program
 

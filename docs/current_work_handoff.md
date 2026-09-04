@@ -21,10 +21,10 @@ percentage by themselves.
 ## Active self-host context — source payload-enum active-variant integration
 
 - Exact executable checkpoint is
-  `95148fdc490cf8e859f4341e54a442d565de97dd`, based on
-  `01f280a3566fb581d0f65d7783e678eee6c987d9`. This documentation-only
-  descendant adds audit and resume evidence; the separately user-owned dirty
-  paths remain `examples/raid_graph_fsm/results.txt`,
+  `506c25272637203ee6bb8a0f6b9462d2a6f226fd`, repairing the published
+  audit/resume checkpoint `67ab142efb74e9010ea57034e370dcacbfeb77e3`.
+  The separately user-owned dirty paths remain
+  `examples/raid_graph_fsm/results.txt`,
   `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/`; they
   were not inspected, edited, or staged.
 - Objective: reject a payload projection unless source semantics proves the
@@ -54,16 +54,29 @@ percentage by themselves.
   semantics, backend/runtime proof, unchecked union reads, and native retry.
 - Fresh native `bin/pgy.exe` is 4,675,593 bytes with SHA-256
   `965519C680C275C03F235FAF099AD487A14E79E3AD5E142AECC8A05DF11769D9`.
-  Fresh Pergyra-built DRV-2 is 6,710,593 bytes with SHA-256
-  `F3AF72692A1AA2F799E3363E324093DCBD571D24DDF8A3EC038DFC9193C873FA`.
+  Fresh Pergyra-built DRV-2 is 6,710,592 bytes with SHA-256
+  `FB37EA36D92E9C28B6BB7162F87BA00E733255AD5E46B24A166578713DF75847`.
 - Local evidence is green: five positive flows and 21 counterexamples with
   exact MIR/C/LLVM receipt parity; direct-MIR general/C/LLVM exact
   `10`, `4`, `5`, `7` plus nine negatives; statement type, enum collision,
   enum lifetime, diagnostic catalog, HIR/persisted/prefix identity, hard
   contract, compiler world, and complete component inventory/old-path ratchet.
-  Script syntax and scoped tracked/untracked whitespace checks are green.
+  The role-override adjacent route also passes eight C/LLVM runtime legs,
+  three order permutations, fourteen source negatives, and twelve direct-MIR
+  negatives. The latter now requires its member call's stable target syntax ID
+  to equal the subject method ID; zero and the role method ID fail closed.
+  The canonical 146-row language-word inventory, script syntax, and scoped
+  whitespace checks are green.
+- Exact run `33911747694` for published head `67ab142e` completed 29/30. Rocq
+  9, full self-host bootstrap, Windows, macOS, TSan, sanitizers, codegen
+  bootstrap, and all twenty backend shards passed. `build-linux` alone failed:
+  the old role-override sealed owner rejected the newly carried member target
+  ID, and the generated language-word occurrence inventory was stale. Repair
+  `506c2527` consumes that ID instead of restoring identity absence, adds zero
+  and wrong-ID falsifiers, and refreshes the inventory through its canonical
+  generator. Both exact failed gates and the broader local ratchets are green.
 - The active next action is the exact documentation checkpoint, one push, and
-  exact-head CI. Do not open affine-Future, Zone spawn ABI, root-JSON,
+  replacement exact-head CI. Do not open affine-Future, Zone spawn ABI, root-JSON,
   duplicate InstructionId, Module Build, or another SoT seam before that
   publication evidence. Those independent reds remain read-only in
   `docs/audits/2026-09-05_counterexample_attack_results.md`.
