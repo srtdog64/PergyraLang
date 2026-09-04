@@ -6,7 +6,23 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — role override declaration carriage
+## ACTIVE discovery lease — next bounded production red
+
+- Exact published base is
+  `803d47f5bf66532df4e562ea94fbebbf3e454a13`; exact-head run
+  `33866524326` completed 30/30 green in 30m08s. The role-override lease below
+  is released.
+- This is a read-only discovery lease. Do not edit or publish compiler source
+  until one installed production-red census result fixes the entrypoint,
+  direct C bypass, existing Pergyra fact owner, last orchestration consumer,
+  focused parity/negative gate, and first falsifying fixture in an objective
+  card. Parallel tasks may audit unrelated evidence but must not open another
+  executable implementation rung.
+- Census and forecast remain 88/185, `55/32/1`, and 83% (81-85%). Module Build
+  remains design-only and post-self-host. Protected user paths remain outside
+  inspection, edit, and staging.
+
+## DONE implementation lease — role override declaration carriage
 
 - Exact lease base is `d2ee067c8863740cb0b5cdcafe697d354aeda102`, equal to
   `origin/main` when discovery began. The primary task owns the bounded
@@ -74,12 +90,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   the retained source-scan evidence hash for the changed generic-call owner.
   That evidence now records the exact current owner hashes without a new
   performance claim, and the source-scan gate plus all remaining preparation
-  commands pass locally. Do not infer completion from this ledger.
+  commands pass locally. Evidence checkpoint
+  `803d47f5bf66532df4e562ea94fbebbf3e454a13` is exact-CI green in run
+  `33866524326`: 30/30 jobs in 30m08s, full self-host
+  `gen2 == gen3 (175771 lines)`, and policy corpus `3 in_subset / 0
+  out_of_subset`.
 - Linux CI consumes the already installed driver through
   `self-host-replacement-frontier-installed-test-smoke`; its dry-run contains
   zero self-host bootstrap commands. The standalone wrapper retains exactly one
-  build. The lease remains `ACTIVE` until that exact published descendant has
-  remote Rocq/full-matrix evidence.
+  build. Remote Rocq and the full matrix are green; this lease is released.
 
 ## DONE implementation lease — installed source-LLVM `region_user_callee`
 

@@ -18,7 +18,31 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — role override declaration carriage
+## Active self-host context — next bounded production-red discovery
+
+- Exact published base is
+  `803d47f5bf66532df4e562ea94fbebbf3e454a13`. Exact-head run
+  `33866524326` completed 30/30 green in 30m08s: Linux 21m46s, full self-host
+  29m08s, codegen fixed point 9m09s, sanitizers 10m21s, Windows 7m10s, Rocq 9
+  1m42s, macOS 1m44s, TSan 14s, and backend comparison 20/20.
+- The role-override declaration-carriage lease below is released. Its full
+  self-host job installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (175771 lines)`, and classified the production policy corpus
+  as `3 in_subset / 0 out_of_subset`.
+- No successor implementation lease is open. The next allowed action is a
+  read-only installed production-red census. Before source edits, fix one
+  objective card naming the production entrypoint, direct C bypass, Pergyra
+  fact owner, last orchestration consumer, focused parity/negative gate, and
+  first falsifying fixture. Do not revive a historical queue item by inference.
+- Registry and forecast remain 88 authorities / 185 derived carriers,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%). The user-owned
+  `examples/raid_graph_fsm/results.txt` and three protected untracked
+  directories remain outside inspection, edit, and staging.
+- Module Build remains design-only and post-self-host in the order
+  `self-host closure -> evidence/identity compression -> real external project ->
+  ModuleInterface -> BuildUnit/incremental build`.
+
+## Published self-host context — role override declaration carriage
 
 - Exact lease base was `d2ee067c8863740cb0b5cdcafe697d354aeda102`.
   Implementation `3b3a0a0f33109446eeb878beff56bb0c1135f99a` and handoff
@@ -41,8 +65,9 @@ percentage by themselves.
   now records the exact current owner hashes without claiming a performance
   remeasurement, and its source-scan gate plus every remaining command in that
   preparation contract pass locally.
-  A published descendant still needs exact full-matrix evidence before this
-  lease can close.
+  Evidence checkpoint `803d47f5bf66532df4e562ea94fbebbf3e454a13`
+  published the final repair; exact run `33866524326` completed 30/30 green and
+  closes this lease.
 - The bounded installed census selected
   `tests/cases/backend_compare/role_override_mir/main.pgy`. Installed tokens
   succeed, but installed AST and source-MIR fail before MIR. Native AST carries
@@ -80,9 +105,8 @@ percentage by themselves.
   CI now invokes the installed replacement-frontier aggregate after its one
   initial driver build; the installed target has zero bootstrap commands while
   the standalone wrapper has exactly one. Local SoT binding/negative checks
-  pass with an explicitly declared prover skip. Rocq kernel validation is green
-  in run `33861720387`; exact descendant full-matrix CI remains the next
-  falsifier.
+  pass with an explicitly declared prover skip. Exact run `33866524326` proves
+  the Rocq kernel, Linux aggregate, fixed point, and full matrix green.
 - The CI repairs refresh generated/retained evidence and tighten only the
   existing receiver-offset negative ratchet; they change no compiler
   implementation or SoT status. Publication and exact-head CI state must be
