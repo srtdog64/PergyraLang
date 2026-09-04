@@ -18,12 +18,25 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — `region_user_callee` readonly-String call
+## Active self-host context — bounded production-red discovery
 
-- Published base `8ef954b770c74c5a36a50faa168661112018f4b7` remains the
-  last exact remote checkpoint; run `33826888124` completed 30/30 green. One
-  successor implementation is locally green and awaits commit plus exact
-  remote CI.
+- Published exact checkpoint is `e9a3042dd340b4048210a83b7d50073b2ff4df61`;
+  run `33834712111` completed 30/30 green. There is no active implementation
+  lease and no inferred successor owner migration.
+- The next allowed action is a bounded read-only installed-production-entrypoint
+  census that names one executable red, its current fact owner, last consumer,
+  forbidden fallback, and falsifying fixture before any code edit begins.
+- Module Build remains design-only. Its implementation order stays
+  `self-host closure -> evidence/identity compression -> real external project ->
+  ModuleInterface -> BuildUnit/incremental build`.
+
+## Published self-host context — `region_user_callee` readonly-String call
+
+- Implementation `c142b173389563f370815929eb5327ddada04afd` and CI contract
+  repair `e9a3042dd340b4048210a83b7d50073b2ff4df61` are published. Initial
+  run `33833681769` found one stale structural assertion after 28 other jobs
+  passed; its remaining full-self-host job was cancelled. Exact replacement
+  run `33834712111` completed 30/30 green in 37m34s.
 - `CompilerAbiLayoutRowOwnershipShapeAt` now owns the borrowed-String-view
   direct-pass query. Source-C definition/prototype consumers emit one
   `const char*`, while semantic call-argument admission separately requires a
@@ -44,6 +57,11 @@ percentage by themselves.
   addressable String-ref call also executes exact `addressable` without an
   extra pointer layer. The two existing callable-identity gates and
   direct-scalar callable gate also pass.
+- Remote full self-host took 36m15s, installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (174857 lines)`, and censused the production policy corpus as
+  `3 in_subset / 0 out_of_subset`. Linux passed all 24 steps in 21m14s;
+  codegen fixed point took 9m55s, sanitizers 13m35s, Windows 7m23s, macOS
+  2m54s, Rocq 9 2m39s, TSan 16s, and backend comparison stayed 20/20 green.
 - `abi.layout_rows` and
   `projection.direct_mir_scalar_cfg_program_extension` remain `BRIDGE`;
   `resource.region_allocation_plan` is not claimed closed because concat still

@@ -6,6 +6,34 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-09-04 - Readonly String call-duration consumer is exact
+
+- `region_user_callee` exposed two stale consumers of the canonical borrowed
+  String ABI: source-C added an extra pointer for every `ref`, while direct MIR
+  rejected the exact readonly String `Void` sink. The ABI row now owns direct
+  passing; temporary lifetime admission separately requires one graph-carried,
+  direct, non-runtime, one-parameter `Void` call.
+- Source/direct/public C/LLVM execute exact `leftright`; an addressable String
+  ref executes exact `addressable` without `&value`. Escaping return and five
+  forged signature rows fail without artifacts. Direct MIR keeps the exact
+  readonly-ref/resource-none/direct/ABI-free/Void receipt and shares one sealed
+  target across call carriage and C/LLVM.
+- Implementation `c142b173` is published. Run `33833681769` passed 28 jobs but
+  found one stale component assertion: the scripts now call an aggregate whose
+  Make dependency retains the old callable gate. The assertion was moved to
+  that real ownership edge, avoiding a duplicate compiler build; the doomed
+  remaining full job was cancelled.
+- Repair `e9a3042d` is published. Exact run `33834712111` completed 30/30 green
+  in 37m34s. Full self-host took 36m15s, installed DRV-2, proved
+  `gen2 == gen3 (174857 lines)`, and censused `3 in_subset / 0 out_of_subset`.
+  Linux passed 24/24 in 21m14s and backend comparison stayed 20/20 green.
+- This is bounded consumer closure, not total region-lifetime closure or a new
+  hard-substitution numerator. Registry and progress remain 88/185,
+  `55/32/1`, integrated 83% (81-85%), strict beta 83%, and hard replacement
+  75%. The next session may only select a successor after bounded installed
+  production-red discovery. Module Build stays deferred until self-host
+  closure, evidence compression, and one real external workload.
+
 ## 2026-08-27 - Nested intent consumes callable receiver identity
 
 - Exact-head run `33025012263` completed 27/29. All platform, proof,

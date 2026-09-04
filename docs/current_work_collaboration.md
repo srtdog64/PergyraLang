@@ -6,12 +6,12 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — installed source-LLVM `region_user_callee`
+## DONE implementation lease — installed source-LLVM `region_user_callee`
 
-- Base `8ef954b770c74c5a36a50faa168661112018f4b7` and exact run
-  `33826888124` remain the last published evidence. `/root` retains this lease
-  until the locally green successor is committed, pushed, and exact CI is
-  observed; parallel work remains read-only for this owner family.
+- Implementation `c142b173389563f370815929eb5327ddada04afd` and CI contract
+  repair `e9a3042dd340b4048210a83b7d50073b2ff4df61` are published. Exact
+  replacement run `33834712111` completed 30/30 green in 37m34s; this lease is
+  released.
 - Objective and ownership are unchanged: the ABI row owns borrowed-String-view
   direct passing, semantic signatures own source type/mode,
   `DirectMirRoutineSignatureFact` owns projected signature identity, and the
@@ -27,12 +27,16 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   mutations, escaping source negative, both existing callable-identity gates,
   and the adjacent direct-scalar callable gate. Registry is green at 88/185
   and `55/32/1`.
-- Remaining work on this lease is publication and exact CI only. Forbidden
-  fallbacks remain carriage coercion, type-only or generic-`Void` admission,
-  fixture/name routing, region-route invention, source/AST rescans, native
-  retry, C round-trip, and a false region-closure claim. Module Build remains
-  deferred and the new CI target reuses the existing callable-identity Make
-  invocation rather than adding a second compiler build.
+- First run `33833681769` passed 28 jobs but the Linux aggregate found a stale
+  component assertion requiring the old callable target to appear directly in
+  both scripts. The repaired contract verifies that the scripts call the new
+  aggregate and that its Make dependency retains the old callable gate; no
+  second compiler build was added. The doomed remaining full job was cancelled.
+- Forbidden fallbacks remain carriage coercion, type-only or generic-`Void`
+  admission, fixture/name routing, region-route invention, source/AST rescans,
+  native retry, C round-trip, and a false region-closure claim. Module Build
+  remains deferred. No successor implementation lease exists until bounded
+  production-red discovery names one executable falsifier.
 
 ## DONE implementation lease — bounded lowercase literal-Log source-LLVM
 

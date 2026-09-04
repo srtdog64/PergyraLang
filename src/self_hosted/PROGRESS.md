@@ -1,5 +1,34 @@
 # Self-Host Progress
 
+## Completed self-host context - 2026-09-04 readonly-String call-duration consumer
+
+- The canonical ABI row now owns direct passing for
+  `String/borrowed_string_view`. Source-C definitions, prototypes, and calls
+  consume that shape without adding a second pointer layer. Non-addressable
+  temporary admission remains a separate exact lifetime decision: only one
+  graph-carried, direct, non-runtime, one-parameter `Void` target may borrow it
+  for the call duration.
+- Direct MIR preserves the exact readonly-ref/resource-none/direct/ABI-free/
+  `Void` signature through its role plan and one sealed target shared by call
+  carriage plus C/LLVM emitters. Installed source/direct/public C/LLVM print
+  exact `leftright`; addressable String-ref prints exact `addressable`.
+  Escaping return and five forged signature variants publish no artifact.
+- Implementation `c142b173` is published. Its first run `33833681769` found
+  only a stale structural CI assertion after 28 jobs passed; the remaining
+  full job was cancelled. Repair `e9a3042d` verifies the aggregate Make
+  dependency instead of requiring the old target spelling in both scripts, so
+  the old gate stays present without a second compiler build.
+- Exact run `33834712111` completed 30/30 green in 37m34s. Full self-host took
+  36m15s, installed the Pergyra-built DRV-2, proved
+  `gen2 == gen3 (174857 lines)`, and recorded policy census `3/0`. Linux passed
+  24/24 in 21m14s and backend comparison stayed 20/20 green.
+- This closes bounded consumers, not all region lifetime or a new hard
+  substitution numerator. Census remains 88 authorities / 185 carriers /
+  `55/32/1`, integrated 83% (81-85%), strict beta 83%, and hard replacement
+  75%. `resource.region_allocation_plan` remains `BRIDGE`; Module Build remains
+  design-only. No successor implementation rung is selected before a bounded
+  installed-production red discovery.
+
 ## Completed self-host context - 2026-09-04 bounded lowercase literal-Log source-LLVM
 
 - The installed lowercase source-MIR reached the one-routine/one-block/

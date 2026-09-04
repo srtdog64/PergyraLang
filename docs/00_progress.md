@@ -2,7 +2,44 @@
 
 마지막 업데이트: 2026-09-04
 
-최신 implementation checkpoint `8ef954b7`의 exact-head run `33826888124`는 36분
+최신 implementation checkpoint `c142b173`과 CI contract repair `e9a3042d`의
+exact-head run `33834712111`은 37분 34초에 30/30 green이다. Full self-host는
+36분 15초에 Pergyra-built DRV-2를 설치하고 `gen2 == gen3 (174857 lines)`를
+증명했으며 production policy corpus는 `3 in_subset / 0 out_of_subset`였다.
+Linux는 새 readonly-String gate와 component contract를 포함한 24개 step을 21분
+14초에 통과했다. Codegen fixed point 9분 55초, sanitizers 13분 35초, Windows 7분
+23초, macOS 2분 54초, Rocq 9 2분 39초, TSan 16초, backend comparison 20/20도
+모두 green이다.
+
+이번 bounded consumer repair는 canonical ABI row가 `String/borrowed_string_view`를
+직접 전달한다고 판정하게 하고 source-C definition/prototype/call이 그 결정을
+소비하게 했다. 비주소 임시값의 수명 허용은 별도다. Graph-carried direct,
+non-runtime, one-parameter `Void` 호출 하나에만 `"left" + "right"`를 call duration
+동안 허용한다. Direct MIR도 readonly-ref/resource-none/direct/ABI-free/Void fact를
+정확히 유지해 C/LLVM이 같은 sealed target을 소비한다. 주소 가능한 String-ref는
+추가 포인터층 없이 실행되고, escaping return과 다섯 MIR signature 변이는 artifact
+없이 실패한다.
+
+첫 run `33833681769`은 다른 28개 job이 green인 상태에서 Linux step 24의 오래된
+구조 assertion 하나만 찾았다. 새 aggregate target이 기존 callable gate를 Make
+의존성으로 실행하는데도 두 CI 스크립트에 옛 target 문자열이 직접 있어야 한다고
+요구하던 계약이었다. 수정본은 두 스크립트가 aggregate를 호출하고 aggregate가 기존
+gate를 의존하는지를 검사하므로 기존 검증을 빠뜨리지도, compiler build를 두 번
+돌리지도 않는다. 실패가 확정된 run의 남은 full job은 비용을 아끼기 위해 취소했고
+위 replacement run으로 전체를 다시 증명했다.
+
+이는 `abi.layout_rows`와
+`projection.direct_mir_scalar_cfg_program_extension`의 도달 소비자를 닫은 것이지
+전체 region lifetime 또는 새 hard substitution 분자가 아니다. Concat은 여전히 기존
+heap materialization을 사용하므로 `resource.region_allocation_plan`도 `BRIDGE`다.
+Census는 88 authorities / 185 derived,
+`CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%), strict beta 83%,
+hard replacement 75%로 유지한다. 다음 허용 작업은 installed production entrypoint에서
+실제 red 하나를 찾는 bounded read-only discovery다. 독립 Module Build 구현은 계속
+`self-host closure -> evidence/identity compression -> 실제 외부 프로젝트 ->
+ModuleInterface -> BuildUnit/incremental build` 뒤로 유보한다.
+
+직전 implementation checkpoint `8ef954b7`의 exact-head run `33826888124`는 36분
 07초에 30/30 green이다. Full self-host는 35분 48초에 Pergyra-built DRV-2를
 설치하고 `gen2 == gen3 (174792 lines)`를 증명했으며 production policy corpus는
 `3 in_subset / 0 out_of_subset`였다. Linux는 24개 push step을 18분 03초에
