@@ -54,7 +54,7 @@ percentage by themselves.
   `docs/audits/2026-09-05_counterexample_attack_results.md`; none is an active
   implementation lease or progress increment.
 
-## Completed self-host context — direct-MIR tagged-enum payload program projection
+## Published self-host context — direct-MIR tagged-enum payload program projection
 
 - Implementation checkpoint
   `123f088949a9d62095b0f181dadd387959b22064` replaces the declaration-only
@@ -87,7 +87,11 @@ percentage by themselves.
   that self-host job failed, and the still-running `build-linux` job cancelled.
   The exact native-oracle command and a fresh
   Pergyra-built driver are green locally after `bbeb75d7`; replacement remote
-  CI is not claimed until its corresponding run completes. Static checkpoint
+  run `33891240090` is 30/30 green in 37m49s. Full self-host took 37m29s,
+  proved `gen2 == gen3 (176108 lines)`, installed the Pergyra-built DRV-2, and
+  censused the production policy corpus as `3 in_subset / 0 out_of_subset`.
+  `build-linux` passed in 22m00s; Windows, macOS, sanitizers, Rocq 9, codegen
+  bootstrap, TSan, and all 20 backend shards also passed. Static checkpoint
   `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747` rejects the exact
   `let local:` recurrence in both owners before the long bootstrap.
 - Protected user-owned paths remain outside inspection, edit, and staging:

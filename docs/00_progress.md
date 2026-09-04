@@ -34,6 +34,13 @@ Pergyra-built DRV-2와 focused/인접 회귀는 모두 green이다. 실패가 �
 증거를 소유한다. Static checkpoint `4bf7d988`은 두 owner의 `let local:` 재등장을
 긴 bootstrap 전에 component contract에서 거절한다.
 
+Replacement run `33891240090`은 37분 49초에 30/30 green으로 완료됐다. Full
+self-host는 37분 29초에 Pergyra-built DRV-2를 설치하고
+`gen2 == gen3 (176108 lines)`와 production policy corpus
+`3 in_subset / 0 out_of_subset`를 증명했다. `build-linux` 22분, Windows 7분 15초,
+macOS 2분 11초, sanitizers 12분 33초, Rocq 9 1분 43초, codegen bootstrap
+9분 14초, TSan 14초, backend 20/20이 모두 green이다.
+
 다음 단일 활성 작업은 source semantic/MIR producer의 wrong-variant gap에 대한
 bounded discovery다. `Right(31)`로 만든 값을 `Left._0`로 읽는 경우와
 `Number(13)`을 `Text._0`로 읽는 경우가 아직

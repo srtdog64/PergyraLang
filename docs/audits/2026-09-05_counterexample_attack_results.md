@@ -255,7 +255,10 @@ and adjacent gates. Checkpoint `4bf7d988` makes the fast component contract
 reject `let local:` in both reached owners. The cancellation request followed the decisive failure;
 28 jobs finished successfully, the failing self-host job remained failed, and
 the still-running `build-linux` job ended cancelled. Replacement CI is
-separate publication evidence.
+separate publication evidence. Exact replacement run `33891240090` completed
+30/30 green in 37m49s. Its full self-host job proved
+`gen2 == gen3 (176108 lines)`, installed the Pergyra-built DRV-2, and censused
+the production policy corpus as `3 in_subset / 0 out_of_subset`.
 
 The next contiguous work item is a bounded read-only discovery at the source
 semantic/MIR producer. It must determine whether an existing environment or

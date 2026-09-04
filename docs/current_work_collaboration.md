@@ -51,7 +51,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `build-linux` ended cancelled after the cancellation request. Exact local
   native-oracle replay is green after `bbeb75d7`;
   `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747` adds the fast recurrence
-  ratchet, and replacement remote CI remains pending.
+  ratchet. Exact replacement run `33891240090` is 30/30 green in 37m49s;
+  full self-host proved `gen2 == gen3 (176108 lines)` and policy corpus
+  `3 in_subset / 0 out_of_subset`. This lease is remotely closed.
 - Independent successor findings are read-only in
   `docs/audits/2026-09-05_counterexample_attack_results.md`. This lease is
   released; protected user paths were not staged.
