@@ -6,29 +6,69 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE discovery lease — source payload-enum variant provenance
+## ACTIVE publication lease — source payload-enum active-variant proof
 
-- Exact base is negative-ratcheted checkpoint
-  `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747`, containing parser-safe
-  implementation `bbeb75d7bfeeeda1dc703699d127838ab8c21876` after substantive
-  checkpoint `123f088949a9d62095b0f181dadd387959b22064`. Read-only attacks proved that
-  the source semantic/MIR producer still emits verified MIR for a value
-  constructed as `Right(Int)` and projected as `Left._0`, and for a value
-  constructed as `Number(Int)` and projected as `Text._0`.
-- Objective: locate the existing environment/SSA owner of active constructor
-  provenance, or prove that fact absent, before editing. The current graph
-  projection owner proves only declared enum/variant/payload type; the reached
-  last consumer is `SemanticAstStatementTypeFacts`. Exact provenance owner and
-  diagnostic identity remain `Unknown`, so this is discovery, not an
-  implementation lease.
-- Forbidden overlap and fallback: no spelling/fixture rule, rendered text,
-  backend rejection used as semantic proof, one-block heuristic generalized to
-  control flow, unchecked runtime union read, source/AST rescan after owned
-  graph evidence, native retry, unrelated successor red, or Module Build.
-- Integration for a future lease requires artifact-free source semantic
-  rejection of both wrong-variant programs, a valid same-variant positive,
-  and the completed direct tagged-enum gate green. No other task may edit this
-  boundary until the objective card is complete.
+- Exact executable checkpoint is
+  `95148fdc490cf8e859f4341e54a442d565de97dd`, based on
+  `01f280a3566fb581d0f65d7783e678eee6c987d9`;
+  the direct-MIR predecessor is the negative-ratcheted checkpoint
+  `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747`. Independent attacks first proved
+  the missing source fact, then falsified four repair candidates: a same-name
+  match binder could inherit an outer local's proof, an unspecialized generic
+  formal could evade enum admission, `ref` could forward into `inout`, and a
+  member call lost its stable callee declaration identity at graph carriage.
+- Objective: make source semantic admission prove the active enum variant at
+  each payload projection before MIR publication. Priority is stable lexical
+  identity, constructor/assignment and match-arm provenance, conservative
+  control-flow join, artifact-free failure, a stable public diagnostic, then
+  patch size. `SemanticAstEnumPayloadVariantProvenanceVerdict` is the new
+  responsibility-named owner; it may carry rich flow evidence only until body
+  admission. `SemanticAstBodyTypeBundle` is its last legitimate consumer.
+- The flow lattice is `Known(variant) | Unproven`: a direct constructor or
+  assignment produces `Known`, equal predecessor facts remain `Known`, every
+  conflicting or missing proof becomes `Unproven`, and match-case evidence may
+  refine only inside its owned arm. A projection is admitted only for exact
+  `Known(requested variant)`. This lease does not promote a one-block scan into
+  a general CFG proof; unsupported joins fail closed.
+- `SemanticAstLocalBindingIdentity` fixes ordinary local identity as function,
+  declaration node, and binding index. Match binders without an admitted
+  identity row, generic receivers before specialization, loop generations,
+  member/index/function-return receivers, and unknown calls remain fail-closed.
+  Resolved direct, namespace, and member call targets now carry the same stable
+  syntax identity through native materialization, the semantic graph, and the
+  persisted graph contract. Until the wider parameter-mode contract forbids
+  `ref -> inout`, both modes conservatively invalidate a reaching variant fact.
+- MIR match reconstruction expresses a typed arm as
+  `subject == Enum.Variant` followed by payload-binding projections. The
+  graph-shape owner recognizes that exact equality (including reversed
+  operands), while the flow owner refines only the matching stable subject in
+  the then branch. Else branches and unrelated identities remain `Unproven`.
+- Source-produced MIR carries an explicit admission that source-semantic proof
+  was consumed. External MIR cannot forge that conclusion from carried graph
+  identity and must run the reconstructed proof. These two routes are mutually
+  exclusive in `DriverRung2EnumPayloadVariantProofAdmission`.
+- The owned diagnostic identity is
+  `enum_payload_variant_unproven` /
+  `PGY_SEM_ENUM_VARIANT_UNPROVEN`, with cause
+  `semantic:enum_payload:active_variant_unproven` and fix
+  `narrow-enum-variant-before-projection`.
+- Forbidden fallback: local-name-only joins, constructor or fixture spelling
+  policy, `initializer_texts`/rendered source, AST/program-root rescans after
+  graph facts exist, downstream MIR/SSA fed back into semantics, backend or
+  runtime rejection used as semantic proof, unchecked union reads, native
+  retry, unrelated successor work, or Module Build.
+- Integration gate is
+  `tests/self_hosted/parity/semantic_tagged_enum_payload_variant_provenance_owner.sh`.
+  The fresh Pergyra-built DRV-2 is 6,710,593 bytes with SHA-256
+  `F3AF72692A1AA2F799E3363E324093DCBD571D24DDF8A3EC038DFC9193C873FA`.
+  It accepts five exact positive flows and rejects 21 counterexamples with the
+  same owned receipt and no MIR/C/LLVM artifact. The direct-MIR general/C/LLVM
+  gate preserves exact `10`, `4`, `5`, `7` and rejects nine mutations; the
+  statement-type, enum-collision, enum-lifetime, diagnostic-catalog,
+  expression-identity, hard-contract, compiler-world, and complete component
+  inventory/removed-path gates are also green. This documentation checkpoint,
+  publication, and exact CI remain integration work; no census or percentage
+  change is claimed.
 
 ## DONE implementation lease — direct-MIR tagged-enum payload program
 

@@ -1,6 +1,6 @@
 # Counterexample attack results — 2026-09-05
 
-Status: `READ-ONLY CAMPAIGN COMPLETE — ACTIVE DIRECT RUNG REPAIRED; SUCCESSOR REDS NOT REPAIRED`
+Status: `READ-ONLY CAMPAIGN COMPLETE — SOURCE RUNG LOCALLY GREEN; PUBLICATION PENDING; SUCCESSOR REDS NOT REPAIRED`
 
 Observed repository base:
 `b4cfb0f2ef883d8f5b80ef96eafd89c1898c3d30`.
@@ -13,6 +13,9 @@ Native-parser identifier repair:
 
 Static recurrence ratchet:
 `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747`.
+
+Local source-semantic active-variant repair checkpoint:
+`95148fdc490cf8e859f4341e54a442d565de97dd`.
 
 Fresh candidate DRV-2:
 
@@ -121,6 +124,70 @@ The durable focused gate is
 `tests/self_hosted/parity/one_mir_tagged_enum_payload_projection.sh`. It
 executes the positive through both targets and requires nine mutations,
 including the three adversarial families above, to fail without artifacts.
+
+## Source-semantic active-variant attack: locally repaired candidate
+
+The successor discovery became one bounded implementation lease at working
+base `01f280a3566fb581d0f65d7783e678eee6c987d9`. The new semantic owner carries
+only `Known(variant) | Unproven` until body admission. Stable local identity is
+the tuple `(function node, declaration node, binding index)`; spelling is used
+only while resolving that identity. Exact constructor assignment, equal branch
+consensus, and an owned match arm may produce or preserve `Known`. Conflicting,
+missing, loop-carried, or unsupported provenance becomes `Unproven`.
+
+The first repair matrix found four further false admissions before integration:
+
+- a match payload binder with the same spelling as an outer local inherited
+  the outer local's constructor proof;
+- a generic formal such as `T` was not yet a concrete enum during source
+  checking and could become a payload enum only after specialization;
+- a `ref` actual could be forwarded to an `inout` formal, but only the direct
+  `inout` mode invalidated the reaching proof;
+- a member call resolved to its canonical method but its stable declaration ID
+  was not carried through native graph materialization and graph readiness.
+
+The candidate now fails closed for all four. Direct, namespace, and member call
+targets share one stable declaration-identity contract. Both `inout` and the
+currently forwardable `ref` mode conservatively kill the proof. Match binders
+without their own admitted lexical identity and generic receivers before
+specialization cannot borrow an outer or future proof.
+
+Source and external-MIR admission remain distinct. Source production may cross
+DRV-2 only after source-semantic proof was consumed. External MIR has no such
+receipt and must run the proof against its reconstructed semantic graph;
+carried expression identity alone cannot grant admission.
+
+That distinction exposed one valid-control failure: MIR match reconstruction
+renders a typed arm as `subject == Enum.Variant` plus payload-binding
+projections. Requiring proof without recognizing that graph equality rejected
+the valid `enum_multi_payload` oracle. The repaired graph owner projects the
+exact equality shape, and the flow owner refines only a stable matching subject
+inside its then branch. The valid installed/public/native canonical forms now
+agree again; the wrong-variant external-MIR mutation remains rejected.
+
+Observed local candidate evidence:
+
+- Pergyra-built DRV-2: 6,710,593 bytes, SHA-256
+  `F3AF72692A1AA2F799E3363E324093DCBD571D24DDF8A3EC038DFC9193C873FA`;
+- the focused source gate accepts five positive flow families and rejects 21
+  counterexamples with exact public diagnostic identity across MIR, C, and
+  LLVM, with no failed artifact publication;
+- the direct-MIR gate preserves exact `10`, `4`, `5`, `7` through general, C,
+  and LLVM consumers and rejects nine mutations without artifacts;
+- the existing statement-type and diagnostic-catalog parity gates are green;
+- HIR routine identity, persisted expression-identity carriage, and installed
+  C/native-LLVM prefix parity are green. The last two first exposed an old
+  fixture/gate schema drift: the fixture still encoded a four-column identity
+  row after `binding_syntax_id` became a separate fifth column, and the gate
+  still named pre-split owner locations. The repair moves the same ID to its
+  owned column and retargets checks; it does not mint a second identity fact.
+
+This evidence closes neither arbitrary alias analysis nor a whole-language CFG
+theorem. Member/index/function-return provenance, loop projections, generic
+specialization proof carriage, and post-match consensus remain conservative
+rejections until their own stable facts and falsifiers exist. The wider rule
+that currently permits `ref -> inout` forwarding is also a separate parameter-
+mode contract question; this lease does not silently redefine it.
 
 ## Concurrency attack: successor reds, not repaired
 
@@ -260,12 +327,13 @@ separate publication evidence. Exact replacement run `33891240090` completed
 `gen2 == gen3 (176108 lines)`, installed the Pergyra-built DRV-2, and censused
 the production policy corpus as `3 in_subset / 0 out_of_subset`.
 
-The next contiguous work item is a bounded read-only discovery at the source
-semantic/MIR producer. It must determine whether an existing environment or
-SSA fact owns active constructor provenance before opening an implementation
-lease. `SemanticExpressionGraphEnumPayloadTypeName` currently proves only
-declared enum/variant/payload type; it must not invent active-tag truth from
-spelling or let the direct backend serve as the semantic checker.
+That bounded source discovery is no longer pending: it found that no existing
+fact joined lexical binding identity to active-constructor flow, and the local
+candidate described above now supplies the missing owner before MIR
+publication. Publication and exact-head CI remain required before the active
+lease can be retired. The declared enum/variant/payload-type projection remains
+separate and cannot invent active-tag truth from spelling or delegate semantic
+checking to the direct backend.
 
 The affine-Future, Zone spawn ABI, root JSON grammar, and duplicate
 InstructionId findings remain independent successor reds. Their order is not

@@ -18,41 +18,61 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — source payload-enum variant-provenance discovery
+## Active self-host context — source payload-enum active-variant integration
 
-- Exact discovery base is negative-ratcheted checkpoint
-  `4bf7d98881cc6bfb408aadeaefe8c6bcf42d6747`. It contains parser-safe
-  implementation `bbeb75d7bfeeeda1dc703699d127838ab8c21876`, a two-identifier
-  correction of substantive checkpoint
-  `123f088949a9d62095b0f181dadd387959b22064`. The direct boundary is now
-  fail-closed, but the installed source semantic/MIR producer still accepts
-  `Pair.Right(31)` followed by `value.Left._0`, and `Mixed.Number(13)` followed
-  by `value.Text._0`, as verified MIR.
-- Objective: determine which existing source-level environment/SSA fact can
-  own the receiver value's active constructor variant before opening another
-  implementation lease. Priority is existing identity and dominance evidence,
-  source semantic rejection, exact diagnostic ownership, MIR non-publication,
-  then patch size. `SemanticExpressionGraphEnumPayloadTypeName` currently owns
-  only the declared enum/variant/payload-type projection; it does not prove
-  active-tag provenance. The reached current consumer is
-  `SemanticAstStatementTypeFacts`. The required provenance owner is `Unknown`
-  until this bounded discovery finds an existing fact or proves one missing.
-- Forbidden continuation is variant or fixture spelling, rendered-expression
-  parsing, treating a direct-backend rejection as source semantic proof,
-  backend-specific active-tag reconstruction, an implicit runtime unchecked
-  union read, source/AST rescan after an owned graph fact, native retry, or
-  Module Build implementation. No source repair starts until owner, last
-  legitimate consumer, and a negative diagnostic identity are fixed.
-- The next falsifier is the two wrong-variant sources above. Each currently
-  exits 0 under `--emit-mir-json-verified`; the desired source boundary is a
-  stable semantic failure with no MIR artifact, while a same-variant payload
-  read and the direct tagged-enum gate remain green. Match-narrowed or
-  cross-block access is not silently admitted by a one-block constructor
-  heuristic.
-- Independent affine-Future, Zone spawn ABI, root-JSON grammar, and duplicate
-  InstructionId reds are recorded in
-  `docs/audits/2026-09-05_counterexample_attack_results.md`; none is an active
-  implementation lease or progress increment.
+- Exact executable checkpoint is
+  `95148fdc490cf8e859f4341e54a442d565de97dd`, based on
+  `01f280a3566fb581d0f65d7783e678eee6c987d9`. This documentation-only
+  descendant adds audit and resume evidence; the separately user-owned dirty
+  paths remain `examples/raid_graph_fsm/results.txt`,
+  `docs/compiler_architectures/`, `pgy-80135c2c/`, and `pgy-91d769ec/`; they
+  were not inspected, edited, or staged.
+- Objective: reject a payload projection unless source semantics proves the
+  receiver's active enum constructor before MIR publication. The fact owner is
+  `SemanticAstEnumPayloadVariantProvenanceVerdict`; its last legitimate
+  consumer is `SemanticAstBodyTypeBundle`. The compact lattice is
+  `Known(variant) | Unproven`, keyed by function, declaration node, and binding
+  index rather than identifier spelling.
+- Direct construction, assignment, equal branch consensus, owned match-arm
+  refinement, and the exact equality graph used by MIR match reconstruction
+  may establish `Known`. Conflicts, missing identity, loops, generic receivers
+  before specialization, match binders without an identity row, unknown calls,
+  and currently unsupported member/index/function-return provenance fail
+  closed. `inout` and currently forwardable `ref` arguments conservatively
+  invalidate the reaching proof.
+- Source-produced MIR crosses DRV-2 only with an admission that the source proof
+  was consumed. External MIR cannot infer that from carried graph identity and
+  must run reconstructed proof. A valid reconstructed multi-payload match and
+  a wrong-variant MIR mutation form the paired control: the former canonicalizes
+  identically across installed/public/native routes; the latter remains an
+  artifact-free rejection in general/C/LLVM consumers.
+- The owned diagnostic is `enum_payload_variant_unproven` /
+  `PGY_SEM_ENUM_VARIANT_UNPROVEN`, cause
+  `semantic:enum_payload:active_variant_unproven`, fix
+  `narrow-enum-variant-before-projection`. Forbidden fallbacks are name-only
+  joins, rendered-source or AST-root rescans, MIR/SSA feedback into source
+  semantics, backend/runtime proof, unchecked union reads, and native retry.
+- Fresh native `bin/pgy.exe` is 4,675,593 bytes with SHA-256
+  `965519C680C275C03F235FAF099AD487A14E79E3AD5E142AECC8A05DF11769D9`.
+  Fresh Pergyra-built DRV-2 is 6,710,593 bytes with SHA-256
+  `F3AF72692A1AA2F799E3363E324093DCBD571D24DDF8A3EC038DFC9193C873FA`.
+- Local evidence is green: five positive flows and 21 counterexamples with
+  exact MIR/C/LLVM receipt parity; direct-MIR general/C/LLVM exact
+  `10`, `4`, `5`, `7` plus nine negatives; statement type, enum collision,
+  enum lifetime, diagnostic catalog, HIR/persisted/prefix identity, hard
+  contract, compiler world, and complete component inventory/old-path ratchet.
+  Script syntax and scoped tracked/untracked whitespace checks are green.
+- The active next action is the exact documentation checkpoint, one push, and
+  exact-head CI. Do not open affine-Future, Zone spawn ABI, root-JSON,
+  duplicate InstructionId, Module Build, or another SoT seam before that
+  publication evidence. Those independent reds remain read-only in
+  `docs/audits/2026-09-05_counterexample_attack_results.md`.
+- The delegated language-concept deletion/compression/local-reasoning audit is
+  complete in `docs/audits/2026-09-05_concept_deletion_stress_matrix.md` and
+  `docs/audits/2026-09-05_semantic_compression_local_reasoning_matrix.md`.
+  It owns no semantics or progress: `Slot`, `Zone`, and `Capability` survive
+  deletion; containment remains a fact without a new generic `scope` keyword;
+  `Intent` remains conditional outside its bounded checked subset.
 
 ## Published self-host context — direct-MIR tagged-enum payload program projection
 
