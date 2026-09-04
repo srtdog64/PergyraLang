@@ -24,6 +24,7 @@ import "domain_topology_graph_plan_consumer_owner.pgy";
 import "codegen_callable_receiver_bridge_owner.pgy";
 import "driver_rung2_intent_consumer_owner.pgy";
 import "driver_rung2_nested_intent_c_substitution_owner.pgy";
+import "driver_rung2_enum_payload_variant_admission_owner.pgy";
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
     body_types: SemanticAstBodyTypeBundle;
@@ -35,7 +36,8 @@ struct DriverRung2MirProjection {
 }
 func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact, semantic_analysis: SemanticAstArtifactAnalysis,
-    observe_pressure: Bool, require_carried_expression_identities: Bool, emit_json_diagnostic: Bool
+    observe_pressure: Bool, require_carried_expression_identities: Bool,
+    require_enum_payload_variant_proof: Bool, emit_json_diagnostic: Bool
 ) -> DriverRung2VerifiedFacts {
     if !semantic_analysis.verdict.ok {
         Log(SemanticDiagnosticPayloadForPublicBoundary(semantic_analysis.verdict.diagnostic_code,
@@ -54,7 +56,8 @@ func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
     let body_types: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             artifact, semantic_analysis, observe_pressure,
-            require_carried_expression_identities
+            require_carried_expression_identities,
+            require_enum_payload_variant_proof
         );
     DriverRung2PressureStage(observe_pressure, "body-types:done");
     let body_type_admission: SemanticAstBodyTypeBundleAdmissionReceipt =
@@ -78,7 +81,7 @@ func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
     observe_pressure: Bool
 ) -> DriverRung2VerifiedFacts {
     return VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
-        artifact, semantic_analysis, observe_pressure, false, false);
+        artifact, semantic_analysis, observe_pressure, false, true, false);
 }
 func VerifyArtifactAnalysisForDriverRung2Observed(
     artifact: AstTreeArtifact, semantic_analysis: SemanticAstArtifactAnalysis,
@@ -147,7 +150,8 @@ func DriverRung2MirProjectionFromAdmittedAnalysisObserved(
 ) -> DriverRung2MirProjection {
     DriverRung2PressureStage(observe_pressure, "verify:start");
     let verified: DriverRung2VerifiedFacts = VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
-            artifact, analysis, observe_pressure, false, emit_json_diagnostic
+            artifact, analysis, observe_pressure, false, true,
+            emit_json_diagnostic
         );
     DriverRung2PressureStage(observe_pressure, "verify:done");
     return DriverRung2MirProjectionFromVerifiedFactsObserved(
@@ -255,8 +259,12 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool,
-    retire_owned_source_json: Bool
+    retire_owned_source_json: Bool,
+    variant_proof: DriverRung2EnumPayloadVariantProofAdmission
 ) -> CompilerEmissionArtifact {
+    if !DriverRung2EnumPayloadVariantProofAdmissionReady(variant_proof) {
+        Die("MIR payload-enum variant proof admission is missing");
+    }
     let nested_c: Option<CompilerEmissionArtifact> =
         DriverRung2NestedIntentCSubstitutionIfClaimed(
             admitted, target_projection, retire_owned_source_json);
@@ -303,7 +311,8 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     );
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
-            artifact, analysis, observe_pressure, true, false
+            artifact, analysis, observe_pressure, true,
+            variant_proof.require_reconstructed_proof, false
         );
     DriverRung2PressureStage(
         observe_pressure, "consumer:verify:done"
@@ -404,7 +413,8 @@ func CompileMirJsonTextToCForTargetVerifiedObserved(
     json: String,
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact,
-    observe_pressure: Bool
+    observe_pressure: Bool,
+    variant_proof: DriverRung2EnumPayloadVariantProofAdmission
 ) -> CompilerEmissionArtifact {
     DriverRung2PressureStage(
         observe_pressure, "consumer:machine-layer-admission:start"
@@ -420,7 +430,7 @@ func CompileMirJsonTextToCForTargetVerifiedObserved(
     let admitted: MirMachineLayerAdmittedJsonInput =
         UnwrapOption(admitted_opt);
     return CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
-        admitted, target_projection, observe_pressure, false
+        admitted, target_projection, observe_pressure, false, variant_proof
     );
 }
 
@@ -430,14 +440,16 @@ func CompileMirJsonTextToCForTargetVerified(
     target_projection: CompilerTargetProjectionFact
 ) -> CompilerEmissionArtifact {
     return CompileMirJsonTextToCForTargetVerifiedObserved(
-        json, machine_declaration, target_projection, false
+        json, machine_declaration, target_projection, false,
+        DriverRung2EnumPayloadVariantProofAdmissionForExternalMir()
     );
 }
 
 func CompileMachineAdmittedMirJsonToCVerifiedObserved(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     observe_pressure: Bool,
-    retire_owned_source_json: Bool
+    retire_owned_source_json: Bool,
+    variant_proof: DriverRung2EnumPayloadVariantProofAdmission
 ) -> CompilerEmissionArtifact {
     return CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         admitted,
@@ -445,7 +457,8 @@ func CompileMachineAdmittedMirJsonToCVerifiedObserved(
             CompilerTargetCpuCProjection()
         ),
         observe_pressure,
-        retire_owned_source_json
+        retire_owned_source_json,
+        variant_proof
     );
 }
 
@@ -468,7 +481,12 @@ func CompileSourceToCVerified(
     let json: String = CompileSourceToMirJsonVerified(
         source_path, machine_declaration, emit_json_diagnostic
     );
-    return CompileMirJsonTextToCVerified(json, machine_declaration);
+    return CompileMirJsonTextToCForTargetVerifiedObserved(
+        json, machine_declaration,
+        CompilerTargetProjectionFactFromOwner(CompilerTargetCpuCProjection()),
+        false,
+        DriverRung2EnumPayloadVariantProofAdmissionFromVerifiedSource()
+    );
 }
 
 func CompileMirJsonToCVerified(
@@ -480,7 +498,8 @@ func CompileMirJsonToCVerified(
             mir_json_path, machine_declaration
         );
     return CompileMachineAdmittedMirJsonToCVerifiedObserved(
-        admitted, false, true
+        admitted, false, true,
+        DriverRung2EnumPayloadVariantProofAdmissionForExternalMir()
     );
 }
 
@@ -495,6 +514,7 @@ func CompileMirJsonToCVerifiedObserved(
         );
     DriverRung2PressureStage(true, "consumer:input:done");
     return CompileMachineAdmittedMirJsonToCVerifiedObserved(
-        admitted, true, true
+        admitted, true, true,
+        DriverRung2EnumPayloadVariantProofAdmissionForExternalMir()
     );
 }

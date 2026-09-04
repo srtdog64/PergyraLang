@@ -294,7 +294,7 @@ func RunDebugSession(
     }
     let body_types: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
-            artifact, analysis, false, false
+            artifact, analysis, false, false, true
         );
     let body_admission: SemanticAstBodyTypeBundleAdmissionReceipt =
         SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(

@@ -60,6 +60,9 @@ func SemanticReason(code: String) -> String {
     if code == "call_arg_type_mismatch" || code == "member_call_arg_type_mismatch" {
         return "call argument type does not match the callee parameter type";
     }
+    if code == "enum_payload_variant_unproven" {
+        return "payload access requires proof of the receiver's active enum variant";
+    }
     if code == "named_value_boundary_argument_required" { return "borrow-tracked value boundaries require one stable source binding"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "zone identity cannot be carried without an admitted transfer plan"; }
     if code == "builtin_arg_type_mismatch" { return "builtin argument type does not match the builtin contract"; }
@@ -159,6 +162,9 @@ func SemanticFix(code: String) -> String {
     if code == "array_index_type_mismatch" { return "use an Int expression for the array index"; }
     if code == "call_arg_type_mismatch" || code == "member_call_arg_type_mismatch" {
         return "change the argument expression or the callee parameter type";
+    }
+    if code == "enum_payload_variant_unproven" {
+        return "narrow the enum value to the requested variant before reading its payload";
     }
     if code == "named_value_boundary_argument_required" { return "bind the value to a local variable before passing it through the boundary"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "construct a fresh zone or use an explicit admitted transfer boundary"; }

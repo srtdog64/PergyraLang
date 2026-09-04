@@ -1,0 +1,9 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func Main() -> Void {
+    let value: VexaTag = Aster(11);
+    Log(value.Aster._0);
+}

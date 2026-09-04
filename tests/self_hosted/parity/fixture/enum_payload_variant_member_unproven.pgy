@@ -1,0 +1,13 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+struct Holder {
+    value: VexaTag;
+}
+
+func Main() -> Void {
+    let holder: Holder = Holder(Brume(52));
+    Log(holder.value.Aster._0);
+}

@@ -1,0 +1,16 @@
+enum InnerTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+enum OuterTag {
+    Wrap(InnerTag)
+}
+
+func Main() -> Void {
+    let outer: OuterTag = Wrap(Brume(61));
+    match outer {
+        case Wrap(inner):
+            Log(inner.Aster._0);
+    }
+}

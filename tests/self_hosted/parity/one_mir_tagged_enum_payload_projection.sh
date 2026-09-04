@@ -54,6 +54,25 @@ rm -f "$WORK"/*
 mir_hash="$(sha256sum "$MIR" | awk '{print $1}')"
 printf '10\n4\n5\n7\n' >"$WORK/expected.run"
 
+(cd "$ROOT_DIR" && "$DRIVER" --mir-json "$MIR_REL") \
+    >"$WORK/general.c" 2>"$WORK/general.err" || {
+        cat "$WORK/general.err" >&2
+        fail "general MIR consumer rejected valid payload projections"
+    }
+grep -Fq 'int main' "$WORK/general.c" ||
+    fail "general MIR consumer emitted no C entrypoint"
+general_binary="$WORK/general.exe"
+general_command=("$CC" -x c -std=c11 "$WORK/general.c")
+if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK/general.c"; then
+    general_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+fi
+general_command+=(-lm -o "$general_binary")
+"${general_command[@]}" >"$WORK/general.compile.out" \
+    2>"$WORK/general.compile.err" || fail "general MIR C did not compile"
+"$general_binary" | tr -d '\r' >"$WORK/general.run"
+cmp -s "$WORK/expected.run" "$WORK/general.run" ||
+    fail "general MIR consumer runtime output drifted"
+
 for backend in c llvm; do
     artifact="$WORK/tagged.$backend"
     binary="$WORK/tagged-$backend.exe"
@@ -89,6 +108,23 @@ cmp -s "$WORK/c.run" "$WORK/llvm.run" || fail "C/LLVM output diverged"
 for mutation in variant-name payload-count payload-type payload-ordinal member-valid-variant future-ssa-use graph-edge ssa-use; do
     mutated="$WORK/$mutation.mir.json"
     python "$MUTATOR" "$MIR" "$mutation" "$mutated"
+    if [[ "$mutation" == member-valid-variant ]]; then
+        set +e
+        (cd "$ROOT_DIR" && "$DRIVER" --mir-json \
+            "$WORK_REL/$mutation.mir.json") \
+            >"$WORK/rejected-$mutation.general.out" \
+            2>"$WORK/rejected-$mutation.general.err"
+        general_rc=$?
+        set -e
+        [[ "$general_rc" -ne 0 ]] ||
+            fail "general MIR consumer accepted $mutation"
+        ! grep -Fq 'int main' "$WORK/rejected-$mutation.general.out" ||
+            fail "general MIR consumer published C for $mutation"
+        grep -Eiq 'enum_payload_variant_unproven|active enum variant|payload-enum variant' \
+            "$WORK/rejected-$mutation.general.out" \
+            "$WORK/rejected-$mutation.general.err" ||
+            fail "general MIR $mutation escaped the owned rejection path"
+    fi
     for backend in c llvm; do
         output="$WORK/rejected-$mutation.$backend"
         rm -f "$output"
@@ -146,4 +182,4 @@ for backend in c llvm; do
     [[ ! -e "$output" ]] || fail "$backend published stale-ssa-use artifact"
 done
 
-echo "[$LABEL] unchanged MIR C/LLVM 10+4+5+7 and nine artifact-free negatives: PASS"
+echo "[$LABEL] unchanged MIR general/C/LLVM 10+4+5+7 and nine artifact-free negatives: PASS"

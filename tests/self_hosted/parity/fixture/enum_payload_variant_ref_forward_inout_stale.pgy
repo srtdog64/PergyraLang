@@ -1,0 +1,18 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func Replace(inout value: VexaTag) -> Void {
+    value = Brume(72);
+}
+
+func Forward(ref value: VexaTag) -> Void {
+    Replace(value);
+}
+
+func Main() -> Void {
+    let value: VexaTag = Aster(71);
+    Forward(value);
+    Log(value.Aster._0);
+}

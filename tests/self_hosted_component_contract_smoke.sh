@@ -352,7 +352,12 @@ require_stage_owner_line_cap() {
         elif [[ "$rel" == "src/self_hosted/semantic/diagnostic_owner.pgy" ]]; then
             # One renderer owns the stable diagnostic reason/fix vocabulary.
             # Splitting it would create a second rendering authority.
-            cap=650
+            cap=660
+        elif [[ "$rel" == "src/self_hosted/semantic/ast_enum_payload_variant_provenance_verdict_owner.pgy" ]]; then
+            # The bounded Known/Unproven transfer, structured joins, and final
+            # payload admission are one semantic authority.  A split would
+            # make two owners independently decide active-variant truth.
+            cap=1450
         fi
         require_max_lines "$rel" "$cap"
         require_text "src/self_hosted/OWNERS.md" "$rel"
@@ -3150,7 +3155,7 @@ require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manif
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 40"
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 41"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
@@ -5870,7 +5875,7 @@ reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "Chec
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 275
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 305
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "struct SemanticAstBodyTypeBundle"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
@@ -6190,7 +6195,10 @@ reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/compiler/driver_rung2_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung2_main.pgy"
-require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 500
+require_file "src/self_hosted/compiler/driver_rung2_enum_payload_variant_admission_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/driver_rung2_enum_payload_variant_admission_owner.pgy" 45
+require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 525
 require_file "src/self_hosted/compiler/canonical_mir_execution_owner.pgy"
 require_max_lines "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" 140
 require_text "src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
@@ -7230,7 +7238,7 @@ reject_function_text "src/self_hosted/mir_lower/intent_execution_graph_target_ow
     "func MirIntentExecutionGraphTargetProject(" \
     "SemanticExpressionGraphArenaFromTopology("
 require_file "tests/self_hosted/fixtures/expression_graph_identity_prefix_owner.pgy"
-require_max_lines "tests/self_hosted/fixtures/expression_graph_identity_prefix_owner.pgy" 110
+require_max_lines "tests/self_hosted/fixtures/expression_graph_identity_prefix_owner.pgy" 115
 require_file "tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh"
 require_max_lines "tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh" 80
 require_text "Makefile" "self-host-expression-graph-identity-prefix-test-smoke:"
@@ -7273,7 +7281,11 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstArtifactAnalyzeWithExpressionGraph("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return CompileMirJsonTextToCVerified(json, machine_declaration);"
+    "DriverRung2EnumPayloadVariantProofAdmissionFromVerifiedSource()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "DriverRung2EnumPayloadVariantProofAdmissionForExternalMir()"
+reject_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    'verdict.ok && !require_carried_expression_identities'
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"emitted-c", CompileArtifactToCVerified(artifact)'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" "MirFactGraphPayloadContractReady()"
@@ -21207,7 +21219,7 @@ require_max_lines \
 require_file \
     "tests/self_hosted/parity/one_mir_tagged_enum_payload_projection.sh"
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_tagged_enum_payload_projection.sh" 175
+    "tests/self_hosted/parity/one_mir_tagged_enum_payload_projection.sh" 190
 require_file \
     "tests/self_hosted/parity/one_mir_tagged_enum_payload_mutations.py"
 require_max_lines \

@@ -70,6 +70,13 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "align-arg-type"
         );
     }
+    if code == "enum_payload_variant_unproven" {
+        return SemanticPublicDiagnosticIdentity(
+            true,
+            "semantic:enum_payload:active_variant_unproven",
+            "narrow-enum-variant-before-projection"
+        );
+    }
     if code == "builtin_arg_type_mismatch" {
         return SemanticPublicDiagnosticIdentity(
             true,

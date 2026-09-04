@@ -1,0 +1,39 @@
+// DRV-2 proof route for payload-enum projections crossing a MIR boundary.
+//
+// Source production has already consumed the source-semantic active-variant
+// proof.  External MIR has no such receipt today and must be checked again on
+// the reconstructed semantic graph.  Carried expression identity is a
+// separate policy and cannot grant this admission.
+
+struct DriverRung2EnumPayloadVariantProofAdmission {
+    schema: String;
+    source_semantic_proof_consumed: Bool;
+    require_reconstructed_proof: Bool;
+}
+
+func DriverRung2EnumPayloadVariantProofAdmissionSchema() -> String {
+    return "pgy.driver-rung2.enum-payload-variant-proof-admission.v1";
+}
+
+func DriverRung2EnumPayloadVariantProofAdmissionFromVerifiedSource(
+) -> DriverRung2EnumPayloadVariantProofAdmission {
+    return DriverRung2EnumPayloadVariantProofAdmission(
+        DriverRung2EnumPayloadVariantProofAdmissionSchema(), true, false
+    );
+}
+
+func DriverRung2EnumPayloadVariantProofAdmissionForExternalMir(
+) -> DriverRung2EnumPayloadVariantProofAdmission {
+    return DriverRung2EnumPayloadVariantProofAdmission(
+        DriverRung2EnumPayloadVariantProofAdmissionSchema(), false, true
+    );
+}
+
+func DriverRung2EnumPayloadVariantProofAdmissionReady(
+    admission: DriverRung2EnumPayloadVariantProofAdmission
+) -> Bool {
+    return admission.schema ==
+            DriverRung2EnumPayloadVariantProofAdmissionSchema() &&
+        admission.source_semantic_proof_consumed !=
+            admission.require_reconstructed_proof;
+}

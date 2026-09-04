@@ -135,6 +135,21 @@ Identifier or member access where the symbol cannot be resolved. Distinct from `
 - **Reason**: value-level identifier not found in any accessible scope.
 - **Fix**: check spelling, imports, and visibility modifiers.
 
+#### `PGY_SEM_ENUM_VARIANT_UNPROVEN`
+
+Payload projection through `value.Variant._N` when source-semantic flow cannot
+prove that `Variant` is the receiver's active constructor at that use.
+Declared payload type equality is not sufficient: the proof follows stable
+binding identity through direct construction, assignment, conservative branch
+joins, and match-arm refinement.
+
+- **Reason**: the requested payload lane is not proven active on every reaching
+  source path.
+- **Fix**: narrow the enum value to the requested variant before reading its
+  payload.
+- **cause_ir**: `semantic:enum_payload:active_variant_unproven`
+- **fix_source**: `narrow-enum-variant-before-projection`
+
 ### Type Inference
 
 #### `PGY_SEM_INFER_COLLECTION`

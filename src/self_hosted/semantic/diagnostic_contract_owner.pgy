@@ -320,6 +320,26 @@ func SemanticPublicDiagnosticReceiptMessageIndependenceReady() -> Bool {
         array_index_first.message != array_index_second.message;
 }
 
+func SemanticEnumPayloadVariantDiagnosticReceiptReady() -> Bool {
+    let first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "enum_payload_variant_unproven", "first enum payload wording"
+        );
+    let second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            "enum_payload_variant_unproven", "second enum payload wording"
+        );
+    return SemanticPublicDiagnosticReceiptReadyFor(
+            first, "enum_payload_variant_unproven"
+        ) && SemanticPublicDiagnosticReceiptReadyFor(
+            second, "enum_payload_variant_unproven"
+        ) && first.schema == second.schema &&
+        first.stage == second.stage && first.layer == second.layer &&
+        first.code == second.code && first.cause_ir == second.cause_ir &&
+        first.fix_source == second.fix_source &&
+        first.message != second.message;
+}
+
 func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadSchema() != "pgy.selfhost.semantic.v1" {
         return false;
@@ -327,7 +347,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
-    if SemanticDiagnosticCodeCount() != 40 {
+    if SemanticDiagnosticCodeCount() != 41 {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {
@@ -340,6 +360,9 @@ func SemanticVerdictPayloadContractReady() -> Bool {
         return false;
     }
     if !SemanticPublicDiagnosticReceiptMessageIndependenceReady() {
+        return false;
+    }
+    if !SemanticEnumPayloadVariantDiagnosticReceiptReady() {
         return false;
     }
     return true;

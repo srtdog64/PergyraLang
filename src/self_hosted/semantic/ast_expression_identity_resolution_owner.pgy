@@ -140,7 +140,12 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                         SemanticExpressionBindingNone();
                     graph.arena.identities.binding_ordinals[node] =
                         SemanticExpressionBindingOrdinalAbsent();
-                    if graph.arena.call_target_kinds[node] == SemanticCallTargetDirect() || graph.arena.call_target_kinds[node] == SemanticCallTargetNamespace() {
+                    if graph.arena.call_target_kinds[node] ==
+                        SemanticCallTargetDirect() ||
+                        graph.arena.call_target_kinds[node] ==
+                            SemanticCallTargetNamespace() ||
+                        graph.arena.call_target_kinds[node] ==
+                            SemanticCallTargetMember() {
                         let target_name: String =
                             graph.arena.call_target_names[node];
                         let local_callable: SemanticAstCallableTypeShape =

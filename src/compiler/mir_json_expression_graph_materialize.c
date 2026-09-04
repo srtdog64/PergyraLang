@@ -379,6 +379,7 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
     } else if (callee->type == AST_MEMBER_ACCESS) {
         target_kind = "member";
         target_name = ast_member_name(callee);
+        target_syntax_id = ast_call_semantic_callee_decl_id(expr);
     }
     ast_init_call_borrowed_view(
         &borrowed, callee, NULL, 0, ast_call_generic_args(expr));

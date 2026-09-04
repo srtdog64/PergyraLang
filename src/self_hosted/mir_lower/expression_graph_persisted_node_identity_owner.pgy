@@ -21,7 +21,8 @@ func MirExpressionGraphPersistedNodeIdentityReady(
 ) -> Bool {
     if (call_target_syntax_id > 0 &&
             target_kind != SemanticCallTargetDirect() &&
-            target_kind != SemanticCallTargetNamespace()) ||
+            target_kind != SemanticCallTargetNamespace() &&
+            target_kind != SemanticCallTargetMember()) ||
         (target_kind == SemanticCallTargetNone() &&
             (call_target_syntax_id != 0 || runtime_call_abi_id != 0)) ||
         (runtime_call_abi_id > 0 &&

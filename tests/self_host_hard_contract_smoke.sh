@@ -128,7 +128,9 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "let emission: CompilerEmissionArtifact = CompilerEmissionArtifact("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return CompileMirJsonTextToCVerified(json, machine_declaration);"
+    "DriverRung2EnumPayloadVariantProofAdmissionFromVerifiedSource()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "DriverRung2EnumPayloadVariantProofAdmissionForExternalMir()"
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \
     "func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved("
 require_text "src/self_hosted/mir_lower/program_lower.pgy" \

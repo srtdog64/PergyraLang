@@ -1,0 +1,17 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func Inspect(value: VexaTag) -> Void {
+    match value {
+        case Aster(payload):
+            Log(value.Brume._0);
+        case Brume(payload):
+            Log(value.Brume._0);
+    }
+}
+
+func Main() -> Void {
+    Inspect(Aster(19));
+}

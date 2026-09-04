@@ -339,7 +339,8 @@ func SemanticExpressionGraphArenaReady(
         }
         if call_target_syntax_id > 0 &&
             ((call_target_kind != SemanticCallTargetDirect() &&
-              call_target_kind != SemanticCallTargetNamespace()) ||
+              call_target_kind != SemanticCallTargetNamespace() &&
+              call_target_kind != SemanticCallTargetMember()) ||
              kind != AstExpressionNodeCall()) {
             return false;
         }

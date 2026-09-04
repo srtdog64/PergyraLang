@@ -1,0 +1,16 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func Main() -> Void {
+    let value: VexaTag = Aster(55);
+    let running: Bool = true;
+    while running {
+        value = Brume(56);
+        running = false;
+        continue;
+        value = Aster(57);
+    }
+    Log(value.Aster._0);
+}

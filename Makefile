@@ -2965,6 +2965,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_hosted/parity/semantic_function_table_owner_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_enum_variant_builtin_collision_installed_owner.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_tagged_enum_payload_statement_type_installed_owner.sh
+	"$(BASH)" tests/self_hosted/parity/semantic_tagged_enum_payload_variant_provenance_owner.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_enum_fact_lifetime_owner_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_initializer_environment_cursor_owner_smoke.sh

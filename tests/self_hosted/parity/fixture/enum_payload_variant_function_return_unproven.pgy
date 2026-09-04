@@ -1,0 +1,12 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func Make() -> VexaTag {
+    return Brume(51);
+}
+
+func Main() -> Void {
+    Log(Make().Aster._0);
+}

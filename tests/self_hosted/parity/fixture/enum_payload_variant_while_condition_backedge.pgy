@@ -1,0 +1,11 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func Main() -> Void {
+    let value: VexaTag = Aster(67);
+    while value.Aster._0 > 0 {
+        value = Brume(0);
+    }
+}

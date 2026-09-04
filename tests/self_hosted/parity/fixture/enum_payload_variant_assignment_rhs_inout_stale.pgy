@@ -1,0 +1,16 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func ReplaceAndReturn(inout value: VexaTag) -> Int {
+    value = Brume(64);
+    return 0;
+}
+
+func Main() -> Void {
+    let value: VexaTag = Aster(63);
+    let sink: Int = 0;
+    sink = ReplaceAndReturn(value);
+    Log(value.Aster._0);
+}

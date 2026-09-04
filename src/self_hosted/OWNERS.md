@@ -657,9 +657,18 @@ inventory must not become a second fact-family owner registry.
   read-only receiver type projection over expression handles and canonical
   nominal field facts; dotted source text and codegen type rows are forbidden.
 - `src/self_hosted/semantic/ast_expression_graph_enum_payload_owner.pgy` --
-  semantic enum payload member type projection from receiver graph identity
-  and enum variant payload facts; payload type guesses and source rescans are
+  semantic enum payload member type projection and exact
+  `subject == Enum.Variant` refinement shape from receiver graph identity and
+  enum variant payload facts; payload type guesses and source rescans are
   forbidden.
+- `src/self_hosted/semantic/ast_local_binding_identity_owner.pgy` -- stable
+  lexical local identity keyed by function, declaration node, and binding
+  index; name-only downstream provenance joins are forbidden.
+- `src/self_hosted/semantic/ast_enum_payload_variant_provenance_verdict_owner.pgy`
+  -- source-semantic `Known(variant) | Unproven` transfer and final payload-read
+  admission, including stable-subject then-branch equality refinement;
+  rendered-source recovery, MIR feedback, unresolved-receiver success, and
+  unchecked loop generations are forbidden.
 - `src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy` -- binds
   parser/HIR `(owner kind, lane, root)` rows to semantic expression slots.
 - `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` -- canonical
@@ -4186,6 +4195,10 @@ inventory must not become a second fact-family owner registry.
   JSON inputs converge on one `AstTreeArtifact` verifier. For file-backed MIR,
   it snapshots the topology receipt and machine declaration, completes the
   typed codegen view, then retires the raw JSON input before C emission.
+- `src/self_hosted/compiler/driver_rung2_enum_payload_variant_admission_owner.pgy`
+  -- distinguishes a source-produced MIR whose source-semantic active-variant
+  proof was consumed from external MIR that must be re-proved after semantic
+  reconstruction; carried expression identity cannot grant proof admission.
 - `src/self_hosted/compiler/canonical_mir_execution_owner.pgy` -- canonical
   MIR execution owner. It reads one admitted MIR input, performs body
   verification once, consumes the resulting `DriverRung2VerifiedFacts`

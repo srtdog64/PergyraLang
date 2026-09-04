@@ -1,0 +1,15 @@
+enum CellTag {
+    Empty,
+    Number(Int),
+    Marker(Int)
+}
+
+func Inspect(cells: Array<CellTag>) -> Void {
+    for cell in cells {
+        Log(cell.Number._0);
+    }
+}
+
+func Main() -> Void {
+    Log(70);
+}

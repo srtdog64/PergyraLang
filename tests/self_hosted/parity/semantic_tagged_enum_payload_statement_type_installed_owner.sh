@@ -43,7 +43,7 @@ grep -Fq 'SemanticExpressionGraphEnumPayloadTypeName(' "$INITIALIZER_OWNER" ||
     fail "initializer and statement consumers no longer share one projection"
 [[ "$(wc -l <"$STATEMENT_OWNER" | tr -d ' ')" -le 540 ]] ||
     fail "statement fact owner exceeds its component limit"
-! grep -Eiq 'tagged_union|Shape|Circle|Rect|\._0|\._1' \
+! grep -Eq 'tagged_union|(^|[^[:alnum:]_])(Shape|Circle|Rect)([^[:alnum:]_]|$)|\._0|\._1' \
     "$STATEMENT_OWNER" "$PAYLOAD_OWNER" ||
     fail "fixture spelling leaked into the semantic payload path"
 

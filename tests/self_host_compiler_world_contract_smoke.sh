@@ -702,7 +702,7 @@ for term in \
     "func SemanticVerdictPayloadStatusReady" \
     "func SemanticVerdictPayloadContractReady" \
     "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()" \
-    "SemanticDiagnosticCodeCount() != 40" \
+    "SemanticDiagnosticCodeCount() != 41" \
     "StringIndexOf(ok, \"Status: ok\")" \
     "StringIndexOf(err, \"Code: undefined_symbol\")"; do
     require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "$term"

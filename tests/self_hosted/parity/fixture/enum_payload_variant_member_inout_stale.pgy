@@ -1,0 +1,19 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+class Worker {
+    let marker: Int;
+
+    func Replace(self, inout value: VexaTag) -> Void {
+        value = Brume(69);
+    }
+}
+
+func Main() -> Void {
+    let worker: Worker = Worker(0);
+    let value: VexaTag = Aster(68);
+    worker.Replace(value);
+    Log(value.Aster._0);
+}

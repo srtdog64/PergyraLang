@@ -1,0 +1,9 @@
+enum NomaTag {
+    Cinder(Int),
+    Velvet(String)
+}
+
+func Main() -> Void {
+    let value: NomaTag = Cinder(13);
+    Log(value.Velvet._0);
+}

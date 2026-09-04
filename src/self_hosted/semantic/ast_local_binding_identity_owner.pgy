@@ -1,0 +1,148 @@
+// Stable lexical identity for an ordinary local expression leaf.
+//
+// Identifier spelling participates only in lexical resolution here.  Every
+// downstream provenance join consumes the returned declaration node and
+// binding index; it may not join later facts by name.
+
+import "ast_local_binding_fact_owner.pgy";
+import "ast_expression_environment_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+
+struct SemanticAstLocalBindingIdentity {
+    ok: Bool;
+    row: Int;
+    function_node_id: Int;
+    declaration_node_id: Int;
+    binding_index: Int;
+    type_name: String;
+}
+
+func SemanticAstLocalBindingIdentityUnresolved() ->
+    SemanticAstLocalBindingIdentity {
+    return SemanticAstLocalBindingIdentity(false, -1, -1, -1, -1, "");
+}
+
+func SemanticAstLocalBindingIdentityRowsReady(
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>
+) -> Bool {
+    let count: Int = ArrayLength(locals.node_ids);
+    return locals.ok &&
+        ArrayLength(locals.function_node_ids) == count &&
+        ArrayLength(locals.scope_node_ids) == count &&
+        ArrayLength(locals.names) == count &&
+        ArrayLength(locals.declared_type_names) == count &&
+        ArrayLength(locals.has_declared_types) == count &&
+        ArrayLength(locals.binding_indices) == count &&
+        ArrayLength(inferred_types) == count;
+}
+
+func SemanticAstScopedLocalBindingIdentityForName(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    function_node_id: Int,
+    use_node_id: Int,
+    identifier: String
+) -> SemanticAstLocalBindingIdentity {
+    if !SemanticAstLocalBindingIdentityRowsReady(locals, inferred_types) {
+        return SemanticAstLocalBindingIdentityUnresolved();
+    }
+    let low: Int = 0;
+    let high: Int = ArrayLength(locals.node_ids);
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if locals.function_node_ids[middle] < function_node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    let range_start: Int = low;
+    high = ArrayLength(locals.node_ids);
+    while low < high {
+        let middle2: Int = low + ((high - low) / 2);
+        if locals.function_node_ids[middle2] <= function_node_id {
+            low = middle2 + 1;
+        } else {
+            high = middle2;
+        }
+    }
+    let range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstLocalBindingFunctionRange(true, range_start, low);
+    if !range.ok || identifier == "" || use_node_id < 0 ||
+        use_node_id >= artifact.count {
+        return SemanticAstLocalBindingIdentityUnresolved();
+    }
+    let selected: Int = -1;
+    let row: Int = range.start;
+    while row < range.end {
+        if locals.node_ids[row] < use_node_id &&
+            locals.names[row] == identifier &&
+            SemanticAstExpressionScopeVisible(
+                artifact.arena, locals.scope_node_ids[row], use_node_id
+            ) {
+            if selected < 0 ||
+                locals.node_ids[row] > locals.node_ids[selected] ||
+                (locals.node_ids[row] == locals.node_ids[selected] &&
+                 locals.binding_indices[row] >
+                    locals.binding_indices[selected]) {
+                selected = row;
+            }
+        }
+        row = row + 1;
+    }
+    if selected < 0 {
+        return SemanticAstLocalBindingIdentityUnresolved();
+    }
+    let type_name: String = "";
+    if locals.has_declared_types[selected] != 0 {
+        type_name = locals.declared_type_names[selected];
+    } else if selected < ArrayLength(inferred_types) {
+        type_name = inferred_types[selected];
+    }
+    if type_name == "" || type_name == "Unknown" ||
+        locals.node_ids[selected] <= 0 ||
+        locals.binding_indices[selected] < 0 {
+        return SemanticAstLocalBindingIdentityUnresolved();
+    }
+    return SemanticAstLocalBindingIdentity(
+        true, selected, function_node_id, locals.node_ids[selected],
+        locals.binding_indices[selected], type_name
+    );
+}
+
+func SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    function_node_id: Int,
+    use_node_id: Int,
+    ref graph: SemanticExpressionGraphFacts,
+    leaf_node: Int
+) -> SemanticAstLocalBindingIdentity {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, leaf_node
+    );
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, leaf_node
+    );
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeLeaf() ||
+        !IsSome(text) {
+        return SemanticAstLocalBindingIdentityUnresolved();
+    }
+    return SemanticAstScopedLocalBindingIdentityForName(
+        artifact, locals, inferred_types, function_node_id, use_node_id,
+        UnwrapOption(text)
+    );
+}
+
+func SemanticAstLocalBindingIdentityEqual(
+    ref left: SemanticAstLocalBindingIdentity,
+    ref right: SemanticAstLocalBindingIdentity
+) -> Bool {
+    return left.ok && right.ok &&
+        left.function_node_id == right.function_node_id &&
+        left.declaration_node_id == right.declaration_node_id &&
+        left.binding_index == right.binding_index;
+}

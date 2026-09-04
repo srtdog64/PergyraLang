@@ -1,0 +1,8 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func Main() -> Void {
+    Log(Aster(58).Aster._0);
+}

@@ -1,0 +1,1438 @@
+// Source-semantic proof that a payload projection names the active enum tag.
+//
+// This owner consumes parser-owned graph topology and admitted semantic rows.
+// It does not recover provenance from rendered source or downstream MIR SSA.
+
+import "ast_expression_graph_enum_payload_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_local_binding_identity_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+
+struct SemanticAstEnumPayloadBindingIdentity {
+    ok: Bool;
+    kind: Int;
+    function_node_id: Int;
+    syntax_node_id: Int;
+    ordinal: Int;
+    type_name: String;
+}
+
+struct SemanticAstEnumPayloadVariantFact {
+    known: Bool;
+    variant_row: Int;
+}
+
+struct SemanticAstEnumPayloadVariantProvenanceVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    syntax_node_id: Int;
+}
+
+func SemanticAstEnumPayloadLocalBindingKind() -> Int { return 1; }
+func SemanticAstEnumPayloadParameterBindingKind() -> Int { return 2; }
+
+func SemanticAstEnumPayloadBindingUnresolved() ->
+    SemanticAstEnumPayloadBindingIdentity {
+    return SemanticAstEnumPayloadBindingIdentity(false, 0, -1, -1, -1, "");
+}
+
+func SemanticAstEnumPayloadVariantUnproven() ->
+    SemanticAstEnumPayloadVariantFact {
+    return SemanticAstEnumPayloadVariantFact(false, -1);
+}
+
+func SemanticAstEnumPayloadVariantKnown(
+    variant_row: Int
+) -> SemanticAstEnumPayloadVariantFact {
+    return SemanticAstEnumPayloadVariantFact(variant_row >= 0, variant_row);
+}
+
+func SemanticAstEnumPayloadVariantJoin(
+    left: SemanticAstEnumPayloadVariantFact,
+    right: SemanticAstEnumPayloadVariantFact
+) -> SemanticAstEnumPayloadVariantFact {
+    if left.known && right.known &&
+        left.variant_row == right.variant_row {
+        return left;
+    }
+    return SemanticAstEnumPayloadVariantUnproven();
+}
+
+func SemanticAstEnumPayloadBindingIdentityEqual(
+    ref left: SemanticAstEnumPayloadBindingIdentity,
+    ref right: SemanticAstEnumPayloadBindingIdentity
+) -> Bool {
+    return left.ok && right.ok && left.kind == right.kind &&
+        left.function_node_id == right.function_node_id &&
+        left.syntax_node_id == right.syntax_node_id &&
+        left.ordinal == right.ordinal;
+}
+
+func SemanticAstEnumPayloadNodeDescendsFrom(
+    arena: AstArena,
+    node_id: Int,
+    ancestor_id: Int
+) -> Bool {
+    let cursor: Option<Int> = Some(node_id);
+    let remaining: Int = TypedAstArenaNodeCount(arena) + 1;
+    while IsSome(cursor) && remaining > 0 {
+        let current: Int = UnwrapOption(cursor);
+        if current == ancestor_id { return true; }
+        cursor = TypedAstArenaParentId(arena, current);
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+func SemanticAstEnumPayloadUseWithinLoop(
+    arena: AstArena,
+    node_id: Int
+) -> Bool {
+    let cursor: Option<Int> = Some(node_id);
+    let remaining: Int = TypedAstArenaNodeCount(arena) + 1;
+    while IsSome(cursor) && remaining > 0 {
+        let current: Int = UnwrapOption(cursor);
+        if TypedAstArenaNodeKindIs(
+            arena, current, TypedAstKindWhileStmtTag()
+        ) || TypedAstArenaNodeKindIs(
+            arena, current, TypedAstKindForStmtTag()
+        ) {
+            return true;
+        }
+        cursor = TypedAstArenaParentId(arena, current);
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+func SemanticAstEnumPayloadDirectBodyBlock(
+    arena: AstArena,
+    owner_node_id: Int
+) -> Option<Int> {
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        arena, owner_node_id, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            arena, child_id, TypedAstKindBlockTag()
+        ) {
+            return Some(child_id);
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(arena, owner_node_id, child_index);
+    }
+    return None;
+}
+
+func SemanticAstEnumPayloadFunctionBodyBlock(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    function_node_id: Int
+) -> Option<Int> {
+    let signature_index: Option<Int> =
+        SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_node_id
+        );
+    if !IsSome(signature_index) ||
+        UnwrapOption(signature_index) >=
+            ArrayLength(signatures.action_contracts.body_node_ids) {
+        return None;
+    }
+    let body_node: Int = signatures.action_contracts.body_node_ids[
+        UnwrapOption(signature_index)
+    ];
+    if body_node < 0 || !TypedAstArenaNodeKindIs(
+        artifact.arena, body_node, TypedAstKindBodyTag()
+    ) {
+        return None;
+    }
+    return SemanticAstEnumPayloadDirectBodyBlock(
+        artifact.arena, body_node
+    );
+}
+
+func SemanticAstEnumPayloadReceiverShadowedByMatchBinder(
+    artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
+    use_node_id: Int,
+    ref graph: SemanticExpressionGraphFacts,
+    receiver_node: Int
+) -> Bool {
+    let receiver_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, receiver_node
+    );
+    let receiver_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, receiver_node
+    );
+    if !IsSome(receiver_kind) || UnwrapOption(receiver_kind) !=
+        AstExpressionNodeLeaf() || !IsSome(receiver_name) {
+        return false;
+    }
+    let cursor: Option<Int> = Some(use_node_id);
+    let remaining: Int = artifact.count + 1;
+    while IsSome(cursor) && remaining > 0 {
+        let node_id: Int = UnwrapOption(cursor);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindMatchCaseStmtTag()
+        ) {
+            let low: Int = 0;
+            let high: Int = ArrayLength(statements.node_ids);
+            while low < high {
+                let middle: Int = low + ((high - low) / 2);
+                if statements.node_ids[middle] < node_id {
+                    low = middle + 1;
+                } else {
+                    high = middle;
+                }
+            }
+            if low >= ArrayLength(statements.node_ids) ||
+                statements.node_ids[low] != node_id ||
+                low >= ArrayLength(statements.match_pattern_binding_starts) ||
+                low >= ArrayLength(statements.match_pattern_binding_counts) {
+                return true;
+            }
+            let start: Int = statements.match_pattern_binding_starts[low];
+            let count: Int = statements.match_pattern_binding_counts[low];
+            if start < 0 || count < 0 ||
+                start > ArrayLength(statements.match_pattern_bindings) ||
+                count > ArrayLength(statements.match_pattern_bindings) - start {
+                return true;
+            }
+            let binding: Int = 0;
+            while binding < count {
+                if statements.match_pattern_bindings[start + binding] ==
+                    UnwrapOption(receiver_name) {
+                    return true;
+                }
+                binding = binding + 1;
+            }
+        }
+        cursor = TypedAstArenaParentId(artifact.arena, node_id);
+        remaining = remaining - 1;
+    }
+    return IsSome(cursor);
+}
+
+func SemanticAstEnumPayloadBindingForGraphLeaf(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    function_node_id: Int,
+    use_node_id: Int,
+    ref graph: SemanticExpressionGraphFacts,
+    leaf_node: Int
+) -> SemanticAstEnumPayloadBindingIdentity {
+    let local_identity: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types, function_node_id,
+            use_node_id, graph, leaf_node
+        );
+    if local_identity.ok {
+        return SemanticAstEnumPayloadBindingIdentity(
+            true, SemanticAstEnumPayloadLocalBindingKind(),
+            local_identity.function_node_id,
+            local_identity.declaration_node_id,
+            local_identity.binding_index, local_identity.type_name
+        );
+    }
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionBindingIdentityAt(
+            graph.arena.identities, leaf_node
+        );
+    if !binding.ok || binding.kind !=
+        SemanticExpressionBindingFormalParameter() || !binding.has_ordinal {
+        return SemanticAstEnumPayloadBindingUnresolved();
+    }
+    let signature_index: Option<Int> =
+        SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_node_id
+        );
+    if !IsSome(signature_index) {
+        return SemanticAstEnumPayloadBindingUnresolved();
+    }
+    let signature_row: Int = UnwrapOption(signature_index);
+    if binding.ordinal < 0 ||
+        binding.ordinal >= signatures.param_counts[signature_row] {
+        return SemanticAstEnumPayloadBindingUnresolved();
+    }
+    let parameter_flat_index: Int =
+        signatures.param_starts[signature_row] + binding.ordinal;
+    let parameter_node: Option<Int> = Some(
+        signatures.param_node_ids[parameter_flat_index]
+    );
+    let parameter_type: Option<String> = Some(
+        signatures.param_types[parameter_flat_index]
+    );
+    if !IsSome(parameter_node) || !IsSome(parameter_type) ||
+        UnwrapOption(parameter_node) != binding.syntax_id ||
+        UnwrapOption(parameter_type) == "" ||
+        UnwrapOption(parameter_type) == "Unknown" {
+        return SemanticAstEnumPayloadBindingUnresolved();
+    }
+    return SemanticAstEnumPayloadBindingIdentity(
+        true, SemanticAstEnumPayloadParameterBindingKind(),
+        function_node_id, binding.syntax_id, binding.ordinal,
+        UnwrapOption(parameter_type)
+    );
+}
+
+func SemanticAstEnumPayloadVariantRowForName(
+    ref enums: SemanticAstEnumFacts,
+    enum_name: String,
+    variant_name: String
+) -> Option<Int> {
+    let row: Int = 0;
+    while row < ArrayLength(enums.variant_names) {
+        if enums.variant_enum_names[row] == enum_name &&
+            enums.variant_names[row] == variant_name {
+            return Some(row);
+        }
+        row = row + 1;
+    }
+    return None;
+}
+
+func SemanticAstEnumPayloadIfThenEntryState(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    if_node_id: Int,
+    current: SemanticAstEnumPayloadVariantFact
+) -> SemanticAstEnumPayloadVariantFact {
+    let condition_root: Option<Int> =
+        SemanticAstExpressionGraphRootForNode(
+            surfaces, if_node_id, AstExpressionLaneAtom()
+        );
+    if !IsSome(condition_root) { return current; }
+    let equality: SemanticExpressionGraphEnumVariantEqualityShape =
+        SemanticExpressionGraphEnumVariantEqualityShapeFromGraph(
+            surfaces.expression_graph, UnwrapOption(condition_root)
+        );
+    if !equality.ok || equality.enum_name != key.type_name {
+        return current;
+    }
+    let condition_binding: SemanticAstEnumPayloadBindingIdentity =
+        SemanticAstEnumPayloadBindingForGraphLeaf(
+            artifact, signatures, locals, inferred_types,
+            key.function_node_id, if_node_id,
+            surfaces.expression_graph, equality.subject_node
+        );
+    if !SemanticAstEnumPayloadBindingIdentityEqual(condition_binding, key) {
+        return current;
+    }
+    let variant: Option<Int> = SemanticAstEnumPayloadVariantRowForName(
+        enums, key.type_name, equality.variant_name
+    );
+    if !IsSome(variant) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    return SemanticAstEnumPayloadVariantKnown(UnwrapOption(variant));
+}
+
+func SemanticAstEnumPayloadConstructorVariant(
+    ref graph: SemanticExpressionGraphFacts,
+    root_node: Int,
+    ref enums: SemanticAstEnumFacts,
+    enum_name: String
+) -> SemanticAstEnumPayloadVariantFact {
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(graph, root_node);
+    if !call.ok || call.call_node < 0 || call.call_node >=
+        SemanticExpressionGraphArenaNodeCount(graph.arena) ||
+        graph.arena.call_target_kinds[call.call_node] !=
+            SemanticCallTargetDirect() ||
+        graph.arena.identities.call_target_syntax_ids[call.call_node] != 0 ||
+        graph.arena.identities.runtime_call_abi_ids[call.call_node] != 0 ||
+        graph.arena.call_return_type_names[call.call_node] != enum_name {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    let variant: Option<Int> = SemanticAstEnumPayloadVariantRowForName(
+        enums, enum_name, graph.arena.call_target_names[call.call_node]
+    );
+    if !IsSome(variant) || enums.variant_param_counts[
+        UnwrapOption(variant)
+    ] != ArrayLength(call.argument_nodes) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    return SemanticAstEnumPayloadVariantKnown(UnwrapOption(variant));
+}
+
+func SemanticAstEnumPayloadReceiverTypeName(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    function_node_id: Int,
+    use_node_id: Int,
+    ref graph: SemanticExpressionGraphFacts,
+    receiver_node: Int
+) -> Option<String> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, receiver_node
+    );
+    if !IsSome(kind) { return None; }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        let binding: SemanticAstEnumPayloadBindingIdentity =
+            SemanticAstEnumPayloadBindingForGraphLeaf(
+                artifact, signatures, locals, inferred_types,
+                function_node_id, use_node_id, graph, receiver_node
+            );
+        if !binding.ok { return None; }
+        return Some(binding.type_name);
+    }
+    if UnwrapOption(kind) == AstExpressionNodeMemberAccess() {
+        let member: SemanticMemberAccessView =
+            SemanticMemberAccessViewFromGraph(graph, receiver_node);
+        if !member.ok { return None; }
+        let owner_type: Option<String> =
+            SemanticAstEnumPayloadReceiverTypeName(
+                artifact, signatures, locals, inferred_types, constructors,
+                function_node_id, use_node_id, graph, member.receiver_node
+            );
+        let field_name: Option<String> = SemanticExpressionGraphNodeText(
+            graph, member.member_node
+        );
+        if !IsSome(owner_type) || !IsSome(field_name) { return None; }
+        let canonical: SemanticCanonicalTypeNameFact =
+            SemanticCanonicalTypeNameFactFrom(UnwrapOption(owner_type));
+        return SemanticAstNominalFieldType(
+            constructors, canonical.nominal_base_name,
+            UnwrapOption(field_name)
+        );
+    }
+    if UnwrapOption(kind) == AstExpressionNodeIndex() {
+        let collection_node: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, receiver_node
+        );
+        if !IsSome(collection_node) { return None; }
+        let collection_type: Option<String> =
+            SemanticAstEnumPayloadReceiverTypeName(
+                artifact, signatures, locals, inferred_types, constructors,
+                function_node_id, use_node_id, graph,
+                UnwrapOption(collection_node)
+            );
+        if !IsSome(collection_type) { return None; }
+        return SemanticArrayElementType(UnwrapOption(collection_type));
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, receiver_node
+    );
+    if !call.ok || call.call_node < 0 || call.call_node >=
+        ArrayLength(graph.arena.call_return_type_names) {
+        return None;
+    }
+    let return_type: String =
+        graph.arena.call_return_type_names[call.call_node];
+    if return_type == "" || return_type == "Unknown" { return None; }
+    return Some(return_type);
+}
+
+func SemanticAstEnumPayloadAssignmentEffect(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    assignment_node_id: Int,
+    current: SemanticAstEnumPayloadVariantFact
+) -> SemanticAstEnumPayloadVariantFact {
+    let assignment: Option<Int> = None;
+    let assignment_low: Int = 0;
+    let assignment_high: Int = ArrayLength(assignments.node_ids);
+    while assignment_low < assignment_high {
+        let assignment_middle: Int = assignment_low +
+            ((assignment_high - assignment_low) / 2);
+        if assignments.node_ids[assignment_middle] < assignment_node_id {
+            assignment_low = assignment_middle + 1;
+        } else {
+            assignment_high = assignment_middle;
+        }
+    }
+    if assignment_low < ArrayLength(assignments.node_ids) &&
+        assignments.node_ids[assignment_low] == assignment_node_id {
+        assignment = Some(assignment_low);
+    }
+    let target_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, assignment_node_id, AstExpressionLaneAtom()
+    );
+    let value_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, assignment_node_id, AstExpressionLaneValue()
+    );
+    if !IsSome(assignment) || !IsSome(target_root) || !IsSome(value_root) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    let target: SemanticAstEnumPayloadBindingIdentity =
+        SemanticAstEnumPayloadBindingForGraphLeaf(
+            artifact, signatures, locals, inferred_types,
+            assignments.function_node_ids[UnwrapOption(assignment)],
+            assignment_node_id, surfaces.expression_graph,
+            UnwrapOption(target_root)
+        );
+    if !SemanticAstEnumPayloadBindingIdentityEqual(target, key) {
+        return current;
+    }
+    return SemanticAstEnumPayloadConstructorVariant(
+        surfaces.expression_graph, UnwrapOption(value_root),
+        enums, key.type_name
+    );
+}
+
+func SemanticAstEnumPayloadSubtreeMayAssignBinding(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    owner_node_id: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        if assignments.function_node_ids[row] == key.function_node_id &&
+            SemanticAstEnumPayloadNodeDescendsFrom(
+                artifact.arena, assignments.node_ids[row], owner_node_id
+            ) {
+            let target_root: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, assignments.node_ids[row],
+                    AstExpressionLaneAtom()
+                );
+            if !IsSome(target_root) { return true; }
+            let target: SemanticAstEnumPayloadBindingIdentity =
+                SemanticAstEnumPayloadBindingForGraphLeaf(
+                    artifact, signatures, locals, inferred_types,
+                    assignments.function_node_ids[row],
+                    assignments.node_ids[row], surfaces.expression_graph,
+                    UnwrapOption(target_root)
+                );
+            if SemanticAstEnumPayloadBindingIdentityEqual(target, key) {
+                return true;
+            }
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    owner_node_id: Int,
+    include_descendant_surfaces: Bool
+) -> Bool {
+    let surface_row: Int = 0;
+    while surface_row < ArrayLength(surfaces.node_ids) {
+        if surfaces.node_ids[surface_row] != owner_node_id &&
+            (!include_descendant_surfaces ||
+             !SemanticAstEnumPayloadNodeDescendsFrom(
+                 artifact.arena, surfaces.node_ids[surface_row], owner_node_id
+             )) {
+            surface_row = surface_row + 1;
+            continue;
+        }
+        let lane: Int = 0;
+        while lane < 3 {
+            let root_slot: Int = surface_row * 3 + lane;
+            if surfaces.expression_graph.has_roots[root_slot] {
+                let root: Int = surfaces.expression_graph.roots[root_slot];
+                let start: Option<Int> = SemanticExpressionGraphSubtreeStart(
+                    surfaces.expression_graph, root
+                );
+                if !IsSome(start) { return true; }
+                let graph_node: Int = UnwrapOption(start);
+                while graph_node <= root {
+                    let node_kind: Option<Int> =
+                        SemanticExpressionGraphNodeKind(
+                            surfaces.expression_graph, graph_node
+                        );
+                    if IsSome(node_kind) && UnwrapOption(node_kind) ==
+                        AstExpressionNodeCall() {
+                        let call: SemanticCallSpineView =
+                            SemanticCallSpineViewForCallNodeWithin(
+                                surfaces.expression_graph, graph_node, root
+                            );
+                        if !call.ok { return true; }
+                        let target_syntax_id: Int =
+                            surfaces.expression_graph.arena.identities.
+                                call_target_syntax_ids[call.call_node];
+                        let signature_index: Option<Int> =
+                            SemanticAstFunctionSignatureIndexForNode(
+                                signatures, target_syntax_id
+                            );
+                        if IsSome(signature_index) {
+                            let signature_row: Int =
+                                UnwrapOption(signature_index);
+                            if signature_row < 0 || signature_row >=
+                                ArrayLength(
+                                    signatures.receiver_source_param_offsets
+                                ) {
+                                return true;
+                            }
+                            let source_offset: Int =
+                                signatures.receiver_source_param_offsets[
+                                    signature_row
+                                ];
+                            if source_offset < 0 || source_offset > 1 {
+                                return true;
+                            }
+                            let argument_index: Int = 0;
+                            while argument_index <
+                                ArrayLength(call.argument_nodes) &&
+                                argument_index + source_offset <
+                                    signatures.param_counts[signature_row] {
+                                let flat_index: Int =
+                                    signatures.param_starts[signature_row] +
+                                    source_offset +
+                                    argument_index;
+                                // A ref parameter may currently be forwarded
+                                // to an inout formal.  Until that wider mode
+                                // contract forbids the conversion, both modes
+                                // can invalidate an active-tag proof.
+                                if signatures.param_modes[flat_index] == 1 ||
+                                    signatures.param_modes[flat_index] == 3 {
+                                    let argument_binding:
+                                        SemanticAstEnumPayloadBindingIdentity =
+                                            SemanticAstEnumPayloadBindingForGraphLeaf(
+                                                artifact, signatures, locals,
+                                                inferred_types,
+                                                key.function_node_id,
+                                                surfaces.node_ids[surface_row],
+                                                surfaces.expression_graph,
+                                                call.argument_nodes[
+                                                    argument_index
+                                                ]
+                                            );
+                                    if SemanticAstEnumPayloadBindingIdentityEqual(
+                                        argument_binding, key
+                                    ) {
+                                        return true;
+                                    }
+                                }
+                                argument_index = argument_index + 1;
+                            }
+                        }
+                    }
+                    graph_node = graph_node + 1;
+                }
+            }
+            lane = lane + 1;
+        }
+        surface_row = surface_row + 1;
+    }
+    return false;
+}
+
+func SemanticAstEnumPayloadControlChild(
+    arena: AstArena,
+    owner_node_id: Int,
+    kind: Int
+) -> Option<Int> {
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        arena, owner_node_id, child_index
+    );
+    while IsSome(child) {
+        if TypedAstArenaNodeKindIs(
+            arena, UnwrapOption(child), kind
+        ) {
+            return child;
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(arena, owner_node_id, child_index);
+    }
+    return None;
+}
+
+func SemanticAstEnumPayloadApplyBlockToEnd(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    block_node_id: Int,
+    current: SemanticAstEnumPayloadVariantFact
+) -> SemanticAstEnumPayloadVariantFact {
+    if !TypedAstArenaNodeKindIs(
+        artifact.arena, block_node_id, TypedAstKindBlockTag()
+    ) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    let result: SemanticAstEnumPayloadVariantFact = current;
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, block_node_id, child_index
+    );
+    while IsSome(child) {
+        result = SemanticAstEnumPayloadApplyNodeToEnd(
+            artifact, signatures, locals, inferred_types, assignments,
+            statements, surfaces, enums, key, UnwrapOption(child), result
+        );
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, block_node_id, child_index
+        );
+    }
+    return result;
+}
+
+func SemanticAstEnumPayloadApplyNodeToEnd(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    node_id: Int,
+    current: SemanticAstEnumPayloadVariantFact
+) -> SemanticAstEnumPayloadVariantFact {
+    let kind: Option<Int> = TypedAstArenaNodeKind(
+        artifact.arena, node_id
+    );
+    if !IsSome(kind) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    if SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
+        artifact, signatures, locals, inferred_types, surfaces, key, node_id,
+        true
+    ) {
+        // Inout effects in a condition, RHS, nested arm, or loop are part of
+        // this source node's transfer.  Until expression-order summaries own
+        // a more precise fact, any such escape kills Known.
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    if UnwrapOption(kind) == TypedAstKindAssignStmtTag() {
+        return SemanticAstEnumPayloadAssignmentEffect(
+            artifact, signatures, locals, inferred_types, assignments,
+            surfaces, enums, key, node_id, current
+        );
+    }
+    if UnwrapOption(kind) == TypedAstKindIfStmtTag() {
+        let then_owner: Option<Int> = SemanticAstEnumPayloadControlChild(
+            artifact.arena, node_id, TypedAstKindThenTag()
+        );
+        if !IsSome(then_owner) {
+            return SemanticAstEnumPayloadVariantUnproven();
+        }
+        let then_block: Option<Int> = SemanticAstEnumPayloadDirectBodyBlock(
+            artifact.arena, UnwrapOption(then_owner)
+        );
+        if !IsSome(then_block) {
+            return SemanticAstEnumPayloadVariantUnproven();
+        }
+        let then_result: SemanticAstEnumPayloadVariantFact =
+            SemanticAstEnumPayloadApplyBlockToEnd(
+                artifact, signatures, locals, inferred_types, assignments,
+                statements, surfaces, enums, key,
+                UnwrapOption(then_block), current
+            );
+        let else_result: SemanticAstEnumPayloadVariantFact = current;
+        let else_owner: Option<Int> = SemanticAstEnumPayloadControlChild(
+            artifact.arena, node_id, TypedAstKindElseStmtTag()
+        );
+        if IsSome(else_owner) {
+            let else_block: Option<Int> =
+                SemanticAstEnumPayloadDirectBodyBlock(
+                    artifact.arena, UnwrapOption(else_owner)
+                );
+            if IsSome(else_block) {
+                else_result = SemanticAstEnumPayloadApplyBlockToEnd(
+                    artifact, signatures, locals, inferred_types,
+                    assignments, statements, surfaces, enums, key,
+                    UnwrapOption(else_block), current
+                );
+            } else {
+                let nested_if: Option<Int> =
+                    SemanticAstEnumPayloadControlChild(
+                        artifact.arena, UnwrapOption(else_owner),
+                        TypedAstKindIfStmtTag()
+                    );
+                if !IsSome(nested_if) {
+                    return SemanticAstEnumPayloadVariantUnproven();
+                }
+                else_result = SemanticAstEnumPayloadApplyNodeToEnd(
+                    artifact, signatures, locals, inferred_types,
+                    assignments, statements, surfaces, enums, key,
+                    UnwrapOption(nested_if), current
+                );
+            }
+        }
+        return SemanticAstEnumPayloadVariantJoin(
+            then_result, else_result
+        );
+    }
+    if UnwrapOption(kind) == TypedAstKindMatchStmtTag() {
+        let subject_root: Option<Int> =
+            SemanticAstExpressionGraphRootForNode(
+                surfaces, node_id, AstExpressionLaneAtom()
+            );
+        if IsSome(subject_root) {
+            let subject_binding: SemanticAstEnumPayloadBindingIdentity =
+                SemanticAstEnumPayloadBindingForGraphLeaf(
+                    artifact, signatures, locals, inferred_types,
+                    key.function_node_id, node_id,
+                    surfaces.expression_graph, UnwrapOption(subject_root)
+                );
+            if SemanticAstEnumPayloadBindingIdentityEqual(
+                subject_binding, key
+            ) {
+                // Case knowledge is an arm-only overlay.  It cannot become
+                // the subject's post-match state, and an arm may reassign it.
+                return SemanticAstEnumPayloadVariantUnproven();
+            }
+        }
+        let joined: SemanticAstEnumPayloadVariantFact = current;
+        let child_index: Int = 0;
+        let child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, node_id, child_index
+        );
+        while IsSome(child) {
+            let child_id: Int = UnwrapOption(child);
+            if TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindMatchCaseStmtTag()
+            ) || TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindMatchDefaultStmtTag()
+            ) {
+                let arm_block: Option<Int> =
+                    SemanticAstEnumPayloadDirectBodyBlock(
+                        artifact.arena, child_id
+                    );
+                if !IsSome(arm_block) {
+                    return SemanticAstEnumPayloadVariantUnproven();
+                }
+                let arm_result: SemanticAstEnumPayloadVariantFact =
+                    SemanticAstEnumPayloadApplyBlockToEnd(
+                        artifact, signatures, locals, inferred_types,
+                        assignments, statements, surfaces, enums, key,
+                        UnwrapOption(arm_block), current
+                    );
+                joined = SemanticAstEnumPayloadVariantJoin(
+                    joined, arm_result
+                );
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, node_id, child_index
+            );
+        }
+        return joined;
+    }
+    if UnwrapOption(kind) == TypedAstKindWhileStmtTag() ||
+        UnwrapOption(kind) == TypedAstKindForStmtTag() {
+        if SemanticAstEnumPayloadSubtreeMayAssignBinding(
+            artifact, signatures, locals, inferred_types, assignments,
+            surfaces, key, node_id
+        ) {
+            // A break/continue edge can leave any intermediate assignment as
+            // the final loop generation.  A future loop-summary owner may
+            // refine this; sequential body fallthrough is not proof.
+            return SemanticAstEnumPayloadVariantUnproven();
+        }
+        return current;
+    }
+    if SemanticAstEnumPayloadSubtreeMayAssignBinding(
+        artifact, signatures, locals, inferred_types, assignments,
+        surfaces, key, node_id
+    ) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    return current;
+}
+
+func SemanticAstEnumPayloadMatchArmEntryState(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref statements: SemanticAstStatementFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    match_node_id: Int,
+    case_node_id: Int,
+    current: SemanticAstEnumPayloadVariantFact
+) -> SemanticAstEnumPayloadVariantFact {
+    let subject_root: Option<Int> =
+        SemanticAstExpressionGraphRootForNode(
+            surfaces, match_node_id, AstExpressionLaneAtom()
+        );
+    if !IsSome(subject_root) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    let subject_binding: SemanticAstEnumPayloadBindingIdentity =
+        SemanticAstEnumPayloadBindingForGraphLeaf(
+            artifact, signatures, locals, inferred_types,
+            key.function_node_id, match_node_id,
+            surfaces.expression_graph, UnwrapOption(subject_root)
+        );
+    if !SemanticAstEnumPayloadBindingIdentityEqual(subject_binding, key) {
+        return current;
+    }
+    let pattern: AstMatchCasePatternFact =
+        SemanticAstMatchCasePatternFactForNode(
+            statements, case_node_id
+        );
+    if !pattern.ok || pattern.variant == "" ||
+        pattern.variant == "None" {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    let variant: Option<Int> = SemanticAstEnumPayloadVariantRowForName(
+        enums, key.type_name, pattern.variant
+    );
+    if !IsSome(variant) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    return SemanticAstEnumPayloadVariantKnown(UnwrapOption(variant));
+}
+
+func SemanticAstEnumPayloadStateBeforeUseInBlock(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    block_node_id: Int,
+    use_node_id: Int,
+    current: SemanticAstEnumPayloadVariantFact
+) -> SemanticAstEnumPayloadVariantFact {
+    if !TypedAstArenaNodeKindIs(
+        artifact.arena, block_node_id, TypedAstKindBlockTag()
+    ) || !SemanticAstEnumPayloadNodeDescendsFrom(
+        artifact.arena, use_node_id, block_node_id
+    ) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    let state: SemanticAstEnumPayloadVariantFact = current;
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, block_node_id, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if child_id == use_node_id {
+            return state;
+        }
+        if SemanticAstEnumPayloadNodeDescendsFrom(
+            artifact.arena, use_node_id, child_id
+        ) {
+            return SemanticAstEnumPayloadStateBeforeUseInNode(
+                artifact, signatures, locals, inferred_types,
+                assignments, statements, surfaces, enums, key,
+                child_id, use_node_id, state
+            );
+        }
+        if !(key.kind == SemanticAstEnumPayloadLocalBindingKind() &&
+             child_id == key.syntax_node_id) {
+            state = SemanticAstEnumPayloadApplyNodeToEnd(
+                artifact, signatures, locals, inferred_types,
+                assignments, statements, surfaces, enums, key,
+                child_id, state
+            );
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, block_node_id, child_index
+        );
+    }
+    return SemanticAstEnumPayloadVariantUnproven();
+}
+
+func SemanticAstEnumPayloadStateBeforeUseInNode(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    node_id: Int,
+    use_node_id: Int,
+    current: SemanticAstEnumPayloadVariantFact
+) -> SemanticAstEnumPayloadVariantFact {
+    if node_id == use_node_id { return current; }
+    let kind: Option<Int> = TypedAstArenaNodeKind(
+        artifact.arena, node_id
+    );
+    if !IsSome(kind) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    if UnwrapOption(kind) == TypedAstKindBlockTag() {
+        return SemanticAstEnumPayloadStateBeforeUseInBlock(
+            artifact, signatures, locals, inferred_types, assignments,
+            statements, surfaces, enums, key, node_id, use_node_id, current
+        );
+    }
+    if UnwrapOption(kind) == TypedAstKindIfStmtTag() {
+        let branch_entry: SemanticAstEnumPayloadVariantFact = current;
+        if SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
+            artifact, signatures, locals, inferred_types, surfaces, key,
+            node_id, false
+        ) {
+            branch_entry = SemanticAstEnumPayloadVariantUnproven();
+        }
+        let then_owner: Option<Int> = SemanticAstEnumPayloadControlChild(
+            artifact.arena, node_id, TypedAstKindThenTag()
+        );
+        let else_owner: Option<Int> = SemanticAstEnumPayloadControlChild(
+            artifact.arena, node_id, TypedAstKindElseStmtTag()
+        );
+        let branch_owner: Option<Int> = None;
+        if IsSome(then_owner) && SemanticAstEnumPayloadNodeDescendsFrom(
+            artifact.arena, use_node_id, UnwrapOption(then_owner)
+        ) {
+            branch_owner = then_owner;
+            branch_entry = SemanticAstEnumPayloadIfThenEntryState(
+                artifact, signatures, locals, inferred_types, surfaces,
+                enums, key, node_id, branch_entry
+            );
+        } else if IsSome(else_owner) &&
+            SemanticAstEnumPayloadNodeDescendsFrom(
+                artifact.arena, use_node_id, UnwrapOption(else_owner)
+            ) {
+            branch_owner = else_owner;
+        }
+        if !IsSome(branch_owner) {
+            return SemanticAstEnumPayloadVariantUnproven();
+        }
+        let branch_block: Option<Int> =
+            SemanticAstEnumPayloadDirectBodyBlock(
+                artifact.arena, UnwrapOption(branch_owner)
+            );
+        if IsSome(branch_block) {
+            return SemanticAstEnumPayloadStateBeforeUseInBlock(
+                artifact, signatures, locals, inferred_types,
+                assignments, statements, surfaces, enums, key,
+                UnwrapOption(branch_block), use_node_id, branch_entry
+            );
+        }
+        let nested_if: Option<Int> = SemanticAstEnumPayloadControlChild(
+            artifact.arena, UnwrapOption(branch_owner),
+            TypedAstKindIfStmtTag()
+        );
+        if IsSome(nested_if) {
+            return SemanticAstEnumPayloadStateBeforeUseInNode(
+                artifact, signatures, locals, inferred_types,
+                assignments, statements, surfaces, enums, key,
+                UnwrapOption(nested_if), use_node_id, branch_entry
+            );
+        }
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    if UnwrapOption(kind) == TypedAstKindMatchStmtTag() {
+        let match_entry: SemanticAstEnumPayloadVariantFact = current;
+        if SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
+            artifact, signatures, locals, inferred_types, surfaces, key,
+            node_id, false
+        ) {
+            match_entry = SemanticAstEnumPayloadVariantUnproven();
+        }
+        let child_index: Int = 0;
+        let child: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, node_id, child_index
+        );
+        while IsSome(child) {
+            let child_id: Int = UnwrapOption(child);
+            if SemanticAstEnumPayloadNodeDescendsFrom(
+                artifact.arena, use_node_id, child_id
+            ) {
+                let arm_state: SemanticAstEnumPayloadVariantFact = match_entry;
+                if TypedAstArenaNodeKindIs(
+                    artifact.arena, child_id,
+                    TypedAstKindMatchCaseStmtTag()
+                ) {
+                    arm_state = SemanticAstEnumPayloadMatchArmEntryState(
+                        artifact, signatures, locals, inferred_types,
+                        statements, surfaces, enums, key,
+                        node_id, child_id, match_entry
+                    );
+                }
+                let arm_block: Option<Int> =
+                    SemanticAstEnumPayloadDirectBodyBlock(
+                        artifact.arena, child_id
+                    );
+                if !IsSome(arm_block) {
+                    return SemanticAstEnumPayloadVariantUnproven();
+                }
+                return SemanticAstEnumPayloadStateBeforeUseInBlock(
+                    artifact, signatures, locals, inferred_types,
+                    assignments, statements, surfaces, enums, key,
+                    UnwrapOption(arm_block), use_node_id, arm_state
+                );
+            }
+            child_index = child_index + 1;
+            child = TypedAstArenaChildAt(
+                artifact.arena, node_id, child_index
+            );
+        }
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    if UnwrapOption(kind) == TypedAstKindWhileStmtTag() ||
+        UnwrapOption(kind) == TypedAstKindForStmtTag() {
+        let body: Option<Int> = SemanticAstEnumPayloadDirectBodyBlock(
+            artifact.arena, node_id
+        );
+        if IsSome(body) && SemanticAstEnumPayloadNodeDescendsFrom(
+            artifact.arena, use_node_id, UnwrapOption(body)
+        ) {
+            // A source loop can re-enter from a later generation.  Until a
+            // semantic loop fixed point owns that fact, entry is Unproven.
+            return SemanticAstEnumPayloadStateBeforeUseInBlock(
+                artifact, signatures, locals, inferred_types,
+                assignments, statements, surfaces, enums, key,
+                UnwrapOption(body), use_node_id,
+                SemanticAstEnumPayloadVariantUnproven()
+            );
+        }
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        artifact.arena, node_id, child_index
+    );
+    while IsSome(child) {
+        if SemanticAstEnumPayloadNodeDescendsFrom(
+            artifact.arena, use_node_id, UnwrapOption(child)
+        ) {
+            return SemanticAstEnumPayloadStateBeforeUseInNode(
+                artifact, signatures, locals, inferred_types,
+                assignments, statements, surfaces, enums, key,
+                UnwrapOption(child), use_node_id,
+                SemanticAstEnumPayloadVariantUnproven()
+            );
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(
+            artifact.arena, node_id, child_index
+        );
+    }
+    return SemanticAstEnumPayloadVariantUnproven();
+}
+
+func SemanticAstEnumPayloadVariantAtUse(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts,
+    ref key: SemanticAstEnumPayloadBindingIdentity,
+    use_node_id: Int
+) -> SemanticAstEnumPayloadVariantFact {
+    let start_block: Option<Int> = None;
+    let initial: SemanticAstEnumPayloadVariantFact =
+        SemanticAstEnumPayloadVariantUnproven();
+    if key.kind == SemanticAstEnumPayloadLocalBindingKind() {
+        let range_start: Int = 0;
+        while range_start < ArrayLength(locals.node_ids) &&
+            locals.node_ids[range_start] < key.syntax_node_id {
+            range_start = range_start + 1;
+        }
+        let range_end: Int = range_start;
+        while range_end < ArrayLength(locals.node_ids) &&
+            locals.node_ids[range_end] == key.syntax_node_id {
+            range_end = range_end + 1;
+        }
+        if range_start >= range_end { return initial; }
+        let local_row: Int = range_start;
+        while local_row < range_end &&
+            locals.binding_indices[local_row] != key.ordinal {
+            local_row = local_row + 1;
+        }
+        if local_row >= range_end {
+            return SemanticAstEnumPayloadVariantUnproven();
+        }
+        let initializer_root: Option<Int> =
+            SemanticAstExpressionGraphRootForNode(
+                surfaces, key.syntax_node_id, AstExpressionLaneValue()
+            );
+        if IsSome(initializer_root) {
+            initial = SemanticAstEnumPayloadConstructorVariant(
+                surfaces.expression_graph, UnwrapOption(initializer_root),
+                enums, key.type_name
+            );
+        }
+        start_block = Some(locals.scope_node_ids[local_row]);
+    } else if key.kind == SemanticAstEnumPayloadParameterBindingKind() {
+        start_block = SemanticAstEnumPayloadFunctionBodyBlock(
+            artifact, signatures, key.function_node_id
+        );
+    }
+    if !IsSome(start_block) {
+        return SemanticAstEnumPayloadVariantUnproven();
+    }
+    return SemanticAstEnumPayloadStateBeforeUseInBlock(
+        artifact, signatures, locals, inferred_types, assignments,
+        statements, surfaces, enums, key, UnwrapOption(start_block),
+        use_node_id, initial
+    );
+}
+
+func SemanticAstEnumPayloadVariantProvenanceVerdictOk() ->
+    SemanticAstEnumPayloadVariantProvenanceVerdict {
+    return SemanticAstEnumPayloadVariantProvenanceVerdict(
+        true, "", "", -1
+    );
+}
+
+func SemanticAstEnumPayloadVariantProvenanceVerdictError(
+    use_node_id: Int,
+    binding_node_id: Int,
+    required_variant: String
+) -> SemanticAstEnumPayloadVariantProvenanceVerdict {
+    return SemanticAstEnumPayloadVariantProvenanceVerdict(
+        false, "enum_payload_variant_unproven",
+        SemanticError3(
+            "enum_payload_variant_unproven",
+            "node_id", ToString(use_node_id),
+            "binding_node_id", ToString(binding_node_id),
+            "required_variant", required_variant
+        ),
+        use_node_id
+    );
+}
+
+func SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts
+) -> SemanticAstEnumPayloadVariantProvenanceVerdict {
+    if !signatures.ok || signatures.artifact_node_count != artifact.count ||
+        !constructors.ok ||
+        constructors.artifact_node_count != artifact.count ||
+        !SemanticAstLocalBindingIdentityRowsReady(
+            locals, initializer_types.inferred_type_names
+        ) || !assignments.ok ||
+        assignments.artifact_node_count != artifact.count ||
+        !statements.ok || statements.artifact_node_count != artifact.count ||
+        !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) ||
+        !SemanticAstEnumRowsReady(enums) ||
+        enums.artifact_node_count != artifact.count {
+        return SemanticAstEnumPayloadVariantProvenanceVerdictError(
+            -1, -1, "required semantic provenance facts"
+        );
+    }
+    let surface_index: Int = 0;
+    while surface_index < SemanticAstExpressionSurfaceCount(surfaces) {
+        let function_node_id: Int = surfaces.function_node_ids[surface_index];
+        if function_node_id >= 0 {
+            let lane: Int = 0;
+            while lane < 3 {
+                let root_slot: Int = surface_index * 3 + lane;
+                if surfaces.expression_graph.has_roots[root_slot] {
+                    let root: Int = surfaces.expression_graph.roots[root_slot];
+                    let start: Option<Int> =
+                        SemanticExpressionGraphSubtreeStart(
+                            surfaces.expression_graph, root
+                        );
+                    if !IsSome(start) {
+                        return SemanticAstEnumPayloadVariantProvenanceVerdictError(
+                            surfaces.node_ids[surface_index], -1,
+                            "valid expression graph"
+                        );
+                    }
+                    let projection_node_id: Int = UnwrapOption(start);
+                    while projection_node_id <= root {
+                        let shape: SemanticExpressionGraphEnumPayloadShape =
+                            SemanticExpressionGraphEnumPayloadShapeFromGraph(
+                                surfaces.expression_graph,
+                                projection_node_id
+                            );
+                        if shape.ok {
+                            if SemanticAstEnumPayloadUseWithinLoop(
+                                artifact.arena,
+                                surfaces.node_ids[surface_index]
+                            ) {
+                                return SemanticAstEnumPayloadVariantProvenanceVerdictError(
+                                    surfaces.node_ids[surface_index], -1,
+                                    shape.variant_name
+                                );
+                            }
+                            if SemanticAstEnumPayloadReceiverShadowedByMatchBinder(
+                                artifact, statements,
+                                surfaces.node_ids[surface_index],
+                                surfaces.expression_graph,
+                                shape.receiver_node
+                            ) {
+                                return SemanticAstEnumPayloadVariantProvenanceVerdictError(
+                                    surfaces.node_ids[surface_index], -1,
+                                    shape.variant_name
+                                );
+                            }
+                            let key: SemanticAstEnumPayloadBindingIdentity =
+                                SemanticAstEnumPayloadBindingForGraphLeaf(
+                                    artifact, signatures, locals,
+                                    initializer_types.inferred_type_names,
+                                    function_node_id,
+                                    surfaces.node_ids[surface_index],
+                                    surfaces.expression_graph,
+                                    shape.receiver_node
+                                );
+                            let receiver_type: Option<String> =
+                                SemanticAstEnumPayloadReceiverTypeName(
+                                    artifact, signatures, locals,
+                                    initializer_types.inferred_type_names,
+                                    constructors, function_node_id,
+                                    surfaces.node_ids[surface_index],
+                                    surfaces.expression_graph,
+                                    shape.receiver_node
+                                );
+                            if IsSome(receiver_type) {
+                                let enum_name: String =
+                                    UnwrapOption(receiver_type);
+                                let generic_receiver: Bool = false;
+                                let signature_index: Option<Int> =
+                                    SemanticAstFunctionSignatureIndexForNode(
+                                        signatures, function_node_id
+                                    );
+                                if IsSome(signature_index) {
+                                    let signature_row: Int =
+                                        UnwrapOption(signature_index);
+                                    let generic_index: Int = 0;
+                                    while generic_index <
+                                        signatures.generic_counts[
+                                            signature_row
+                                        ] {
+                                        if signatures.generic_names[
+                                            signatures.generic_starts[
+                                                signature_row
+                                            ] + generic_index
+                                        ] == enum_name {
+                                            generic_receiver = true;
+                                        }
+                                        generic_index = generic_index + 1;
+                                    }
+                                }
+                                if generic_receiver {
+                                    // Specialization can turn this formal into
+                                    // a payload enum after source verification.
+                                    // No concrete active-tag proof exists yet.
+                                    return SemanticAstEnumPayloadVariantProvenanceVerdictError(
+                                        surfaces.node_ids[surface_index],
+                                        key.syntax_node_id,
+                                        shape.variant_name
+                                    );
+                                }
+                                let required: Option<Int> =
+                                    SemanticAstEnumPayloadVariantRowForName(
+                                        enums, enum_name, shape.variant_name
+                                    );
+                                let payload_type: Option<String> =
+                                    SemanticAstEnumVariantPayloadTypeAt(
+                                        enums, enum_name, shape.variant_name,
+                                        shape.payload_index
+                                    );
+                                if IsSome(required) && IsSome(payload_type) {
+                                    let active:
+                                        SemanticAstEnumPayloadVariantFact =
+                                            SemanticAstEnumPayloadVariantUnproven();
+                                    let binding_node_id: Int = -1;
+                                    if key.ok && key.type_name == enum_name {
+                                        if SemanticAstEnumPayloadNodeMayMutateBindingThroughCall(
+                                            artifact, signatures, locals,
+                                            initializer_types.
+                                                inferred_type_names,
+                                            surfaces, key,
+                                            surfaces.node_ids[surface_index],
+                                            true
+                                        ) {
+                                            return SemanticAstEnumPayloadVariantProvenanceVerdictError(
+                                                surfaces.node_ids[
+                                                    surface_index
+                                                ],
+                                                key.syntax_node_id,
+                                                shape.variant_name
+                                            );
+                                        }
+                                        active =
+                                            SemanticAstEnumPayloadVariantAtUse(
+                                                artifact, signatures, locals,
+                                                initializer_types.
+                                                    inferred_type_names,
+                                                assignments, statements,
+                                                surfaces, enums, key,
+                                                surfaces.node_ids[
+                                                    surface_index
+                                                ]
+                                            );
+                                        binding_node_id = key.syntax_node_id;
+                                    } else if !key.ok {
+                                        active =
+                                            SemanticAstEnumPayloadConstructorVariant(
+                                                surfaces.expression_graph,
+                                                shape.receiver_node, enums,
+                                                enum_name
+                                            );
+                                    }
+                                    if !active.known || active.variant_row !=
+                                        UnwrapOption(required) {
+                                        return SemanticAstEnumPayloadVariantProvenanceVerdictError(
+                                            surfaces.node_ids[surface_index],
+                                            binding_node_id,
+                                            shape.variant_name
+                                        );
+                                    }
+                                }
+                            } else {
+                                // A payload-shaped access with no stable
+                                // receiver type/identity is missing required
+                                // provenance.  Match/loop binders and owner
+                                // fields need their own identity rows before
+                                // they can be admitted.
+                                return SemanticAstEnumPayloadVariantProvenanceVerdictError(
+                                    surfaces.node_ids[surface_index], -1,
+                                    shape.variant_name
+                                );
+                            }
+                        }
+                        projection_node_id = projection_node_id + 1;
+                    }
+                }
+                lane = lane + 1;
+            }
+        }
+        surface_index = surface_index + 1;
+    }
+    return SemanticAstEnumPayloadVariantProvenanceVerdictOk();
+}

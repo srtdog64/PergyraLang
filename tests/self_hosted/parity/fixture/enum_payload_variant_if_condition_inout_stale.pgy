@@ -1,0 +1,17 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func ReplaceAndTrue(inout value: VexaTag) -> Bool {
+    value = Brume(66);
+    return true;
+}
+
+func Main() -> Void {
+    let value: VexaTag = Aster(65);
+    if ReplaceAndTrue(value) {
+        Log(0);
+    }
+    Log(value.Aster._0);
+}

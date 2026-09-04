@@ -8,6 +8,128 @@ import "ast_expression_graph_member_view_owner.pgy";
 import "ast_expression_graph_receiver_type_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 
+struct SemanticExpressionGraphEnumPayloadShape {
+    ok: Bool;
+    receiver_node: Int;
+    variant_name: String;
+    payload_index: Int;
+}
+
+struct SemanticExpressionGraphEnumVariantEqualityShape {
+    ok: Bool;
+    subject_node: Int;
+    enum_name: String;
+    variant_name: String;
+}
+
+func SemanticExpressionGraphEnumVariantEqualityShapeInvalid() ->
+    SemanticExpressionGraphEnumVariantEqualityShape {
+    return SemanticExpressionGraphEnumVariantEqualityShape(
+        false, -1, "", ""
+    );
+}
+
+func SemanticExpressionGraphEnumVariantEqualityCandidate(
+    ref graph: SemanticExpressionGraphFacts,
+    subject_node: Int,
+    variant_node: Int
+) -> SemanticExpressionGraphEnumVariantEqualityShape {
+    let access: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, variant_node);
+    if !access.ok { return SemanticExpressionGraphEnumVariantEqualityShapeInvalid(); }
+    let enum_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, access.receiver_node
+    );
+    let enum_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, access.receiver_node
+    );
+    let variant_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, access.member_node
+    );
+    if !IsSome(enum_kind) || UnwrapOption(enum_kind) !=
+            AstExpressionNodeLeaf() ||
+        !IsSome(enum_name) || UnwrapOption(enum_name) == "" ||
+        !IsSome(variant_name) || UnwrapOption(variant_name) == "" {
+        return SemanticExpressionGraphEnumVariantEqualityShapeInvalid();
+    }
+    return SemanticExpressionGraphEnumVariantEqualityShape(
+        true, subject_node, UnwrapOption(enum_name),
+        UnwrapOption(variant_name)
+    );
+}
+
+// Project `subject == Enum.Variant` (or its reversed spelling) from graph
+// identity.  Whether the subject binding and enum declaration match is owned
+// by the semantic flow consumer.
+func SemanticExpressionGraphEnumVariantEqualityShapeFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> SemanticExpressionGraphEnumVariantEqualityShape {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
+    let right: Option<Int> = SemanticExpressionGraphRightChild(graph, node_id);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeEquality() ||
+        !IsSome(left) || !IsSome(right) {
+        return SemanticExpressionGraphEnumVariantEqualityShapeInvalid();
+    }
+    let right_variant: SemanticExpressionGraphEnumVariantEqualityShape =
+        SemanticExpressionGraphEnumVariantEqualityCandidate(
+            graph, UnwrapOption(left), UnwrapOption(right)
+        );
+    if right_variant.ok { return right_variant; }
+    return SemanticExpressionGraphEnumVariantEqualityCandidate(
+        graph, UnwrapOption(right), UnwrapOption(left)
+    );
+}
+
+func SemanticExpressionGraphEnumPayloadShapeInvalid() ->
+    SemanticExpressionGraphEnumPayloadShape {
+    return SemanticExpressionGraphEnumPayloadShape(false, -1, "", -1);
+}
+
+// Decompose the generated `receiver.Variant._N` path once.  This owns only
+// graph shape; enum identity and active-variant provenance remain separate
+// semantic facts.
+func SemanticExpressionGraphEnumPayloadShapeFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> SemanticExpressionGraphEnumPayloadShape {
+    let outer: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, node_id);
+    if !outer.ok { return SemanticExpressionGraphEnumPayloadShapeInvalid(); }
+    let payload_field: Option<String> = SemanticExpressionGraphNodeText(
+        graph, outer.member_node
+    );
+    if !IsSome(payload_field) ||
+        StringLength(UnwrapOption(payload_field)) < 2 ||
+        Substring(UnwrapOption(payload_field), 0, 1) != "_" {
+        return SemanticExpressionGraphEnumPayloadShapeInvalid();
+    }
+    let payload_index_text: String = Substring(
+        UnwrapOption(payload_field), 1,
+        StringLength(UnwrapOption(payload_field)) - 1
+    );
+    let payload_index: Int = ToInt(payload_index_text);
+    if payload_index < 0 || ToString(payload_index) != payload_index_text {
+        return SemanticExpressionGraphEnumPayloadShapeInvalid();
+    }
+    let variant_access: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, outer.receiver_node);
+    if !variant_access.ok {
+        return SemanticExpressionGraphEnumPayloadShapeInvalid();
+    }
+    let variant_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, variant_access.member_node
+    );
+    if !IsSome(variant_name) || UnwrapOption(variant_name) == "" {
+        return SemanticExpressionGraphEnumPayloadShapeInvalid();
+    }
+    return SemanticExpressionGraphEnumPayloadShape(
+        true, variant_access.receiver_node,
+        UnwrapOption(variant_name), payload_index
+    );
+}
+
 func SemanticExpressionGraphEnumPayloadTypeName(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -18,43 +140,18 @@ func SemanticExpressionGraphEnumPayloadTypeName(
     function_names: Array<String>,
     function_returns: Array<String>
 ) -> Option<String> {
-    let outer: SemanticMemberAccessView =
-        SemanticMemberAccessViewFromGraph(graph, node_id);
-    if !outer.ok { return None; }
-    let payload_field: Option<String> = SemanticExpressionGraphNodeText(
-        graph, outer.member_node
-    );
-    if !IsSome(payload_field) ||
-        StringLength(UnwrapOption(payload_field)) < 2 ||
-        Substring(UnwrapOption(payload_field), 0, 1) != "_" {
-        return None;
-    }
-    let payload_index_text: String = Substring(
-        UnwrapOption(payload_field), 1,
-        StringLength(UnwrapOption(payload_field)) - 1
-    );
-    let payload_index: Int = ToInt(payload_index_text);
-    if payload_index < 0 || ToString(payload_index) != payload_index_text {
-        return None;
-    }
-
-    let variant_access: SemanticMemberAccessView =
-        SemanticMemberAccessViewFromGraph(graph, outer.receiver_node);
-    if !variant_access.ok { return None; }
-    let variant_name: Option<String> = SemanticExpressionGraphNodeText(
-        graph, variant_access.member_node
-    );
+    let shape: SemanticExpressionGraphEnumPayloadShape =
+        SemanticExpressionGraphEnumPayloadShapeFromGraph(graph, node_id);
+    if !shape.ok { return None; }
     let enum_type: Option<String> =
         SemanticExpressionGraphValueReceiverTypeName(
-            graph, variant_access.receiver_node,
+            graph, shape.receiver_node,
             constructors, names, types,
             function_names, function_returns
         );
-    if !IsSome(variant_name) || !IsSome(enum_type) {
-        return None;
-    }
+    if !IsSome(enum_type) { return None; }
     return SemanticAstEnumVariantPayloadTypeAt(
         enum_facts, UnwrapOption(enum_type),
-        UnwrapOption(variant_name), payload_index
+        shape.variant_name, shape.payload_index
     );
 }

@@ -17,6 +17,7 @@ import "ast_body_type_bundle_readiness_owner.pgy";
 import "ast_named_value_boundary_verdict_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
 import "ast_zone_parameter_boundary_verdict_owner.pgy";
+import "ast_enum_payload_variant_provenance_verdict_owner.pgy";
 struct SemanticAstBodyTypeBundle {
     verdict: SemanticAstBodyVerdict;
     initializer_types: SemanticAstInitializerTypeFacts;
@@ -47,7 +48,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis,
     observe_pressure: Bool,
-    require_carried_expression_identities: Bool
+    require_carried_expression_identities: Bool,
+    require_enum_payload_variant_proof: Bool
 ) -> SemanticAstBodyTypeBundle {
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) {
         return SemanticAstBodyTypeBundleAdmissionError(
@@ -218,6 +220,30 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             "semantic call return type rows are incomplete", -1
         );
     }
+    if verdict.ok && require_enum_payload_variant_proof {
+        SemanticAstBodyTypeStage(
+            observe_pressure, "enum-payload-variant:start"
+        );
+        let enum_payload_variant:
+            SemanticAstEnumPayloadVariantProvenanceVerdict =
+                SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts(
+                    artifact, analysis.signatures, analysis.constructors,
+                    analysis.local_bindings,
+                    initializer_types, analysis.assignments,
+                    analysis.statements, analysis.expression_surfaces,
+                    analysis.enums
+                );
+        if !enum_payload_variant.ok {
+            verdict = SemanticAstBodyVerdictError(
+                enum_payload_variant.diagnostic_code,
+                enum_payload_variant.diagnostic_message,
+                enum_payload_variant.syntax_node_id
+            );
+        }
+        SemanticAstBodyTypeStage(
+            observe_pressure, "enum-payload-variant:done"
+        );
+    }
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");
     return SemanticAstBodyTypeBundle(
         verdict,
@@ -231,7 +257,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
     observe_pressure: Bool
 ) -> SemanticAstBodyTypeBundle {
     return SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
-        artifact, analysis, observe_pressure, false);
+        artifact, analysis, observe_pressure, false, true);
 }
 func SemanticAstBodyTypeBundleFromAnalysisObserved(
     artifact: AstTreeArtifact,

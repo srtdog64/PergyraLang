@@ -1,0 +1,13 @@
+enum VexaTag {
+    Aster(Int),
+    Brume(Int)
+}
+
+func ReadAster<T>(value: T) -> Void {
+    Log(value.Aster._0);
+}
+
+func Main() -> Void {
+    let value: VexaTag = Brume(73);
+    ReadAster<VexaTag>(value);
+}
