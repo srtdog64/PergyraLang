@@ -62,8 +62,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `33861720387` has remote Rocq among 28 green jobs, while `build-linux`
   failed only because the generated language-word implementation inventory
   lagged the new source. The authoritative renderer refresh and its focused
-  registry/documentation gates are green locally. A published descendant still
-  needs exact full-matrix evidence; do not infer completion from this ledger.
+  registry/documentation gates are green locally. Repair checkpoint
+  `6345c69bff8a1f1af7ee4c6477c98dfe90e661aa` then exposed the next static
+  contract in run `33863725298`: the `CLOSED` function-declaration row had a
+  non-`none` open reason and no bound receiver-offset fallback ratchet. The row
+  schema and adequacy ratchet are now corrected, and the complete Markdown-only
+  CI command set passes locally. A published descendant still needs exact
+  full-matrix evidence; do not infer completion from this ledger.
 - Linux CI consumes the already installed driver through
   `self-host-replacement-frontier-installed-test-smoke`; its dry-run contains
   zero self-host bootstrap commands. The standalone wrapper retains exactly one

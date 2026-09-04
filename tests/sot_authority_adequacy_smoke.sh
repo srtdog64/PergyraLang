@@ -27,6 +27,13 @@ EXPRESSION_SURFACE_QUERY_OWNER="src/self_hosted/semantic/ast_expression_surface_
 TYPE_SURFACE_OWNER="src/self_hosted/semantic/ast_type_surface_fact_owner.pgy"
 KIND_SURFACE_OWNER="src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy"
 SIGNATURE_OWNER="src/self_hosted/semantic/ast_signature_fact_owner.pgy"
+RECEIVER_SOURCE_PARAMETER_OWNER="src/self_hosted/semantic/ast_callable_receiver_source_parameter_owner.pgy"
+CALLABLE_RECEIVER_VIEW="src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
+FUNCTION_GLOBAL_ENV="src/self_hosted/codegen/emission/function_global_env_owner.pgy"
+FUNCTION_PROTOTYPE_EMITTER="src/self_hosted/codegen/emission/function_prototype_block_owner.pgy"
+FUNCTION_EMITTER="src/self_hosted/codegen/emission/function_emit.pgy"
+EXPR_SEMANTIC_CALL_EMITTER="src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
+ROLE_OVERRIDE_GATE="tests/self_hosted/parity/role_override_mir_replacement.sh"
 ENTRYPOINT_POLICY_OWNER="src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy"
 ENTRYPOINT_LITERAL_PLAN_CONSUMER="src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy"
 ENTRYPOINT_DIRECT_MIR_ENVELOPE_OWNER="src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
@@ -242,6 +249,13 @@ require_file "$EXPRESSION_SURFACE_OWNER"
 require_file "$TYPE_SURFACE_OWNER"
 require_file "$KIND_SURFACE_OWNER"
 require_file "$SIGNATURE_OWNER"
+require_file "$RECEIVER_SOURCE_PARAMETER_OWNER"
+require_file "$CALLABLE_RECEIVER_VIEW"
+require_file "$FUNCTION_GLOBAL_ENV"
+require_file "$FUNCTION_PROTOTYPE_EMITTER"
+require_file "$FUNCTION_EMITTER"
+require_file "$EXPR_SEMANTIC_CALL_EMITTER"
+require_file "$ROLE_OVERRIDE_GATE"
 require_file "$ENTRYPOINT_POLICY_OWNER"
 require_file "$ENTRYPOINT_LITERAL_PLAN_CONSUMER"
 require_file "$ENTRYPOINT_DIRECT_MIR_ENVELOPE_OWNER"
@@ -390,6 +404,31 @@ require_text "$SIGNATURE_OWNER" \
     "entrypoint_selection: SemanticAstEntrypointSelectionFact;"
 require_text "$SIGNATURE_OWNER" \
     'import "ast_entrypoint_selection_policy_owner.pgy";'
+# CLOSED fallback identities enforced by the owner and executable checks below:
+# receiver_source_parameter_name_rescan
+# implicit_receiver_from_visible_parameter_list
+# typed_self_parameter_success
+# late_self_parameter_success
+require_text "$SIGNATURE_OWNER" "receiver_source_param_offsets: Array<Int>;"
+require_text "$RECEIVER_SOURCE_PARAMETER_OWNER" \
+    "func SemanticAstFunctionReceiverSourceParameterOffsetAt("
+require_text "$CALLABLE_RECEIVER_VIEW" \
+    "CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie("
+require_text "$FUNCTION_GLOBAL_ENV" '"=rso:"'
+for consumer in "$FUNCTION_PROTOTYPE_EMITTER" "$FUNCTION_EMITTER"; do
+    require_text "$consumer" \
+        "CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie("
+    require_text "$consumer" "CodegenImplicitReceiverCParameterOrDie("
+    reject_text "$consumer" 'p_name == "self"'
+    reject_text "$consumer" "role_declares_self"
+done
+require_text "$EXPR_SEMANTIC_CALL_EMITTER" 'carried_source_offset != "0"'
+require_text "$ROLE_OVERRIDE_GATE" \
+    "fixture/typed_self_parameter_rejected.pgy"
+require_text "$ROLE_OVERRIDE_GATE" \
+    "fixture/late_self_parameter_rejected.pgy"
+require_text "$ROLE_OVERRIDE_GATE" \
+    "missing_fact: receiver_source_parameter_shape"
 require_text "$ENTRYPOINT_POLICY_OWNER" \
     "func SemanticAstEntrypointSelectionObserve("
 require_text "$ENTRYPOINT_POLICY_OWNER" \

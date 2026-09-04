@@ -26,9 +26,15 @@ percentage by themselves.
   Exact run `33861720387` had remote Rocq among 28 green jobs, but
   `build-linux` failed in its final preparation-contract step because the
   generated language-word implementation inventory had not been refreshed.
-  The authoritative renderer now produces the refreshed inventory and its
-  focused registry/documentation gates pass locally; a published descendant
-  still needs exact full-matrix evidence before this lease can close.
+  Repair checkpoint `6345c69bff8a1f1af7ee4c6477c98dfe90e661aa`
+  refreshed that inventory; run `33863725298` passed the generated-inventory,
+  documentation, and language checks, then exposed the next static contract:
+  the new `CLOSED` function-declaration row retained a non-`none` open reason
+  and its receiver-offset fallback IDs were not bound to the adequacy ratchet.
+  The row now follows the `CLOSED` schema, the gate binds the exact owner and
+  last consumers, and the complete Markdown-only CI command set passes locally.
+  A published descendant still needs exact full-matrix evidence before this
+  lease can close.
 - The bounded installed census selected
   `tests/cases/backend_compare/role_override_mir/main.pgy`. Installed tokens
   succeed, but installed AST and source-MIR fail before MIR. Native AST carries
@@ -69,9 +75,9 @@ percentage by themselves.
   pass with an explicitly declared prover skip. Rocq kernel validation is green
   in run `33861720387`; exact descendant full-matrix CI remains the next
   falsifier.
-- The CI repair refreshes only the generated language-word implementation
-  inventory plus this navigation state; it changes no compiler source or SoT
-  status. Publication and exact-head CI state must be verified against
+- The CI repairs refresh generated evidence and tighten only the existing
+  receiver-offset negative ratchet; they change no compiler implementation or
+  SoT status. Publication and exact-head CI state must be verified against
   `origin/main` rather than inferred from this snapshot. The user-owned
   `examples/raid_graph_fsm/results.txt` and the three protected untracked
   directories remain outside inspection, edit, and staging; no scoped source
