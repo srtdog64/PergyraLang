@@ -2,29 +2,30 @@
 
 마지막 업데이트: 2026-09-04
 
-최신 published checkpoint `bd02e79f`의 exact-head run `33823024566`은 25분
-01초에 30/30 green이다. Full self-host는 24분 22초에 Pergyra-built DRV-2를
-설치하고 `gen2 == gen3 (174777 lines)`를 증명했으며 production policy corpus는
-`3 in_subset / 0 out_of_subset`였다. Linux는 24개 push step을 21분 45초에
-통과했고, codegen fixed point 9분 02초, sanitizers 12분 56초, Windows 7분 54초,
-Rocq 9 1분 46초, macOS 2분 09초, TSan 14초, backend comparison 20/20이 모두
+최신 implementation checkpoint `8ef954b7`의 exact-head run `33826888124`는 36분
+07초에 30/30 green이다. Full self-host는 35분 48초에 Pergyra-built DRV-2를
+설치하고 `gen2 == gen3 (174792 lines)`를 증명했으며 production policy corpus는
+`3 in_subset / 0 out_of_subset`였다. Linux는 24개 push step을 18분 03초에
+통과했고, codegen fixed point 8분 57초, sanitizers 13분 09초, Windows 9분 15초,
+Rocq 9 1분 47초, macOS 1분 50초, TSan 16초, backend comparison 20/20이 모두
 green이다.
 
-이번 bounded repair는 lowercase `func main()`을 semantic signature owner의 단일
-선택 fact로 만들었다. `Main`이 있으면 우선하고 없을 때만 `main`을 고르며, artifact
-admission과 source-C의 마지막 소비자들은 이름을 다시 스캔하지 않는다. Installed
-self-MIR은 lowercase identity를 보존하고 source-C는 별도 user body와 host wrapper를
-정확히 한 번씩 물리화해 `lowercase-main`을 실행한다. Worker-only와 crossed
-identity/spelling 변이는 artifact 없이 실패한다. 첫 run `33821520140`이 발견한
-243/240 prototype-owner cap은 상한을 올리지 않고 240줄로 복원했다.
+이번 bounded repair는 한 루틴·한 블록·한 명령 literal-Log source-LLVM 경로가
+lowercase `main`을 별도로 재판정하던 틈을 닫았다. Name-aware common envelope는
+admitted routine identity의 일치만 확인하고 기존 wrapper는 계속 `Main`만 허용한다.
+해당 literal plan 하나만 `signature.name`을 넘긴 뒤 기존 semantic `Main`/`main`
+정책을 조회한다. Fresh installed source-C와 direct/public LLVM은 정확히
+`lowercase-main`을 실행하고 LLVM bytes도 같다. `main -> worker` MIR 변이는 artifact
+없이 실패하며 public LLVM에서 native timing은 나타나지 않는다.
 
-이는 이미 `CLOSED`인 `selfhost.entrypoint_selection`의 과장된 범위를 수리한 것이며
-새 authority나 hard substitution 분자가 아니다. Census는 88 authorities / 185
-derived, `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%)로
-유지한다. 다음 관측된 red는 같은 fixture의 installed source-LLVM이 lowercase self-MIR을
-받은 뒤 direct-MIR literal-Log program envelope에서 실패하는 경계다. 다음 작업은 이
+이는 이미 `CLOSED`인 entrypoint/literal-plan 소비자 수리이며 새 authority나 hard
+substitution 분자가 아니다. Census는 88 authorities / 185 derived,
+`CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%)로 유지한다. 다음
+관측 red는 `region_user_callee`: installed source-LLVM이 routine 0 `Sink`의 `Void`
+return을 `callable-route-envelope / return-type`에서 무산출 거부한다. 다음 작업은 이
 도달 경계의 owner/last consumer/forbidden fallback/negative gate를 확정하는 bounded
-read-only discovery이며, 그 전에는 구현 lease를 열지 않는다.
+read-only discovery다. Module Build는 self-host closure와 evidence 압축, 실제 외부
+workload 뒤로 계속 유보한다.
 
 그 직전 published checkpoint `62e4b0c5`의 exact-head run `33810319796`은 36분
 35초에 30/30 green이다. Full self-host는 36분 18초에 Pergyra-built DRV-2를

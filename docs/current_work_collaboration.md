@@ -6,37 +6,49 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE discovery lease — installed source-LLVM lowercase entrypoint envelope
+## ACTIVE discovery lease — installed source-LLVM `region_user_callee`
 
-- Exact published base is `bd02e79f83f418bcbc3fe48caaf3487ef18e311f`,
-  equal to `origin/main`; exact-head run `33823024566` is 30/30 green. This
-  lease is read-only. No task may edit or publish a successor implementation
-  until the objective card names the fact owner, last orchestration consumer,
-  forbidden fallback, and focused falsifier gate.
-- The reached production red is public installed source-to-LLVM for
-  `tests/cases/backend_compare/entry_lowercase_main/main.pgy`. The admitted
-  self-MIR carries lowercase `main`, while the current direct-MIR literal-Log
-  envelope remains uppercase-specific and fails closed. Source-C and native
-  C/LLVM execute exact `lowercase-main`; native retry and C round-trip are
-  forbidden.
-- Discovery may inspect only this reached direct-MIR envelope and its existing
-  owner/consumer chain. It must not open a general query/cache engine, expand
-  literal-Log shapes, change the entrypoint row's status, or begin Module Build.
-  Module Build remains deferred through self-host closure, evidence/identity
-  compression, and one real external workload.
-- Objective card fixed from the reproduced artifact-free failure:
-  objective is exact installed source-LLVM execution for the existing
-  one-routine/one-literal-Log lowercase program; priority is shared semantic
-  policy, admitted routine identity, old-read deletion, negative ratchet, then
-  patch size. `ast_entrypoint_selection_policy_owner.pgy` owns `Main`/`main`
-  priority, `DirectMirRoutineSignatureFact` owns the admitted routine identity,
-  and `DirectMirLiteralLogPlanFromAdmitted` is the last legitimate name
-  consumer before target-neutral emission. Forbidden fallbacks are a local
-  `Main || main` test, fixture routing, native retry, C round-trip, relaxed
-  signature readiness, and accepting additional program/graph shapes. The
-  integration gate extends the existing lowercase installed gate with direct
-  versus public LLVM byte equality, exact execution, and a worker-renamed MIR
-  no-artifact negative while preserving uppercase `Main` regression.
+- Exact tested base is `8ef954b770c74c5a36a50faa168661112018f4b7`;
+  exact-head run `33826888124` is 30/30 green. This lease is read-only. No task
+  may edit or publish a successor implementation until the objective card names
+  the fact owner, last orchestration consumer, forbidden fallback, and focused
+  falsifier gate.
+- The bounded installed scan passed `basic`, `region_string_concat`, and
+  `region_string_concat_heap` without native timing. The first red is
+  `tests/cases/backend_compare/region_user_callee/main.pgy`: direct-MIR scalar
+  admission rejects routine 0 `Sink` at `owner=callable-route-envelope`,
+  `stage=return-type`, `type=Void`, with no artifact.
+- Discovery may inspect only this reached callable-route envelope and its
+  existing signature/consumer chain. It must not open a general query/cache
+  engine, expand call graph shapes, infer that all Void callees are admissible,
+  or begin Module Build. Module Build remains deferred through self-host
+  closure, evidence/identity compression, and one real external workload.
+
+## DONE implementation lease — bounded lowercase literal-Log source-LLVM
+
+- Discovery began at `bd02e79f83f418bcbc3fe48caaf3487ef18e311f`.
+  Implementation `8ef954b770c74c5a36a50faa168661112018f4b7` is published;
+  exact run `33826888124` completed 30/30 green. This lease is released.
+- The reached red was public installed source-to-LLVM for
+  `tests/cases/backend_compare/entry_lowercase_main/main.pgy`. The admitted MIR
+  carried lowercase `main`, while both the literal plan and its imported common
+  envelope enforced uppercase `Main`.
+- Objective: exact installed source-LLVM execution for the existing
+  one-routine/one-block/one-instruction literal-Log program. Priority was shared
+  semantic policy, admitted routine identity, old-read deletion, negative
+  ratchet, then patch size. `ast_entrypoint_selection_policy_owner.pgy` owns
+  `Main`/`main`; `DirectMirRoutineSignatureFact` owns admitted routine identity;
+  `DirectMirLiteralLogPlanFromAdmitted` is the last name consumer.
+- The scalar common envelope is now name-aware, but its existing wrapper stays
+  `Main`-only. Only the literal-Log plan passes `signature.name` and then queries
+  the shared semantic policy. Local spelling tests, fixture routing, native
+  retry, C round-trip, relaxed signature readiness, and additional graph shapes
+  remain forbidden and statically ratcheted.
+- Fresh installed source-C and direct/public LLVM execute `lowercase-main`, the
+  LLVM bytes agree, worker-renamed MIR publishes no artifact, and uppercase
+  `Main` remains green. The 35m48s full fixed point proved
+  `gen2 == gen3 (174792 lines)` and the corpus stayed `3/0`. This repairs
+  already-`CLOSED` consumers; census and percentage do not move.
 
 ## DONE implementation lease — lowercase source entrypoint selection
 

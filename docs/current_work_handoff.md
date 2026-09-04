@@ -18,32 +18,53 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — next installed source-LLVM falsifier discovery
+## Active self-host context — `region_user_callee` source-LLVM discovery
 
-- Exact published checkpoint is
-  `bd02e79f83f418bcbc3fe48caaf3487ef18e311f`, equal to `origin/main`.
-  Exact-head run `33823024566` completed 30/30 green in 25m01s. Full self-host
-  took 24m22s, installed the Pergyra-built DRV-2, proved
-  `gen2 == gen3 (174777 lines)`, and classified the production policy corpus as
-  `3 in_subset / 0 out_of_subset`. The protected user-owned
-  `examples/raid_graph_fsm/results.txt` change and three protected untracked
-  directories remain outside inspection, edit, and staging.
-- No successor implementation lease is open. The next observed production red
-  is the public installed source-to-LLVM route for
-  `tests/cases/backend_compare/entry_lowercase_main/main.pgy`: semantic
-  admission and self-MIR now preserve lowercase routine `main`, but the current
-  direct-MIR literal-Log projection rejects its program envelope. Source-C and
-  native C/LLVM already execute exact `lowercase-main`; native retry remains
-  forbidden and absent. This is a falsifier observation, not a completed owner
-  selection or a new closure claim.
-- The next bounded step is read-only discovery: identify the existing fact owner,
-  the last orchestration consumer, the exact uppercase-only read to retire, and
-  one focused source-LLVM parity/negative gate. Do not edit the direct-MIR owner
-  family until that objective card is fixed. Do not infer general entrypoint,
-  literal-Log, or whole-backend closure from the one-instruction fixture.
+- Exact tested implementation checkpoint is
+  `8ef954b770c74c5a36a50faa168661112018f4b7`, published to `main`. Exact-head
+  run `33826888124` completed 30/30 green in 36m07s. Full self-host took 35m48s,
+  installed the Pergyra-built DRV-2, proved `gen2 == gen3 (174792 lines)`, and
+  classified the production policy corpus as `3 in_subset / 0 out_of_subset`.
+  The protected user-owned `examples/raid_graph_fsm/results.txt` change and
+  three protected untracked directories remain outside inspection, edit, and
+  staging.
+- No successor implementation lease is open. A bounded installed public
+  source-to-LLVM scan passed `basic`, `region_string_concat`, and
+  `region_string_concat_heap` without native timing. Its first observed red is
+  `tests/cases/backend_compare/region_user_callee/main.pgy`: the direct-MIR
+  scalar route rejects routine 0 `Sink` at `owner=callable-route-envelope`,
+  `stage=return-type`, `type=Void`, and publishes no artifact. This is a
+  falsifier observation, not an owner diagnosis or closure claim.
+- The next bounded step is read-only discovery: identify the existing callable
+  signature fact owner, the last route-envelope consumer, the exact Void-return
+  restriction or fallback, and one focused parity/negative gate. Do not edit
+  the direct-MIR owner family until that objective card is fixed, and do not
+  infer general call, return-type, source-LLVM, or backend closure.
 - Module Build remains design-only and deferred in the order
   `self-host closure -> evidence/identity compression -> real external project ->
   ModuleInterface -> BuildUnit/incremental build`.
+
+## Published self-host context — bounded lowercase literal-Log source-LLVM
+
+- Implementation `8ef954b770c74c5a36a50faa168661112018f4b7` is published.
+  The one-routine/one-block/one-instruction literal-Log plan now joins its
+  admitted `DirectMirRoutineSignatureFact` with the existing semantic
+  `Main`/`main` policy. The name-aware common envelope checks identity
+  consistency; its old wrapper remains `Main`-only, so no other scalar route
+  was widened.
+- Fresh installed DRV-2 source-C and direct/public LLVM execute exact
+  `lowercase-main`; direct and public LLVM bytes match. A `main -> worker` MIR
+  mutation fails with no LLVM artifact, public LLVM shows no native timing, and
+  uppercase `Main` remains green. The adjacent compile-time declaration/literal
+  gate also passes exact `7`, exact `73`, projection equality, and 25 negatives.
+- Local DRV-2 is 6,612,453 bytes with SHA-256
+  `9281378B7F5690D49DB2B1D94F9EE7F76EA16951B5E3C77331CC2BDEB6FBC3C4`.
+  Exact run `33826888124` passed Linux 24/24 in 18m03s, codegen fixed point in
+  8m57s, sanitizers in 13m09s, Windows in 9m15s, Rocq 9 in 1m47s, macOS in
+  1m50s, TSan in 16s, and backend comparison 20/20.
+- This repairs consumers of already-`CLOSED` rows; it adds no authority or hard
+  substitution numerator. Census and forecast remain 88 authorities / 185
+  derived, `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%).
 
 ## Published self-host context — lowercase source entrypoint selection
 

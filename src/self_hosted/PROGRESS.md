@@ -1,5 +1,28 @@
 # Self-Host Progress
 
+## Completed self-host context - 2026-09-04 bounded lowercase literal-Log source-LLVM
+
+- The installed lowercase source-MIR reached the one-routine/one-block/
+  one-instruction literal-Log projection but both the plan and its shared common
+  envelope still enforced uppercase `Main`.
+- The common envelope now accepts an expected admitted routine name while its
+  existing wrapper remains `Main`-only. The literal-Log plan alone joins
+  `DirectMirRoutineSignatureFact` with the canonical semantic entrypoint policy;
+  no other scalar route, program shape, or backend fallback was widened.
+- Fresh installed source-C and direct/public LLVM execute exact
+  `lowercase-main`; LLVM bytes agree. Worker-renamed MIR publishes no artifact,
+  native timing is absent, and uppercase `Main` remains green. The adjacent
+  literal projection passes exact `7`, exact `73`, equality variants, and 25
+  negatives.
+- Implementation `8ef954b7` is published. Exact run `33826888124` completed
+  30/30 green in 36m07s; full self-host took 35m48s and proved
+  `gen2 == gen3 (174792 lines)` plus policy census `3 in_subset / 0 out_of_subset`.
+- This repairs already-CLOSED consumers and does not increase progress. Census
+  remains 88 authorities / 185 carriers / `55/32/1`, integrated 83% (81-85%),
+  strict beta 83%, and hard replacement 75%. The next observed artifact-free red
+  is `region_user_callee` at callable-route Void-return admission. Module Build
+  remains design-only.
+
 ## Completed self-host context - 2026-09-04 lowercase entrypoint selection
 
 - Lowercase `func main()` was already a documented/native entry spelling, but

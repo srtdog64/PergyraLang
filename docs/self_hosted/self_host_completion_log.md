@@ -12325,3 +12325,30 @@ Released/default replacement remains 0%.
   185 derived and `55/32/1`; integrated forecast remains 83% (81-85%). Module
   Build stays deferred until self-host closure, evidence/identity compression,
   and one real external workload.
+
+## 2026-09-04 - Bounded lowercase literal-Log source-LLVM projection
+
+- Installed lowercase source-MIR already carried routine `main`, but the
+  one-routine/one-block/one-instruction literal-Log plan and its imported common
+  envelope both enforced uppercase `Main`. The installed public source-LLVM
+  route therefore failed without an artifact after source-C had succeeded.
+- The common envelope now validates a supplied admitted routine identity; its
+  existing wrapper remains `Main`-only. The literal-Log plan is the sole new
+  name-aware consumer and joins `DirectMirRoutineSignatureFact` with the shared
+  semantic entrypoint policy. Local `Main`/`main` decisions, native retry, C
+  round-trip, fixture routing, and wider scalar shapes remain forbidden.
+- Fresh installed source-C and direct/public LLVM execute exact
+  `lowercase-main`, with byte-equal LLVM. A worker-renamed MIR fails with no
+  artifact, public LLVM emits no native timing, uppercase `Main` stays green,
+  and the adjacent declaration/literal gate passes 25 negatives.
+- Implementation `8ef954b7` is published. Exact run `33826888124` completed
+  30/30 green in 36m07s. Full self-host took 35m48s, installed DRV-2, proved
+  `gen2 == gen3 (174792 lines)`, and reported `3 in_subset / 0 out_of_subset`.
+  Linux was 18m03s, codegen 8m57s, sanitizers 13m09s, Windows 9m15s, Rocq 9
+  1m47s, macOS 1m50s, TSan 16s, and backend comparison 20/20.
+- No row or percentage advances: census remains 88 authorities / 185 derived,
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, integrated 83% (81-85%). The next bounded
+  installed scan first fails at `region_user_callee`, where routine 0 `Sink`
+  is rejected at `callable-route-envelope / return-type / Void` without an
+  artifact. Owner selection remains a read-only discovery task; Module Build
+  remains deferred.
