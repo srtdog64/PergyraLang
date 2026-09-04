@@ -1,16 +1,14 @@
 // Resolve a same-spelled match binding only through its dominating CFG scope.
 
 import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
+import "direct_mir_scalar_cfg_leaf_operand_latest_value_readiness_owner.pgy";
 import "../mir_lower/routine_definition_dominance_fact_owner.pgy";
 
 func DirectMirScalarCfgInstructionBlockAt(
-    ref index: MirRoutineFactIndex, instruction: Int
-) -> Int {
-    let found: Int = -1;
-    let block: Int = 0;
+    ref index: MirRoutineFactIndex, instruction: Int) -> Int {
+    let found: Int = -1; let block: Int = 0;
     while block < ArrayLength(index.block_instruction_starts) {
-        let start: Int = index.block_instruction_starts[block];
-        let count: Int = index.block_instruction_counts[block];
+        let start: Int = index.block_instruction_starts[block]; let count: Int = index.block_instruction_counts[block];
         if instruction >= start && instruction < start + count {
             if found >= 0 { return -1; }
             found = block;
@@ -25,19 +23,14 @@ func DirectMirScalarCfgScopedMatchBindingLocalOperandRow(
     ref local_refs: DirectMirScalarCfgLocalRefPlan,
     instruction_row: Int, node_text: String
 ) -> Int {
-    let use_block: Int = DirectMirScalarCfgInstructionBlockAt(
-        index, instruction_row);
+    let use_block: Int = DirectMirScalarCfgInstructionBlockAt(index, instruction_row);
     if use_block < 0 { return -1; }
-    let selected: Int = -1;
-    let selected_scope: Int = -1;
-    let row: Int = 0;
+    let selected: Int = -1; let selected_scope: Int = -1; let row: Int = 0;
     while row < ArrayLength(local_refs.local_names) {
         if local_refs.local_ref_kinds[row] ==
                 DirectMirScalarCfgLocalRefMatchBinding() &&
             local_refs.local_names[row] == node_text {
-            let match_instruction: Int =
-                local_refs.local_ref_syntax_ids[row] -
-                index.instruction_facts.global_start;
+            let match_instruction: Int = local_refs.local_ref_syntax_ids[row] - index.instruction_facts.global_start;
             let match_block: Int = DirectMirScalarCfgInstructionBlockAt(
                 index, match_instruction);
             if match_block < 0 || match_block >=
@@ -80,7 +73,15 @@ func DirectMirScalarCfgLeafOrScopedMatchBindingOperandFromOwners(
         DirectMirScalarCfgLeafOperandFromOwners(
             use_facts, global_row, use_row, instruction_row, node, node_text,
             value_names, local_refs, wire, wire_expr0_carriage);
-    if operand.valid { return operand; }
+    if operand.valid {
+        let use_block: Int = DirectMirScalarCfgInstructionBlockAt(
+            index, instruction_row);
+        if DirectMirScalarCfgLeafOperandLatestValueReady(
+                index, local_refs, operand, instruction_row, use_block) {
+            return operand;
+        }
+        return DirectMirScalarCfgLeafOperand(false, -1, -1, 0);
+    }
     let scoped_local: Int =
         DirectMirScalarCfgScopedMatchBindingLocalOperandRow(
             index, local_refs, instruction_row, node_text);

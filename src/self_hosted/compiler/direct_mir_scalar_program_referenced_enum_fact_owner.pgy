@@ -1,9 +1,9 @@
 // Referenced enum declarations and their declaration-owned variant payloads.
 //
-// Routine signatures select the relevant declaration identities once.  The
-// admitted enum-variant index remains the only owner of variant ordinals and
-// payload types; later payload-free and tagged-payload projections are strict
-// views of this fact rather than independent declaration rescans.
+// Routine signatures and instruction ABI types select the relevant declaration
+// identities once.  The admitted enum-variant index remains the only owner of
+// variant ordinals and payload types; later payload-free and tagged-payload
+// projections are strict views of this fact rather than declaration rescans.
 
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
@@ -215,6 +215,17 @@ func DirectMirScalarProgramReferencedEnumFactFromAdmitted(
         }
         routine = routine + 1;
     }
+    let instruction: Int = 0;
+    while instruction < ArrayLength(
+            admitted.routines.instruction_abi_type_names) {
+        if !DirectMirScalarProgramReferencedEnumReferenceAdd(
+                admitted.domain_runtime_admission.declarations,
+                admitted.routines.instruction_abi_type_names[instruction],
+                referenced) {
+            return invalid;
+        }
+        instruction = instruction + 1;
+    }
     let rows: Array<Int> = [];
     let names: Array<String> = [];
     let syntax_ids: Array<Int> = [];
@@ -374,6 +385,29 @@ func DirectMirScalarProgramReferencedEnumVariantRow(
     while ordinal < fact.variant_counts[row] {
         if fact.variant_names[start + ordinal] == variant_name {
             return start + ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramPayloadEnumVariantRowForParameter(
+    ref fact: DirectMirScalarProgramReferencedEnumFact,
+    enum_row: Int, parameter_row: Int
+) -> Int {
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) ||
+        enum_row < 0 || enum_row >= ArrayLength(fact.declaration_rows) ||
+        fact.payload_flags[enum_row] != 1 || parameter_row < 0 ||
+        parameter_row >= ArrayLength(fact.variant_param_types) {
+        return -1;
+    }
+    let ordinal: Int = 0;
+    while ordinal < fact.variant_counts[enum_row] {
+        let variant: Int = fact.variant_starts[enum_row] + ordinal;
+        let start: Int = fact.variant_param_type_starts[variant];
+        if parameter_row >= start &&
+            parameter_row < start + fact.variant_param_counts[variant] {
+            return variant;
         }
         ordinal = ordinal + 1;
     }

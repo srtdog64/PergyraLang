@@ -1,4 +1,4 @@
-// Declaration-free scalar program claim keyed by typed routine envelopes.
+// Scalar program claim keyed by typed routine and declaration envelopes.
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";

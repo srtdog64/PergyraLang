@@ -1,0 +1,38 @@
+// Fail closed unless a selected scalar-CFG leaf is the latest dominating SSA value.
+
+import "direct_mir_scalar_cfg_leaf_operand_owner.pgy";
+import "../mir_lower/latest_local_value_fact_owner.pgy";
+
+func DirectMirScalarCfgLeafOperandLatestValueReady(
+    ref index: MirRoutineFactIndex,
+    ref local_refs: DirectMirScalarCfgLocalRefPlan,
+    ref operand: DirectMirScalarCfgLeafOperand,
+    instruction_row: Int, use_block: Int
+) -> Bool {
+    if !operand.valid || use_block < 0 { return false; }
+    if operand.value_row < 0 { return true; }
+    if operand.value_row >= ArrayLength(local_refs.value_names) ||
+        operand.value_row >= ArrayLength(local_refs.value_local_rows) {
+        return false;
+    }
+    let use_instruction: Int =
+        instruction_row - index.block_instruction_starts[use_block];
+    let definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(
+            index, local_refs.value_names[operand.value_row]);
+    if MirRoutineResultDefinitionFactReady(definition) {
+        return MirRoutineLatestDominatingLocalValueMatches(
+            index, local_refs.value_names, local_refs.value_local_rows,
+            operand.value_row, use_block, use_instruction);
+    }
+    let local: Int = local_refs.value_local_rows[operand.value_row];
+    if local < 0 || local >= ArrayLength(local_refs.local_ref_value_ids) ||
+        SelfMirLocalRefParameterOrdinalForOwner(
+            local_refs.local_ref_value_ids[local],
+            ToInt(index.source_syntax_id)) < 0 {
+        return false;
+    }
+    return !IsSome(MirRoutineLatestDominatingLocalValueRow(
+        index, local_refs.value_names, local_refs.value_local_rows,
+        local, use_block, use_instruction));
+}

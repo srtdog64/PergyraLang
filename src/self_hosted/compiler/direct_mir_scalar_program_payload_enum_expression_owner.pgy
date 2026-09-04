@@ -14,11 +14,28 @@ struct DirectMirScalarProgramPayloadEnumConstructorFact {
     let call_node: Int;
 }
 
+struct DirectMirScalarProgramPayloadEnumMemberFact {
+    let recognized: Bool;
+    let valid: Bool;
+    let left_row: Int;
+    let type_name: String;
+    let parameter_row: Int;
+    let variant_node: Int;
+    let variant_access_node: Int;
+    let parameter_node: Int;
+}
+
 func DirectMirScalarProgramPayloadEnumConstructorMissing(
 ) -> DirectMirScalarProgramPayloadEnumConstructorFact {
     let rows: Array<Int> = [];
     return DirectMirScalarProgramPayloadEnumConstructorFact(
         false, false, false, "", -1, -1, rows, -1);
+}
+
+func DirectMirScalarProgramPayloadEnumMemberMissing(
+) -> DirectMirScalarProgramPayloadEnumMemberFact {
+    return DirectMirScalarProgramPayloadEnumMemberFact(
+        false, false, -1, "", -1, -1, -1, -1);
 }
 
 func DirectMirScalarProgramPayloadEnumConstructorFromGraph(
@@ -71,4 +88,105 @@ func DirectMirScalarProgramPayloadEnumConstructorFromGraph(
         true, true, count == fact.variant_param_counts[variant_row],
         fact.names[enum_row], variant_row - fact.variant_starts[enum_row],
         variant_row, chain.argument_rows, chain.call_node);
+}
+
+func DirectMirScalarProgramPayloadEnumMemberFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    source_rows: Array<Int>, normalized_types: Array<String>,
+    ref fact: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarProgramPayloadEnumMemberFact {
+    let missing: DirectMirScalarProgramPayloadEnumMemberFact =
+        DirectMirScalarProgramPayloadEnumMemberMissing();
+    if !DirectMirScalarProgramReferencedEnumFactReady(fact) ||
+        node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeMemberAccess() {
+        return missing;
+    }
+    let variant_access: Int =
+        sequence.arena.topology.left_children[node];
+    let parameter_node: Int =
+        sequence.arena.topology.right_children[node];
+    if variant_access < 0 || variant_access >= node || parameter_node < 0 ||
+        parameter_node >= node || sequence.arena.topology.node_kinds[
+            variant_access] != AstExpressionNodeMemberAccess() ||
+        sequence.arena.topology.node_kinds[parameter_node] !=
+            AstExpressionNodeLeaf() {
+        return missing;
+    }
+    let receiver_node: Int =
+        sequence.arena.topology.left_children[variant_access];
+    let variant_node: Int =
+        sequence.arena.topology.right_children[variant_access];
+    if receiver_node < 0 || receiver_node >= variant_access ||
+        variant_node < 0 || variant_node >= variant_access ||
+        variant_node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[variant_node] !=
+            AstExpressionNodeLeaf() || receiver_node >= ArrayLength(source_rows) ||
+        source_rows[receiver_node] < 0 ||
+        source_rows[receiver_node] >= ArrayLength(normalized_types) {
+        return missing;
+    }
+    let enum_type: String = normalized_types[source_rows[receiver_node]];
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+        fact, enum_type);
+    if enum_row < 0 || fact.payload_flags[enum_row] != 1 {
+        return missing;
+    }
+    let invalid: DirectMirScalarProgramPayloadEnumMemberFact =
+        DirectMirScalarProgramPayloadEnumMemberFact(
+            true, false, -1, "", -1, variant_node, variant_access,
+            parameter_node);
+    let variant: Int = DirectMirScalarProgramReferencedEnumVariantRow(
+        fact, enum_type, sequence.arena.node_texts[variant_node]);
+    let field: String = sequence.arena.node_texts[parameter_node];
+    if variant < 0 || StringLength(field) < 2 ||
+        Substring(field, 0, 1) != "_" ||
+        sequence.arena.identities.binding_kinds[variant_node] !=
+            SemanticExpressionBindingNone() ||
+        sequence.arena.identities.binding_kinds[variant_access] !=
+            SemanticExpressionBindingNone() ||
+        sequence.arena.identities.binding_kinds[parameter_node] !=
+            SemanticExpressionBindingNone() ||
+        sequence.arena.identities.binding_kinds[node] !=
+            SemanticExpressionBindingNone() {
+        return invalid;
+    }
+    let parameter_text: String = Substring(
+        field, 1, StringLength(field) - 1);
+    let parameter: Int = ToInt(parameter_text);
+    if parameter < 0 || ToString(parameter) != parameter_text ||
+        parameter >= fact.variant_param_counts[variant] {
+        return invalid;
+    }
+    let parameter_row: Int =
+        fact.variant_param_type_starts[variant] + parameter;
+    return DirectMirScalarProgramPayloadEnumMemberFact(
+        true, true, source_rows[receiver_node],
+        fact.variant_param_types[parameter_row], parameter_row,
+        variant_node, variant_access, parameter_node);
+}
+
+func DirectMirScalarProgramPayloadEnumMemberMarkerReady(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    source_rows: Array<Int>, normalized_types: Array<String>,
+    ref fact: DirectMirScalarProgramReferencedEnumFact
+) -> Bool {
+    if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) {
+        return false;
+    }
+    let candidate: Int = node + 1;
+    while candidate < ArrayLength(sequence.arena.topology.node_kinds) {
+        let member: DirectMirScalarProgramPayloadEnumMemberFact =
+            DirectMirScalarProgramPayloadEnumMemberFromGraph(
+                sequence, candidate, source_rows, normalized_types, fact);
+        if member.recognized &&
+            (node == member.variant_node ||
+             node == member.variant_access_node ||
+             node == member.parameter_node) {
+            return true;
+        }
+        candidate = candidate + 1;
+    }
+    return false;
 }

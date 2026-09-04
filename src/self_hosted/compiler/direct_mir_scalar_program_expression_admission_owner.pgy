@@ -119,6 +119,7 @@ func DirectMirScalarProgramAppendExpression(
         if DirectMirScalarProgramCallCalleeNodeReady(sequence, node) ||
             DirectMirScalarProgramPayloadFreeEnumMarkerReady(
                 sequence, node, payload_free_enum) ||
+            DirectMirScalarProgramPayloadEnumMemberMarkerReady(sequence, node, source_rows, types, referenced_enum) ||
             DirectMirScalarProgramLogicalRecordMemberMarkerReady(
                 sequence, node, "", logical_record) ||
             DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(
@@ -368,31 +369,30 @@ func DirectMirScalarProgramAppendExpression(
                 return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-binding", node);
             }
         } else if source_kind == AstExpressionNodeMemberAccess() {
-            let enum_variant:
-                DirectMirScalarProgramPayloadFreeEnumExpressionFact =
-                DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(
-                    sequence, node, payload_free_enum);
+            let payload_member: DirectMirScalarProgramPayloadEnumMemberFact = DirectMirScalarProgramPayloadEnumMemberFromGraph(sequence, node, source_rows, types, referenced_enum);
+            if payload_member.recognized {
+                if !payload_member.valid {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "payload-enum-member", node);
+                }
+                kind = DirectMirScalarProgramExprPayloadEnumMember(); type_name = payload_member.type_name;
+                left = payload_member.left_row; member_ordinal = payload_member.parameter_row;
+            } else {
+            let enum_variant: DirectMirScalarProgramPayloadFreeEnumExpressionFact = DirectMirScalarProgramPayloadFreeEnumVariantFromGraph(sequence, node, payload_free_enum);
             if enum_variant.recognized {
                 if !enum_variant.valid {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(
-                        facts, "payload-free-enum-variant", node);
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "payload-free-enum-variant", node);
                 }
-                kind = enum_variant.kind;
-                type_name = enum_variant.type_name;
+                kind = enum_variant.kind; type_name = enum_variant.type_name;
                 member_ordinal = enum_variant.variant_ordinal;
             } else {
-                let member:
-                    DirectMirScalarProgramLogicalRecordExpressionFact =
-                    DirectMirScalarProgramLogicalRecordMemberFromGraph(
-                        sequence, node, source_rows, types, logical_record);
+                let member: DirectMirScalarProgramLogicalRecordExpressionFact = DirectMirScalarProgramLogicalRecordMemberFromGraph(
+                    sequence, node, source_rows, types, logical_record);
                 if !member.recognized || !member.valid || !member.complete {
-                    return DirectMirScalarProgramExpressionAdmissionRejected(
-                        facts, "logical-record-member", node);
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "logical-record-member", node);
                 }
-                kind = member.kind;
-                type_name = member.type_name;
-                left = member.left_row;
-                member_ordinal = member.member_ordinal;
+                kind = member.kind; type_name = member.type_name;
+                left = member.left_row; member_ordinal = member.member_ordinal;
+            }
             }
         } else {
             let nested_operands: Array<Int> = DirectMirScalarProgramNestedArrayStringLiteralOperandRows(sequence, node, source_rows, types);

@@ -1,0 +1,110 @@
+// A payload-member projection is valid only when its reached local value was
+// constructed as the named variant. This join prevents target representations
+// from disagreeing when persisted MIR names another valid enum variant.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_operation_position_owner.pgy";
+import "direct_mir_scalar_program_payload_enum_expression_readiness_owner.pgy";
+
+func DirectMirScalarProgramPayloadEnumMemberGraphRow(
+    ref plan: DirectMirScalarCfgGraphPlan, node: Int
+) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(plan.program.expressions.graph_starts) {
+        let start: Int = plan.program.expressions.graph_starts[row];
+        let count: Int = plan.program.expressions.graph_counts[row];
+        if node >= start && node < start + count { return row; }
+        row = row + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramPayloadEnumMemberUseOperation(
+    ref plan: DirectMirScalarCfgGraphPlan, graph_row: Int
+) -> Int {
+    let found: Int = -1;
+    let operation: Int = 0;
+    while operation < ArrayLength(
+            plan.program.operation_expression_rows) {
+        if plan.program.operation_expression_rows[operation] == graph_row {
+            if found >= 0 { return -1; }
+            found = operation;
+        }
+        operation = operation + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramPayloadEnumMemberDefinitionReady(
+    ref plan: DirectMirScalarCfgGraphPlan, member: Int, operation: Int
+) -> Bool {
+    let receiver: Int = plan.program.expressions.node_lefts[member];
+    if receiver < 0 || receiver >= member ||
+        plan.program.expressions.node_kinds[receiver] !=
+            DirectMirScalarProgramExprLocal() {
+        return false;
+    }
+    let local: Int = plan.program.expressions.node_local_rows[receiver];
+    let enum_type: String = plan.program.expressions.node_types[receiver];
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+        plan.program.referenced_enum, enum_type);
+    let parameter_row: Int =
+        plan.program.expressions.node_member_ordinals[member];
+    let variant: Int =
+        DirectMirScalarProgramPayloadEnumVariantRowForParameter(
+            plan.program.referenced_enum, enum_row, parameter_row);
+    let block: Int = DirectMirScalarCfgOperationBlock(plan, operation);
+    if local < 0 || enum_row < 0 || variant < 0 || block < 0 {
+        return false;
+    }
+    let candidate: Int = operation - 1;
+    let block_start: Int = plan.block_operation_starts[block];
+    while candidate >= block_start {
+        let value: Int = plan.operation_result_values[candidate];
+        if value >= 0 && value < ArrayLength(plan.value_local_rows) &&
+                plan.value_local_rows[value] == local {
+            let graph: Int =
+                plan.program.operation_expression_rows[candidate];
+            if plan.operation_kinds[candidate] !=
+                    DirectMirScalarCfgOpExpressionDefinition() ||
+                graph < 0 || graph >= ArrayLength(
+                    plan.program.expressions.graph_roots) {
+                return false;
+            }
+            let root: Int = plan.program.expressions.graph_roots[graph];
+            return root >= 0 && root < ArrayLength(
+                    plan.program.expressions.node_kinds) &&
+                plan.program.expressions.node_kinds[root] ==
+                    DirectMirScalarProgramExprPayloadEnumConstructor() &&
+                plan.program.expressions.node_types[root] == enum_type &&
+                plan.program.expressions.node_member_ordinals[root] ==
+                    variant - plan.program.referenced_enum.variant_starts[
+                        enum_row];
+        }
+        candidate = candidate - 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramPayloadEnumMembersReadyForPlan(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        if plan.program.expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprPayloadEnumMember() {
+            let graph: Int = DirectMirScalarProgramPayloadEnumMemberGraphRow(
+                plan, node);
+            let operation: Int =
+                DirectMirScalarProgramPayloadEnumMemberUseOperation(
+                    plan, graph);
+            if graph < 0 || operation < 0 ||
+                !DirectMirScalarProgramPayloadEnumMemberDefinitionReady(
+                    plan, node, operation) {
+                return false;
+            }
+        }
+        node = node + 1;
+    }
+    return true;
+}

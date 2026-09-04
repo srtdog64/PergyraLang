@@ -1,6 +1,6 @@
-// Target expressions for tagged payload-enum construction and one-payload
-// match binding.  Declaration ordinals and payload types are consumed only
-// from the referenced-enum fact.
+// Target expressions for tagged payload-enum construction, member projection,
+// and one-payload match binding. Declaration ordinals and payload types are
+// consumed only from the referenced-enum fact.
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
@@ -25,9 +25,55 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
 ) -> DirectMirScalarProgramLlvmPayloadEnumExpression {
     let kind: Int = expressions.node_kinds[node];
     if kind != DirectMirScalarProgramExprPayloadEnumConstructor() &&
-        kind != DirectMirScalarProgramExprPayloadEnumMatch() {
+        kind != DirectMirScalarProgramExprPayloadEnumMatch() &&
+        kind != DirectMirScalarProgramExprPayloadEnumMember() {
         return DirectMirScalarProgramLlvmPayloadEnumExpression(
             false, false, "", "");
+    }
+    if kind == DirectMirScalarProgramExprPayloadEnumMember() {
+        let left_node: Int = expressions.node_lefts[node];
+        if left_node < 0 || left == "" {
+            return DirectMirScalarProgramLlvmPayloadEnumExpression(
+                true, false, "", "");
+        }
+        let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+            referenced_enum, expressions.node_types[left_node]);
+        let parameter_row: Int = expressions.node_member_ordinals[node];
+        let variant: Int =
+            DirectMirScalarProgramPayloadEnumVariantRowForParameter(
+                referenced_enum, enum_row, parameter_row);
+        if variant < 0 || expressions.node_types[node] !=
+                referenced_enum.variant_param_types[parameter_row] {
+            return DirectMirScalarProgramLlvmPayloadEnumExpression(
+                true, false, "", "");
+        }
+        let ordinal: Int = variant - referenced_enum.variant_starts[enum_row];
+        let parameter: Int = parameter_row -
+            referenced_enum.variant_param_type_starts[variant];
+        let enum_type: String =
+            DirectMirScalarProgramLlvmPayloadEnumTypeNameAt(enum_row);
+        let payload_type: String =
+            DirectMirScalarProgramLlvmPayloadEnumVariantTypeName(
+                enum_row, ordinal);
+        let selected: String = Concat(result, ".variant");
+        let instructions: String = Concat("  ", selected);
+        instructions = Concat(instructions, " = extractvalue ");
+        instructions = Concat(instructions, enum_type);
+        instructions = Concat(instructions, " ");
+        instructions = Concat(instructions, left);
+        instructions = Concat(instructions, ", ");
+        instructions = Concat(instructions, ToString(ordinal + 1));
+        instructions = Concat(instructions, "\n  ");
+        instructions = Concat(instructions, result);
+        instructions = Concat(instructions, " = extractvalue ");
+        instructions = Concat(instructions, payload_type);
+        instructions = Concat(instructions, " ");
+        instructions = Concat(instructions, selected);
+        instructions = Concat(instructions, ", ");
+        instructions = Concat(instructions, ToString(parameter));
+        instructions = Concat(instructions, "\n");
+        return DirectMirScalarProgramLlvmPayloadEnumExpression(
+            true, true, instructions, result);
     }
     let type_name: String = expressions.node_types[node];
     if kind == DirectMirScalarProgramExprPayloadEnumMatch() {
@@ -173,8 +219,30 @@ func DirectMirScalarProgramCPayloadEnumExpressionAt(
 ) -> Option<String> {
     let kind: Int = expressions.node_kinds[node];
     if kind != DirectMirScalarProgramExprPayloadEnumConstructor() &&
-        kind != DirectMirScalarProgramExprPayloadEnumMatch() {
+        kind != DirectMirScalarProgramExprPayloadEnumMatch() &&
+        kind != DirectMirScalarProgramExprPayloadEnumMember() {
         return None;
+    }
+    if kind == DirectMirScalarProgramExprPayloadEnumMember() {
+        let left_node: Int = expressions.node_lefts[node];
+        if left_node < 0 || left == "" { return Some(""); }
+        let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+            referenced_enum, expressions.node_types[left_node]);
+        let parameter_row: Int = expressions.node_member_ordinals[node];
+        let variant: Int =
+            DirectMirScalarProgramPayloadEnumVariantRowForParameter(
+                referenced_enum, enum_row, parameter_row);
+        if variant < 0 || expressions.node_types[node] !=
+                referenced_enum.variant_param_types[parameter_row] {
+            return Some("");
+        }
+        let ordinal: Int = variant - referenced_enum.variant_starts[enum_row];
+        let parameter: Int = parameter_row -
+            referenced_enum.variant_param_type_starts[variant];
+        let value: String = Concat(left, Concat(".", Concat(
+            DirectMirScalarProgramCPayloadEnumVariantFieldName(ordinal),
+            Concat("._", ToString(parameter)))));
+        return Some(value);
     }
     let type_name: String = expressions.node_types[node];
     if kind == DirectMirScalarProgramExprPayloadEnumMatch() {

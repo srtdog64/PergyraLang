@@ -35,6 +35,17 @@ func DirectMirScalarProgramPayloadEnumExpressionNodeReady(
         }
         return Some(true);
     }
+    if kind == DirectMirScalarProgramExprPayloadEnumMember() {
+        let left: Int = expressions.node_lefts[node];
+        return Some(expressions.node_types[node] != "" &&
+            left >= 0 && left < node && expressions.node_types[left] != "" &&
+            expressions.node_rights[node] == -1 &&
+            expressions.node_local_rows[node] == -1 &&
+            expressions.node_parameter_ordinals[node] == -1 &&
+            expressions.node_member_ordinals[node] >= 0 &&
+            expressions.node_literals[node] == "" &&
+            expressions.node_callable_rows[node] == -1);
+    }
     if kind != DirectMirScalarProgramExprPayloadEnumMatch() {
         return None;
     }
@@ -94,6 +105,19 @@ func DirectMirScalarProgramReferencedEnumReadyForExpressions(
             }
             let variant: Int = fact.variant_starts[enum_row] + ordinal;
             if fact.variant_param_counts[variant] != 1 {
+                return false;
+            }
+        } else if kind == DirectMirScalarProgramExprPayloadEnumMember() {
+            let left: Int = expressions.node_lefts[node];
+            if left < 0 { return false; }
+            let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+                fact, expressions.node_types[left]);
+            let parameter_row: Int = expressions.node_member_ordinals[node];
+            let variant: Int =
+                DirectMirScalarProgramPayloadEnumVariantRowForParameter(
+                    fact, enum_row, parameter_row);
+            if variant < 0 || expressions.node_types[node] !=
+                    fact.variant_param_types[parameter_row] {
                 return false;
             }
         }

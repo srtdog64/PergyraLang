@@ -21204,6 +21204,44 @@ require_file \
     "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_mutations.py"
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_payload_enum_match_binding_mutations.py" 50
+require_file \
+    "tests/self_hosted/parity/one_mir_tagged_enum_payload_projection.sh"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_tagged_enum_payload_projection.sh" 175
+require_file \
+    "tests/self_hosted/parity/one_mir_tagged_enum_payload_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/one_mir_tagged_enum_payload_mutations.py" 75
+require_file \
+    "tests/self_hosted/parity/fixture/tagged_enum_stale_ssa_use.pgy"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy" \
+    "func DirectMirScalarProgramReferencedEnumFactFromAdmitted(" \
+    "admitted.routines.instruction_abi_type_names"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_expression_owner.pgy" \
+    "func DirectMirScalarProgramPayloadEnumMemberFromGraph(" \
+    "DirectMirScalarProgramReferencedEnumVariantRow("
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy" 115
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy" \
+    "func DirectMirScalarProgramPayloadEnumMemberDefinitionReady(" \
+    "DirectMirScalarProgramExprPayloadEnumConstructor()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_latest_value_readiness_owner.pgy" \
+    "func DirectMirScalarCfgLeafOperandLatestValueReady(" \
+    "MirRoutineLatestDominatingLocalValueMatches("
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_latest_value_readiness_owner.pgy" 45
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_scoped_match_binding_operand_owner.pgy" \
+    "func DirectMirScalarCfgLeafOrScopedMatchBindingOperandFromOwners(" \
+    "DirectMirScalarCfgLeafOperandLatestValueReady("
+require_text "Makefile" \
+    "self-host-one-mir-tagged-enum-payload-projection-test-smoke"
 require_text \
     "tests/self_hosted/fixtures/direct_mir_payload_free_enum_value_parameter.pgy" \
     "func DirectionLabel(id: Direction) -> String"
@@ -22628,10 +22666,12 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_option_int_match_expression_kind_owner.pgy" \
     "func DirectMirScalarProgramExprOptionIntMatch() -> Int { return 122; }"
-require_function_text \
+require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
-    "func DirectMirScalarProgramExpressionKindLast(" \
-    "DirectMirScalarProgramExprOptionIntMatch()"
+    "func DirectMirScalarProgramExprPayloadEnumMember() -> Int { return 123; }"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    "func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprPayloadEnumMember(); }"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
 require_max_lines \

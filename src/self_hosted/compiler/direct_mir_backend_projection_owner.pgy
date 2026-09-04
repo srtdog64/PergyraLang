@@ -121,17 +121,6 @@ func CompileAdmittedDirectMirForTargetObserved(
                 payload = CompileAdmittedDirectMirNominalLiteral(
                     admitted, nominal_literal_route, target_projection
                 );
-            } else if DirectMirCompileTimeDeclarationErasureRouteClaimed(
-                    admitted) || literal_log_route {
-                let literal_log: DirectMirLiteralLogPlan =
-                    DirectMirLiteralLogPlanFromAdmitted(admitted);
-                if is_llvm {
-                    payload = DirectMirLiteralLogEmitLlvm(literal_log);
-                } else {
-                    payload = DirectMirLiteralLogEmitC(
-                        literal_log, CompilerAbiLayoutIntCValueType()
-                    );
-                }
             } else {
                 let scalar_program_admission:
                     DirectMirScalarProgramRouteAdmission =
@@ -143,7 +132,25 @@ func CompileAdmittedDirectMirForTargetObserved(
                 }
                 let scalar_program_route: DirectMirScalarProgramRouteFact =
                     scalar_program_admission.route;
-                if scalar_program_route.claimed {
+                let payload_enum_route: Bool =
+                    scalar_program_route.claimed &&
+                    scalar_program_route.referenced_enum.payload_present;
+                if payload_enum_route {
+                    payload = CompileAdmittedDirectMirScalarProgramForTarget(
+                        admitted, scalar_program_route, target_projection
+                    );
+                } else if DirectMirCompileTimeDeclarationErasureRouteClaimed(
+                        admitted) || literal_log_route {
+                    let literal_log: DirectMirLiteralLogPlan =
+                        DirectMirLiteralLogPlanFromAdmitted(admitted);
+                    if is_llvm {
+                        payload = DirectMirLiteralLogEmitLlvm(literal_log);
+                    } else {
+                        payload = DirectMirLiteralLogEmitC(
+                            literal_log, CompilerAbiLayoutIntCValueType()
+                        );
+                    }
+                } else if scalar_program_route.claimed {
                     payload = CompileAdmittedDirectMirScalarProgramForTarget(
                         admitted, scalar_program_route, target_projection
                     );

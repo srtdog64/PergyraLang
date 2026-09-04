@@ -152,7 +152,8 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
     }
     if routine_count == 1 {
         if !DirectMirScalarSingleStringProgramRouteClaimed(admitted) &&
-            !DirectMirScalarBuiltinProgramRouteClaimed(admitted) {
+            !DirectMirScalarBuiltinProgramRouteClaimed(admitted) &&
+            !referenced_enum.payload_present {
             return DirectMirScalarProgramRouteAdmissionRejected(
                 "scalar-program-route", "single-program-shape",
                 -1, "", -1, "", "");
