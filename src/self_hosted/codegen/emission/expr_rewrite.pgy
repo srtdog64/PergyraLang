@@ -370,7 +370,9 @@ func RewriteCallArgsWithModes(inner: String, modes: String, param_types: String,
                 if !IsIdentifier(part) && !member_lvalue {
                     Die(Concat("ref argument must be addressable: ", part));
                 }
-                rendered = Concat("&", rendered);
+                if !AbiLayoutCReadonlyRefPassesDirect(expected_type) {
+                    rendered = Concat("&", rendered);
+                }
             }
         }
         if arg_index == 0 {

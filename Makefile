@@ -4313,6 +4313,11 @@ self-host-callable-parameter-identity-replacement-test-smoke: $(PGY) self-host-c
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh
 
+.PHONY: self-host-region-user-callee-replacement-test-smoke
+self-host-region-user-callee-replacement-test-smoke: self-host-callable-parameter-identity-replacement-test-smoke
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/region_user_callee_installed_self_host_owner.sh
+
 .PHONY: self-host-lowercase-entrypoint-replacement-test-smoke
 self-host-lowercase-entrypoint-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

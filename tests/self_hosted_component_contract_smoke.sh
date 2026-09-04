@@ -26904,6 +26904,68 @@ reject_text "tests/self_hosted/parity/codegen_parity.sh" 'self_out="$(cat "$run_
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'expected_norm="$(tr -d'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'oracle_out="$(tr -d'
 
+# Readonly String direct passing remains an ABI fact, while temporary lifetime
+# admission is an exact graph/signature policy. Runtime behavior belongs to the
+# focused installed-driver gate, not this structural inventory.
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_void_readonly_string_target_owner.pgy"
+require_file "tests/self_hosted/parity/region_user_callee_installed_self_host_owner.sh"
+require_file "tests/self_hosted/parity/region_user_callee_mutations.py"
+require_file "tests/self_hosted/fixtures/readonly_string_addressable_call.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_void_readonly_string_target_owner.pgy" 40
+require_max_lines "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" 150
+require_max_lines "tests/self_hosted/parity/region_user_callee_installed_self_host_owner.sh" 220
+require_max_lines "tests/self_hosted/parity/region_user_callee_mutations.py" 70
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" \
+    "func CompilerAbiLayoutReadonlyRefPassesDirect(type_name: String) -> Bool"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" \
+    "CompilerAbiLayoutOwnershipBorrowedStringView()"
+require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" \
+    "return CompilerAbiLayoutReadonlyRefPassesDirect(type_name);"
+for source_consumer in \
+    src/self_hosted/codegen/emission/function_emit.pgy \
+    src/self_hosted/codegen/emission/function_prototype_block_owner.pgy \
+    src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy \
+    src/self_hosted/codegen/emission/expr_rewrite.pgy; do
+    require_text "$source_consumer" "AbiLayoutCReadonlyRefPassesDirect("
+done
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" \
+    "func SemanticCallReadonlyStringTemporaryReady("
+for source_fact in 'ArrayLength(view.argument_nodes) != 1' \
+        'ParamModeCsvCount(modes) != 1' 'ParamModeCsvCount(param_types) != 1' \
+        'ParamModeCsvAt(modes, 0) != "ref"' \
+        'UnwrapOption(target_kind) == SemanticCallTargetDirect()' \
+        'UnwrapOption(return_type) == "Void"' \
+        'UnwrapOption(runtime_abi) == 0'; do
+    require_text "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" "$source_fact"
+done
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" \
+    "!AbiLayoutCReadonlyRefPassesDirect(expected_type)"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy" \
+    "DirectMirScalarProgramVoidReadonlyStringParameterReady(signature, ordinal)"
+for direct_consumer in \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_program_c_direct_call_expression_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy; do
+    require_text "$direct_consumer" 'import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";'
+    require_text "$direct_consumer" "DirectMirScalarProgramVoidReadonlyStringTargetAt("
+    reject_text "$direct_consumer" "Sink"
+    reject_text "$direct_consumer" "region_user_callee"
+done
+for forbidden in readonly_string_value_carriage_coercion \
+        readonly_string_type_only_admission unchecked_void_callable_admission; do
+    for owner in \
+        src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy \
+        src/self_hosted/compiler/direct_mir_scalar_program_void_readonly_string_target_owner.pgy \
+        src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy; do
+        reject_text "$owner" "$forbidden"
+    done
+done
+require_text "Makefile" "self-host-region-user-callee-replacement-test-smoke:"
+require_text "scripts/ci_push_linux_steps.sh" \
+    "make self-host-region-user-callee-replacement-test-smoke"
+require_text "scripts/ci_linux_steps.sh" \
+    "make self-host-region-user-callee-replacement-test-smoke"
+
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"
     require_file "src/self_hosted/codegen/expected/${base}_stdout.txt"

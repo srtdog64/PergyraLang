@@ -414,6 +414,11 @@ func CompilerAbiLayoutRowOwnershipShapeAt(index: Int) -> String {
     if index == 19 { return CompilerAbiLayoutOwnershipSingleOwnerLinear(); }
     return "";
 }
+func CompilerAbiLayoutReadonlyRefPassesDirect(type_name: String) -> Bool {
+    let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    return IsSome(row) && CompilerAbiLayoutRowOwnershipShapeAt(
+        UnwrapOption(row)) == CompilerAbiLayoutOwnershipBorrowedStringView();
+}
 
 func CompilerAbiLayoutRowTargetAbiAt(index: Int) -> String {
     if index >= 0 && index < CompilerAbiLayoutConcreteRowCount() {

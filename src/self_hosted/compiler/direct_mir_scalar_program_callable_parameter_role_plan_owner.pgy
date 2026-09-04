@@ -57,8 +57,8 @@ func DirectMirScalarProgramDirectScalarParameterReady(
         DirectMirScalarCfgScalarTypeSupported(
             signature.parameters.type_names[ordinal]) &&
         (signature.parameters.carriages[ordinal] == "value" ||
-         DirectMirScalarProgramOwnedStringParameterReady(
-            signature, ordinal)) &&
+         DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal) ||
+         DirectMirScalarProgramVoidReadonlyStringParameterReady(signature, ordinal)) &&
         DirectMirScalarProgramCallableParameterSupported(
             signature, ordinal);
 }
@@ -222,7 +222,6 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedE
     }
     return plan;
 }
-
 func DirectMirScalarProgramCallableParameterRolePlanFromSignature(
     ref signature: DirectMirRoutineSignatureFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,

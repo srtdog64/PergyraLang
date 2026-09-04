@@ -118,7 +118,7 @@ func CodegenFunctionPrototypeBlock(
                         TextBuilderAppend(
                             output, CompilerSymbolCInoutParamName(p_name)
                         );
-                    } else if p_mode == 3 {
+                    } else if p_mode == 3 && !AbiLayoutCReadonlyRefPassesDirect(p_type) {
                         TextBuilderAppend(output, "const ");
                         TextBuilderAppend(output, cpt);
                         TextBuilderAppend(output, " *");
@@ -209,7 +209,7 @@ func CodegenFunctionPrototypeBlock(
                     TextBuilderAppend(
                         output, CompilerSymbolCInoutParamName(p_name)
                     );
-                } else if p_mode == 3 {
+                } else if p_mode == 3 && !AbiLayoutCReadonlyRefPassesDirect(p_type) {
                     TextBuilderAppend(output, "const ");
                     TextBuilderAppend(output, cpt);
                     TextBuilderAppend(output, " *");

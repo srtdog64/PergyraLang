@@ -1,0 +1,8 @@
+func SinkAddressable(ref value: String) -> Void {
+    Log(value);
+}
+
+func Main() -> Void {
+    let value: String = "addressable";
+    SinkAddressable(value);
+}

@@ -6,23 +6,33 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE discovery lease — installed source-LLVM `region_user_callee`
+## ACTIVE implementation lease — installed source-LLVM `region_user_callee`
 
-- Exact tested base is `8ef954b770c74c5a36a50faa168661112018f4b7`;
-  exact-head run `33826888124` is 30/30 green. This lease is read-only. No task
-  may edit or publish a successor implementation until the objective card names
-  the fact owner, last orchestration consumer, forbidden fallback, and focused
-  falsifier gate.
-- The bounded installed scan passed `basic`, `region_string_concat`, and
-  `region_string_concat_heap` without native timing. The first red is
-  `tests/cases/backend_compare/region_user_callee/main.pgy`: direct-MIR scalar
-  admission rejects routine 0 `Sink` at `owner=callable-route-envelope`,
-  `stage=return-type`, `type=Void`, with no artifact.
-- Discovery may inspect only this reached callable-route envelope and its
-  existing signature/consumer chain. It must not open a general query/cache
-  engine, expand call graph shapes, infer that all Void callees are admissible,
-  or begin Module Build. Module Build remains deferred through self-host
-  closure, evidence/identity compression, and one real external workload.
+- Base `8ef954b770c74c5a36a50faa168661112018f4b7` and exact run
+  `33826888124` remain the last published evidence. `/root` retains this lease
+  until the locally green successor is committed, pushed, and exact CI is
+  observed; parallel work remains read-only for this owner family.
+- Objective and ownership are unchanged: the ABI row owns borrowed-String-view
+  direct passing, semantic signatures own source type/mode,
+  `DirectMirRoutineSignatureFact` owns projected signature identity, and the
+  reached source/direct-MIR consumers may only consume those facts.
+- Local implementation is complete. Source-C uses one `const char*` ABI layer
+  but admits a non-addressable temporary only for an exact graph-carried
+  direct/non-runtime/one-parameter `Void` call. Direct MIR checks
+  readonly-ref/resource/pass/ABI/return, preserves carriage in its role plan,
+  and shares one sealed routine target across call carriage and C/LLVM.
+- Fresh DRV-2
+  `03379A897A5731A3633467201EE5EA6DBE19C13BF2DF1BCC2D80FC04D4E108A0`
+  passes the new installed C/LLVM gate, addressable-ref positive, five MIR
+  mutations, escaping source negative, both existing callable-identity gates,
+  and the adjacent direct-scalar callable gate. Registry is green at 88/185
+  and `55/32/1`.
+- Remaining work on this lease is publication and exact CI only. Forbidden
+  fallbacks remain carriage coercion, type-only or generic-`Void` admission,
+  fixture/name routing, region-route invention, source/AST rescans, native
+  retry, C round-trip, and a false region-closure claim. Module Build remains
+  deferred and the new CI target reuses the existing callable-identity Make
+  invocation rather than adding a second compiler build.
 
 ## DONE implementation lease — bounded lowercase literal-Log source-LLVM
 

@@ -1,0 +1,18 @@
+// Exact routine-partition target for one admitted read-only String Void sink.
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramVoidReadonlyStringTargetAt(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(routines.roles) ||
+        routines.roles[routine] != DirectMirScalarCfgRoutineRoleCallable() ||
+        routines.return_types[routine] != CompilerAbiLayoutVoidTypeName() ||
+        routines.parameter_counts[routine] != 1 || ordinal != 0 {
+        return false;
+    }
+    let row: Int = routines.parameter_starts[routine];
+    return CompilerAbiLayoutReadonlyRefPassesDirect(routines.parameter_types[row]) &&
+        routines.parameter_carriages[row] == "readonly-ref";
+}

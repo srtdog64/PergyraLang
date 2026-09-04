@@ -8,16 +8,14 @@ import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
+import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
 struct DirectMirScalarProgramLlvmCallArgument {
     let valid: Bool;
     let instructions: String;
     let value: String;
     let carriage: String;
 }
-func DirectMirScalarProgramLlvmCallArgumentInvalid(
-) -> DirectMirScalarProgramLlvmCallArgument {
-    return DirectMirScalarProgramLlvmCallArgument(false, "", "", "");
-}
+func DirectMirScalarProgramLlvmCallArgumentInvalid() -> DirectMirScalarProgramLlvmCallArgument { return DirectMirScalarProgramLlvmCallArgument(false, "", "", ""); }
 func DirectMirScalarProgramLlvmCallArgumentValue(
     ref expressions: DirectMirScalarProgramExpressionSet,
     ref routines: DirectMirScalarCfgRoutinePartitionFact,
@@ -56,7 +54,8 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
             routines, callable, argument) {
         projected = DirectMirScalarProgramLlvmArrayStringReadonlyRefCallArgument(
             expressions, routines, routine, argument_node);
-    } else {
+    } else if !DirectMirScalarProgramVoidReadonlyStringTargetAt(
+            routines, callable, argument) {
         projected = DirectMirScalarProgramLlvmLogicalRecordCallArgument(
             expressions, routines, logical_record, routine, callable,
             argument, argument_node, value);

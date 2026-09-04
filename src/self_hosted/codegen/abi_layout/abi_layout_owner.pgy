@@ -111,6 +111,9 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
 func AbiLayoutCParamType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     return AbiLayoutCValueType(type_name, struct_env);
 }
+func AbiLayoutCReadonlyRefPassesDirect(type_name: String) -> Bool {
+    return CompilerAbiLayoutReadonlyRefPassesDirect(type_name);
+}
 
 func AbiLayoutCCallableParamDeclaration(
     type_name: String,

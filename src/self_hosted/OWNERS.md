@@ -1528,7 +1528,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/abi_layout/enum_abi_value_fact_owner.pgy` -- one
   semantic-enum-to-C-value/default ABI fact for payload-free and tagged enum
   consumers.
-- `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts, including nominal struct type and empty parameter-list spelling.
+- `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI
+  type spelling facts, including nominal struct type, empty parameter-list
+  spelling, and the canonical borrowed-String-view direct-pass query.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/checked_division_runtime_owner.pgy`
   -- checked integer division and modulo in emitted C. The raw operator let
@@ -1610,7 +1612,9 @@ inventory must not become a second fact-family owner registry.
   from semantic graph facts.
 - `src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy` --
   shared ordered call-argument value projection and graph-owned `ref`/`inout`
-  addressability consumption; family emitters must not rebuild this policy.
+  addressability consumption. A non-addressable readonly `String` temporary is
+  admitted only for one graph-carried direct, non-runtime, single-parameter
+  `Void` call; family emitters must not rebuild or widen this policy.
 - `src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy`
   -- direct C call emission for formal-parameter and declared-callable lanes;
   carried target/binding SyntaxNodeIds select the exact C binding before any
@@ -2110,7 +2114,9 @@ inventory must not become a second fact-family owner registry.
   clean/incremental verifier vocabulary. The current completeness cache remains
   rung0 and coarse; this owner is the contract for later precise invalidation.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
-  fact vocabulary for field order, niche, tags, ownership, and layout.
+  fact vocabulary for field order, niche, tags, ownership, and layout. Its
+  borrowed-String-view ownership row owns the readonly-ref direct-pass fact;
+  source-C and direct-MIR consumers do not infer it from `String` spelling.
 - `src/self_hosted/compiler/abi_layout_nominal_array_owner.pgy` -- derived ABI
   layout and C symbol facts for arrays whose element is a declared nominal
   record.
@@ -3506,6 +3512,7 @@ inventory must not become a second fact-family owner registry.
   empty-literal fallback, or backend MIR reread is permitted.
 - `src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_void_readonly_string_target_owner.pgy`,
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_empty_owner.pgy`
   -- one
@@ -3523,6 +3530,11 @@ inventory must not become a second fact-family owner registry.
   Option-specific layout is recreated here. Exact signature policies may constrain their specialized
   routes but are not a prerequisite for the composable callable lane. Target
   emitters do not reclassify return type, copyout count, or parameter position.
+  The one call-duration readonly `String` extension requires an exact
+  single-parameter `Void` callable plus carried readonly-ref/resource/pass/ABI
+  facts. Its sealed routine-partition target is shared by direct-call carriage
+  and C/LLVM call emitters; escaping returns, generic `Void` widening,
+  carriage coercion, and fixture/routine-name routing remain forbidden.
   Final signature readiness remains with
   `direct_mir_scalar_program_callable_signature_owner.pgy`.
 - `src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_role_plan_owner.pgy`

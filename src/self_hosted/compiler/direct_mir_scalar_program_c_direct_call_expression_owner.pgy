@@ -5,6 +5,7 @@ import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
 
 func DirectMirScalarProgramCDirectCallArgumentValue(
     ref expressions: DirectMirScalarProgramExpressionSet,
@@ -43,6 +44,8 @@ func DirectMirScalarProgramCDirectCallArgumentValue(
             "direct MIR scalar C readonly Array<String> argument is invalid"); }
         return readonly_value;
     }
+    if DirectMirScalarProgramVoidReadonlyStringTargetAt(
+            routines, callable, argument) { return value; }
     return DirectMirScalarProgramCLogicalRecordCallArgument(
         routines, logical_record, callable, argument, value);
 }

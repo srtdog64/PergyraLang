@@ -91,11 +91,20 @@ func DirectMirScalarProgramZeroParameterReturnTypeSupportedWithReferencedEnum(
         DirectMirScalarProgramPayloadEnumTypeReady(
             referenced_enum, type_name);
 }
+func DirectMirScalarProgramVoidReadonlyStringParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int
+) -> Bool {
+    return DirectMirRoutineSignatureFactReady(signature) &&
+        signature.param_count == 1 && ordinal == 0 && signature.return_type == CompilerAbiLayoutVoidTypeName() && CompilerAbiLayoutReadonlyRefPassesDirect(signature.parameters.type_names[ordinal]) &&
+        signature.parameters.carriages[ordinal] == "readonly-ref" && signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" && !signature.parameters.abi_required[ordinal] && signature.parameters.abi_layout_ids[ordinal] == 0;
+}
 func DirectMirScalarProgramCallableParameterSupported(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int
 ) -> Bool {
     if ordinal < 0 || ordinal >= signature.param_count { return false; }
-    if DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal) {
+    if DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal) ||
+        DirectMirScalarProgramVoidReadonlyStringParameterReady(signature, ordinal) {
         return true;
     }
     if DirectMirScalarProgramCallableFunctionParameterReady(

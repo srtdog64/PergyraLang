@@ -18,28 +18,40 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — `region_user_callee` source-LLVM discovery
+## Active self-host context — `region_user_callee` readonly-String call
 
-- Exact tested implementation checkpoint is
-  `8ef954b770c74c5a36a50faa168661112018f4b7`, published to `main`. Exact-head
-  run `33826888124` completed 30/30 green in 36m07s. Full self-host took 35m48s,
-  installed the Pergyra-built DRV-2, proved `gen2 == gen3 (174792 lines)`, and
-  classified the production policy corpus as `3 in_subset / 0 out_of_subset`.
-  The protected user-owned `examples/raid_graph_fsm/results.txt` change and
+- Published base `8ef954b770c74c5a36a50faa168661112018f4b7` remains the
+  last exact remote checkpoint; run `33826888124` completed 30/30 green. One
+  successor implementation is locally green and awaits commit plus exact
+  remote CI.
+- `CompilerAbiLayoutRowOwnershipShapeAt` now owns the borrowed-String-view
+  direct-pass query. Source-C definition/prototype consumers emit one
+  `const char*`, while semantic call-argument admission separately requires a
+  graph-carried direct, non-runtime, one-parameter `Void` target before a
+  non-addressable readonly `String` temporary may cross the call.
+- Direct MIR keeps `String/readonly-ref/none/direct/ABI-free/Void` in
+  `DirectMirRoutineSignatureFact`. The callable policy admits that exact row,
+  the role plan preserves it, and one sealed routine-partition target is shared
+  by direct-call carriage plus C/LLVM emitters. No carriage coercion,
+  type-only admission, fixture/name route, AST rescan, native retry, or C
+  round-trip was added.
+- Fresh Pergyra-built DRV-2 is 6,617,143 bytes with SHA-256
+  `03379A897A5731A3633467201EE5EA6DBE19C13BF2DF1BCC2D80FC04D4E108A0`.
+  `region_user_callee_installed_self_host_owner.sh` passes exact source,
+  direct, and public C/LLVM `leftright`; source/public C agree, all LLVM bytes
+  agree, and public paths expose no native timing. Five MIR signature mutations
+  and `region_user_callee_bad` escaping return fail without artifacts. An
+  addressable String-ref call also executes exact `addressable` without an
+  extra pointer layer. The two existing callable-identity gates and
+  direct-scalar callable gate also pass.
+- `abi.layout_rows` and
+  `projection.direct_mir_scalar_cfg_program_extension` remain `BRIDGE`;
+  `resource.region_allocation_plan` is not claimed closed because concat still
+  uses existing heap materialization. Registry stays 88 authorities / 185
+  derived, `CLOSED=55 BRIDGE=32 ACTIVE=1`, and progress stays 83% (81-85%).
+- The protected user-owned `examples/raid_graph_fsm/results.txt` change and
   three protected untracked directories remain outside inspection, edit, and
   staging.
-- No successor implementation lease is open. A bounded installed public
-  source-to-LLVM scan passed `basic`, `region_string_concat`, and
-  `region_string_concat_heap` without native timing. Its first observed red is
-  `tests/cases/backend_compare/region_user_callee/main.pgy`: the direct-MIR
-  scalar route rejects routine 0 `Sink` at `owner=callable-route-envelope`,
-  `stage=return-type`, `type=Void`, and publishes no artifact. This is a
-  falsifier observation, not an owner diagnosis or closure claim.
-- The next bounded step is read-only discovery: identify the existing callable
-  signature fact owner, the last route-envelope consumer, the exact Void-return
-  restriction or fallback, and one focused parity/negative gate. Do not edit
-  the direct-MIR owner family until that objective card is fixed, and do not
-  infer general call, return-type, source-LLVM, or backend closure.
 - Module Build remains design-only and deferred in the order
   `self-host closure -> evidence/identity compression -> real external project ->
   ModuleInterface -> BuildUnit/incremental build`.

@@ -183,6 +183,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             c_param = "void *_pgy_raw_self";
             prologue = Concat(prologue, role_binding.prologue);
         }
+        let readonly_ref_direct: Bool = p_mode == 3 &&
+            AbiLayoutCReadonlyRefPassesDirect(p_type);
         let c_ref_name: String = c_p_name;
         if p_name == "self" &&
             (mutable_identity_receiver || role_receiver) {
@@ -198,7 +200,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                 prologue = Concat(prologue, Concat("    ", Concat(c_param_type, Concat(" ", Concat(c_p_name, Concat(" = *", Concat(inout_name, ";\n")))))));
                 copyout = Concat(copyout, Concat("    *", Concat(inout_name, Concat(" = ", Concat(c_p_name, ";\n")))));
             }
-        } else if p_mode == 3 {
+        } else if p_mode == 3 && !readonly_ref_direct {
             c_ref_name = CompilerSymbolCReadonlyRefParamName(p_name);
             c_param = Concat(
                 "const ", Concat(c_param_type, Concat(" *", c_ref_name))
@@ -209,7 +211,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         } else {
             params = Concat(params, Concat(", ", c_param));
         }
-        if p_mode == 3 {
+        if p_mode == 3 && !readonly_ref_direct {
             ArrayPush(function_env_rows, TypeEnvTypedReadonlyRefBindingRows(
                 p_name, p_type, p_binding.value_kind, c_ref_name
             ));

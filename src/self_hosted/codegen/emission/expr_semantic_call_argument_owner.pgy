@@ -5,15 +5,42 @@ import "../text/text_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_composite_literal_emit_owner.pgy";
 import "expression_c_text_materialization_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
-func RewriteSemanticCallArgument(
+func SemanticCallReadonlyStringTemporaryReady(
+    ref graph: SemanticExpressionGraphFacts,
+    ref view: SemanticCallSpineView,
+    modes: String,
+    param_types: String
+) -> Bool {
+    if !graph.ok || !view.ok || ArrayLength(view.argument_nodes) != 1 ||
+        ParamModeCsvCount(modes) != 1 || ParamModeCsvCount(param_types) != 1 ||
+        ParamModeCsvAt(modes, 0) != "ref" ||
+        !AbiLayoutCReadonlyRefPassesDirect(CsvAt(param_types, 0)) {
+        return false;
+    }
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, view.call_node);
+    let return_type: Option<String> = SemanticExpressionGraphCallReturnTypeName(
+        graph, view.call_node);
+    let runtime_abi: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(
+        graph, view.call_node);
+    return IsSome(target_kind) &&
+        UnwrapOption(target_kind) == SemanticCallTargetDirect() &&
+        IsSome(return_type) && UnwrapOption(return_type) == "Void" &&
+        IsSome(runtime_abi) && UnwrapOption(runtime_abi) == 0;
+}
+
+func RewriteSemanticCallArgumentWithReadonlyStringTemporary(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
     expected_type: String,
     mode: String,
-    env: CodegenTypeEnv
+    env: CodegenTypeEnv,
+    readonly_string_temporary_ready: Bool
 ) -> String {
     let text: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
     if !IsSome(text) {
@@ -23,6 +50,8 @@ func RewriteSemanticCallArgument(
     let rendered: String = RewriteSemanticExpectedValue(
         graph, node_id, expected_type, env);
     if mode != "inout" && mode != "ref" { return rendered; }
+    let readonly_ref_direct: Bool = mode == "ref" &&
+        AbiLayoutCReadonlyRefPassesDirect(expected_type);
     let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(graph, node_id);
     if !IsSome(place_kind) {
         Die("semantic call argument place fact is missing");
@@ -42,6 +71,13 @@ func RewriteSemanticCallArgument(
     if mode == "ref" {
         let already_ref: Bool = carried_place_kind ==
             SemanticExpressionPlaceReadonlyRefBinding();
+        if readonly_ref_direct {
+            if !addressable && !already_ref &&
+                !readonly_string_temporary_ready {
+                Die(Concat("ref argument must be addressable: ", source));
+            }
+            return rendered;
+        }
         if already_ref {
             let c_name: Option<String> = TypeEnvReadonlyRefCName(env, source);
             if !IsSome(c_name) {
@@ -57,6 +93,17 @@ func RewriteSemanticCallArgument(
     return rendered;
 }
 
+func RewriteSemanticCallArgument(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    expected_type: String,
+    mode: String,
+    env: CodegenTypeEnv
+) -> String {
+    return RewriteSemanticCallArgumentWithReadonlyStringTemporary(
+        graph, node_id, expected_type, mode, env, false);
+}
+
 func RewriteSemanticCallArguments(
     graph: SemanticExpressionGraphFacts,
     view: SemanticCallSpineView,
@@ -70,6 +117,9 @@ func RewriteSemanticCallArguments(
     let result_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(64);
     let has_argument: Bool = prefix_argument != "";
+    let readonly_string_temporary_ready: Bool =
+        SemanticCallReadonlyStringTemporaryReady(
+            graph, view, modes, param_types);
     if has_argument { TextBuilderAppend(output, prefix_argument); }
     let i: Int = 0;
     while i < ArrayLength(view.argument_nodes) {
@@ -79,8 +129,10 @@ func RewriteSemanticCallArguments(
             mode = ParamModeCsvAt(modes, param_index);
         }
         let expected_type: String = CsvAt(param_types, param_index);
-        let argument: String = RewriteSemanticCallArgument(
-            graph, view.argument_nodes[i], expected_type, mode, env);
+        let argument: String =
+            RewriteSemanticCallArgumentWithReadonlyStringTemporary(
+                graph, view.argument_nodes[i], expected_type, mode, env,
+                readonly_string_temporary_ready);
         if has_argument { TextBuilderAppend(output, ", "); }
         TextBuilderAppend(output, argument);
         has_argument = true;
