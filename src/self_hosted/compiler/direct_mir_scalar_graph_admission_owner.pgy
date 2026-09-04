@@ -115,8 +115,10 @@ func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {
     return Some(Substring(literal, 1, length - 2));
 }
 
-func DirectMirProgramCommonEnvelopeReady(
-    ref admitted: MirMachineLayerAdmittedJsonInput) -> Bool {
+func DirectMirProgramCommonEnvelopeForRoutineNameReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    expected_name: String
+) -> Bool {
     let json: String = admitted.routines.source_json;
     let generic_specializations: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
         admitted.document.root, "generic_method_specializations");
@@ -144,16 +146,22 @@ func DirectMirProgramCommonEnvelopeReady(
         MirProgramRoutineIndexCount(admitted.routines) != 1 ||
         admitted.routines.kinds[0] != "function" ||
         admitted.routines.owners[0] != "" ||
-        admitted.routines.names[0] != "Main" ||
+        admitted.routines.names[0] != expected_name ||
         admitted.routines.routine_block_counts[0] < 1 {
         return false;
     }
     let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         json, admitted.routines.starts[0], admitted.routines.ends[0]);
     return JsonObjectFactTableReady(routine) &&
-        JsonObjectFactStringFieldEquals(routine, "name", "Main") &&
+        JsonObjectFactStringFieldEquals(routine, "name", expected_name) &&
         JsonObjectFactStringFieldEquals(routine, "kind", "function") &&
         JsonObjectFactStringFieldEquals(routine, "return", "Void");
+}
+
+func DirectMirProgramCommonEnvelopeReady(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    return DirectMirProgramCommonEnvelopeForRoutineNameReady(admitted, "Main");
 }
 
 func DirectMirProgramBaseEnvelopeReady(

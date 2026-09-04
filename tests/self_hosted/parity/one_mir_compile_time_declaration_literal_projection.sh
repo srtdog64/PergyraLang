@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # One admitted MIR proves compile-time declaration erasure plus general literal Log.
+# Forbidden fallback: direct_mir_literal_log_uppercase_only_read.
 set -euo pipefail
 if ! command -v dirname >/dev/null 2>&1; then PATH="/usr/bin:/bin:$PATH"; export PATH; fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

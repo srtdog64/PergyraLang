@@ -24,6 +24,19 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   literal-Log shapes, change the entrypoint row's status, or begin Module Build.
   Module Build remains deferred through self-host closure, evidence/identity
   compression, and one real external workload.
+- Objective card fixed from the reproduced artifact-free failure:
+  objective is exact installed source-LLVM execution for the existing
+  one-routine/one-literal-Log lowercase program; priority is shared semantic
+  policy, admitted routine identity, old-read deletion, negative ratchet, then
+  patch size. `ast_entrypoint_selection_policy_owner.pgy` owns `Main`/`main`
+  priority, `DirectMirRoutineSignatureFact` owns the admitted routine identity,
+  and `DirectMirLiteralLogPlanFromAdmitted` is the last legitimate name
+  consumer before target-neutral emission. Forbidden fallbacks are a local
+  `Main || main` test, fixture routing, native retry, C round-trip, relaxed
+  signature readiness, and accepting additional program/graph shapes. The
+  integration gate extends the existing lowercase installed gate with direct
+  versus public LLVM byte equality, exact execution, and a worker-renamed MIR
+  no-artifact negative while preserving uppercase `Main` regression.
 
 ## DONE implementation lease — lowercase source entrypoint selection
 

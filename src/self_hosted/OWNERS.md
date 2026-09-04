@@ -216,8 +216,10 @@ inventory must not become a second fact-family owner registry.
   cardinality, selection, and top-level function declaration routing.
 - `src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy` --
   canonical top-level runtime-callable entrypoint policy: uppercase `Main`
-  owns the primary tier and lowercase `main` is its fallback; signature facts
-  carry the one selected index, candidate cardinality, and source spelling tier.
+  owns the primary tier and lowercase `main` is its fallback. Signature facts
+  carry the one selected index, candidate cardinality, and source spelling
+  tier; the bounded direct-MIR literal-Log projection queries this policy over
+  its admitted routine identity instead of spelling either tier locally.
 - `src/self_hosted/semantic/ast_signature_param_node_query_owner.pgy` -- exact
   parameter-type lookup by canonical formal-parameter SyntaxNodeId; missing or
   duplicate identities fail closed instead of falling back to a name.
@@ -2351,9 +2353,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy` -- one
   target-neutral plan for a terminal one-instruction `Log` whose semantic
   value is a canonical integer or safe string graph literal. It combines the
-  declaration-erasure receipt, routine/block/use identity and structured
-  formatted-print ABI without reparsing `expr0`; scalar `Int` keeps the
-  canonical 32-bit format while `Long` remains a distinct ABI.
+  declaration-erasure receipt, admitted routine signature and shared
+  entrypoint policy, block/use identity, and structured formatted-print ABI
+  without reparsing `expr0`; scalar `Int` keeps the canonical 32-bit format
+  while `Long` remains a distinct ABI.
 - `src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy` -- C and
   LLVM text emission from the verified literal-Log plan only. It cannot read
   MIR declarations or create runtime nominal storage.
@@ -4126,8 +4129,11 @@ inventory must not become a second fact-family owner registry.
   formatted-print ABI and C/LLVM text consumer.
 - `src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy` --
   backend-neutral validation of the bounded literal/local/arithmetic/direct-
-  call graph facts consumed by direct projection. It owns neither target text
-  emission nor a second program graph.
+  call graph facts consumed by direct projection. Its name-aware common
+  envelope checks admitted routine-name consistency; the legacy common
+  wrapper remains `Main`-only, so only an explicit policy-owning consumer may
+  widen a bounded shape. It owns neither target text emission nor a second
+  program graph.
 - `src/self_hosted/compiler/driver_rung0_owner.pgy` -- DRV-0 in-process
   assembly owner that composes self-parser AST text and self-codegen C emission
   after consuming compiler-world readiness facts.

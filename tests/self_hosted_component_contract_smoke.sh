@@ -5630,6 +5630,8 @@ require_max_lines \
     "src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy" 120
 require_text "src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy" \
     "func SemanticAstEntrypointSelectionObserve("
+require_text "src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy" \
+    "func SemanticEntrypointSingleRuntimeCallableSelected("
 require_text "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" \
     "SemanticAstEntrypointSelectionMatchesAccumulator("
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "module_paths: Array<String>;"
@@ -6573,6 +6575,22 @@ require_max_lines \
     "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" 180
 require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
     '"$SELF_DRIVER" --emit-mir-json-verified "$SOURCE"'
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    '"$SELF_DRIVER" --mir-json-backend=llvm'
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    '"$PGY" "$SOURCE" --emit-llvm'
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    'cmp -s "$WORK_DIR/direct.ll" "$WORK_DIR/lowercase.ll"'
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    'cmp -s "$EXPECTED" "$WORK_DIR/lowercase-llvm.out"'
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    "[pipeline timing]"
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    'worker.mir.json'
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    '! -e "$WORK_DIR/worker.ll"'
+require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
+    'direct MIR literal Log program envelope is invalid'
 require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
     'Code: entrypoint_cardinality'
 require_text "scripts/ci_push_linux_steps.sh" \
@@ -24180,6 +24198,12 @@ require_file \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" 600
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
+    "func DirectMirProgramCommonEnvelopeForRoutineNameReady("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
+    'DirectMirProgramCommonEnvelopeForRoutineNameReady(admitted, "Main")'
 require_file \
     "src/self_hosted/compiler/direct_mir_compile_time_declaration_erasure_owner.pgy"
 require_max_lines \
@@ -24208,6 +24232,30 @@ literal_log_family_lines=$((
     fail "compile-time declaration/literal Log family exceeds 560 LOC ($literal_log_family_lines)"
 require_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
     "StringRuntimeCInt32LineFormat()"
+require_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    'import "../semantic/ast_entrypoint_selection_policy_owner.pgy";'
+require_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    "SemanticEntrypointSingleRuntimeCallableSelected(signature.name)"
+require_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    "DirectMirRoutineSignatureFactReady(signature)"
+require_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    "DirectMirProgramCommonEnvelopeForRoutineNameReady(admitted, signature.name)"
+reject_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    "DirectMirProgramCommonEnvelopeReady(admitted)"
+reject_regex "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    'signature\.name[[:space:]]*(==|!=)[[:space:]]*"(Main|main)"'
+reject_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" '"Main"'
+reject_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" '"main"'
+reject_function_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
+    "func DirectMirLiteralLogRouteClaimed(" \
+    "SemanticEntrypointSingleRuntimeCallableSelected("
+named_common_envelope_occurrences="$(
+    grep -R -F --include='*.pgy' \
+        'DirectMirProgramCommonEnvelopeForRoutineNameReady(' \
+        src/self_hosted/compiler | wc -l | tr -d ' '
+)"
+[[ "$named_common_envelope_occurrences" -eq 3 ]] || \
+    fail "named direct-MIR common envelope must have one owner, Main wrapper, and literal-Log consumer"
 reject_text "src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy" \
     "StringRuntimeCIntLineFormat()"
 require_text "src/self_hosted/compiler/direct_mir_literal_log_emission_owner.pgy" \

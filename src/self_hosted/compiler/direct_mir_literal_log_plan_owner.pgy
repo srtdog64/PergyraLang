@@ -5,11 +5,11 @@ import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
+import "../semantic/ast_entrypoint_selection_policy_owner.pgy";
 import "../mir_lower/error_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
-
 struct DirectMirLiteralLogPlan {
     let valid: Bool;
     let digest: Int;
@@ -94,7 +94,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
     );
     let signature: DirectMirRoutineSignatureFact =
         DirectMirRoutineSignatureFactAt(admitted.routines, 0, 1);
-    if !DirectMirProgramCommonEnvelopeReady(admitted) ||
+    if !DirectMirProgramCommonEnvelopeForRoutineNameReady(admitted, signature.name) ||
         admitted.domain_topology_plan.present ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
         !DirectMirExactObjectArrayCount(
@@ -104,7 +104,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
         ) || !DirectMirExactObjectArrayCount(specializations, 0) ||
         !DirectMirRoutineHasNoUnsupportedFacts(routine) ||
         !DirectMirRoutineSignatureFactReady(signature) ||
-        signature.name != "Main" || signature.return_type != "Void" ||
+        !SemanticEntrypointSingleRuntimeCallableSelected(signature.name) || signature.return_type != "Void" ||
         signature.param_count != 0 ||
         (erasure.claimed &&
          erasure.source_syntax_id == signature.source_syntax_id) ||

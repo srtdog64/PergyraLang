@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Lowercase `func main()` is selected once by semantic signature facts.  The
-# installed source-to-MIR and source-to-C paths consume that identity; this gate
-# does not claim the separate direct-MIR backend envelope.
+# installed source-to-MIR/source-to-C paths consume that identity. The LLVM leg
+# is bounded to the existing one-routine, one-literal-Log direct-MIR envelope.
 # Forbidden fallbacks: SemanticAstArtifactIsMainFunction,
 # CodegenAstArenaIsMainFunction, entrypoint_name_rescan,
-# lowercase_backend_exception.
+# lowercase_backend_exception, direct_mir_literal_log_uppercase_only_read.
 
 set -euo pipefail
 
@@ -16,6 +16,7 @@ pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 CC="${CC:-cc}"
+CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/lowercase_entrypoint"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE="tests/cases/backend_compare/entry_lowercase_main/main.pgy"
@@ -42,6 +43,7 @@ fi
 [[ -x "$PGY" ]] || fail "missing public pgy launcher: $PGY"
 [[ -x "$SELF_DRIVER" ]] || fail "missing installed self-host driver: $SELF_DRIVER"
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
+command -v "$CLANG" >/dev/null 2>&1 || fail "missing clang: $CLANG"
 
 PGY="$(cd "$(dirname "$PGY")" && pwd -P)/$(basename "$PGY")"
 SELF_DRIVER="$(cd "$(dirname "$SELF_DRIVER")" && pwd -P)/$(basename "$SELF_DRIVER")"
@@ -69,8 +71,8 @@ compile_emitted_c() {
 }
 
 mkdir -p "$WORK_DIR"
-rm -f "$WORK_DIR"/{source.mir.json,lowercase.c,lowercase.norm.c,lowercase-program*,lowercase.out} \
-    "$WORK_DIR"/{worker.pgy,worker.c,worker.out,worker.err,uppercase.c,uppercase-program*,uppercase.out}
+rm -f "$WORK_DIR"/{source.mir.json,lowercase.c,lowercase.norm.c,lowercase-program*,lowercase.out,direct.ll,lowercase.ll,lowercase-llvm-program*,lowercase-llvm.out} \
+    "$WORK_DIR"/{worker.pgy,worker.c,worker.out,worker.err,worker.mir.json,worker.ll,worker-mir.out,worker-mir.err,uppercase.c,uppercase-program*,uppercase.out}
 
 (cd "$ROOT_DIR" && unset PGY_NATIVE_PIPELINE &&
     "$SELF_DRIVER" --emit-mir-json-verified "$SOURCE" \
@@ -105,6 +107,29 @@ compile_emitted_c "$WORK_DIR/lowercase.norm.c" "$WORK_DIR/lowercase-program$suff
 cmp -s "$EXPECTED" "$WORK_DIR/lowercase.out" ||
     fail "installed source-C lowercase runtime output drifted"
 
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json-backend=llvm \
+    "$WORK_REL/source.mir.json" -o "$WORK_REL/direct.ll") \
+    >"$WORK_DIR/direct.out" 2>"$WORK_DIR/direct.err" || fail "direct installed LLVM rejected lowercase main"
+(cd "$ROOT_DIR" && unset PGY_NATIVE_PIPELINE PGY_SELF_DRIVER_BIN && PGY_DEBUG_PIPELINE_TIMING=1 \
+    "$PGY" "$SOURCE" --emit-llvm -o "$WORK_REL/lowercase.ll") \
+    >"$WORK_DIR/lowercase.llvm.out" 2>"$WORK_DIR/lowercase.llvm.err" || fail "public installed LLVM rejected lowercase main"
+cmp -s "$WORK_DIR/direct.ll" "$WORK_DIR/lowercase.ll" || fail "public and direct installed LLVM differ"
+! grep -Fq '[pipeline timing]' "$WORK_DIR/lowercase.llvm.err" || fail "public LLVM used the native pipeline"
+"$CLANG" -x ir "$WORK_DIR/lowercase.ll" -o "$WORK_DIR/lowercase-llvm-program$suffix"
+"$WORK_DIR/lowercase-llvm-program$suffix" | tr -d '\r' >"$WORK_DIR/lowercase-llvm.out"
+cmp -s "$EXPECTED" "$WORK_DIR/lowercase-llvm.out" || fail "installed LLVM lowercase runtime output drifted"
+
+sed 's/"name":"main"/"name":"worker"/' "$WORK_DIR/source.mir.json" >"$WORK_DIR/worker.mir.json"
+set +e
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json-backend=llvm \
+    "$WORK_REL/worker.mir.json" -o "$WORK_REL/worker.ll") \
+    >"$WORK_DIR/worker-mir.out" 2>"$WORK_DIR/worker-mir.err"
+worker_mir_rc=$?
+set -e
+[[ "$worker_mir_rc" -ne 0 && ! -e "$WORK_DIR/worker.ll" ]] || fail "worker MIR emitted an LLVM artifact"
+grep -Fq "direct MIR literal Log program envelope is invalid" \
+    "$WORK_DIR/worker-mir.out" "$WORK_DIR/worker-mir.err" || fail "worker MIR escaped entrypoint policy"
+
 sed 's/^func main(/func worker(/' "$ROOT_DIR/$SOURCE" >"$WORK_DIR/worker.pgy"
 set +e
 (cd "$ROOT_DIR" && unset PGY_NATIVE_PIPELINE PGY_SELF_DRIVER_BIN &&
@@ -136,4 +161,4 @@ printf 'Hello, Pergyra!\n' >"$WORK_DIR/uppercase.expected"
 cmp -s "$WORK_DIR/uppercase.expected" "$WORK_DIR/uppercase.out" ||
     fail "uppercase Main runtime regression drifted"
 
-echo "[self-host-lowercase-entrypoint] semantic identity installed C runtime and artifact-free negative ratchets"
+echo "[self-host-lowercase-entrypoint] semantic identity installed C/direct-public LLVM runtime and artifact-free negative ratchets"

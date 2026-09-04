@@ -104,3 +104,12 @@ func SemanticAstEntrypointUsesLowercaseSpelling(
     return fact.lowercase_spelling &&
         IsSome(SemanticAstEntrypointSignatureIndex(fact, signature_count));
 }
+
+func SemanticEntrypointSingleRuntimeCallableSelected(name: String) -> Bool {
+    let accumulator: SemanticAstEntrypointSelectionAccumulator =
+        SemanticAstEntrypointSelectionAccumulatorEmpty();
+    SemanticAstEntrypointSelectionObserve(accumulator, "", true, name, 0);
+    let selection: SemanticAstEntrypointSelectionFact =
+        SemanticAstEntrypointSelectionFinish(accumulator);
+    return SemanticAstEntrypointSelectionContains(selection, 0, 1);
+}

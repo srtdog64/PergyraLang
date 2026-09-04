@@ -28,6 +28,8 @@ TYPE_SURFACE_OWNER="src/self_hosted/semantic/ast_type_surface_fact_owner.pgy"
 KIND_SURFACE_OWNER="src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy"
 SIGNATURE_OWNER="src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 ENTRYPOINT_POLICY_OWNER="src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy"
+ENTRYPOINT_LITERAL_PLAN_CONSUMER="src/self_hosted/compiler/direct_mir_literal_log_plan_owner.pgy"
+ENTRYPOINT_DIRECT_MIR_ENVELOPE_OWNER="src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy"
 ARRAY_GRAPH_OWNER="src/self_hosted/parser/expression_graph_owner.pgy"
 ARRAY_CONSUMER="src/self_hosted/codegen/emission/stmt_emit.pgy"
 EXPRESSION_GRAPH_OWNER="src/self_hosted/hir/ast_expression_graph_owner.pgy"
@@ -241,6 +243,8 @@ require_file "$TYPE_SURFACE_OWNER"
 require_file "$KIND_SURFACE_OWNER"
 require_file "$SIGNATURE_OWNER"
 require_file "$ENTRYPOINT_POLICY_OWNER"
+require_file "$ENTRYPOINT_LITERAL_PLAN_CONSUMER"
+require_file "$ENTRYPOINT_DIRECT_MIR_ENVELOPE_OWNER"
 require_file "$ARRAY_GRAPH_OWNER"
 require_file src/self_hosted/parser/expression_graph_contract_owner.pgy
 require_text src/self_hosted/parser/expression_graph_contract_owner.pgy ParserExpressionArrayLiteralGraphContractReady
@@ -390,9 +394,31 @@ require_text "$ENTRYPOINT_POLICY_OWNER" \
     "func SemanticAstEntrypointSelectionObserve("
 require_text "$ENTRYPOINT_POLICY_OWNER" \
     "func SemanticAstEntrypointUsesLowercaseSpelling("
+require_text "$ENTRYPOINT_POLICY_OWNER" \
+    "func SemanticEntrypointSingleRuntimeCallableSelected("
 require_text "$ENTRYPOINT_POLICY_OWNER" "lowercase_spelling: Bool;"
 require_text "$ENTRYPOINT_POLICY_OWNER" 'name == "Main"'
 require_text "$ENTRYPOINT_POLICY_OWNER" 'name == "main"'
+require_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" \
+    'import "../semantic/ast_entrypoint_selection_policy_owner.pgy";'
+require_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" \
+    "SemanticEntrypointSingleRuntimeCallableSelected(signature.name)"
+require_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" \
+    "DirectMirRoutineSignatureFactReady(signature)"
+require_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" \
+    "DirectMirProgramCommonEnvelopeForRoutineNameReady(admitted, signature.name)"
+reject_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" \
+    "DirectMirProgramCommonEnvelopeReady(admitted)"
+reject_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" 'signature.name == "Main"'
+reject_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" 'signature.name != "Main"'
+reject_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" 'signature.name == "main"'
+reject_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" 'signature.name != "main"'
+reject_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" '"Main"'
+reject_text "$ENTRYPOINT_LITERAL_PLAN_CONSUMER" '"main"'
+require_text "$ENTRYPOINT_DIRECT_MIR_ENVELOPE_OWNER" \
+    "func DirectMirProgramCommonEnvelopeForRoutineNameReady("
+require_text "$ENTRYPOINT_DIRECT_MIR_ENVELOPE_OWNER" \
+    'DirectMirProgramCommonEnvelopeForRoutineNameReady(admitted, "Main")'
 require_text "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" \
     "SemanticAstEntrypointSelectionMatchesAccumulator("
 require_text "$ENTRYPOINT_VERDICT_CONSUMER" \
