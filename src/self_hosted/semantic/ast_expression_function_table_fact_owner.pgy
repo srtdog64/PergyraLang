@@ -17,6 +17,15 @@ func SemanticAstExpressionFunctionTableFactsReady(
         ArrayLength(facts.names) == ArrayLength(facts.params);
 }
 
+// Builtins and earlier declarations keep their unqualified callable identity.
+// Every enum variant still owns its qualified row; only a free short name may
+// acquire the additional unqualified projection.
+func SemanticAstUnqualifiedEnumVariantMayOwnCallableRow(
+    existing_index: Int
+) -> Bool {
+    return existing_index < 0;
+}
+
 // Body analysis owns the last legitimate consumer. Release only after the
 // body bundle has materialized all derived facts; a stale fact must fail closed.
 func SemanticAstExpressionFunctionTableFactsRelease(

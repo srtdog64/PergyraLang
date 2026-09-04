@@ -6,21 +6,38 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE discovery lease — next bounded production red
+## ACTIVE implementation lease — enum-variant/builtin collision carriage
 
-- Exact published base is
-  `803d47f5bf66532df4e562ea94fbebbf3e454a13`; exact-head run
-  `33866524326` completed 30/30 green in 30m08s. The role-override lease below
-  is released.
-- This is a read-only discovery lease. Do not edit or publish compiler source
-  until one installed production-red census result fixes the entrypoint,
-  direct C bypass, existing Pergyra fact owner, last orchestration consumer,
-  focused parity/negative gate, and first falsifying fixture in an objective
-  card. Parallel tasks may audit unrelated evidence but must not open another
-  executable implementation rung.
-- Census and forecast remain 88/185, `55/32/1`, and 83% (81-85%). Module Build
-  remains design-only and post-self-host. Protected user paths remain outside
-  inspection, edit, and staging.
+- Exact lease base is `004ae6b5b47b7fc6757167c93b00c054da4c42f6`, equal
+  to `origin/main` when the bounded installed census began. The first current
+  production red is `tests/cases/backend_compare/tagged_union/main.pgy`:
+  installed tokens/AST succeed, native MIR succeeds, and installed MIR rejects
+  at `call_target_input`. A non-colliding multi-payload enum passes, isolating
+  the `None` short-name collision with the canonical builtin table. That
+  pre-change rejection is now repaired locally.
+- Objective: carry existing-symbol precedence through the typed enum callable
+  projection without rebinding the colliding short name. `SemanticAstEnumFacts`
+  owns ordered enum rows; `SemanticAstExpressionFunctionTableFacts` owns the
+  callable projection; call-target capture is the last semantic consumer before
+  installed source-MIR publication. This lease closes public
+  `pgy --mir-json`; default source compilation is a distinct downstream rung
+  and explicit native MIR remains only a frozen test oracle.
+- Forbidden overlap and fallback: no `None` spelling branch, fixture/name route,
+  source or AST rescan, duplicate callable rebinding, native retry, C round-trip,
+  builtin-prefix weakening, unrelated parser/world work, or Module Build
+  implementation. No other implementation task may edit or publish this rung.
+- The local candidate preserves the qualified variant row and lets an occupied
+  builtin keep the unqualified row. Its focused installed gate proves byte-
+  equal public/direct MIR, canonical native agreement for `tagged_union` and
+  the adjacent `enum_multi_payload`, artifact-free `let_type_mismatch` for the
+  colliding negative, and no native retry. The callable-table and enum-lifetime
+  owner smokes are also green.
+- Direct C/LLVM payload-member execution is explicitly outside this lease. Its
+  first observed blockers are an over-broad payload-free enum-match route and a
+  missing source-C statement payload type. Those become the successor rung
+  only after this lease is published. Census and forecast stay 88/185,
+  `55/32/1`, and 83% (81-85%). Protected user paths remain outside inspection,
+  edit, and staging.
 
 ## DONE implementation lease — role override declaration carriage
 

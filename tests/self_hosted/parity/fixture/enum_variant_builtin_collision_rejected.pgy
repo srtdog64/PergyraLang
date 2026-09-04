@@ -1,0 +1,9 @@
+enum Shape {
+    Circle(Int),
+    None
+}
+
+func Main() -> Void {
+    let shadowed: Shape = None;
+    Log(shadowed.Circle._0);
+}

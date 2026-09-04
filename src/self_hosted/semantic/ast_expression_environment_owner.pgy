@@ -201,12 +201,7 @@ func SemanticAstExpressionFunctionTables(
         existing = SemanticAstExpressionFunctionRowIndex(
             names, variant_name
         );
-        if existing >= 0 {
-            if returns[existing] != enum_name ||
-                params[existing] != variant_params {
-                return false;
-            }
-        } else {
+        if SemanticAstUnqualifiedEnumVariantMayOwnCallableRow(existing) {
             ArrayPushOwnedString(names, variant_name);
             ArrayPushOwnedString(returns, enum_name);
             ArrayPushOwnedString(params, variant_params);

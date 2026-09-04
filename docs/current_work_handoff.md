@@ -18,27 +18,58 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — next bounded production-red discovery
+## Active self-host context — enum-variant/builtin collision carriage
 
-- Exact published base is
-  `803d47f5bf66532df4e562ea94fbebbf3e454a13`. Exact-head run
-  `33866524326` completed 30/30 green in 30m08s: Linux 21m46s, full self-host
-  29m08s, codegen fixed point 9m09s, sanitizers 10m21s, Windows 7m10s, Rocq 9
-  1m42s, macOS 1m44s, TSan 14s, and backend comparison 20/20.
-- The role-override declaration-carriage lease below is released. Its full
-  self-host job installed the Pergyra-built DRV-2, proved
-  `gen2 == gen3 (175771 lines)`, and classified the production policy corpus
-  as `3 in_subset / 0 out_of_subset`.
-- No successor implementation lease is open. The next allowed action is a
-  read-only installed production-red census. Before source edits, fix one
-  objective card naming the production entrypoint, direct C bypass, Pergyra
-  fact owner, last orchestration consumer, focused parity/negative gate, and
-  first falsifying fixture. Do not revive a historical queue item by inference.
+- Exact lease base is `004ae6b5b47b7fc6757167c93b00c054da4c42f6`, equal
+  to `origin/main` when discovery began. Its parent implementation/evidence run
+  `33866524326` completed 30/30 green in 30m08s, and exact docs run
+  `33869095345` completed both intended jobs green with nine jobs skipped by
+  design. The role-override lease below is released.
+- A bounded current-source census found the first installed production red at
+  `tests/cases/backend_compare/tagged_union/main.pgy`. Public installed tokens
+  and AST succeed and the AST is byte-equal to native text, but public
+  `--mir-json` rejects at `SemanticAstExpressionSurfaceFacts` with
+  `call_target_input`; explicit `--native-pipeline --mir-json` succeeds.
+  Payload enums without the colliding `None` variant already passed installed
+  MIR, so this was not a general enum or parser gap.
+- Objective: make the installed production source-to-MIR path preserve the
+  existing-symbol precedence used when one unqualified enum variant collides
+  with a builtin callable. Priority is exact enum identity, one collision
+  policy, builtin meaning preservation, artifact-free rejection of accidental
+  rebinding, then patch size. `SemanticAstEnumFacts` owns the ordered declared
+  enum/variant rows; `SemanticAstExpressionFunctionTableFacts` owns their
+  callable projection and is consumed by
+  `SemanticExpressionGraphCallTargetCaptureFromSignatures` before the installed
+  source-MIR publication path.
+- The production entrypoint closed by this rung is public
+  `pgy --mir-json <source>`. Explicit native MIR is frozen oracle evidence, not
+  a compatibility fallback. The default C/LLVM compile is a later consumer and
+  is not claimed closed by this source-to-MIR replacement. Forbidden paths are
+  a `None` spelling special case, fixture or enum-name routing, source/AST
+  rescan after the typed enum rows, duplicate callable rebinding, native retry,
+  C round-trip, or weakening the canonical builtin signature prefix.
+- The local implementation gives occupied builtins and earlier declarations
+  precedence for the unqualified callable row while every enum variant retains
+  its qualified row. Fresh installed DRV-2 now emits `tagged_union` MIR; the
+  public result is byte-equal to its installed owner and canonical-equal to the
+  explicit native oracle. The stable negative
+  `enum_variant_builtin_collision_rejected.pgy` cannot assign builtin `None`
+  (`Option<Unknown>`) to `Shape`, emits no MIR, and does not retry native. The
+  adjacent `enum_multi_payload` control remains public/installed/native equal.
+  `semantic_enum_variant_builtin_collision_installed_owner.sh`,
+  `semantic_function_table_owner_smoke.sh`, and
+  `semantic_enum_fact_lifetime_owner_smoke.sh` are green locally.
+- The next falsifying boundary is deliberately separate: this same fixture's
+  installed MIR reaches neither direct C nor direct LLVM because the
+  payload-free enum-match route currently claims every enum declaration; the
+  source-C path also lacks a statement result type for direct payload member
+  reads. Runtime `10`, `4`, `5`, `7` belongs to that successor executable rung,
+  not to the completed callable-collision claim.
 - Registry and forecast remain 88 authorities / 185 derived carriers,
-  `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%). The user-owned
-  `examples/raid_graph_fsm/results.txt` and three protected untracked
-  directories remain outside inspection, edit, and staging.
-- Module Build remains design-only and post-self-host in the order
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%) until executable evidence
+  justifies a change. The user-owned `examples/raid_graph_fsm/results.txt` and
+  three protected untracked directories remain outside inspection, edit, and
+  staging. Module Build remains design-only and post-self-host in the order
   `self-host closure -> evidence/identity compression -> real external project ->
   ModuleInterface -> BuildUnit/incremental build`.
 
