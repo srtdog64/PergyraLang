@@ -44,7 +44,7 @@ func DirectMirScalarProgramPayloadEnumMemberDefinitionReady(
             DirectMirScalarProgramExprLocal() {
         return false;
     }
-    let local: Int = plan.program.expressions.node_local_rows[receiver];
+    let local_row: Int = plan.program.expressions.node_local_rows[receiver];
     let enum_type: String = plan.program.expressions.node_types[receiver];
     let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
         plan.program.referenced_enum, enum_type);
@@ -54,7 +54,7 @@ func DirectMirScalarProgramPayloadEnumMemberDefinitionReady(
         DirectMirScalarProgramPayloadEnumVariantRowForParameter(
             plan.program.referenced_enum, enum_row, parameter_row);
     let block: Int = DirectMirScalarCfgOperationBlock(plan, operation);
-    if local < 0 || enum_row < 0 || variant < 0 || block < 0 {
+    if local_row < 0 || enum_row < 0 || variant < 0 || block < 0 {
         return false;
     }
     let candidate: Int = operation - 1;
@@ -62,7 +62,7 @@ func DirectMirScalarProgramPayloadEnumMemberDefinitionReady(
     while candidate >= block_start {
         let value: Int = plan.operation_result_values[candidate];
         if value >= 0 && value < ArrayLength(plan.value_local_rows) &&
-                plan.value_local_rows[value] == local {
+                plan.value_local_rows[value] == local_row {
             let graph: Int =
                 plan.program.operation_expression_rows[candidate];
             if plan.operation_kinds[candidate] !=

@@ -25,14 +25,14 @@ func DirectMirScalarCfgLeafOperandLatestValueReady(
             index, local_refs.value_names, local_refs.value_local_rows,
             operand.value_row, use_block, use_instruction);
     }
-    let local: Int = local_refs.value_local_rows[operand.value_row];
-    if local < 0 || local >= ArrayLength(local_refs.local_ref_value_ids) ||
+    let local_row: Int = local_refs.value_local_rows[operand.value_row];
+    if local_row < 0 || local_row >= ArrayLength(local_refs.local_ref_value_ids) ||
         SelfMirLocalRefParameterOrdinalForOwner(
-            local_refs.local_ref_value_ids[local],
+            local_refs.local_ref_value_ids[local_row],
             ToInt(index.source_syntax_id)) < 0 {
         return false;
     }
     return !IsSome(MirRoutineLatestDominatingLocalValueRow(
         index, local_refs.value_names, local_refs.value_local_rows,
-        local, use_block, use_instruction));
+        local_row, use_block, use_instruction));
 }
