@@ -68,7 +68,13 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   non-`none` open reason and no bound receiver-offset fallback ratchet. The row
   schema and adequacy ratchet are now corrected, and the complete Markdown-only
   CI command set passes locally. A published descendant still needs exact
-  full-matrix evidence; do not infer completion from this ledger.
+  full-matrix evidence. Ratchet checkpoint
+  `6d201928f23ca5718f685975772d09d790bacae2` then passed 28 jobs in run
+  `33864381110`; Linux reached the final preparation contract and exposed only
+  the retained source-scan evidence hash for the changed generic-call owner.
+  That evidence now records the exact current owner hashes without a new
+  performance claim, and the source-scan gate plus all remaining preparation
+  commands pass locally. Do not infer completion from this ledger.
 - Linux CI consumes the already installed driver through
   `self-host-replacement-frontier-installed-test-smoke`; its dry-run contains
   zero self-host bootstrap commands. The standalone wrapper retains exactly one

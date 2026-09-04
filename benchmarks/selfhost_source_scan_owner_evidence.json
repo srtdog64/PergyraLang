@@ -20,12 +20,12 @@
   },
   "current_callable_owner_hashes": {
     "measured_at": "2026-09-04",
-    "source_revision": "56ecb335",
-    "note": "declared-callable identity keeps typed invalid/missing/found outcomes and now admits match-materialization synthetic graph roots beside iteration roots; retained performance figures are not remeasured",
-    "owner_set_sha256": "4578C8ACD15EDC57DD82965AEEF1E31E6001559EBEEC2BA94B313EF84326E10F",
+    "source_revision": "3b3a0a0f",
+    "note": "declared-callable identity keeps typed invalid/missing/found outcomes and admits match-materialization synthetic graph roots beside iteration roots; generic-call emission now also consumes the exact receiver source-parameter offset without a parameter-name inference; retained performance figures are not remeasured",
+    "owner_set_sha256": "1BF25CCAF16E6B410E9C34D4178B068A7B99F20689EE7D0AEF63FAD0E6B19DF7",
     "owner_files_sha256": {
       "src/self_hosted/semantic/callable_resolution_owner.pgy": "DE376EFA2860286C2B5778526B79B92325105C744B5561BCC23428666E746AA0",
-      "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy": "6A4F529B4B2B4EBB6278CE6342EB4FCA82494EB2F7BCA18820A92421F78E8EFA",
+      "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy": "38CB88CDE06163E0AF2F3DFBA7DFFF6C995B3E695F5C5EE4AE77B3F1C3258D4B",
       "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "C5DFE3D03B9989FFEF268E943F7160D1BB3F5B1004B3341A4378249D2DA85E73",
       "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy": "689F82501946CA8487A8A85C858D31DE4A55F8168FBE15C5CA5351D994214C6D"
     }

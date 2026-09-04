@@ -33,6 +33,14 @@ percentage by themselves.
   and its receiver-offset fallback IDs were not bound to the adequacy ratchet.
   The row now follows the `CLOSED` schema, the gate binds the exact owner and
   last consumers, and the complete Markdown-only CI command set passes locally.
+  Ratchet checkpoint `6d201928f23ca5718f685975772d09d790bacae2`
+  published that repair. Run `33864381110` passed 28 jobs, including Rocq,
+  sanitizers, codegen fixed point, and all 20 backend shards; `build-linux`
+  reached the final preparation contract and then found the retained
+  source-scan evidence hash for the changed generic-call owner. The evidence
+  now records the exact current owner hashes without claiming a performance
+  remeasurement, and its source-scan gate plus every remaining command in that
+  preparation contract pass locally.
   A published descendant still needs exact full-matrix evidence before this
   lease can close.
 - The bounded installed census selected
@@ -75,10 +83,11 @@ percentage by themselves.
   pass with an explicitly declared prover skip. Rocq kernel validation is green
   in run `33861720387`; exact descendant full-matrix CI remains the next
   falsifier.
-- The CI repairs refresh generated evidence and tighten only the existing
-  receiver-offset negative ratchet; they change no compiler implementation or
-  SoT status. Publication and exact-head CI state must be verified against
-  `origin/main` rather than inferred from this snapshot. The user-owned
+- The CI repairs refresh generated/retained evidence and tighten only the
+  existing receiver-offset negative ratchet; they change no compiler
+  implementation or SoT status. Publication and exact-head CI state must be
+  verified against `origin/main` rather than inferred from this snapshot. The
+  user-owned
   `examples/raid_graph_fsm/results.txt` and the three protected untracked
   directories remain outside inspection, edit, and staging; no scoped source
   change remains after the implementation checkpoint.
