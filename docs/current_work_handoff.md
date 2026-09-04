@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-09-04 (Asia/Seoul)
+Updated: 2026-09-05 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -18,43 +18,71 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — direct-MIR tagged-enum payload program projection
+## Active self-host context — source payload-enum variant-provenance discovery
 
-- Exact lease base is implementation checkpoint
-  `517664e44fc07a6bcc3b3bb227c5d72bf6e5f896`, published on `origin/main`.
-  Its installed source-to-MIR producer emits the admitted `tagged_union` MIR,
-  but both `--mir-json-backend=c` and `--mir-json-backend=llvm` fail without an
-  artifact at `direct MIR CFG block inventory or program structure is invalid`.
-- The admitted program has one payload-bearing enum declaration, one `Main`
-  routine, one block, and seven instructions. It has no `AST_MATCH_CASE` row:
-  three enum constructors and four `Log` expression graphs carry the variant
-  and payload-member identities. Nevertheless,
-  `DirectMirEnumValueMatchRouteFactFromAdmitted` currently claims every program
-  containing an enum declaration and sends this straight-line program to the
-  payload-free three-to-six-block match plan.
-- Objective: classify the straight-line payload-enum program from admitted MIR
-  facts and project one target-neutral plan to C and LLVM. Priority is exact
-  declaration/variant/payload identity, route specificity, one shared plan,
-  artifact-free mutation rejection, then patch size. The fact owner is
-  `MirMachineLayerAdmittedJsonInput` (declaration rows, routine rows, and owned
-  expression graphs); the route decision owner is
-  `DirectMirEnumValueMatchRouteFactFromAdmitted`; the last orchestration
-  consumer is `CompileAdmittedDirectMirForTargetObserved`.
-- The direct bypass to delete is `enum declaration exists -> enum value-match
-  CFG plan`. Forbidden replacements are fixture or `Shape`/`Circle` spelling,
-  rendered `expr0` parsing, treating payload enums as scalar integers,
-  source/AST rescan, backend-local reconstruction, native retry, C round-trip,
-  weakening the payload-free enum-match negatives, or Module Build work.
-- The focused falsifier is direct C and LLVM execution of exact `10`, `4`, `5`,
-  `7` from one unchanged installed MIR artifact. Variant name, payload count or
-  type, ordinal, expression-graph edge, and SSA-use mutations must fail before
-  artifact publication; `one_mir_enum_value_match_projection.sh` must remain
-  green for the payload-free real-match route.
-- Registry and forecast remain 88 authorities / 185 derived carriers,
-  `CLOSED=55 BRIDGE=32 ACTIVE=1`, and 83% (81-85%). The user-owned
-  `examples/raid_graph_fsm/results.txt` and three protected untracked
-  directories remain outside inspection, edit, and staging. Module Build stays
-  design-only until self-host closure.
+- Exact discovery base is completed direct-MIR checkpoint
+  `123f088949a9d62095b0f181dadd387959b22064`. The direct boundary is now
+  fail-closed, but the installed source semantic/MIR producer still accepts
+  `Pair.Right(31)` followed by `value.Left._0`, and `Mixed.Number(13)` followed
+  by `value.Text._0`, as verified MIR.
+- Objective: determine which existing source-level environment/SSA fact can
+  own the receiver value's active constructor variant before opening another
+  implementation lease. Priority is existing identity and dominance evidence,
+  source semantic rejection, exact diagnostic ownership, MIR non-publication,
+  then patch size. `SemanticExpressionGraphEnumPayloadTypeName` currently owns
+  only the declared enum/variant/payload-type projection; it does not prove
+  active-tag provenance. The reached current consumer is
+  `SemanticAstStatementTypeFacts`. The required provenance owner is `Unknown`
+  until this bounded discovery finds an existing fact or proves one missing.
+- Forbidden continuation is variant or fixture spelling, rendered-expression
+  parsing, treating a direct-backend rejection as source semantic proof,
+  backend-specific active-tag reconstruction, an implicit runtime unchecked
+  union read, source/AST rescan after an owned graph fact, native retry, or
+  Module Build implementation. No source repair starts until owner, last
+  legitimate consumer, and a negative diagnostic identity are fixed.
+- The next falsifier is the two wrong-variant sources above. Each currently
+  exits 0 under `--emit-mir-json-verified`; the desired source boundary is a
+  stable semantic failure with no MIR artifact, while a same-variant payload
+  read and the direct tagged-enum gate remain green. Match-narrowed or
+  cross-block access is not silently admitted by a one-block constructor
+  heuristic.
+- Independent affine-Future, Zone spawn ABI, root-JSON grammar, and duplicate
+  InstructionId reds are recorded in
+  `docs/audits/2026-09-05_counterexample_attack_results.md`; none is an active
+  implementation lease or progress increment.
+
+## Completed self-host context — direct-MIR tagged-enum payload program projection
+
+- Implementation checkpoint
+  `123f088949a9d62095b0f181dadd387959b22064` replaces the declaration-only
+  enum-match route. `DirectMirEnumValueMatchRouteFactFromAdmitted` now requires
+  an actual `AST_MATCH_CASE`; the straight-line payload-enum program instead
+  enters the scalar route from admitted declaration, ABI-type, expression-
+  graph, and SSA-use facts.
+- One target-neutral plan projects constructors and payload members to C and
+  LLVM. Plan readiness joins each payload member to the nearest same-block
+  constructor definition of the same local and variant. Leaf admission now
+  consumes the canonical latest-dominating-local-value fact, so future and
+  stale SSA selections fail closed instead of collapsing to one physical
+  local.
+- Fresh Pergyra-built DRV-2 is 6,675,205 bytes with SHA-256
+  `9AEE8FC490042BE8B22361F9284B257DDCDA5D68E16E1BC4A1F2E982376AF5EB`.
+  The focused installed gate executes exact `10`, `4`, `5`, `7` through both
+  direct targets and rejects nine mutations without artifacts. Existing
+  payload-free enum match, compile-time declaration erasure, and payload
+  match-binding gates are green on the same driver.
+- The complete component source inventory/old-path ratchet, canonical
+  146-word implementation inventory, keyword registry, shell/Python syntax,
+  scoped diff check, and SoT registry gate are green locally. The registry
+  remains 88 authorities / 185 derived carriers and
+  `CLOSED=55 BRIDGE=32 ACTIVE=1`; this bounded consumer replacement does not
+  change the 83% (81-85%) forecast, strict beta 83%, or hard replacement 75%.
+  Exact-head remote CI is not claimed until the commits are published and the
+  corresponding run completes.
+- Protected user-owned paths remain outside inspection, edit, and staging:
+  `examples/raid_graph_fsm/results.txt`, `docs/compiler_architectures/`,
+  `pgy-80135c2c/`, and `pgy-91d769ec/`. Module Build remains design-only and
+  post-self-host.
 
 ## Published self-host context — tagged-enum payload statement-type carriage
 
@@ -78,9 +106,9 @@ percentage by themselves.
   attempted repair to that unrelated stale probe remains in the tree.
 - Earlier run `33873073635` found the generated implementation inventory stale
   in Linux preparation step 23 and was cancelled by the replacement push. The
-  canonical generator changed only its three affected counts; the exact failing
-  registry gate is green locally. Replacement run `33876582198` tracks
-  `517664e4` and is pending at this snapshot.
+  canonical generator changed only its three affected counts. Published docs
+  descendant `b4cfb0f2ef883d8f5b80ef96eafd89c1898c3d30` is exact-CI green in
+  run `33876954973`.
 - This is a bounded consumer repair, not a new authority or hard-substitution
   numerator. Module Build remains design-only in
   `docs/202_module_authority_boundary_design.md` and stays post-self-host.

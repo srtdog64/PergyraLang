@@ -1,32 +1,44 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-09-04
+마지막 업데이트: 2026-09-05
 
-최신 implementation checkpoint `517664e4`는 `tagged_union`의 source-C 마지막
-statement-type 소비자를 닫았다. 선언이 소유한 enum variant payload 타입을 기존
-expression-graph projection에서 `SemanticAstStatementTypeFacts`로 운반하며, 일반
-semantic verdict가 성공한 뒤에만 빠진 타입을 보충한다. 설치 경로와 native C는
-정확히 `10`, `4`, `5`, `7`을 실행하고, 인접 다중 payload enum은
-`0`, `75`, `28`, `120`, `81`을 유지한다. 존재하지 않는 payload ordinal은 양쪽
-경로에서 artifact 없이 거절되고 설치 경로는 native로 재시도하지 않는다. Fresh
-DRV-2는 6,666,053 bytes, SHA-256
-`031E365B9493266F35BFB08708D4B1A3B61A808130A656A02BEB2D61E8F7CB38`다.
+최신 implementation checkpoint `123f0889`는 `tagged_union`의 direct-MIR
+payload-enum program projection을 닫았다. enum 선언만으로 payload-free match
+route를 선택하던 경로를 삭제하고 실제 `AST_MATCH_CASE`가 있을 때만 그 route를
+claim한다. Straight-line payload enum은 admitted declaration, ABI type,
+expression-graph, SSA-use fact에서 하나의 target-neutral scalar plan을 만들며 C와
+LLVM이 같은 계획을 소비한다. Fresh Pergyra-built DRV-2는 6,675,205 bytes,
+SHA-256
+`9AEE8FC490042BE8B22361F9284B257DDCDA5D68E16E1BC4A1F2E982376AF5EB`다.
 
-직전 run `33873073635`는 Linux preparation의 generated language-word inventory
-drift를 찾은 뒤 새 push로 취소됐다. Canonical generator가 영향받은 세 count만
-갱신했고 정확히 실패했던 146-word registry gate는 local green이다. Replacement
-run `33876582198`은 `517664e4`를 대상으로 대기 중이므로 exact-head CI green은
-아직 주장하지 않는다.
+반례 공격은 양성 실행만으로 보이지 않던 세 구멍을 찾았다. 다른 유효 variant의
+payload를 읽으면 C/LLVM이 다른 값을 내거나 C가 access violation을 냈고, 미래
+ValueId와 stale ValueId는 MIR가 고른 SSA generation 대신 물리 local을 읽었다.
+현재 plan readiness는 payload member를 같은 local의 최근 constructor variant와
+결합하고, leaf readiness는 canonical latest-dominating-local-value fact를 소비한다.
+한 unchanged MIR이 양쪽 target에서 정확히 `10`, `4`, `5`, `7`을 실행하며 variant,
+payload, ordinal, graph, future/stale SSA를 포함한 9개 변이는 모두 artifact 없이
+실패한다. 기존 payload-free enum match, compile-time declaration erasure, payload
+match-binding, complete component inventory/old-path ratchet, 146-word registry,
+script syntax, scoped diff, SoT edge도 같은 candidate에서 green이다. Exact-head 원격
+CI는 publication 뒤 해당 run이 끝나기 전까지 주장하지 않는다.
 
-다음 단일 활성 rung은 같은 installed MIR artifact의 direct C/LLVM projection이다.
-현재 둘 다 payload enum 선언만 보고 payload-free value-match CFG route를 잘못
-선택해 `direct MIR CFG block inventory or program structure is invalid`로 artifact 없이
-실패한다. Admitted artifact는 한 enum, 한 routine, 한 block, 일곱 instruction이며
-`AST_MATCH_CASE`가 없다. 다음 작업은 이 route를 admitted declaration/instruction/
-expression-graph facts로 분리하고, 하나의 target-neutral payload-enum plan이 C와
-LLVM에서 정확히 `10`, `4`, `5`, `7`을 실행하게 하는 것이다. Census 88/185,
-`CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%), strict beta 83%,
-hard replacement 75%는 그대로다. Module Build는
+다음 단일 활성 작업은 source semantic/MIR producer의 wrong-variant gap에 대한
+bounded discovery다. `Right(31)`로 만든 값을 `Left._0`로 읽는 경우와
+`Number(13)`을 `Text._0`로 읽는 경우가 아직
+`--emit-mir-json-verified`에서 성공한다. 현재
+`SemanticExpressionGraphEnumPayloadTypeName`은 선언된 enum/variant/payload 타입만
+증명하고 active constructor provenance는 증명하지 않는다. 기존 environment/SSA
+fact가 그 권위를 소유하는지 먼저 찾아야 하며, owner가 확정되기 전에는 spelling,
+rendered text, backend rejection, 한 블록 heuristic으로 semantic repair를 시작하지
+않는다.
+
+별도 반례로 `Array<Future<T>>` affine 복사와 double-await, Zone `own/ref` spawn의
+C artifact 누출, root JSON 문법 fail-open, duplicate InstructionId 승인이
+재현됐지만 현재 rung과 섞지 않았다. 결과는
+`docs/audits/2026-09-05_counterexample_attack_results.md`에 읽기 전용으로 남겼다.
+Census 88/185, `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%** (81~85%),
+strict beta 83%, hard replacement 75%는 그대로다. Module Build는
 `self-host closure -> evidence/identity compression -> 실제 외부 프로젝트 ->
 ModuleInterface -> BuildUnit/incremental build` 뒤로 계속 유보한다.
 

@@ -1,34 +1,51 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-09-04 (Asia/Seoul)
+Updated: 2026-09-05 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — direct-MIR tagged-enum payload program
+## ACTIVE discovery lease — source payload-enum variant provenance
 
-- Exact lease base is `517664e44fc07a6bcc3b3bb227c5d72bf6e5f896`.
-  Its installed MIR producer is green, but direct C and LLVM both reject the
-  one-block/seven-instruction `tagged_union` artifact without output because an
-  enum declaration alone claims the payload-free value-match CFG route.
-- Objective: use the admitted declaration, instruction, expression-graph, and
-  SSA-use facts to distinguish a straight-line payload enum from a real
-  payload-free match, then feed one target-neutral plan to both backends.
-  `MirMachineLayerAdmittedJsonInput` owns the facts,
-  `DirectMirEnumValueMatchRouteFactFromAdmitted` owns the conflicting route,
-  and `CompileAdmittedDirectMirForTargetObserved` is the last orchestration
-  consumer.
-- Forbidden overlap and fallback: no fixture/name route, rendered-expression
-  parsing, scalar-`Int` collapse, AST/source rescan, backend-local plan, native
-  retry, C round-trip, weakened value-match negatives, unrelated parser work,
-  or Module Build implementation. No other task may edit this rung.
-- Integration requires one unchanged MIR artifact to execute exact
-  `10`, `4`, `5`, `7` through direct C and LLVM, artifact-free declaration/
-  variant/payload/ordinal/graph/use mutations, and the existing payload-free
-  enum value-match gate green. Census and forecast remain 88/185, `55/32/1`,
-  and 83% (81-85%). Protected user paths remain outside inspection, edit, and
-  staging.
+- Exact base is completed direct-MIR checkpoint
+  `123f088949a9d62095b0f181dadd387959b22064`. Read-only attacks proved that
+  the source semantic/MIR producer still emits verified MIR for a value
+  constructed as `Right(Int)` and projected as `Left._0`, and for a value
+  constructed as `Number(Int)` and projected as `Text._0`.
+- Objective: locate the existing environment/SSA owner of active constructor
+  provenance, or prove that fact absent, before editing. The current graph
+  projection owner proves only declared enum/variant/payload type; the reached
+  last consumer is `SemanticAstStatementTypeFacts`. Exact provenance owner and
+  diagnostic identity remain `Unknown`, so this is discovery, not an
+  implementation lease.
+- Forbidden overlap and fallback: no spelling/fixture rule, rendered text,
+  backend rejection used as semantic proof, one-block heuristic generalized to
+  control flow, unchecked runtime union read, source/AST rescan after owned
+  graph evidence, native retry, unrelated successor red, or Module Build.
+- Integration for a future lease requires artifact-free source semantic
+  rejection of both wrong-variant programs, a valid same-variant positive,
+  and the completed direct tagged-enum gate green. No other task may edit this
+  boundary until the objective card is complete.
+
+## DONE implementation lease — direct-MIR tagged-enum payload program
+
+- Checkpoint `123f088949a9d62095b0f181dadd387959b22064` distinguishes a real
+  enum match by `AST_MATCH_CASE`, carries payload-enum facts into the scalar
+  route, and projects one shared plan to C and LLVM.
+- Adversarial valid-variant, future-SSA, and stale-SSA mutations exposed three
+  prior holes. Plan readiness now joins member variant to constructor variant,
+  while leaf readiness consumes the canonical latest-dominating-local-value
+  fact. All three fail without artifacts on both targets.
+- Fresh DRV-2
+  `9AEE8FC490042BE8B22361F9284B257DDCDA5D68E16E1BC4A1F2E982376AF5EB`
+  (6,675,205 bytes) executes exact `10`, `4`, `5`, `7`; nine negatives and
+  three adjacent gates pass. Component inventory, generated 146-word registry,
+  script syntax, diff, and SoT edge are green. Census/forecast remain 88/185,
+  `55/32/1`, and 83% (81-85%). Exact remote CI is pending publication.
+- Independent successor findings are read-only in
+  `docs/audits/2026-09-05_counterexample_attack_results.md`. This lease is
+  released; protected user paths were not staged.
 
 ## DONE implementation lease — tagged-enum payload statement-type carriage
 
@@ -41,9 +58,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   `031E365B9493266F35BFB08708D4B1A3B61A808130A656A02BEB2D61E8F7CB38`.
   Focused and related owner gates, the generated registry, and complete
   component contract are green locally. Run `33873073635` exposed only the
-  stale generated inventory in Linux before cancellation; its canonical repair
-  is in the implementation commit. Exact replacement run `33876582198` is
-  pending. Module Build remains design-only and post-self-host.
+  stale generated inventory in Linux before cancellation; published docs
+  descendant `b4cfb0f2ef883d8f5b80ef96eafd89c1898c3d30` is exact-CI green in
+  run `33876954973`. Module Build remains design-only and post-self-host.
 
 ## DONE implementation lease — enum-variant/builtin collision carriage
 
