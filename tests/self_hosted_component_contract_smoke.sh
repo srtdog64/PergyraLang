@@ -6565,10 +6565,6 @@ require_text "tests/self_hosted/parity/callable_parameter_installed_self_host_ow
     'compile_public llvm installed-llvm'
 require_text "tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh" \
     '--native-pipeline -o "$NATIVE_REL"'
-require_text "scripts/ci_push_linux_steps.sh" \
-    'self-host-callable-parameter-identity-replacement-test-smoke'
-require_text "scripts/ci_linux_steps.sh" \
-    'self-host-callable-parameter-identity-replacement-test-smoke'
 require_file "tests/cases/backend_compare/entry_lowercase_main/expected.stdout"
 require_file "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh"
 require_max_lines \
@@ -26960,7 +26956,8 @@ for forbidden in readonly_string_value_carriage_coercion \
         reject_text "$owner" "$forbidden"
     done
 done
-require_text "Makefile" "self-host-region-user-callee-replacement-test-smoke:"
+require_text "Makefile" \
+    "self-host-region-user-callee-replacement-test-smoke: self-host-callable-parameter-identity-replacement-test-smoke"
 require_text "scripts/ci_push_linux_steps.sh" \
     "make self-host-region-user-callee-replacement-test-smoke"
 require_text "scripts/ci_linux_steps.sh" \
