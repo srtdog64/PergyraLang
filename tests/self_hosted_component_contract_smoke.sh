@@ -21230,12 +21230,18 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy" \
     "func DirectMirScalarProgramPayloadEnumMemberDefinitionReady(" \
     "DirectMirScalarProgramExprPayloadEnumConstructor()"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy" \
+    "let local:"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_latest_value_readiness_owner.pgy" \
     "func DirectMirScalarCfgLeafOperandLatestValueReady(" \
     "MirRoutineLatestDominatingLocalValueMatches("
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_latest_value_readiness_owner.pgy" 45
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_latest_value_readiness_owner.pgy" \
+    "let local:"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_scoped_match_binding_operand_owner.pgy" \
     "func DirectMirScalarCfgLeafOrScopedMatchBindingOperandFromOwners(" \
