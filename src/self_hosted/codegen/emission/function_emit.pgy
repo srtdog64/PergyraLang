@@ -15,6 +15,7 @@ import "function_binding_env_owner.pgy";
 import "callable_parameter_binding_rows_owner.pgy";
 import "function_global_env_owner.pgy";
 import "role_receiver_binding_owner.pgy";
+import "implicit_receiver_c_parameter_owner.pgy";
 import "stmt_emit.pgy";
 func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
@@ -56,6 +57,10 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let zone_return_carriage_guard: String = "";
     let receiver_carriage: String =
         CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
+            receiver_facts, signature_index
+        );
+    let receiver_source_parameter_offset: Int =
+        CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie(
             receiver_facts, signature_index
         );
     let domain_runtime_prologue: String = CodegenDomainRuntimeMethodPrologue(
@@ -111,19 +116,22 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             )
         );
     }
-    let role_declares_self: Bool = false;
-    let signature_param_index: Int = 0;
-    while signature_param_index < expected_param_count {
-        if CodegenSemanticFunctionParamNameOrDie(
-            signatures, signature_index, signature_param_index
-        ) == "self" {
-            role_declares_self = true;
+    let implicit_receiver: Option<String> =
+        CodegenImplicitReceiverCParameterOrDie(
+            receiver_facts, signature_index, owner_name, base_env
+        );
+    if IsSome(implicit_receiver) {
+        params = UnwrapOption(implicit_receiver);
+        if role_receiver {
+            prologue = role_binding.prologue;
+        } else {
+            let self_binding: CodegenFunctionValueBindingFact =
+                CodegenFunctionValueBindingFactForCExpression(
+                    "self", owner_name, base_env,
+                    owner_receiver_c_expression
+                );
+            ArrayPush(function_env_rows, self_binding.env_rows);
         }
-        signature_param_index = signature_param_index + 1;
-    }
-    if role_receiver && !role_declares_self {
-        params = "void *_pgy_raw_self";
-        prologue = role_binding.prologue;
     }
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
         let parameter_node_id: Int = cur[0];
@@ -140,7 +148,9 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         let p_type: String = CodegenGenericResolvedParamTypeOrDie(
             signatures, signature_index, param_n, generic_actuals
         );
-        if p_name == "self" {
+        let source_receiver_parameter: Bool =
+            param_n < receiver_source_parameter_offset;
+        if source_receiver_parameter {
             if role_receiver {
                 p_type = role_receiver_type;
             }
@@ -150,7 +160,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                 p_name, p_type, base_env
             );
         let p_env_binding: CodegenFunctionValueBindingFact = p_binding;
-        if p_name == "self" && (mutable_identity_receiver ||
+        if source_receiver_parameter && (mutable_identity_receiver ||
             (role_receiver && role_binding.pointer_identity)) {
             p_env_binding = CodegenFunctionValueBindingFactForCExpression(
                 p_name, p_type, base_env,
@@ -174,19 +184,19 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             c_param = Concat(c_param_type, Concat(" ", c_p_name));
         }
         if IsSome(callable_declaration) {
-        } else if p_name == "self" && mutable_identity_receiver {
+        } else if source_receiver_parameter && mutable_identity_receiver {
             if p_mode != 0 {
                 Die("mutable-identity receiver cannot use a parameter carriage mode");
             }
             c_param = Concat(c_param_type, Concat(" *", c_p_name));
-        } else if p_name == "self" && role_receiver {
+        } else if source_receiver_parameter && role_receiver {
             c_param = "void *_pgy_raw_self";
             prologue = Concat(prologue, role_binding.prologue);
         }
         let readonly_ref_direct: Bool = p_mode == 3 &&
             AbiLayoutCReadonlyRefPassesDirect(p_type);
         let c_ref_name: String = c_p_name;
-        if p_name == "self" &&
+        if source_receiver_parameter &&
             (mutable_identity_receiver || role_receiver) {
         } else if p_mode == 1 {
             let inout_name: String = CompilerSymbolCInoutParamName(p_name);

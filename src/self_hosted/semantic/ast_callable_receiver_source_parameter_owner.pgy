@@ -1,0 +1,54 @@
+// Source-declared receiver parameter position for callable signatures.
+//
+// A member always has a semantic receiver, but source may also spell that
+// receiver as the first untyped `self` parameter. The signature owner records
+// that syntactic distinction before canonical type resolution can erase it.
+
+import "ast_signature_fact_owner.pgy";
+import "callable_resolution_owner.pgy";
+
+func SemanticAstFunctionReceiverSourceParameterOffsetAt(
+    signatures: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> Option<Int> {
+    let count: Int = SemanticAstFunctionSignatureCount(signatures);
+    if !signatures.ok || signature_index < 0 || signature_index >= count ||
+        ArrayLength(signatures.receiver_source_param_offsets) != count {
+        return None;
+    }
+    let offset: Int =
+        signatures.receiver_source_param_offsets[signature_index];
+    let param_count: Int = signatures.param_counts[signature_index];
+    let owner: String = signatures.owner_names[signature_index];
+    if (offset != 0 && offset != 1) || offset > param_count ||
+        (owner == "" && offset != 0) { return None; }
+    return Some(offset);
+}
+
+func SemanticAstFunctionReceiverSourceParameterOffsetForCallable(
+    signatures: SemanticAstFunctionSignatureFacts,
+    callable_name: String
+) -> Option<Int> {
+    let found: Int = -1;
+    let signature_index: Int = 0;
+    while signature_index < SemanticAstFunctionSignatureCount(signatures) {
+        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+            signatures, signature_index
+        );
+        let name: Option<String> = SemanticAstFunctionNameAt(
+            signatures, signature_index
+        );
+        if !IsSome(owner) || !IsSome(name) { return None; }
+        if SemanticCallableCanonicalDeclaredNameEquals(
+            UnwrapOption(owner), UnwrapOption(name), callable_name
+        ) {
+            if found >= 0 { return None; }
+            found = signature_index;
+        }
+        signature_index = signature_index + 1;
+    }
+    if found < 0 { return None; }
+    return SemanticAstFunctionReceiverSourceParameterOffsetAt(
+        signatures, found
+    );
+}

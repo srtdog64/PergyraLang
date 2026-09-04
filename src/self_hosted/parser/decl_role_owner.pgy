@@ -5,6 +5,7 @@ import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "stmt_owner.pgy";
 import "function_decl_owner.pgy";
+import "error_owner.pgy";
 
 func ParseRoleDecl(
     content: String,
@@ -89,6 +90,22 @@ func ParseRoleDecl(
             i = cursor_out[0];
             impl_blocks = AppendLine(impl_blocks, "    Impl ability: (null)");
             impl_blocks = AppendLine(impl_blocks, compact_m);
+            continue;
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordOverride) {
+            i = LanguageWordEnd(i, LanguageWordId.WordOverride);
+            i = SkipWhitespaceAndComments(content, i);
+            if !MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
+                Fail("expected 'func' after 'override'", content, i);
+            }
+            ArraySet(cursor_out, 0, i);
+            let override_method: String = ParseFunction(
+                content, i, cursor_out, "", false, 6, "func", "Function: ",
+                false, within_zone, expression_graphs, diagnostic_projection
+            );
+            i = cursor_out[0];
+            impl_blocks = AppendLine(impl_blocks, "    Override");
+            impl_blocks = AppendLine(impl_blocks, override_method);
             continue;
         }
         if !MatchLanguageWord(content, i, LanguageWordId.WordImpl) {

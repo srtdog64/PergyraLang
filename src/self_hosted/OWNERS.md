@@ -213,7 +213,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
   function owner, name, formal-generic, parameter, mode, and return signature
   facts, including ordered function node/name identity for entrypoint
-  cardinality, selection, and top-level function declaration routing.
+  cardinality, selection, top-level function declaration routing, and the exact
+  0/1 source-declared receiver parameter offset before canonical typing erases
+  that syntax.
+- `src/self_hosted/semantic/ast_callable_receiver_source_parameter_owner.pgy`
+  -- the only callable lookup/query seam for that exact source receiver offset.
+  Consumers may not reconstruct it from a parameter name or inferred type.
 - `src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy` --
   canonical top-level runtime-callable entrypoint policy: uppercase `Main`
   owns the primary tier and lowercase `main` is its fallback. Signature facts
@@ -1690,6 +1695,10 @@ inventory must not become a second fact-family owner registry.
   formal calls may not recover this binding from source display spelling.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function definition
   emission and function-local environment lifetime.
+- `src/self_hosted/codegen/emission/implicit_receiver_c_parameter_owner.pgy`
+  -- one fact-directed C parameter projection for implicit mutable-identity,
+  value-carriage, or erased-role receivers. Definitions and prototypes consume
+  the same result; visible-parameter shape and AST text cannot infer it.
 - `src/self_hosted/codegen/emission/function_prototype_block_owner.pgy` --
   program-scale prototype traversal and streaming emission into one builder.
   It consumes symbol and ABI owners directly; recursive parameter-prefix
@@ -2616,6 +2625,22 @@ inventory must not become a second fact-family owner registry.
   four-field Array storage projection. It owns internal linkage and allocator
   spelling for the selected target; family emitters retain element-specific
   input/output and nominal ABI projection but may not re-own flow constants.
+- `src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy`
+  -- exact declaration, routine, SyntaxNodeId, literal, construction, and
+  subject-bound call identity for the bounded three-routine direct role
+  override family. It admits from carried MIR facts without source, AST,
+  fixture-name, or row-order recovery.
+- `src/self_hosted/compiler/direct_mir_role_override_plan_owner.pgy` -- one
+  target-neutral sealed plan preserving the ordinary subject call and the
+  separately emitted role body, nominal ABI evidence, and direct mutable
+  subject carriage.
+- `src/self_hosted/compiler/direct_mir_role_override_target_projection_owner.pgy`
+  -- one target-bound ABI projection derived from the sealed plan. It owns the
+  C/LLVM field type and alignment plus subject and erased-role receiver types;
+  target emitters cannot reopen or hard-code those facts.
+- `src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy` --
+  final runtime-free C/textual-LLVM consumers and target-exclusive composition
+  boundary. Neither target reopens MIR or silently rebinds the ordinary call.
 - `src/self_hosted/compiler/direct_mir_role_operator_declaration_fact_owner.pgy`
   -- exact role/ability/impl/method declaration admission from the carried MIR
   rows, including method identity, target type, signature, and role range
@@ -2627,9 +2652,9 @@ inventory must not become a second fact-family owner registry.
   retry primitive arithmetic or another multi-routine family.
 - `src/self_hosted/compiler/direct_mir_role_operator_abi_projection_owner.pgy`
   -- selected-target call ABI view derived from the target-neutral plan and the
-  canonical `Int` ABI: C `long long` or LLVM `i64`, alignment 8, direct receiver
-  pointer, and direct scalar argument/return. The unselected target mapping is
-  absent.
+  canonical `Int` ABI: C `int32_t`, or LLVM `i64` with alignment 8, plus a
+  direct receiver pointer and direct scalar argument/return. The unselected
+  target mapping is absent.
 - `src/self_hosted/compiler/direct_mir_role_operator_emission_owner.pgy` --
   role-family projection boundary and final C/textual LLVM consumers. It issues
   the fixed role-call plan, selects one ABI view, and then gives only those

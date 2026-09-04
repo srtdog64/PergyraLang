@@ -591,6 +591,13 @@ for fallback in \
     reject_text "$ROLE_EMITTER" "$fallback"
 done
 for fallback in \
+    "direct_override_as_ability_impl" \
+    "direct_override_method_drop"; do
+    require_text \
+        "tests/self_hosted/parity/role_override_mir_replacement.sh" \
+        "$fallback"
+done
+for fallback in \
     "CodegenAstArenaNominalNameOrDie" \
     "CodegenAstArenaFieldNameOrDie" \
     "CodegenAstArenaFieldTypeNameOrDie" \

@@ -1,0 +1,14 @@
+subject Counter {
+    let seed: Int;
+
+    func Increment(inout value: Int) -> Void {
+        value = value + 1;
+    }
+}
+
+func Main() -> Void {
+    let counter = Counter(0);
+    let value: Int = 41;
+    counter.Increment(value);
+    Log(ToString(value));
+}

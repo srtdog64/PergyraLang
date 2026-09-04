@@ -48,6 +48,7 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
     let saw_returns: Bool = false;
     let generic_count: Int = 0;
     let parameter_count: Int = 0;
+    let receiver_source_param_offset: Int = 0;
     let child_index: Int = 0;
     let child: Option<Int> = TypedAstArenaChildAt(
         artifact.arena, function_node_id, child_index
@@ -107,14 +108,20 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
                     artifact.arena, parameter_id
                 );
                 let resolved_type: String = "";
+                let owner_self: Bool = IsSome(parameter_name) &&
+                    StringLength(UnwrapOption(owner).name) > 0 &&
+                    UnwrapOption(parameter_name) == "self";
+                if owner_self &&
+                    (parameter_index != 0 || IsSome(parameter_type)) {
+                    return false;
+                }
                 if IsSome(parameter_type) {
                     resolved_type = SemanticCanonicalTypeName(
                         UnwrapOption(parameter_type)
                     );
-                } else if IsSome(parameter_name) &&
-                    UnwrapOption(parameter_name) == "self" &&
-                    StringLength(UnwrapOption(owner).name) > 0 {
+                } else if owner_self {
                     resolved_type = UnwrapOption(owner).name;
+                    receiver_source_param_offset = 1;
                 } else {
                     return false;
                 }
@@ -166,7 +173,9 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
     }
     return saw_parameters && saw_returns &&
         generic_count == facts.generic_counts[signature_index] &&
-        parameter_count == facts.param_counts[signature_index];
+        parameter_count == facts.param_counts[signature_index] &&
+        receiver_source_param_offset ==
+            facts.receiver_source_param_offsets[signature_index];
 }
 
 func SemanticAstFunctionSignatureFactsMatchArtifact(
@@ -193,6 +202,7 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
         ArrayLength(facts.generic_counts) != n ||
         ArrayLength(facts.param_starts) != n ||
         ArrayLength(facts.param_counts) != n ||
+        ArrayLength(facts.receiver_source_param_offsets) != n ||
         ArrayLength(facts.param_names) != pn ||
         ArrayLength(facts.param_types) != pn ||
         ArrayLength(facts.param_modes) != pn {

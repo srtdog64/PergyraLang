@@ -27,6 +27,7 @@ struct SemanticAstFunctionSignatureFacts {
     generic_names: Array<String>;
     param_starts: Array<Int>;
     param_counts: Array<Int>;
+    receiver_source_param_offsets: Array<Int>;
     param_node_ids: Array<Int>;
     param_names: Array<String>;
     param_types: Array<String>;
@@ -118,6 +119,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     let generic_names: Array<String> = [];
     let param_starts: Array<Int> = [];
     let param_counts: Array<Int> = [];
+    let receiver_source_param_offsets: Array<Int> = [];
     let param_node_ids: Array<Int> = [];
     let param_names: Array<String> = [];
     let param_types: Array<String> = [];
@@ -182,6 +184,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         let return_type: String = "";
         let generic_start: Int = ArrayLength(generic_names);
         let param_start: Int = ArrayLength(param_node_ids);
+        let receiver_source_param_offset: Int = 0;
         let child_index: Int = 0;
         let child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, node_id, child_index
@@ -234,8 +237,8 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                         );
                         continue;
                     }
-                    let param_name: Option<String> =
-                        TypedAstArenaAtomText(artifact.arena, param_id);
+                    let param_name: Option<String> = TypedAstArenaAtomText(
+                        artifact.arena, param_id);
                     if !IsSome(param_name) {
                         ok = false;
                         diagnostic_fact = SemanticDiagnosticMessageFact2(
@@ -245,22 +248,30 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                         );
                         continue;
                     }
-                    let param_type: Option<String> =
-                        TypedAstArenaTypeName(artifact.arena, param_id);
+                    let param_type: Option<String> = TypedAstArenaTypeName(
+                        artifact.arena, param_id);
+                    let owner_self: Bool = StringLength(
+                        UnwrapOption(owner).name) > 0 &&
+                        UnwrapOption(param_name) == "self";
+                    if owner_self &&
+                        (param_index != 0 || IsSome(param_type)) {
+                        ok = false;
+                        diagnostic_fact = SemanticDiagnosticMessageFact2(
+                            "function_signature_invalid", "node_id",
+                            ToString(param_id), "missing_fact",
+                            "receiver_source_parameter_shape");
+                        continue;
+                    }
                     let resolved_param_type: String = "";
                     if IsSome(param_type) {
                         resolved_param_type = SemanticCanonicalTypeName(
-                            UnwrapOption(param_type)
-                        );
-                        resolved_param_type =
-                            SemanticAstGenericDefaultTypeForName(
-                                ability_generic_names,
-                                ability_generic_defaults,
-                                resolved_param_type
-                            );
-                    } else if UnwrapOption(param_name) == "self" &&
-                        StringLength(UnwrapOption(owner).name) > 0 {
+                            UnwrapOption(param_type));
+                        resolved_param_type = SemanticAstGenericDefaultTypeForName(
+                            ability_generic_names, ability_generic_defaults,
+                            resolved_param_type);
+                    } else if owner_self {
                         resolved_param_type = UnwrapOption(owner).name;
+                        receiver_source_param_offset = 1;
                     } else {
                         ok = false;
                         diagnostic_fact = SemanticDiagnosticMessageFact2(
@@ -271,8 +282,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                         continue;
                     }
                     let mode: Option<Int> = TypedAstArenaMode(
-                        artifact.arena, param_id
-                    );
+                        artifact.arena, param_id);
                     if !IsSome(mode) {
                         ok = false;
                         diagnostic_fact = SemanticDiagnosticMessageFact2(
@@ -370,6 +380,9 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         );
         ArrayPush(param_starts, param_start);
         ArrayPush(param_counts, ArrayLength(param_node_ids) - param_start);
+        ArrayPush(
+            receiver_source_param_offsets, receiver_source_param_offset
+        );
         node_id = node_id + 1;
     }
 
@@ -409,7 +422,8 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         names, return_types,
         type_expressions,
         generic_starts, generic_counts, generic_names,
-        param_starts, param_counts, param_node_ids, param_names,
+        param_starts, param_counts, receiver_source_param_offsets,
+        param_node_ids, param_names,
         param_types, param_modes
     );
 }
@@ -418,7 +432,6 @@ func SemanticAstFunctionSignatureCount(
 ) -> Int {
     return ArrayLength(facts.function_node_ids);
 }
-
 func SemanticAstFunctionSignatureIndexForNode(
     ref facts: SemanticAstFunctionSignatureFacts,
     node_id: Int
@@ -439,7 +452,6 @@ func SemanticAstFunctionSignatureIndexForNode(
     }
     return None;
 }
-
 func SemanticAstFunctionNodeAt(facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int
 ) -> Option<Int> {
@@ -447,7 +459,6 @@ func SemanticAstFunctionNodeAt(facts: SemanticAstFunctionSignatureFacts,
         SemanticAstFunctionSignatureCount(facts) { return None; }
     return Some(facts.function_node_ids[signature_index]);
 }
-
 func SemanticAstFunctionModulePathAt(ref facts: SemanticAstFunctionSignatureFacts, signature_index: Int) -> Option<String> {
     if signature_index < 0 || signature_index >= SemanticAstFunctionSignatureCount(facts) { return None; }
     return Some(facts.module_paths[signature_index]);
@@ -523,8 +534,7 @@ func SemanticAstFunctionParamCountAt(
 ) -> Option<Int> {
     if signature_index < 0 ||
         signature_index >= SemanticAstFunctionSignatureCount(facts) {
-        return None;
-    }
+        return None; }
     return Some(facts.param_counts[signature_index]);
 }
 
@@ -536,9 +546,7 @@ func SemanticAstFunctionParamFlatIndex(
     if signature_index < 0 ||
         signature_index >= SemanticAstFunctionSignatureCount(facts) ||
         parameter_index < 0 ||
-        parameter_index >= facts.param_counts[signature_index] {
-        return None;
-    }
+        parameter_index >= facts.param_counts[signature_index] { return None; }
     return Some(facts.param_starts[signature_index] + parameter_index);
 }
 
@@ -550,9 +558,7 @@ func SemanticAstFunctionParamNodeAt(
     let flat: Option<Int> = SemanticAstFunctionParamFlatIndex(
         facts, signature_index, parameter_index
     );
-    if !IsSome(flat) {
-        return None;
-    }
+    if !IsSome(flat) { return None; }
     return Some(facts.param_node_ids[UnwrapOption(flat)]);
 }
 
@@ -564,9 +570,7 @@ func SemanticAstFunctionParamNameAt(
     let flat: Option<Int> = SemanticAstFunctionParamFlatIndex(
         facts, signature_index, parameter_index
     );
-    if !IsSome(flat) {
-        return None;
-    }
+    if !IsSome(flat) { return None; }
     return Some(facts.param_names[UnwrapOption(flat)]);
 }
 
@@ -578,9 +582,7 @@ func SemanticAstFunctionParamTypeAt(
     let flat: Option<Int> = SemanticAstFunctionParamFlatIndex(
         facts, signature_index, parameter_index
     );
-    if !IsSome(flat) {
-        return None;
-    }
+    if !IsSome(flat) { return None; }
     return Some(facts.param_types[UnwrapOption(flat)]);
 }
 
@@ -592,8 +594,6 @@ func SemanticAstFunctionParamModeAt(
     let flat: Option<Int> = SemanticAstFunctionParamFlatIndex(
         facts, signature_index, parameter_index
     );
-    if !IsSome(flat) {
-        return None;
-    }
+    if !IsSome(flat) { return None; }
     return Some(facts.param_modes[UnwrapOption(flat)]);
 }

@@ -1,0 +1,12 @@
+class ValueBox {
+    let value: Int;
+
+    func Read() -> Int {
+        return value;
+    }
+}
+
+func Main() -> Void {
+    let box = ValueBox(42);
+    Log(ToString(box.Read()));
+}

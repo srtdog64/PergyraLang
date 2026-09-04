@@ -1,0 +1,206 @@
+// Runtime-free C and textual LLVM emission from one role-override identity.
+
+import "abi_layout_row_owner.pgy";
+import "direct_mir_llvm_text_format_owner.pgy";
+import "direct_mir_role_override_plan_owner.pgy";
+import "direct_mir_role_override_target_projection_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "symbol_table_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+func DirectMirRoleOverrideEmissionFactsReady(
+    ref plan: DirectMirRoleOverridePlan,
+    ref projection: DirectMirRoleOverrideTargetAbiProjection,
+    expected_target: String,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return DirectMirRoleOverridePlanReady(plan) &&
+        DirectMirRoleOverrideTargetAbiProjectionReadyFor(
+            projection, plan, expected_target
+        ) && formatted_print.ok &&
+        formatted_print.call_shape ==
+            CompilerRuntimeCallAbiStringCallShape("formatted-print") &&
+        formatted_print.symbol != "" && StringRuntimeCStringLineFormat() != "";
+}
+
+func DirectMirRoleOverrideEmitC(
+    ref plan: DirectMirRoleOverridePlan,
+    ref projection: DirectMirRoleOverrideTargetAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> String {
+    if !DirectMirRoleOverrideEmissionFactsReady(
+        plan, projection, CompilerTargetCpuCProjection(), formatted_print
+    ) {
+        Die("direct MIR role override C projection facts are invalid");
+    }
+    let subject_type: String = CompilerSymbolCTypeName(
+        plan.program.subject_name
+    );
+    let field_name: String = CompilerSymbolCFieldName(
+        plan.program.field_name
+    );
+    let local_name: String = CompilerSymbolCBindingName(
+        plan.program.entrypoint.local_name
+    );
+    let subject_method: String = CompilerSymbolCQualifiedName(
+        plan.program.subject_name, plan.program.method_name
+    );
+    let role_method: String = CompilerSymbolCQualifiedName(
+        plan.program.role_name, plan.program.method_name
+    );
+    if subject_type == "" || field_name == "" || local_name == "" ||
+        subject_method == "" || role_method == "" ||
+        subject_method == role_method {
+        Die("direct MIR role override C symbols are invalid");
+    }
+    let output: String =
+        "#include <stdint.h>\n#include <stdio.h>\n\n";
+    output = Concat(output, "typedef struct {\n    ");
+    output = Concat(output, projection.field_value_type);
+    output = Concat(output, " ");
+    output = Concat(output, field_name);
+    output = Concat(output, ";\n} ");
+    output = Concat(output, subject_type);
+    output = Concat(output, ";\n\n");
+    output = Concat(output, projection.method_return_type);
+    output = Concat(output, " ");
+    output = Concat(output, subject_method);
+    output = Concat(output, "(");
+    output = Concat(output, projection.subject_receiver_type);
+    output = Concat(output, "self) {\n    (void)self;\n    return ");
+    output = Concat(output, plan.program.subject_method.literal);
+    output = Concat(output, ";\n}\n\n");
+    output = Concat(output, projection.method_return_type);
+    output = Concat(output, " ");
+    output = Concat(output, role_method);
+    output = Concat(output, "(");
+    output = Concat(output, projection.role_receiver_type);
+    output = Concat(output, "self) {\n    (void)self;\n    return ");
+    output = Concat(output, plan.program.role_method.literal);
+    output = Concat(output, ";\n}\n\nint main(void) {\n    ");
+    output = Concat(output, subject_type);
+    output = Concat(output, " ");
+    output = Concat(output, local_name);
+    output = Concat(output, " = {.");
+    output = Concat(output, field_name);
+    output = Concat(output, " = ");
+    output = Concat(output, ToString(plan.program.entrypoint.constructor_value));
+    output = Concat(output, "};\n    ");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, StringRuntimeCStringLineFormat());
+    output = Concat(output, "\", ");
+    output = Concat(output, subject_method);
+    output = Concat(output, "(&");
+    output = Concat(output, local_name);
+    output = Concat(output, "));\n    return 0;\n}\n");
+    return output;
+}
+
+func DirectMirRoleOverrideEmitLlvm(
+    ref plan: DirectMirRoleOverridePlan,
+    ref projection: DirectMirRoleOverrideTargetAbiProjection,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> String {
+    if !DirectMirRoleOverrideEmissionFactsReady(
+        plan, projection, CompilerTargetCpuLlvmProjection(), formatted_print
+    ) {
+        Die("direct MIR role override LLVM projection facts are invalid");
+    }
+    let subject_type: String = CompilerSymbolCTypeName(
+        plan.program.subject_name
+    );
+    let subject_method: String = CompilerSymbolCQualifiedName(
+        plan.program.subject_name, plan.program.method_name
+    );
+    let role_method: String = CompilerSymbolCQualifiedName(
+        plan.program.role_name, plan.program.method_name
+    );
+    if subject_type == "" || subject_method == "" || role_method == "" ||
+        subject_method == role_method {
+        Die("direct MIR role override LLVM symbols are invalid");
+    }
+    let line_format: String = StringRuntimeCStringLineFormat();
+    let format_payload: String =
+        DirectMirScalarLlvmFormatPayload(line_format);
+    let format_size: Int =
+        DirectMirScalarLlvmFormatByteCount(line_format);
+    let output: String = "%";
+    output = Concat(output, subject_type);
+    output = Concat(output, " = type { ");
+    output = Concat(output, projection.field_value_type);
+    output = Concat(output, " }\n\n@.pgy.subject.literal = private unnamed_addr constant [");
+    output = Concat(
+        output, ToString(StringLength(plan.program.subject_method.content) + 1)
+    );
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, plan.program.subject_method.content);
+    output = Concat(output, "\\00\", align 1\n@.pgy.role.literal = private unnamed_addr constant [");
+    output = Concat(
+        output, ToString(StringLength(plan.program.role_method.content) + 1)
+    );
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, plan.program.role_method.content);
+    output = Concat(output, "\\00\", align 1\n@.pgy.string.line.format = private unnamed_addr constant [");
+    output = Concat(output, ToString(format_size));
+    output = Concat(output, " x i8] c\"");
+    output = Concat(output, format_payload);
+    output = Concat(output, "\\00\", align 1\n\ndeclare i32 @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr, ...)\n\ndefine ");
+    output = Concat(output, projection.method_return_type);
+    output = Concat(output, " @");
+    output = Concat(output, subject_method);
+    output = Concat(output, "(");
+    output = Concat(output, projection.subject_receiver_type);
+    output = Concat(output, " %self) {\nentry:\n  ret ");
+    output = Concat(output, projection.method_return_type);
+    output = Concat(output, " @.pgy.subject.literal\n}\n\ndefine ");
+    output = Concat(output, projection.method_return_type);
+    output = Concat(output, " @");
+    output = Concat(output, role_method);
+    output = Concat(output, "(");
+    output = Concat(output, projection.role_receiver_type);
+    output = Concat(output, " %self) {\nentry:\n  ret ");
+    output = Concat(output, projection.method_return_type);
+    output = Concat(output, " @.pgy.role.literal\n}\n\ndefine i32 @main() {\nentry:\n  %pgy.subject = alloca %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", align ");
+    output = Concat(output, ToString(projection.field_alignment));
+    output = Concat(output, "\n  %pgy.field = getelementptr inbounds %");
+    output = Concat(output, subject_type);
+    output = Concat(output, ", ptr %pgy.subject, i32 0, i32 0\n  store ");
+    output = Concat(output, projection.field_value_type);
+    output = Concat(output, " ");
+    output = Concat(output, ToString(plan.program.entrypoint.constructor_value));
+    output = Concat(output, ", ptr %pgy.field, align ");
+    output = Concat(output, ToString(projection.field_alignment));
+    output = Concat(output, "\n  %pgy.result = call ");
+    output = Concat(output, projection.method_return_type);
+    output = Concat(output, " @");
+    output = Concat(output, subject_method);
+    output = Concat(output, "(ptr %pgy.subject)\n  %pgy.logged = call i32 (ptr, ...) @");
+    output = Concat(output, formatted_print.symbol);
+    output = Concat(output, "(ptr @.pgy.string.line.format, ptr %pgy.result)\n  ret i32 0\n}\n");
+    return output;
+}
+
+func CompileAdmittedDirectMirRoleOverride(
+    program: DirectMirRoleOverrideProgramIdentity,
+    target_projection: CompilerTargetProjectionFact,
+    is_llvm: Bool,
+    formatted_print: CompilerRuntimeCallAbiFact
+) -> String {
+    let plan: DirectMirRoleOverridePlan =
+        DirectMirRoleOverridePlanFromIdentity(program);
+    let projection: DirectMirRoleOverrideTargetAbiProjection =
+        DirectMirRoleOverrideTargetAbiProjectionFromPlan(
+            plan, target_projection
+        );
+    if is_llvm {
+        return DirectMirRoleOverrideEmitLlvm(
+            plan, projection, formatted_print
+        );
+    }
+    return DirectMirRoleOverrideEmitC(plan, projection, formatted_print);
+}

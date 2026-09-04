@@ -2,6 +2,45 @@
 
 마지막 업데이트: 2026-09-04
 
+현재 unpublished candidate는 `d2ee067c` 위에서
+`role_override_mir`의 installed production red를 닫는다. Self parser는
+`override func`를 별도 AST kind로 보존하고, `SemanticAstRoleFacts`가 direct
+role-owned override와 ability implementation을 구분한다. 그 구분은 canonical
+MIR의 `Override` method row로 이어지며, direct-MIR의 exact identity와 한
+target-neutral plan이 subject method와 role body를 둘 다 보존한다. Sealed
+nominal ABI evidence에서 C/LLVM target projection을 한 번 만들고, emitter는
+field type/alignment와 subject/erased-role receiver를 그 projection에서만
+소비한다. Source signature owner는 명시적 첫 `self`의 0/1 offset을 정전하고
+definition/prototype/member-call이 이름을 재검사하지 않고 같은 fact를 쓴다.
+Ordinary subject member call은 role body로 암묵 재결합되지 않고 native 의미와
+같은 `base`를 실행한다.
+
+Fresh installed Pergyra-built DRV-2는 6,665,454 bytes, SHA-256
+`53648B71F533419EEC56294A2B57DAAF8FC9B8D71CC6F8F836B3A4DD64ACBF78`다.
+Focused gate는 AST/MIR parity, role C/LLVM runtime 8개, receiver runtime 3개,
+순서 permutation 3개, artifact-free MIR negative 10개, source negative 14개를
+통과했다. 명시적 mutable receiver, implicit mutable receiver 뒤의 첫 inout
+인자, implicit value receiver가 각각 exact `42`를 실행하고 typed/later
+`self`는 stable semantic diagnostic과 함께 artifact 없이 거절된다.
+인접 struct-argument gate도 저장소-root 경로와 생산자별 양의 SyntaxNodeId만
+정규화한 뒤 ABI cross-seal, exact `6`, permutation, negative 15개를 통과한다.
+Hard self-host contract와 complete component contract도 green이다. Windows에
+`make`가 없어 installed aggregate wrapper 자체는 실행하지 못했지만 그 recipe의
+여섯 gate는 같은 installed driver를 대상으로 모두 green이다. 로컬에는
+Rocq/Coq가 없어 SoT gate는 명시적 skip 모드에서 registry binding/negative만
+통과했으며 kernel proof와 exact-head 전체 CI는 아직 남았다.
+
+Linux push/full step은 이미 설치된 DRV-2를 쓰는
+`self-host-replacement-frontier-installed-test-smoke` 하나로 기존
+callable/region/lowercase/struct와 새 override 검증을 묶었다. CI에서 이 target의
+bootstrap 호출은 0개이고, 독립 실행 wrapper만 정확히 한 번 빌드한다. 따라서 새
+게이트를 추가하면서 기존 separate `make` 호출이 만들던 중복 self-host bootstrap을
+늘리지 않는다. 이 bounded consumer repair는 새 authority나 전체 C 대체 분자가
+아니므로 census 88/185, `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 진행도 **83%**
+(81~85%), strict beta 83%, hard replacement 75%는 그대로다. Module Build는 계속
+`self-host closure -> evidence/identity compression -> 실제 외부 프로젝트 ->
+ModuleInterface -> BuildUnit/incremental build` 뒤로 유보한다.
+
 최신 implementation checkpoint `c142b173`과 CI contract repair `e9a3042d`의
 exact-head run `33834712111`은 37분 34초에 30/30 green이다. Full self-host는
 36분 15초에 Pergyra-built DRV-2를 설치하고 `gen2 == gen3 (174857 lines)`를

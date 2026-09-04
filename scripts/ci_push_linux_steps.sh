@@ -7,8 +7,7 @@ export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
 
 run 'make self-host-llvm-option-member-assignment-context-test-smoke'
 run 'make self-host-llvm-intent-value-argument-abi-test-smoke'
-run 'make self-host-region-user-callee-replacement-test-smoke'
-run 'make self-host-lowercase-entrypoint-replacement-test-smoke'
+run 'make self-host-replacement-frontier-installed-test-smoke'
 
 run 'make build-source-inventory-test-smoke'
 run 'make self-host-driver-fixed-point-receipt-test-smoke'

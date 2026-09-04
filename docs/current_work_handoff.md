@@ -18,14 +18,54 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — bounded production-red discovery
+## Active self-host context — role override declaration carriage
 
-- Published exact checkpoint is `e9a3042dd340b4048210a83b7d50073b2ff4df61`;
-  run `33834712111` completed 30/30 green. There is no active implementation
-  lease and no inferred successor owner migration.
-- The next allowed action is a bounded read-only installed-production-entrypoint
-  census that names one executable red, its current fact owner, last consumer,
-  forbidden fallback, and falsifying fixture before any code edit begins.
+- Exact lease base is `d2ee067c8863740cb0b5cdcafe697d354aeda102`, equal to
+  `origin/main` when discovery began. Published predecessor
+  `e9a3042dd340b4048210a83b7d50073b2ff4df61` remains exact-CI green at 30/30
+  in run `33834712111`.
+- The bounded installed census selected
+  `tests/cases/backend_compare/role_override_mir/main.pgy`. Installed tokens
+  succeed, but installed AST and source-MIR fail before MIR. Native AST carries
+  an `Override` node; native MIR carries a role-owned method outside the empty
+  ability-impl array. Native C/LLVM execute exact `base`, not the unbound role
+  body's `override`.
+- `SemanticAstRoleFacts` must distinguish direct role-owned overrides from
+  ability implementation methods. `SelfMirDeclarationRows` carries that fact
+  into canonical MIR; admitted declaration/routine identities must then split
+  this program from the current declaration-count-only struct-argument route.
+  Source/AST rescans, fake ability impls, fixture/name routes, broad role
+  admission, native retry, C round-trip, and a changed `override` runtime result
+  are forbidden.
+- The focused falsifier requires installed AST/MIR shape and exact source/direct
+  C/LLVM `base`, artifact-free role/subject/`for_type`/method-owner mutations,
+  no native timing, and a green adjacent struct-argument route. This is a repair
+  under existing `CLOSED` role/node-kind rows plus a `BRIDGE` MIR projection;
+  census and progress do not advance merely for landing it.
+- The local candidate now passes that falsifier: AST/MIR parity, eight role
+  C/LLVM runtime legs, three exact receiver runtimes, three order permutations,
+  ten MIR negatives, and fourteen source negatives. The signature owner carries
+  the exact 0/1 source receiver offset through definition, prototype,
+  environment, semantic call, and generic-call consumers; typed or late `self`
+  fails closed. Direct C/LLVM consume one target-bound projection of the sealed
+  nominal ABI, and the role receiver is erased as `void *`. The adjacent
+  struct-argument gate passes exact
+  `6`, three permutations, and fifteen ABI/graph negatives after normalizing
+  only repository-root path spelling and producer-local positive SyntaxNodeId
+  numbers. All six installed callable/region/lowercase/struct/override recipe
+  gates, role-receiver admission, hard self-host contract, and complete
+  component contract are green. This Windows host lacks `make`, so the six
+  aggregate recipe gates were invoked directly; CI owns the wrapper target.
+- Fresh installed Pergyra-built DRV-2 is 6,665,454 bytes with SHA-256
+  `53648B71F533419EEC56294A2B57DAAF8FC9B8D71CC6F8F836B3A4DD64ACBF78`.
+  CI now invokes the installed replacement-frontier aggregate after its one
+  initial driver build; the installed target has zero bootstrap commands while
+  the standalone wrapper has exactly one. Local SoT binding/negative checks
+  pass with an explicitly declared prover skip; Rocq kernel validation and
+  exact-head remote CI remain the next falsifiers.
+- HEAD remains the lease base while this scoped candidate is dirty. The
+  user-owned `examples/raid_graph_fsm/results.txt` and the three protected
+  untracked directories remain outside inspection, edit, and staging.
 - Module Build remains design-only. Its implementation order stays
   `self-host closure -> evidence/identity compression -> real external project ->
   ModuleInterface -> BuildUnit/incremental build`.

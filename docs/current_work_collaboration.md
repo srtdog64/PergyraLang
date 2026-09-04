@@ -6,6 +6,62 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
+## ACTIVE implementation lease — role override declaration carriage
+
+- Exact lease base is `d2ee067c8863740cb0b5cdcafe697d354aeda102`, equal to
+  `origin/main` when discovery began. The primary task owns the bounded
+  `role_override_mir` source/AST/MIR/direct-C/direct-LLVM rung, its focused
+  parity and negative gate, documentation, publication, and exact CI. Parallel
+  tasks may audit this rung read-only but must not edit or publish it.
+- The first installed production falsifier is
+  `tests/cases/backend_compare/role_override_mir/main.pgy`. Tokens succeed, but
+  installed `--ast` and every source-to-MIR projection fail before MIR without
+  a diagnostic. Native AST carries an `Override` node and native MIR carries
+  the method as a role-owned routine plus a role `methods` row outside the empty
+  `impls` array. Native C/LLVM execute exact `base`; an ordinary subject call is
+  not silently rebound merely because a role override declaration exists.
+- Objective: make the installed production path preserve that exact source
+  distinction through AST, semantic role facts, canonical MIR, and C/LLVM.
+  Priority is stable syntax identity, one semantic role-method owner, exact MIR
+  carriage, count-only route removal, artifact-free negatives, then patch size.
+  `SemanticAstRoleFacts` owns whether a role method belongs to an ability impl
+  or is a direct role-owned override. `SelfMirDeclarationRows` is its MIR
+  projection; admitted MIR declaration/routine identities feed the final
+  three-routine projection.
+- Last legitimate consumers are source-MIR declaration/routine projection and
+  the direct-MIR three-routine classifier/plan/emitter. Forbidden fallbacks are
+  a fake ability implementation, declaration-count-only `double-nominal`
+  classification, source or AST rescans after MIR, fixture/name routing, broad
+  role admission, native retry, C round-trip, and changing the language result
+  from native `base` to the unbound role body's `override`.
+- Integration requires exact installed AST/MIR shape, installed source and
+  direct C/LLVM execution of `base`, no public native-timing evidence, and
+  artifact-free role/subject/`for_type`/method-owner mutations. The adjacent
+  nested struct-argument route must remain green to prove the structural split.
+  This repairs consumers of already-`CLOSED` role/node-kind rows and one
+  `BRIDGE` direct-MIR projection family; it does not change the 88/185 census,
+  `55/32/1` states, or 83% forecast. Module Build remains design-only in
+  `docs/202_module_authority_boundary_design.md` and stays post-self-host.
+- The local implementation meets the focused contract on fresh DRV-2
+  `53648B71F533419EEC56294A2B57DAAF8FC9B8D71CC6F8F836B3A4DD64ACBF78`
+  (6,665,454 bytes): eight role C/LLVM runtime legs, three exact receiver
+  runtimes, three permutations, ten MIR negatives, and fourteen source
+  negatives pass. The signature owner carries an exact 0/1 source receiver
+  offset; definition, prototype, environment, semantic call, and generic call
+  consumers no longer infer that offset from a parameter name. A target-bound
+  projection carries sealed nominal ABI evidence into both direct emitters and
+  keeps the role receiver erased as `void *`.
+- The adjacent struct-argument gate passes exact `6` plus fifteen negatives;
+  role-receiver admission, hard contract, and component inventory are green.
+  This Windows host has no `make`, so the six installed replacement-frontier
+  recipe gates were executed directly with the same installed driver and all
+  passed; CI still owns the aggregate target itself.
+- Linux CI consumes the already installed driver through
+  `self-host-replacement-frontier-installed-test-smoke`; its dry-run contains
+  zero self-host bootstrap commands. The standalone wrapper retains exactly one
+  build. Exact-head publication and remote Rocq/full-matrix evidence are still
+  pending, so this lease remains `ACTIVE`.
+
 ## DONE implementation lease — installed source-LLVM `region_user_callee`
 
 - Implementation `c142b173389563f370815929eb5327ddada04afd` and CI contract

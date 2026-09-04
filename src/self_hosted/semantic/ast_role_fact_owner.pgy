@@ -15,8 +15,8 @@ struct SemanticAstRoleFacts {
     method_starts: Array<Int>;
     method_counts: Array<Int>;
     method_node_ids: Array<Int>;
-    // Parallel to method_node_ids.  A role method is callable only through
-    // the impl-ability identity captured at its declaration parent.
+    // Parallel to method_node_ids. Empty is the explicit identity of a direct
+    // role-owned override; all other methods name their impl ability.
     method_ability_names: Array<String>;
     impl_starts: Array<Int>;
     impl_counts: Array<Int>;
@@ -130,27 +130,26 @@ func SemanticAstRoleMethodAbilityName(
     method_node_id: Int
 ) -> Option<String> {
     let parent: Option<Int> = TypedAstArenaParentId(arena, method_node_id);
-    let remaining: Int = TypedAstArenaNodeCount(arena);
-    while IsSome(parent) && remaining > 0 {
-        let parent_id: Int = UnwrapOption(parent);
-        if TypedAstArenaNodeKindIs(
-            arena, parent_id, TypedAstKindImplAbilityTag()
-        ) {
-            let ability_name: Option<String> = TypedAstArenaAtomText(
-                arena, parent_id
-            );
-            if !IsSome(ability_name) || UnwrapOption(ability_name) == "" {
-                return None;
-            }
-            return Some(SemanticCanonicalTypeName(UnwrapOption(ability_name)));
-        }
-        if TypedAstArenaNodeKindIs(
-            arena, parent_id, TypedAstKindRoleDeclTag()
-        ) {
+    if !IsSome(parent) { return None; }
+    let parent_id: Int = UnwrapOption(parent);
+    if TypedAstArenaNodeKindIs(
+        arena, parent_id, TypedAstKindImplAbilityTag()
+    ) {
+        let ability_name: Option<String> = TypedAstArenaAtomText(
+            arena, parent_id
+        );
+        if !IsSome(ability_name) || UnwrapOption(ability_name) == "" {
             return None;
         }
-        parent = TypedAstArenaParentId(arena, parent_id);
-        remaining = remaining - 1;
+        return Some(SemanticCanonicalTypeName(UnwrapOption(ability_name)));
+    }
+    if TypedAstArenaNodeKindIs(
+        arena, parent_id, TypedAstKindOverrideFuncTag()
+    ) {
+        let role_parent: Option<Int> = TypedAstArenaParentId(arena, parent_id);
+        if IsSome(role_parent) && TypedAstArenaNodeKindIs(
+            arena, UnwrapOption(role_parent), TypedAstKindRoleDeclTag()
+        ) { return Some(""); }
     }
     return None;
 }
@@ -197,6 +196,7 @@ func SemanticAstRoleFactsFromArtifact(
             } else {
                 let method_start: Int = ArrayLength(method_node_ids);
                 let impl_start: Int = ArrayLength(impl_ability_names);
+                let override_method_node_ids: Array<Int> = [];
                 let candidate: Int = 0;
                 while candidate < artifact.count {
                     let candidate_parent: Option<Int> = TypedAstArenaParentId(
@@ -215,6 +215,8 @@ func SemanticAstRoleFactsFromArtifact(
                                 );
                             if !IsSome(method_ability) {
                                 ok = false;
+                            } else if UnwrapOption(method_ability) == "" {
+                                ArrayPush(override_method_node_ids, candidate);
                             } else {
                                 ArrayPush(method_node_ids, candidate);
                                 ArrayPush(
@@ -245,6 +247,12 @@ func SemanticAstRoleFactsFromArtifact(
                         }
                     }
                     candidate = candidate + 1;
+                }
+                let override_i: Int = 0;
+                while override_i < ArrayLength(override_method_node_ids) {
+                    ArrayPush(method_node_ids, override_method_node_ids[override_i]);
+                    ArrayPush(method_ability_names, "");
+                    override_i = override_i + 1;
                 }
                 ArrayPush(role_node_ids, node_id);
                 ArrayPush(names, UnwrapOption(name));

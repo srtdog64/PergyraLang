@@ -195,7 +195,8 @@ func Main() -> Void with caps io_read, env {
                 base.runtime_callables, unique_names, base.return_types,
                 base.type_expressions, base.generic_starts,
                 base.generic_counts, base.generic_names, base.param_starts,
-                base.param_counts, base.param_node_ids, base.param_names,
+                base.param_counts, base.receiver_source_param_offsets,
+                base.param_node_ids, base.param_names,
                 base.param_types, base.param_modes
             );
         let exact: Option<Int> = SemanticGenericCallSignatureIndex(
@@ -221,7 +222,8 @@ func Main() -> Void with caps io_read, env {
                 base.runtime_callables, collision_names, base.return_types,
                 base.type_expressions, base.generic_starts,
                 base.generic_counts, base.generic_names, base.param_starts,
-                base.param_counts, base.param_node_ids, base.param_names,
+                base.param_counts, base.receiver_source_param_offsets,
+                base.param_node_ids, base.param_names,
                 base.param_types, base.param_modes
             );
         let collision_index: Option<Int> =
@@ -240,7 +242,8 @@ func Main() -> Void with caps io_read, env {
                 base.runtime_callables, invalid_names, base.return_types,
                 base.type_expressions, base.generic_starts,
                 base.generic_counts, base.generic_names, base.param_starts,
-                base.param_counts, base.param_node_ids, base.param_names,
+                base.param_counts, base.receiver_source_param_offsets,
+                base.param_node_ids, base.param_names,
                 base.param_types, base.param_modes
             );
         let invalid_index: Option<Int> = SemanticGenericCallSignatureIndex(

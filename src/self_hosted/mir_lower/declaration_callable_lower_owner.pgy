@@ -312,6 +312,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
         method_cursor = method_bounds[1];
     }
     let out: String = "";
+    let covered_method_count: Int = 0;
     let impl_bounds: Array<Int> = [0, 0];
     let impl_cursor: Int = impls_bounds[0] + 1;
     while JsonArrayNextObjectBounds(
@@ -337,6 +338,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
         let method_start: Int = ToInt(method_start_text);
         let method_count: Int = ToInt(method_count_text);
         if ability_name == "" || method_start < 0 || method_count < 0 ||
+            method_start != covered_method_count ||
             ToString(method_start) != method_start_text ||
             ToString(method_count) != method_count_text {
             MirLowerFailClosed(Concat(
@@ -386,7 +388,36 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
             ));
             local_method_index = local_method_index + 1;
         }
+        covered_method_count = covered_method_count + method_count;
         impl_cursor = impl_bounds[1];
+    }
+    while covered_method_count < ArrayLength(method_starts) {
+        let method_name: String = MirObjectStringFactAtBounds(
+            json, method_starts[covered_method_count],
+            method_ends[covered_method_count], "name"
+        );
+        let routine_row: Option<Int> = MirProgramRoutineIndexFindMethodRow(
+            routines, role_name, method_name
+        );
+        let contract: MirDeclarationMethodContractFact =
+            MirDeclarationMethodContractFactFromBounds(
+                json, method_starts[covered_method_count],
+                method_ends[covered_method_count]
+            );
+        if method_name == "" || !IsSome(routine_row) || !contract.valid ||
+            contract.callable_kind != "function" {
+            MirLowerFailClosed(Concat(
+                "role override method fact is invalid: ", role_name
+            ));
+        }
+        out = Concat(out, "    Override\n");
+        out = Concat(out, EmitRoutineTreeWithContractAtRowWithExpressionOrder(
+            routines, UnwrapOption(routine_row), "      ", for_type,
+            contract.callable_kind,
+            MirDeclarationMethodContractRows(contract, "        "),
+            false, false, expression_order, abi_validation
+        ));
+        covered_method_count = covered_method_count + 1;
     }
     return out;
 }

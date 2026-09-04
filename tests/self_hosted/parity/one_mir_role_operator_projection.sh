@@ -129,7 +129,7 @@ project llvm "$MIR" "$WORK/role-operator.ll"
     fail "projection mutated the admitted MIR"
 compile_run c "$WORK/role-operator.c" 123 role-operator-c
 compile_run llvm "$WORK/role-operator.ll" 123 role-operator-llvm
-grep -Fq 'static long long pgy_direct_role_operator_method(long long *self, long long rhs)' \
+grep -Fq 'static int32_t pgy_direct_role_operator_method(int32_t *self, int32_t rhs)' \
     "$WORK/role-operator.c" || fail "C role method call ABI drifted"
 grep -Fq 'pgy_direct_role_operator_method(&pgy_receiver, pgy_rhs)' \
     "$WORK/role-operator.c" || fail "C flattened the role method call"

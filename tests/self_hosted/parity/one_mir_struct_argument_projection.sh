@@ -9,7 +9,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 LABEL="self-host-one-mir-struct-argument"
-DRIVER_BIN="$(pgy_select_optional_exe_binary "${PGY_SELFHOST_STRUCT_ARGUMENT_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
+DRIVER_BIN="$(pgy_select_optional_exe_binary "${PGY_SELFHOST_STRUCT_ARGUMENT_DRIVER_BIN:-${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}}")"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 WORK_DIR="${PGY_SELFHOST_STRUCT_ARGUMENT_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/one_mir_struct_argument}"
 SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy"
@@ -103,7 +103,9 @@ mir_digest="$(hash_file "$MIR")"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") ||
     fail "native MIR oracle rejected struct fixture"
-"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_struct_argument_mutations.py" \
+PGY_SELFHOST_REPO_ROOT="$(pgy_selfhost_root_forward_slash)" \
+    "$PYTHON_BIN" \
+    "$ROOT_DIR/tests/self_hosted/parity/one_mir_struct_argument_mutations.py" \
     "$MIR" "$NATIVE_MIR" compare || fail "native/self struct ABI parity drifted"
 
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_struct_argument_mutations.py" \

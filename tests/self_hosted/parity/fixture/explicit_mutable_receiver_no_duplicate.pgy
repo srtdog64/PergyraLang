@@ -1,0 +1,12 @@
+subject ExplicitCounter {
+    let value: Int;
+
+    func Read(self) -> Int {
+        return self.value;
+    }
+}
+
+func Main() -> Void {
+    let counter = ExplicitCounter(42);
+    Log(ToString(counter.Read()));
+}

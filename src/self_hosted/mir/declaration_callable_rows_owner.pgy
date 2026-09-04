@@ -80,6 +80,24 @@ func SelfMirDeclarationCopyStringRange(
     }
     return true;
 }
+func SelfMirDeclarationRoleOverrideSuffixReady(
+    roles: SemanticAstRoleFacts, method_start: Int,
+    impl_method_count: Int, method_count: Int
+) -> Bool {
+    if !roles.ok || method_start < 0 || impl_method_count < 0 ||
+        method_count < 0 || impl_method_count > method_count ||
+        method_start + method_count > ArrayLength(roles.method_ability_names) {
+        return false;
+    }
+    let method_index: Int = impl_method_count;
+    while method_index < method_count {
+        if roles.method_ability_names[method_start + method_index] != "" {
+            return false;
+        }
+        method_index = method_index + 1;
+    }
+    return true;
+}
 func SelfMirDeclarationAppendMethodContract(
     signatures: SemanticAstFunctionSignatureFacts,
     signature_index: Int,

@@ -1489,6 +1489,8 @@ require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
     "TypedAstTextKindOf" 'StartsWith(text, "EventUnsubscribe: ")'
 require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
     "TypedAstTextKindOf" 'return TypedAstKindEventUnsubscribeStmtTag();'
+require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "TypedAstTextKindOf" 'return TypedAstKindOverrideFuncTag();'
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
     'func TypedAstKindChannelSendStmtTag() -> Int { return 94; }'
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
@@ -1503,9 +1505,11 @@ require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
     'func TypedAstKindEventSubscribeStmtTag() -> Int { return 99; }'
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
     'func TypedAstKindEventUnsubscribeStmtTag() -> Int { return 100; }'
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    'func TypedAstKindOverrideFuncTag() -> Int { return 101; }'
 require_function_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
     "TypedAstKindOwnerReady" \
-    'TypedAstKindKnown(TypedAstKindEventUnsubscribeStmtTag())'
+    'TypedAstKindKnown(TypedAstKindOverrideFuncTag())'
 forbid_text "src/self_hosted/parser/source_location_observation_owner.pgy" \
     'ChannelSend:'
 forbid_text "src/self_hosted/debug/source_location_fact_owner.pgy" \

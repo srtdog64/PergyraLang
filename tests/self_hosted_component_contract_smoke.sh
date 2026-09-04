@@ -87,6 +87,21 @@ require_make_target_text() {
         fail "Makefile target $target missing term: $term"
 }
 
+reject_make_target_text() {
+    local target="$1"
+    local term="$2"
+    local stanza
+
+    stanza="$(awk -v target="$target" '
+        $0 ~ "^" target ":" { in_target = 1 }
+        in_target && seen && $0 ~ /^[^ \t#][^:]*:/ { exit }
+        in_target { print; seen = 1 }
+    ' "$ROOT_DIR/Makefile")"
+    [[ -n "$stanza" ]] || fail "Makefile target $target is missing"
+    [[ "$stanza" != *"$term"* ]] ||
+        fail "Makefile target $target must not contain: $term"
+}
+
 reject_text() {
     local rel="$1"
     local term="$2"
@@ -413,6 +428,7 @@ require_text \
     "CodegenCallableReceiverFactsFromAdmittedAnalysis(semantic_analysis)"
 for admitted_receiver_row_accessor in \
     "CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(" \
+    "CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie(" \
     "CodegenCallableReceiverRoleTargetTypeForAdmittedSignatureOrDie(" \
     "CodegenCallableReceiverRoleTargetCarriageForAdmittedSignatureOrDie(" \
     "CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie("; do
@@ -3645,6 +3661,37 @@ reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolPro
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(1) == "llvm_symbol"'
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolProjectionAt(2) == "self_hosted_symbol"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName"
+require_file "src/self_hosted/codegen/emission/implicit_receiver_c_parameter_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/emission/implicit_receiver_c_parameter_owner.pgy" 60
+for implicit_receiver_consumer in \
+    src/self_hosted/codegen/emission/function_emit.pgy \
+    src/self_hosted/codegen/emission/function_prototype_block_owner.pgy; do
+    require_text "$implicit_receiver_consumer" \
+        'import "implicit_receiver_c_parameter_owner.pgy";'
+    require_text "$implicit_receiver_consumer" \
+        "CodegenImplicitReceiverCParameterOrDie("
+done
+for implicit_receiver_fact in \
+    CodegenCallableReceiverCarriageForAdmittedSignatureOrDie \
+    CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie \
+    CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie \
+    CodegenCallableReceiverRoleTargetTypeForAdmittedSignatureOrDie \
+    CodegenCallableReceiverRoleTargetCarriageForAdmittedSignatureOrDie; do
+    require_text \
+        "src/self_hosted/codegen/emission/implicit_receiver_c_parameter_owner.pgy" \
+        "$implicit_receiver_fact("
+done
+for receiver_name_rescan_consumer in \
+    src/self_hosted/codegen/emission/function_emit.pgy \
+    src/self_hosted/codegen/emission/function_prototype_block_owner.pgy; do
+    reject_text "$receiver_name_rescan_consumer" 'p_name == "self"'
+    reject_text "$receiver_name_rescan_consumer" "let declares_self"
+done
+require_text "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
+    '"=rso:"'
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    'LookupKindType(env, call_symbol, "rso")'
 require_file "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy"
 reject_function_text \
     "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" \
@@ -3660,7 +3707,7 @@ require_file "src/self_hosted/codegen/emission/function_global_env_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/function_global_env_owner.pgy" 280
 require_max_lines "src/self_hosted/codegen/emission/function_emit.pgy" 500
 require_max_lines \
-    "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" 240
+    "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" 270
 require_max_lines "src/self_hosted/codegen/emission/program_emit.pgy" 650
 require_max_lines "src/self_hosted/codegen/emission/program_function_definition_block_owner.pgy" 180
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -5625,6 +5672,20 @@ require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "struct Sem
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsFromArtifact"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" \
     "entrypoint_selection: SemanticAstEntrypointSelectionFact;"
+require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" \
+    "receiver_source_param_offsets: Array<Int>;"
+require_file \
+    "src/self_hosted/semantic/ast_callable_receiver_source_parameter_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_callable_receiver_source_parameter_owner.pgy" 60
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_callable_receiver_source_parameter_owner.pgy"
+require_function_text \
+    "src/self_hosted/semantic/ast_callable_receiver_source_parameter_owner.pgy" \
+    "func SemanticAstFunctionReceiverSourceParameterOffsetAt(" \
+    "signatures.receiver_source_param_offsets[signature_index]"
+require_text "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" \
+    "facts.receiver_source_param_offsets[signature_index]"
 require_file "src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy"
 require_max_lines \
     "src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy" 120
@@ -6589,10 +6650,13 @@ require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_
     'direct MIR literal Log program envelope is invalid'
 require_text "tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh" \
     'Code: entrypoint_cardinality'
+require_make_target_text \
+    "self-host-replacement-frontier-installed-test-smoke" \
+    "lowercase_entrypoint_installed_self_host_owner.sh"
 require_text "scripts/ci_push_linux_steps.sh" \
-    'self-host-lowercase-entrypoint-replacement-test-smoke'
+    'self-host-replacement-frontier-installed-test-smoke'
 require_text "scripts/ci_linux_steps.sh" \
-    'self-host-lowercase-entrypoint-replacement-test-smoke'
+    'self-host-replacement-frontier-installed-test-smoke'
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionCallTargetFactContractReady()"
 reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
@@ -11367,7 +11431,7 @@ reject_text "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
     "CodegenAstArenaParamModeName("
 reject_text "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
     "CodegenAstTextParamModeName("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameOrDie("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameForNodeOrDie("
 require_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" "CodegenSemanticFunctionParamTypeOrDie("
 require_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" "CodegenSemanticFunctionReturnTypeOrDie("
 if [[ -f "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" ]]; then
@@ -11439,7 +11503,7 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypedAstArenaA
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" '"=enum:payload_free|"'
 require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 'ename, Concat(".", Concat('
 reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameOrDie("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameForNodeOrDie("
 require_text "src/self_hosted/codegen/emission/function_prototype_block_owner.pgy" "CodegenSemanticFunctionParamTypeOrDie("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, owner)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
@@ -23283,7 +23347,7 @@ require_file "tests/self_hosted/parity/one_mir_struct_argument_mutations.py"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_struct_argument_projection.sh" 150
 require_max_lines \
-    "tests/self_hosted/parity/one_mir_struct_argument_mutations.py" 165
+    "tests/self_hosted/parity/one_mir_struct_argument_mutations.py" 190
 require_text \
     "src/self_hosted/compiler/direct_mir_struct_argument_plan_owner.pgy" \
     "DirectMirStructArgumentPlanMutationRejected("
@@ -24488,6 +24552,135 @@ require_text "Makefile" \
     "self-host-one-mir-role-operator-projection-test-smoke:"
 require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-role-operator-projection-test-smoke"
+for role_override_owner_cap in \
+    direct_mir_role_override_program_identity_owner.pgy:800 \
+    direct_mir_role_override_plan_owner.pgy:120 \
+    direct_mir_role_override_target_projection_owner.pgy:110 \
+    direct_mir_role_override_emission_owner.pgy:220; do
+    role_override_owner="${role_override_owner_cap%%:*}"
+    role_override_cap="${role_override_owner_cap##*:}"
+    require_file "src/self_hosted/compiler/$role_override_owner"
+    require_max_lines \
+        "src/self_hosted/compiler/$role_override_owner" "$role_override_cap"
+done
+require_file "tests/self_hosted/parity/role_override_mir_replacement.sh"
+require_max_lines \
+    "tests/self_hosted/parity/role_override_mir_replacement.sh" 380
+require_file "tests/self_hosted/parity/role_override_mir_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/role_override_mir_mutations.py" 100
+require_file "tests/cases/backend_compare/role_override_mir/expected.stdout"
+for role_receiver_fixture in \
+    implicit_mutable_receiver_inout.pgy \
+    explicit_mutable_receiver_no_duplicate.pgy \
+    implicit_value_receiver_no_duplicate.pgy \
+    typed_self_parameter_rejected.pgy \
+    late_self_parameter_rejected.pgy; do
+    require_file "tests/self_hosted/parity/fixture/$role_receiver_fixture"
+done
+role_override_family_lines=$((
+    $(wc -l < src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_role_override_plan_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_role_override_target_projection_owner.pgy) +
+    $(wc -l < src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy)
+))
+[[ "$role_override_family_lines" -le 1250 ]] || \
+    fail "role override direct family exceeds 1250 LOC ($role_override_family_lines)"
+for role_override_single_issuer in \
+    DirectMirRoleOverrideProgramIdentityFromAdmitted \
+    DirectMirRoleOverridePlanFromIdentity \
+    DirectMirRoleOverrideTargetAbiProjectionFromPlan; do
+    [[ "$(grep -R -F --include='*.pgy' "$role_override_single_issuer(" \
+        src/self_hosted | wc -l | tr -d ' ')" -eq 2 ]] || \
+        fail "$role_override_single_issuer must have one definition and one call"
+done
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" \
+    "DirectMirRoleOverrideProgramIdentityFromAdmitted(admitted)"
+require_text \
+    "src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" \
+    "CompileAdmittedDirectMirRoleOverride("
+for role_override_fixture_term in '"OverrideTarget"' '"OverrideSurface"' \
+    role_override_mir; do
+    ! grep -Fq "$role_override_fixture_term" \
+        src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy \
+        src/self_hosted/compiler/direct_mir_role_override_plan_owner.pgy \
+        src/self_hosted/compiler/direct_mir_role_override_target_projection_owner.pgy \
+        src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy || \
+        fail "role override fixture identity leaked into an owner: $role_override_fixture_term"
+done
+for role_override_emitter_contract in \
+    'func DirectMirRoleOverrideEmitC(:CompilerTargetCpuCProjection()' \
+    'func DirectMirRoleOverrideEmitLlvm(:CompilerTargetCpuLlvmProjection()'; do
+    role_override_emitter="${role_override_emitter_contract%%:*}"
+    role_override_target="${role_override_emitter_contract##*:}"
+    require_function_text \
+        "src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy" \
+        "$role_override_emitter" \
+        "ref projection: DirectMirRoleOverrideTargetAbiProjection"
+    require_function_text \
+        "src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy" \
+        "$role_override_emitter" "$role_override_target"
+done
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy" \
+    "func DirectMirRoleOverrideEmitC(" "CompilerAbiLayoutIntCValueType()"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy" \
+    "func DirectMirRoleOverrideEmitLlvm(" '" = type { i32 }"'
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy" \
+    "func DirectMirRoleOverrideEmitLlvm(" '", align 4"'
+require_text "Makefile" "SELFHOST_ROLE_OVERRIDE_REPLACEMENT_GATE ?="
+require_text "Makefile" '$(SELFHOST_ROLE_OVERRIDE_REPLACEMENT_GATE)'
+require_text "Makefile" \
+    "self-host-role-override-replacement-test-smoke:"
+for replacement_frontier_gate in \
+    driver_rung2_callable_parameter_identity_owner.sh \
+    callable_parameter_installed_self_host_owner.sh \
+    region_user_callee_installed_self_host_owner.sh \
+    lowercase_entrypoint_installed_self_host_owner.sh \
+    one_mir_struct_argument_projection.sh \
+    role_override_mir_replacement.sh; do
+    require_make_target_text \
+        "self-host-replacement-frontier-installed-test-smoke" \
+        "$replacement_frontier_gate"
+done
+require_make_target_text "self-host-replacement-frontier-test-smoke" \
+    "self-host-replacement-frontier-installed-test-smoke"
+for installed_frontier_forbidden in \
+    self-host-compiler \
+    self-host-replacement-frontier-test-smoke; do
+    reject_make_target_text \
+        "self-host-replacement-frontier-installed-test-smoke" \
+        "$installed_frontier_forbidden"
+done
+require_text "Makefile" \
+    "self-host-replacement-frontier-test-smoke: self-host-compiler"
+if command -v make >/dev/null 2>&1; then
+    installed_frontier_dry_run="$(
+        make -C "$ROOT_DIR" --no-print-directory -n \
+            self-host-replacement-frontier-installed-test-smoke
+    )" || fail "installed replacement frontier dry-run failed"
+    standalone_frontier_dry_run="$(
+        make -C "$ROOT_DIR" --no-print-directory -n \
+            self-host-replacement-frontier-test-smoke
+    )" || fail "standalone replacement frontier dry-run failed"
+    installed_bootstraps="$(grep -F -c \
+        'tests/self_hosted/parity/self_host_compiler_build.sh' \
+        <<<"$installed_frontier_dry_run" || true)"
+    standalone_bootstraps="$(grep -F -c \
+        'tests/self_hosted/parity/self_host_compiler_build.sh' \
+        <<<"$standalone_frontier_dry_run" || true)"
+    [[ "$installed_bootstraps" -eq 0 ]] ||
+        fail "installed replacement frontier must be bootstrap-free"
+    [[ "$standalone_bootstraps" -eq 1 ]] ||
+        fail "standalone replacement frontier must bootstrap exactly once"
+fi
+require_text "scripts/ci_push_linux_steps.sh" \
+    "self-host-replacement-frontier-installed-test-smoke"
+require_text "scripts/ci_linux_steps.sh" \
+    "self-host-replacement-frontier-installed-test-smoke"
 require_text \
     "tests/self_hosted/parity/default_c_compile_installed_self_host_owner.sh" \
     "ability_decl.pgy|ability|7"
@@ -26958,10 +27151,13 @@ for forbidden in readonly_string_value_carriage_coercion \
 done
 require_text "Makefile" \
     "self-host-region-user-callee-replacement-test-smoke: self-host-callable-parameter-identity-replacement-test-smoke"
+require_make_target_text \
+    "self-host-replacement-frontier-installed-test-smoke" \
+    "region_user_callee_installed_self_host_owner.sh"
 require_text "scripts/ci_push_linux_steps.sh" \
-    "make self-host-region-user-callee-replacement-test-smoke"
+    "make self-host-replacement-frontier-installed-test-smoke"
 require_text "scripts/ci_linux_steps.sh" \
-    "make self-host-region-user-callee-replacement-test-smoke"
+    "make self-host-replacement-frontier-installed-test-smoke"
 
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"

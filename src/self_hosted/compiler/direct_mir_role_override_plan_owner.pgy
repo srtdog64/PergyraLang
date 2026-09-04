@@ -1,0 +1,114 @@
+// Target-neutral plan for a subject value whose ordinary member call remains
+// subject-bound while one direct role override body is preserved separately.
+
+import "artifact_zone_owner.pgy";
+import "direct_mir_role_override_program_identity_owner.pgy";
+import "target_capability_owner.pgy";
+
+struct DirectMirRoleOverridePlan {
+    let valid: Bool;
+    let schema: String;
+    let revision: Int;
+    let digest: Int;
+    let target_capability_schema: String;
+    let target_capability_fingerprint: Int;
+    let program: DirectMirRoleOverrideProgramIdentity;
+    let abi_provenance: String;
+    let abi_evidence_id: Int;
+    let representation: String;
+    let storage_carriage: String;
+    let storage_count: Int;
+    let stable_address: Bool;
+    let pointee_mutable: Bool;
+}
+
+func DirectMirRoleOverridePlanSchema() -> String {
+    return "pgy.selfhost.direct-mir-role-override-plan.v1";
+}
+
+func DirectMirRoleOverrideStorageCarriage() -> String {
+    return "mutable_identity_direct_subject_dispatch";
+}
+
+func DirectMirRoleOverrideAbiProvenance() -> String {
+    return "typed_nominal_physical_abi_absent_compiler_private_role_override";
+}
+
+func DirectMirRoleOverridePlanDigest(
+    ref plan: DirectMirRoleOverridePlan
+) -> Int {
+    if !plan.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(769L, plan.schema);
+    hash = DirectMirCfgHashInt(hash, plan.revision);
+    hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
+    hash = DirectMirCfgHashInt(hash, plan.target_capability_fingerprint);
+    hash = DirectMirCfgHashInt(hash, plan.program.digest);
+    hash = DirectMirCfgHashString(hash, plan.abi_provenance);
+    hash = DirectMirCfgHashInt(hash, plan.abi_evidence_id);
+    hash = DirectMirCfgHashString(hash, plan.representation);
+    hash = DirectMirCfgHashString(hash, plan.storage_carriage);
+    hash = DirectMirCfgHashInt(hash, plan.storage_count);
+    if plan.stable_address { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    if plan.pointee_mutable { hash = DirectMirCfgHashInt(hash, 1); }
+    else { hash = DirectMirCfgHashInt(hash, 0); }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRoleOverridePlanWithDigest(
+    plan: DirectMirRoleOverridePlan,
+    digest: Int
+) -> DirectMirRoleOverridePlan {
+    return DirectMirRoleOverridePlan(
+        plan.valid, plan.schema, plan.revision, digest,
+        plan.target_capability_schema, plan.target_capability_fingerprint,
+        plan.program, plan.abi_provenance, plan.abi_evidence_id,
+        plan.representation, plan.storage_carriage, plan.storage_count,
+        plan.stable_address, plan.pointee_mutable
+    );
+}
+
+func DirectMirRoleOverridePlanReady(
+    ref plan: DirectMirRoleOverridePlan
+) -> Bool {
+    return plan.valid && plan.schema == DirectMirRoleOverridePlanSchema() &&
+        plan.revision == CompilerArtifactPlanRevision() && plan.digest != 0 &&
+        plan.digest == DirectMirRoleOverridePlanDigest(plan) &&
+        plan.target_capability_schema == CompilerTargetCapabilitySchema() &&
+        plan.target_capability_fingerprint ==
+            CompilerTargetCapabilityFingerprint() &&
+        DirectMirRoleOverrideProgramIdentityReady(plan.program) &&
+        plan.abi_provenance == DirectMirRoleOverrideAbiProvenance() &&
+        plan.abi_evidence_id ==
+            plan.program.entrypoint.typed_nominal_abi_absence.digest &&
+        plan.representation ==
+            "compiler_private_single_int_mutable_nominal_identity" &&
+        plan.storage_carriage == DirectMirRoleOverrideStorageCarriage() &&
+        plan.storage_count == 1 && plan.stable_address &&
+        plan.pointee_mutable;
+}
+
+func DirectMirRoleOverridePlanFromIdentity(
+    program: DirectMirRoleOverrideProgramIdentity
+) -> DirectMirRoleOverridePlan {
+    if !DirectMirRoleOverrideProgramIdentityReady(program) {
+        Die("direct MIR role override plan has no admitted identity");
+    }
+    let plan: DirectMirRoleOverridePlan = DirectMirRoleOverridePlan(
+        true, DirectMirRoleOverridePlanSchema(),
+        CompilerArtifactPlanRevision(), 0, CompilerTargetCapabilitySchema(),
+        CompilerTargetCapabilityFingerprint(), program,
+        DirectMirRoleOverrideAbiProvenance(),
+        program.entrypoint.typed_nominal_abi_absence.digest,
+        "compiler_private_single_int_mutable_nominal_identity",
+        DirectMirRoleOverrideStorageCarriage(), 1, true, true
+    );
+    let verified: DirectMirRoleOverridePlan =
+        DirectMirRoleOverridePlanWithDigest(
+            plan, DirectMirRoleOverridePlanDigest(plan)
+        );
+    if !DirectMirRoleOverridePlanReady(verified) {
+        Die("direct MIR role override plan identity is invalid");
+    }
+    return verified;
+}

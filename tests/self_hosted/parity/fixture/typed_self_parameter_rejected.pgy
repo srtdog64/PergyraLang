@@ -1,0 +1,7 @@
+subject TypedSelf {
+    func Read(self: TypedSelf) -> Int {
+        return 1;
+    }
+}
+
+func Main() -> Void {}

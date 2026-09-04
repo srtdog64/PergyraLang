@@ -32,9 +32,15 @@ func CollectRoleOperators(
             let mname: String = CodegenSemanticFunctionNameOrDie(
                 signatures, signature_index
             );
+            let ability_name: Option<String> =
+                SemanticAstRoleMethodAbilityNameAt(roles, i, method_index);
+            if !IsSome(ability_name) {
+                Die("semantic role method ability identity is missing");
+            }
             let operator_kind: Option<Int> =
                 SemanticRoleOperatorKindForMethodName(mname);
-            if for_type != "" && IsSome(operator_kind) {
+            if for_type != "" && UnwrapOption(ability_name) != "" &&
+                IsSome(operator_kind) {
                 let suffix: Option<String> = SemanticRoleOperatorSuffix(
                     UnwrapOption(operator_kind)
                 );
@@ -133,6 +139,7 @@ func CodegenSemanticRoleMethodSignatureIndexByNameOrDie(
     roles: SemanticAstRoleFacts,
     signatures: SemanticAstFunctionSignatureFacts,
     role_index: Int,
+    ability_name: String,
     method_name: String
 ) -> Int {
     let method_count: Int = CodegenSemanticRoleMethodCountOrDie(
@@ -146,8 +153,16 @@ func CodegenSemanticRoleMethodSignatureIndexByNameOrDie(
         let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
             signatures, method_node
         );
-        if CodegenSemanticFunctionNameOrDie(signatures, signature_index) ==
-            method_name {
+        let method_ability: Option<String> =
+            SemanticAstRoleMethodAbilityNameAt(
+                roles, role_index, method_index
+            );
+        if !IsSome(method_ability) {
+            Die("semantic role method ability identity is missing");
+        }
+        if UnwrapOption(method_ability) == ability_name &&
+            CodegenSemanticFunctionNameOrDie(signatures, signature_index) ==
+                method_name {
             return signature_index;
         }
         method_index = method_index + 1;
@@ -305,7 +320,7 @@ func CodegenSemanticRoleDispatchTypeBlock(
                 );
                 let role_signature: Int =
                     CodegenSemanticRoleMethodSignatureIndexByNameOrDie(
-                        roles, signatures, role_index, method_name
+                        roles, signatures, role_index, ability_name, method_name
                     );
                 let line: String = Concat(
                     AbiLayoutCReturnType(

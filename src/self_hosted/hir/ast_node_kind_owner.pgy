@@ -108,6 +108,8 @@ func TypedAstKindTransactionBlockTag() -> Int { return 97; }
 func TypedAstKindFailStmtTag() -> Int { return 98; }
 func TypedAstKindEventSubscribeStmtTag() -> Int { return 99; }
 func TypedAstKindEventUnsubscribeStmtTag() -> Int { return 100; }
+// Appended role override wrapper; existing compact identities never move.
+func TypedAstKindOverrideFuncTag() -> Int { return 101; }
 
 func TypedAstKindIsIntentRow(kind: Int) -> Bool {
     return (kind >= TypedAstKindIntentModeTag() &&
@@ -129,7 +131,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindEventUnsubscribeStmtTag();
+        kind <= TypedAstKindOverrideFuncTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -227,14 +229,14 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindChannelSendStmtTag(), TypedAstKindParallelBlockTag(),
         TypedAstKindWithStmtTag(), TypedAstKindTransactionBlockTag(),
         TypedAstKindFailStmtTag(), TypedAstKindEventSubscribeStmtTag(),
-        TypedAstKindEventUnsubscribeStmtTag()
+        TypedAstKindEventUnsubscribeStmtTag(), TypedAstKindOverrideFuncTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 100 {
+    if ArrayLength(tags) != 101 {
         return false;
     }
     let i: Int = 0;
@@ -288,6 +290,7 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindFailStmtTag()) &&
         TypedAstKindKnown(TypedAstKindEventSubscribeStmtTag()) &&
         TypedAstKindKnown(TypedAstKindEventUnsubscribeStmtTag()) &&
+        TypedAstKindKnown(TypedAstKindOverrideFuncTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentModeTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentTerminalFailureTag()) &&
         TypedAstKindIsIntentRow(
@@ -307,7 +310,7 @@ func TypedAstKindOwnerReady() -> Bool {
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
         !TypedAstKindKnown(
-            TypedAstKindEventUnsubscribeStmtTag() + 1
+            TypedAstKindOverrideFuncTag() + 1
         ) &&
         TypedAstKindKnown(TypedAstKindExternBlockTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindExternBlockTag()) &&

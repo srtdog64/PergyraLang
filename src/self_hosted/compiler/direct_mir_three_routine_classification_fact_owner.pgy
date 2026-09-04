@@ -2,6 +2,7 @@
 
 import "direct_mir_three_routine_constructed_member_shape_owner.pgy";
 import "direct_mir_three_routine_mixed_constructed_member_shape_owner.pgy";
+import "direct_mir_role_override_program_identity_owner.pgy";
 
 struct DirectMirThreeRoutineClassificationFact {
     let valid: Bool;
@@ -10,6 +11,7 @@ struct DirectMirThreeRoutineClassificationFact {
     let declaration_count: Int;
     let specialization_count: Int;
     let generic_routine_count: Int;
+    let role_override_program: DirectMirRoleOverrideProgramIdentity;
     let constructed_member_shape: DirectMirThreeRoutineConstructedMemberShapeFact;
     let mixed_constructed_member_shape:
         DirectMirThreeRoutineMixedConstructedMemberShapeFact;
@@ -19,6 +21,7 @@ func DirectMirThreeRoutineArrayArgument() -> String { return "declaration-free";
 func DirectMirThreeRoutineGenericNominal() -> String { return "single-nominal"; }
 func DirectMirThreeRoutineInferredGenericScalar() -> String { return "declaration-free-inferred-generic"; }
 func DirectMirThreeRoutineStructArgument() -> String { return "double-nominal"; }
+func DirectMirThreeRoutineRoleOverride() -> String { return "role-override"; }
 func DirectMirThreeRoutineConstructedGenericMember() -> String { return "single-class-constructed-member"; }
 func DirectMirThreeRoutineMixedConstructedGenericMember() -> String {
     return "mixed-struct-class-constructed-member";
@@ -32,6 +35,7 @@ func DirectMirThreeRoutineClassificationFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.declaration_count);
     hash = DirectMirCfgHashInt(hash, fact.specialization_count);
     hash = DirectMirCfgHashInt(hash, fact.generic_routine_count);
+    hash = DirectMirCfgHashInt(hash, fact.role_override_program.digest);
     hash = DirectMirCfgHashInt(hash, fact.constructed_member_shape.digest);
     hash = DirectMirCfgHashInt(hash, fact.mixed_constructed_member_shape.digest);
     return DirectMirCfgBoundedDigest(hash);
@@ -45,20 +49,26 @@ func DirectMirThreeRoutineClassificationFactReady(
     let mixed_shape_absent: Bool =
         !fact.mixed_constructed_member_shape.valid &&
         fact.mixed_constructed_member_shape.digest == 0;
+    let role_override_absent: Bool =
+        !fact.role_override_program.valid &&
+        fact.role_override_program.digest == 0;
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirThreeRoutineClassificationFactDigest(fact) &&
-        ((fact.kind == DirectMirThreeRoutineArrayArgument() && shape_absent &&
+        ((fact.kind == DirectMirThreeRoutineArrayArgument() &&
+          role_override_absent && shape_absent &&
           mixed_shape_absent &&
           fact.declaration_count == 0 && fact.specialization_count == 0 &&
           fact.generic_routine_count == 0) ||
          (fact.kind == DirectMirThreeRoutineInferredGenericScalar() &&
-          shape_absent && mixed_shape_absent && fact.declaration_count == 0 &&
+          role_override_absent && shape_absent && mixed_shape_absent &&
+          fact.declaration_count == 0 &&
           fact.specialization_count == 2 && fact.generic_routine_count == 1) ||
-         (fact.kind == DirectMirThreeRoutineGenericNominal() && shape_absent &&
-          mixed_shape_absent &&
+         (fact.kind == DirectMirThreeRoutineGenericNominal() &&
+          role_override_absent && shape_absent && mixed_shape_absent &&
           fact.declaration_count == 1 && fact.specialization_count == 4 &&
           fact.generic_routine_count == 1) ||
          (fact.kind == DirectMirThreeRoutineConstructedGenericMember() &&
+          role_override_absent &&
           fact.declaration_count == 1 && fact.specialization_count == 2 &&
           fact.generic_routine_count == 2 &&
           mixed_shape_absent &&
@@ -66,13 +76,19 @@ func DirectMirThreeRoutineClassificationFactReady(
               fact.constructed_member_shape
           )) ||
          (fact.kind == DirectMirThreeRoutineMixedConstructedGenericMember() &&
-          shape_absent && fact.declaration_count == 2 &&
+          role_override_absent && shape_absent && fact.declaration_count == 2 &&
           fact.specialization_count == 2 && fact.generic_routine_count == 2 &&
           DirectMirThreeRoutineMixedConstructedMemberShapeFactReady(
               fact.mixed_constructed_member_shape
           )) ||
-         (fact.kind == DirectMirThreeRoutineStructArgument() && shape_absent &&
-          mixed_shape_absent &&
+         (fact.kind == DirectMirThreeRoutineStructArgument() &&
+          role_override_absent && shape_absent && mixed_shape_absent &&
           fact.declaration_count == 2 && fact.specialization_count == 0 &&
-          fact.generic_routine_count == 0));
+          fact.generic_routine_count == 0) ||
+         (fact.kind == DirectMirThreeRoutineRoleOverride() && shape_absent &&
+          mixed_shape_absent && fact.declaration_count == 2 &&
+          fact.specialization_count == 0 && fact.generic_routine_count == 0 &&
+          DirectMirRoleOverrideProgramIdentityReady(
+              fact.role_override_program
+          )));
 }

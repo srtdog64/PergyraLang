@@ -2,6 +2,7 @@
 
 import copy
 import json
+import os
 import pathlib
 import sys
 
@@ -26,27 +27,60 @@ def declaration(document, name):
     return rows[0]
 
 
-def normalized_declaration(row):
+def normalized_source_module_path(value):
+    if not isinstance(value, str) or not value:
+        raise RuntimeError("declaration source module path is invalid")
+    value = value.replace("\\", "/")
+    root = os.environ.get("PGY_SELFHOST_REPO_ROOT", "").replace("\\", "/").rstrip("/")
+    if root:
+        prefix = root + "/"
+        windows_root = len(root) > 1 and root[1] == ":"
+        matches = value.casefold().startswith(prefix.casefold()) if windows_root else value.startswith(prefix)
+        if matches:
+            value = value[len(prefix):]
+    if value.startswith("/") or (len(value) > 1 and value[1] == ":"):
+        raise RuntimeError("declaration source module path escapes repository")
+    parts = pathlib.PurePosixPath(value).parts
+    if not parts or any(part in (".", "..") for part in parts):
+        raise RuntimeError("declaration source module path escapes repository")
+    return "/".join(parts)
+
+
+def consume_source_syntax_id(row, seen):
+    value = row.pop("source_syntax_id")
+    if type(value) is not int or value <= 0:
+        raise RuntimeError("compared source identity is not a positive integer")
+    if value in seen:
+        raise RuntimeError("compared source identity is duplicated")
+    seen.add(value)
+
+
+def normalized_declaration(row, seen):
     result = copy.deepcopy(row)
-    syntax_ids = [result.pop("source_syntax_id")]
+    result["source_module_path"] = normalized_source_module_path(result.get("source_module_path"))
+    consume_source_syntax_id(result, seen)
     for field in result["fields"]:
-        syntax_ids.append(field.pop("source_syntax_id"))
-    if any(not isinstance(value, int) or value <= 0 for value in syntax_ids):
-        raise RuntimeError(f"{row['name']} has invalid source identity")
-    if len(set(syntax_ids)) != len(syntax_ids):
-        raise RuntimeError(f"{row['name']} source identity is duplicated")
+        consume_source_syntax_id(field, seen)
+    return result
+
+
+def normalized_parameters(rows, seen):
+    result = copy.deepcopy(rows)
+    for row in result:
+        consume_source_syntax_id(row, seen)
     return result
 
 
 if mode == "compare":
     oracle = json.loads(target.read_text(encoding="utf-8"))
+    baseline_ids, oracle_ids = set(), set()
     for name in ("Vec2", "Line"):
-        if normalized_declaration(declaration(baseline, name)) != \
-                normalized_declaration(declaration(oracle, name)):
+        if normalized_declaration(declaration(baseline, name), baseline_ids) != \
+                normalized_declaration(declaration(oracle, name), oracle_ids):
             raise RuntimeError(f"{name} declaration ABI receipt drifted")
     for name in ("Twice", "Width"):
-        actual = routine(baseline, name)["params"]
-        expected = routine(oracle, name)["params"]
+        actual = normalized_parameters(routine(baseline, name)["params"], baseline_ids)
+        expected = normalized_parameters(routine(oracle, name)["params"], oracle_ids)
         if actual != expected:
             raise RuntimeError(f"{name} parameter ABI receipt drifted")
     raise SystemExit(0)

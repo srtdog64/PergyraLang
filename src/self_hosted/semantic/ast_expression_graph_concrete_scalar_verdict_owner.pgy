@@ -9,11 +9,25 @@ import "expr_type_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "ast_signature_type_expression_fact_owner.pgy";
 import "ast_contextual_builtin_type_owner.pgy";
+import "ast_callable_receiver_source_parameter_owner.pgy";
+
+func SemanticExpressionGraphCallTargetSourceParameterOffset(
+    target: SemanticExpressionCallTargetFact,
+    local_callable: SemanticAstCallableTypeShape,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> Option<Int> {
+    if target.kind != SemanticCallTargetMember() { return Some(0); }
+    if local_callable.ok { return Some(target.parameter_offset); }
+    return SemanticAstFunctionReceiverSourceParameterOffsetForCallable(
+        signatures, target.name
+    );
+}
 
 func SemanticExpressionGraphConcreteScalarValueOwned(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
     function_names: Array<String>,
@@ -34,7 +48,8 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
             IsSome(SemanticExpressionGraphCastTargetTypeName(
                 graph, node_id
             )) && SemanticExpressionGraphConcreteScalarValueOwned(
-                graph, UnwrapOption(operand), constructors, names, types,
+                graph, UnwrapOption(operand), constructors, signatures,
+                names, types,
                 function_names, function_returns, function_params
             );
     }
@@ -72,7 +87,8 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
         );
         if !IsSome(left) ||
             !SemanticExpressionGraphConcreteScalarValueOwned(
-                graph, UnwrapOption(left), constructors, names, types, function_names,
+                graph, UnwrapOption(left), constructors, signatures,
+                names, types, function_names,
                 function_returns, function_params
             ) {
             return false;
@@ -83,7 +99,8 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
         );
         return IsSome(right) &&
             SemanticExpressionGraphConcreteScalarValueOwned(
-                graph, UnwrapOption(right), constructors, names, types, function_names,
+                graph, UnwrapOption(right), constructors, signatures,
+                names, types, function_names,
                 function_returns, function_params
             );
     }
@@ -122,8 +139,15 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     if signature != "" {
         signature_count = SemanticDelimitedRangeCount(signature_facts);
     }
-    if signature_count < target_fact.parameter_offset { return false; }
-    let expected_count: Int = signature_count - target_fact.parameter_offset;
+    let source_offset: Option<Int> =
+        SemanticExpressionGraphCallTargetSourceParameterOffset(
+            target_fact, local_callable, signatures
+        );
+    if !IsSome(source_offset) || signature_count < UnwrapOption(source_offset) {
+        return false;
+    }
+    let parameter_offset: Int = UnwrapOption(source_offset);
+    let expected_count: Int = signature_count - parameter_offset;
     if expected_count != ArrayLength(call.argument_nodes) {
         return true;
     }
@@ -133,7 +157,7 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     )) {
         return false;
     }
-    let i: Int = target_fact.parameter_offset;
+    let i: Int = parameter_offset;
     while i < signature_count {
         let expected: String = SemanticDelimitedRangeText(
             signature_facts, signature, i
@@ -147,7 +171,8 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     i = 0;
     while i < ArrayLength(call.argument_nodes) {
         if !SemanticExpressionGraphConcreteScalarValueOwned(
-            graph, call.argument_nodes[i], constructors, names, types, function_names,
+            graph, call.argument_nodes[i], constructors, signatures,
+            names, types, function_names,
             function_returns, function_params
         ) {
             return false;
@@ -161,6 +186,7 @@ func SemanticExpressionGraphContextualCallArgumentsOwned(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
     function_names: Array<String>,
@@ -202,8 +228,13 @@ func SemanticExpressionGraphContextualCallArgumentsOwned(
     if signature != "" {
         signature_count = SemanticDelimitedRangeCount(signature_facts);
     }
-    if signature_count < target_fact.parameter_offset ||
-        signature_count - target_fact.parameter_offset !=
+    let source_offset: Option<Int> =
+        SemanticExpressionGraphCallTargetSourceParameterOffset(
+            target_fact, local_callable, signatures
+        );
+    if !IsSome(source_offset) ||
+        signature_count < UnwrapOption(source_offset) ||
+        signature_count - UnwrapOption(source_offset) !=
         ArrayLength(call.argument_nodes) {
         return false;
     }
@@ -213,7 +244,7 @@ func SemanticExpressionGraphContextualCallArgumentsOwned(
         let expected: Option<String> = Some(
             SemanticDelimitedRangeText(
                 signature_facts, signature,
-                i + target_fact.parameter_offset
+                i + UnwrapOption(source_offset)
             )
         );
         let contextual: Option<String> =
@@ -223,7 +254,8 @@ func SemanticExpressionGraphContextualCallArgumentsOwned(
         if IsSome(contextual) {
             has_contextual_argument = true;
         } else if !SemanticExpressionGraphConcreteScalarValueOwned(
-            graph, call.argument_nodes[i], constructors, names, types,
+            graph, call.argument_nodes[i], constructors, signatures,
+            names, types,
             function_names, function_returns, function_params
         ) {
             return false;
@@ -246,6 +278,7 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
     function_names: Array<String>,
@@ -305,8 +338,23 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
     if signature != "" {
         signature_count = SemanticDelimitedRangeCount(signature_facts);
     }
+    let source_offset: Option<Int> =
+        SemanticExpressionGraphCallTargetSourceParameterOffset(
+            target_fact, local_callable, signatures
+        );
+    if !IsSome(source_offset) {
+        return SemanticExpressionGraphResolvedCallArgumentFacts(
+            call, empty_target, false, "", empty_ranges, 0
+        );
+    }
+    let resolved_target: SemanticExpressionCallTargetFact =
+        SemanticExpressionCallTargetFact(
+            target_fact.ok, target_fact.kind, target_fact.name,
+            UnwrapOption(source_offset)
+        );
     return SemanticExpressionGraphResolvedCallArgumentFacts(
-        call, target_fact, true, signature, signature_facts, signature_count
+        call, resolved_target, true, signature, signature_facts,
+        signature_count
     );
 }
 
@@ -314,6 +362,7 @@ func SemanticExpressionGraphResolvedMemberCallArgumentsOwned(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
     function_names: Array<String>,
@@ -322,7 +371,7 @@ func SemanticExpressionGraphResolvedMemberCallArgumentsOwned(
 ) -> Bool {
     let facts: SemanticExpressionGraphResolvedCallArgumentFacts =
         SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
-            graph, node_id, constructors, names, types,
+            graph, node_id, constructors, signatures, names, types,
             function_names, function_returns, function_params
         );
     if !facts.target.ok || !facts.signature_found ||
@@ -335,7 +384,8 @@ func SemanticExpressionGraphResolvedMemberCallArgumentsOwned(
     let i: Int = 0;
     while i < ArrayLength(facts.call.argument_nodes) {
         if !SemanticExpressionGraphConcreteScalarValueOwned(
-            graph, facts.call.argument_nodes[i], constructors, names, types,
+            graph, facts.call.argument_nodes[i], constructors, signatures,
+            names, types,
             function_names, function_returns, function_params
         ) {
             return false;
@@ -349,6 +399,7 @@ func SemanticExpressionGraphConcreteScalarValueError(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
     function_names: Array<String>,
@@ -378,7 +429,8 @@ func SemanticExpressionGraphConcreteScalarValueError(
         }
         let operand_error: String =
             SemanticExpressionGraphConcreteScalarValueError(
-                graph, UnwrapOption(operand), constructors, names, types,
+                graph, UnwrapOption(operand), constructors, signatures,
+                names, types,
                 function_names, function_returns, function_params
             );
         if StringLength(operand_error) > 0 { return operand_error; }
@@ -422,7 +474,8 @@ func SemanticExpressionGraphConcreteScalarValueError(
         }
         let child_error: String =
             SemanticExpressionGraphConcreteScalarValueError(
-                graph, UnwrapOption(left), constructors, names, types,
+                graph, UnwrapOption(left), constructors, signatures,
+                names, types,
                 function_names, function_returns, function_params
             );
         if StringLength(child_error) > 0 { return child_error; }
@@ -437,7 +490,8 @@ func SemanticExpressionGraphConcreteScalarValueError(
             }
             let right_error: String =
                 SemanticExpressionGraphConcreteScalarValueError(
-                    graph, UnwrapOption(right), constructors, names, types,
+                    graph, UnwrapOption(right), constructors, signatures,
+                    names, types,
                     function_names, function_returns, function_params
                 );
             if StringLength(right_error) > 0 { return right_error; }
@@ -449,7 +503,7 @@ func SemanticExpressionGraphConcreteScalarValueError(
     }
     let argument_facts: SemanticExpressionGraphResolvedCallArgumentFacts =
         SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
-            graph, node_id, constructors, names, types,
+            graph, node_id, constructors, signatures, names, types,
             function_names, function_returns, function_params
         );
     let call: SemanticCallSpineView = argument_facts.call;
@@ -502,7 +556,7 @@ func SemanticExpressionGraphConcreteScalarValueError(
         let argument: Int = call.argument_nodes[i];
         let argument_error: String =
             SemanticExpressionGraphConcreteScalarValueError(
-                graph, argument, constructors, names, types,
+                graph, argument, constructors, signatures, names, types,
                 function_names, function_returns, function_params
             );
         if StringLength(argument_error) > 0 { return argument_error; }

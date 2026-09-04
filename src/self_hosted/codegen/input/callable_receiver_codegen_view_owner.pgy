@@ -10,6 +10,7 @@ import "../../semantic/ast_role_fact_owner.pgy";
 import "../../semantic/ast_enum_fact_owner.pgy";
 import "../../semantic/ast_artifact_verdict_owner.pgy";
 import "../../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../../semantic/ast_callable_receiver_source_parameter_owner.pgy";
 import "../text/text_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
@@ -21,6 +22,7 @@ struct CodegenCallableReceiverFacts {
     let owners: Array<String>;
     let names: Array<String>;
     let carriages: Array<String>;
+    let source_parameter_offsets: Array<Int>;
     let role_erased: Array<Bool>;
     let role_target_types: Array<String>;
     let role_target_carriages: Array<String>;
@@ -96,6 +98,7 @@ func CodegenCallableReceiverFactsFromSemantic(
     let owners: Array<String> = [];
     let names: Array<String> = [];
     let carriages: Array<String> = [];
+    let source_parameter_offsets: Array<Int> = [];
     let role_erased: Array<Bool> = [];
     let role_target_types: Array<String> = [];
     let role_target_carriages: Array<String> = [];
@@ -108,6 +111,11 @@ func CodegenCallableReceiverFactsFromSemantic(
         let owner: String = CodegenSemanticFunctionOwnerOrDie(signatures, i);
         let name: String = CodegenSemanticFunctionNameOrDie(signatures, i);
         let carriage: String = CallableReceiverCarriageNone();
+        let source_parameter_offset: Option<Int> =
+            SemanticAstFunctionReceiverSourceParameterOffsetAt(signatures, i);
+        if !IsSome(source_parameter_offset) {
+            Die("callable receiver source parameter offset is missing");
+        }
         let erased: Bool = false;
         let role_target_type: String = "";
         let role_target_carriage: String = CallableReceiverCarriageNone();
@@ -154,13 +162,17 @@ func CodegenCallableReceiverFactsFromSemantic(
         ArrayPush(owners, owner);
         ArrayPush(names, name);
         ArrayPush(carriages, carriage);
+        ArrayPush(
+            source_parameter_offsets, UnwrapOption(source_parameter_offset)
+        );
         ArrayPush(role_erased, erased);
         ArrayPush(role_target_types, role_target_type);
         ArrayPush(role_target_carriages, role_target_carriage);
         i = i + 1;
     }
     return CodegenCallableReceiverFacts(
-        ok, false, source_ids, owners, names, carriages, role_erased,
+        ok, false, source_ids, owners, names, carriages,
+        source_parameter_offsets, role_erased,
         role_target_types, role_target_carriages
     );
 }
@@ -184,7 +196,8 @@ func CodegenCallableReceiverFactsFromAdmittedAnalysis(
     }
     return CodegenCallableReceiverFacts(
         facts.ok, true, facts.source_syntax_ids, facts.owners, facts.names,
-        facts.carriages, facts.role_erased, facts.role_target_types,
+        facts.carriages, facts.source_parameter_offsets, facts.role_erased,
+        facts.role_target_types,
         facts.role_target_carriages
     );
 }
@@ -204,6 +217,7 @@ func CodegenCallableReceiverFactsShapeReady(
         ArrayLength(facts.owners) == count &&
         ArrayLength(facts.names) == count &&
         ArrayLength(facts.carriages) == count &&
+        ArrayLength(facts.source_parameter_offsets) == count &&
         ArrayLength(facts.role_erased) == count &&
         ArrayLength(facts.role_target_types) == count &&
         ArrayLength(facts.role_target_carriages) == count;
@@ -233,6 +247,13 @@ func CodegenCallableReceiverFactsReady(
             facts.owners[i] !=
                 CodegenSemanticFunctionOwnerOrDie(signatures, i) ||
             facts.names[i] != CodegenSemanticFunctionNameOrDie(signatures, i) ||
+            !IsSome(SemanticAstFunctionReceiverSourceParameterOffsetAt(
+                signatures, i
+            )) || facts.source_parameter_offsets[i] != UnwrapOption(
+                SemanticAstFunctionReceiverSourceParameterOffsetAt(
+                    signatures, i
+                )
+            ) ||
             !CallableReceiverCarriageKnown(facts.carriages[i]) ||
             (facts.role_erased[i] &&
                 facts.carriages[i] !=
@@ -356,7 +377,8 @@ func CodegenCallableReceiverFactsFromAdmittedRowsOrDie(
     }
     return CodegenCallableReceiverFacts(
         true, true, facts.source_syntax_ids, facts.owners, facts.names,
-        facts.carriages, facts.role_erased, facts.role_target_types,
+        facts.carriages, facts.source_parameter_offsets, facts.role_erased,
+        facts.role_target_types,
         facts.role_target_carriages
     );
 }
@@ -387,6 +409,20 @@ func CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
         Die("admitted callable receiver fact is missing");
     }
     return facts.carriages[signature_index];
+}
+
+func CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie(
+    facts: CodegenCallableReceiverFacts,
+    signature_index: Int
+) -> Int {
+    CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
+        facts, signature_index
+    );
+    let offset: Int = facts.source_parameter_offsets[signature_index];
+    if offset != 0 && offset != 1 {
+        Die("admitted callable receiver source parameter offset is invalid");
+    }
+    return offset;
 }
 
 func CodegenCallableReceiverRoleTargetTypeForAdmittedSignatureOrDie(
@@ -455,6 +491,9 @@ func CodegenCallableReceiverEnvRows(
         ArrayPush(rows, Concat(
             c_name, Concat("=rc:", Concat(facts.carriages[i], "|"))
         ));
+        ArrayPush(rows, Concat(c_name, Concat(
+            "=rso:", Concat(ToString(facts.source_parameter_offsets[i]), "|")
+        )));
         if facts.role_erased[i] {
             ArrayPush(rows, Concat(c_name, "=rce:1|"));
         }

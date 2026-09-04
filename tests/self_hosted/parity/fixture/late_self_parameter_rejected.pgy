@@ -1,0 +1,7 @@
+subject LateSelf {
+    func Read(value: Int, self) -> Int {
+        return value;
+    }
+}
+
+func Main() -> Void {}

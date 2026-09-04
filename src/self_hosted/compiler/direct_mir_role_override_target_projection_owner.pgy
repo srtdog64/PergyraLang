@@ -1,0 +1,100 @@
+// Target-bound ABI projection for the sealed role-override identity.
+
+import "abi_layout_row_owner.pgy";
+import "direct_mir_role_override_plan_owner.pgy";
+import "symbol_table_owner.pgy";
+import "target_projection_fact_owner.pgy";
+
+struct DirectMirRoleOverrideTargetAbiProjection {
+    let valid: Bool;
+    let target_projection: String;
+    let target_capability_fingerprint: Int;
+    let plan_digest: Int;
+    let abi_evidence_id: Int;
+    let representation: String;
+    let field_value_type: String;
+    let field_alignment: Int;
+    let method_return_type: String;
+    let subject_receiver_type: String;
+    let role_receiver_type: String;
+}
+
+func DirectMirRoleOverrideTargetAbiProjectionReadyFor(
+    ref projection: DirectMirRoleOverrideTargetAbiProjection,
+    ref plan: DirectMirRoleOverridePlan,
+    expected_target: String
+) -> Bool {
+    if !projection.valid || !DirectMirRoleOverridePlanReady(plan) ||
+        projection.target_projection != expected_target ||
+        projection.target_capability_fingerprint !=
+            CompilerTargetCapabilityFingerprint() ||
+        projection.plan_digest != plan.digest ||
+        projection.abi_evidence_id != plan.abi_evidence_id ||
+        projection.representation !=
+            "compiler_private_single_i32_stable_address" {
+        return false;
+    }
+    if expected_target == CompilerTargetCpuCProjection() {
+        return projection.field_value_type ==
+                CompilerAbiLayoutIntCValueType() &&
+            projection.field_alignment == 0 &&
+            projection.method_return_type == "const char *" &&
+            projection.subject_receiver_type == Concat(
+                CompilerSymbolCTypeName(plan.program.subject_name), " *"
+            ) && projection.role_receiver_type == "void *";
+    }
+    if expected_target == CompilerTargetCpuLlvmProjection() {
+        return projection.field_value_type == "i32" &&
+            projection.field_alignment == 4 &&
+            projection.method_return_type == "ptr" &&
+            projection.subject_receiver_type == "ptr" &&
+            projection.role_receiver_type == "ptr";
+    }
+    return false;
+}
+
+func DirectMirRoleOverrideTargetAbiProjectionFromPlan(
+    ref plan: DirectMirRoleOverridePlan,
+    ref target: CompilerTargetProjectionFact
+) -> DirectMirRoleOverrideTargetAbiProjection {
+    if !DirectMirRoleOverridePlanReady(plan) {
+        Die("direct MIR role override target plan is invalid");
+    }
+    let c_ready: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuCProjection()
+    );
+    let llvm_ready: Bool = CompilerTargetProjectionFactReadyFor(
+        target, CompilerTargetCpuLlvmProjection()
+    );
+    if !c_ready && !llvm_ready {
+        Die("direct MIR role override target is unsupported");
+    }
+    let field_value_type: String = "i32";
+    let field_alignment: Int = 4;
+    let method_return_type: String = "ptr";
+    let subject_receiver_type: String = "ptr";
+    let role_receiver_type: String = "ptr";
+    if c_ready {
+        field_value_type = CompilerAbiLayoutIntCValueType();
+        field_alignment = 0;
+        method_return_type = "const char *";
+        subject_receiver_type = Concat(
+            CompilerSymbolCTypeName(plan.program.subject_name), " *"
+        );
+        role_receiver_type = "void *";
+    }
+    let projection: DirectMirRoleOverrideTargetAbiProjection =
+        DirectMirRoleOverrideTargetAbiProjection(
+            true, target.projection, target.target_capability_fingerprint,
+            plan.digest, plan.abi_evidence_id,
+            "compiler_private_single_i32_stable_address",
+            field_value_type, field_alignment, method_return_type,
+            subject_receiver_type, role_receiver_type
+        );
+    if !DirectMirRoleOverrideTargetAbiProjectionReadyFor(
+        projection, plan, target.projection
+    ) {
+        Die("direct MIR role override target ABI projection is invalid");
+    }
+    return projection;
+}

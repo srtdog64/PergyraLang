@@ -22,7 +22,11 @@ func SemanticAstRoleOperatorDeclarationPresence(
             let method_node: Option<Int> = SemanticAstRoleMethodNodeAt(
                 roles, role_index, method_index
             );
-            if !IsSome(method_node) { return None; }
+            let ability_name: Option<String> =
+                SemanticAstRoleMethodAbilityNameAt(
+                    roles, role_index, method_index
+                );
+            if !IsSome(method_node) || !IsSome(ability_name) { return None; }
             let signature: Option<Int> =
                 SemanticAstFunctionSignatureIndexForNode(
                     signatures, UnwrapOption(method_node)
@@ -32,7 +36,8 @@ func SemanticAstRoleOperatorDeclarationPresence(
                 signatures, UnwrapOption(signature)
             );
             if !IsSome(name) { return None; }
-            if IsSome(SemanticRoleOperatorKindForMethodName(
+            if UnwrapOption(ability_name) != "" &&
+                IsSome(SemanticRoleOperatorKindForMethodName(
                 UnwrapOption(name)
             )) {
                 return Some(true);

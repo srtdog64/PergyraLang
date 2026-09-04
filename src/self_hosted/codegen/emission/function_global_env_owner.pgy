@@ -33,13 +33,12 @@ func BuildFunctionEnv(
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         let c_name: String = CompilerSymbolCQualifiedName(
-            receiver_facts.owners[i], receiver_facts.names[i]
-        );
+            receiver_facts.owners[i], receiver_facts.names[i]);
         ArrayPush(c_names, c_name);
-        TextBuilderAppend(output, c_name);
-        TextBuilderAppend(output, "=rc:");
-        TextBuilderAppend(output, receiver_facts.carriages[i]);
-        TextBuilderAppend(output, "|");
+        TextBuilderAppend(output, c_name); TextBuilderAppend(output, "=rc:");
+        TextBuilderAppend(output, receiver_facts.carriages[i]); TextBuilderAppend(output, "|");
+        TextBuilderAppend(output, c_name); TextBuilderAppend(output, "=rso:");
+        TextBuilderAppend(output, ToString(receiver_facts.source_parameter_offsets[i])); TextBuilderAppend(output, "|");
         if receiver_facts.role_erased[i] {
             TextBuilderAppend(output, c_name);
             TextBuilderAppend(output, "=rce:1|");
@@ -203,14 +202,14 @@ func BuildFunctionEnv(
             signatures, signature_index, actuals
         ));
         TextBuilderAppend(output, "|");
-        TextBuilderAppend(output, c_name);
-        TextBuilderAppend(output, "=rc:");
+        TextBuilderAppend(output, c_name); TextBuilderAppend(output, "=rc:");
         TextBuilderAppend(output,
             CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
-                receiver_facts, signature_index
-            )
-        );
-        TextBuilderAppend(output, "|");
+                receiver_facts, signature_index)); TextBuilderAppend(output, "|");
+        TextBuilderAppend(output, c_name); TextBuilderAppend(output, "=rso:");
+        TextBuilderAppend(output, ToString(
+            CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie(
+                receiver_facts, signature_index))); TextBuilderAppend(output, "|");
         if CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie(
             receiver_facts, signature_index
         ) {

@@ -288,25 +288,28 @@ func SemanticAstExpressionVerdictFromGraph(
     }
     let concrete_scalar_value_owned: Bool =
         SemanticExpressionGraphConcreteScalarValueOwned(
-            graph, root_id, constructors, names, types, function_names,
+            graph, root_id, constructors, signatures, names, types,
+            function_names,
             function_returns, function_params
         );
     let contextual_call_arguments_owned: Bool =
         SemanticExpressionGraphContextualCallArgumentsOwned(
-            graph, root_id, constructors, names, types, function_names,
+            graph, root_id, constructors, signatures, names, types,
+            function_names,
             function_returns, function_params
         );
     let graph_call_value_owned: Bool = concrete_scalar_value_owned ||
         contextual_call_arguments_owned;
     let resolved_member_call_arguments_owned: Bool =
         SemanticExpressionGraphResolvedMemberCallArgumentsOwned(
-            graph, root_id, constructors, names, types, function_names,
+            graph, root_id, constructors, signatures, names, types,
+            function_names,
             function_returns, function_params
         );
     let call_error: String = "";
     if graph_call_value_owned && !generic_value.applies {
         call_error = SemanticExpressionGraphConcreteScalarValueError(
-            graph, root_id, constructors, names, types,
+            graph, root_id, constructors, signatures, names, types,
             function_names, function_returns, function_params
         );
     } else if resolved_member_call_arguments_owned &&
@@ -314,7 +317,7 @@ func SemanticAstExpressionVerdictFromGraph(
         !wrapper.applies && !nominal_constructor_call.applies &&
         !domain_queries.applies {
         call_error = SemanticExpressionGraphConcreteScalarValueError(
-            graph, root_id, constructors, names, types,
+            graph, root_id, constructors, signatures, names, types,
             function_names, function_returns, function_params
         );
     } else if !graph_owned_intrinsic && !generic_value.applies &&

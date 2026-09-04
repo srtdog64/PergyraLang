@@ -248,7 +248,8 @@ func SemanticRoleOperatorResolutionForNode(
                         false, false, "", "", left_type, right_type
                     );
                 }
-                if SemanticRoleOperatorMethodNameMatches(
+                if UnwrapOption(ability_name) != "" &&
+                    SemanticRoleOperatorMethodNameMatches(
                     kind, UnwrapOption(method_name)
                 ) {
                     let role_shape: SemanticRoleOperatorSignatureShape =

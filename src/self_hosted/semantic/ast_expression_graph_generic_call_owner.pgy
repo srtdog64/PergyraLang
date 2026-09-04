@@ -9,6 +9,7 @@ import "diagnostic_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
+import "ast_callable_receiver_source_parameter_owner.pgy";
 
 struct SemanticExpressionGraphGenericCallFact {
     applies: Bool;
@@ -85,6 +86,10 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
         return SemanticExpressionGraphGenericCallNotApplicable();
     }
     let signature_index: Int = UnwrapOption(signature_index_opt);
+    let source_parameter_offset: Option<Int> =
+        SemanticAstFunctionReceiverSourceParameterOffsetAt(
+            signatures, signature_index
+        );
     let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
         signatures, signature_index
     );
@@ -119,14 +124,15 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
         signatures, signature_index
     );
     if !call.ok || !IsSome(param_count) ||
-        UnwrapOption(param_count) < target.parameter_offset {
+        !IsSome(source_parameter_offset) ||
+        UnwrapOption(param_count) < UnwrapOption(source_parameter_offset) {
         return SemanticExpressionGraphGenericCallError(
             "ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "generic_call")
         );
     }
     let expected_count: Int =
-        UnwrapOption(param_count) - target.parameter_offset;
+        UnwrapOption(param_count) - UnwrapOption(source_parameter_offset);
     if expected_count != ArrayLength(call.argument_nodes) {
         return SemanticExpressionGraphGenericCallError(
             "call_arity_mismatch",
@@ -164,7 +170,7 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
     }
     i = 0;
     while i < ArrayLength(call.argument_nodes) {
-        let parameter_index: Int = i + target.parameter_offset;
+        let parameter_index: Int = i + UnwrapOption(source_parameter_offset);
         let expected: Option<String> = SemanticAstFunctionParamTypeAt(
             signatures, signature_index, parameter_index
         );

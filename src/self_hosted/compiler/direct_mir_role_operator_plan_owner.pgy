@@ -97,8 +97,15 @@ func DirectMirRoleOperatorParamReady(
     let abi_type: Option<String> = MirObjectUniqueStringFactAtBounds(
         param.json, param.start, param.end, "abi_type_name"
     );
+    let source_syntax_id: Option<String> =
+        MirObjectUniqueNumberFactAtBounds(
+            param.json, param.start, param.end, "source_syntax_id"
+        );
     return JsonObjectFactTableReady(param) &&
-        JsonObjectFactCount(param) == 9 && IsSome(name) &&
+        JsonObjectFactCount(param) == 10 && IsSome(source_syntax_id) &&
+        MirProgramDeclarationFieldIdentityPositiveDecimal(
+            UnwrapOption(source_syntax_id)
+        ) && IsSome(name) &&
         UnwrapOption(name) == expected_name &&
         ((type_is_null &&
             DirectMirObjectFieldKindEquals(param, "type", "null") &&

@@ -309,9 +309,9 @@ func SelfMirDeclarationsFromAnalysis(
             impl_method_cursor = impl_method_cursor + impl_method_count;
             impl_i = impl_i + 1;
         }
-        if impl_method_cursor != method_count {
-            return SelfMirDeclarationRowsEmpty();
-        }
+        if !SelfMirDeclarationRoleOverrideSuffixReady(
+            analysis.roles, method_start, impl_method_cursor, method_count
+        ) { return SelfMirDeclarationRowsEmpty(); }
         ArrayPush(role_impl_counts, impl_count);
         ArrayPush(variant_starts, ArrayLength(variant_names));
         ArrayPush(variant_counts, 0);

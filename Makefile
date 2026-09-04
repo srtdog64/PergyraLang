@@ -246,6 +246,7 @@ SELFHOST_ONE_MIR_MUTABLE_NOMINAL_IDENTITY_GATE ?= $(if $(filter 0,$(LLVM_ENABLED
 SELFHOST_ONE_MIR_COMPILE_TIME_DECLARATION_LITERAL_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-compile-time-declaration-literal-projection-test-smoke)
 SELFHOST_ONE_MIR_ENUM_VALUE_MATCH_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-enum-value-match-projection-test-smoke)
 SELFHOST_ONE_MIR_ROLE_OPERATOR_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-role-operator-projection-test-smoke)
+SELFHOST_ROLE_OVERRIDE_REPLACEMENT_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-role-override-replacement-test-smoke)
 SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-constructed-generic-member-projection-test-smoke)
 SELFHOST_ONE_MIR_CONSTRUCTED_ARRAY_MEMBER_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-constructed-array-member-projection-test-smoke)
 SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE ?= $(if $(filter 0,$(LLVM_ENABLED)),,self-host-one-mir-constructed-record-array-member-projection-test-smoke)
@@ -3006,7 +3007,7 @@ self-host-preparation-platform-parity-test-smoke: \
 	self-host-preparation-platform-codegen-parity-test-smoke \
 	self-host-preparation-platform-driver-parity-test-smoke
 
-self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE) $(SELFHOST_SCALAR_GRAPH_PLAN_GATE) $(SELFHOST_ONE_MIR_CFG_AIR_PLAN_GATE) $(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE) $(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE) $(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_CONCAT_GATE) $(SELFHOST_ONE_MIR_STRING_BUILTIN_PROGRAM_GATE) $(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_OPTION_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_NOMINAL_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_SCALAR_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_MEMBER_GATE) $(SELFHOST_ONE_MIR_PASSIVE_NOMINAL_LITERAL_GATE) $(SELFHOST_ONE_MIR_MUTABLE_NOMINAL_IDENTITY_GATE) $(SELFHOST_ONE_MIR_COMPILE_TIME_DECLARATION_LITERAL_GATE) $(SELFHOST_ONE_MIR_ENUM_VALUE_MATCH_GATE) $(SELFHOST_ONE_MIR_ROLE_OPERATOR_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_ARRAY_MEMBER_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE)
+self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke self-host-hard-driver-rung2-parity-test-smoke $(SELFHOST_ONE_MIR_DUAL_BACKEND_GATE) $(SELFHOST_SCALAR_GRAPH_PLAN_GATE) $(SELFHOST_ONE_MIR_CFG_AIR_PLAN_GATE) $(SELFHOST_ONE_MIR_ARRAY_RETURN_GATE) $(SELFHOST_ONE_MIR_ARRAY_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_ARRAY_PARAM_GATE) $(SELFHOST_ONE_MIR_BOOL_LOGIC_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_GATE) $(SELFHOST_ONE_MIR_STRING_EQUALITY_CONCAT_GATE) $(SELFHOST_ONE_MIR_STRING_BUILTIN_PROGRAM_GATE) $(SELFHOST_ONE_MIR_STRUCT_ARGUMENT_GATE) $(SELFHOST_ONE_MIR_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_OPTION_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_GENERIC_STRUCT_VALUE_FLOW_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_NOMINAL_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_SCALAR_GATE) $(SELFHOST_ONE_MIR_INFERRED_GENERIC_MEMBER_GATE) $(SELFHOST_ONE_MIR_PASSIVE_NOMINAL_LITERAL_GATE) $(SELFHOST_ONE_MIR_MUTABLE_NOMINAL_IDENTITY_GATE) $(SELFHOST_ONE_MIR_COMPILE_TIME_DECLARATION_LITERAL_GATE) $(SELFHOST_ONE_MIR_ENUM_VALUE_MATCH_GATE) $(SELFHOST_ONE_MIR_ROLE_OPERATOR_GATE) $(SELFHOST_ROLE_OVERRIDE_REPLACEMENT_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_GENERIC_MEMBER_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_ARRAY_MEMBER_GATE) $(SELFHOST_ONE_MIR_CONSTRUCTED_RECORD_ARRAY_MEMBER_GATE)
 
 self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP) self-host-lsp self-host-driver-execution-action-optional-within-parity-test-smoke self-host-driver-source-mir-execution-action-test-smoke
 	# Run the reached compiler-scale falsifier first so a projection regression
@@ -3791,6 +3792,10 @@ self-host-one-mir-enum-value-match-projection-test-smoke: self-host-compiler
 self-host-one-mir-role-operator-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_role_operator_projection.sh
 
+self-host-role-override-replacement-test-smoke: self-host-one-mir-struct-argument-projection-test-smoke
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/role_override_mir_replacement.sh
+
 self-host-one-mir-constructed-generic-member-projection-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/one_mir_constructed_generic_member_projection.sh
 
@@ -3803,7 +3808,7 @@ self-host-one-mir-constructed-record-array-member-projection-test-smoke: self-ho
 self-host-default-llvm-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/default_llvm_installed_self_host_owner.sh
 
-.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-direct-mir-scalar-multi-routine-test-smoke self-host-direct-mir-scalar-option-int-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-one-mir-array-int-projection-test-smoke self-host-one-mir-array-return-projection-test-smoke self-host-one-mir-array-argument-projection-test-smoke self-host-one-mir-array-param-projection-test-smoke self-host-one-mir-bool-logic-projection-test-smoke self-host-one-mir-string-equality-projection-test-smoke self-host-one-mir-string-equality-concat-projection-test-smoke self-host-one-mir-string-builtin-program-projection-test-smoke self-host-scalar-cfg-routine-partition-test-smoke self-host-expression-graph-identity-carriage-test-smoke self-host-one-mir-struct-argument-projection-test-smoke self-host-one-mir-struct-value-flow-projection-test-smoke self-host-one-mir-option-struct-value-flow-projection-test-smoke self-host-one-mir-generic-struct-value-flow-projection-test-smoke self-host-one-mir-inferred-generic-nominal-projection-test-smoke self-host-one-mir-inferred-generic-scalar-projection-test-smoke self-host-one-mir-inferred-generic-member-projection-test-smoke self-host-one-mir-passive-nominal-literal-projection-test-smoke self-host-one-mir-mutable-nominal-identity-projection-test-smoke self-host-one-mir-compile-time-declaration-literal-projection-test-smoke self-host-one-mir-enum-value-match-projection-test-smoke self-host-one-mir-role-operator-projection-test-smoke self-host-one-mir-constructed-generic-member-projection-test-smoke self-host-one-mir-constructed-array-member-projection-test-smoke self-host-one-mir-constructed-record-array-member-projection-test-smoke self-host-default-llvm-replacement-test-smoke self-host-driver-source-mir-execution-action-test-smoke
+.PHONY: self-host-one-mir-dual-backend-projection-test-smoke self-host-direct-mir-scalar-multi-routine-test-smoke self-host-direct-mir-scalar-option-int-test-smoke self-host-one-mir-cfg-air-plan-projection-test-smoke self-host-one-mir-option-match-projection-test-smoke self-host-one-mir-array-int-projection-test-smoke self-host-one-mir-array-return-projection-test-smoke self-host-one-mir-array-argument-projection-test-smoke self-host-one-mir-array-param-projection-test-smoke self-host-one-mir-bool-logic-projection-test-smoke self-host-one-mir-string-equality-projection-test-smoke self-host-one-mir-string-equality-concat-projection-test-smoke self-host-one-mir-string-builtin-program-projection-test-smoke self-host-scalar-cfg-routine-partition-test-smoke self-host-expression-graph-identity-carriage-test-smoke self-host-one-mir-struct-argument-projection-test-smoke self-host-one-mir-struct-value-flow-projection-test-smoke self-host-one-mir-option-struct-value-flow-projection-test-smoke self-host-one-mir-generic-struct-value-flow-projection-test-smoke self-host-one-mir-inferred-generic-nominal-projection-test-smoke self-host-one-mir-inferred-generic-scalar-projection-test-smoke self-host-one-mir-inferred-generic-member-projection-test-smoke self-host-one-mir-passive-nominal-literal-projection-test-smoke self-host-one-mir-mutable-nominal-identity-projection-test-smoke self-host-one-mir-compile-time-declaration-literal-projection-test-smoke self-host-one-mir-enum-value-match-projection-test-smoke self-host-one-mir-role-operator-projection-test-smoke self-host-role-override-replacement-test-smoke self-host-one-mir-constructed-generic-member-projection-test-smoke self-host-one-mir-constructed-array-member-projection-test-smoke self-host-one-mir-constructed-record-array-member-projection-test-smoke self-host-default-llvm-replacement-test-smoke self-host-driver-source-mir-execution-action-test-smoke
 
 self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke
 	@if command -v powershell >/dev/null 2>&1; then \
@@ -4322,6 +4327,25 @@ self-host-region-user-callee-replacement-test-smoke: self-host-callable-paramete
 self-host-lowercase-entrypoint-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh
+
+.PHONY: self-host-replacement-frontier-installed-test-smoke
+self-host-replacement-frontier-installed-test-smoke: $(PGY)
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/driver_rung2_callable_parameter_identity_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/callable_parameter_installed_self_host_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/region_user_callee_installed_self_host_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/lowercase_entrypoint_installed_self_host_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/one_mir_struct_argument_projection.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/role_override_mir_replacement.sh
+
+.PHONY: self-host-replacement-frontier-test-smoke
+self-host-replacement-frontier-test-smoke: self-host-compiler
+	$(MAKE) --no-print-directory self-host-replacement-frontier-installed-test-smoke
 
 self-host-package-command-replacement-test-smoke: $(PGY) self-host-installed-driver-cli-mode-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

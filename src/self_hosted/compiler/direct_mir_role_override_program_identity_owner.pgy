@@ -1,0 +1,793 @@
+// Exact declaration, routine, and expression-graph identity for the bounded
+// three-routine role-override program. The ordinary subject member call stays
+// subject-bound; the role body is preserved but is not an implicit dispatch.
+
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
+import "direct_mir_array_int_graph_fact_owner.pgy";
+import "direct_mir_nominal_literal_abi_absence_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_graph_admission_owner.pgy";
+import "symbol_table_owner.pgy";
+import "../mir_lower/declaration_method_contract_fact_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+struct DirectMirRoleOverrideLiteralFact {
+    let valid: Bool;
+    let routine_row: Int;
+    let source_syntax_id: Int;
+    let literal: String;
+    let content: String;
+}
+
+struct DirectMirRoleOverrideMainFact {
+    let valid: Bool;
+    let routine_row: Int;
+    let source_syntax_id: Int;
+    let local_name: String;
+    let local_result: String;
+    let constructor_value: Int;
+    let member_target_name: String;
+    let typed_nominal_abi_absence: DirectMirNominalLiteralAbiAbsenceFact;
+}
+
+struct DirectMirRoleOverrideProgramIdentity {
+    let valid: Bool;
+    let digest: Int;
+    let subject_row: Int;
+    let role_row: Int;
+    let subject_source_syntax_id: Int;
+    let role_source_syntax_id: Int;
+    let field_source_syntax_id: Int;
+    let source_module_path: String;
+    let subject_name: String;
+    let role_name: String;
+    let field_name: String;
+    let method_name: String;
+    let subject_method: DirectMirRoleOverrideLiteralFact;
+    let role_method: DirectMirRoleOverrideLiteralFact;
+    let entrypoint: DirectMirRoleOverrideMainFact;
+}
+
+func InvalidDirectMirRoleOverrideLiteralFact(
+) -> DirectMirRoleOverrideLiteralFact {
+    return DirectMirRoleOverrideLiteralFact(false, -1, 0, "", "");
+}
+
+func InvalidDirectMirRoleOverrideMainFact(
+) -> DirectMirRoleOverrideMainFact {
+    let absence: DirectMirNominalLiteralAbiAbsenceFact =
+        DirectMirNominalLiteralAbiAbsenceFact(false, 0, "", "", 0, false);
+    return DirectMirRoleOverrideMainFact(
+        false, -1, 0, "", "", 0, "", absence
+    );
+}
+
+func InvalidDirectMirRoleOverrideProgramIdentity(
+) -> DirectMirRoleOverrideProgramIdentity {
+    return DirectMirRoleOverrideProgramIdentity(
+        false, 0, -1, -1, 0, 0, 0, "", "", "", "", "",
+        InvalidDirectMirRoleOverrideLiteralFact(),
+        InvalidDirectMirRoleOverrideLiteralFact(),
+        InvalidDirectMirRoleOverrideMainFact()
+    );
+}
+
+func DirectMirRoleOverrideFamilyClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if MirProgramRoutineIndexCount(admitted.routines) != 3 ||
+        !admitted.routines.declarations.valid ||
+        MirProgramDeclarationIndexCount(admitted.routines.declarations) != 2 {
+        return false;
+    }
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.declarations.kinds[row] == "role" ||
+            admitted.routines.declarations.nominal_kinds[row] == "role" {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirRoleOverrideEmptyMethodContract(
+    ref method: JsonObjectFactTable
+) -> Bool {
+    let contract: MirDeclarationMethodContractFact =
+        MirDeclarationMethodContractFactFromBounds(
+            method.json, method.start, method.end
+        );
+    return contract.valid && contract.callable_kind == "function" &&
+        ArrayLength(contract.requires_bases) == 0 &&
+        contract.within_zone == "" && contract.causes_name == "" &&
+        ArrayLength(contract.authorized_by_names) == 0 &&
+        !contract.caps_present && ArrayLength(contract.cap_names) == 0 &&
+        !contract.effects_present && ArrayLength(contract.effect_names) == 0;
+}
+
+func DirectMirRoleOverrideDeclarationMethodName(
+    ref method: JsonObjectFactTable,
+    role_owned: Bool
+) -> String {
+    let name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.start, method.end, "name"
+    );
+    let return_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.start, method.end, "return"
+    );
+    let callable_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
+        method.json, method.start, method.end, "callable_kind"
+    );
+    let params: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(method, "params");
+    let parameter_shape: Bool = !JsonObjectFactHasField(method, "params");
+    let expected_count: Int = 4;
+    if role_owned {
+        parameter_shape = DirectMirExactObjectArrayCount(params, 0);
+        expected_count = 5;
+    }
+    if !JsonObjectFactTableReady(method) ||
+        JsonObjectFactCount(method) != expected_count || !IsSome(name) ||
+        UnwrapOption(name) == "" || !IsSome(return_type) ||
+        UnwrapOption(return_type) != "String" || !IsSome(callable_kind) ||
+        UnwrapOption(callable_kind) != "function" || !parameter_shape ||
+        !DirectMirRoleOverrideEmptyMethodContract(method) {
+        return "";
+    }
+    return UnwrapOption(name);
+}
+
+func DirectMirRoleOverrideGraphIdentitiesAbsent(
+    ref sequence: MirExpressionGraphSequence
+) -> Bool {
+    let count: Int = sequence.ready_node_count;
+    if !sequence.ok || count < 1 ||
+        ArrayLength(sequence.arena.identities.call_target_syntax_ids) != count ||
+        ArrayLength(sequence.arena.identities.runtime_call_abi_ids) != count ||
+        ArrayLength(sequence.arena.identities.binding_syntax_ids) != count ||
+        ArrayLength(sequence.arena.identities.binding_kinds) != count ||
+        ArrayLength(sequence.arena.identities.binding_ordinals) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if sequence.arena.identities.call_target_syntax_ids[row] != 0 ||
+            sequence.arena.identities.runtime_call_abi_ids[row] != 0 ||
+            sequence.arena.identities.binding_syntax_ids[row] != 0 ||
+            sequence.arena.identities.binding_kinds[row] !=
+                SemanticExpressionBindingNone() ||
+            sequence.arena.identities.binding_ordinals[row] != -1 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirRoleOverrideRoutineCfgReady(
+    ref index: MirRoutineFactIndex,
+    expected_local_count: Int
+) -> Bool {
+    return index.valid && ArrayLength(index.block_reachable) == 1 &&
+        index.block_reachable[0] &&
+        MirRoutineFactIndexBlockIsTerminal(index, 0) &&
+        index.block_has_conditional_branch[0] == 0 &&
+        ArrayLength(index.source_local_names) == expected_local_count &&
+        ArrayLength(index.source_local_types) == expected_local_count;
+}
+
+func DirectMirRoleOverrideLiteralFromRoutine(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int,
+    declaration_row: Int,
+    owner_name: String,
+    method_name: String,
+    source_module_path: String
+) -> DirectMirRoleOverrideLiteralFact {
+    let invalid: DirectMirRoleOverrideLiteralFact =
+        InvalidDirectMirRoleOverrideLiteralFact();
+    if (!MirProgramRoutineIndexRowReady(admitted.routines, routine_row) ||
+        admitted.routines.kinds[routine_row] != "method" ||
+        admitted.routines.owners[routine_row] != owner_name ||
+        admitted.routines.names[routine_row] != method_name ||
+        admitted.routines.receiver_carriages[routine_row] !=
+            "mutable-identity" ||
+        admitted.routines.owner_declaration_rows[routine_row] !=
+            declaration_row ||
+        admitted.routines.source_module_paths[routine_row] !=
+            source_module_path ||
+        MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, routine_row, 0
+        ) != 1) {
+        return invalid;
+    }
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json, admitted.routines.starts[routine_row],
+        admitted.routines.ends[routine_row]
+    );
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, routine_row
+    );
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, routine_row);
+    let global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, 0
+    );
+    if !JsonObjectFactTableReady(routine) ||
+        JsonObjectFactCount(routine) != 21 ||
+        !DirectMirRoutineHasNoUnsupportedFacts(routine) ||
+        !JsonObjectFactStringFieldEquals(routine, "return", "String") ||
+        !DirectMirRoleOverrideRoutineCfgReady(index, 0) ||
+        !MirRoutineInstructionUseFactsReady(uses, 1) || global < 0 ||
+        MirRoutineInstructionUseCountAtGlobal(uses, global) != 0 {
+        return invalid;
+    }
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[global],
+        admitted.routines.instruction_ends[global]
+    );
+    let capture: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, global
+        );
+    if !capture.valid || JsonObjectFactCount(instruction) != 25 ||
+        !DirectMirObjectNumberEquals(instruction, "id", "0") ||
+        admitted.routines.instruction_kinds[global] != "return" ||
+        capture.name != "return" ||
+        admitted.routines.instruction_source_types[global] !=
+            "AST_IDENTIFIER" || capture.result != "" ||
+        capture.arg0 != "" || capture.arg1 != "" ||
+        capture.slot_anchor != "" ||
+        !DirectMirInstructionHasNoPhysicalAbi(
+            admitted.routines.source_json, capture, "String"
+        ) || !DirectMirObjectFieldKindEquals(instruction, "expr0", "string") ||
+        !DirectMirObjectFieldKindEquals(instruction, "expr0_graph", "object") ||
+        !DirectMirObjectFieldKindEquals(instruction, "expr1", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "expr1_graph", "null") ||
+        !DirectMirObjectFieldKindEquals(instruction, "machine_layer", "null") ||
+        !JsonObjectFactStringFieldEquals(
+            instruction, "machine_contact_kind", ""
+        ) || !DirectMirObjectArrayEmpty(instruction, "match_patterns") ||
+        !DirectMirObjectFieldKindEquals(instruction, "match_variant", "null") ||
+        !DirectMirObjectArrayEmpty(instruction, "match_bindings") ||
+        !DirectMirObjectArrayEmpty(instruction, "match_binding_types") ||
+        !DirectMirObjectFieldKindEquals(
+            instruction, "destructure_element_type", "null"
+        ) || !DirectMirObjectArrayEmpty(instruction, "destructure_bindings") {
+        return invalid;
+    }
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, global
+        );
+    let graph: JsonObjectFactTable =
+        MirProgramInstructionExpressionGraphTable(
+            admitted.routines.source_json, expression, 0
+        );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    let literal: DirectMirHelloProjection =
+        DirectMirHelloGraphProjection(instruction);
+    if !literal.valid || !DirectMirRoleOverrideGraphIdentitiesAbsent(sequence) ||
+        sequence.ready_node_count != 1 || ArrayLength(sequence.roots) != 1 ||
+        sequence.roots[0] != 0 || capture.expr0 != literal.literal ||
+        sequence.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_names[0] != "" {
+        return invalid;
+    }
+    return DirectMirRoleOverrideLiteralFact(
+        true, routine_row,
+        ToInt(admitted.routines.source_syntax_ids[routine_row]),
+        literal.literal, literal.content
+    );
+}
+
+func DirectMirRoleOverrideConstructorGraphValue(
+    ref sequence: MirExpressionGraphSequence,
+    subject_name: String
+) -> Option<Int> {
+    if !DirectMirRoleOverrideGraphIdentitiesAbsent(sequence) ||
+        sequence.ready_node_count != 4 || ArrayLength(sequence.roots) != 1 ||
+        sequence.roots[0] != 3 ||
+        sequence.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() ||
+        sequence.arena.topology.node_kinds[1] != AstExpressionNodeCall() ||
+        sequence.arena.topology.node_kinds[2] !=
+            AstExpressionNodeIntegerLiteral() ||
+        sequence.arena.topology.node_kinds[3] !=
+            AstExpressionNodeCallArgument() ||
+        sequence.arena.topology.left_children[1] != 0 ||
+        sequence.arena.topology.left_children[3] != 1 ||
+        sequence.arena.topology.right_children[3] != 2 ||
+        sequence.arena.node_texts[0] != subject_name ||
+        sequence.arena.call_target_kinds[0] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_kinds[1] != SemanticCallTargetDirect() ||
+        sequence.arena.call_target_names[1] != subject_name ||
+        sequence.arena.call_target_kinds[2] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_kinds[3] != SemanticCallTargetNone() ||
+        sequence.arena.call_target_names[0] != "" ||
+        sequence.arena.call_target_names[2] != "" ||
+        sequence.arena.call_target_names[3] != "" {
+        return None;
+    }
+    let literal: String = sequence.arena.node_texts[2];
+    if literal == "" || ToString(ToInt(literal)) != literal {
+        return None;
+    }
+    return Some(ToInt(literal));
+}
+
+func DirectMirRoleOverrideMemberGraphReady(
+    ref sequence: MirExpressionGraphSequence,
+    local_name: String,
+    method_name: String,
+    target_name: String
+) -> Bool {
+    return DirectMirRoleOverrideGraphIdentitiesAbsent(sequence) &&
+        sequence.ready_node_count == 4 && ArrayLength(sequence.roots) == 1 &&
+        sequence.roots[0] == 3 &&
+        sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
+        sequence.arena.topology.node_kinds[1] == AstExpressionNodeLeaf() &&
+        sequence.arena.topology.node_kinds[2] ==
+            AstExpressionNodeMemberAccess() &&
+        sequence.arena.topology.node_kinds[3] == AstExpressionNodeCall() &&
+        sequence.arena.topology.left_children[2] == 0 &&
+        sequence.arena.topology.right_children[2] == 1 &&
+        sequence.arena.topology.left_children[3] == 2 &&
+        sequence.arena.node_texts[0] == local_name &&
+        sequence.arena.node_texts[1] == method_name &&
+        sequence.arena.call_target_kinds[0] == SemanticCallTargetNone() &&
+        sequence.arena.call_target_kinds[1] == SemanticCallTargetNone() &&
+        sequence.arena.call_target_kinds[2] == SemanticCallTargetNone() &&
+        sequence.arena.call_target_kinds[3] == SemanticCallTargetMember() &&
+        sequence.arena.call_target_names[0] == "" &&
+        sequence.arena.call_target_names[1] == "" &&
+        sequence.arena.call_target_names[2] == "" &&
+        sequence.arena.call_target_names[3] == target_name;
+}
+
+func DirectMirRoleOverrideMainFromRoutine(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_row: Int,
+    subject_name: String,
+    method_name: String,
+    source_module_path: String
+) -> DirectMirRoleOverrideMainFact {
+    let invalid: DirectMirRoleOverrideMainFact =
+        InvalidDirectMirRoleOverrideMainFact();
+    let signature: DirectMirRoutineSignatureFact =
+        DirectMirRoutineSignatureFactAt(admitted.routines, routine_row, 2);
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        signature.name != "Main" || signature.return_type != "Void" ||
+        signature.param_count != 0 ||
+        admitted.routines.source_module_paths[routine_row] !=
+            source_module_path {
+        return invalid;
+    }
+    let routine: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json, admitted.routines.starts[routine_row],
+        admitted.routines.ends[routine_row]
+    );
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, routine_row
+    );
+    let uses: MirRoutineInstructionUseFacts =
+        BuildMirRoutineInstructionUseFacts(admitted.routines, routine_row);
+    if !JsonObjectFactTableReady(routine) ||
+        JsonObjectFactCount(routine) != 20 ||
+        !DirectMirRoutineHasNoUnsupportedFacts(routine) ||
+        !DirectMirRoleOverrideRoutineCfgReady(index, 1) ||
+        index.source_local_names[0] == "" ||
+        index.source_local_types[0] != subject_name ||
+        !MirRoutineInstructionUseFactsReady(uses, 2) {
+        return invalid;
+    }
+    let definition_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, 0
+    );
+    let log_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
+        admitted.routines, routine_row, 0, 1
+    );
+    if definition_global < 0 || log_global < 0 {
+        return invalid;
+    }
+    let definition: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[definition_global],
+        admitted.routines.instruction_ends[definition_global]
+    );
+    let log_instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        admitted.routines.source_json,
+        admitted.routines.instruction_starts[log_global],
+        admitted.routines.instruction_ends[log_global]
+    );
+    let definition_capture: MirRoutineInstructionScalarCapture =
+        MirRoutineInstructionFactBundleAtGlobal(
+            index.instruction_facts, definition_global
+        );
+    let local_name: String = index.source_local_names[0];
+    if JsonObjectFactCount(definition) != 25 ||
+        !definition_capture.valid ||
+        admitted.routines.instruction_kinds[definition_global] != "def" ||
+        definition_capture.name != "ssa-def" ||
+        admitted.routines.instruction_source_types[definition_global] !=
+            "AST_LET_DECL" ||
+        definition_capture.result == "" ||
+        !MirSsaNameMatches(
+            definition_capture.result, local_name, false
+        ) || definition_capture.arg0 != local_name ||
+        definition_capture.arg1 != subject_name ||
+        definition_capture.slot_anchor != "" ||
+        definition_capture.expr1 != subject_name ||
+        !DirectMirObjectNumberEquals(definition, "id", "0") ||
+        !DirectMirObjectFieldKindEquals(definition, "expr0", "string") ||
+        !DirectMirObjectFieldKindEquals(definition, "expr0_graph", "object") ||
+        !DirectMirObjectFieldKindEquals(definition, "expr1", "string") ||
+        !DirectMirObjectFieldKindEquals(definition, "expr1_graph", "null") ||
+        !DirectMirObjectFieldKindEquals(definition, "machine_layer", "null") ||
+        !DirectMirObjectArrayEmpty(definition, "match_patterns") ||
+        !DirectMirObjectArrayEmpty(definition, "match_bindings") ||
+        !DirectMirObjectArrayEmpty(definition, "match_binding_types") ||
+        !DirectMirObjectArrayEmpty(definition, "destructure_bindings") ||
+        MirRoutineInstructionUseCountAtGlobal(
+            uses, definition_global
+        ) != 0 || JsonObjectFactCount(log_instruction) != 25 ||
+        !DirectMirLogInstructionEnvelopeReady(log_instruction, "1") ||
+        MirRoutineInstructionUseCountAtGlobal(uses, log_global) != 1 {
+        return invalid;
+    }
+    let used: Option<String> =
+        MirRoutineInstructionUseAtGlobal(uses, log_global, 0);
+    if !IsSome(used) || UnwrapOption(used) != definition_capture.result {
+        return invalid;
+    }
+    let definition_expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, definition_global
+        );
+    let definition_graph: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, definition_expression, 0
+        );
+    let constructor_value: Option<Int> =
+        DirectMirRoleOverrideConstructorGraphValue(
+            definition_graph, subject_name
+        );
+    let log_expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            admitted.routines.instruction_expressions, log_global
+        );
+    let log_graph: MirExpressionGraphSequence =
+        DirectMirArrayIntGraphFromExpressionFact(
+            admitted.routines.source_json, log_expression, 0
+        );
+    let target_name: String = CompilerSymbolCQualifiedName(
+        subject_name, method_name
+    );
+    if !IsSome(constructor_value) ||
+        !DirectMirRoleOverrideMemberGraphReady(
+            log_graph, local_name, method_name, target_name
+        ) {
+        return invalid;
+    }
+    let abi_absence: DirectMirNominalLiteralAbiAbsenceFact =
+        DirectMirNominalLiteralAbiAbsenceFromSealedDefinition(
+            admitted.routines.source_json, definition_capture, subject_name
+        );
+    return DirectMirRoleOverrideMainFact(
+        true, routine_row, signature.source_syntax_id, local_name,
+        definition_capture.result, UnwrapOption(constructor_value), target_name,
+        abi_absence
+    );
+}
+
+func DirectMirRoleOverrideProgramIdentityDigest(
+    ref identity: DirectMirRoleOverrideProgramIdentity
+) -> Int {
+    if !identity.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(761L, identity.subject_name);
+    hash = DirectMirCfgHashInt(hash, identity.subject_row);
+    hash = DirectMirCfgHashInt(hash, identity.role_row);
+    hash = DirectMirCfgHashString(hash, identity.role_name);
+    hash = DirectMirCfgHashString(hash, identity.field_name);
+    hash = DirectMirCfgHashString(hash, identity.method_name);
+    hash = DirectMirCfgHashString(hash, identity.source_module_path);
+    hash = DirectMirCfgHashInt(hash, identity.subject_source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, identity.role_source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, identity.field_source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, identity.subject_method.source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, identity.subject_method.routine_row);
+    hash = DirectMirCfgHashString(hash, identity.subject_method.literal);
+    hash = DirectMirCfgHashString(hash, identity.subject_method.content);
+    hash = DirectMirCfgHashInt(hash, identity.role_method.source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, identity.role_method.routine_row);
+    hash = DirectMirCfgHashString(hash, identity.role_method.literal);
+    hash = DirectMirCfgHashString(hash, identity.role_method.content);
+    hash = DirectMirCfgHashInt(hash, identity.entrypoint.source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, identity.entrypoint.routine_row);
+    hash = DirectMirCfgHashString(hash, identity.entrypoint.local_name);
+    hash = DirectMirCfgHashString(hash, identity.entrypoint.local_result);
+    hash = DirectMirCfgHashInt(hash, identity.entrypoint.constructor_value);
+    hash = DirectMirCfgHashString(hash, identity.entrypoint.member_target_name);
+    hash = DirectMirCfgHashInt(
+        hash, identity.entrypoint.typed_nominal_abi_absence.digest
+    );
+    return DirectMirCfgBoundedDigest(hash);
+}
+func DirectMirRoleOverrideSourceSyntaxIdsUnique(
+    ref identity: DirectMirRoleOverrideProgramIdentity
+) -> Bool {
+    let source_syntax_ids: Array<Int> = [
+        identity.subject_source_syntax_id,
+        identity.role_source_syntax_id,
+        identity.field_source_syntax_id,
+        identity.subject_method.source_syntax_id,
+        identity.role_method.source_syntax_id,
+        identity.entrypoint.source_syntax_id
+    ];
+    let left: Int = 0;
+    while left < ArrayLength(source_syntax_ids) {
+        let right: Int = left + 1;
+        while right < ArrayLength(source_syntax_ids) {
+            if source_syntax_ids[left] == source_syntax_ids[right] {
+                return false;
+            }
+            right = right + 1;
+        }
+        left = left + 1;
+    }
+    return true;
+}
+
+func DirectMirRoleOverrideProgramIdentityReady(
+    ref identity: DirectMirRoleOverrideProgramIdentity
+) -> Bool {
+    let subject_content: Option<String> = DirectMirAsciiLiteralContent(
+        identity.subject_method.literal
+    );
+    let role_content: Option<String> = DirectMirAsciiLiteralContent(
+        identity.role_method.literal
+    );
+    return identity.valid && identity.digest != 0 &&
+        identity.digest == DirectMirRoleOverrideProgramIdentityDigest(identity) &&
+        identity.subject_row >= 0 && identity.role_row >= 0 &&
+        identity.subject_row != identity.role_row &&
+        identity.subject_source_syntax_id > 0 &&
+        identity.role_source_syntax_id > 0 &&
+        identity.field_source_syntax_id > 0 &&
+        identity.source_module_path != "" && identity.subject_name != "" &&
+        identity.role_name != "" && identity.subject_name != identity.role_name &&
+        identity.field_name != "" && identity.method_name != "" &&
+        identity.subject_method.valid && identity.role_method.valid &&
+        identity.entrypoint.valid &&
+        identity.subject_method.routine_row != identity.role_method.routine_row &&
+        identity.subject_method.routine_row != identity.entrypoint.routine_row &&
+        identity.role_method.routine_row != identity.entrypoint.routine_row &&
+        identity.subject_method.source_syntax_id > 0 &&
+        identity.role_method.source_syntax_id > 0 &&
+        identity.entrypoint.source_syntax_id > 0 &&
+        DirectMirRoleOverrideSourceSyntaxIdsUnique(identity) &&
+        IsSome(subject_content) && IsSome(role_content) &&
+        UnwrapOption(subject_content) == identity.subject_method.content &&
+        UnwrapOption(role_content) == identity.role_method.content &&
+        identity.subject_method.literal != identity.role_method.literal &&
+        identity.subject_method.content != identity.role_method.content &&
+        identity.entrypoint.local_name != "" &&
+        DirectMirNominalLiteralAbiAbsenceFactReady(
+            identity.entrypoint.typed_nominal_abi_absence
+        ) && identity.entrypoint.typed_nominal_abi_absence.type_name ==
+            identity.subject_name &&
+        identity.entrypoint.typed_nominal_abi_absence.result_name ==
+            identity.entrypoint.local_result &&
+        MirSsaNameMatches(
+            identity.entrypoint.local_result,
+            identity.entrypoint.local_name, false
+        ) && identity.entrypoint.member_target_name ==
+            CompilerSymbolCQualifiedName(
+                identity.subject_name, identity.method_name
+            );
+}
+
+func DirectMirRoleOverrideProgramIdentityFromAdmitted(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> DirectMirRoleOverrideProgramIdentity {
+    let specializations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(
+            admitted.document.root, "generic_method_specializations"
+        );
+    if !DirectMirRoleOverrideFamilyClaimed(admitted) ||
+        !admitted.document.valid || admitted.domain_topology_plan.present ||
+        admitted.document.routines.json != admitted.routines.source_json ||
+        JsonObjectFactCount(admitted.document.root) != 5 ||
+        !DirectMirExactObjectArrayCount(admitted.document.declarations, 2) ||
+        !DirectMirExactObjectArrayCount(
+            admitted.document.parallel_capture_boundaries, 0
+        ) || !DirectMirExactObjectArrayCount(specializations, 0) ||
+        !MirProgramRoutineIndexStructureReady(admitted.routines) {
+        Die("direct MIR role override program envelope is invalid");
+    }
+    let subject_row: Int = -1;
+    let role_row: Int = -1;
+    let row: Int = 0;
+    while row < 2 {
+        if admitted.routines.declarations.kinds[row] == "subject" &&
+            admitted.routines.declarations.nominal_kinds[row] == "subject" {
+            if subject_row >= 0 {
+                Die("direct MIR role override subject is duplicated");
+            }
+            subject_row = row;
+        } else if admitted.routines.declarations.kinds[row] == "role" &&
+            admitted.routines.declarations.nominal_kinds[row] == "role" {
+            if role_row >= 0 {
+                Die("direct MIR role override role is duplicated");
+            }
+            role_row = row;
+        } else {
+            Die("direct MIR role override declaration kind is invalid");
+        }
+        row = row + 1;
+    }
+    if subject_row < 0 || role_row < 0 {
+        Die("direct MIR role override declaration identity is incomplete");
+    }
+    let subject_table: JsonObjectFactTable = JsonArrayObjectFactAt(
+        admitted.document.declarations, subject_row
+    );
+    let role_table: JsonObjectFactTable = JsonArrayObjectFactAt(
+        admitted.document.declarations, role_row
+    );
+    let subject_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        subject_table.json, subject_table.start, subject_table.end,
+        "source_syntax_id"
+    );
+    let role_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        role_table.json, role_table.start, role_table.end, "source_syntax_id"
+    );
+    let for_type: Option<String> = MirObjectUniqueStringFactAtBounds(
+        role_table.json, role_table.start, role_table.end, "for_type"
+    );
+    let subject_fields: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(subject_table, "fields");
+    let subject_methods: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(subject_table, "methods");
+    let role_methods: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(role_table, "methods");
+    if JsonObjectFactCount(subject_table) != 7 ||
+        JsonObjectFactCount(role_table) != 9 ||
+        !IsSome(subject_source) || !IsSome(role_source) || !IsSome(for_type) ||
+        !MirProgramDeclarationFieldIdentityPositiveDecimal(
+            UnwrapOption(subject_source)
+        ) || !MirProgramDeclarationFieldIdentityPositiveDecimal(
+            UnwrapOption(role_source)
+        ) || admitted.routines.declarations.names[subject_row] == "" ||
+        admitted.routines.declarations.names[role_row] == "" ||
+        UnwrapOption(for_type) !=
+            admitted.routines.declarations.names[subject_row] ||
+        admitted.routines.declarations.source_module_paths[subject_row] !=
+            admitted.routines.declarations.source_module_paths[role_row] ||
+        !DirectMirExactObjectArrayCount(subject_fields, 1) ||
+        !DirectMirExactObjectArrayCount(subject_methods, 1) ||
+        !DirectMirObjectArrayEmpty(role_table, "fields") ||
+        !DirectMirExactObjectArrayCount(role_methods, 1) ||
+        !DirectMirObjectArrayEmpty(role_table, "impls") {
+        Die("direct MIR role override declaration schema is invalid");
+    }
+    let field: JsonObjectFactTable = JsonArrayObjectFactAt(subject_fields, 0);
+    let field_name: Option<String> = MirObjectUniqueStringFactAtBounds(
+        field.json, field.start, field.end, "name"
+    );
+    let field_source: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        field.json, field.start, field.end, "source_syntax_id"
+    );
+    if JsonObjectFactCount(field) != 4 || !IsSome(field_name) ||
+        UnwrapOption(field_name) == "" ||
+        !JsonObjectFactStringFieldEquals(field, "type", "Int") ||
+        !JsonObjectFactStringFieldEquals(field, "field_kind", "field") ||
+        !IsSome(field_source) ||
+        !MirProgramDeclarationFieldIdentityPositiveDecimal(
+            UnwrapOption(field_source)
+        ) {
+        Die("direct MIR role override subject field is invalid");
+    }
+    let subject_method: JsonObjectFactTable =
+        JsonArrayObjectFactAt(subject_methods, 0);
+    let role_method: JsonObjectFactTable =
+        JsonArrayObjectFactAt(role_methods, 0);
+    let subject_method_name: String =
+        DirectMirRoleOverrideDeclarationMethodName(subject_method, false);
+    let role_method_name: String =
+        DirectMirRoleOverrideDeclarationMethodName(role_method, true);
+    if subject_method_name == "" || subject_method_name != role_method_name {
+        Die("direct MIR role override method declarations disagree");
+    }
+    let subject_routine_row: Int = -1;
+    let role_routine_row: Int = -1;
+    let main_row: Int = -1;
+    row = 0;
+    while row < 3 {
+        if admitted.routines.kinds[row] == "method" &&
+            admitted.routines.owners[row] ==
+                admitted.routines.declarations.names[subject_row] &&
+            admitted.routines.names[row] == subject_method_name {
+            if subject_routine_row >= 0 {
+                Die("direct MIR role override subject routine is duplicated");
+            }
+            subject_routine_row = row;
+        } else if admitted.routines.kinds[row] == "method" &&
+            admitted.routines.owners[row] ==
+                admitted.routines.declarations.names[role_row] &&
+            admitted.routines.names[row] == role_method_name {
+            if role_routine_row >= 0 {
+                Die("direct MIR role override role routine is duplicated");
+            }
+            role_routine_row = row;
+        } else if admitted.routines.kinds[row] == "function" &&
+            admitted.routines.owners[row] == "" &&
+            admitted.routines.names[row] == "Main" {
+            if main_row >= 0 {
+                Die("direct MIR role override entrypoint is duplicated");
+            }
+            main_row = row;
+        } else {
+            Die("direct MIR role override routine identity is invalid");
+        }
+        row = row + 1;
+    }
+    if subject_routine_row < 0 || role_routine_row < 0 || main_row < 0 {
+        Die("direct MIR role override routine identity is incomplete");
+    }
+    let module_path: String =
+        admitted.routines.declarations.source_module_paths[subject_row];
+    let subject_literal: DirectMirRoleOverrideLiteralFact =
+        DirectMirRoleOverrideLiteralFromRoutine(
+            admitted, subject_routine_row, subject_row,
+            admitted.routines.declarations.names[subject_row],
+            subject_method_name, module_path
+        );
+    let role_literal: DirectMirRoleOverrideLiteralFact =
+        DirectMirRoleOverrideLiteralFromRoutine(
+            admitted, role_routine_row, role_row,
+            admitted.routines.declarations.names[role_row],
+            role_method_name, module_path
+        );
+    let main: DirectMirRoleOverrideMainFact =
+        DirectMirRoleOverrideMainFromRoutine(
+            admitted, main_row,
+            admitted.routines.declarations.names[subject_row],
+            subject_method_name, module_path
+        );
+    if !subject_literal.valid || !role_literal.valid || !main.valid {
+        Die("direct MIR role override routine facts are invalid");
+    }
+    let identity: DirectMirRoleOverrideProgramIdentity =
+        DirectMirRoleOverrideProgramIdentity(
+            true, 0, subject_row, role_row,
+            ToInt(UnwrapOption(subject_source)),
+            ToInt(UnwrapOption(role_source)),
+            ToInt(UnwrapOption(field_source)), module_path,
+            admitted.routines.declarations.names[subject_row],
+            admitted.routines.declarations.names[role_row],
+            UnwrapOption(field_name), subject_method_name,
+            subject_literal, role_literal, main
+        );
+    let verified: DirectMirRoleOverrideProgramIdentity =
+        DirectMirRoleOverrideProgramIdentity(
+            identity.valid,
+            DirectMirRoleOverrideProgramIdentityDigest(identity),
+            identity.subject_row, identity.role_row,
+            identity.subject_source_syntax_id,
+            identity.role_source_syntax_id,
+            identity.field_source_syntax_id, identity.source_module_path,
+            identity.subject_name, identity.role_name, identity.field_name,
+            identity.method_name, identity.subject_method,
+            identity.role_method, identity.entrypoint
+        );
+    if !DirectMirRoleOverrideProgramIdentityReady(verified) {
+        Die("direct MIR role override program identity is invalid");
+    }
+    return verified;
+}

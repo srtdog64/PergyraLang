@@ -138,8 +138,7 @@ func RewriteSemanticMemberAccessTracked(
         receiver, Concat(".", CompilerSymbolCFieldName(member_name))
     ));
 }
-func RewriteSemanticMemberAccess(graph: SemanticExpressionGraphFacts, node_id: Int, env: CodegenTypeEnv
-) -> String {
+func RewriteSemanticMemberAccess(graph: SemanticExpressionGraphFacts, node_id: Int, env: CodegenTypeEnv) -> String {
     let owned_fragments: Array<String> = [];
     let value: CodegenCExpressionText = RewriteSemanticMemberAccessTracked(
         graph, node_id, env, owned_fragments
@@ -178,31 +177,30 @@ func RewriteSemanticMemberCall(
             Die("semantic qualified-call function fact is missing");
         }
     } else if UnwrapOption(target_kind) == SemanticCallTargetMember() {
-        let dynamic_call: Option<String> =
-            RewriteSemanticDynamicAbilityCall(
-                graph, view, member, env, owned_fragments
-            );
+        let dynamic_call: Option<String> = RewriteSemanticDynamicAbilityCall(
+            graph, view, member, env, owned_fragments);
         if IsSome(dynamic_call) { return UnwrapOption(dynamic_call); }
         if UnwrapOption(target_name) == "" {
-            Die("semantic member-call target fact is missing");
-        }
+            Die("semantic member-call target fact is missing"); }
         call_symbol = CompilerSymbolCIdentifier(UnwrapOption(target_name));
         let carried_specialization: String = LookupKindType(
-            env, CodegenGenericCallNodeKey(view.call_node), "call"
-        );
+            env, CodegenGenericCallNodeKey(view.call_node), "call");
         if carried_specialization != "" {
             call_symbol = carried_specialization;
         } else if ArrayLength(view.generic_actual_type_names) > 0 {
             Die("semantic generic member specialization call fact is missing");
         }
         if LookupKindType(env, call_symbol, "f") == "" {
-            Die("semantic member-call method fact is missing");
-        }
-        param_offset = 1;
+            Die("semantic member-call method fact is missing"); }
+        let carried_source_offset: String =
+            LookupKindType(env, call_symbol, "rso");
+        if carried_source_offset != "0" && carried_source_offset != "1" {
+            Die("semantic member-call receiver source offset is missing"); }
+        param_offset = ToInt(carried_source_offset);
         let receiver_value: String = RewriteExprFromSemanticGraphTracked(
             graph, member.receiver_node, env, owned_fragments).text;
-        let receiver_place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(
-            graph, member.receiver_node);
+        let receiver_place_kind: Option<Int> =
+            SemanticExpressionGraphPlaceKind(graph, member.receiver_node);
         if !IsSome(receiver_place_kind) { Die("semantic member-call receiver place fact is missing"); }
         let stable_addressable: Bool = SemanticExpressionPlaceKindAddressable(UnwrapOption(receiver_place_kind));
         prefix_argument = CodegenMemberCallReceiverArgument(
@@ -218,6 +216,10 @@ func RewriteSemanticMemberCall(
     }
     let modes: String = LookupKindType(env, call_symbol, "pm");
     let param_types: String = LookupKindType(env, call_symbol, "pt");
+    if ParamModeCsvCount(modes) != ParamModeCsvCount(param_types) ||
+        param_offset + ArrayLength(view.argument_nodes) > ParamModeCsvCount(modes) {
+        Die("semantic member-call parameter carriage is missing or stale");
+    }
     let args: String = RewriteSemanticCallArguments(
         graph, view, modes, param_types, param_offset,
         prefix_argument, env, owned_fragments

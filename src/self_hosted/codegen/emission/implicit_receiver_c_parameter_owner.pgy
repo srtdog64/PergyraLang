@@ -1,0 +1,60 @@
+// One C declaration for a source-level implicit callable receiver.
+// Receiver carriage and role erasure are already admitted semantic facts;
+// prototypes and definitions consume this owner instead of guessing from the
+// visible parameter list.
+import "../input/callable_receiver_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+
+func CodegenImplicitReceiverCParameterOrDie(
+    receiver_facts: CodegenCallableReceiverFacts,
+    signature_index: Int,
+    owner_name: String,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let carriage: String =
+        CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
+            receiver_facts, signature_index
+        );
+    let role_erased: Bool =
+        CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie(
+            receiver_facts, signature_index
+        );
+    let source_parameter_offset: Int =
+        CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie(
+            receiver_facts, signature_index
+        );
+    if source_parameter_offset == 1 { return None; }
+    if role_erased {
+        if carriage != CallableReceiverCarriageMutableIdentity() {
+            Die("implicit erased-role receiver carriage is invalid");
+        }
+        CodegenCallableReceiverRoleTargetTypeForAdmittedSignatureOrDie(
+            receiver_facts, signature_index
+        );
+        CodegenCallableReceiverRoleTargetCarriageForAdmittedSignatureOrDie(
+            receiver_facts, signature_index
+        );
+        return Some("void *_pgy_raw_self");
+    }
+    if carriage == CallableReceiverCarriageNone() {
+        return None;
+    }
+    if owner_name == "" || (carriage !=
+        CallableReceiverCarriageMutableIdentity() && carriage !=
+        CallableReceiverCarriageValue()) {
+        Die("implicit callable receiver owner or carriage is invalid");
+    }
+    if carriage == CallableReceiverCarriageValue() {
+        return Some(Concat(
+            AbiLayoutCParamType(owner_name, env),
+            Concat(" ", CompilerSymbolCBindingName("self"))
+        ));
+    }
+    return Some(Concat(
+        AbiLayoutCParamType(owner_name, env),
+        Concat(" *", CompilerSymbolCBindingName("self"))
+    ));
+}

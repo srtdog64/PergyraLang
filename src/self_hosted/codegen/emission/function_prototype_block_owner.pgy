@@ -12,6 +12,7 @@ import "../input/callable_receiver_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "callable_parameter_prototype_owner.pgy";
+import "implicit_receiver_c_parameter_owner.pgy";
 
 func CodegenFunctionPrototypeBlock(
     signatures: SemanticAstFunctionSignatureFacts,
@@ -54,24 +55,21 @@ func CodegenFunctionPrototypeBlock(
                 CodegenCallableReceiverCarriageForAdmittedSignatureOrDie(
                     receiver_facts, i
                 );
+            let receiver_source_parameter_offset: Int =
+                CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie(
+                    receiver_facts, i
+                );
             let mutable_identity_receiver: Bool =
                 receiver_carriage ==
                     CallableReceiverCarriageMutableIdentity() &&
                 !IsSome(role_receiver_type);
-            let role_declares_self: Bool = false;
-            let signature_param_index: Int = 0;
-            while signature_param_index < param_count {
-                if CodegenSemanticFunctionParamNameOrDie(
-                    signatures, i, signature_param_index
-                ) == "self" {
-                    role_declares_self = true;
-                }
-                signature_param_index = signature_param_index + 1;
-            }
-
             let wrote_param: Bool = false;
-            if IsSome(role_receiver_type) && !role_declares_self {
-                TextBuilderAppend(output, "void *_pgy_raw_self");
+            let implicit_receiver: Option<String> =
+                CodegenImplicitReceiverCParameterOrDie(
+                    receiver_facts, i, owner, struct_env
+                );
+            if IsSome(implicit_receiver) {
+                TextBuilderAppend(output, UnwrapOption(implicit_receiver));
                 wrote_param = true;
             }
             let pn: Int = 0;
@@ -87,7 +85,9 @@ func CodegenFunctionPrototypeBlock(
                     signatures, i, pn
                 );
                 let role_receiver_param: Bool = false;
-                if p_name == "self" && IsSome(role_receiver_type) {
+                let source_receiver_parameter: Bool =
+                    pn < receiver_source_parameter_offset;
+                if source_receiver_parameter && IsSome(role_receiver_type) {
                     p_type = UnwrapOption(role_receiver_type);
                     role_receiver_param = true;
                 }
@@ -101,7 +101,7 @@ func CodegenFunctionPrototypeBlock(
                     TextBuilderAppend(output, UnwrapOption(callable_parameter));
                 } else {
                     let cpt: String = AbiLayoutCParamType(p_type, struct_env);
-                    if p_name == "self" && mutable_identity_receiver {
+                    if source_receiver_parameter && mutable_identity_receiver {
                         if p_mode != 0 {
                             Die("mutable-identity receiver prototype mode is invalid");
                         }
@@ -170,9 +170,26 @@ func CodegenFunctionPrototypeBlock(
             CodegenCallableReceiverRoleErasedForAdmittedSignatureOrDie(
                 receiver_facts, signature_index
             );
+        let specialized_receiver_source_parameter_offset: Int =
+            CodegenCallableReceiverSourceParameterOffsetForAdmittedSignatureOrDie(
+                receiver_facts, signature_index
+            );
+        let specialized_owner: String =
+            CodegenSemanticFunctionOwnerOrDie(signatures, signature_index);
+        let specialized_implicit_receiver: Option<String> =
+            CodegenImplicitReceiverCParameterOrDie(
+                receiver_facts, signature_index, specialized_owner, struct_env
+            );
+        let wrote_param: Bool = false;
+        if IsSome(specialized_implicit_receiver) {
+            TextBuilderAppend(
+                output, UnwrapOption(specialized_implicit_receiver)
+            );
+            wrote_param = true;
+        }
         let pn: Int = 0;
         while pn < param_count {
-            if pn > 0 { TextBuilderAppend(output, ", "); }
+            if wrote_param { TextBuilderAppend(output, ", "); }
             let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
                 signatures, signature_index, pn
             );
@@ -182,6 +199,8 @@ func CodegenFunctionPrototypeBlock(
             let p_type: String = CodegenGenericResolvedParamTypeOrDie(
                 signatures, signature_index, pn, actuals
             );
+            let source_receiver_parameter: Bool =
+                pn < specialized_receiver_source_parameter_offset;
             let c_binding_name: String = CompilerSymbolCBindingName(p_name);
             let callable_parameter: Option<String> =
                 CodegenCallableParameterPrototypeIfPresent(
@@ -191,9 +210,9 @@ func CodegenFunctionPrototypeBlock(
                 TextBuilderAppend(output, UnwrapOption(callable_parameter));
             } else {
                 let cpt: String = AbiLayoutCParamType(p_type, struct_env);
-                if p_name == "self" && specialized_role_erased {
+                if source_receiver_parameter && specialized_role_erased {
                     TextBuilderAppend(output, "void *_pgy_raw_self");
-                } else if p_name == "self" && specialized_carriage ==
+                } else if source_receiver_parameter && specialized_carriage ==
                     CallableReceiverCarriageMutableIdentity() {
                     if p_mode != 0 {
                         Die("mutable-identity receiver prototype mode is invalid");
@@ -224,9 +243,10 @@ func CodegenFunctionPrototypeBlock(
                     );
                 }
             }
+            wrote_param = true;
             pn = pn + 1;
         }
-        if pn == 0 {
+        if !wrote_param {
             TextBuilderAppend(output, AbiLayoutCEmptyParameterList());
         }
         TextBuilderAppend(output, ");\n");

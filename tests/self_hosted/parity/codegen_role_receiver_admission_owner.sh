@@ -42,11 +42,11 @@ run_role_case() {
     (cd "$ROOT_DIR" && "$CODEGEN_BIN" --source "$source_rel" \
         >"$c_file" 2>"$BUILD_DIR/$label.emit.err") \
         || { cat "$BUILD_DIR/$label.emit.err" >&2; fail "$label source codegen failed"; }
-    grep -Fq 'long long IntMath_Add(void *_pgy_raw_self, long long rhs)' "$c_file" \
+    grep -Fq 'int32_t IntMath_Add(void *_pgy_raw_self, int32_t rhs)' "$c_file" \
         || fail "$label lost erased role method ABI"
-    grep -Fq 'long long self = _pgy_raw_self ? *(long long *)_pgy_raw_self' "$c_file" \
+    grep -Fq 'int32_t self = _pgy_raw_self ? *(int32_t *)_pgy_raw_self' "$c_file" \
         || fail "$label lost scalar value receiver binding"
-    grep -Fq 'long long lhs_copy = lhs;' "$c_file" \
+    grep -Fq 'int32_t lhs_copy = lhs;' "$c_file" \
         || fail "$label lost stable erased-role argument address"
     grep -Fq 'operator_add_Int' "$c_file" \
         || fail "$label lost admitted role operator adapter"

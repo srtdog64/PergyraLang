@@ -64,6 +64,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Impl ability:") {
         return TypedAstKindImplAbilityTag();
     }
+    if text == "Override" {
+        return TypedAstKindOverrideFuncTag();
+    }
     if StartsWith(text, "Include role ") {
         return TypedAstKindRoleIncludeTag();
     }

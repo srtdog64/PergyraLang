@@ -3,6 +3,7 @@ import "direct_mir_scalar_graph_admission_owner.pgy";
 import "direct_mir_three_routine_shape_owner.pgy";
 import "direct_mir_three_routine_classification_fact_owner.pgy";
 import "direct_mir_array_argument_legacy_route_owner.pgy";
+import "direct_mir_struct_argument_program_admission_owner.pgy";
 
 func DirectMirThreeRoutineClassificationFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
@@ -27,6 +28,8 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
         InvalidDirectMirThreeRoutineConstructedMemberShapeFact();
     let mixed_shape: DirectMirThreeRoutineMixedConstructedMemberShapeFact =
         InvalidDirectMirThreeRoutineMixedConstructedMemberShapeFact();
+    let role_override: DirectMirRoleOverrideProgramIdentity =
+        InvalidDirectMirRoleOverrideProgramIdentity();
     let kind: String = "";
     if DirectMirArrayArgumentLegacyRouteClaimed(admitted) &&
         declarations == 0 && specialization_count == 0 &&
@@ -61,7 +64,14 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
         }
         kind = DirectMirThreeRoutineMixedConstructedGenericMember();
     } else if declarations == 2 && specialization_count == 0 &&
-        generic_routine_count == 0 {
+        generic_routine_count == 0 &&
+        DirectMirRoleOverrideFamilyClaimed(admitted) {
+        role_override =
+            DirectMirRoleOverrideProgramIdentityFromAdmitted(admitted);
+        kind = DirectMirThreeRoutineRoleOverride();
+    } else if declarations == 2 && specialization_count == 0 &&
+        generic_routine_count == 0 &&
+        DirectMirStructArgumentProgramEnvelopeReady(admitted) {
         kind = DirectMirThreeRoutineStructArgument();
     } else {
         Die("direct MIR three-routine structural shape is unsupported");
@@ -69,14 +79,15 @@ func DirectMirThreeRoutineClassificationFromAdmitted(
     let fact: DirectMirThreeRoutineClassificationFact =
         DirectMirThreeRoutineClassificationFact(
             true, 0, kind, declarations,
-            specialization_count, generic_routine_count, constructed_shape,
-            mixed_shape
+            specialization_count, generic_routine_count, role_override,
+            constructed_shape, mixed_shape
         );
     let verified: DirectMirThreeRoutineClassificationFact =
         DirectMirThreeRoutineClassificationFact(
             fact.valid, DirectMirThreeRoutineClassificationFactDigest(fact),
             fact.kind, fact.declaration_count, fact.specialization_count,
-            fact.generic_routine_count, fact.constructed_member_shape,
+            fact.generic_routine_count, fact.role_override_program,
+            fact.constructed_member_shape,
             fact.mixed_constructed_member_shape
         );
     if !DirectMirThreeRoutineClassificationFactReady(verified) {

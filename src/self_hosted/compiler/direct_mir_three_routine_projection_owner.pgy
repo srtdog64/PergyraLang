@@ -8,6 +8,7 @@ import "direct_mir_generic_struct_value_flow_projection_owner.pgy";
 import "direct_mir_inferred_generic_scalar_projection_owner.pgy";
 import "direct_mir_constructed_generic_member_projection_owner.pgy";
 import "direct_mir_constructed_record_array_member_projection_owner.pgy";
+import "direct_mir_role_override_emission_owner.pgy";
 
 func CompileAdmittedDirectMirThreeRoutine(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -60,17 +61,19 @@ func CompileAdmittedDirectMirThreeRoutine(
             admitted, classification, is_llvm, formatted_print, line_format
         );
     }
+    if classification.kind == DirectMirThreeRoutineRoleOverride() {
+        return CompileAdmittedDirectMirRoleOverride(
+            classification.role_override_program, target_projection,
+            is_llvm, formatted_print
+        );
+    }
     if classification.kind == DirectMirThreeRoutineStructArgument() {
         let plan: DirectMirStructArgumentPlan =
             DirectMirStructArgumentPlanFromAdmitted(admitted);
         if is_llvm {
-            return DirectMirStructArgumentEmitLlvm(
-                plan, formatted_print, line_format
-            );
+            return DirectMirStructArgumentEmitLlvm(plan, formatted_print, line_format);
         }
-        return DirectMirStructArgumentEmitC(
-            plan, formatted_print, line_format
-        );
+        return DirectMirStructArgumentEmitC(plan, formatted_print, line_format);
     }
     Die("direct MIR three-routine projection rejected the classification");
     return "";
