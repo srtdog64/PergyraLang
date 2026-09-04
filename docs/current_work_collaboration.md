@@ -56,11 +56,15 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   This Windows host has no `make`, so the six installed replacement-frontier
   recipe gates were executed directly with the same installed driver and all
   passed; CI still owns the aggregate target itself.
+- Exact local implementation checkpoint is
+  `3b3a0a0f33109446eeb878beff56bb0c1135f99a`. The following handoff refresh is
+  documentation-only; publication and exact-head Actions state must be checked
+  rather than inferred from this ledger.
 - Linux CI consumes the already installed driver through
   `self-host-replacement-frontier-installed-test-smoke`; its dry-run contains
   zero self-host bootstrap commands. The standalone wrapper retains exactly one
-  build. Exact-head publication and remote Rocq/full-matrix evidence are still
-  pending, so this lease remains `ACTIVE`.
+  build. The lease remains `ACTIVE` until that exact published descendant has
+  remote Rocq/full-matrix evidence.
 
 ## DONE implementation lease — installed source-LLVM `region_user_callee`
 

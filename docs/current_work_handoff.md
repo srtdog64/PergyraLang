@@ -63,9 +63,13 @@ percentage by themselves.
   the standalone wrapper has exactly one. Local SoT binding/negative checks
   pass with an explicitly declared prover skip; Rocq kernel validation and
   exact-head remote CI remain the next falsifiers.
-- HEAD remains the lease base while this scoped candidate is dirty. The
-  user-owned `examples/raid_graph_fsm/results.txt` and the three protected
-  untracked directories remain outside inspection, edit, and staging.
+- Exact implementation checkpoint is
+  `3b3a0a0f33109446eeb878beff56bb0c1135f99a`; the following handoff refresh is
+  documentation-only. Publication and exact-head CI state must be verified
+  against `origin/main` rather than inferred from this snapshot. The user-owned
+  `examples/raid_graph_fsm/results.txt` and the three protected untracked
+  directories remain outside inspection, edit, and staging; no scoped source
+  change remains after the implementation checkpoint.
 - Module Build remains design-only. Its implementation order stays
   `self-host closure -> evidence/identity compression -> real external project ->
   ModuleInterface -> BuildUnit/incremental build`.

@@ -2,7 +2,7 @@
 
 마지막 업데이트: 2026-09-04
 
-현재 unpublished candidate는 `d2ee067c` 위에서
+Implementation checkpoint `3b3a0a0f`는 `d2ee067c` 위에서
 `role_override_mir`의 installed production red를 닫는다. Self parser는
 `override func`를 별도 AST kind로 보존하고, `SemanticAstRoleFacts`가 direct
 role-owned override와 ability implementation을 구분한다. 그 구분은 canonical
@@ -28,7 +28,8 @@ Hard self-host contract와 complete component contract도 green이다. Windows�
 `make`가 없어 installed aggregate wrapper 자체는 실행하지 못했지만 그 recipe의
 여섯 gate는 같은 installed driver를 대상으로 모두 green이다. 로컬에는
 Rocq/Coq가 없어 SoT gate는 명시적 skip 모드에서 registry binding/negative만
-통과했으며 kernel proof와 exact-head 전체 CI는 아직 남았다.
+통과했다. 이 checkpoint의 publication 상태와 Rocq kernel/exact-head 전체 CI는
+`origin/main`과 Actions에서 별도로 확인해야 한다.
 
 Linux push/full step은 이미 설치된 DRV-2를 쓰는
 `self-host-replacement-frontier-installed-test-smoke` 하나로 기존
