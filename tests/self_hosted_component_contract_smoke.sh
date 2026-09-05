@@ -230,7 +230,7 @@ run_regex_scope_checks() {
         fail "missing or inconsistent directory regex requests"
     for rel_dir in "${REGEX_SCOPE_DIRS[@]}"; do
         seen=0
-        for checked_dir in "${checked_dirs[@]}"; do
+        for checked_dir in ${checked_dirs[@]+"${checked_dirs[@]}"}; do
             [[ "$rel_dir" == "$checked_dir" ]] && seen=1
         done
         [[ "$seen" -eq 0 ]] || continue

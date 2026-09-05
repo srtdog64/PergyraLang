@@ -20,11 +20,47 @@ percentage by themselves.
 
 ## Active self-host context — mixed-arity tagged-enum callable projection
 
-- Published repair: `2c5d0ed0c8e1d936aa3f8ab932617c06de44156b` on main and
-  origin/main. All 35 reviewed source/test/doc inputs were committed and pushed;
-  tracked state was clean immediately afterward, with only the preserved
-  `caf_probe_tmp.pgy` untracked. The subsequent nine-file harness/navigation
-  delta is locally verified and independently reviewed, awaiting publication.
+- Published second-round repair: `da818c3df133c23572486872e4114d594f981890`
+  on main and origin/main. All nine reviewed test/doc inputs were committed and
+  pushed; tracked state was clean immediately afterward, with only preserved
+  `caf_probe_tmp.pgy` untracked. This subsequent CI-ID navigation refresh stays
+  local while exact-revision verification runs. Regular CI `33979208920`
+  completed SUCCESS, 30/30 jobs, on this exact SHA. Its watch `63073` completed
+  exit 0. Platform full `33979255563` completed FAILURE, 10/13 jobs passed:
+  Linux core passed all 122 steps and Windows core all 56; macOS and both driver
+  shards failed. Watch
+  `36279` completed exit 1. Both exact-revision runs are reconciled; no live
+  watch or runner remains from this pair.
+  On this exact repair revision, codegen bootstrap completed gen2 == gen3
+  (76,777 lines), and Rocq9 compiled/kernel-verified all 49 proofs with the
+  unchanged two-abstraction axiom budget. Its planted-Admitted gate selftest
+  also passed. Full driver bootstrap then completed gen2 == gen3 (177,559
+  lines), including installed-driver CLI/policy gates. Platform full is not green.
+- Third-round reached repair is local and incomplete. See
+  `docs/agent_work_directives/reached_platform_portability_and_ability_diagnostics_2026-09-06.md`.
+  The prior AWK regexp and collection/enum SSA corrections reached their
+  succeeding boundaries. macOS now reports the Bash 3.2 empty `checked_dirs`
+  expansion and BWK directory-read fatal exit 2. The checker agent finished its
+  four-file patch: guarded empty-array iteration, quoted regular-file checks,
+  exact policy refusal 1 versus preflight execution error 2, and missing/read
+  failure controls. Primary independently passed both mechanics gates within
+  60 seconds (`67481`: component 6.51s, size policy 29.41s), plus shell syntax;
+  native macOS remains pending. The eight caps and timeouts are unchanged.
+  Linux and Windows driver both report the
+  obsolete free-call expectation for `storage.buffer.Put("bad")`. The exact
+  member-call/Int/String refusal now passes locally (`994181`, exit 1 from the
+  compiler), but the focused parent `5107` is RED at canonical MIR graph
+  admission. A separate valid-source C route also rejects with that graph
+  diagnostic (`493594`); the native oracle executes 12. This is a compiler
+  counterexample, not a passing semantic negative or complete parity repair.
+  The preserved declaration-only ability target-ID gap is recorded in
+  `docs/audits/2026-09-06_ability_declaration_identity_epoch_counterexample.md`.
+  Independent read-only review confirmed that carrying the missing ID must
+  also preserve declaration/routine uniqueness and generic-default ownership.
+  Documentation and CI-profile gates passed (`34020`, final rerun `55844`);
+  strict UTF-8 passed on the 12 reviewed publication paths and whitespace is clean.
+  No compiler source or installed binary has changed in this repair.
+- Previous source repair: `2c5d0ed0c8e1d936aa3f8ab932617c06de44156b`.
   Regular CI `33975994077` completed SUCCESS, 30/30 jobs at this exact SHA.
   Full driver bootstrap reports gen2 == gen3 (177,559 lines), codegen bootstrap
   reports 76,777 lines, and Rocq9 compiled/kernel-checked 49 proofs (axiom
@@ -33,7 +69,7 @@ percentage by themselves.
   passed all 122 steps and Windows core all 56; macOS AWK parsing and the
   identical Linux/Windows driver SSA assertions were the three failing jobs.
   Both runs are reconciled; no live job needs cancellation before publication.
-- Unpublished second-round harness repair: shared AWK negated path class now
+- Published second-round harness repair: shared AWK negated path class now
   escapes the slash for BWK/macOS without changing any cap. GNU checker
   mechanics passed after an observed pre-fix failure; native macOS is pending.
   Collection/enum loop checks now join exact initialization/header/latch SSA
@@ -100,15 +136,33 @@ percentage by themselves.
   failure are in
   `docs/audits/2026-09-05_enum_variant_name_reconstruction_counterexample.md`.
   Do not silently promote its bounded distinct-name regression into a fix.
-- Next falsifier: publish the independently reviewed second-round harness
-  repair and run exact-revision CI/Platform full, retaining the previous
-  revision's distinct success/failure evidence. The same-name enum and guarded
-  exhaustive-return findings remain OPEN; this harness work does not fix them.
+  Bounded follow-up on unchanged driver `1AAFC7D7`: the original same-name MIR
+  executes exact 22/0/3 on direct C and LLVM (`same-name-projection.y2tmQw`).
+  General reconstruction remains OPEN. The separate guarded exhaustive match
+  is rejected on both direct targets with exact exit 1/code 103 and no output
+  (`guarded-exhaustive-projection.ZjKsEh`). Both original MIR hashes remain
+  unchanged; valid-input refusals are bugs, not semantic negative PASS evidence.
+- Next falsifier: close the reached declaration-only ability identity gap with
+  a storage-safe current-source compiler build. Both prior runs are reconciled:
+  regular `33979208920` SUCCESS, Platform `33979255563` FAILURE 10/13.
+  The ability diagnostic correction must not
+  be called full parity green: the next reached failure is declaration-only
+  callable identity absent from MIR-to-canonical graph rebinding. Preserve the
+  exact failing source/MIR and close the producer/consumer identity seam before
+  retrying that parent. The same-name enum and guarded exhaustive-return
+  findings remain OPEN; this harness work does not fix them.
   Do not restart a live runner because an observation times out.
   Final local profile/documentation checks passed (`15523`); strict UTF-8 and
   staged whitespace passed for the preceding 35 publication paths. No storage
   cleanup is authorized or needed here; approximately 20 MiB free was observed.
   Preserve all original MIR/fixed-point inputs and untracked `caf_probe_tmp.pgy`.
+  C: has free temporary storage, but a bounded absolute-output attempt was
+  rejected at artifact `begin-temp` by the existing default IO path policy.
+  No IO override, alternate transport, copy, move, or deletion followed that
+  refusal. The empty task directory is
+  `C:/Users/user/AppData/Local/Temp/pergyra-enum-closure-20260906-3708ab3d0d764d77a879ac63b663b5d2`.
+  Large local build continuation needs a user-approved storage/worktree choice;
+  current remote CI and small in-repo observations remain available.
   Census 88/185, CLOSED55/BRIDGE32/ACTIVE1 and hard substitution 75% are unchanged.
 
 ## Historical archive boundary — earlier checkpoints, not the active queue

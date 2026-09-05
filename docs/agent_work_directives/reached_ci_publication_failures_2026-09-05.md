@@ -1,14 +1,19 @@
 # Reached publication CI failures
 
-Status: second-round IMPLEMENTATION COMPLETE; publication/remote verification pending
+Status: second-round IMPLEMENTATION COMPLETE and published; remote results reconciled
 
 Base: `918a7c98e541771fab542713262b643d375d51c0`, published. CI `33966684805`
 completed FAILURE (29/30 passed); Platform full `33966692630` completed FAILURE
 (8/13 passed). Repair `2c5d0ed0c8e1d936aa3f8ab932617c06de44156b` is published;
 CI `33975994077` completed SUCCESS 30/30; Platform full `33976010056` completed
-FAILURE 10/13 at that exact SHA. The second-round harness candidate is locally
-verified and independently reviewed; no next-revision remote success is claimed.
-The earlier runs do not cover it. The user's existing explicit
+FAILURE 10/13 at that exact SHA. The second-round harness repair is published as
+`da818c3df133c23572486872e4114d594f981890`, after local verification and
+independent review. CI `33979208920` completed SUCCESS 30/30 and Platform full
+`33979255563` completed FAILURE 10/13 on that exact revision. Linux/Windows
+core passed; macOS checker and both ability-diagnostic driver checks failed.
+The reached continuation is separately coordinated by
+`reached_platform_portability_and_ability_diagnostics_2026-09-06.md`.
+The user's existing explicit
 integration/commit/push/CI authorization applies; no new compiler rung opens.
 
 ## Objective card
@@ -113,7 +118,8 @@ default C+LLVM passed (`94527`), in addition to the earlier C-only run. The
 class/array parent passed both selected fixtures (`61006`). The Makefile spawn
 profile propagation now has a focused assertion in the existing CI-profile
 gate. Shared installed driver and old fixed-point artifacts are unchanged.
-New full bootstrap and repair-revision remote CI remain outstanding.
+The later full-bootstrap and exact-revision results are recorded at the top
+and end of this directive; the local gates above were not their substitutes.
 
 Observed same-name enum reconstruction and preceding-if/exhaustive-return
 limitations are OPEN in the separate counterexample audit. No compiler repair
@@ -216,3 +222,12 @@ entry 0 -> header 1 <- latch 12 definition join, one materialized DecideOf
 evaluation per match, and deletion of only the latch incoming use (not the CFG
 edge). No material checker gap was found. This review ran no compiler or new
 fixture and does not add executable evidence to the primary's observed runs.
+
+Exact-revision evidence on `da818c3d`: job `101341267377` completed
+codegen gen2 == gen3 (76,777 lines); job `101341267386` compiled/kernel-verified
+49 proofs with two declared abstractions, no admits and no unsafe kernel
+features. The planted-Admitted selftest also passed. Full driver job
+`101341267420` completed gen2 == gen3 (177,559 lines), and regular CI finished
+30/30 SUCCESS. Platform full finished 10/13 FAILURE. Its succeeding macOS
+empty-array/read-error and ability-diagnostic failures belong to the new
+directive; no full-platform green is inferred from the successful jobs.

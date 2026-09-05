@@ -10,15 +10,39 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ### Reached publication failures — one primary integration owner
 
-The 35-file repair is committed and pushed as
-`2c5d0ed0c8e1d936aa3f8ab932617c06de44156b`; tracked state was clean after
-publication. Regular CI `33975994077` and Platform full `33976010056` both
+The second-round nine-file repair is committed and pushed as
+`da818c3df133c23572486872e4114d594f981890`. Tracked state was clean afterward;
+this CI-ID navigation refresh is a subsequent local documentation delta.
+Regular CI `33979208920` completed SUCCESS, 30/30 on that exact SHA, including
+the full driver fixed point (177,559 lines). Watch `63073` completed exit 0.
+Platform full `33979255563` completed FAILURE, 10/13 passed. Linux/Windows
+core passed; macOS and both driver shards failed. Watch `36279` completed exit
+1. Both exact-revision results are reconciled; no watch remains live.
+
+The third-round lease is
+`docs/agent_work_directives/reached_platform_portability_and_ability_diagnostics_2026-09-06.md`.
+`semantic_index_review` finished only its four checker files and released its
+edit lease. Primary independently passed component/size mechanics in 6.51s /
+29.41s (`67481`), with the same 60-second limits; native macOS is pending.
+`ci_assertion_review` finished its read-only ability identity review, confirming
+the missing carriage and the declaration/routine and generic-default caveats.
+Primary owns the
+ability diagnostic child, documentation and integration. The corrected child
+passes the real member-call refusal (`994181`), but parent `5107` and a separate
+valid-source C check are RED at MIR expression-graph admission. The native
+oracle executes 12. The declaration-only target-ID evidence is in
+`docs/audits/2026-09-06_ability_declaration_identity_epoch_counterexample.md`.
+No agent holds a compiler implementation lease; no compiler source changed.
+
+The previous 35-file source repair is
+`2c5d0ed0c8e1d936aa3f8ab932617c06de44156b`.
+Regular CI `33975994077` and Platform full `33976010056` both
 target that exact SHA. Regular CI is SUCCESS (30/30, including full driver and
 codegen fixed points and Rocq9). Platform full completed FAILURE, 10/13 jobs;
 Linux core passed all 122 steps and Windows core all 56, while macOS and both
 driver shards failed. Primary has reconciled both exact-revision results.
-The subsequent navigation and second-round harness repairs are independently
-reviewed and await scoped publication. Generated C/MIR and the scratch
+Those results motivated the independently reviewed, now-published second-round
+harness repair; they do not cover its final SHA. Generated C/MIR and the scratch
 `caf_probe_tmp.pgy` remain preserved and excluded.
 
 Previous base `918a7c98` failed regular CI (29/30 passed) and Platform full
@@ -29,7 +53,7 @@ The objective, independent scopes and source-growth explanations are in
 The second-round AWK edit and read-only phi-checker review lanes are COMPLETE.
 Independent review confirmed the exact incoming-definition join and the
 single latch-input deletion without finding a material gap.
-No agent holds a compiler or publication lease. The focused driver parent
+No sub-agent holds a compiler or publication lease. The earlier focused driver parent
 passed (`22125`), as did all four adjacent wrapper/collection fixtures (`50755`).
 CI-profile/docs and AWK mechanics passed. The local full size scan hit its
 60-second budget (`85297`, exit 124); that incomplete run is not green evidence.
@@ -41,6 +65,14 @@ confirmed the owner-stage evidence; no generic refusal is called local proof.
 Current candidate `1AAFC7D7` passes actual SEA C/LLVM and Option-match execution.
 Installed `7928ED6B` and its older fixed-point receipt are not current-source
 evidence. See the top handoff card for exact graph, gates and next falsifier.
+
+Bounded continuation on the unchanged candidate confirmed exact 22/0/3 for the
+retained same-name enum MIR on direct C/LLVM; general MIR reconstruction remains
+OPEN. The separate guarded exhaustive match rejects both direct targets with
+code 103. These are primary observations, not a new implementation lease or
+completion score. Large local output on C: was rejected by the current default
+IO path policy; no permission override or storage relocation was attempted.
+The completed CI watches are retained as exact-revision integration evidence.
 
 The older checkpoints below are dated execution evidence. Their
 pre-publication empty-index/unpublished statements are historical now; neither

@@ -24,6 +24,10 @@ for checker in fail load_text_cache function_body_text load_function_body_cache 
     }
 done
 
+# Bash 3.2 treats an empty array's unguarded expansion as unset under nounset.
+[[ "$definitions" == *'${checked_dirs[@]+"${checked_dirs[@]}"}'* ]] ||
+    fail 'regex scope checker must guard its empty array for Bash 3.2'
+
 LINE_CAP_REQUESTS=()
 FUNCTION_BODY_CACHE_REL=""
 FUNCTION_BODY_CACHE_SIGNATURE=""
@@ -175,15 +179,17 @@ check_match_pattern_consumer_placement
 expect_rejection placement-scan-error 'placement scan failed' \
     check_placement_with_scan_status 2
 
-mkdir -p "$ROOT_DIR/regex-a" "$ROOT_DIR/regex-b"
+mkdir -p "$ROOT_DIR/regex-a" "$ROOT_DIR/regex-b" "$ROOT_DIR/regex with spaces"
 printf '%s\n' 'allowed call' >"$ROOT_DIR/regex-a/main.pgy"
 printf '%s\n' 'retired_token' >"$ROOT_DIR/regex-a/ignored.txt"
 printf '%s\n' 'allowed call' >"$ROOT_DIR/regex-b/main.pgy"
+printf '%s\n' 'allowed call' >"$ROOT_DIR/regex with spaces/main.pgy"
 REGEX_SCOPE_DIRS=()
 REGEX_SCOPE_PATTERNS=()
 reject_regex_under regex-a 'retired_token|retired_other'
 reject_regex_under regex-a '(open|close)\('
 reject_regex_under regex-b 'different_forbidden'
+reject_regex_under 'regex with spaces' 'different_forbidden'
 run_regex_scope_checks
 printf '%s\n' 'close(' >"$ROOT_DIR/regex-a/main.pgy"
 expect_rejection second-regex-retained 'must not match retired regex requests' run_regex_scope_checks
@@ -198,6 +204,11 @@ expect_rejection missing-regex-root 'missing regex input directory' reject_regex
 REGEX_SCOPE_DIRS=()
 REGEX_SCOPE_PATTERNS=()
 expect_rejection missing-regex-requests 'missing or inconsistent directory regex requests' run_regex_scope_checks
+REGEX_SCOPE_DIRS=(regex-a)
+expect_rejection missing-regex-patterns 'missing or inconsistent directory regex requests' run_regex_scope_checks
+REGEX_SCOPE_DIRS=()
+REGEX_SCOPE_PATTERNS=(token)
+expect_rejection missing-regex-directories 'missing or inconsistent directory regex requests' run_regex_scope_checks
 REGEX_SCOPE_DIRS=(regex-a regex-b)
 REGEX_SCOPE_PATTERNS=(token)
 expect_rejection inconsistent-regex-requests 'missing or inconsistent directory regex requests' run_regex_scope_checks

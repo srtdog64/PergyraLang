@@ -2,13 +2,30 @@
 # lookup requires one exact registered path; scan applies defaults only to
 # unregistered paths. Registered caps retain component record-count semantics;
 # other paths retain the production gate's batch wc newline counts.
-function fail(message) {
+function fail(message, error_status) {
     print "[self-host-owner-size] " message > "/dev/stderr"
-    failed = 1
-    exit 1
+    if (error_status == "") error_status = 1
+    failed = error_status
+    exit failed
+}
+function require_regular_file(path, diagnostic,    quoted_path, path_index, character, preflight_status) {
+    # BWK awk can abort while reading a directory instead of returning -1.
+    # Quote the whole path: the repository root need not be a shell word.
+    quoted_path = "'"
+    for (path_index = 1; path_index <= length(path); path_index++) {
+        character = substr(path, path_index, 1)
+        if (character == "'") quoted_path = quoted_path "'\\''"
+        else quoted_path = quoted_path character
+    }
+    quoted_path = quoted_path "'"
+    preflight_status = system("test -f " quoted_path)
+    if (preflight_status == 1) fail(diagnostic)
+    if (preflight_status != 0)
+        fail("regular-file preflight failed with status " preflight_status ": " path, 2)
 }
 function line_count(rel,    path, count, status, line) {
     path = root "/" rel
+    require_regular_file(path, "unreadable source: " rel)
     count = 0
     while ((status = (getline line < path)) > 0) count++
     close(path)
@@ -20,6 +37,7 @@ BEGIN {
     if (mode != "lookup" && mode != "scan") fail("invalid policy mode")
     if (manifest == "")
         manifest = root "/tests/fixtures/self_hosted_responsibility_caps.tsv"
+    require_regular_file(manifest, "unreadable responsibility caps: " manifest)
     while ((status = (getline row < manifest)) > 0) {
         sub(/\r$/, "", row)
         if (row == "" || row ~ /^#/) continue
@@ -75,7 +93,7 @@ mode == "scan" {
     scanned++
 }
 END {
-    if (failed) exit 1
+    if (failed) exit failed
     if (mode == "scan") {
         if (!scanned) {
             print "[self-host-owner-size] no source paths scanned" > "/dev/stderr"

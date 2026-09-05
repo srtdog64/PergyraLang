@@ -11,6 +11,8 @@ grep -Fq 'rel ~ /^src\/self_hosted\/semantic\/[^\/]+[.]pgy$/' "$POLICY" ||
 
 mkdir -p "$REPO_DIR/.tmp/self_hosted/owner_size_policy"
 ROOT_DIR="$(mktemp -d "$REPO_DIR/.tmp/self_hosted/owner_size_policy/run.XXXXXX")"
+# All policy calls exercise shell quoting of spaces and an apostrophe in root.
+ROOT_DIR="$ROOT_DIR/root with 'quote"
 MANIFEST="$ROOT_DIR/tests/fixtures/self_hosted_responsibility_caps.tsv"
 mkdir -p "$ROOT_DIR/tests/fixtures" "$ROOT_DIR/src/self_hosted/compiler" \
     "$ROOT_DIR/src/self_hosted/semantic" "$ROOT_DIR/src/self_hosted/codegen/emission"
@@ -112,7 +114,44 @@ expect_rejection empty-caps 'empty responsibility caps' lookup "${owners[0]}"
 expect_rejection missing-caps 'unreadable responsibility caps' \
     awk -v root="$ROOT_DIR" -v mode=lookup -v owner="${owners[0]}" \
         -v manifest="$ROOT_DIR/missing-caps.tsv" -f "$POLICY"
+expect_rejection directory-caps 'unreadable responsibility caps' \
+    awk -v root="$ROOT_DIR" -v mode=lookup -v owner="${owners[0]}" \
+        -v manifest="$ROOT_DIR/tests/fixtures" -f "$POLICY"
 cp "$ROOT_DIR/original-caps.txt" "$MANIFEST"
+quoted_manifest="$ROOT_DIR/cap's table.tsv"
+cp "$MANIFEST" "$quoted_manifest"
+[[ "$(awk -v root="$ROOT_DIR" -v mode=lookup -v owner="${owners[0]}" \
+    -v manifest="$quoted_manifest" -f "$POLICY")" == "${limits[0]}" ]] ||
+    fail 'quoted manifest path drifted'
+
+# Inject an actual non-test shell exit into a copy of the owner. This must be
+# an execution error (2), never a normal input/policy refusal (1) or success.
+awk '
+    /preflight_status = system\("test -f " quoted_path\)/ {
+        sub(/system\(/, "system((path == preflight_error_path ? \"exit 7; \" : \"\") ")
+        injected++
+    }
+    { print }
+    END { if (injected != 1) exit 1 }
+' "$POLICY" >"$ROOT_DIR/preflight-error.awk" || fail 'missing preflight error injection seam'
+for preflight_read in manifest source; do
+    if [[ "$preflight_read" == manifest ]]; then preflight_path="$MANIFEST";
+    else preflight_path="$ROOT_DIR/${owners[0]}"; fi
+    for preflight_mode in lookup scan; do
+        preflight_log="$ROOT_DIR/preflight-error-$preflight_read-$preflight_mode.log"
+        if awk -v root="$ROOT_DIR" -v mode="$preflight_mode" -v owner="${owners[0]}" \
+            -v preflight_error_path="$preflight_path" -f "$ROOT_DIR/preflight-error.awk" \
+            </dev/null >"$preflight_log" 2>&1; then
+            fail "accepted $preflight_read/$preflight_mode preflight execution error"
+        else
+            preflight_status=$?
+        fi
+        [[ "$preflight_status" -eq 2 ]] ||
+            fail "$preflight_read/$preflight_mode preflight execution error returned exit $preflight_status"
+        grep -Fq 'regular-file preflight failed with status 7:' "$preflight_log" ||
+            fail "$preflight_read/$preflight_mode preflight execution error lost its diagnostic"
+    done
+done
 
 # Exercise the actual component consumer against the same cap authority.
 definition="$(awk '

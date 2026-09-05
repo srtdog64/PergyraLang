@@ -2,13 +2,38 @@
 
 마지막 업데이트: 2026-09-06
 
+두 번째 검사 수정 9개 파일도 `da818c3df133c23572486872e4114d594f981890`으로
+커밋·푸시했다. 일반 CI `33979208920`은 이 정확한 SHA에서 **30/30 SUCCESS**다.
+driver 전체 고정점 `gen2 == gen3` 177,559줄, codegen 고정점 76,777줄과
+Rocq9 proof 49개도 다시 통과했다. Platform full `33979255563`은 **10/13 통과,
+최종 FAILURE**다. Linux·Windows core는 통과했고 macOS와 양쪽 driver가
+실패했다. 두 실행의 결과는 모두 확인했다.
+
+후속 검사의 macOS 빈 배열/파일 읽기 차이는 서브에이전트 수정과 독립 검토를
+마쳤다. 로컬 검사기 검증은 각각 6.51초/29.41초에 통과했고 60초 한도와
+기존 크기 cap 8개를 유지했다. 실제 macOS 재검증은 아직이다.
+양쪽 driver의 오래된 ability 진단 기대값은 정정했고 실제 잘못된 인자의
+정확한 member-call 거절은 로컬에서 통과했다. 다만 그 다음 MIR 정규화와
+별도 정상 source-C 검사가 실패했다. 선언만 있는 ability 메서드의 호출 ID가
+선언 MIR 및 정규화 대응표에 이어지지 않는 반례다. native oracle은 12를
+실행한다. 전체 parity 수정이나 새로운 self-host 대체 완료로 세지 않으며,
+증거는 `docs/audits/2026-09-06_ability_declaration_identity_epoch_counterexample.md`에
+보존한다. 독립 리뷰가 선언/routine 중복 ID와 generic 기본값의 별도 소유권도
+확인했다. 현재 후속 변경은 미커밋이며 compiler source는 바꾸지 않았다.
+
+기존 후보로 남은 enum 반례도 분리 확인했다. 동일 variant 이름의 MIR는 direct
+C·LLVM에서 모두 `22, 0, 3`으로 실행돼 일반 MIR 재구성 소비자로 문제를 좁혔다.
+반면 앞에 `if`가 있는 exhaustive match는 두 direct 경로 모두 code 103으로
+거절했다. 두 건 모두 수정 완료가 아니며 원본 MIR는 보존했다. 큰 로컬 빌드는
+D: 공간 부족과 기존 절대경로 출력 정책 때문에 별도 저장 공간 결정이 필요하다.
+
 수정 35개 파일을 `2c5d0ed0c8e1d936aa3f8ab932617c06de44156b`으로 커밋·푸시했다.
 일반 CI `33975994077`은 이 SHA에서 **30/30 SUCCESS**다. driver 전체 고정점
 `gen2 == gen3` (177,559줄), codegen 고정점 (76,777줄), Rocq9 proof 49개 검증도
 포함한다. Platform full `33976010056`은 **10/13 통과, 최종 FAILURE**다. Linux
 core 122단계와 Windows core 56단계가 통과했다. macOS는 AWK 정규식 문법,
 Linux/Windows driver는 같은 오래된 SSA 번호 검사에서 실패했다. 두 번째 수정은
-로컬 검증과 독립 리뷰를 마쳤으며 아직 출판 전이다.
+로컬 검증과 독립 리뷰를 거쳐 위 새 커밋에 포함됐다.
 AWK 이식성 대조군과, 실제 loop 입력 관계를 읽는 검사·6개 production 거절·
 단일 fixture parent 및 인접 루프 4개가 통과했다. 로컬 전체 크기 검사는 60초
 제한으로 종료돼 성공으로 세지 않았다. macOS 실제 재실행과 전체 그린은 아직 아니다.

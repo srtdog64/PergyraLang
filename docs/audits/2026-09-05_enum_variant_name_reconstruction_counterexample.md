@@ -148,3 +148,32 @@ output 0 and guard-false outputs 1/3; then missing/duplicate variants, changed
 scrutinee identity, outside edges into the chain/empty terminal, and invalid
 returns. Rejected inputs must not publish a requested artifact. These proposed
 new cases have not been run and do not replace the live CI integration gate.
+
+## Bounded projection evidence — 2026-09-06, published `da818c3d`
+
+The compiler source and isolated driver are unchanged. While exact-revision CI
+runs, primary consumed the original retained MIR without regenerating or editing
+it. These observations narrow the missing consumer boundary; they are not fixes.
+
+- Same-name enum MIR: SHA-256
+  `ae08720406eeb2dd2e0f83840440088153c3146559f4e9c48378dae6b320a362`.
+  Direct C and LLVM both emitted, compiled, and executed the exact expected
+  `22`, `0`, `3`. Results are in
+  `.tmp/self_hosted/mixed_arity_enum/same-name-projection.y2tmQw/`.
+  Clang reported one target-triple override warning; C reported none. The MIR
+  hash remained unchanged. Thus the observed same-name failure is in general
+  MIR reconstruction, not a demonstrated failure of either direct projection.
+  Public source routing and qualified patterns were not tested by this run.
+- Guarded exhaustive-match MIR: SHA-256
+  `446a917c861387094f91142bba8cb1cbef9614ebf424587dca9dd0e49d9b13b8`.
+  Both direct C and LLVM returned exact exit 1 with the terminal-return
+  diagnostic and `exhaustive_code=103`; neither published the requested output.
+  Results are in
+  `.tmp/self_hosted/mixed_arity_enum/guarded-exhaustive-projection.ZjKsEh/`.
+  The original MIR hash remained unchanged. These are confirmed refusals of
+  the valid positive example, not passing semantic negative tests.
+
+This separates the next required repairs: carry the subject's admitted nominal
+identity into the two general-reconstruction consumers; independently preserve
+the exact match-chain entry in the existing direct terminal-readiness owner.
+No owner registry row, installed receipt, or substitution score is advanced.

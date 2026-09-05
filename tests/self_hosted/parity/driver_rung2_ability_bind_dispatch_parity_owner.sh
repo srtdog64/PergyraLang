@@ -26,20 +26,30 @@ pgy_selfhost_verify_driver_rung2_ability_bind_dispatch() {
 
     local source="$ROOT_DIR/tests/cases/backend_compare/$base/main.pgy"
     local mutated="$BUILD_DIR/${base}_${backend}.bad-argument.pgy"
-    local actual="$mutated.out" err="$mutated.err"
+    local actual="$mutated.out" err="$mutated.err" status=0 diagnostic
+    local diagnostic_output="$mutated.diagnostic"
     pgy_replace_first_literal "$source" "$mutated" \
         'storage.buffer.Put(7)' 'storage.buffer.Put("bad")'
-    if (cd "$ROOT_DIR" && "$driver_bin" \
+    (cd "$ROOT_DIR" && "$driver_bin" \
         "$(pgy_selfhost_path_relative_to_root "$mutated")" \
-        --emit-c-verified >"$actual" 2>"$err"); then
-        echo "[self-host-parity:driver-rung2] $backend dynamic ability type mismatch was accepted" >&2
+        --emit-c-verified >"$actual" 2>"$err") || status=$?
+    if [[ "$status" -ne 1 ]]; then
+        echo "[self-host-parity:driver-rung2] $backend dynamic ability type mismatch expected exit 1, got $status" >&2
         exit 1
     fi
-    grep -Fq 'Code: call_arg_type_mismatch' "$actual" "$err" || {
-        echo "[self-host-parity:driver-rung2] $backend dynamic ability type diagnostic drifted" >&2
-        cat "$actual" "$err" >&2
-        exit 1
-    }
+    # A dynamic ability slot is a resolved member call, not a free function.
+    # Preserve the semantic owner's exact code and argument facts on CRLF hosts.
+    tr -d '\r' <"$actual" >"$diagnostic_output"
+    tr -d '\r' <"$err" >>"$diagnostic_output"
+    for diagnostic in 'Diagnostic: pgy.selfhost.semantic.v1' 'Stage: semantic' \
+        'Code: member_call_arg_type_mismatch' '- func: storage.buffer.Put' \
+        '- expected: Int' '- actual: String'; do
+        grep -Fxq -- "$diagnostic" "$diagnostic_output" || {
+            echo "[self-host-parity:driver-rung2] $backend dynamic ability type diagnostic drifted: $diagnostic" >&2
+            cat "$actual" "$err" >&2
+            exit 1
+        }
+    done
 }
 
 pgy_selfhost_verify_driver_rung2_ability_bind_dispatch_emitted_c() {
