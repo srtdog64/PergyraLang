@@ -220,9 +220,17 @@ ASTNode* parser_parse_async_block(Parser* parser)
 ASTNode* parser_parse_await_expression(Parser* parser)
 {
     // 'await' keyword already consumed
+    Token await_token = parser->previous_token;
     ASTNode* expression = parser_parse_expression(parser);
+    ASTNode* result = ast_create_await_expression(expression);
 
-    return ast_create_await_expression(expression);
+    /* spawn, send and recv stamp the operator token; await did not, so
+     * every await diagnostic and AIR await boundary reported 0:0. */
+    if (result != NULL) {
+        result->line = await_token.line;
+        result->column = await_token.column;
+    }
+    return result;
 }
 
 // Parse channel expression

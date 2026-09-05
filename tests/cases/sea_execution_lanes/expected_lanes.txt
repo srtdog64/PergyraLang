@@ -4,3 +4,5 @@ channel PinnedZone source=channel-send sync=async pin=false live_view=false raw_
 channel PinnedZone source=channel-recv sync=async pin=false live_view=false raw_slot=false raw_channel=true value_only=false authority=false movable=false io=false await_local=false fork_join=false concurrent=true
 parallel WorkerPool source=spawn sync=async pin=false live_view=false raw_slot=false raw_channel=false value_only=true authority=false movable=true io=false await_local=false fork_join=false concurrent=true
 parallel BlockingPool source=spawn sync=async pin=false live_view=false raw_slot=false raw_channel=false value_only=true authority=false movable=true io=true await_local=false fork_join=false concurrent=true
+parallel LocalAsync source=await sync=async pin=false live_view=false raw_slot=false raw_channel=false value_only=false authority=false movable=false io=false await_local=true fork_join=false concurrent=true
+parallel LocalAsync source=await sync=async pin=false live_view=false raw_slot=false raw_channel=false value_only=false authority=false movable=false io=false await_local=true fork_join=false concurrent=true

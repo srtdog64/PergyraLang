@@ -53,12 +53,17 @@ async func Inc(x: Int) -> Int {
     return x + 1;
 }
 
-func RoutineBoundaryAir() -> Void {
+// The structured spawn lifecycle (cf66092b) rejects a live handle at scope
+// exit, so the routine is async and joins both handles; the two await
+// boundaries that adds are part of the golden.
+async func RoutineBoundaryAir() -> Void {
     let ch: Channel<Int> = Channel(1);
     ch <- 7;
     let v: Int = <-ch;
     let task: Future<Int> = spawn Inc(v);
     let blocked: Future<Int> = spawn blocking Inc(v);
+    let a: Int = await task;
+    let b: Int = await blocked;
 }
 EOF
 
