@@ -1,0 +1,7 @@
+struct Counter { let mut n: Int; }
+func Bump(inout c: Counter) -> Int { c.n = c.n + 1; return c.n; }
+func Main() -> Void {
+    let mut c: Counter = Counter(0);
+    Bump(c);
+    Log(ToString(Bump(c)));
+}

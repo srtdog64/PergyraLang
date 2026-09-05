@@ -1,0 +1,8 @@
+func Biggest(xs: Array<Int>) -> Int {
+    let m: Int = parallel (x in xs) join with max { give x; };
+    return m;
+}
+func Main() -> Void {
+    let xs: Array<Int> = [3, 9, 4];
+    Log(ToString(Biggest(xs)));
+}

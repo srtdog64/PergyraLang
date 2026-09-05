@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let mut total: Int = 0;
+    let mut k: Int = 0;
+    while k < 5 {
+        total = total + k;
+        k = k + 1;
+    }
+    Log(ToString(total));
+}

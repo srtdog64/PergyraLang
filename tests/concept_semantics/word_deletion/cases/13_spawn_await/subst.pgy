@@ -1,0 +1,5 @@
+func Work(x: Int) -> Int { return x * 3; }
+func Main() -> Void {
+    let v: Int = Work(14);
+    Log(ToString(v));
+}

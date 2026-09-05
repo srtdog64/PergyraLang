@@ -1,0 +1,6 @@
+class Inner { let value: Int; func Next(self) -> Int { return value + 1; } }
+subject Runner { let inner: Inner; func Run(self) -> Int { return inner.Next(); } }
+func Main() -> Void {
+    let r = Runner(Inner(4));
+    Log(ToString(r.Run()));
+}

@@ -1,0 +1,13 @@
+subject W { let mut calls: Int; action Go(self) -> Void { calls = calls + 1; } }
+zone Z { subject slot w: W }
+intent Run(z: Z, w: W) {
+    step S { where: Z; using: z; who: w; on: w.Go(); expect: false; }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let w = W(0);
+    let z = Z(W(0));
+    let ok = Run(z, w);
+    Log("ok=" + ToString(ok) + " w=" + ToString(w.calls) + " z.w=" + ToString(z.w.calls) + " fail=" + IntentHistoryStepFailure(0));
+}

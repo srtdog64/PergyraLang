@@ -1,0 +1,25 @@
+subject Acct {
+    let mut bal: Int;
+    action Debit(self) -> Void { bal = bal - 10; }
+    action Undo(self) -> Void { bal = bal + 10; }
+}
+zone BankZone { subject slot acct: Acct }
+intent Pay(bank: BankZone, acct: Acct, ok: Bool) {
+    step Take {
+        using: bank;
+        who: acct;
+        on: acct.Debit();
+        compensate: acct.Undo();
+        expect: ok;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let a = Acct(100);
+    let bank = BankZone(Acct(0));
+    let ok1 = Pay(bank, a, true);
+    Log("ok=" + ToString(ok1) + " bal=" + ToString(a.bal));
+    let ok2 = Pay(bank, a, false);
+    Log("ok=" + ToString(ok2) + " bal=" + ToString(a.bal));
+}

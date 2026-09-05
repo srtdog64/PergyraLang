@@ -1,0 +1,14 @@
+func Work(flag: Bool) -> Int {
+    Log("open");
+    if flag {
+        Log("cleanup");
+        return 1;
+    }
+    Log("body");
+    Log("cleanup");
+    return 0;
+}
+func Main() -> Void {
+    Log(ToString(Work(false)));
+    Log(ToString(Work(true)));
+}

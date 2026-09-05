@@ -1,0 +1,11 @@
+subject Counter {
+    let mut value: Int;
+    func Bump(self) -> Void within ArenaZone {
+        self.value = self.value + 1;
+    }
+}
+zone ArenaZone { subject slot c: Counter }
+func Main() -> Void {
+    let c: Counter = Counter(0);
+    Log(ToString(c.value));
+}

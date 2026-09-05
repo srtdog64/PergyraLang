@@ -1,0 +1,9 @@
+class Counter {
+    let mut n: Int;
+    func Bump(self) -> Int { self.n = self.n + 1; return self.n; }
+}
+func Main() -> Void {
+    let c: Counter = Counter(0);
+    c.Bump();
+    Log(ToString(c.Bump()));
+}

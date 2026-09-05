@@ -1,0 +1,9 @@
+subject Acct {
+    let mut bal: Int;
+    func Debit(self) -> Void { self.bal = self.bal - 10; }
+}
+func Main() -> Void {
+    let a = Acct(100);
+    a.Debit();
+    Log(ToString(a.bal));
+}

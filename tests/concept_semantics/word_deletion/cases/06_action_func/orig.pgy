@@ -1,0 +1,12 @@
+subject Counter {
+    let mut value: Int;
+    action Bump(self) -> Void authorized by self {
+        self.value = self.value + 1;
+    }
+}
+func Main() -> Void {
+    let c: Counter = Counter(0);
+    c.Bump();
+    c.Bump();
+    Log(ToString(c.value));
+}

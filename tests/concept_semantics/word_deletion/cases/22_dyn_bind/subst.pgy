@@ -1,0 +1,13 @@
+enum Kind { Warrior, Archer }
+func Attack(k: Kind) -> Int {
+    match k {
+        case Warrior: return 10;
+        case Archer: return 20;
+    }
+}
+func Main() -> Void {
+    let mut k: Kind = Warrior;
+    Log(ToString(Attack(k)));
+    k = Archer;
+    Log(ToString(Attack(k)));
+}

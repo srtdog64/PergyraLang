@@ -1,0 +1,7 @@
+func Stamp() -> Int with caps clock with effects remote {
+    return Now();
+}
+func Main() -> Void {
+    let s: Int = Stamp();
+    Log(ToString(s >= 0));
+}

@@ -1,0 +1,6 @@
+object View { value: Int; }
+func Main() -> Void {
+    let v: View = View(7);
+    v.value = 9;
+    Log(ToString(v.value));
+}

@@ -1,0 +1,7 @@
+struct Acct { let mut bal: Int; }
+func Pay(acct: Acct) -> Void { acct.bal = acct.bal - 10; }
+func Main() -> Void {
+    let a = Acct(100);
+    Pay(a);
+    Log(ToString(a.bal));
+}

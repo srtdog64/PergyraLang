@@ -1,0 +1,22 @@
+subject Buyer { let mut hp: Int; action Promote(self) -> Void { hp = hp + 2; } }
+zone CartZone { subject slot buyer: Buyer }
+zone PaymentZone { subject slot buyer: Buyer }
+intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
+    step Promote {
+        where: PaymentZone;
+        using: payment;
+        move cart to payment;
+        who: buyer;
+        on: buyer.Promote();
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let cart = CartZone(Buyer(5));
+    let payment = PaymentZone(Buyer(0));
+    let b = Buyer(5);
+    Log(ToString(Checkout(cart, payment, b)));
+    Log("cart=" + ToString(cart.buyer.hp) + " pay=" + ToString(payment.buyer.hp) + " b=" + ToString(b.hp));
+}

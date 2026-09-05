@@ -1,0 +1,10 @@
+enum Shape { Dot, Line(Int), Rect(Int, Int) }
+func Area(s: Shape) -> Int {
+    match s {
+        case Dot: return 0;
+        case Line(n): return n;
+    }
+}
+func Main() -> Void {
+    Log(ToString(Area(Rect(2, 3))));
+}

@@ -1,0 +1,10 @@
+subject Actor { let mut score: Int; }
+zone ArenaZone {
+    subject slot actor: Actor
+    func Reward(self) -> Void { actor.score = actor.score + 5; }
+}
+func Main() -> Void {
+    let arena: ArenaZone = ArenaZone(Actor(10));
+    arena.Reward();
+    Log(ToString(arena.actor.score));
+}

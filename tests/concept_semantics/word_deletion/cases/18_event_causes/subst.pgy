@@ -1,0 +1,4 @@
+func Record(points: Int) -> Void { Log("score=" + ToString(points)); }
+func Main() -> Void {
+    Record(42);
+}

@@ -1,0 +1,9 @@
+struct Speaker { let round: Int; }
+func SpeakerReport(s: Speaker) -> Int { return s.round + 2; }
+struct Board { let speaker: Speaker; let tick: Int; }
+func BoardReport(b: Board) -> Int { return b.tick + 3; }
+func Main() -> Void {
+    let speaker: Speaker = Speaker(1);
+    let board: Board = Board(Speaker(1), 4);
+    Log(ToString(SpeakerReport(speaker)) + " " + ToString(BoardReport(board)));
+}

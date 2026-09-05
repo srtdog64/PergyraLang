@@ -1,0 +1,8 @@
+subject Actor { let mut score: Int; }
+struct Arena { let mut actor: Actor; }
+func Reward(inout arena: Arena) -> Void { arena.actor.score = arena.actor.score + 5; }
+func Main() -> Void {
+    let mut arena: Arena = Arena(Actor(10));
+    Reward(arena);
+    Log(ToString(arena.actor.score));
+}

@@ -1,0 +1,13 @@
+ability Ready { func IsReady(self) -> Bool; }
+subject Worker {
+    let mut jobs: Int;
+    action Work(self) -> Void requires Ready { jobs = jobs + 1; }
+}
+role WorkerReady for Worker {
+    impl ability Ready { func IsReady(self) -> Bool { return true; } }
+}
+func Main() -> Void {
+    let w: Worker = Worker(0);
+    w.Work();
+    Log(ToString(w.jobs));
+}

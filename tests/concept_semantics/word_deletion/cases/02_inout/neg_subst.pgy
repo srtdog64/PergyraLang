@@ -1,0 +1,10 @@
+func Grow(xs: Array<Int>) -> Array<Int> {
+    let mut out: Array<Int> = xs;
+    ArrayPush(out, 9);
+    return out;
+}
+func Main() -> Void {
+    let mut v: Array<Int> = [1, 2, 3];
+    Grow(v);
+    Log(ToString(ArrayLength(v)));
+}

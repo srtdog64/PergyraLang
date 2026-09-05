@@ -1,0 +1,19 @@
+subject Acct {
+    let mut bal: Int;
+    func Debit(self) -> Void { bal = bal - 10; }
+    func Undo(self) -> Void { bal = bal + 10; }
+}
+func Pay(acct: Acct, ok: Bool) -> Bool {
+    acct.Debit();
+    if !ok {
+        return false;
+    }
+    return true;
+}
+func Main() -> Void {
+    let a = Acct(100);
+    let ok1 = Pay(a, true);
+    Log("ok=" + ToString(ok1) + " bal=" + ToString(a.bal));
+    let ok2 = Pay(a, false);
+    Log("ok=" + ToString(ok2) + " bal=" + ToString(a.bal));
+}

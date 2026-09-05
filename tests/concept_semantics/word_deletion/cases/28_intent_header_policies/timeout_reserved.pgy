@@ -1,0 +1,8 @@
+subject W { let mut n: Int; action Go(self) -> Void { n = n + 1; } }
+zone Z { subject slot w: W }
+intent Run(z: Z, w: W) with timeout(3) {
+    step S { where: Z; using: z; who: w; on: w.Go(); expect: true; }
+    success: true;
+    failure: false;
+}
+func Main() -> Void { Log("x"); }

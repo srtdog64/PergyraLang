@@ -1,0 +1,6 @@
+subject Box { let mut n: Int; func Bump(self) -> Int { n = n + 1; return n; } }
+func Main() -> Void {
+    let b: Box = Box(0);
+    let v: Int = b.Bump();
+    Log("bump=" + ToString(v) + " n=" + ToString(b.n));
+}

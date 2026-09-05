@@ -1,0 +1,6 @@
+vessel Skills { engineering: Int; medical: Int; }
+subject Crew { let name: String; vessel skills: Skills; }
+func Main() -> Void {
+    let c: Crew = Crew("Kim", Skills(9, 2));
+    Log(ToString(c.skills.engineering * 2) + " " + ToString(c.skills.medical));
+}

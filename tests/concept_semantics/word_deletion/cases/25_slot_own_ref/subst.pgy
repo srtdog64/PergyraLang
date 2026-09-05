@@ -1,0 +1,9 @@
+subject Vec2 { let mut x: Int; let mut y: Int; }
+func Inner(v: Vec2) -> Void { v.x = 2; v.y = 2; }
+func Consume(v: Vec2) -> Void { Log("consumed"); }
+func Main() -> Void {
+    let plain: Vec2 = Vec2(0, 0);
+    Inner(plain);
+    Consume(plain);
+    Log("done");
+}

@@ -1,0 +1,6 @@
+func Say(msg: String) -> Void with caps clock {
+    Print(msg);
+}
+func Main() -> Void with caps io_write {
+    Say("hi");
+}

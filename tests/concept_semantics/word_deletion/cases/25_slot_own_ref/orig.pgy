@@ -1,0 +1,9 @@
+subject Vec2 { let x: Int; let y: Int; }
+func Inner(ref s: Slot<Vec2>) -> Void { Write(s, Vec2(2, 2)); }
+func Consume(own s: Slot<Vec2>) -> Void { Release(s); Log("consumed"); }
+func Main() -> Void {
+    let plain: Slot<Vec2> = Vec2(0, 0);
+    Inner(plain);
+    Consume(plain);
+    Log("done");
+}

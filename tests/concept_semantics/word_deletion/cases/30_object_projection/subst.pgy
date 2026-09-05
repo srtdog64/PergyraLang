@@ -1,0 +1,9 @@
+subject Player { let hp: Int; let name: String; }
+struct PlayerView { let hp: Int; }
+struct Poisoned { let bearer: Player; }
+func View(p: Poisoned) -> PlayerView { return PlayerView(p.bearer.hp); }
+func Show(p: Poisoned) -> Void { Log(ToString(View(p).hp)); }
+func Main() -> Void {
+    let poison = Poisoned(Player(5, "bear"));
+    Show(poison);
+}

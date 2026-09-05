@@ -1,0 +1,4 @@
+func Main() -> Void {
+    Log("boundary");
+    Log(ToString(1 + 2));
+}

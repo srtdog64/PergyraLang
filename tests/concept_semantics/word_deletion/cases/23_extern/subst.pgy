@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let t: Int = Now();
+    Log(ToString(t >= 0));
+}

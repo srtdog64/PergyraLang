@@ -1,0 +1,8 @@
+func Grow(inout xs: Array<Int>) -> Void {
+    ArrayPush(xs, 9);
+}
+func Main() -> Void {
+    let v: Array<Int> = [1, 2, 3];
+    Grow(v);
+    Log(ToString(ArrayLength(v)));
+}

@@ -1,0 +1,14 @@
+subject Actor { let mut n: Int; action Mark(self) -> Void { n = n + 1; } }
+zone ArenaZone { subject slot actor: Actor }
+zone OtherZone { subject slot actor: Actor }
+intent Run(arena: ArenaZone, actor: Actor) {
+    step Mark {
+        where: OtherZone;
+        using: arena;
+        on: actor.Mark();
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void { Log("x"); }

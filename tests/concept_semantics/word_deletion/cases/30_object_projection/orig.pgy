@@ -1,0 +1,11 @@
+subject Player { let hp: Int; let name: String; }
+object PlayerView { hp: Int; }
+effect Poisoned for bearer: Player {
+    object slot view: PlayerView
+    refresh view from bearer
+    func Show(self) -> Void { Log(ToString(self.view.hp)); }
+}
+func Main() -> Void {
+    let poison = Poisoned(Player(5, "bear"));
+    poison.Show();
+}

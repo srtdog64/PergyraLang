@@ -1,0 +1,6 @@
+struct Score { let value: Int; }
+func Main() -> Void {
+    let s: Score = Score(1);
+    s.value = 5;
+    Log(ToString(s.value));
+}

@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let i: Int = 9;
+    let f: Float = i as Float;
+    Log(ToString(f as Int));
+    let g: Float = 7.8;
+    Log(ToString(g as Int));
+}

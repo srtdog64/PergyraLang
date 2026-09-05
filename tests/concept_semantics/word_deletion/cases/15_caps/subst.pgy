@@ -1,0 +1,6 @@
+func Say(msg: String) -> Void {
+    Print(msg);
+}
+func Main() -> Void {
+    Say("hi");
+}

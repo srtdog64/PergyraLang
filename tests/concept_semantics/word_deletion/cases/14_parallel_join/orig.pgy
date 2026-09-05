@@ -1,0 +1,9 @@
+func Total(xs: Array<Int>) -> Int {
+    let total: Int = parallel (x in xs) join with sum { give x * x; };
+    return total;
+}
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    for k in 0..6 { ArrayPush(xs, k + 1); }
+    Log(ToString(Total(xs)));
+}

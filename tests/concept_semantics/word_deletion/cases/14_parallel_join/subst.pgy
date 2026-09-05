@@ -1,0 +1,10 @@
+func Total(xs: Array<Int>) -> Int {
+    let mut total: Int = 0;
+    for x in xs { total = total + x * x; }
+    return total;
+}
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    for k in 0..6 { ArrayPush(xs, k + 1); }
+    Log(ToString(Total(xs)));
+}

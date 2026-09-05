@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let mut total: Int = 0;
+    for k in 0..5 {
+        total = total + k;
+    }
+    Log(ToString(total));
+}
