@@ -3,13 +3,23 @@
 
 pgy_selfhost_collection_enum_reject_mutation() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
-    local label="$5" from="$6" to="$7" diagnostic="$8" mutated
+    local label="$5" from="$6" to="$7" diagnostic="$8" mutated status
     mutated="$BUILD_DIR/${base}_${backend}.${label}.mir.json"
-    pgy_replace_first_literal "$self_mir_json" "$mutated" "$from" "$to"
+    if [[ "$label" == "loop-phi" ]]; then
+        python -B "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_enum_phi_facts.py" \
+            "$self_mir_json" drop-backedge "$mutated"
+    else
+        pgy_replace_first_literal "$self_mir_json" "$mutated" "$from" "$to"
+    fi
     if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$mutated")" \
         >"$mutated.out" 2>"$mutated.err"); then
-        echo "[self-host-parity:driver-rung2] $backend collection/enum mutation accepted: $label" >&2
+        status=0
+    else
+        status=$?
+    fi
+    if [[ "$status" -ne 1 ]]; then
+        echo "[self-host-parity:driver-rung2] $backend collection/enum mutation exit drifted: $label=$status (expected 1)" >&2
         exit 1
     fi
     grep -Fq "$diagnostic" "$mutated.err" "$mutated.out" || {
@@ -36,20 +46,17 @@ pgy_selfhost_verify_driver_rung2_collection_enum_match_loop() {
         '"kind":"index","text":"prices[i]"' \
         '"match_patterns":["Buy"],"match_variant":null' \
         '"match_patterns":["Sell"],"match_variant":null' \
-        '"match_patterns":["Hold"],"match_variant":null' \
-        '"kind":"phi","name":"cash","result":"cash.4"' \
-        '"uses":["cash.1","cash.23"]' \
-        '"kind":"phi","name":"shares","result":"shares.5"' \
-        '"uses":["shares.1","shares.24"]' \
-        '"kind":"phi","name":"i","result":"i.6"' \
-        '"uses":["i.1","i.25"]'; do
+        '"match_patterns":["Hold"],"match_variant":null'; do
         grep -Fq "$fact" "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend collection/enum fact drifted: $fact" >&2
             exit 1
         }
     done
+    python -B "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_enum_phi_facts.py" \
+        "$self_mir_json" check
 
-    for row in direct:DecideOf:3 direct:Simulate:3; do
+    # The producer materializes this one call once; the three arms use its SSA value.
+    for row in direct:DecideOf:1 direct:Simulate:3; do
         IFS=: read -r kind target expected <<<"$row"
         actual="$(grep -Fo "\"call_target_kind\":\"$kind\",\"call_target_name\":\"$target\"" \
             "$self_mir_json" | wc -l | tr -d ' ')"
@@ -72,7 +79,7 @@ pgy_selfhost_verify_driver_rung2_collection_enum_match_loop() {
         match-variant '"name":"Hold","param_count":0,"param_types":[]}' '"name":"RemovedHold","param_count":0,"param_types":[]}' \
         "match enum variant declaration fact is missing"
     pgy_selfhost_collection_enum_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
-        loop-phi '"uses":["cash.1","cash.23"]' '"uses":["cash.1"]' \
+        loop-phi '' '' \
         "MIR phi facts are missing or inconsistent: Simulate"
     mutation_from="$(grep -Eo '"name":"prices","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"' \
         "$self_mir_json" | head -n 1)"

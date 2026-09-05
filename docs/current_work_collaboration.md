@@ -10,15 +10,29 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ### Reached publication failures — one primary integration owner
 
-Published base is `918a7c98e541771fab542713262b643d375d51c0`. Regular CI
-`33966684805` finished FAILURE with 29/30 passed; Platform full `33966692630`
-finished FAILURE with 8/13 passed. Primary owns the dirty compiler/test/doc
-repair, staging, commit/push and exact-revision dispatch. Generated C/MIR and
-the scratch `caf_probe_tmp.pgy` remain preserved and excluded.
+The 35-file repair is committed and pushed as
+`2c5d0ed0c8e1d936aa3f8ab932617c06de44156b`; tracked state was clean after
+publication. Regular CI `33975994077` and Platform full `33976010056` both
+target that exact SHA. Regular CI is SUCCESS (30/30, including full driver and
+codegen fixed points and Rocq9). Platform full completed FAILURE, 10/13 jobs;
+Linux core passed all 122 steps and Windows core all 56, while macOS and both
+driver shards failed. Primary has reconciled both exact-revision results.
+The subsequent navigation and second-round harness repairs are independently
+reviewed and await scoped publication. Generated C/MIR and the scratch
+`caf_probe_tmp.pgy` remain preserved and excluded.
+
+Previous base `918a7c98` failed regular CI (29/30 passed) and Platform full
+(8/13 passed). Those results explain this repair, not its completion.
 
 The objective, independent scopes and source-growth explanations are in
 `docs/agent_work_directives/reached_ci_publication_failures_2026-09-05.md`.
-Both review lanes are AUDIT COMPLETE and hold no compiler or publication lease.
+The second-round AWK edit and read-only phi-checker review lanes are COMPLETE.
+Independent review confirmed the exact incoming-definition join and the
+single latch-input deletion without finding a material gap.
+No agent holds a compiler or publication lease. The focused driver parent
+passed (`22125`), as did all four adjacent wrapper/collection fixtures (`50755`).
+CI-profile/docs and AWK mechanics passed. The local full size scan hit its
+60-second budget (`85297`, exit 124); that incomplete run is not green evidence.
 The final review found an enum-negative confounder (loss of the only Signal
 reference). The corrected reference/control/diagnostic gate now passes
 (`85024`, `run.qXP0DI`): six actual local/definition refusals and two separately

@@ -2,10 +2,18 @@
 
 마지막 업데이트: 2026-09-06
 
-통합 변경은 `918a7c98e541771fab542713262b643d375d51c0`으로 커밋·푸시했다.
-일반 CI `33966684805`는 29/30, Platform full `33966692630`은 8/13 job이
-통과했지만 두 run의 최종 결과는 실패다. 실패 로그에 맞춘 compiler/test/doc
-수정이 현재 dirty 상태다. match origin은 `Option<Int>`로 옮겼고, payload-free
+수정 35개 파일을 `2c5d0ed0c8e1d936aa3f8ab932617c06de44156b`으로 커밋·푸시했다.
+일반 CI `33975994077`은 이 SHA에서 **30/30 SUCCESS**다. driver 전체 고정점
+`gen2 == gen3` (177,559줄), codegen 고정점 (76,777줄), Rocq9 proof 49개 검증도
+포함한다. Platform full `33976010056`은 **10/13 통과, 최종 FAILURE**다. Linux
+core 122단계와 Windows core 56단계가 통과했다. macOS는 AWK 정규식 문법,
+Linux/Windows driver는 같은 오래된 SSA 번호 검사에서 실패했다. 두 번째 수정은
+로컬 검증과 독립 리뷰를 마쳤으며 아직 출판 전이다.
+AWK 이식성 대조군과, 실제 loop 입력 관계를 읽는 검사·6개 production 거절·
+단일 fixture parent 및 인접 루프 4개가 통과했다. 로컬 전체 크기 검사는 60초
+제한으로 종료돼 성공으로 세지 않았다. macOS 실제 재실행과 전체 그린은 아직 아니다.
+이전 `918a7c98`의 일반 CI는 29/30, Platform full은 8/13 job이 통과했지만
+최종 실패했고, 그 로그에 맞춰 수정했다. match origin은 `Option<Int>`로 옮겼고, payload-free
 enum 로컬의 명목 타입을 값·로컬·최종 plan 검사까지 보존했다. 격리 후보
 `1AAFC7D7`에서 SEA C/LLVM 각각 35/35, Option 양쪽 투영과 7개 변이 쌍이
 통과했다. 전체 구조 검사, 크기 정책, likeness 23/23, keyword·subject·CI profile도
@@ -14,8 +22,8 @@ enum 로컬의 명목 타입을 값·로컬·최종 plan 검사까지 보존했�
 선언 삭제 거절 2건을 나눠 검증했다. 최종 확장 gate와 native spawn C/LLVM도
 통과했다. 다른 enum의 같은 variant
 이름으로 일반 MIR 재구성이 실패하는 반례는 별도 OPEN 문서에 보존했다.
-공유 설치 driver `7928ED6B`는 이전 graph에 남아 있으며, 이번 수정의 전체 고정점·
-원격 green은 아직 아니다. SoT census `55/32/1`, 통합 83%, hard replacement 75%는
+공유 설치 driver `7928ED6B`는 이전 graph에 남아 있으며, 현재 graph의 고정점·
+설치 검증은 원격 CI 증거와 구분한다. SoT census `55/32/1`, 통합 83%, hard replacement 75%는
 유지한다. 생성 C/MIR와 임시 `caf_probe_tmp.pgy`는 삭제·출판하지 않았다.
 
 아래는 이전 checkpoint의 이력이다. 재개 작업은 handoff 맨 위 카드만 따른다.

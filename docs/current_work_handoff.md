@@ -20,13 +20,43 @@ percentage by themselves.
 
 ## Active self-host context — mixed-arity tagged-enum callable projection
 
-- Published base: `918a7c98e541771fab542713262b643d375d51c0` on main and
-  origin/main. Regular CI `33966684805` completed FAILURE (29/30 jobs passed);
+- Published repair: `2c5d0ed0c8e1d936aa3f8ab932617c06de44156b` on main and
+  origin/main. All 35 reviewed source/test/doc inputs were committed and pushed;
+  tracked state was clean immediately afterward, with only the preserved
+  `caf_probe_tmp.pgy` untracked. The subsequent nine-file harness/navigation
+  delta is locally verified and independently reviewed, awaiting publication.
+  Regular CI `33975994077` completed SUCCESS, 30/30 jobs at this exact SHA.
+  Full driver bootstrap reports gen2 == gen3 (177,559 lines), codegen bootstrap
+  reports 76,777 lines, and Rocq9 compiled/kernel-checked 49 proofs (axiom
+  budget 2, no admits). These are remote evidence, not a local installation.
+  Platform full `33976010056` completed FAILURE, 10/13 jobs passed. Linux core
+  passed all 122 steps and Windows core all 56; macOS AWK parsing and the
+  identical Linux/Windows driver SSA assertions were the three failing jobs.
+  Both runs are reconciled; no live job needs cancellation before publication.
+- Unpublished second-round harness repair: shared AWK negated path class now
+  escapes the slash for BWK/macOS without changing any cap. GNU checker
+  mechanics passed after an observed pre-fix failure; native macOS is pending.
+  Collection/enum loop checks now join exact initialization/header/latch SSA
+  definitions instead of literal suffixes. Match materialization evaluates
+  DecideOf once, not once per arm; Simulate's three calls remain required.
+  The old literal gate failed locally (`49853`). Actual seven checker
+  negatives and renumber/reorder controls, six production refusal mutations
+  (exact exit 1), and the complete one-fixture producer-first parent passed
+  (`22125`). The four adjacent Result/Option/coalesce loop fixtures passed
+  their existing parent (`50755`). Independent read-only review confirmed the
+  exact graph join and single latch-input deletion, finding no material gap.
+  CI-profile and documentation gates passed (`9355`), as did shared AWK
+  mechanics (`58881`). Local full size scan `85297` reached its 60-second
+  budget and exited 124 after the mechanics PASS; it is not a completed size
+  PASS. Remote Linux/Windows full scans passed on the published base. No
+  timeout, cap or memory limit is increased by this repair.
+- Previous published base: `918a7c98e541771fab542713262b643d375d51c0`.
+  Regular CI `33966684805` completed FAILURE (29/30 jobs passed);
   Platform full `33966692630` completed FAILURE (8/13 passed). Both target
   that exact SHA. Bootstrap, Rocq9, backend shards, and parser/semantic/codegen
   platform parity passed; preparation, core platform and driver assertions did
-  not. The present source/test/doc repair is dirty and not covered by those
-  results. Integration, scoped commit/push and CI dispatch are user-authorized.
+  not. Those runs do not cover the new repair. Integration, scoped commit/push
+  and CI dispatch are user-authorized.
 - Active owner slice: `MirMatchBindingOrigins` now returns an exact optional
   row, not -1. Materialized payload-free enum locals retain nominal identity
   through value-type admission, source-local inventory and final typed-plan
@@ -43,8 +73,8 @@ percentage by themselves.
   Genuine Pergyra-seed build `50548` passed. SEA lane C 35/35, LLVM 35/35,
   cross-backend comparison and missing-term negatives passed (`27223`).
   Adjacent Option match C/LLVM and seven mutation pairs passed. Shared installed
-  `7928ED6B` remains on the preceding graph: no current-graph installed-driver
-  or full fixed-point success is claimed for this dirty source.
+  `7928ED6B` remains on the preceding graph: current-source installed/fixed-point
+  evidence is now remote CI only, not a refresh of the local shared binary.
 - CI harness repair: existing C-only spawn profile is forwarded by Makefile;
   placement checks reject a missing/non-directory source root; native examples
   declare their subject; class/array mutation requires the owned member-call
@@ -70,9 +100,14 @@ percentage by themselves.
   failure are in
   `docs/audits/2026-09-05_enum_variant_name_reconstruction_counterexample.md`.
   Do not silently promote its bounded distinct-name regression into a fix.
-- Next falsifier: publish the reviewed repair, then run
-  regular CI and Platform full at that exact revision. No storage cleanup is
-  authorized or needed here; approximately 28 MiB free was last observed.
+- Next falsifier: publish the independently reviewed second-round harness
+  repair and run exact-revision CI/Platform full, retaining the previous
+  revision's distinct success/failure evidence. The same-name enum and guarded
+  exhaustive-return findings remain OPEN; this harness work does not fix them.
+  Do not restart a live runner because an observation times out.
+  Final local profile/documentation checks passed (`15523`); strict UTF-8 and
+  staged whitespace passed for the preceding 35 publication paths. No storage
+  cleanup is authorized or needed here; approximately 20 MiB free was observed.
   Preserve all original MIR/fixed-point inputs and untracked `caf_probe_tmp.pgy`.
   Census 88/185, CLOSED55/BRIDGE32/ACTIVE1 and hard substitution 75% are unchanged.
 

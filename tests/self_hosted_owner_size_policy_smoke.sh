@@ -3,6 +3,12 @@
 set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 POLICY="$REPO_DIR/tests/self_hosted_owner_size_policy.awk"
+fail() { echo "[owner-size-policy-checker] $*" >&2; exit 1; }
+
+# BWK awk requires the regexp delimiter escaped inside this bracket expression.
+grep -Fq 'rel ~ /^src\/self_hosted\/semantic\/[^\/]+[.]pgy$/' "$POLICY" ||
+    fail 'semantic path predicate must escape the slash for BWK awk'
+
 mkdir -p "$REPO_DIR/.tmp/self_hosted/owner_size_policy"
 ROOT_DIR="$(mktemp -d "$REPO_DIR/.tmp/self_hosted/owner_size_policy/run.XXXXXX")"
 MANIFEST="$ROOT_DIR/tests/fixtures/self_hosted_responsibility_caps.tsv"
@@ -10,7 +16,6 @@ mkdir -p "$ROOT_DIR/tests/fixtures" "$ROOT_DIR/src/self_hosted/compiler" \
     "$ROOT_DIR/src/self_hosted/semantic" "$ROOT_DIR/src/self_hosted/codegen/emission"
 cp "$POLICY" "$ROOT_DIR/tests/self_hosted_owner_size_policy.awk"
 cp "$REPO_DIR/tests/fixtures/self_hosted_responsibility_caps.tsv" "$MANIFEST"
-fail() { echo "[owner-size-policy-checker] $*" >&2; exit 1; }
 
 make_lines() { awk -v count="$2" 'BEGIN { for (i = 0; i < count; i++) print "line" }' >"$ROOT_DIR/$1"; }
 scan() {
@@ -60,6 +65,11 @@ expect_rejection generic-over 'cap is 699' scan "$generic"
 make_lines "$semantic" 599; scan "$semantic"
 make_lines "$semantic" 600
 expect_rejection semantic-over 'cap is 599' scan "$semantic"
+nested_semantic=src/self_hosted/semantic/nested/unregistered_owner.pgy
+mkdir -p "$ROOT_DIR/src/self_hosted/semantic/nested"
+make_lines "$nested_semantic" 699; scan "$nested_semantic"
+make_lines "$nested_semantic" 700
+expect_rejection nested-semantic-over 'cap is 699' scan "$nested_semantic"
 lookalike=src/self_hosted/compiler/stmt_emit.pgy
 make_lines "$lookalike" 700
 expect_rejection basename-lookalike 'cap is 699' scan "$lookalike"
