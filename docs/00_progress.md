@@ -2,6 +2,21 @@
 
 마지막 업데이트: 2026-09-06
 
+후속 검사기·진단 수정과 반례 기록 12개 파일은
+`61f923165553d25af3d17cd9ba14ad30b486486c`으로 커밋·푸시했다. 새 일반 CI
+`33982549234`는 이 SHA에서 **30/30 SUCCESS**로 끝났다. 전체 driver 고정점은
+177,559줄이며 설치 후 CLI/transaction 검사와 정책 소스 3개도 통과했다.
+Linux 23단계, Windows 8단계, codegen 고정점과 Rocq 49개도 통과했다. 아래 전체 플랫폼
+결과는 이전 `da818c3d`의 증거다. 정상 ability 입력의 컴파일러 결함은 아직
+남아 있어 수정 없이 긴 Platform full을 다시 요청하지 않았다. 출판·CI ID를
+갱신하는 후속 navigation 변경과 작은 fast-macOS 검사 연결 수정이 로컬에 남는다.
+
+macOS 빠른 CI의 기존 7단계에는 이번 Bash/AWK 검사기 검증이 없어, 기존 검사
+두 개를 컴파일 전 단계에 연결했다. 기존 목록의 실패를 먼저 확인했고, 수정 후
+실제 검사기 둘의 단일 실행과 누락·중복·늦은 실행 대조군 6개가 로컬에서 통과했다.
+새 연결의 macOS 실행 증거는 아직 없다. 기존 CI가 끝났으므로 이 작은 변경을
+검토한 6개 파일만 묶어 푸시할 수 있다. CI 통과 수는 self-host 대체 진척이 아니다.
+
 두 번째 검사 수정 9개 파일도 `da818c3df133c23572486872e4114d594f981890`으로
 커밋·푸시했다. 일반 CI `33979208920`은 이 정확한 SHA에서 **30/30 SUCCESS**다.
 driver 전체 고정점 `gen2 == gen3` 177,559줄, codegen 고정점 76,777줄과
@@ -19,7 +34,7 @@ Rocq9 proof 49개도 다시 통과했다. Platform full `33979255563`은 **10/13
 실행한다. 전체 parity 수정이나 새로운 self-host 대체 완료로 세지 않으며,
 증거는 `docs/audits/2026-09-06_ability_declaration_identity_epoch_counterexample.md`에
 보존한다. 독립 리뷰가 선언/routine 중복 ID와 generic 기본값의 별도 소유권도
-확인했다. 현재 후속 변경은 미커밋이며 compiler source는 바꾸지 않았다.
+확인했다. 위 새 커밋에도 compiler source 수정은 포함하지 않았다.
 
 기존 후보로 남은 enum 반례도 분리 확인했다. 동일 variant 이름의 MIR는 direct
 C·LLVM에서 모두 `22, 0, 3`으로 실행돼 일반 MIR 재구성 소비자로 문제를 좁혔다.

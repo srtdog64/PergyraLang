@@ -10,6 +10,26 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ### Reached publication failures — one primary integration owner
 
+Latest publication is `61f923165553d25af3d17cd9ba14ad30b486486c`, main and
+origin/main, containing the reviewed 12-file checker/diagnostic/evidence set.
+Tracked state was clean after push apart from the preserved untracked scratch;
+the subsequent publication/CI navigation refresh and bounded fast-macOS
+step/profile repair are local only. Regular CI
+`33982549234` completed SUCCESS, 30/30 on this exact SHA; watch `73619`
+completed exit 0. Do not restart it or dispatch a duplicate full matrix while the
+unchanged ability compiler counterexample is already RED. The next compiler
+edit loop still needs the pending storage/worktree choice.
+
+Primary has a bounded edit lease on `scripts/ci_push_macos_steps.sh` and
+`tests/self_host_ci_profile_smoke.sh`: execute the two existing checker
+mechanics gates early on macOS, without duplicating full preparation or a
+compiler build. The objective/evidence is in the third-round directive below.
+Old-list rejection (`19312`), actual two-checker dispatch (`47595`), profile
+and six exact-checker negative controls (`40183`) passed locally. Native macOS
+is still pending. The published CI is terminal, including full driver
+gen2 == gen3 (177,559 lines), installed-driver CLI/transaction gates and all
+three policy sources. Publication of this additional repair is now unblocked.
+
 The second-round nine-file repair is committed and pushed as
 `da818c3df133c23572486872e4114d594f981890`. Tracked state was clean afterward;
 this CI-ID navigation refresh is a subsequent local documentation delta.
@@ -33,6 +53,7 @@ valid-source C check are RED at MIR expression-graph admission. The native
 oracle executes 12. The declaration-only target-ID evidence is in
 `docs/audits/2026-09-06_ability_declaration_identity_epoch_counterexample.md`.
 No agent holds a compiler implementation lease; no compiler source changed.
+The two review lanes are complete; no active sub-agent edit lease remains.
 
 The previous 35-file source repair is
 `2c5d0ed0c8e1d936aa3f8ab932617c06de44156b`.

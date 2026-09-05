@@ -401,6 +401,27 @@ for steps in "$PUSH_MACOS_STEPS" "$PUSH_WINDOWS_STEPS"; do
     fi
 done
 
+# GNU/Linux success does not exercise macOS Bash/awk checker mechanics.
+# Keep these two bounded host-dialect checks ahead of native compilation;
+# the full self-host preparation/build remains owned by Linux above.
+if ! awk \
+    -v component="run 'bash tests/self_hosted_component_checker_smoke.sh'" \
+    -v size_policy="run 'bash tests/self_hosted_owner_size_policy_smoke.sh'" '
+    { sub(/\r$/, "") }
+    $0 == component { component_count++; component_line = NR }
+    $0 == size_policy { size_count++; size_line = NR }
+    /^run / && /runtime-spawn-context-propagation-test-smoke/ && !native_line {
+        native_line = NR
+    }
+    END {
+        exit !(component_count == 1 && size_count == 1 && native_line > 0 &&
+            component_line < native_line && size_line < native_line)
+    }
+' "$PUSH_MACOS_STEPS"; then
+    echo "[self-host-ci-profile] macOS push must run both checker mechanics once before native compilation" >&2
+    exit 1
+fi
+
 if grep -Fq 'self-host-parity-linux:' "$WORKFLOW"; then
     echo "[self-host-ci-profile] exhaustive parity leaked back onto every main push" >&2
     exit 1

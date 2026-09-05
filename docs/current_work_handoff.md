@@ -20,6 +20,39 @@ percentage by themselves.
 
 ## Active self-host context — mixed-arity tagged-enum callable projection
 
+- Latest published HEAD: `61f923165553d25af3d17cd9ba14ad30b486486c`, on main
+  and origin/main. The 12 reviewed checker/diagnostic/audit/navigation paths
+  were committed and pushed. Tracked state was clean immediately afterward;
+  `caf_probe_tmp.pgy` remains untracked and untouched. The subsequent
+  publication/CI navigation refresh and bounded fast-macOS scheduling repair
+  are local (four documentation paths, one step list, one CI-profile gate).
+  New regular CI `33982549234`
+  completed SUCCESS, 30/30, on that exact SHA; watch `73619` completed exit 0.
+  Its log remains `.tmp/ci_verification/33982549234.watch.log`; no watcher is
+  live from this run.
+  No new Platform full run was dispatched: the unchanged compiler is already
+  known RED on the reached valid ability source/MIR. Its identity repair and
+  a current-source build must precede the next full matrix. Both agents have
+  finished their bounded scopes and hold no edit leases.
+- Local fast-macOS coverage repair: job `101350275135` passed seven native
+  push steps but ran neither repaired checker, so it does not validate the
+  Bash/BWK correction. The existing two mechanics gates are now scheduled
+  once before native compilation in `scripts/ci_push_macos_steps.sh`, with a
+  ratchet in `tests/self_host_ci_profile_smoke.sh`. Old-list ratchet `19312`
+  failed as intended; `47595` passed the profile and dispatched both actual
+  mechanics gates once without running compiler commands. Final profile
+  `40183` passed, including six in-memory missing/duplicate/late/earlier-native
+  controls against its exact AWK checker. These are local GNU/Bash results;
+  native macOS remains pending. CI `33982549234` is now terminal, so this
+  bounded scheduling repair can be published. Linux passed all 23 push steps,
+  including the
+  complete component inventory (2,331 caps / 973 extractions / 677 reuses),
+  Windows passed eight push steps, codegen gen2 == gen3 is 76,777 lines, and
+  Rocq9 kernel-verified 49 proofs with unchanged axiom budget 2. Full driver
+  bootstrap `101350275138` passed gen2 == gen3 (177,559 lines), installed-driver
+  CLI/transaction gates and all three policy-corpus sources (3 in_subset,
+  0 out_of_subset). These are exact-revision remote results, not a local
+  installation or resolution of the separate ability compiler counterexample.
 - Published second-round repair: `da818c3df133c23572486872e4114d594f981890`
   on main and origin/main. All nine reviewed test/doc inputs were committed and
   pushed; tracked state was clean immediately afterward, with only preserved
@@ -36,7 +69,8 @@ percentage by themselves.
   unchanged two-abstraction axiom budget. Its planted-Admitted gate selftest
   also passed. Full driver bootstrap then completed gen2 == gen3 (177,559
   lines), including installed-driver CLI/policy gates. Platform full is not green.
-- Third-round reached repair is local and incomplete. See
+- Third-round checker/diagnostic repair is published in `61f92316`; full
+  compiler integration is incomplete. See
   `docs/agent_work_directives/reached_platform_portability_and_ability_diagnostics_2026-09-06.md`.
   The prior AWK regexp and collection/enum SSA corrections reached their
   succeeding boundaries. macOS now reports the Bash 3.2 empty `checked_dirs`
@@ -142,7 +176,8 @@ percentage by themselves.
   is rejected on both direct targets with exact exit 1/code 103 and no output
   (`guarded-exhaustive-projection.ZjKsEh`). Both original MIR hashes remain
   unchanged; valid-input refusals are bugs, not semantic negative PASS evidence.
-- Next falsifier: close the reached declaration-only ability identity gap with
+- Next falsifier: publish the bounded fast-macOS checker scheduling repair
+  and observe the actual host checks; close the reached declaration-only ability identity gap with
   a storage-safe current-source compiler build. Both prior runs are reconciled:
   regular `33979208920` SUCCESS, Platform `33979255563` FAILURE 10/13.
   The ability diagnostic correction must not
@@ -154,7 +189,7 @@ percentage by themselves.
   Do not restart a live runner because an observation times out.
   Final local profile/documentation checks passed (`15523`); strict UTF-8 and
   staged whitespace passed for the preceding 35 publication paths. No storage
-  cleanup is authorized or needed here; approximately 20 MiB free was observed.
+  cleanup is authorized here; latest D: free space is 13,414,400 bytes.
   Preserve all original MIR/fixed-point inputs and untracked `caf_probe_tmp.pgy`.
   C: has free temporary storage, but a bounded absolute-output attempt was
   rejected at artifact `begin-temp` by the existing default IO path policy.

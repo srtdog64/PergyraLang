@@ -86,6 +86,46 @@ Final pre-publication repeat `55844` passed both gates; strict UTF-8 validated
 all 12 reviewed paths and `git diff --check` was clean. No compiler/cap TSV
 diff exists. The root scratch probe and every original artifact stay excluded.
 
+Publication: the reviewed 12-file set is committed/pushed as
+`61f923165553d25af3d17cd9ba14ad30b486486c`. New regular CI `33982549234`
+completed SUCCESS, 30/30 on that exact SHA; watch `73619` completed exit 0.
+Full driver gen2 == gen3 (177,559 lines), installed-driver CLI/transaction
+checks and all three policy-corpus sources passed. No new Platform full run was
+dispatched before correcting the already-observed ability compiler failure.
+The publication/CI-ID navigation refresh is a subsequent local-only delta.
+
+## Reached fast-macOS coverage continuation
+
+Base: published `61f923165553d25af3d17cd9ba14ad30b486486c`.
+Its fast macOS job `101350275135` passed seven steps, but source and job logs
+confirm that neither repaired checker mechanics gate ran. That job cannot
+validate the Bash/BWK fixes. The existing full Platform workflow has no
+per-platform dispatch input, and the ability compiler counterexample is RED.
+
+- Objective: reach the existing two checker falsifiers on macOS during the
+  fast push gate, before compiler work, without importing the full matrix.
+- Priority: real host dialect coverage, exact existing refusal checks, bounded
+  feedback cost, then publication after the live CI completes.
+- Owners: the existing checker scripts retain all checker decisions;
+  `scripts/ci_push_macos_steps.sh` owns their fast macOS scheduling.
+- Last consumer: the existing `build-macos-c-only` push job.
+- Forbidden fallback: duplicating whole preparation/bootstrap jobs, weakening
+  checks, replacing native Bash/awk, adding a new workflow or changing timeouts.
+- Primary-only edit scope: that fast step list, its existing CI-profile ratchet,
+  and navigation/evidence docs. All sub-agent leases stay closed.
+- Gate: observe the ratchet reject the old seven-step list, then pass after
+  wiring both existing mechanics gates exactly once before native compilation;
+  keep local checks <= 60 seconds and await native macOS job evidence.
+
+Local result: old-list profile `19312` failed with the new owned message.
+`47595` passed the corrected profile and exercised the actual two mechanics
+scripts once through the step list, explicitly not executing compiler steps.
+`40183` passed the final profile and six in-memory missing/duplicate/late/
+earlier-native controls using the exact profile AWK program. These controls
+require exit 1 and preserve first-compilation ordering. Native macOS remains
+unverified; no compiler source or timeout changed. The current published CI
+has completed SUCCESS, 30/30, so publication of this bounded repair is unblocked.
+
 ## Constraints and handoff
 
 Use apply_patch. No agent builds a compiler, installs tools, changes workflows
