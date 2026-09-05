@@ -18,9 +18,61 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — mixed-arity tagged-enum callable projection
+## Active self-host context — post-publication compiler integration closure
 
-- Current primary implementation scope is
+- Published implementation/review checkpoint:
+  `426cd694c03107d462f47f1050e9a5dab83e6278`, main and origin/main. The 48
+  explicitly reviewed source/test/doc paths were committed and pushed; index
+  and worktree were clean immediately afterward (`44879b`, `b1cf3d`). This
+  subsequent local repair includes four Pergyra owners, focused tests,
+  generated inventory and navigation/audit updates; it is not yet committed.
+  Regular CI `33994165910` completed FAILURE, 28/30 (`fd2f78`): native full-driver
+  oracle reference admission and the generated keyword fixture inventory.
+  Watch `89852` ended exit 1 (`50b53d`); no watcher remains for this run.
+  Its log is `.tmp/ci_verification/33994165910.watch.log`.
+
+- Primary's bounded receiver scope is
+  `docs/agent_work_directives/generic_member_receiver_identity_admission_2026-09-06.md`.
+  Candidate `B9EDBB8F` passed inferred class/vessel and constructed C/LLVM gates
+  (`b48807`, `24eea1`), including the formerly accepted missing receiver ID.
+  The reached native-oracle integration in the ability directive then removed
+  the borrowed `routines.declarations` aggregate alias. Full native C emission
+  passed with zero errors/four prior warnings (`52a9ca`), and its generated C
+  compiled successfully (`9afe79`). The keyword inventory was regenerated;
+  the 146-row gate passed (`7fa235`). No registry/support bit changed.
+- Final combined candidate is
+  `.tmp/self_hosted/compiler/receiver_literal_integration_20260906/pgy-self-driver.exe`,
+  SHA-256 `FC669FD242A7FE400BE0450C33BC991DD78B807CB2D949F4FC70D386B58F039E`,
+  graph `d1571d6723654bbf4ee1f3fa3ddf12838a775eba89f732e9abd69163b84a8e98`.
+  Pergyra-seed build/source smoke passed (`575a9d`). Final inferred C/LLVM
+  class 41 / vessel 42 passed (`5d6465`), as did constructed 43 (`7618b5`),
+  the seven-program hard parent (`1ab2ce`), ability negatives/controls
+  (`b2bbce`) and both identity epochs (`263e86`, `1f9300`). Full native-oracle
+  C emission/compilation passed, zero errors/four existing warnings (`6fd83b`).
+  Isolated installed-layout role C/LLVM/source/MIR and all its negative gates
+  passed (`30255b`). Shared installed binaries are unchanged (`b200c2`).
+  Existing test caps now fit:
+  inferred shell 200/200, inferred mutations 358/360, constructed mutations
+  332/350; the shared parameter-identity test module is 51/80. All 244 generated
+  inputs are byte-identical before/after the refactor (`0b7a41`), and six actual
+  comparator mutation controls passed (`eee805`). SoT/protocol/keyword checks
+  passed (`44232b`), without owner/status changes.
+  The reached declaration/literal Log 565/560 cap is repaired by one common
+  formatted C call; twelve C/LLVM artifacts are byte-identical before/after,
+  with exact integer/string runtime and 28 negatives (`86703c`, `b200c2`).
+  The next inventory failures were producer harness 321/320 (`c8fae2`) and
+  role mutations 108/100 (`c080cd`). Both now fit without removing tests; all
+  17 role inputs remain byte-identical (`ddf718`). The actual line-cap batch
+  no longer hides later independent errors: the new three-failure control
+  failed before the fix (`4cbdef`) and all mechanics pass afterward (`938dfd`).
+  CI profile passed (`573bb6`). Full component run `32435` completed PASS
+  (`f06a35`), including 2,332 line-cap requests; no checker/build/gate remains
+  live. Documentation passed (`521164`), and the reviewed 23-path scope,
+  strict UTF-8, fixture-only generation delta and whitespace passed (`5146a1`).
+  The local repair is ready for scoped publication; remote CI is not yet verified.
+  The index is empty and installed binaries remain untouched. Details:
+  `docs/audits/2026-09-06_generic_receiver_and_native_oracle_regressions.md`.
+- Completed ability-ID implementation scope is
   `docs/agent_work_directives/ability_declaration_identity_carriage_2026-09-06.md`
   on base `16b2f894cec5e0478639d68e89a6fb98e9168dea`. Its final local candidate
   is `.tmp/self_hosted/compiler/ability_identity_final_20260906/pgy-self-driver.exe`,
@@ -35,18 +87,21 @@ percentage by themselves.
   SoT edge, protocol and docs gates passed (`e5cb04`); counts remain 88/185 and
   CLOSED55/BRIDGE32/ACTIVE1. All compiler outputs stay isolated under `.tmp/`;
   shared installed binaries and original counterexamples are preserved.
-- Broader direct-MIR inferred/constructed generic-member gates remain RED.
-  Both valid-input identity refusals also reproduce on preserved pre-repair
-  driver `1AAFC7D7` (`b7b5a3`, `1efd4a`); their old/current MIR differs only in
-  the new method ID column (`518c6a`). Inputs are in
-  `.tmp/self_hosted/driver/ability_identity_prior_inferred/` and the
-  `ability_identity_final_inferred/` / `ability_identity_final_constructed/`
-  sibling directories. The next falsifier is the unchanged
-  `src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy` against
-  `DirectMirInferredGenericMemberProgramIdentityReady`; identify its first
-  missing declaration/graph fact before editing or opening another lane.
-  The companion constructed-member, enum same-name and guarded-return findings
-  remain OPEN. No full Platform rerun or current-source fixed point is claimed.
+- User-reported external dispatches were inspected read-only, not created here.
+  Platform full `33992669551` on `16b2f894` is FAILURE, 10/13 (`f03a26`). macOS
+  passed 64/65 steps and now fails on the same ability MIR canonicalization as
+  the Linux/Windows driver shards, not the prior Bash checker (`8f79a9`).
+  Weekly parity `33992671114` is FAILURE, 0/1 (`fecde8`): LLVM assignment probe
+  reaches `callable-route-envelope`, return type
+  `SemanticAstEntrypointSelectionAccumulator` (`8f79a9`). This is recorded for
+  later reproduction, not another simultaneous implementation lane. The user's
+  CI/evaluation-order/keyword review is being answered as a review; no broad
+  CI restructuring or language-surface edit is authorized by that question.
+  Enum same-name and guarded-return findings remain OPEN. No current-source
+  full Platform green, fixed point or new substitution percentage is claimed.
+
+## Historical publication snapshots — inactive below this boundary
+
 - Verification checkpoint before publication: HEAD/origin `16b2f894`, index
   empty, 43 tracked changes and five untracked task paths. The source/test/doc
   repair and prior receiver/deletion review are ready for scoped publication;

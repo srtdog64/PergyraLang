@@ -1,7 +1,8 @@
 # Ability declaration callable identity carriage
 
 Status: IMPLEMENTATION COMPLETE for the ability-ID regression (primary only);
-publication pending, broader generic-member direct-MIR findings remain OPEN.
+published as `426cd694c03107d462f47f1050e9a5dab83e6278`. Broader generic-member
+direct-MIR findings remain OPEN under their separately named bounded directive.
 Base: `16b2f894cec5e0478639d68e89a6fb98e9168dea`
 
 ## Objective card
@@ -64,3 +65,32 @@ receipts and omissions are in the counterexample audit's executed-repair section
 Inferred/constructed generic direct-MIR identity refusals were reproduced with
 the unchanged prior driver and remain explicit valid-input bugs. Full Platform
 green, shared installation and new fixed-point evidence are not implied.
+
+## Post-publication native-oracle integration repair
+
+Regular CI `33994165910` on published `426cd694` is FAILURE, 28/30. Linux
+bootstrap's first native-oracle error is a borrowed aggregate copied from
+`routines.declarations` into a local `declarations` binding in the new epoch
+method admission. The same full driver native C emission fails locally with
+that first error and 26 subsequent TextBuilder errors (`1dfd3d`). Removing only
+the borrowed aggregate alias makes the same full emission pass with zero
+errors/four existing warnings (`52a9ca`); the generated C also compiles
+(`9afe79`). All 26 subsequent errors disappear in this reproduction, so they
+are cascading evidence here, not 26 independently repaired defects.
+
+Primary alone resumes this reached consumer. Objective: consume the existing
+borrowed declaration index in place. Priority: reference lifetime, exact IDs,
+then executable parity. Fact owner: `routines.declarations`; last consumer:
+`MirExpressionIdentityEpochAppendDeclarationMethods`. Forbidden fallback:
+disabling reference checking, copying the whole index, rebuilding declarations
+from AST/name scans, or suppressing the native oracle. Integration gate: the
+same complete driver native C emission followed by the focused ability parent
+and canonical identity gates. Existing time/cap/storage budgets remain fixed.
+The generic receiver slice is locally green and has no simultaneous edit lease.
+
+Final integration candidate `FC669FD2`, graph `d1571d67`, also passes the
+complete native-oracle C emission/compilation (`6fd83b`), seven-program hard
+parent (`1ab2ce`), ability controls (`b2bbce`), identity epochs and isolated
+installed-layout role gate (`1f9300`, `30255b`). The reached test-cap and
+batch-diagnostic repairs pass the complete structural inventory (`f06a35`).
+The bounded follow-up is locally verified; remote CI and publication are pending.

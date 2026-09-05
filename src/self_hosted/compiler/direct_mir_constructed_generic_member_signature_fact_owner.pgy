@@ -131,12 +131,9 @@ func DirectMirConstructedGenericMemberSignatureFactAt(
     );
     if !DirectMirGenericMemberReceiverParamReady(receiver) ||
         !DirectMirRoutineParamFactReady(value_param) ||
+        !MirRoutineHeaderParameterRowsReady(header) ||
         ArrayLength(header.generic_names) != 1 ||
         ArrayLength(header.param_names) != 2 ||
-        ArrayLength(header.param_types) != 2 ||
-        ArrayLength(header.param_carriages) != 2 ||
-        ArrayLength(header.param_resources) != 2 ||
-        ArrayLength(header.param_pass_shapes) != 2 ||
         header.param_names[0] != "self" ||
         header.param_names[1] != value_param.name ||
         header.param_types[0] != "" ||

@@ -39,22 +39,14 @@ def emit(name, suffix, mutate):
     )
 
 
-emit("declaration-order", "positive", lambda d: d.__setitem__(
-    "decls", list(reversed(d["decls"]))
-))
-emit("routine-order", "positive", lambda d: d.__setitem__(
-    "routines", [d["routines"][2], d["routines"][0], d["routines"][1]]
-))
+emit("declaration-order", "positive", lambda d: d.update(decls=list(reversed(d["decls"]))))
+emit("routine-order", "positive", lambda d: d.update(routines=[d["routines"][2], d["routines"][0], d["routines"][1]]))
 emit("both-orders", "positive", lambda d: (
     d.__setitem__("decls", list(reversed(d["decls"]))),
-    d.__setitem__(
-        "routines", [d["routines"][2], d["routines"][1], d["routines"][0]]
-    ),
+    d.update(routines=[d["routines"][2], d["routines"][1], d["routines"][0]]),
 ))
 
-emit("role-name", "negative", lambda d: declaration(d, "role").__setitem__(
-    "name", "RenamedRole"
-))
+emit("role-name", "negative", lambda d: declaration(d, "role").update(name="RenamedRole"))
 emit("subject-name", "negative", lambda d: declaration(
     d, "subject"
 ).__setitem__("name", "RenamedTarget"))

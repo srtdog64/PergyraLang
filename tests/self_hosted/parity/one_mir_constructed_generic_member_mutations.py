@@ -4,6 +4,8 @@ import copy
 import json
 import pathlib
 import sys
+from generic_member_parameter_identity_cases import (
+    assert_parameter_identity, emit_receiver_identity_cases, routine)
 
 
 source = pathlib.Path(sys.argv[1])
@@ -11,12 +13,6 @@ target = pathlib.Path(sys.argv[2])
 mode = sys.argv[3] if len(sys.argv) > 3 else "mutate"
 baseline = json.loads(source.read_text(encoding="utf-8"))
 
-
-def routine(document, name):
-    rows = [row for row in document["routines"] if row["name"] == name]
-    if len(rows) != 1:
-        raise RuntimeError(f"expected one routine named {name}")
-    return rows[0]
 
 
 def instructions(document, name):
@@ -109,21 +105,14 @@ def specialization_tuples(document, self_owned):
 
 if mode == "compare":
     oracle = json.loads(target.read_text(encoding="utf-8"))
-    # Compare formal SyntaxNodeIds only after the owned cross-epoch join;
-    # do not strip identity keys or mistake producer allocation for semantics.
-    canonical_self = json.loads(pathlib.Path(sys.argv[4]).read_text(encoding="utf-8"))
-    canonical_native = json.loads(pathlib.Path(sys.argv[5]).read_text(encoding="utf-8"))
+    assert_parameter_identity(sys.argv[4], sys.argv[5], ("Wrap", "Echo", "Main"))
     if declaration_shape(baseline) != declaration_shape(oracle):
         raise RuntimeError("native/self declaration semantics drifted")
     for name in ("Wrap", "Echo", "Main"):
         left = routine(baseline, name)
         right = routine(oracle, name)
         for key in ("name", "kind", "receiver_carriage", "generics",
-                    "params", "return", "source_locals"):
-            if key == "params":
-                if routine(canonical_self, name)[key] != routine(canonical_native, name)[key]:
-                    raise RuntimeError(f"canonical {name} parameter identity drifted")
-                continue
+                    "return", "source_locals"):
             if left[key] != right[key]:
                 raise RuntimeError(f"native/self {name} {key} drifted")
         if left.get("owner", "") != right.get("owner", ""):
@@ -282,6 +271,7 @@ emit("missing-generic-formal", lambda d: routine(d, "Wrap").__setitem__(
     "generics", []))
 emit("receiver-carriage-drift", lambda d: routine(d, "Echo").__setitem__(
     "receiver_carriage", "ref"))
+emit_receiver_identity_cases(baseline, output_dir, "Wrap")
 emit("value-param-type-drift", lambda d: routine(d, "Wrap")["params"][1].
      __setitem__("type", "Long"))
 emit("method-return-abi-drift", lambda d: instructions(d, "Wrap")[0].

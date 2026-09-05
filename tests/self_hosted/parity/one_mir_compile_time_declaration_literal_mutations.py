@@ -54,12 +54,13 @@ def main() -> int:
         "positive",
     )
 
-    def literal_73(d: dict) -> None:
+    def literal(d: dict, kind: str, text: str) -> None:
         inst = d["routines"][0]["blocks"][0]["instructions"][0]
-        inst["expr0"] = "Log(73)"
-        inst["expr0_graph"]["nodes"][0]["text"] = "73"
+        inst["expr0"] = f"Log({text})"
+        inst["expr0_graph"]["nodes"][0].update(kind=kind, text=text)
 
-    changed(base, out_dir, "literal-73", literal_73, "positive")
+    changed(base, out_dir, "literal-73", lambda d: literal(d, "integer_literal", "73"), "positive")
+    changed(base, out_dir, "literal-ready", lambda d: literal(d, "string_literal", '"ready"'), "positive")
 
     cases = {
         "duplicate-declaration": lambda d: d["decls"].append(copy.deepcopy(d["decls"][0])),

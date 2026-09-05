@@ -85,6 +85,13 @@ LINE_CAP_REQUESTS=()
 expect_rejection empty-batch 'no line-count requests' run_line_cap_checks
 LINE_CAP_REQUESTS=($'1\tabsent.txt')
 expect_rejection missing-at-consumer 'unreadable line-count input' run_line_cap_checks
+LINE_CAP_REQUESTS=($'1\ttwo.txt' $'1\tabsent.txt' $'0\tunterminated.txt' $'1\tpath with spaces.txt')
+expect_rejection independent-cap-failures 'two.txt has 2 lines; cap is 1' run_line_cap_checks
+for diagnostic in 'unreadable line-count input: absent.txt' \
+        'unterminated.txt has 1 lines; cap is 0'; do
+    grep -Fq -- "$diagnostic" "$ROOT_DIR/independent-cap-failures.out" ||
+        fail "line-cap batch hid a later failure: $diagnostic"
+done
 
 # The focused identity gate must consume the shared cap, including a tighter
 # value, and reject missing/duplicate/malformed authority instead of guessing.

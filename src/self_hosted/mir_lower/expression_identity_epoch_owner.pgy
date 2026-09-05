@@ -217,20 +217,19 @@ func MirExpressionIdentityEpochAppendDeclarationMethods(
     inout source_ids: Array<Int>,
     inout canonical_ids: Array<Int>
 ) -> Bool {
-    let declarations: MirProgramDeclarationIndex = routines.declarations;
     let seen: Array<Int> = [];
     let declaration: Int = 0;
-    while declaration < MirProgramDeclarationIndexCount(declarations) {
+    while declaration < MirProgramDeclarationIndexCount(routines.declarations) {
         let methods: Array<Int> = [0, 0];
         if MirObjectArrayBoundsAtBounds(
-            routines.source_json, declarations.starts[declaration],
-            declarations.ends[declaration], "methods", methods
+            routines.source_json, routines.declarations.starts[declaration],
+            routines.declarations.ends[declaration], "methods", methods
         ) {
-            let owner: String = declarations.names[declaration];
+            let owner: String = routines.declarations.names[declaration];
             let declaration_only: Bool =
-                declarations.kinds[declaration] == "ability" ||
-                declarations.kinds[declaration] == "extern";
-            if declarations.kinds[declaration] == "extern" { owner = ""; }
+                routines.declarations.kinds[declaration] == "ability" ||
+                routines.declarations.kinds[declaration] == "extern";
+            if routines.declarations.kinds[declaration] == "extern" { owner = ""; }
             let method: Array<Int> = [0, 0];
             let cursor: Int = methods[0] + 1;
             while JsonArrayNextObjectBounds(
@@ -259,7 +258,7 @@ func MirExpressionIdentityEpochAppendDeclarationMethods(
                     if signatures.owner_names[signature] == owner &&
                         signatures.names[signature] == name &&
                         signatures.module_paths[signature] ==
-                            declarations.source_module_paths[declaration] &&
+                            routines.declarations.source_module_paths[declaration] &&
                         signatures.runtime_callables[signature] !=
                             declaration_only {
                         canonical_id = signatures.function_node_ids[signature];

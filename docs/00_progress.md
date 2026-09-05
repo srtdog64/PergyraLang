@@ -2,16 +2,34 @@
 
 마지막 업데이트: 2026-09-06
 
-현재 `16b2f894`의 일반 CI `33989459465`는 **30/30 SUCCESS**로 종료됐다.
-직전 `91119c45`의 `33987047080`도 30/30 성공이다. 이 결과에 아직 로컬
-ability ID 수정은 포함되지 않는다. 최종 Pergyra-built 후보 `7E702159`에서는
+ability ID 수정과 검토한 문서 48개 경로는 `426cd694`로 커밋·푸시했다.
+새 일반 CI `33994165910`은 이 SHA에서 **28/30 FAILURE**로 끝났다. 실패 두 곳은
+전체 compiler native oracle의 참조 별칭과 생성된 키워드 픽스처 집계였다.
+후속 로컬 수정으로 native oracle C 생성/컴파일과 146행 키워드 gate는 통과했다.
+제네릭 receiver ID 검사도 고쳐 inferred class/vessel 및 constructed C/LLVM
+gate가 통과했다. 최종 결합 후보 `FC669FD2`에서 두 C/LLVM gate, 7개 프로그램
+hard parent, ability 거절·정상 대조군과 identity epoch 재검증도 통과했다.
+테스트 파일 크기 래칫 3곳은 기존 제한 안에 맞췄으며, 생성 입력 244개의 바이트는
+정리 전후 동일했다. declaration/literal Log 계열은 공통 C 호출 방출로 560/560에
+맞췄고 정수·문자열 실행, 거절 28종과 전후 산출물 12개의 바이트 동일성을 확인했다.
+뒤에서 발견한 producer harness 321/320과 role generator 108/100도 검사 삭제 없이
+정리했다. role 입력 17개의 바이트와 격리 설치 경로의 실행·거절 검사는 보존됐다.
+크기 검사 배치가 첫 오류 뒤를 숨기는 동작도 반례로 고쳤다. 전체 구조 재검사,
+문서·UTF-8·변경 범위 검사까지 통과해 23개 경로를 게시할 준비가 됐다.
+아직 커밋·푸시 및 새 원격 CI 전이며, 기존 크기 상한은 올리지 않았다.
+사용자가 디스패치한 구 HEAD `16b2f894`의 Platform full `33992669551`은 10/13,
+weekly parity `33992671114`는 0/1 실패로 끝났다. 전자는 세 플랫폼의 같은 ability
+MIR canonicalization, 후자는 LLVM assignment probe의 반환형 admission이 남았다.
+macOS의 이전 Bash checker 오류는 이 실행에서 재현되지 않았고 64/65 단계가 통과했다.
+최근 완료된 `16b2f894`의 일반 CI `33989459465`는 **30/30 SUCCESS**다.
+직전 `91119c45`의 `33987047080`도 30/30 성공이다. 이 두 구 CI 결과에는
+ability ID 수정이 포함되지 않는다. 당시 Pergyra-built 후보 `7E702159`에서는
 정상 입력의 source/MIR 실행 12, ID 거절 9종과 정상 대조군 3종을 포함한
 7개 프로그램이 통과했다(`1022ce`). 공통 routine 진입점과 직접 MIR 소비자의
 method ID 검증, role override·erasure·role operator의 C/LLVM 검사와 native MIR
 단위 검사 162/162도 통과했다. 공유 설치·현재 소스의 고정점·새 전체 CI는 아직이다.
-inferred/constructed generic member의 직접 MIR 경로는 수정 전 바이너리에서도
-같이 실패했고, 입력 차이는 새 method ID뿐이었다(`518c6a`). 거절 검사 통과로
-세지 않고 다음 반례로 남긴다. 88/185, CLOSED55/BRIDGE32/
+inferred/constructed generic member의 이전 정상 입력 거절은 로컬 후보에서
+해결했으나 공유 설치·현재 소스 고정점·원격 검증은 아직이다. 88/185, CLOSED55/BRIDGE32/
 ACTIVE1과 hard substitution 75%, 종합 예상 83%는 올리지 않는다.
 
 사용자가 요청한 D: 여유 공간 약 20 GB를 확보했다. 현재 HEAD `91119c45`에서

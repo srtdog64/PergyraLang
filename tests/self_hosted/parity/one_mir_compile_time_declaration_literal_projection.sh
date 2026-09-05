@@ -112,11 +112,14 @@ for variant in zero-declaration coherent-rename display-expr0-drift; do
         cmp -s "$WORK/ability.$target" "$WORK/$variant.$target" || fail "$variant changed $target runtime artifact"
     done
 done
-for target in c llvm; do project "$target" "$WORK/literal-73.positive.json" "$WORK/literal-73.$target"; done
-compile_run c "$WORK/literal-73.c" 73 literal-73-c
-compile_run llvm "$WORK/literal-73.llvm" 73 literal-73-llvm
+for literal in 73 ready; do
+    for target in c llvm; do
+        project "$target" "$WORK/literal-$literal.positive.json" "$WORK/literal-$literal.$target"
+        compile_run "$target" "$WORK/literal-$literal.$target" "$literal" "literal-$literal-$target"
+    done
+done
 
 negative_count=0
 for input in "$WORK"/*.negative.json; do reject_case "$input"; negative_count=$((negative_count + 1)); done
 [[ "$negative_count" -eq 28 ]] || fail "expected 28 negative cases, got $negative_count"
-echo "[$LABEL] ability exact 7, zero-decl/rename/display equality, literal 73, and $negative_count negatives ok"
+echo "[$LABEL] ability exact 7, zero-decl/rename/display equality, literal 73, and $negative_count negatives ok; string literal ready also C/LLVM exact"

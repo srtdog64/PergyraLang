@@ -418,13 +418,15 @@ run_line_cap_checks() {
             close(path)
             if (status < 0) {
                 print "[self-host-component-contract] unreadable line-count input: " rel > "/dev/stderr"
-                exit 1
+                failed = 1
+                next
             }
             if (count > cap + 0) {
                 print "[self-host-component-contract] " rel " has " count " lines; cap is " cap > "/dev/stderr"
-                exit 1
+                failed = 1
             }
         }
+        END { exit failed }
     '; then
         fail "line-count batch failed"
     fi
@@ -23809,6 +23811,8 @@ require_file \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh"
 require_file \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_mutations.py"
+require_file "tests/self_hosted/parity/generic_member_parameter_identity_cases.py"
+require_max_lines "tests/self_hosted/parity/generic_member_parameter_identity_cases.py" 80
 require_max_lines \
     "tests/self_hosted/parity/one_mir_inferred_generic_member_projection.sh" 200
 require_max_lines \

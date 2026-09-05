@@ -12,28 +12,23 @@ func DirectMirLiteralLogEmitC(
         Die("direct MIR literal Log C plan or ABI type is invalid");
     }
     let output: String = "#include <stdint.h>\n#include <stdio.h>\n\nint main(void) {\n";
+    let argument: String = plan.literal;
     if plan.literal_kind == DirectMirLiteralLogIntegerKind() {
         output = Concat(output, "    ");
         output = Concat(output, int_c_type);
         output = Concat(output, " pgy_literal_0 = ");
         output = Concat(output, plan.literal);
-        output = Concat(output, ";\n    ");
-        output = Concat(output, plan.formatted_print.symbol);
-        output = Concat(output, "(\"");
-        output = Concat(output, plan.line_format);
-        output = Concat(output, "\", (");
-        output = Concat(output, int_c_type);
-        output = Concat(output, ")pgy_literal_0);\n");
-    } else {
-        output = Concat(output, "    ");
-        output = Concat(output, plan.formatted_print.symbol);
-        output = Concat(output, "(\"");
-        output = Concat(output, plan.line_format);
-        output = Concat(output, "\", ");
-        output = Concat(output, plan.literal);
-        output = Concat(output, ");\n");
+        output = Concat(output, ";\n");
+        argument = Concat("(", int_c_type);
+        argument = Concat(argument, ")pgy_literal_0");
     }
-    return Concat(output, "    return 0;\n}\n");
+    output = Concat(output, "    ");
+    output = Concat(output, plan.formatted_print.symbol);
+    output = Concat(output, "(\"");
+    output = Concat(output, plan.line_format);
+    output = Concat(output, "\", ");
+    output = Concat(output, argument);
+    return Concat(output, ");\n    return 0;\n}\n");
 }
 
 func DirectMirLiteralLogEmitLlvm(

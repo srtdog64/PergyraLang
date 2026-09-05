@@ -80,13 +80,18 @@ project() {
 }
 
 reject_mutation() {
-    local name="$1" target="${2:-c}" input_dir="${3:-$WORK_DIR}" output
+    local name="$1" target="${2:-c}" input_dir="${3:-$WORK_DIR}" output status
     output="$input_dir/$name.$target.artifact"
     rm -f "$output" "$output.stdout" "$output.stderr"
     if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$input_dir/$name.json")" -o "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
         fail "$target accepted inferred generic member mutation: $name"
+    else status=$?
     fi
+    [[ "$status" -eq 1 ]] || fail "$target mutation $name exited $status, expected 1"
     [[ ! -e "$output" ]] || fail "$target emitted before rejecting $name"
+    if [[ "$name" == receiver-id-* ]]; then
+        [[ "$(cat "$output.stdout" "$output.stderr" | tr -d '\r')" == 'CODEGEN ERROR: direct MIR inferred generic member identity is invalid' ]] || fail "$target receiver ID refusal changed: $name"
+    fi
     grep -Eq 'CODEGEN ERROR|MIR .*invalid|inferred.*member|two-routine' "$output.stdout" "$output.stderr" || fail "$target rejection lost its owned diagnostic: $name"
     ! grep -Eq 'Option nominal|generic struct value-flow|struct value-flow|two-routine nominal classification|inferred generic program envelope' "$output.stdout" "$output.stderr" || fail "$target retried another two-routine interpretation: $name"
 }
@@ -130,8 +135,7 @@ grep -Fq '@Box_Echo_Int(%Box %box, i32 41)' "$WORK_DIR/baseline.ll" || fail "LLV
 grep -Fq '@Box_Echo_Int(%Box %box, i32 %inner)' "$WORK_DIR/baseline.ll" || fail "LLVM flattened inner-to-outer flow"
 grep -Fq 'define internal i32 @Box_Echo_Int(%Box %self, i32 %value)' "$WORK_DIR/baseline.ll" || fail "LLVM lost value receiver carriage"
 compile_and_expect baseline 41
-
-for permutation in routine-order-swap source-local-order-swap specialization-order-swap combined-order-swap specialization-owner-renumber; do
+for permutation in routine-order-swap source-local-order-swap specialization-order-swap combined-order-swap specialization-owner-renumber receiver-id-renumber; do
     project "$WORK_DIR/$permutation.json" c "$WORK_DIR/$permutation.c"
     project "$WORK_DIR/$permutation.json" llvm "$WORK_DIR/$permutation.ll"
     cmp -s "$WORK_DIR/baseline.c" "$WORK_DIR/$permutation.c" || fail "C artifact drifted for $permutation"
@@ -154,10 +158,8 @@ cmp -s "$WORK_DIR/baseline.c" "$WORK_DIR/collision-names.c" || fail "C source lo
 cmp -s "$WORK_DIR/baseline.ll" "$WORK_DIR/collision-names.ll" || fail "LLVM source local spelling leaked into backend temporaries"
 [[ "$(grep -Fo 'Crate_Reflect_Int(' "$WORK_DIR/semantic-rename.c" | wc -l)" -eq 3 ]] || fail "C hard-coded Box/Echo identity"
 [[ "$(grep -Fo '@Crate_Reflect_Int(' "$WORK_DIR/semantic-rename.ll" | wc -l)" -eq 3 ]] || fail "LLVM hard-coded Box/Echo identity"
-
 for mutation in declaration-kind-drift nominal-kind-drift declaration-name-drift declaration-physical-layout field-name-empty field-type-drift field-kind-drift method-name-drift method-return-drift method-kind-drift method-contract-drift method-source-id-collision field-source-id-collision routine-owner-drift receiver-carriage-drift missing-generic-formal duplicate-generic-formal receiver-name-drift receiver-type-forged receiver-pass-drift receiver-abi-forged value-param-type-drift value-param-carriage-drift value-param-abi-drift routine-return-drift method-body-drift method-return-abi-drift method-generic-scalar-tail method-param-scalar-tail main-generic-scalar-tail main-param-scalar-tail source-local-scalar-tail field-scalar-tail method-scalar-tail parallel-scalar-tail missing-specialization extra-specialization duplicate-specialization-coordinate specialization-owner-zero specialization-owner-disagreement specialization-lane-drift specialization-target-drift specialization-owner-drift specialization-callable-drift specialization-symbol-drift specialization-formal-drift specialization-actual-drift specialization-scalar-tail specialization-formal-tail specialization-actual-tail constructor-target-drift constructor-edge-drift constructor-result-drift constructor-physical-layout nested-receiver-drift nested-method-drift inner-target-kind-drift outer-target-name-drift inner-argument-edge-drift outer-argument-edge-drift nested-root-drift nested-use-drift nested-result-drift output-local-drift output-edge-drift stale-output-use output-abi-drift source-local-type-drift unreachable-main unreachable-method; do reject_mutation "$mutation"; done
 for mutation in specialization-symbol-drift inner-target-kind-drift stale-output-use constructor-physical-layout; do reject_mutation "$mutation" llvm; done
-
 mkdir -p "$VESSEL_DIR"
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$VESSEL_SOURCE")" -o "$(root_relative "$VESSEL_MIR")") || fail "source-to-MIR rejected vessel member fixture"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$(pgy_path_for_compiler "$PGY" "$VESSEL_SOURCE")" >"$VESSEL_NATIVE_MIR") || fail "native MIR oracle rejected vessel member fixture"
@@ -181,10 +183,18 @@ grep -Fq 'store i32 0, ptr %box.field.0, align 4' "$VESSEL_DIR/baseline.ll" || f
 [[ "$(grep -Fo '@Cell_Echo_Int(ptr %box,' "$VESSEL_DIR/baseline.ll" | wc -l)" -eq 2 ]] || fail "LLVM lost shared receiver pointer calls"
 ! grep -Fq '@Cell_Echo_Int(%Cell %box,' "$VESSEL_DIR/baseline.ll" || fail "LLVM restored aggregate-by-value vessel calls"
 compile_and_expect vessel/baseline 42
-project "$VESSEL_DIR/combined-order-swap.json" c "$VESSEL_DIR/combined-order-swap.c"
-project "$VESSEL_DIR/combined-order-swap.json" llvm "$VESSEL_DIR/combined-order-swap.ll"
-cmp -s "$VESSEL_DIR/baseline.c" "$VESSEL_DIR/combined-order-swap.c" || fail "C vessel artifact drifted under order swap"
-cmp -s "$VESSEL_DIR/baseline.ll" "$VESSEL_DIR/combined-order-swap.ll" || fail "LLVM vessel artifact drifted under order swap"
+for permutation in combined-order-swap receiver-id-renumber; do
+    project "$VESSEL_DIR/$permutation.json" c "$VESSEL_DIR/$permutation.c"
+    project "$VESSEL_DIR/$permutation.json" llvm "$VESSEL_DIR/$permutation.ll"
+    cmp -s "$VESSEL_DIR/baseline.c" "$VESSEL_DIR/$permutation.c" || fail "C vessel artifact drifted for $permutation"
+    cmp -s "$VESSEL_DIR/baseline.ll" "$VESSEL_DIR/$permutation.ll" || fail "LLVM vessel artifact drifted for $permutation"
+done
 for mutation in declaration-kind-drift nominal-kind-drift host-kind-subject routine-owner-drift receiver-carriage-value-drift receiver-pass-drift receiver-abi-forged constructor-physical-layout nested-use-drift stale-output-use specialization-symbol-drift; do reject_mutation "$mutation" c "$VESSEL_DIR"; done
 for mutation in host-kind-subject receiver-carriage-value-drift receiver-abi-forged nested-use-drift specialization-symbol-drift; do reject_mutation "$mutation" llvm "$VESSEL_DIR"; done
-echo "[$LABEL] PASS: one owner path, class exact 41 plus vessel exact 42, C/LLVM receiver ABI parity, six order invariants, five variants, 81 C negatives, 9 LLVM sentinels"
+for input_dir in "$WORK_DIR" "$VESSEL_DIR"; do
+    for mutation in receiver-id-missing receiver-id-zero receiver-id-negative receiver-id-fractional receiver-id-string receiver-id-null receiver-id-collision receiver-id-duplicate; do
+        reject_mutation "$mutation" c "$input_dir"
+        reject_mutation "$mutation" llvm "$input_dir"
+    done
+done
+echo "[$LABEL] PASS: one owner path, class exact 41 plus vessel exact 42, C/LLVM receiver ABI parity, six order invariants, five variants, receiver-ID erasure controls, 97 C negatives, 25 LLVM sentinels"

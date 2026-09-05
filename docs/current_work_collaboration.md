@@ -6,28 +6,49 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE implementation lease — mixed-arity tagged-enum callable projection
+## ACTIVE implementation lease — post-publication compiler integration closure
 
 ### Reached publication failures — one primary integration owner
 
 Primary now owns the bounded compiler implementation scope in
-`docs/agent_work_directives/ability_declaration_identity_carriage_2026-09-06.md`.
-It closes the same reached ability-ID seam, with no parallel implementation
-lanes. The earlier checker-only/storage-blocked directives are historical, not
-a ban on this user-authorized continuation after storage reclamation.
+`docs/agent_work_directives/generic_member_receiver_identity_admission_2026-09-06.md`.
+Its executable gates are green on candidate `B9EDBB8F`; primary then repaired
+the reached borrowed-view native-oracle failure in the ability directive.
+Final candidate `FC669FD2` / graph `d1571d67` built successfully (`575a9d`).
+Only this integration lane is active; no other agent holds an edit lease.
+Final inferred/constructed C/LLVM, seven-program hard parent, ability controls
+and both identity epochs now pass on that candidate (`5d6465`, `7618b5`,
+`1ab2ce`, `b2bbce`, `1f9300`). The existing test caps fit at 200/200, 358/360
+and 332/350; a shared 51-line parameter-identity test module preserves all 244
+generated inputs byte-for-byte and passes six comparator mutation controls.
+The reached literal Log family now fits 560/560 through common C call emission;
+twelve artifacts remain byte-identical and integer/string runtime controls plus
+28 negatives pass. The producer harness and role generator also fit 320/320
+and 100/100 without removing tests; all 17 role inputs retain their bytes.
+The actual batch checker now collects independent missing/oversized-file errors;
+its new falsifier failed before and passes after the fix (`4cbdef`, `938dfd`).
+Full native-oracle C and isolated installed-layout role gates pass (`6fd83b`,
+`30255b`). Component run `32435` completed PASS (`f06a35`); no gate is live.
+Documentation and the exact 23-path scope/UTF-8 checks passed (`521164`,
+`5146a1`). Primary retains scoped commit/push and new CI observation ownership.
 
 Local implementation verification is complete on candidate `7E702159` / graph
 `485cef98`: seven-case hard parent, exact ability ID failures/controls,
 canonical/generic epoch, isolated installed-layout role override, erasure and
 role-operator C/LLVM gates, native MIR units 162/162, and SoT/protocol/docs gates.
-Publication is pending; 43 tracked changes/five new task paths are local and
-the index is empty. Primary retains integration/publication ownership.
-The next verification frontier is the pre-existing inferred generic-member
-direct-MIR identity refusal. Its constructed companion also refuses with the
-prior driver, and the old/new carriers differ only by method IDs. Name the
-first missing owner fact before a successor edit; do not start parallel lanes.
+The 48 reviewed source/test/doc paths were committed and pushed as
+`426cd694c03107d462f47f1050e9a5dab83e6278`; tracked state and index were clean
+at publication. The subsequent compiler/test/generated-document repair remains
+local and the index is empty. Regular CI `33994165910` completed FAILURE,
+28/30; watch `89852` ended exit 1 and no watcher remains. Full native-oracle C
+emission/compilation and regenerated keyword inventory now pass locally.
+Primary retains final verification/publication ownership. Read-only inspection
+of the user's dispatches found Platform full `33992669551` red 10/13 and weekly
+parity `33992671114` red 0/1, both on older `16b2f894`; see the active handoff.
 
-Latest observed repository/origin/main HEAD is
+## Historical publication snapshots — inactive below this boundary
+
+The earlier observed repository/origin/main HEAD was
 `16b2f894cec5e0478639d68e89a6fb98e9168dea`, containing the separate task's
 107-path manual word-deletion matrix/fixture publication, not compiler edits.
 Primary reconciled 35 experiments, 104 records per pipeline and 34 stored

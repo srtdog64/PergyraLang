@@ -73,13 +73,19 @@ project() {
 }
 
 reject_mutation() {
-    local name="$1" target="${2:-c}" output
+    local name="$1" target="${2:-c}" output status
     output="$WORK_DIR/$name.$target.artifact"
     rm -f "$output" "$output.stdout" "$output.stderr"
     if (cd "$ROOT_DIR" && "$DRIVER_BIN" "--mir-json-backend=$target" "$(root_relative "$WORK_DIR/$name.json")" -o "$(root_relative "$output")" >"$output.stdout" 2>"$output.stderr"); then
         fail "$target accepted constructed generic member mutation: $name"
+    else
+        status=$?
     fi
+    [[ "$status" -eq 1 ]] || fail "$target mutation $name exited $status, expected 1"
     [[ ! -e "$output" ]] || fail "$target emitted before rejecting $name"
+    if [[ "$name" == receiver-id-* ]]; then
+        [[ "$(cat "$output.stdout" "$output.stderr" | tr -d '\r')" == 'CODEGEN ERROR: direct MIR constructed generic member identity is invalid' ]] || fail "$target receiver ID refusal changed: $name"
+    fi
     grep -Eq 'CODEGEN ERROR|MIR .*invalid|constructed generic member|three-routine' "$output.stdout" "$output.stderr" || fail "$target rejection lost its owned diagnostic: $name"
     ! grep -Eq 'Array argument|Array return|struct argument|generic nominal|generic struct|inferred generic member envelope|two-routine' "$output.stdout" "$output.stderr" || fail "$target retried another interpretation: $name"
 }
@@ -127,7 +133,7 @@ grep -Fq 'br i1 %is_some, label %unwrap.ok, label %unwrap.none' "$WORK_DIR/basel
 ! grep -Fq '@pgy_' "$WORK_DIR/baseline.ll" || fail "LLVM reintroduced runtime projection"
 compile_and_expect baseline 43
 
-for permutation in routine-order-reverse routine-order-rotate source-local-order-swap specialization-order-swap declaration-method-order-swap combined-order specialization-owner-renumber generic-formal-rename; do
+for permutation in routine-order-reverse routine-order-rotate source-local-order-swap specialization-order-swap declaration-method-order-swap combined-order specialization-owner-renumber generic-formal-rename receiver-id-renumber; do
     project "$WORK_DIR/$permutation.json" c "$WORK_DIR/$permutation.c"
     project "$WORK_DIR/$permutation.json" llvm "$WORK_DIR/$permutation.ll"
     cmp -s "$WORK_DIR/baseline.c" "$WORK_DIR/$permutation.c" || fail "C artifact drifted for $permutation"
@@ -149,4 +155,8 @@ cmp -s "$WORK_DIR/baseline.ll" "$WORK_DIR/marker-value-seven.ll" && fail "LLVM e
 
 for mutation in declaration-kind-drift nominal-kind-drift missing-method method-kind-drift method-contract-drift field-type-drift field-kind-drift wrap-return-drift echo-return-drift missing-generic-formal receiver-carriage-drift value-param-type-drift method-return-abi-drift missing-specialization extra-specialization duplicate-specialization-ordinal specialization-owner-disagreement specialization-lane-drift specialization-target-drift outer-actual-drift inner-symbol-drift specialization-formal-drift specialization-scalar-tail some-target-drift some-edge-drift identity-body-drift constructor-target-drift inner-target-drift outer-target-drift inner-edge-drift outer-edge-drift unwrap-target-drift unwrap-edge-drift stale-output-use result-type-drift result-abi-not-required result-layout-drift constructor-physical-layout unreachable-wrap unreachable-main; do reject_mutation "$mutation"; done
 for mutation in inner-symbol-drift some-target-drift outer-target-drift result-layout-drift constructor-physical-layout; do reject_mutation "$mutation" llvm; done
-echo "[$LABEL] PASS: one MIR, two heterogeneous member specializations, C/LLVM exact 43, eight invariants, five variants, 40 C negatives, 5 LLVM sentinels"
+for mutation in receiver-id-missing receiver-id-zero receiver-id-negative receiver-id-fractional receiver-id-string receiver-id-null receiver-id-collision receiver-id-duplicate; do
+    reject_mutation "$mutation" c
+    reject_mutation "$mutation" llvm
+done
+echo "[$LABEL] PASS: one MIR, two heterogeneous member specializations, C/LLVM exact 43, eight invariants, five variants, receiver-ID erasure control, 48 C negatives, 13 LLVM sentinels"
