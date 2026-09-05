@@ -17,6 +17,10 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         EmitSemanticVerdictPayloadFixtureManifest();
         return;
     }
+    if args[0] == "--fixture-frontier-count" {
+        Log(ToString(SemanticVerdictPayloadFixtureFrontierCount()));
+        return;
+    }
     if args[0] == "--diagnostic-vocabulary" {
         EmitSemanticDiagnosticVocabularyManifest();
         return;

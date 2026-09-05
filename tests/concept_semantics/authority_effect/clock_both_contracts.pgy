@@ -1,0 +1,7 @@
+func Stamp() -> Int with caps clock with effects nondeterministic {
+    return Now();
+}
+
+func Main() -> Void {
+    let stamp: Int = Stamp();
+}

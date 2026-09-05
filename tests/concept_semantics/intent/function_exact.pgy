@@ -1,0 +1,15 @@
+import "terminal_fixture.pgy";
+
+func Deliver(worker: AuditWorker, succeed: Bool) -> AuditPurposeOutcome {
+    let outcome: AuditActionOutcome = worker.Read(succeed);
+    match outcome {
+        case AuditAccepted(receipt): return AuditDelivered(receipt);
+        case AuditDeclined(problem): return AuditRejected(problem);
+    }
+}
+
+func Main() -> Void {
+    let worker = AuditWorker(0);
+    Observe(Deliver(worker, true), worker);
+    Observe(Deliver(worker, false), worker);
+}

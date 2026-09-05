@@ -47,8 +47,7 @@ func DirectMirScalarProgramPayloadEnumMatchConditionAt(
     let source_count: Int = count - 1;
     let scrutinee: Int = plan.program.expressions.node_lefts[root];
     if scrutinee < start || scrutinee >= start + source_count ||
-        plan.program.expressions.node_rights[root] != -1 ||
-        plan.program.expressions.node_local_rows[root] < 0 {
+        plan.program.expressions.node_rights[root] != -1 {
         return invalid;
     }
     let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
@@ -59,6 +58,12 @@ func DirectMirScalarProgramPayloadEnumMatchConditionAt(
         plan.program.referenced_enum.payload_flags[enum_row] != 1 ||
         ordinal < 0 || ordinal >=
             plan.program.referenced_enum.variant_counts[enum_row] {
+        return invalid;
+    }
+    let arity: Int = plan.program.referenced_enum.variant_param_counts[
+        plan.program.referenced_enum.variant_starts[enum_row] + ordinal];
+    let binding: Int = plan.program.expressions.node_local_rows[root];
+    if (arity == 0 && binding != -1) || (arity > 0 && binding < 0) {
         return invalid;
     }
     let node: Int = start;

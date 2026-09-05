@@ -12,6 +12,8 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SELF_HOST_DIR="$ROOT_DIR/src/self_hosted"
 PARITY_DIR="$ROOT_DIR/tests/self_hosted/parity"
 
+bash "$SCRIPT_DIR/self_hosted_component_checker_smoke.sh"
+
 # Zone effect/relation slots are nominal field facts. Dropping either label
 # reopens a parser-text classification hole and erases the slot before MIR.
 grep -Fq 'StartsWith(text, "EffectSlot:")' \
@@ -111,6 +113,12 @@ reject_text() {
     fi
 }
 
+FUNCTION_BODY_CACHE_REL=""
+FUNCTION_BODY_CACHE_SIGNATURE=""
+FUNCTION_BODY_CACHE_CONTENT=""
+FUNCTION_BODY_EXTRACTIONS=0
+FUNCTION_BODY_REUSES=0
+
 function_body_text() {
     local rel="$1"
     local signature="$2"
@@ -125,15 +133,30 @@ function_body_text() {
     ' "$ROOT_DIR/$rel"
 }
 
+load_function_body_cache() {
+    local rel="$1"
+    local signature="$2"
+
+    [[ -f "$ROOT_DIR/$rel" ]] || fail "missing function input: $rel"
+    if [[ "$rel" == "$FUNCTION_BODY_CACHE_REL" &&
+          "$signature" == "$FUNCTION_BODY_CACHE_SIGNATURE" ]]; then
+        FUNCTION_BODY_REUSES=$((FUNCTION_BODY_REUSES + 1))
+        return 0
+    fi
+    FUNCTION_BODY_CACHE_CONTENT="$(function_body_text "$rel" "$signature")" ||
+        fail "could not extract function input: $rel"
+    FUNCTION_BODY_CACHE_REL="$rel"
+    FUNCTION_BODY_CACHE_SIGNATURE="$signature"
+    FUNCTION_BODY_EXTRACTIONS=$((FUNCTION_BODY_EXTRACTIONS + 1))
+}
+
 reject_function_text() {
     local rel="$1"
     local signature="$2"
     local term="$3"
-    local body
-
-    body="$(function_body_text "$rel" "$signature")"
-    [[ -n "$body" ]] || fail "$rel missing function: $signature"
-    [[ "$body" != *"$term"* ]] ||
+    load_function_body_cache "$rel" "$signature"
+    [[ -n "$FUNCTION_BODY_CACHE_CONTENT" ]] || fail "$rel missing function: $signature"
+    [[ "$FUNCTION_BODY_CACHE_CONTENT" != *"$term"* ]] ||
         fail "$rel function $signature must not contain retired term: $term"
 }
 
@@ -152,12 +175,29 @@ require_function_text() {
     local rel="$1"
     local signature="$2"
     local term="$3"
-    local body
-
-    body="$(function_body_text "$rel" "$signature")"
-    [[ -n "$body" ]] || fail "$rel missing function: $signature"
-    [[ "$body" == *"$term"* ]] ||
+    load_function_body_cache "$rel" "$signature"
+    [[ -n "$FUNCTION_BODY_CACHE_CONTENT" ]] || fail "$rel missing function: $signature"
+    [[ "$FUNCTION_BODY_CACHE_CONTENT" == *"$term"* ]] ||
         fail "$rel function $signature missing term: $term"
+}
+
+check_artifact_comparison_transport_placement() {
+    local rel="tests/self_hosted/parity/llvm_leg_helpers.sh"
+    local signature='pgy_selfhost_compare_expected_text_artifact_file_with_owner() {'
+    local transport_body
+
+    # Structural placement only. The executable comparator parity gate owns
+    # verdict preservation and the transport/failure counterexamples.
+    require_function_text "$rel" "$signature" \
+        'cmp -s -- "$expected_file" "$actual_file" || byte_compare_status=$?'
+    require_function_text "$rel" "$signature" \
+        '"$comparator_bin" "$expected_rel" "$actual_rel" 0 2 "$artifact_kind"'
+    reject_function_text "$rel" "$signature" 'return 0'
+    reject_function_text "$rel" "$signature" 'exit 0'
+    transport_body="$FUNCTION_BODY_CACHE_CONTENT"
+    load_text_cache "$rel"
+    [[ "${TEXT_CACHE_CONTENT/"$transport_body"/}" != *'cmp -s'* ]] ||
+        fail 'artifact byte comparison escaped its file-transport owner'
 }
 
 reject_regex() {
@@ -171,16 +211,70 @@ reject_regex() {
         fail "$rel must not match retired regex: $pattern :: $matches"
 }
 
+REGEX_SCOPE_DIRS=()
+REGEX_SCOPE_PATTERNS=()
+
 reject_regex_under() {
     local rel_dir="$1"
     local pattern="$2"
-    local matches
-
     [[ -d "$ROOT_DIR/$rel_dir" ]] || fail "missing regex input directory: $rel_dir"
-    matches="$(grep -REn --include='*.pgy' "$pattern" \
-        "$ROOT_DIR/$rel_dir" || true)"
-    [[ -z "$matches" ]] ||
-        fail "$rel_dir must not match retired regex: $pattern :: $matches"
+    REGEX_SCOPE_DIRS+=("$rel_dir")
+    REGEX_SCOPE_PATTERNS+=("$pattern")
+}
+
+run_regex_scope_checks() {
+    local rel_dir checked_dir index seen matches scan_status
+    local -a checked_dirs=() scan_command=()
+    [[ "${#REGEX_SCOPE_DIRS[@]}" -gt 0 &&
+       "${#REGEX_SCOPE_DIRS[@]}" -eq "${#REGEX_SCOPE_PATTERNS[@]}" ]] ||
+        fail "missing or inconsistent directory regex requests"
+    for rel_dir in "${REGEX_SCOPE_DIRS[@]}"; do
+        seen=0
+        for checked_dir in "${checked_dirs[@]}"; do
+            [[ "$rel_dir" == "$checked_dir" ]] && seen=1
+        done
+        [[ "$seen" -eq 0 ]] || continue
+        checked_dirs+=("$rel_dir")
+        scan_command=(grep -REn --include='*.pgy')
+        for ((index = 0; index < ${#REGEX_SCOPE_DIRS[@]}; index++)); do
+            [[ "${REGEX_SCOPE_DIRS[$index]}" == "$rel_dir" ]] || continue
+            scan_command+=(-e "${REGEX_SCOPE_PATTERNS[$index]}")
+        done
+        if matches="$("${scan_command[@]}" "$ROOT_DIR/$rel_dir")"; then
+            scan_status=0
+        else
+            scan_status=$?
+        fi
+        [[ "$scan_status" -le 1 ]] || fail "directory regex scan failed: $rel_dir"
+        [[ "$scan_status" -eq 1 ]] ||
+            fail "$rel_dir must not match retired regex requests: $matches"
+    done
+}
+
+check_match_pattern_consumer_placement() {
+    local term matches scan_status source
+    for term in 'AstMatchCasePatternFactFromText(' \
+            'AstMatchCasePatternFactFromReadyArtifact('; do
+        if matches="$(grep -rFl --include='*.pgy' -- "$term" "$SELF_HOST_DIR")"; then
+            scan_status=0
+        else
+            scan_status=$?
+        fi
+        [[ "$scan_status" -le 1 ]] || fail "match-case placement scan failed: $term"
+        while IFS= read -r source; do
+            [[ -n "$source" ]] || continue
+            case "$source" in
+                "$SELF_HOST_DIR/hir/ast_match_pattern_fact_owner.pgy") continue ;;
+                "$SELF_HOST_DIR/semantic/ast_statement_fact_owner.pgy")
+                    [[ "$term" == 'AstMatchCasePatternFactFromReadyArtifact(' ]] && continue
+                    ;;
+            esac
+            if [[ "$term" == 'AstMatchCasePatternFactFromText(' ]]; then
+                fail "match-case text parse escaped its HIR owner: $source"
+            fi
+            fail "match-case artifact read escaped statement admission: $source"
+        done <<<"$matches"
+    done
 }
 
 require_make_target_recipe_line() {
@@ -288,14 +382,43 @@ require_stage_world_binding() {
     require_text "$rel" "- **manifest_binding**: \`$stage|$zone|$actor|$intent|$payload\`"
 }
 
+LINE_CAP_REQUESTS=()
+
 require_max_lines() {
     local rel="$1"
     local cap="$2"
-    local count
     [[ -f "$ROOT_DIR/$rel" ]] || fail "missing line-count input: $rel"
-    count="$(awk 'END { print NR }' "$ROOT_DIR/$rel")"
-    [[ "$count" -le "$cap" ]] ||
-        fail "$rel has $count lines; cap is $cap"
+    [[ "$cap" =~ ^(0|[1-9][0-9]*)$ && "$rel" != *$'\n'* ]] ||
+        fail "invalid line-count request: $rel / $cap"
+    LINE_CAP_REQUESTS+=("$cap"$'\t'"$rel")
+}
+
+run_line_cap_checks() {
+    # Call sites still own every individual limit, including duplicate paths.
+    # Keep awk record-count semantics for empty/unterminated/CRLF/NUL input;
+    # only batch process startup, never replace checks with the loosest limit.
+    [[ "${#LINE_CAP_REQUESTS[@]}" -gt 0 ]] || fail "no line-count requests"
+    if ! printf '%s\n' "${LINE_CAP_REQUESTS[@]}" | awk -v root="$ROOT_DIR" '
+        {
+            separator = index($0, "\t")
+            cap = substr($0, 1, separator - 1)
+            rel = substr($0, separator + 1)
+            path = root "/" rel
+            count = 0
+            while ((status = (getline line < path)) > 0) count++
+            close(path)
+            if (status < 0) {
+                print "[self-host-component-contract] unreadable line-count input: " rel > "/dev/stderr"
+                exit 1
+            }
+            if (count > cap + 0) {
+                print "[self-host-component-contract] " rel " has " count " lines; cap is " cap > "/dev/stderr"
+                exit 1
+            }
+        }
+    '; then
+        fail "line-count batch failed"
+    fi
 }
 
 require_entrypoint_only_main() {
@@ -3090,6 +3213,9 @@ require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "try_e
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "expression_operator_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "struct SemanticTopLevelOperatorFacts"
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "func SemanticTopLevelOperatorFactsFromExpression"
+require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "assignment_index: Int;"
+require_function_text "src/self_hosted/semantic/body_check_owner.pgy" \
+    "func CheckBody(" '"ArraySet", receiver, names, types, modes, internal_caller_ready'
 require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "struct SemanticDelimitedRangeFacts"
 require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "func SemanticNestedCommaRangeFactsFromSource"
 reject_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "SemanticCallArgumentRangeFactsFromSource"
@@ -3152,6 +3278,11 @@ require_text "src/self_hosted/semantic/diagnostic_owner.pgy" 'import "../lib/jso
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticOracleJsonCodeFromContent"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticOracleJsonCodeMatch"
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manifest"'
+require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-frontier-count"'
+require_text "src/self_hosted/semantic/semantic_run_owner.pgy" \
+    'Log(ToString(SemanticVerdictPayloadFixtureFrontierCount()));'
+require_text "tests/self_hosted/parity/semantic_parity.sh" '"$manifest_bin" --fixture-frontier-count'
+reject_text "tests/self_hosted/parity/semantic_parity.sh" '"${#SOURCE_PAIRS[@]}" -ne 114'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
@@ -9096,23 +9227,8 @@ require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" \
 # Closed fallback ratchet: match_pattern_graphs, match_case_ordinal_join,
 # semantic_consumer_atom_parse, mir_match_pattern_text_parse,
 # codegen_match_pattern_text_parse, and consumer_local_pattern_parse.
-while IFS= read -r match_pattern_source; do
-    case "$match_pattern_source" in
-        "$SELF_HOST_DIR/hir/ast_match_pattern_fact_owner.pgy") continue ;;
-    esac
-    if grep -Fq 'AstMatchCasePatternFactFromText(' "$match_pattern_source"; then
-        fail "match-case text parse escaped its HIR owner: $match_pattern_source"
-    fi
-done < <(find "$SELF_HOST_DIR" -type f -name '*.pgy' -print)
-while IFS= read -r match_pattern_source; do
-    case "$match_pattern_source" in
-        "$SELF_HOST_DIR/hir/ast_match_pattern_fact_owner.pgy"|"$SELF_HOST_DIR/semantic/ast_statement_fact_owner.pgy") continue ;;
-    esac
-    if grep -Fq 'AstMatchCasePatternFactFromReadyArtifact(' \
-        "$match_pattern_source"; then
-        fail "match-case artifact read escaped statement admission: $match_pattern_source"
-    fi
-done < <(find "$SELF_HOST_DIR" -type f -name '*.pgy' -print)
+check_match_pattern_consumer_placement
+echo "[self-host-component-contract] checkpoint: match-pattern placement"
 match_binding_fast_path_order="$(awk '
     /func SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts\(/ { active = 1 }
     active && /if ArrayLength\(case_nodes\) == 0/ && !fast { fast = NR }
@@ -13543,6 +13659,10 @@ reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'FindFrom(js
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'FindFrom(json, "\"blocks\":'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "func FindRoutine"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "BuildMirRoutineHeaderFacts("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'let ptype: String = header.param_types[param_row];'
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'self_type'
+reject_function_text "src/self_hosted/mir_lower/declaration_callable_lower_owner.pgy" \
+    'func EmitRoleImplBlocks(' 'for_type'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "ArrayLength(header.param_names)"
 require_file "src/self_hosted/mir_lower/routine_instruction_view_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/routine_instruction_view_owner.pgy" 180
@@ -15247,7 +15367,9 @@ require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "artifact-equal"
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" ".tmp/self_hosted/shared"
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_comparator_needs_rebuild"
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'diff <(printf'
-reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'cmp -s'
+check_artifact_comparison_transport_placement
+require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" \
+    'bash "$ROOT_DIR/tests/self_hosted/parity/text_artifact_file_comparison_owner.sh" "$ARG_BIN"'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '$(cat "$c_out")'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'c_out="$(cd "$ROOT_DIR"'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'llvm_out="$(cd "$ROOT_DIR"'
@@ -17132,6 +17254,7 @@ require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     'pgy_selfhost_assert_driver_rung2_execution_action "$ROOT_DIR"'
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_execution_action_gate.sh"
+echo "[self-host-component-contract] checkpoint: checking action ownership"
 pgy_selfhost_assert_driver_rung2_execution_action "$ROOT_DIR" ||
     fail "direct execution action gate failed"
 require_file "tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh"
@@ -17141,6 +17264,7 @@ require_text "tests/self_hosted/parity/driver_source_mir_execution_action_gate.s
     '# Ratchets source_mir_main_direct_commit and source_mir_file_helper_fallback.'
 bash "$ROOT_DIR/tests/self_hosted/parity/driver_source_mir_execution_action_gate.sh" ||
     fail "source-to-MIR execution action gate failed"
+echo "[self-host-component-contract] checkpoint: action ownership"
 require_text "Makefile" \
     'self-host-driver-source-mir-execution-action-test-smoke:'
 require_make_target_text \
@@ -17245,8 +17369,9 @@ require_max_lines \
 require_max_lines "src/self_hosted/mir_lower/match_json_fact_owner.pgy" 180
 require_file \
     "src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy"
+# Ordered binding spans and their validation remain in the same typed-row owner.
 require_max_lines \
-    "src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy" 140
+    "src/self_hosted/mir_lower/routine_instruction_match_fact_owner.pgy" 170
 reject_text \
     "src/self_hosted/air/mir_option_match_cfg_certificate_fact_owner.pgy" \
     "JsonObjectFactTableFromBounds("
@@ -23191,7 +23316,12 @@ require_text \
     "DirectMirScalarCfgProgramExtensionReadinessCode"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy" \
-    "DirectMirScalarCfgProgramCallableFactReadyWithFacts("
+    "DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum("
+for callable_fact_consumer in \
+    src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy \
+    src/self_hosted/compiler/direct_mir_scalar_program_callable_fact_owner.pgy; do
+    reject_text "$callable_fact_consumer" "DirectMirScalarCfgProgramCallableFactReadyWithFacts("
+done
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy" \
     "func DirectMirScalarCfgProgramExtensionFactReady(" \
@@ -24953,8 +25083,9 @@ require_function_text \
     "func DirectMirScalarCfgSourceLocalTypeMatchesResolved(" \
     'source_type == "Option<Unknown>"'
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy"
+# Exact match-origin/type identity replaces the shorter routine-wide name read.
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" 155
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_value_type_owner.pgy" 165
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy" 200
@@ -25029,8 +25160,7 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_leaf_operand_owner.pgy" 70
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_leaf_identity_fact_owner.pgy"
-require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_leaf_identity_fact_owner.pgy" 55
+# Its cap is checked through scalar_program_owner_caps.tsv above.
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_leaf_identity_fact_owner.pgy" \
     "func DirectMirScalarProgramLeafIdentityFactFromOwners(" \
@@ -27229,4 +27359,8 @@ while IFS= read -r expected; do
     require_file "src/self_hosted/codegen/fixture/${base}.pgy"
 done < <(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | sort)
 
+echo "[self-host-component-contract] checkpoint: checking line caps"
+run_line_cap_checks
+run_regex_scope_checks
+echo "[self-host-component-contract] line-cap requests=${#LINE_CAP_REQUESTS[@]} function extractions=$FUNCTION_BODY_EXTRACTIONS reuses=$FUNCTION_BODY_REUSES"
 echo "[self-host-component-contract] structural source inventory and removed-path ratchets ok; executable parity owns behavior"

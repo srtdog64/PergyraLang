@@ -116,6 +116,25 @@ failure/budget; AIRBinding.v가 zone/effect/acquire/comp_target/dep 5-family로
 
 ---
 
+## 0-c. 정적 identity와 목적 귀속 — 2026-09-05 정밀화
+
+[Intent-First 설계 정전](01_intent_first_design.md)의 정적 identity 정의는
+§0-b의 **cross-axis binder**를 사용자 관점에서 고정한다. Intent는 각 owner가
+판정한 fact를 같은 목적의 계약에 결속하며, fact 소유권을 흡수하지 않는다.
+여기서 귀속 identity는 위 표의 `IntentPurposeFact` 문자열 라벨과 다르다.
+이름이나 값이 같다는 이유만으로 선언·binding identity를 대체하지 않는다.
+Purpose/Trace의 library-가능 분류는 그대로이며, 하나의 거대한 atomic
+`Intent` fact를 새로 도입하는 것도 아니다.
+
+action 개수가 아니라 **목적에 귀속되어 검사되는 계약**이 판단 기준이다.
+[단일 action의 terminal 대체 실험](audits/2026-09-05_intent_graph_semantic_audit.md)은
+값 동등성을 보존해도 admitted payload의 귀속을 잃을 수 있음을 구별했다.
+동시에 self-source MIR의 typed `intent_execution` v3 plan 누락도 확인했다.
+아래 2026-07-05의 진단·rung 제안과 모델 증명을 현재 구현 완료표로 읽지 않는다.
+이 정밀화는 소유권·귀속의 정의이며, 새로운 구현 트랙을 열지 않는다.
+
+---
+
 ## 1. 현 상태 정밀 진단 (왜 ☆☆☆인가)
 
 - 런타임: subject-충돌 진입 거절(fingerprint), parent forest(F1 depth-bound),

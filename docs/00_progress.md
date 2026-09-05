@@ -2,7 +2,126 @@
 
 마지막 업데이트: 2026-09-05
 
-최신 parser-safe implementation checkpoint `bbeb75d7`은 substantive checkpoint
+최신 확인한 공개 checkpoint는 `b4d22cf2c6e68fcbd42a1ce4a44444de0e7899fa`이며
+로컬 main과 origin/main이 일치한다. 다른 세션이 native `await` 노드의 위치 정보와
+SEA golden을 수정했다. 일반 CI `33949336474`는 green이고, 해당 커밋의 Platform full
+결과는 이번 조회에 없었다. 기존 객체로 격리 native `2E0468AA`를 링크해 SEA 경계
+8개, JSON 진단 전체, 설치된 Pergyra driver와의 receiver 정규화·실행·거절 검사를
+통과했다. 공유 native `0F9F4F30`과 self-driver `7928ED6B`는 교체하지 않았으며,
+기존 고정점 영수증도 현재 Pergyra source graph와 다시 일치했다. 이 미커밋 작업의
+원격 CI 증거나 새로운 self-host 대체 진척으로 세지 않는다.
+
+후속으로 bootstrap 비교에서 이미 같은 MIR에도 정규화 사본 두 개를 만들던
+경로를 고쳤다. 실제 Pergyra 비교기는 유지하며, 기존 285,190,841-byte 원본 쌍을
+같은 함수로 검증해 약 544 MiB의 새 디스크 복사를 피했다. 원본 해시는 유지됐고
+기존 임시 파일은 삭제하지 않았다. 오류 전파·정규화 의미 보존을 포함한 22개
+사례의 독립 검증과 기존 C/LLVM 비교기 통합 검사가 통과했다. 구조 검사의 cmp
+일괄 금지도 해당 전달 함수로 범위를 한정하고 반례를 추가했다. 전체 component
+검사는 188초에 통과했지만 60초 목표에는 미달이다. 새 전체 bootstrap·원격 CI
+실행이나 SoT 진척률 상승으로 세지 않는다. 이 변경도 아직 미커밋 상태다.
+
+이전 공개 base `f34355b3`의 일반 CI `33937067537`은 green이지만 Platform full
+`33937079231`은 7개 job이 실패했다. 로그상 네 부류다: Linux/macOS의 Intent JSON 진단 개수, Windows
+MSYS2의 `git` 누락, Linux/Windows semantic fixture 수 115/114, 양쪽 driver의
+role receiver fact 거절. `git`은 해당 Windows job의 설치 목록에 추가했고,
+기존 목록에서 실패하는 재발 방지 검사와 수정 후 전체 CI profile 검사가 로컬에서
+통과했다. 원격 재실행 결과는 아직 아니다. 이 작업의 enum 구현·감사·검사기 변경은 아직 dirty이며
+index는 비어 있다. 공개 CI가 이 미커밋 구현을 검증한 것은 아니다.
+
+직전 `bf8b33d0`의 run `33922587191`은 33분 20초에 30/30 green이었다. Source enum
+payload 접근은 `95148fdc`에서 active variant 증명을 소비한 뒤에만 MIR로 내려가며,
+`506c2527`은 새 member-call identity를 role-override owner까지 정확히 운반한다.
+5개 양성 흐름과 21개 음성 사례, direct-MIR C/LLVM parity, role-override 12개 MIR
+음성 사례를 포함한 전체 CI가 통과했다. Linux 준비 계약의 generated inventory와
+callable owner hash 잔여도 닫혔다. 이 변경은 기존 실행 경계의 보강이며 census
+88/185, `CLOSED=55 BRIDGE=32 ACTIVE=1`, 통합 83% (81~85%), hard replacement
+75%를 올리는 근거로 세지 않는다.
+
+사용자가 재개한 언어 개념 감사는 네 실행 lane의 유지 계약 PASS와 별개로
+source admission 9개 항목의 실패를 확인했다. 8개 의미 위반 source가 self-host MIR로
+출판됐고, 정상 typed Intent source에는 v3 plan이 빠졌다. 이는 9개의 독립 버그나
+새 진척률을 뜻하지 않는다. 재현 gate와 범위는
+`docs/audits/2026-09-05_language_axes_semantic_integration.md`에 기록했다. 한 action의
+Intent도 exact terminal 귀속 보장이 있다는 실행 증거로 action 수/보상 유무만의
+문서 기준은 정정했지만, compiler source 구현이나 전체 self-host closure는 아니다.
+
+현재 단일 활성 입력은 기존 `enum_match_payload_basic`이다. 발견 당시 source-LLVM은
+`let e: Shape = Empty`에서 `leaf-operand node=0 row=10`으로 실패했다. 현재 설치된
+Pergyra-built driver는 public C/LLVM 모두 native C와 같은 `75`, `12`, `0`을
+실행한다. 선언이 소유하는 variant별 0/1/2
+payload arity와 match binding을 하나의 GraphPlan에 운반하도록 Pergyra 구현을
+수정했다. 격리된 후보 `B88813B7`에서는 이 입력과 추가 0/1/2/3-payload 입력의
+general MIR-C 및 source/direct C/LLVM 실행 10개가 통과했다. 선언 ID 불일치와
+잘못된 배열 다음으로 다른 match arm의 변수를 허용하는 구멍이 발견돼 범위
+검사를 보강했다. 후속 후보 `83BAB404`는 `String, Int` 혼합 payload까지 실행하며
+11개 변이를 general MIR-C/direct C/direct LLVM에서 모두 거절한다. 기존
+tagged-enum 통합과 logical-record/Option match 인접 회귀도 통과했다. 잘못된
+출력은 실행하지 않았다. 예약어 변수명을 정정한 최종 소스의 native C 생성은
+0 errors, 4 warnings이다. 정식 release/O3 driver `182738CF`를 설치했고, 같은
+설치본에서 public 진입점 포함 양성 10개와 진단·정상 거절 종료·무출력을 요구하는
+음성 33개, logical-record/Option match와 source active-variant 5/21 검사가
+통과했다. 이제 전체 driver의 source-MIR parity와 `gen2 == gen3` 고정점도
+확인했다. 원래 실행 핸들이 gen2 빌드 뒤 사라져 종료 코드는 관찰하지 못했지만,
+소스·헤더·MIR·바이너리 해시를 고정한 후속 실행이 같은 MIR로 gen3를 생성하고
+기존 owner의 고정점 영수증 검증까지 통과했다. gen2/gen3 C는 각각 11,830,379
+bytes이며 SHA-256 `2B2C53E1...773D16C7`로 동일하다. 이 결과는 중단 없는 단일
+bootstrap 실행의 성공 기록과는 구분한다.
+
+이전 고정점 바이너리 `D0BD8E17` (6,711,675 bytes)를 기존 설치기로 설치했을 때,
+설치된 public C/LLVM을 포함한 tagged-enum 통합·혼합 arity 10/33,
+logical-record/Option match·source active-variant 5/21이 모두 통과했다.
+이전 설치본 `182738CF`와 manifest는 복구 가능하게 보관했다. compiler-world
+전체 검사는 실제 빌드·실행을 포함하므로 5분 집중 검증으로 분류를 정정했으며
+전체 통과했다. 전체 component 구조 검사도 이제 exit 0으로 끝까지 통과했다.
+실행 시간은 161.278초이며, 줄 수 제한 2,331건·함수 추출 970회·인접 재사용
+674회를 수행했다. 이는 통합 시점의 전체 검사 PASS이고, 60초 지연 목표는
+여전히 미달이다. 줄 수/디렉터리 검사를 묶고 함수 선택을 제한적으로 재사용했으며
+누락 입력과 음성 조건은 유지했다. enum 보강으로 늘어난 기존 책임의 물리적
+제한을 검토했고, 집중 identity 검사에 중복돼 있던 scalar 제한도 기존 공유 표를
+읽도록 정정했다. 표 누락·중복·잘못된 값·더 엄격한 제한을 실제 소비자로 검사한다.
+이 검사기 수정에서는 compiler source와 설치 바이너리를 변경하지 않았다.
+
+`role_operator_dispatch` 정규화의 receiver type 재구성 오류는 기존 MIR parameter
+fact를 그대로 운반하도록 고쳤다. 격리 후보 `5F317A7C`는 native/self 정규화,
+정확한 실행값 `123`, typed/late receiver 거절과 enum 10/33 회귀를 통과했다.
+당시 설치본은 `D0BD8E17`이었고, 아래 최신 고정점 설치로 교체했다.
+Native JSON 전체 검사도 두 독립 진단을
+정확히 요구하도록 정정한 뒤 통과했다. Semantic fixture 수는 기존 Pergyra owner에서
+받으며, C manifest 실행 파일을 verdict 검사에 재사용해 중복 빌드를 없앴다.
+
+이어 실제 보조 semantic 검사기의 인덱스 대입 누락을 수정했다. 서브에이전트 2명이
+분리 검토한 결과 괄호·주석을 포함한 target 정규화와 필수 inline header 누락 반례가
+추가로 발견됐고, 재현 후 기존 owner에서 보완했다. 최신 집중 검사와 전체 border,
+normalization/source-scan/documentation 검사는 통과했다. 마지막 주석 수정까지 포함한
+C 115개가 통과한 실행은 LLVM 빌드 뒤 5분 제한으로 끝났다(exit 124). 완료된 바이너리와
+검사 owner를 고정한 후속 실행에서 LLVM 115개와 양쪽 바이너리의 주석 반례 거절도
+통과했다. 중단 없는 한 번의 PASS와는 구분한다. Complete component 검사는
+252.418초에 통과했고 60초 목표는 여전히 미달이다. Keyword generated inventory도
+기존 생성기로 갱신한 뒤 gate를 통과했다. 과거 성능 수치는 새 소스의 재측정으로
+바꾸지 않았다. 중첩 assignment expression 전반은 이 수정의 검증 범위가 아니다.
+
+최신 source graph `4eb52dba...1a54534`는 Pergyra seed로 새 후보 `27082FE0`를
+빌드한 뒤 전체 driver source-MIR parity와 MIR 소비 단계의 `gen2 == gen3`
+고정점을 확인했다. 전체 MIR 두 파일은 각각 285,190,841 bytes로 동일하다.
+첫 실행은 MIR 정규화용 복사 중 디스크 공간 부족으로 실패했다(exit 2).
+원본 MIR을 기존 Pergyra 비교기로 직접 검증하고, 소스·헤더·seed·완료 산출물을
+고정한 후속 실행에서 gen2/gen3 검증과 기존 owner의 영수증 검증을 마쳤다.
+gen2/gen3 C는 각각 11,831,156 bytes, SHA-256 `09C337AB...011EA2`로 동일하다.
+중단 없는 한 번의 bootstrap PASS로 기록하지 않는다.
+
+이 영수증에 결합된 release/O3 gen2 `7928ED6B`를 **현재 설치본**으로 교체했다.
+기존 `D0BD8E17` 바이너리와 manifest는 해시를 확인해 복구 가능하게 보관했다.
+설치된 경로에서 receiver 정규화·`123` 실행·typed/late 거절, tagged-enum
+통합과 혼합 arity 10/33, logical-record/Option match, source active-variant
+5/21 검사가 통과했다. Native `0F9F4F30`과 manifest는 변경하지 않았다.
+Clang target-triple 경고 1건은 남아 있다. D: 여유 공간은 약 90 MiB이며,
+대형 검증 재실행 전에 저장 공간 범위를 해결해야 한다. 일반 정리·이동은 하지 않았다.
+이 dirty 작업의 커밋·푸시·원격 CI는 아직 수행하지 않았다. 설치와 회귀 검증은
+현재 실행 경로의 보강이며 SoT census나 진행률을 올리는 근거로 세지 않는다.
+정확한 작업 경계와 다른 세션의 dirty 파일은
+`docs/current_work_handoff.md`의 맨 위 카드에 기록했다.
+
+직전 parser-safe implementation checkpoint `bbeb75d7`은 substantive checkpoint
 `123f0889`의 `tagged_union` direct-MIR payload-enum program projection을 닫는다.
 enum 선언만으로 payload-free match
 route를 선택하던 경로를 삭제하고 실제 `AST_MATCH_CASE`가 있을 때만 그 route를
@@ -41,15 +160,12 @@ self-host는 37분 29초에 Pergyra-built DRV-2를 설치하고
 macOS 2분 11초, sanitizers 12분 33초, Rocq 9 1분 43초, codegen bootstrap
 9분 14초, TSan 14초, backend 20/20이 모두 green이다.
 
-다음 단일 활성 작업은 source semantic/MIR producer의 wrong-variant gap에 대한
-bounded discovery다. `Right(31)`로 만든 값을 `Left._0`로 읽는 경우와
-`Number(13)`을 `Text._0`로 읽는 경우가 아직
-`--emit-mir-json-verified`에서 성공한다. 현재
-`SemanticExpressionGraphEnumPayloadTypeName`은 선언된 enum/variant/payload 타입만
-증명하고 active constructor provenance는 증명하지 않는다. 기존 environment/SSA
-fact가 그 권위를 소유하는지 먼저 찾아야 하며, owner가 확정되기 전에는 spelling,
-rendered text, backend rejection, 한 블록 heuristic으로 semantic repair를 시작하지
-않는다.
+그 뒤 조사한 source semantic/MIR producer의 wrong-variant gap은 `95148fdc`에서
+닫혔다. 선언된 payload 타입 판정과 별도로
+`SemanticAstEnumPayloadVariantProvenanceVerdict`가 function/declaration/binding
+identity로 `Known(variant) | Unproven`을 운반한다. 충돌하거나 없는 증거는 실패하며,
+source-produced MIR과 외부 MIR의 재구성 증명 경로는 admission에서 구분한다.
+위 최신 공개 checkpoint의 원격 CI가 해당 구현과 인접 소비자 수정을 검증했다.
 
 별도 반례로 `Array<Future<T>>` affine 복사와 double-await, Zone `own/ref` spawn의
 C artifact 누출, root JSON 문법 fail-open, duplicate InstructionId 승인이

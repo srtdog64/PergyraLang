@@ -109,7 +109,7 @@ func EmitClassMethods(
             contract, contract_indent
         );
         out = Concat(out, EmitRoutineTreeWithContractAtRowWithExpressionOrder(
-            routines, UnwrapOption(routine_row), routine_indent, "",
+            routines, UnwrapOption(routine_row), routine_indent,
             contract.callable_kind, contract_rows, false, observe_pressure,
             expression_order, abi_validation
         ));
@@ -285,7 +285,7 @@ func EmitExternBlockDecl(
 }
 
 func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
-    decl_end: Int, role_name: String, for_type: String,
+    decl_end: Int, role_name: String,
     inout expression_order: MirStructuredExpressionEmissionOrder,
     inout abi_validation: MirAbiLayoutValidationSession) -> String {
     let json: String = routines.source_json;
@@ -382,7 +382,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
                 contract, "        "
             );
             out = Concat(out, EmitRoutineTreeWithContractAtRowWithExpressionOrder(
-                routines, UnwrapOption(routine_row), "      ", for_type,
+                routines, UnwrapOption(routine_row), "      ",
                 contract.callable_kind, contract_rows, false, false,
                 expression_order, abi_validation
             ));
@@ -412,7 +412,7 @@ func EmitRoleImplBlocks(ref routines: MirProgramRoutineIndex, decl_start: Int,
         }
         out = Concat(out, "    Override\n");
         out = Concat(out, EmitRoutineTreeWithContractAtRowWithExpressionOrder(
-            routines, UnwrapOption(routine_row), "      ", for_type,
+            routines, UnwrapOption(routine_row), "      ",
             contract.callable_kind,
             MirDeclarationMethodContractRows(contract, "        "),
             false, false, expression_order, abi_validation

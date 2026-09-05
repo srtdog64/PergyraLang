@@ -9,11 +9,17 @@
 import "json_fact_read.pgy";
 import "program_routine_index_owner.pgy";
 
+struct MirMatchBindingOrigins {
+    instruction_global_rows: Array<Int>;
+    binding_ordinals: Array<Int>;
+}
+
 struct MirMatchBindingLocalFacts {
     valid: Bool;
     validation_stage: String;
     names: Array<String>;
     types: Array<String>;
+    origins: MirMatchBindingOrigins;
 }
 
 func MirMatchBindingRoutineWideType(
@@ -32,6 +38,28 @@ func MirMatchBindingRoutineWideType(
     return found;
 }
 
+// A row in the immutable routine-local view is the binding identity. Its
+// defining instruction and payload ordinal must select exactly one row.
+func MirMatchBindingSourceRowAtOrigin(
+    ref origins: MirMatchBindingOrigins,
+    global_row: Int, ordinal: Int
+) -> Int {
+    if global_row < 0 || ordinal < 0 ||
+        ArrayLength(origins.instruction_global_rows) != ArrayLength(origins.binding_ordinals) {
+        return -1;
+    }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(origins.instruction_global_rows) {
+        if origins.instruction_global_rows[row] == global_row && origins.binding_ordinals[row] == ordinal {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
 func BuildMirMatchBindingLocalFacts(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int,
@@ -40,15 +68,28 @@ func BuildMirMatchBindingLocalFacts(
 ) -> MirMatchBindingLocalFacts {
     let names: Array<String> = source_local_names;
     let types: Array<String> = source_local_types;
+    // The source-local row is the routine-owned binding identity. Keep its
+    // defining instruction and payload ordinal beside its name/type; consumers
+    // must not reconstruct this association from a routine-wide name lookup.
+    let instruction_global_rows: Array<Int> = [];
+    let binding_ordinals: Array<Int> = [];
+    let source_row: Int = 0;
+    while source_row < ArrayLength(names) {
+        ArrayPush(instruction_global_rows, -1);
+        ArrayPush(binding_ordinals, -1);
+        source_row = source_row + 1;
+    }
     if ArrayLength(names) != ArrayLength(types) {
         return MirMatchBindingLocalFacts(
-            false, "match_binding_source_local_count", names, types
+            false, "match_binding_source_local_count", names, types,
+            MirMatchBindingOrigins(instruction_global_rows, binding_ordinals)
         );
     }
     if !routines.valid ||
         !MirProgramRoutineIndexRowReady(routines, routine_row) {
         return MirMatchBindingLocalFacts(
-            false, "match_binding_routine_owner", names, types
+            false, "match_binding_routine_owner", names, types,
+            MirMatchBindingOrigins(instruction_global_rows, binding_ordinals)
         );
     }
     let valid: Bool = true;
@@ -70,7 +111,8 @@ func BuildMirMatchBindingLocalFacts(
             routines.block_instruction_counts
         ) {
         return MirMatchBindingLocalFacts(
-            false, "match_binding_block_alignment", names, types
+            false, "match_binding_block_alignment", names, types,
+            MirMatchBindingOrigins(instruction_global_rows, binding_ordinals)
         );
     }
     let expected_instruction_start: Int = 0;
@@ -99,7 +141,8 @@ func BuildMirMatchBindingLocalFacts(
             (expected_instruction_start_ready &&
                 instruction_start != expected_instruction_start) {
             return MirMatchBindingLocalFacts(
-                false, "match_binding_block_alignment", names, types
+                false, "match_binding_block_alignment", names, types,
+                MirMatchBindingOrigins(instruction_global_rows, binding_ordinals)
             );
         }
         expected_instruction_start = instruction_start + instruction_count;
@@ -111,7 +154,8 @@ func BuildMirMatchBindingLocalFacts(
             let end: Int = routines.instruction_ends[global_row];
             if start < block_start || end > block_end || end <= start {
                 return MirMatchBindingLocalFacts(
-                    false, "match_binding_instruction_alignment", names, types
+                    false, "match_binding_instruction_alignment", names, types,
+                    MirMatchBindingOrigins(instruction_global_rows, binding_ordinals)
                 );
             }
             if routines.instruction_source_types[global_row] !=
@@ -121,7 +165,8 @@ func BuildMirMatchBindingLocalFacts(
             }
             if routines.instruction_kinds[global_row] != "branch" {
                 return MirMatchBindingLocalFacts(
-                    false, "match_binding_instruction_kind", names, types
+                    false, "match_binding_instruction_kind", names, types,
+                    MirMatchBindingOrigins(instruction_global_rows, binding_ordinals)
                 );
             }
             let binding_names: Array<String> =
@@ -134,7 +179,19 @@ func BuildMirMatchBindingLocalFacts(
                 );
             let binding_count: Int = ArrayLength(binding_names);
             let type_count: Int = ArrayLength(binding_types);
-            if binding_count != type_count {
+            let name_bounds: Array<Int> = [0, 0];
+            let type_bounds: Array<Int> = [0, 0];
+            let arrays_present: Bool = MirObjectArrayBoundsAtBounds(
+                json, start, end, "match_bindings", name_bounds);
+            let types_present: Bool = MirObjectArrayBoundsAtBounds(
+                json, start, end, "match_binding_types", type_bounds);
+            let names_shape: JsonArrayStringFact = JsonArrayStringFactWithin(
+                json, name_bounds[0], name_bounds[1], -1);
+            let types_shape: JsonArrayStringFact = JsonArrayStringFactWithin(
+                json, type_bounds[0], type_bounds[1], -1);
+            if !arrays_present || !types_present || !names_shape.valid ||
+                !types_shape.valid || names_shape.count != binding_count ||
+                types_shape.count != type_count || binding_count != type_count {
                 valid = false;
                 validation_stage = "match_binding_type_count";
             } else {
@@ -142,6 +199,14 @@ func BuildMirMatchBindingLocalFacts(
                 while binding < binding_count {
                     let name: String = binding_names[binding];
                     let type_name: String = binding_types[binding];
+                    let prior: Int = 0;
+                    while prior < binding {
+                        if binding_names[prior] == name {
+                            valid = false;
+                            validation_stage = "match_binding_duplicate";
+                        }
+                        prior = prior + 1;
+                    }
                     if name == "" || type_name == "" ||
                         type_name == "Unknown" {
                         valid = false;
@@ -149,6 +214,8 @@ func BuildMirMatchBindingLocalFacts(
                     } else {
                         ArrayPush(names, name);
                         ArrayPush(types, type_name);
+                        ArrayPush(instruction_global_rows, global_row);
+                        ArrayPush(binding_ordinals, binding);
                     }
                     binding = binding + 1;
                 }
@@ -158,6 +225,7 @@ func BuildMirMatchBindingLocalFacts(
         block_offset = block_offset + 1;
     }
     return MirMatchBindingLocalFacts(
-        valid, validation_stage, names, types
+        valid, validation_stage, names, types,
+        MirMatchBindingOrigins(instruction_global_rows, binding_ordinals)
     );
 }

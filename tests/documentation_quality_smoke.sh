@@ -366,6 +366,29 @@ for term in "${proof_spine_coq_terms[@]}"; do
     require_text "docs/semantics/proofs/ProofSpine.v" "$term"
 done
 
+# Keep the public definition tied to canonical attribution and ownership limits.
+intent_identity_definition='Intent는 ‘프로그래머의 의도’를 주석처럼 표현하는 것이 아니라, 여러 compiler fact가 동일한 목적에서 발생했다는 귀속 관계를 보존하는 정적 identity다.'
+for rel in README.md docs/README_ko.md docs/01_intent_first_design.md; do
+    require_text "$rel" "$intent_identity_definition"
+done
+require_text "README.md" 'without replacing their owners or granting authority'
+require_text "docs/01_intent_first_design.md" 'fact 소유권과 목적 귀속은 다르다.'
+require_text "docs/01_intent_first_design.md" '같은 값은 같은 귀속의 증거가 아니다.'
+require_text "docs/01_intent_first_design.md" '귀속 보존은 풍부한 증거의 영구 보관을 뜻하지 않는다.'
+require_text "docs/173_intent_axis_strengthening.md" '정적 identity와 목적 귀속'
+
+# Documentation scope only: executable and formal gates own implementation claims.
+machine_layer_doc='docs/semantics/proofs/MachineLayerCore.md'
+require_file "$machine_layer_doc"
+require_text 'README.md' 'docs/semantics/proofs/MachineLayerCore.md'
+require_text 'docs/README_ko.md' 'semantics/proofs/MachineLayerCore.md'
+require_text "$machine_layer_doc" 'Possession of an address does not authorize contact.'
+require_text "$machine_layer_doc" 'AIR is verification-only; backends do not lower or read AIR directly.'
+require_text "$machine_layer_doc" 'Not beta-stable `Grant`/`Region` source syntax or actual MMIO'
+require_text "$machine_layer_doc" 'it does not map that address into device storage.'
+require_text "$machine_layer_doc" '`region_valid` by itself.'
+forbid_text "$machine_layer_doc" 'source -> RIR -> MIR -> AIR -> C/LLVM/self-host'
+
 language_surface_terms=(
     "DX Is A Surface Invariant"
     "개발자가 즐거워야 유저도 즐겁다."

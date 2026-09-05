@@ -26,7 +26,7 @@ load-bearing (twin-parity 게이트 계보).
 | backend (transpiler_* ↔ llvm_*) | 상호 include 0 | 공유 유틸은 `codegen_*` 중립 접두사로만 |
 | semantic → codegen | 0 | — |
 | parser → codegen | 0 | — |
-| parser → semantic | 등재 face만 | `diag_codes.h`(전-스테이지 진단 registry), `type_system.h`(effect mask 어휘 — 死include 오판 이력 §2) |
+| parser → semantic | 등재 face만 | `diag_codes.h`(전-스테이지 진단 registry), `type_system.h`(effect mask 어휘 — 死include 오판 이력 §2), `callable_contract_vocabulary.h`(caps/effects membership·canonical spelling의 기존 owner face) |
 | codegen → semantic | 등재 face만 | `diag_codes.h`, `builtin_kind.h`, `lifecycle_state.h` |
 | runtime → parser/semantic/codegen | 0 | — |
 | 런타임 twin (inline ↔ extern) | 상호 include 0 | 공유는 `pgy_runtime_budget.h`류 공용 decl 헤더로만 (docs/137 R6 이력) |
@@ -55,6 +55,19 @@ load-bearing (twin-parity 게이트 계보).
   치환으로 완결, 6/6 재실행 green.
 
 ## 3. Rung 사다리
+
+2026-09-05 등기 정합성 보정: `parser_decl_clause.c`와 `ast_print.c`는 이미
+`callable_contract_vocabulary.h`를 통해 caps/effects 어휘와 정전 순서를 소비한다.
+[Callable Contract Vocabulary](semantics/callable_contract_vocabulary.md)가
+소유한 이 경계가 등기부와 smoke에서 누락되어 있었다. 해당 헤더만 명시적으로
+등재한다. parser가 별도 어휘 표를 만들거나 semantic 내부 구현 헤더를 임의로
+읽는 허용은 아니며, 미등재 include 거절은 유지한다.
+
+같은 재검증에서 twin 검사가 주석의 파일명까지 include로 오인하고, 역방향은
+이미 이름이 바뀐 파일을 검사하다 누락을 숨기는 문제도 확인했다. 현재 owner인
+`pgy_runtime_lib_authority_file_core.h`와 inline 입력을 필수로 확인하고 실제
+`#include` 지시문을 검사한다. `border_registry_checker_smoke.sh`는 주석만 있는
+대조군, 양방향 실제 교차 include, 양쪽 입력 누락을 실제 검사 함수로 검증한다.
 
 | rung | 내용 | 상태 |
 |---|---|---|

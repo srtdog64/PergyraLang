@@ -60,9 +60,9 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
         return 1;
     }
     let callable_ready: Bool =
-        (DirectMirScalarCfgProgramCallableFactReadyWithFacts(
+        (DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
              fact.callable, fact.nominal_abi, fact.logical_record,
-             fact.payload_free_enum) &&
+             fact.payload_free_enum, fact.referenced_enum) &&
          DirectMirClosedModuleCallAbiFactReady(fact.closed_call_abi)) ||
         (DirectMirScalarCfgProgramCallableFactCanonicalEmpty(fact.callable) &&
          DirectMirClosedModuleCallAbiFactCanonicalEmpty(fact.closed_call_abi));

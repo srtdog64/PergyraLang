@@ -1,0 +1,10 @@
+subject Player {}
+class Marked {}
+
+zone Battle {
+    subject slot player: Player
+    effect slot mark: Marked
+    apply mark to player
+}
+
+func Main() -> Void {}

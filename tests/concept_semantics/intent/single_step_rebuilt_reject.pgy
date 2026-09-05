@@ -1,0 +1,16 @@
+import "terminal_fixture.pgy";
+
+intent Deliver(work: AuditZone, worker: AuditWorker, succeed: Bool)
+    -> AuditPurposeOutcome {
+    step Read {
+        where: AuditZone;
+        using: work;
+        on outcome: worker.Read(succeed);
+        success: AuditAccepted(receipt);
+        failure: AuditDeclined(problem);
+    }
+    success Read: AuditDelivered(AuditReceipt(7));
+    failure Read: AuditRejected(problem);
+}
+
+func Main() -> Void {}

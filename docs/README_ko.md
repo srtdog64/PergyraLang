@@ -14,6 +14,38 @@
 
 > 서로 다른 자원을 같은 사고 체계로 다루기 위한 의미 통일 언어
 
+## Intent의 정적 의미
+
+> **Intent는 ‘프로그래머의 의도’를 주석처럼 표현하는 것이 아니라, 여러 compiler fact가 동일한 목적에서 발생했다는 귀속 관계를 보존하는 정적 identity다.**
+
+Intent는 참여자·실행 순서·결과·권한·경계 등의 fact를 한 목적에 귀속시키는
+source-level binder입니다. 각 fact의 소유권은 해당 owner에 남습니다.
+목적을 선언했다고 권한이나 효과의 증거가 생기지는 않습니다. 같은 이름이나
+같은 결과값만으로 동일한 귀속을 인정하지도 않습니다.
+
+이는 [설계 정전](01_intent_first_design.md)의 정의이며, 모든 self-host 경로가
+이미 완성됐다는 뜻은 아닙니다. 현재 검증한 범위와 남은 생산 경계는
+[Intent 삭제·보강 의미 감사](audits/2026-09-05_intent_graph_semantic_audit.md)에
+구분해 기록합니다.
+
+## 기계층: 주소의 증거와 접촉의 허가
+
+**`Region`은 포인터가 아니고, 주소를 안다는 사실만으로 기계 접촉이 허용되지는 않습니다.**
+
+형식 모델은 선언된 범위(`Grant`), 그 범위에서 유도한 주소 증거(`Region`),
+실제 상태 전이(`contact_step`)를 구분합니다. Intent가 보존하는 것은 이 행위의
+목적 귀속이지 접근 권한이 아닙니다. 권한·살아 있는 lease·접근 모드 등의
+접촉 조건은 별도 owner의 증거가 필요합니다.
+
+현재 사용자 표면은 `DeviceSlot<T>`와 claim/read/write/release/submit-read
+연산입니다. 명시적인 MIR fact, AIR 검증, C/LLVM 투영과 런타임 매핑 검사가
+연결되어 있지만, 기본 대상은 host-sim입니다. 매핑 provider의 승인은 실제
+MMIO 구현이나 보드 동작의 증명이 아닙니다. `Grant`/`Region` 사용자 문법,
+실제 보드 연결, 하드웨어 volatile/atomic ordering은 아직 완성된 계약이 아닙니다.
+
+[기계층 설계와 구현 범위](semantics/proofs/MachineLayerCore.md)에 현재 경로,
+형식 모델의 전제, 구현하지 않은 범위를 함께 기록합니다.
+
 ## 사명
 
 Pergyra는 자원의 세부 구현을 직접 드러내기보다, 서로 다른 자원들을 같은 사고 체계로 다룰 수 있게 만드는 **의미 통일 언어**입니다.
@@ -256,7 +288,7 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 
 ## 문서
 
-- [컴파일러 파이프라인 가이드](docs/20_compiler_pipeline_guide.md)
+- [컴파일러 파이프라인 가이드](20_compiler_pipeline_guide.md)
 - [현재 진행 상황](docs/00_progress.md)
 - [구문 레퍼런스](docs/grammar/01_syntax.md)
 - [문법 정의](docs/grammar/02_grammar.md)

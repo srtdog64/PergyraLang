@@ -119,6 +119,8 @@ func DirectMirScalarProgramAppendExpression(
         if DirectMirScalarProgramCallCalleeNodeReady(sequence, node) ||
             DirectMirScalarProgramPayloadFreeEnumMarkerReady(
                 sequence, node, payload_free_enum) ||
+            DirectMirScalarProgramPayloadEnumZeroConstructorMarkerReady(
+                sequence, node, referenced_enum) ||
             DirectMirScalarProgramPayloadEnumMemberMarkerReady(sequence, node, source_rows, types, referenced_enum) ||
             DirectMirScalarProgramLogicalRecordMemberMarkerReady(
                 sequence, node, "", logical_record) ||
@@ -291,6 +293,9 @@ func DirectMirScalarProgramAppendExpression(
                 DirectMirScalarProgramPayloadFreeEnumLeafVariant(
                     sequence, node, absence_expected_type,
                     payload_free_enum);
+            let tagged_leaf: DirectMirScalarProgramPayloadEnumConstructorFact =
+                DirectMirScalarProgramPayloadEnumZeroConstructorFromGraph(
+                    sequence, node, absence_expected_type, referenced_enum);
             let absence: DirectMirScalarProgramExpressionKindFact =
                 DirectMirScalarProgramOptionAbsenceExpressionKind(
                     sequence.arena.node_texts[node], absence_expected_type,
@@ -301,6 +306,14 @@ func DirectMirScalarProgramAppendExpression(
                     return DirectMirScalarProgramExpressionAdmissionRejected(facts, declared.failure_stage, node);
                 }
                 kind = DirectMirScalarProgramExprDeclaredCallable(); type_name = declared.type_name; call_callable = declared.callable_ordinal;
+            } else if tagged_leaf.recognized {
+                if !tagged_leaf.valid || !tagged_leaf.complete {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "payload-enum-zero-constructor", node);
+                }
+                kind = DirectMirScalarProgramExprPayloadEnumConstructor();
+                type_name = tagged_leaf.type_name;
+                member_ordinal = tagged_leaf.variant_ordinal;
             } else if enum_leaf.valid {
                 kind = enum_leaf.kind;
                 type_name = enum_leaf.type_name;
@@ -314,8 +327,10 @@ func DirectMirScalarProgramAppendExpression(
                 let identity: DirectMirScalarProgramLeafIdentityFact =
                     DirectMirScalarProgramLeafIdentityFactFromOwners(
                         bound_leaf_texts, bound_leaf_locals, sequence.arena.node_texts[node],
-                        sequence.arena.identities.binding_kinds[node], sequence.arena.identities.binding_ordinals[node],
-                        ArrayLength(parameter_types));
+                        sequence.arena.identities.binding_kinds[node],
+                        sequence.arena.identities.binding_syntax_ids[node],
+                        sequence.arena.identities.binding_ordinals[node],
+                        signature.parameters.names, signature.parameters.source_syntax_ids);
                 if !identity.valid {
                     return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-alias", node);
                 }
@@ -369,8 +384,19 @@ func DirectMirScalarProgramAppendExpression(
                 return DirectMirScalarProgramExpressionAdmissionRejected(facts, "leaf-binding", node);
             }
         } else if source_kind == AstExpressionNodeMemberAccess() {
+            let tagged_zero: DirectMirScalarProgramPayloadEnumConstructorFact =
+                DirectMirScalarProgramPayloadEnumZeroConstructorFromGraph(
+                    sequence, node, "", referenced_enum);
             let payload_member: DirectMirScalarProgramPayloadEnumMemberFact = DirectMirScalarProgramPayloadEnumMemberFromGraph(sequence, node, source_rows, types, referenced_enum);
-            if payload_member.recognized {
+            if tagged_zero.recognized {
+                if !tagged_zero.valid || !tagged_zero.complete {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(
+                        facts, "payload-enum-zero-constructor", node);
+                }
+                kind = DirectMirScalarProgramExprPayloadEnumConstructor();
+                type_name = tagged_zero.type_name;
+                member_ordinal = tagged_zero.variant_ordinal;
+            } else if payload_member.recognized {
                 if !payload_member.valid {
                     return DirectMirScalarProgramExpressionAdmissionRejected(facts, "payload-enum-member", node);
                 }

@@ -1,6 +1,6 @@
 # 204. 동시성 모델 방향 판정 — PSCC 제안 심사와 정전(canon) 대응표
 
-Updated: 2026-09-03 (Asia/Seoul)
+Updated: 2026-09-05 (Asia/Seoul)
 
 Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 `docs/53`(parallel 코어 정책) · `docs/113`(동결 계약) · `docs/114`(근거) ·
@@ -25,7 +25,7 @@ Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 | 키워드 하나에 여러 의미를 싣지 않는다 | `docs/114` §0-§1 "coloring decomposition", "Each concern has an owner", "Widening one cell must not silently widen the others" |
 | lane/스케줄은 언어가 아니라 증거에서 파생된 materialization이다 | `docs/146` §4, `src/runtime/pgy_lane_scheduler.h:12-16` 관측 동등 계약 |
 | 봉인 후 풍부한 분석은 지운다 | `docs/178` §"evidence lifetime" — "Evidence-carrying compiler, not evidence-hoarding runtime" |
-| 결정적 reduce는 고정 트리다 | `docs/181` R4 인덱스-순서 left fold, "스케줄-적응형 금지"; `docs/186` §3 |
+| 현재 결정적 reduce는 인덱스-순서 고정 left fold다 | `docs/181` R4, "스케줄-적응형 금지"; `docs/186` §3; 임의의 reduction 트리와 동등하다는 뜻은 아님 |
 
 따라서 이 문서의 가치는 새 모델의 발명이 아니다. (1) 제안의 어휘를 정전
 어휘로 **번역**하고, (2) 정전과 **충돌하는 지점을 정정**하며, (3) 제안에서
@@ -35,10 +35,11 @@ Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 채택 조건은 여섯이다. 하나라도 빠지면 제안을 그대로 문서화해서는 안 된다.
 
 1. `async`는 **lifetime 구조체가 아니다**. suspension 규율만 뜻한다(§2.1).
-2. `ConcurrencyPlan`은 **봉인된 MIR fact**다. AIR는 검증만 하고 어떤
-   IR로도 lowering되지 않는다(§2.2).
-3. `parallel for`/`reduce`/`unordered`는 새 키워드가 아니라 **이미 있는
-   join 표면**이다(§2.3).
+2. 통합 `ConcurrencyPlan`의 **목표 소유자는 봉인된 MIR fact**다. 이 이름의
+   all-ID 구조체가 이미 있다는 뜻은 아니다. AIR는 검증만 하고 어떤 IR로도
+   lowering되지 않는다(§2.2).
+3. `parallel for`/`reduce`의 역할은 **기존 형 A join 표면**이 담당한다.
+   `join with any`를 일반 `unordered` 정책과 동일시하지 않는다(§2.3).
 4. share/split/lend/move는 **증거 4종 + 캐리지**의 별명이다. 키워드로
    만들지 않는다(§2.4).
 5. task `detach`는 **zone `detach` 절과 이름이 충돌**한다. 다른 이름을
@@ -78,7 +79,7 @@ Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 | 18 | rwlock은 마지막 폴백; 동기화 사다리 | 채택 | `pthread_rwlock_t`는 `src/runtime/pgy_runtime_zone_sync_abi.h:17` 한 곳, `PGY_ZONE_THREADSAFE`로 컴파일 선택; 사다리 = `ExecutionLane`(`src/common/execution_lane_kind.h:17-26`) 확장 — §3.6 |
 | 19 | 다중 Zone 정규 획득 순서 | 채택(저우선) | 실물 없음 — §3.7 |
 | 20 | `parallel` 관측 의미 = 정규 순차 실행 | 채택(정의로) | `docs/181` R2 인덱스 순 수집, R4 고정 fold; `join with any`는 명시적 비결정 — §2.6 |
-| 21 | 결정적 reduction 트리; `unordered`는 명시 | 정전 | `docs/181` R4; 비결정 escape는 이미 `join with any` |
+| 21 | 결정적 reduction 트리; `unordered`는 명시 | 정정 | 현재 `docs/181` R4는 인덱스-순서 고정 left fold다. `join with any`는 최초 `give` 선택이며 일반 unordered 수집·first-success·quorum을 뜻하지 않음 — §2.3 |
 | 22 | deterministic Zone에서 async 완료는 commit 경계에서 정규 순서로 반영 | 유보(베타 후) | replay/commit 실물 없음(조사 §7) — §3.8 |
 | 23 | 의도적 비결정(select/race)은 capability | 채택(일부 착지) | `select`는 readiness arbitration(`docs/53` §5.5); Random/SeedRandom은 C-inline·LLVM runtime 모두 `PGY_CAP_RANDOM`을 require한다. select/any의 결정성 분류는 잔여 — §3.8 |
 | 24 | 시스템 의존 그래프 compile-once | 유보 | `docs/181` 형 B(reactive) R2 미착수 — `docs/186` 구멍 4 |
@@ -112,7 +113,7 @@ Status: **DECISION RECORDED — 방향 결정**. 의미론 권위는 여전히
 가시성만 남긴다."** 제안이 `async scope`로 얻으려던 것 — 자식이 부모보다
 오래 살 수 없다 — 는 §3.1의 구조적 spawn 범위로 얻는다. 새 키워드는 없다.
 
-### 2.2 ConcurrencyPlan은 MIR fact다. AIR는 lowering되지 않는다
+### 2.2 통합 ConcurrencyPlan의 목적지는 MIR이다. AIR는 lowering되지 않는다
 
 제안 §27의 계층은 `AIR → explicit spawn/token/await graph → Backend`다.
 Pergyra에서 이것은 구조적으로 불가능하다:
@@ -124,7 +125,7 @@ Pergyra에서 이것은 구조적으로 불가능하다:
   거절하고, AIR 유무에 관계없이 방출물 byte-equal을 요구한다
   (`tests/air_backend_nonimpact_smoke.sh`).
 
-정정된 계층(§3.10의 그림): 의미 분석이 접근·캡처 사실을 만들고
+목표 계층(§3.10의 그림): 의미 분석이 접근·캡처 사실을 만들고
 (`boundary_witness`, `BoundaryCaptureFact`), MIR이 **봉인된
 ConcurrencyPlan**(task id·의존 id·접근 class id·capability edge id·lane
 id — 문자열 없음)을 들고, AIR는 그 plan의 admission·lane·drift를
@@ -133,7 +134,13 @@ id — 문자열 없음)을 들고, AIR는 그 plan의 admission·lane·drift를
 (`src/compiler/air.h:216-223`), 백엔드 lowering은 별도 경로로 lane을
 받는다 — 이 분리를 그대로 확장한다.
 
-### 2.3 `parallel for`·`reduce`·`unordered`는 이미 있다
+2026-09-05 구현 범위 정밀화: 위 `ConcurrencyPlan`은 **통합 목표 형태**이지
+그 이름과 필드로 이미 구현된 단일 구조체라는 주장이 아니다. 현재 실물 중
+하나는 `src/self_hosted/mir/parallel_capture_fact_owner.pgy`의
+`SelfMirParallelCaptureRows`이며, 이름과 kind 문자열도 운반한다. 현재의
+봉인된 개별 fact와 향후 통합 all-ID plan을 같은 완료 상태로 기록하지 않는다.
+
+### 2.3 기존 형 A join과 `unordered`의 차이
 
 제안 §2·§21·§34는 `parallel for`, `reduce(+)`, `unordered`를 표면으로
 제안한다. 정전의 데이터 병렬 표면은 `docs/181` 형 A로 **이미 확정·착지**
@@ -143,14 +150,15 @@ id — 문자열 없음)을 들고, AIR는 그 plan의 admission·lane·drift를
 parallel (x in xs) join with all      // 인덱스 순서로 Array<R> 수집
 parallel (x in xs) join with sum      // 인덱스-순서 고정 left fold
 parallel (x in xs) join with product | min | max
-parallel (x in xs) join with any      // 명시적 비결정 — 첫 완료
+parallel (x in xs) join with any      // 명시적 비결정 — 최초 give 선택
 parallel (i in lo..hi)                // index 모드
 ```
 
 - `reduce(+)` = `join with sum`. fold 순서는 인덱스 순으로 **계약**이며
   "스케줄-적응형 금지"다(`docs/181` R4, `docs/186` §3).
-- `unordered` = `join with any`. 비결정 escape는 이미 표면에 있고
-  명시적이다.
+- `join with any`는 명시적 비결정 선택이지만 `unordered` 전체의 대체는
+  아니다. 최초 `give` 하나의 선택과 모든 결과의 무순서 수집은 다르며,
+  first-success/quorum 정책도 자동으로 제공하지 않는다.
 - `parallel for`라는 철자는 `docs/00_engine_core_spec.md`에서도 "아직
   미래 범주"다. 형 A가 그 자리다.
 
@@ -208,6 +216,11 @@ capability까지 편다. `docs/198`의 우선순위에서 Deterministic은 **마
 비가시 + 인덱스-순서 fold. 다만 **검증되는 성질이 아니라 산문 계약**이다
 (`pgy_lane_scheduler.h:12-16`; 프로그램을 병렬로 두 번 돌려 비교하는
 게이트는 없다 — 조사 §7). §5의 정리 5번이 이것을 닫는다.
+
+적용 범위 정밀화: 위 정규 순차 실행 동등성은 독립적인 계산 부분집합의
+계약이다. channel 상대 arm이 진행해야 완료하는 ping-pong 같은 프로토콜을
+arm별 run-to-completion으로 직렬화해도 된다는 뜻은 아니다. 실제 경계와
+반례는 [고난도 실행 예제](concurrency/advanced_examples.md)에 연결한다.
 
 commit 경계(§22)·replay·deterministic zone은 **유보**한다. 게임 lockstep
 목표가 확정되면 별도 문서로 연다. FP 결정성은 fold 순서 고정으로 절반만
@@ -396,7 +409,11 @@ coupling"(예: `effect Network consumes NetworkBudget`)이 같은 문서의 미�
 방향이다. Wasm/WASI는 유보 — wasm 백엔드가 없고(C→Emscripten, `docs/23`),
 WASI 0.3 관련 주장은 저장소 밖 사실이다.
 
-### 3.10 정정된 사실 흐름
+### 3.10 정정된 목표 사실 흐름 — 통합 plan은 미착지
+
+현재 개별 fact의 연결과 향후 통합 목표를 함께 그린 그림이다. `ConcurrencyPlan`의
+all-ID 형태, Dynamic 증거와 capability별 edge 캐리지가 전부 구현됐다는 뜻은
+아니다. 현재 실물과 남은 경계는 §2.2, §3.2, §3.5를 따른다.
 
 ```text
 Source
@@ -410,7 +427,7 @@ Semantic
   │
   ▼
 MIR
-  └─ ConcurrencyPlan  {planId, taskIds, dependencyIds,
+  └─ ConcurrencyPlan  {planId, taskIds, dependencyIds,          ← 통합 목표
                        accessClassIds, capabilityEdgeIds, laneIds}   ← 봉인, 문자열 없음
   │           (봉인 직후: AccessSummary·alias·capture 분석 소거 — docs/178)
   ├──────────────► AIR (검증 전용: admission·lane·drift 감사; lowering 없음)

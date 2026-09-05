@@ -1,0 +1,26 @@
+subject Counter {
+    let mut count: Int;
+    action Advance(self) -> Void { self.count = self.count + 1; }
+}
+
+zone CounterZone {
+    subject slot counter: Counter
+    authority counter
+}
+
+intent AdvanceCounter(counter_zone: CounterZone, counter: Counter) {
+    step Advance {
+        using: counter_zone;
+        who: counter;
+        authorized by: counter;
+        on: counter.Advance();
+        expect: counter.count == 2;
+    }
+    success: counter_zone.counter.count == 2;
+    failure: false;
+}
+
+func Main() -> Void {
+    let counter_zone = CounterZone(Counter(1));
+    Log(AdvanceCounter(counter_zone, counter_zone.counter));
+}

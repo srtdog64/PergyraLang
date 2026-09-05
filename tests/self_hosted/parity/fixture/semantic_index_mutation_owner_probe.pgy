@@ -1,0 +1,49 @@
+import "../../../../src/self_hosted/semantic/program_check_owner.pgy";
+
+func RequireMutationVerdict(label: String, content: String, rejected: Bool) -> Void {
+    let verdict: String = CheckProgram("semantic_index_mutation_probe.pgy", content);
+    if rejected {
+        if StringContains(verdict, "Code: value_param_collection_mutation") &&
+            StringContains(verdict, "- param: xs") &&
+            StringContains(verdict, "- func: ArraySet") &&
+            StringContains(verdict, "- mode: default") { return; }
+    } else {
+        if verdict == "" { return; }
+    }
+    Log(label);
+    Log(verdict);
+    Exit(1);
+}
+
+func Main() -> Void {
+    if !SemanticExpressionNormalizationContractReady() ||
+        SemanticStripOuterParens("(xs) /* gap */ + 2") != "(xs) /* gap */ + 2" ||
+        SemanticStripOuterParens("(\"/* ) */\")") != "\"/* ) */\"" {
+        Log("normalization-controls");
+        Exit(1);
+    }
+    RequireMutationVerdict("default-index", "func F(xs: Array<Int>) -> Void { xs[0] = 9; }", true);
+    RequireMutationVerdict("grouped-index", "func F(xs: Array<Int>) -> Void { (xs)[0] = 9; }", true);
+    RequireMutationVerdict("grouped-inout", "func F(inout xs: Array<Int>) -> Void { (xs)[0] = 9; }", false);
+    RequireMutationVerdict("grouped-target", "func F(xs: Array<Int>) -> Void { ((xs)[0]) = 9; }", true);
+    RequireMutationVerdict("grouped-comment", "func F(xs: Array<Int>) -> Void { (xs /* binding */)[0] = 9; }", true);
+    RequireMutationVerdict("comment-close", "func F(xs: Array<Int>) -> Void { (xs /* ) */)[0] = 9; }", true);
+    RequireMutationVerdict("comment-gap", "func F(xs: Array<Int>) -> Void { (xs) /* gap */ [0] = 9; }", true);
+    RequireMutationVerdict("comment-nested", "func F(xs: Array<Int>) -> Void { (/* gap */ (xs))[0] = 9; }", true);
+    RequireMutationVerdict("comment-gap-inout", "func F(inout xs: Array<Int>) -> Void { (xs) /* gap */ [0] = 9; }", false);
+    RequireMutationVerdict("whole-grouped-inout", "func F(inout xs: Array<Int>) -> Void { (xs[0]) = 9; }", false);
+    RequireMutationVerdict("default-builtin", "func F(xs: Array<Int>) -> Void { ArraySet(xs, 0, 9); }", true);
+    RequireMutationVerdict("nested-index", "func F(xs: Array<Int>) -> Void { xs[(0)] = 9; }", true);
+    RequireMutationVerdict("read", "func F(xs: Array<Int>) -> Int { return xs[0]; }", false);
+    RequireMutationVerdict("comparison", "func F(xs: Array<Int>) -> Void { xs[0] == 9; }", false);
+    RequireMutationVerdict("comment-comparison", "func F(xs: Array<Int>) -> Void { xs[0] /* = */ == 9; }", false);
+    RequireMutationVerdict("not-equal", "func F(xs: Array<Int>) -> Void { xs[0] != 9; }", false);
+    RequireMutationVerdict("less-equal", "func F(xs: Array<Int>) -> Void { xs[0] <= 9; }", false);
+    RequireMutationVerdict("greater-equal", "func F(xs: Array<Int>) -> Void { xs[0] >= 9; }", false);
+    RequireMutationVerdict("line-comment", "func F(xs: Array<Int>) -> Void { xs[0] // = ; ]\n == 9; }", false);
+    RequireMutationVerdict("inout-index", "func F(inout xs: Array<Int>) -> Void { xs[0] = 9; }", false);
+    RequireMutationVerdict("local-index", "func F() -> Void { let xs: Array<Int> = [0]; xs[0] = 9; }", false);
+    RequireMutationVerdict("shadow-local", "func F(xs: Array<Int>) -> Void { if true { let xs: Array<Int> = [0]; xs[0] = 9; } }", false);
+    RequireMutationVerdict("after-shadow", "func F(xs: Array<Int>) -> Void { if true { let xs: Array<Int> = [0]; xs[0] = 9; } xs[0] = 9; }", true);
+    Log("semantic index mutation owner: ok");
+}

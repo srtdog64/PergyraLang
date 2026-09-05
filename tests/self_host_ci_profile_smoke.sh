@@ -36,6 +36,20 @@ for file in \
     fi
 done
 
+# The platform contract runs Git-based change-scope tests inside MSYS2.
+# actions/checkout's host Git is not an MSYS2 package dependency.
+if ! awk '
+    { sub(/\r$/, "") }
+    /^  [^ ]/ { in_job = ($0 == "  platform-full-windows:"); in_install = 0 }
+    in_job && /^          install: >-/ { in_install = 1; next }
+    in_install && /^            git[[:space:]]*$/ { found = 1 }
+    in_install && !/^            / { in_install = 0 }
+    END { exit found ? 0 : 1 }
+' "$PLATFORM_WORKFLOW"; then
+    echo "[self-host-ci-profile] Windows platform contract must declare MSYS2 git" >&2
+    exit 1
+fi
+
 for required in \
     'base-unavailable' \
     'empty-diff' \

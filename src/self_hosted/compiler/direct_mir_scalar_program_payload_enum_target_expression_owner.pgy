@@ -1,5 +1,5 @@
 // Target expressions for tagged payload-enum construction, member projection,
-// and one-payload match binding. Declaration ordinals and payload types are
+// and declaration-arity match bindings. Declaration ordinals and payload types are
 // consumed only from the referenced-enum fact.
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
@@ -106,11 +106,20 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
             return DirectMirScalarProgramLlvmPayloadEnumExpression(
                 true, false, "", "");
         }
+        if ArrayLength(arguments) == 0 {
+            instructions = Concat("  ", Concat(result, " = insertvalue "));
+            instructions = Concat(instructions, enum_type);
+            instructions = Concat(instructions, " zeroinitializer, i32 ");
+            instructions = Concat(instructions, ToString(ordinal));
+            instructions = Concat(instructions, ", 0\n");
+            return DirectMirScalarProgramLlvmPayloadEnumExpression(
+                true, true, instructions, result);
+        }
         let tagged: String = Concat(result, ".tagged");
         instructions = Concat(instructions, Concat("  ", tagged));
         instructions = Concat(instructions, " = insertvalue ");
         instructions = Concat(instructions, enum_type);
-        instructions = Concat(instructions, " undef, i32 ");
+        instructions = Concat(instructions, " zeroinitializer, i32 ");
         instructions = Concat(instructions, ToString(ordinal));
         instructions = Concat(instructions, ", 0\n");
         let payload_value: String = "undef";
@@ -156,58 +165,65 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
         return DirectMirScalarProgramLlvmPayloadEnumExpression(
             true, true, instructions, result);
     }
-    if referenced_enum.variant_param_counts[variant] != 1 ||
-        expressions.node_local_rows[node] < 0 {
-        return DirectMirScalarProgramLlvmPayloadEnumExpression(
-            true, false, "", "");
-    }
-    let field_type_name: String = referenced_enum.variant_param_types[
-        referenced_enum.variant_param_type_starts[variant]];
-    let field_type: String =
-        DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
-            field_type_name, nominal, logical_record, payload_free_enum,
-            referenced_enum);
-    if field_type == "" {
+    let arity: Int = referenced_enum.variant_param_counts[variant];
+    if (arity == 0 && expressions.node_local_rows[node] != -1) ||
+        (arity > 0 && expressions.node_local_rows[node] < 0) {
         return DirectMirScalarProgramLlvmPayloadEnumExpression(
             true, false, "", "");
     }
     let tag: String = Concat(result, ".tag");
-    let payload: String = Concat(result, ".payload");
-    let binding: String = Concat(result, ".binding");
     instructions = Concat(instructions, Concat("  ", tag));
     instructions = Concat(instructions, " = extractvalue ");
     instructions = Concat(instructions, enum_type);
     instructions = Concat(instructions, " ");
     instructions = Concat(instructions, left);
     instructions = Concat(instructions, ", 0\n");
-    instructions = Concat(instructions, Concat("  ", payload));
-    instructions = Concat(instructions, " = extractvalue ");
-    instructions = Concat(instructions, enum_type);
-    instructions = Concat(instructions, " ");
-    instructions = Concat(instructions, left);
-    instructions = Concat(instructions, ", ");
-    instructions = Concat(instructions, ToString(ordinal + 1));
-    instructions = Concat(instructions, "\n");
-    instructions = Concat(instructions, Concat("  ", binding));
-    instructions = Concat(instructions, " = extractvalue ");
-    instructions = Concat(instructions, payload_type);
-    instructions = Concat(instructions, " ");
-    instructions = Concat(instructions, payload);
-    instructions = Concat(instructions, ", 0\n");
-    instructions = Concat(instructions, "  store ");
-    instructions = Concat(instructions, field_type);
-    instructions = Concat(instructions, " ");
-    instructions = Concat(instructions, binding);
-    instructions = Concat(instructions, ", ptr %pgy.local.");
-    instructions = Concat(instructions, ToString(
-        expressions.node_local_rows[node]));
-    instructions = Concat(instructions, ", align 1\n");
     instructions = Concat(instructions, Concat("  ", result));
     instructions = Concat(instructions, " = icmp eq i32 ");
     instructions = Concat(instructions, tag);
     instructions = Concat(instructions, ", ");
     instructions = Concat(instructions, ToString(ordinal));
     instructions = Concat(instructions, "\n");
+    if arity > 0 {
+        // Do not extract an inactive variant. The false arm selects a fully
+        // initialized aggregate; match locals are visible only on the true edge.
+        let selected: String = Concat(result, ".selected");
+        instructions = Concat(instructions, Concat("  ", selected));
+        instructions = Concat(instructions, " = select i1 ");
+        instructions = Concat(instructions, result);
+        instructions = Concat(instructions, Concat(", ", enum_type));
+        instructions = Concat(instructions, Concat(" ", left));
+        instructions = Concat(instructions, Concat(", ", enum_type));
+        instructions = Concat(instructions, " zeroinitializer\n");
+        let payload: String = Concat(result, ".payload");
+        instructions = Concat(instructions, Concat("  ", payload));
+        instructions = Concat(instructions, Concat(" = extractvalue ", enum_type));
+        instructions = Concat(instructions, Concat(" ", selected));
+        instructions = Concat(instructions, Concat(", ", ToString(ordinal + 1)));
+        instructions = Concat(instructions, "\n");
+        let parameter: Int = 0;
+        while parameter < arity {
+            let field_type: String = DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+                referenced_enum.variant_param_types[
+                    referenced_enum.variant_param_type_starts[variant] + parameter],
+                nominal, logical_record, payload_free_enum, referenced_enum);
+            if field_type == "" {
+                return DirectMirScalarProgramLlvmPayloadEnumExpression(
+                    true, false, "", "");
+            }
+            let binding: String = Concat(result, Concat(".binding.", ToString(parameter)));
+            instructions = Concat(instructions, Concat("  ", binding));
+            instructions = Concat(instructions, Concat(" = extractvalue ", payload_type));
+            instructions = Concat(instructions, Concat(" ", payload));
+            instructions = Concat(instructions, Concat(", ", ToString(parameter)));
+            instructions = Concat(instructions, Concat("\n  store ", field_type));
+            instructions = Concat(instructions, Concat(" ", binding));
+            instructions = Concat(instructions, ", ptr %pgy.local.");
+            instructions = Concat(instructions, ToString(expressions.node_local_rows[node] + parameter));
+            instructions = Concat(instructions, ", align 1\n");
+            parameter = parameter + 1;
+        }
+    }
     return DirectMirScalarProgramLlvmPayloadEnumExpression(
         true, true, instructions, result);
 }
@@ -274,6 +290,9 @@ func DirectMirScalarProgramCPayloadEnumExpressionAt(
             DirectMirScalarProgramCPayloadEnumTagTypeNameAt(enum_row));
         value = Concat(value, ") ");
         value = Concat(value, ToString(ordinal));
+        if ArrayLength(arguments) == 0 {
+            return Some(Concat(value, " })"));
+        }
         value = Concat(value, ", .");
         value = Concat(value, field);
         value = Concat(value, " = { ");
@@ -288,8 +307,9 @@ func DirectMirScalarProgramCPayloadEnumExpressionAt(
         }
         return Some(Concat(value, " } })"));
     }
-    if referenced_enum.variant_param_counts[variant] != 1 ||
-        expressions.node_local_rows[node] < 0 { return Some(""); }
+    let arity: Int = referenced_enum.variant_param_counts[variant];
+    if (arity == 0 && expressions.node_local_rows[node] != -1) ||
+        (arity > 0 && expressions.node_local_rows[node] < 0) { return Some(""); }
     let tag_test: String = "(";
     tag_test = Concat(tag_test, left);
     tag_test = Concat(tag_test, ".tag == (");
@@ -298,15 +318,22 @@ func DirectMirScalarProgramCPayloadEnumExpressionAt(
     tag_test = Concat(tag_test, ") ");
     tag_test = Concat(tag_test, ToString(ordinal));
     tag_test = Concat(tag_test, ")");
-    let binding: String = Concat("pgy_local_", ToString(
-        expressions.node_local_rows[node]));
+    if arity == 0 { return Some(tag_test); }
     let value: String = Concat("(", tag_test);
     value = Concat(value, " ? (");
-    value = Concat(value, binding);
-    value = Concat(value, " = ");
-    value = Concat(value, left);
-    value = Concat(value, ".");
-    value = Concat(value, field);
-    value = Concat(value, "._0, true) : false)");
+    let parameter: Int = 0;
+    while parameter < arity {
+        value = Concat(value, "pgy_local_");
+        value = Concat(value, ToString(expressions.node_local_rows[node] + parameter));
+        value = Concat(value, " = ");
+        value = Concat(value, left);
+        value = Concat(value, ".");
+        value = Concat(value, field);
+        value = Concat(value, "._");
+        value = Concat(value, ToString(parameter));
+        value = Concat(value, ", ");
+        parameter = parameter + 1;
+    }
+    value = Concat(value, "true) : false)");
     return Some(value);
 }

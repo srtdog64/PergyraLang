@@ -9,6 +9,11 @@
 /bin-*/
 .tmp/
 
+# Transient compiler workspaces use pgy-<nonce> under the selected output root.
+# Ignore only generated C/MIR, not source or fixtures sharing that prefix.
+/pgy-*/*.c
+/pgy-*/*.mir.json
+
 # Ad-hoc debug dumps emitted by --emit-c / --emit-mir / --emit-hir
 # directly into the repo root (these are large per-example artifacts,
 # not source). Keep them out of the index so debug sessions don't dirty

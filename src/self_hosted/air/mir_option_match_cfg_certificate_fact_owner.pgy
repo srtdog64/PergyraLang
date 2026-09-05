@@ -182,8 +182,8 @@ func DirectMirOptionMatchCfgCertificateFactFromOwners(
     );
     if !some.valid || some.variant != "Some" || some.pattern_count != 1 ||
         some.pattern != expected_pattern || some.binding_count != 1 ||
-        some.binding != binding_name || some.binding_type_count != 1 ||
-        some.binding_type != index.source_local_types[1] || !none.valid ||
+        some.bindings[0] != binding_name || some.binding_type_count != 1 ||
+        some.binding_types[0] != index.source_local_types[1] || !none.valid ||
         none.variant != "None" || none.pattern_count != 1 ||
         none.pattern != "None" ||
         none.binding_count != 0 || none.binding_type_count != 0 {

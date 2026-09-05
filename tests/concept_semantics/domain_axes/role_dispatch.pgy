@@ -1,0 +1,31 @@
+subject Fighter {
+    let power: Int;
+}
+
+ability Combatable {
+    func Score(self) -> Int;
+}
+
+role Warrior for Fighter {
+    impl ability Combatable {
+        func Score(self) -> Int { return 10; }
+    }
+}
+
+role Berserker for Fighter {
+    impl ability Combatable {
+        func Score(self) -> Int { return 77; }
+    }
+}
+
+party Team {
+    dyn role slot fighter: Combatable
+}
+
+func Main() -> Void {
+    let team = Team();
+    bind team.fighter = Warrior;
+    Log(team.fighter.Score());
+    bind team.fighter = Berserker;
+    Log(team.fighter.Score());
+}

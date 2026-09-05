@@ -1,0 +1,14 @@
+subject Counter {
+    let mut count: Int;
+
+    func Advance(self) -> Int {
+        self.count = self.count + 1;
+        return self.count;
+    }
+}
+
+func Main() -> Void {
+    let counter = Counter(1);
+    Log(counter.Advance());
+    Log(counter.count);
+}

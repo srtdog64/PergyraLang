@@ -13,6 +13,8 @@ struct SemanticTopLevelOperatorFacts {
     additive_index: Int;
     multiplicative_index: Int;
     arithmetic_marker_index: Int;
+    assignment_index: Int;
+    index_open_index: Int;
 }
 
 func SemanticTopLevelOperatorFactsFromExpression(
@@ -48,6 +50,8 @@ func SemanticTopLevelOperatorFactsFromExpression(
     let additive_index: Int = -1;
     let multiplicative_index: Int = -1;
     let arithmetic_marker_index: Int = -1;
+    let assignment_index: Int = -1;
+    let index_open_index: Int = -1;
     while i < n {
         let c: Int = SourceByteAt(expression, n, i);
         if c == quote {
@@ -61,7 +65,18 @@ func SemanticTopLevelOperatorFactsFromExpression(
             i = i + 1;
             continue;
         }
+        if c == slash && SourceByteAt(expression, n, i + 1) == slash {
+            i = SkipLineComment(expression, i, n);
+            continue;
+        }
+        if c == slash && SourceByteAt(expression, n, i + 1) == star {
+            i = SkipBlockComment(expression, i, n);
+            continue;
+        }
         if c == open_paren || c == open_bracket {
+            if depth == 0 && c == open_bracket && index_open_index < 0 {
+                index_open_index = i;
+            }
             depth = depth + 1;
             i = i + 1;
             continue;
@@ -104,6 +119,9 @@ func SemanticTopLevelOperatorFactsFromExpression(
             }
             i = i + 2;
             continue;
+        }
+        if c == equal && c2 != equal && assignment_index < 0 {
+            assignment_index = i;
         }
         if c == less || c == greater {
             if comparison_index < 0 {
@@ -150,6 +168,7 @@ func SemanticTopLevelOperatorFactsFromExpression(
     return SemanticTopLevelOperatorFacts(
         logical_index, logical_or_index, logical_and_index,
         comparison_index, comparison_length, equality_index, equality_is_not,
-        additive_index, multiplicative_index, arithmetic_marker_index
+        additive_index, multiplicative_index, arithmetic_marker_index,
+        assignment_index, index_open_index
     );
 }

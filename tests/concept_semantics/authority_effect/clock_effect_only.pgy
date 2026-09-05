@@ -1,0 +1,8 @@
+// Source substitution: keep the effect family, remove the operation grant.
+func Stamp() -> Int with effects nondeterministic {
+    return Now();
+}
+
+func Main() -> Void {
+    let stamp: Int = Stamp();
+}

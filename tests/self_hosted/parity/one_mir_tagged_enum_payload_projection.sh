@@ -182,4 +182,5 @@ for backend in c llvm; do
     [[ ! -e "$output" ]] || fail "$backend published stale-ssa-use artifact"
 done
 
-echo "[$LABEL] unchanged MIR general/C/LLVM 10+4+5+7 and nine artifact-free negatives: PASS"
+bash "$ROOT_DIR/tests/self_hosted/parity/mixed_arity_enum_match_owner.sh"
+echo "[$LABEL] unchanged MIR general/C/LLVM payload projections, mixed-arity matches and artifact-free negatives: PASS"

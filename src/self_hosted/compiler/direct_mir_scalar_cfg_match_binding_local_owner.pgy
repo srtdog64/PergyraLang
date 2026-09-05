@@ -20,49 +20,42 @@ func DirectMirScalarCfgAppendMatchBindingLocals(
             ArrayLength(index.instruction_facts.ends) {
         return false;
     }
-    let instruction: Int = 0;
-    while instruction < ArrayLength(index.instruction_facts.starts) {
-        let global: Int = index.instruction_facts.global_start + instruction;
+    if index.declared_source_local_count < 0 ||
+        index.declared_source_local_count > ArrayLength(index.source_local_names) ||
+        ArrayLength(index.source_local_names) != ArrayLength(index.source_local_types) ||
+        ArrayLength(index.source_local_names) !=
+            ArrayLength(index.match_binding_origins.instruction_global_rows) ||
+        ArrayLength(index.source_local_names) !=
+            ArrayLength(index.match_binding_origins.binding_ordinals) { return false; }
+    let row: Int = index.declared_source_local_count;
+    while row < ArrayLength(index.source_local_names) {
+        let global: Int = index.match_binding_origins.instruction_global_rows[row];
         if global < 0 || global >= ArrayLength(
-                admitted.routines.instruction_source_types) {
+                admitted.routines.instruction_source_types) ||
+            admitted.routines.instruction_source_types[global] !=
+                "AST_MATCH_CASE" || index.match_binding_origins.binding_ordinals[row] < 0 ||
+            MirMatchBindingSourceRowAtOrigin(
+                index.match_binding_origins,
+                global, index.match_binding_origins.binding_ordinals[row]) != row {
             return false;
         }
-        if admitted.routines.instruction_source_types[global] ==
-                "AST_MATCH_CASE" {
-            let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-                admitted.routines.source_json,
-                index.instruction_facts.starts[instruction],
-                index.instruction_facts.ends[instruction]);
-            let capture: MirMatchInstructionCapture =
-                MirMatchInstructionCaptureFromTable(table);
-            if !JsonObjectFactTableReady(table) || !capture.valid ||
-                capture.binding_count != capture.binding_type_count {
-                return false;
-            }
-            if capture.binding_count == 1 {
-                if capture.binding == "" || capture.binding_type == "" ||
-                    (!DirectMirScalarCfgScalarTypeSupported(
-                        capture.binding_type) &&
-                     !DirectMirScalarProgramLogicalRecordTypeReady(
-                        logical_record, capture.binding_type)) {
-                    return false;
-                }
-                let identity: String = SelfMirLocalRef(
-                    "destructure", ToInt(index.source_syntax_id),
-                    global);
-                if identity == "" || DirectMirScalarCfgLocalIdentityRow(
-                        local_ref_value_ids, identity) >= 0 {
-                    return false;
-                }
-                ArrayPush(local_names, capture.binding);
-                ArrayPush(local_ref_kinds,
-                    DirectMirScalarCfgLocalRefMatchBinding());
-                ArrayPush(local_ref_value_ids, identity);
-                ArrayPush(local_ref_syntax_ids,
-                    global);
-            }
+        let name: String = index.source_local_names[row];
+        let type_name: String = index.source_local_types[row];
+        if name == "" || type_name == "" ||
+            (!DirectMirScalarCfgScalarTypeSupported(type_name) &&
+             !DirectMirScalarProgramLogicalRecordTypeReady(
+                logical_record, type_name)) { return false; }
+        let identity: String = SelfMirLocalRef(
+            "destructure", ToInt(index.source_syntax_id), row);
+        if identity == "" || DirectMirScalarCfgLocalIdentityRow(
+                local_ref_value_ids, identity) >= 0 {
+            return false;
         }
-        instruction = instruction + 1;
+        ArrayPush(local_names, name);
+        ArrayPush(local_ref_kinds, DirectMirScalarCfgLocalRefMatchBinding());
+        ArrayPush(local_ref_value_ids, identity);
+        ArrayPush(local_ref_syntax_ids, row);
+        row = row + 1;
     }
     return true;
 }

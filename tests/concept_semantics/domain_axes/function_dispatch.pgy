@@ -1,0 +1,9 @@
+// Closed-program rewrite only: each call site names its implementation.
+// This does not encode an open ability contract or a rebindable role slot.
+func WarriorScore() -> Int { return 10; }
+func BerserkerScore() -> Int { return 77; }
+
+func Main() -> Void {
+    Log(WarriorScore());
+    Log(BerserkerScore());
+}

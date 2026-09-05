@@ -775,7 +775,7 @@ fi
 check_json "air-io-evidence" "$AIR_IO_ERR" \
   'isinstance(data, list) and len(data) == 0'
 
-# --- case 2d: intent control-transfer explicit reject keeps source span ---
+# --- case 2d: independent Intent and spawn-owner rejects keep the same span ---
 INTENT_CONTROL_SRC="$WORK_DIR/intent_control_transfer_reject.pgy"
 cat > "$INTENT_CONTROL_SRC" <<'EOF'
 subject Worker { let hp: Int; }
@@ -803,9 +803,11 @@ if pgy_run "$INTENT_CONTROL_SRC" --backend=c --error-format=json 2>"$INTENT_CONT
     exit 1
 fi
 check_json "intent-control-transfer" "$INTENT_CONTROL_ERR" \
-  'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "semantic" and data[0].get("code") == "PGY_SEM_INTENT_STEP_INVALID" and data[0].get("location", {}).get("line", 0) > 0 and data[0].get("location", {}).get("column", 0) > 0'
+  'isinstance(data, list) and len(data) == 2 and {d.get("code") for d in data} == {"PGY_SEM_INTENT_STEP_INVALID", "PGY_SEM_TASK_LIFECYCLE"} and all(d.get("stage") == "semantic" and d.get("severity") == "error" and d.get("location") == {"line": 11, "column": 13} for d in data)'
 check_json "intent-control-transfer-hints" "$INTENT_CONTROL_ERR" \
-  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent_step" and data[0].get("fix_source") == "align-step-with-zone-action-contracts" and "cannot contain" in data[0].get("message", "") and "spawn" in data[0].get("message", "")'
+  'any(d.get("code") == "PGY_SEM_INTENT_STEP_INVALID" and d.get("layer") == "domain" and d.get("cause_ir") == "semantic:intent_step" and d.get("fix_source") == "align-step-with-zone-action-contracts" and "cannot contain" in d.get("message", "") and "spawn" in d.get("message", "") for d in data)'
+check_json "intent-control-transfer-spawn-owner" "$INTENT_CONTROL_ERR" \
+  'any(d.get("code") == "PGY_SEM_TASK_LIFECYCLE" and d.get("layer") == "type" and d.get("cause_ir") == "semantic:task:lifecycle" and d.get("fix_source") == "await-task-before-exit" and "completion handle that has no owner" in d.get("message", "") for d in data)'
 
 # --- case 2e: intent channel control-transfer explicit reject keeps source span ---
 INTENT_CHANNEL_SRC="$WORK_DIR/intent_channel_transfer_reject.pgy"

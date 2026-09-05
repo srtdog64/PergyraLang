@@ -5,8 +5,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 POSITIONING_DOC="$ROOT_DIR/docs/114_async_model_positioning.md"
 GUIDE_DOC="$ROOT_DIR/docs/05_async_concurrency.md"
 CONTRACT_DOC="$ROOT_DIR/docs/113_memory_concurrency_model.md"
+EXAMPLES_DOC="$ROOT_DIR/docs/concurrency/advanced_examples.md"
 
-for path in "$POSITIONING_DOC" "$GUIDE_DOC" "$CONTRACT_DOC"; do
+for path in "$POSITIONING_DOC" "$GUIDE_DOC" "$CONTRACT_DOC" "$EXAMPLES_DOC"; do
     if [[ ! -f "$path" ]]; then
         echo "[async-positioning] missing doc: $path" >&2
         exit 1
@@ -59,4 +60,26 @@ if ! grep -Fq "docs/114_async_model_positioning.md" "$CONTRACT_DOC"; then
     exit 1
 fi
 
-echo "[async-positioning] coloring decomposition docs ok"
+for dimension in Eagerness Suspension Extent "Reference Strength" \
+    Destruction Propagation Awareness Direction Persistence; do
+    if ! grep -Fq "| $dimension |" "$EXAMPLES_DOC"; then
+        echo "[async-positioning] lifecycle matrix missing: $dimension" >&2
+        exit 1
+    fi
+done
+
+for required in \
+    "Native fixture" \
+    "Model only / OPEN" \
+    "First result is not first success" \
+    "Cancel is not join" \
+    "Generation is not request revision" \
+    "fixed index-order left fold" \
+    "tests/concurrency_examples_smoke.sh"; do
+    if ! grep -Fq "$required" "$EXAMPLES_DOC"; then
+        echo "[async-positioning] example evidence boundary missing: $required" >&2
+        exit 1
+    fi
+done
+
+echo "[async-positioning] coloring decomposition and lifecycle/example boundaries ok"

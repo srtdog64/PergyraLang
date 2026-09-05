@@ -40,12 +40,14 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
         return None;
     }
     let appended: DirectMirScalarProgramExpressionSet = admission.facts;
-    let match_capture: MirMatchInstructionCapture =
-        MirMatchInstructionCaptureFromTable(instruction);
     if JsonObjectFactStringFieldEquals(
-            instruction, "source_type", "AST_MATCH_CASE") &&
-        match_capture.valid && match_capture.variant != "" {
+            instruction, "source_type", "AST_MATCH_CASE") {
         let value_node: Int = admission.facts.graph_roots[expression_row];
+        let enum_row: Int = -1;
+        if value_node >= 0 && value_node < ArrayLength(admission.facts.node_types) {
+            enum_row = DirectMirScalarProgramReferencedEnumRow(
+                referenced_enum, admission.facts.node_types[value_node]);
+        }
         if value_node >= 0 && value_node <
                 ArrayLength(admission.facts.node_types) &&
             admission.facts.node_types[value_node] ==
@@ -53,12 +55,16 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
             appended =
                 DirectMirScalarProgramOptionIntMatchConditionFromInstruction(
                     admission.facts, instruction, expression_row, global_row,
-                    local_offset, signature, locals, option_int_abi);
-        } else {
+                    local_offset, signature, index, locals, option_int_abi);
+        } else if enum_row >= 0 && referenced_enum.payload_flags[enum_row] == 1 {
             appended =
                 DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
                     admission.facts, instruction, expression_row, global_row,
-                    local_offset, signature, locals, referenced_enum);
+                    local_offset, signature, index, locals, referenced_enum);
+        } else {
+            appended =
+                DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction(
+                    admission.facts, instruction, expression_row, payload_free_enum);
         }
     } else {
         appended =

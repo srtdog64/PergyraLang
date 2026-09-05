@@ -1,0 +1,31 @@
+// One action can still carry a purpose-bound exact terminal payload.
+tobject AuditReceipt { value: Int; }
+tobject AuditProblem { code: Int; }
+enum AuditActionOutcome {
+    AuditAccepted(AuditReceipt),
+    AuditDeclined(AuditProblem),
+}
+enum AuditPurposeOutcome {
+    AuditDelivered(AuditReceipt),
+    AuditRejected(AuditProblem),
+}
+
+subject AuditWorker {
+    let mut calls: Int;
+
+    action Read(self, succeed: Bool) -> AuditActionOutcome {
+        self.calls = self.calls + 1;
+        if succeed { return AuditAccepted(AuditReceipt(7)); }
+        return AuditDeclined(AuditProblem(9));
+    }
+}
+
+zone AuditZone { subject slot worker: AuditWorker }
+
+func Observe(outcome: AuditPurposeOutcome, worker: AuditWorker) -> Void {
+    match outcome {
+        case AuditDelivered(receipt): Log("delivered=" + ToString(receipt.value));
+        case AuditRejected(problem): Log("rejected=" + ToString(problem.code));
+    }
+    Log("calls=" + ToString(worker.calls));
+}

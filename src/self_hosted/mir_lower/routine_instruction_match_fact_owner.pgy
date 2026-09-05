@@ -1,6 +1,6 @@
 // Routine-local typed match facts captured once from admitted instruction spans.
-// Scalar columns keep the index inside the current self-host ABI subset while
-// AIR/certificate owners consume reconstructed typed rows, never raw MIR JSON.
+// Binding spans preserve declaration order without narrowing a case to its
+// first payload. AIR/certificate owners consume typed rows, never raw MIR JSON.
 
 import "match_json_fact_owner.pgy";
 import "program_routine_index_owner.pgy";
@@ -13,6 +13,7 @@ struct MirRoutineInstructionMatchFacts {
     let patterns: Array<String>;
     let variants: Array<String>;
     let binding_counts: Array<Int>;
+    let binding_starts: Array<Int>;
     let bindings: Array<String>;
     let binding_type_counts: Array<Int>;
     let binding_types: Array<String>;
@@ -27,6 +28,7 @@ func BuildMirRoutineInstructionMatchFacts(
     let patterns: Array<String> = [];
     let variants: Array<String> = [];
     let binding_counts: Array<Int> = [];
+    let binding_starts: Array<Int> = [];
     let bindings: Array<String> = [];
     let binding_type_counts: Array<Int> = [];
     let binding_types: Array<String> = [];
@@ -79,16 +81,21 @@ func BuildMirRoutineInstructionMatchFacts(
             ArrayPush(patterns, capture.pattern);
             ArrayPush(variants, capture.variant);
             ArrayPush(binding_counts, capture.binding_count);
-            ArrayPush(bindings, capture.binding);
+            ArrayPush(binding_starts, ArrayLength(bindings));
             ArrayPush(binding_type_counts, capture.binding_type_count);
-            ArrayPush(binding_types, capture.binding_type);
+            let binding: Int = 0;
+            while capture.valid && binding < capture.binding_count {
+                ArrayPush(bindings, capture.bindings[binding]);
+                ArrayPush(binding_types, capture.binding_types[binding]);
+                binding = binding + 1;
+            }
             instruction_offset = instruction_offset + 1;
         }
         block_offset = block_offset + 1;
     }
     return MirRoutineInstructionMatchFacts(
         valid, global_start, row_valid, pattern_counts, patterns, variants,
-        binding_counts, bindings, binding_type_counts, binding_types
+        binding_counts, binding_starts, bindings, binding_type_counts, binding_types
     );
 }
 
@@ -97,16 +104,30 @@ func MirRoutineInstructionMatchFactsReady(
     expected_instruction_count: Int
 ) -> Bool {
     let count: Int = ArrayLength(facts.row_valid);
-    return facts.valid && expected_instruction_count >= 0 &&
+    if !(facts.valid && expected_instruction_count >= 0 &&
         expected_instruction_count == count &&
         count == ArrayLength(facts.pattern_counts) &&
         count == ArrayLength(facts.patterns) &&
         count == ArrayLength(facts.variants) &&
         count == ArrayLength(facts.binding_counts) &&
-        count == ArrayLength(facts.bindings) &&
+        count == ArrayLength(facts.binding_starts) &&
         count == ArrayLength(facts.binding_type_counts) &&
-        count == ArrayLength(facts.binding_types) &&
-        (count == 0 || facts.global_start >= 0);
+        ArrayLength(facts.bindings) == ArrayLength(facts.binding_types) &&
+        (count == 0 || facts.global_start >= 0)) { return false; }
+    let expected_start: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        if !facts.row_valid[row] || facts.binding_counts[row] < 0 ||
+            facts.binding_starts[row] != expected_start ||
+            facts.binding_counts[row] != facts.binding_type_counts[row] ||
+            facts.binding_counts[row] >
+                ArrayLength(facts.bindings) - expected_start {
+            return false;
+        }
+        expected_start = expected_start + facts.binding_counts[row];
+        row = row + 1;
+    }
+    return expected_start == ArrayLength(facts.bindings);
 }
 
 func MirRoutineInstructionMatchAtGlobal(
@@ -114,14 +135,33 @@ func MirRoutineInstructionMatchAtGlobal(
     global_row: Int
 ) -> MirMatchInstructionCapture {
     let row: Int = global_row - facts.global_start;
+    let bindings: Array<String> = [];
+    let binding_types: Array<String> = [];
     if !facts.valid || facts.global_start < 0 || row < 0 ||
-        row >= ArrayLength(facts.row_valid) {
-        return MirMatchInstructionCapture(false, 0, "", "", 0, "", 0, "");
+        row >= ArrayLength(facts.row_valid) ||
+        row >= ArrayLength(facts.binding_starts) ||
+        row >= ArrayLength(facts.binding_counts) ||
+        row >= ArrayLength(facts.binding_type_counts) {
+        return MirMatchInstructionCapture(
+            false, 0, "", "", 0, bindings, 0, binding_types);
+    }
+    let start: Int = facts.binding_starts[row];
+    let count: Int = facts.binding_counts[row];
+    if start < 0 || count < 0 || count != facts.binding_type_counts[row] ||
+        start > ArrayLength(facts.bindings) - count ||
+        start > ArrayLength(facts.binding_types) - count {
+        return MirMatchInstructionCapture(
+            false, 0, "", "", 0, bindings, 0, binding_types);
+    }
+    let binding: Int = 0;
+    while binding < count {
+        ArrayPush(bindings, facts.bindings[start + binding]);
+        ArrayPush(binding_types, facts.binding_types[start + binding]);
+        binding = binding + 1;
     }
     return MirMatchInstructionCapture(
         facts.row_valid[row], facts.pattern_counts[row],
         facts.patterns[row], facts.variants[row],
-        facts.binding_counts[row], facts.bindings[row],
-        facts.binding_type_counts[row], facts.binding_types[row]
+        count, bindings, count, binding_types
     );
 }

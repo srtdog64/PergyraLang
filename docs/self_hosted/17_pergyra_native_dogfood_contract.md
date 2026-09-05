@@ -2,6 +2,90 @@
 
 Status: `BRIDGE`
 
+## 2026-09-05 mixed-arity tagged-enum callable integration
+
+The existing public source C/LLVM and direct-MIR routes now execute
+`enum_match_payload_basic` through the Pergyra implementation, including the
+zero-payload variant inside a payload-bearing enum. Variant identity, payload
+arity/types and binding origins come from the existing referenced-enum and
+MIR local-fact owners. One GraphPlan carries ordered, true-arm-scoped bindings
+to both backends; the old payload-free-only final callable validator is gone.
+No native driver-source compilation, backend-local enum inventory, name-only
+scope recovery or native retry was introduced.
+
+Current installed fixed-point driver `7928ED6B` preserves the input's exact `75/12/0`.
+The focused gate executes ten general/public/direct C/LLVM legs and rejects
+eleven mutations across three consumers (33 refusals with owned diagnostics,
+exit 1 and no artifact). Same-name binders in different arms, mixed payload
+types, zero/one/multiple arities and out-of-arm reads are included. Adjacent
+logical-record/Option matching and source active-variant 5/21 gates also pass.
+
+The earlier `D0BD8E17` checkpoint established full Pergyra/native-oracle source
+MIR equality and byte-identical gen2/gen3 C with a validated fixed-point receipt.
+That original bootstrap handle disappeared after gen2 build/preflight with no
+observed terminal code. A bounded continuation verified unchanged source,
+runtime and artifact hashes, then completed gen3 from the same MIR. The
+existing installer adopted that receipt-bound binary and machine manifest.
+This is verified resumed fixed-point evidence, not an uninterrupted-run claim.
+
+The complete compiler-world gate passes. The complete component inventory also
+passes: exit 0 in 161.278 seconds, 2,331 cap requests, 970 function extractions
+and 674 adjacent reuses. Its functional verdict is separate from the still
+unmet 60-second local latency target. Checker batching preserves required
+inputs, exact scoped selections and negative predicates; reviewed physical
+caps retain the existing enum owners. No compiler source/binary changed in
+that integration repair. Exact dirty-tree CI/publication is pending. Earlier
+published `f34355b3` had regular CI green but Platform full red;
+the then-installed driver reproduced the role receiver-shape refusal.
+An isolated Pergyra-seed candidate `5F317A7C` passed native/self receiver
+canonicalization, exact `123`, typed/late receiver refusals and the enum 10/33
+regression. It remains an isolated checkpoint. Subsequent CI-consumer repairs transport the
+existing semantic fixture frontier and route indexed writes through the existing
+mutation and grouping owners. Agent-discovered grouped/commented targets and a
+missing canonical inline-header test input were reproduced and repaired. The
+first full semantic parity passed 115 C/LLVM verdicts. Final-source C 115 passed
+before the five-minute invocation timed out after LLVM build; a bounded,
+artifact-pinned continuation passed LLVM 115 and both comment refusals in both
+binaries with an unchanged source graph. This is resumed verification, not an
+uninterrupted PASS. Complete structural inventory passes in 252.418 seconds;
+the 60-second latency target is still unmet. Historical performance figures are
+not remeasured performance for those deltas.
+
+Current source graph `4eb52dba...1a54534`, including receiver and semantic
+changes, was freshly built through the existing Pergyra-seed installer as
+`27082FE0`. Its receiver/enum gates pass. Current full-source MIR producer
+parity and the resumed MIR-consumer fixed point also pass: both MIR files are
+285,190,841 bytes (`9C254AF4...CA4A008`), and gen2/gen3 C are 11,831,156 bytes
+(`09C337AB...011EA2`). The first full invocation exited 2 when an additional
+normalized MIR copy exhausted disk space. The existing comparator accepted
+the completed original MIR files directly; an input-pinned continuation began
+at canonical `gen2_emit` and completed the existing receipt validation. No
+uninterrupted-run PASS or older-graph receipt reuse is claimed.
+
+The existing receipt-bound installer adopted release gen2 `7928ED6B`
+(6,711,675 bytes) into `bin/pgy-self-driver.exe` after isolated receiver/enum
+checks passed. The previous `D0BD8E17` binary and manifest are hash-verified
+backups under `.tmp/self_hosted/compiler/enum_receiver_fixed_point_20260905/`.
+Installed receiver, tagged-enum/mixed-arity 10/33, logical-record/Option match
+and source active-variant 5/21 gates pass; native `0F9F4F30` and the manifest
+are unchanged. The current receipt is
+`.tmp/self_hosted/driver/enum_receiver_integration_20260905/driver_gen2.fixed-point.receipt`.
+Exact dirty-tree publication/remote CI remains pending. D: has about 95 MiB
+free; no large producer/normalization rerun should start before that storage
+boundary is resolved. No broad cleanup or artifact relocation was performed.
+
+The later published `b4d22cf2` changes native await location stamping and the
+SEA golden, not the Pergyra source graph. Its regular CI `33949336474` is
+SUCCESS; no exact-commit Platform full result was returned. Isolated native
+`2E0468AA`, linked through the existing Makefile, passes SEA's 8 boundaries,
+full JSON diagnostics and receiver canonicalization against installed
+`7928ED6B`. The existing fixed-point receipt revalidates for that unchanged
+Pergyra graph. Shared native `0F9F4F30` remains installed; no source-MIR/bootstrap
+rerun or remote validation of the dirty implementation is inferred from these
+bounded native-oracle checks.
+This extends an already reached route,
+not a new whole-root replacement, SoT status promotion or percentage increment.
+
 ## 2026-08-28 bounded live LSP frame-length admission
 
 Implementation `b87c6b89` hardens the already-substituting live LSP boundary.

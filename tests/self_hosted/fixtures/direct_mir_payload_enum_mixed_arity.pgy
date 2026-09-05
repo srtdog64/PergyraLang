@@ -1,0 +1,36 @@
+enum Parcel {
+    Empty,
+    One(Int),
+    Pair(Int, Int),
+    Triple(Int, Int, Int),
+    Text(String),
+    Label(String, Int),
+}
+
+func ParcelScore(item: Parcel) -> Int {
+    match item {
+        case Empty: return 0;
+        case One(value): return value;
+        case Pair(value, tail): return value * 10 + tail;
+        case Triple(value, middle, tail): return value * 100 + middle * 10 + tail;
+        case Text(value): return StringLength(value);
+        case Label(value, tail): return StringLength(value) + tail;
+    }
+}
+
+func Main() -> Void {
+    let empty: Parcel = Empty;
+    let one: Parcel = One(7);
+    let pair: Parcel = Pair(2, 6);
+    let triple: Parcel = Triple(2, 4, 6);
+    let text: Parcel = Text("hello");
+    let labelled: Parcel = Label("hi", 8);
+    let qualified_empty: Parcel = Parcel.Empty;
+    Log(ParcelScore(empty));
+    Log(ParcelScore(one));
+    Log(ParcelScore(pair));
+    Log(ParcelScore(triple));
+    Log(ParcelScore(text));
+    Log(ParcelScore(labelled));
+    Log(ParcelScore(qualified_empty));
+}

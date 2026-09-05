@@ -88,8 +88,17 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
             );
         } else if locals.local_ref_kinds[local_binding] ==
                 DirectMirScalarCfgLocalRefMatchBinding() {
-            type_name = MirRoutineFactIndexSourceLocalType(
-                index, locals.local_names[local_binding]);
+            let source_row: Int = locals.local_ref_syntax_ids[local_binding];
+            if source_row < index.declared_source_local_count ||
+                source_row >= ArrayLength(index.source_local_types) ||
+                source_row >= ArrayLength(index.source_local_names) ||
+                source_row >= ArrayLength(index.match_binding_origins.instruction_global_rows) ||
+                index.match_binding_origins.instruction_global_rows[source_row] < 0 ||
+                locals.local_names[local_binding] !=
+                    index.source_local_names[source_row] {
+                return invalid;
+            }
+            type_name = index.source_local_types[source_row];
         }
         if !DirectMirScalarCfgSourceLocalTypeSupported(type_name) &&
             !CompilerRuntimeValueTypeReady(type_name) &&
@@ -105,7 +114,8 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
         }
         let parameter_type: String = DirectMirRoutineLocalParameterTypeAtName(
             parameters, locals.local_names[local_binding]);
-        if parameter_type != "" && parameter_type != type_name { return invalid; }
+        if locals.local_ref_kinds[local_binding] == DirectMirScalarCfgLocalRefValue() &&
+            parameter_type != "" && parameter_type != type_name { return invalid; }
         ArrayPush(local_types, type_name);
         local_binding = local_binding + 1;
     }

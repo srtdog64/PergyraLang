@@ -16,6 +16,25 @@
 > are compiler-derived by default and remain inspectable instead of becoming
 > routine source-level ceremony.
 
+> **Intent는 ‘프로그래머의 의도’를 주석처럼 표현하는 것이 아니라, 여러 compiler fact가 동일한 목적에서 발생했다는 귀속 관계를 보존하는 정적 identity다.**
+
+Intent is a static identity that preserves the attribution of compiler facts to
+one purpose, not a comment about programmer intention. It binds independently
+owned facts without replacing their owners or granting authority. Attribution
+is checked against declaration identity, not merely equal names or values.
+This is the [canonical design contract](docs/01_intent_first_design.md), not a
+claim that every self-host path already enforces it end to end; see the
+[bounded implementation audit](docs/audits/2026-09-05_intent_graph_semantic_audit.md).
+
+The **machine layer** applies the same separation at the physical boundary:
+`Region` is address evidence, not permission to perform a machine operation.
+Intent preserves purpose attribution; it does not grant access to an address.
+The current `DeviceSlot<T>` bridge checks explicit machine facts and a declared
+host-sim window. A runtime mapping provider is an admission boundary, not an
+MMIO implementation or proof of real hardware behavior. `Grant`/`Region` are
+not beta-stable user syntax. See the
+[machine-layer contract and implementation limits](docs/semantics/proofs/MachineLayerCore.md).
+
 <p align="center">
   <a href="docs/README_ko.md">Korean README</a> ·
   <a href="docs/01_intent_first_design.md">Intent-First Design</a> ·

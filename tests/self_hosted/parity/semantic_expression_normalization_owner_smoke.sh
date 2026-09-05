@@ -32,6 +32,13 @@ grep -Fq 'if start == 0 && end == source_length' "$OWNER" || {
     echo "[self-host-parity:semantic-normalization] source-string reuse guard is missing" >&2
     exit 1
 }
+for source_owner_call in 'SkipQuotedString(text, i,' 'SkipLineComment(text, i,' \
+    'SkipBlockComment(text, i,' 'SkipWhitespaceAndComments(text, close + 1)'; do
+    grep -Fq "$source_owner_call" "$OWNER" || {
+        echo "[self-host-parity:semantic-normalization] missing shared trivia consumer: $source_owner_call" >&2
+        exit 1
+    }
+done
 
 if grep -Fq 'SourceCharAt(' "$OWNER" ||
     grep -Fq 'CharAtN(' "$OWNER" ||

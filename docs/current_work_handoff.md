@@ -18,7 +18,446 @@ language beta remains at the separately owned official 83% line. V numbers,
 `.tmp` artifacts, owner count, and gate count do not increment either
 percentage by themselves.
 
-## Active self-host context — source payload-enum active-variant integration
+## Active self-host context — mixed-arity tagged-enum callable projection
+
+- Publication authorization RESOLVED by the user's explicit 2026-09-05 request
+  to take over other-session changes and continue all work. Primary now owns
+  integration review, scoped commits/push and exact-revision CI verification,
+  including the previously excluded concurrency documents/tests and research
+  notes. Existing source/output must be classified before staging; root-local
+  generated C/MIR directories and the scratch probe are not compiler sources
+  to publish indiscriminately. The earlier blocked checks are historical.
+  Base remains `b4d22cf2`, index initially empty, with about 88 MiB free.
+  The current executable rung and installed receipt remain the checkpoints
+  below; this authority change is not implementation or SoT progress.
+- Latest reached bootstrap-transport checkpoint: local integration PASS on
+  unchanged HEAD `b4d22cf2`. The existing file-pair comparison now uses byte
+  identity only to select original inputs; the real Pergyra comparator still
+  owns artifact/projection admission and parity. Differing inputs retain the
+  existing normalizer, with explicit input, expected/actual normalization,
+  root-preparation and selected-path failures. This slice changed no compiler
+  source or installed binary and did not promote a SoT row or progress score.
+  Old copy behavior was observed RED (`run.FEbn0y`); the final 22-case gate
+  independently PASS (`75625`, `run.MbqSpI`). Existing C/LLVM comparator parent
+  `15801` PASS, including the new child (`run.Lam37L`), without an LLVM skip.
+  Artifacts: `.tmp/self_hosted/backend_output_comparator/transport-integration.F7bbEG/`.
+  The same function accepted the preserved 285,190,841-byte full-MIR pair in
+  `.tmp/self_hosted/text_artifact_file_comparison/full-mir.cee6AL/`, produced no
+  normalized copies, and preserved both SHA-256 values `9C254AF4...CA4A008`.
+  This avoids about 544 MiB of new disk copies; it does not reclaim old files,
+  promise constant memory, or rerun the full producer/bootstrap. On the raw
+  path, report paths/line counts truthfully describe the original inputs.
+  The blanket component cmp ban was observed RED, then narrowed to placement
+  in the named transport function. Six checker-mechanics negatives and the
+  current source pass independently; complete component integration `59600`
+  PASS in 188 seconds (2,331 caps, 973 extractions, 677 reuses). Its 60-second
+  latency target remains unmet. Reviews and scope are recorded in
+  `docs/agent_work_directives/bootstrap_artifact_comparison_review_2026-09-05.md`.
+  D: has about 90 MiB free; the old duplicate and all original receipt/MIR
+  inputs remain untouched. The index is empty; this dirty work remains
+  unpublished. Next integration falsifier remains an authorized exact-revision
+  Platform full run of the receiver/enum and reached JSON/frontier/Windows
+  assertions, not another unrelated implementation track.
+- Resumed checkpoint: another task published `b4d22cf2` (native await source
+  location/SEA golden). Local main and origin/main are
+  `b4d22cf2c6e68fcbd42a1ce4a44444de0e7899fa`; regular CI `33949336474` is
+  SUCCESS. The exact-commit query returned no Platform full run. This task's
+  dirty implementation remains unpublished and is not covered by that result.
+  The prior three-turn storage blocker is historical; this resumed turn made
+  bounded integration progress and starts a fresh blocked audit. Normal sandbox
+  exec/file-connector failures were tool availability issues; approved exec
+  calls worked without granting deletion/publication authority.
+- The existing Makefile linked an isolated current native oracle from existing
+  objects, leaving shared native `0F9F4F30` and self-driver `7928ED6B` untouched:
+  `.tmp/native_await_integration_20260905/pgy.exe`, 4,675,871 bytes, SHA-256
+  `2E0468AAE6521FE804C08ABE679EAF3A166CA1624C208774EE2142D3C870EDCE`.
+  SEA lane golden PASS (8 boundaries), full JSON diagnostics `53469` PASS, and
+  native/self receiver canonicalization, exact `123`, typed/late refusals
+  PASS (`run.8vND9C`). Receipt revalidation `71072` confirms the current Pergyra
+  source graph `4eb52dba...1a54534` still binds the installed fixed-point driver.
+  No full bootstrap or Platform full rerun is claimed for this native delta.
+  At that checkpoint D: had about 95 MiB free and publication approval was
+  pending. The explicit integration request at the top now resolves publication;
+  no large producer/normalization shard is admitted. The earlier deletion request
+  named only the 285,190,842-byte normalized duplicate
+  `.tmp/self_hosted/driver/enum_receiver_integration_20260905/artifact_owner_expected_38116.txt`;
+  the original MIR files and fixed-point inputs must be preserved. No deletion
+  is needed for the current scoped publication, and no existing artifact has
+  been removed. Revalidate source/receipt and dirty ownership before staging.
+- Latest installed checkpoint: receipt-bound release gen2 `7928ED6B` is now
+  `bin/pgy-self-driver.exe` (6,711,675 bytes). Isolated installation `34504`
+  and post-receipt receiver/enum checks `21616` passed; the existing installer
+  adopted the same binary into production in `71986`, exit 0. The previous
+  installed `D0BD8E17` binary and manifest were hash-verified and preserved as
+  `previous-installed-D0BD8E17.*` under
+  `.tmp/self_hosted/compiler/enum_receiver_fixed_point_20260905/`.
+  Installed regression `80192` passed receiver native/self canonicalization,
+  exact `123` and typed/late refusals; tagged-enum including mixed-arity 10/33;
+  Option match with seven C/LLVM mutation pairs; and source active-variant
+  5/21. The adjacent payload match-binding C/LLVM parity/negative gate also
+  printed terminal PASS on a fresh bounded rerun after its earlier tool result
+  was not observed. One Clang target-triple override warning is retained.
+  Final receipt revalidation `53633` passed against the actual installed
+  binary and current source graph. Documentation quality, scoped UTF-8 and
+  whitespace, SoT edge (88/185, 55/32/1), and keyword registry (146/70/76/9)
+  also pass after the navigation refresh; no registry status was promoted.
+  Follow-up installed integration `41232` also passed the complete role-operator
+  wrapper: exact C/LLVM `123`, six metamorphic cases, 27 negative inputs on
+  both targets, and receiver canonicalization/refusals (`run.G7zIXQ`). Its
+  task-owned artifacts are under `driver/role_operator_installed_20260905/`.
+  Complete CI profile `34620` passed. Scoped integration review confirmed the
+  new receiver, mixed-arity, frontier, indexed-write and checker regressions
+  are invoked by their existing parent gates; they are not standalone-only
+  tests. No compiler source or installed binary changed in this review turn.
+  Native `0F9F4F30` and manifest `0A83B0DB` are unchanged. No runner from this
+  integration remains active. D: has only about 95 MiB free; do not start
+  another large producer/normalization shard without resolving storage scope.
+  At this earlier checkpoint no temporary artifact was deleted and nothing was
+  staged or pushed. The latest explicit user request, not automatic goal
+  continuation, now authorizes the reviewed publication described at the top.
+- Current-source bootstrap precursor: isolated candidate build `25867`
+  exited 0. Candidate SHA-256 is
+  `27082FE035ADC124DBCF64C8D86C34977C4CB7AAC6287BEA2616016E6549D5FE`
+  (7,043,489 bytes, test/O0), under
+  `.tmp/self_hosted/compiler/enum_receiver_integration_20260905/`.
+  The installer bound source graph `4eb52dba...1a54534`, codegen seed `E3B71AD2`,
+  runtime headers and manifest; source C is 11,355,303 bytes, SHA-256
+  `FF91107C15164B80AC74B724A5DE98B08129F3E9597B8B14475E86602B33E100`.
+  Receiver native/self canonicalization, exact `123`, typed/late refusals and
+  the tagged-enum wrapper including mixed-arity 10/33 PASS (`11551`;
+  receiver `run.uaIAZ1`, enum `run.HlkDEZ`). One target-triple warning remains.
+  At that precursor checkpoint, installed `D0BD8E17` was still unchanged.
+  Earlier isolated `5F317A7C` remains preserved.
+- Original integration handle `29499` terminated with exit 2 at the large-MIR
+  comparison: AWK could not write a normalized copy (`No space left on device`).
+  D: had about 190 MiB free; no compiler child remained. Both complete original
+  MIR files survived at 285,190,841 bytes each, SHA-256
+  `9C254AF484B4D8D076AC29C8392CF88FA9D4960141E54A6FEDA219773CA4A008`.
+  The existing Pergyra comparator directly accepted those original files
+  (`ok=true`, zero mismatches), without another pair of 285-MB copies. No
+  deletion, relocation, source rebuild or disk allowance increase was used.
+  Continuation `98439` completed with exit 0, using
+  `.tmp/self_hosted/driver/enum_receiver_integration_20260905/resume_mir_consumer_20260905.sh`.
+  It pins completed source/runtime, seed binary, full and bounded MIR, reruns
+  the same direct comparator, and starts only at canonical `gen2_emit`.
+  It checked original source/runtime bindings and the existing fixed-point
+  receipt owner issued/validated the new receipt. Gen2/gen3 C are each
+  11,831,156 bytes, SHA-256
+  `09C337AB8BEEB85BB3F230731C3582B707B8B59FEE5F894F240B3507BC011EA2`.
+  Receipt-bound release gen2 is 6,711,675 bytes, SHA-256
+  `7928ED6BE2D38A9C36FF6B09BA3F1BFCDAB3D4FEDD0B5CC006506F3788BBACFB`.
+  Current source graph is `4eb52dba...1a54534`; no older graph's receipt was
+  reused. This is a composed/resumed fixed-point result, not a PASS for `29499`.
+  At fixed-point completion D: had about 140 MiB free. The subsequent
+  receipt-bound installation and installed gates are recorded above.
+- The original 30-minute bounded runner was
+  `.tmp/self_hosted/driver/enum_receiver_integration_20260905/verify_fixed_point_20260905.sh`.
+  It pins and consumes the just-admitted source C rather than emitting the
+  complete Pergyra source twice, compiles release-profile seed/oracle binaries,
+  and executes the canonical bootstrap's bounded/full MIR and gen2/gen3
+  comparison body. Source/runtime equality is rechecked before the existing
+  receipt owner may issue/validate a current-graph receipt. No fixed-point
+  result is claimed for that failed invocation. Its bounded continuation and
+  installed regressions are now complete; do not restart its full producer.
+
+- The earlier published base was `f34355b37dbd9e86ef574399e895a78fd41dd0a3`,
+  with regular CI `33937067537` SUCCESS and Platform full `33937079231` FAILURE
+  (seven jobs). The newer `b4d22cf2` and its regular CI are recorded above.
+  The index is empty; this task's enum, audit, documentation and checker
+  changes remain uncommitted. Neither base's CI covers this dirty implementation.
+- The user also requested documentation of the supplied machine-layer
+  assessment and explicitly requested subagents. Two bounded source reviews
+  are AUDIT COMPLETE under
+  `docs/agent_work_directives/machine_layer_documentation_review_2026-09-05.md`.
+  Primary integrated both READMEs, the Intent ownership explanation, and the
+  existing `docs/semantics/proofs/MachineLayerCore.md`. The text distinguishes
+  purpose attribution from machine admission, AIR verification from lowering,
+  conditional Slot placement from whole Slot safety, and runtime mapping
+  acceptance from actual MMIO. Current DeviceSlot operations remain host-sim;
+  formal `Grant`/`Region` syntax and real hardware refinement are not promoted.
+  Documentation quality, native machine pipeline (C/LLVM, no reported LLVM
+  skip) and the rebuilt machine-manifest probe all PASS. Neither `rocq` nor
+  `coqc` was found on the configured PATH; no proof rerun or new kernel-check
+  result is claimed. The documentation-scope border check initially failed at
+  the already-committed parser vocabulary include; the subsequent reached CI
+  integration below repaired its registration and runtime-twin checker. The
+  complete border gate now passes, including AIR checks. The original
+  documentation scope changed no compiler/proof implementation or
+  installed driver, and opened no successor rung. Changes remain uncommitted.
+- The user's subsequent README request is documented: Intent is a static
+  identity preserving compiler-fact attribution to one purpose, not an
+  intention comment or a universal fact owner. The exact Korean definition is
+  in `README.md`, `docs/README_ko.md`, and `docs/01_intent_first_design.md`;
+  `docs/173_intent_axis_strengthening.md` links the existing binder/family model.
+  Documentation quality and the one-step terminal substitution gate were
+  rerun and PASS; added local Markdown paths, UTF-8, shell syntax and scoped
+  whitespace pass. This wording does not close the known self-source typed
+  Intent plan production gap or open a second implementation rung.
+- The user reopened a separate bounded language-axis audit before source edits.
+  Three agent lanes plus the primary nominal lane are now complete; see
+  `docs/audits/2026-09-05_language_axes_semantic_integration.md`. Four retained
+  regression lanes and aggregate pass; documentation quality, keyword registry,
+  scoped links/UTF-8/whitespace and shell syntax also pass. However,
+  `tests/concept_semantics/source_admission_parity.sh`
+  is RED (9 claims / 9 failures): caps/effects/slot approval/layer identity,
+  immutable fields, generic bounds, world-zone escape, and absent source typed
+  Intent plan. Invalid MIR was not executed. This is not a second implementation
+  track or an increase in closure; the capability manifest's existing verdict
+  versus production publication is a concrete follow-up investigation candidate.
+  Audit/test/docs changes are uncommitted alongside the preserved other-session
+  changes below. That audit did not rebuild binaries; the later enum rung's
+  installed artifact is recorded below.
+- Discovery base was `bf8b33d078b27c41cc6cdb7ffed2e8fa5c62ef22`, then equal to
+  local and remote `main`. Exact run `33922587191` is complete, 30/30 green.
+  It closes the preceding source active-variant publication lease, including
+  full bootstrap, Linux preparation, Rocq 9, and every backend/platform job.
+- Discovery: the then-installed production source-LLVM request for
+  `tests/cases/backend_compare/enum_match_payload_basic/main.pgy` failed at
+  `leaf-operand node=0 row=10 source=AST_LET_DECL`. Its verified MIR identifies
+  this as `let e: Shape = Empty`; native C executes exact `75`, `12`, `0`.
+  The same source combines zero-, one-, and two-payload variants with a typed
+  enum parameter and exhaustive match. This source remains the integration
+  input; crossing only its first refusal does not close the rung.
+- Discovery evidence: the leaf admission then consulted only the
+  payload-free enum view for `Empty`, although the referenced declaration owns
+  the mixed enum's zero-payload variant. The existing match capture also bounds
+  bindings to one, and the payload-match consumer/target projection assumes
+  one binding. These are consumers of the existing arity fact, not permission
+  to relax identity, type, scope, or inactive-payload checks.
+- The uncommitted Pergyra delta now carries ordered match binding/type arrays,
+  declaration-owned zero/one/multiple payload arities, and instruction/ordinal
+  origins through immutable source-local rows to one GraphPlan. The final
+  callable consumer uses the existing referenced-enum fact, and its obsolete
+  payload-free-only validator is deleted. No native compiler source was edited
+  for this rung. `MirMatchBindingOrigins` is part of the already registered
+  `MirMatchBindingLocalFacts` local view, not a second registry authority.
+- Isolated candidate SHA-256
+  `B88813B715CB8FF5799D6E6EDF771D4FE2B054D28FF34BAF7492A7F7F873BE07`
+  was built by the Pergyra codegen seed under
+  `.tmp/self_hosted/compiler/mixed_arity_20260905/` (test/O0 profile). The
+  `mixed_arity_enum_match_owner.sh` gate observed all ten positive execution
+  legs for the original callable plus the new 0/1/2/3-payload, Int/String,
+  same-name-across-arms fixture: general MIR-C, direct C/LLVM and source C/LLVM.
+  Nine mutated-fact pairs also failed artifact-free, including mismatched
+  formal declaration identity and non-string arrays on a zero-payload arm.
+  The tenth mutation, `cross-arm-binding-use`, was still accepted by direct C;
+  invalid output was not executed. This candidate is not installed or closed.
+- The reached correction makes a direct/name-selected match-local candidate
+  prove its owning true-arm dominance before admission; explicit LocalRef
+  failure cannot retry by scoped name. Candidate SHA-256
+  `83BAB4041F4A5363CC74006CA9936C4CC9F55F9A428DF76D6DFADC2D615D911C`
+  passes the original ten negatives in general MIR-C/direct C/direct LLVM.
+  The same input was strengthened with a heterogeneous `String, Int` variant
+  and swapped-binding-types falsifier. The tagged-enum integration wrapper,
+  including the now 10-positive/33-negative focused gate, passes at
+  `.tmp/self_hosted/mixed_arity_enum/run.5MC7ei`. Adjacent logical-record payload
+  matching and Option match (seven C/LLVM mutation pairs) also pass.
+- One native-parser-incompatible variable name in the new identity check was
+  changed from reserved `local` to `local_row` after that candidate build.
+  Native parsing of the complete driver passes; native source-to-C emission
+  also exits 0 with four warnings (one unreachable statement, three redundant
+  Intent clauses), not a warning-free result or host-C compilation result.
+  Before full fixed-point validation, source was built with the release/O3
+  installer into `bin/pgy-self-driver.exe`, using
+  `.tmp/self_hosted/compiler/bootstrap/`; that first artifact was 6,719,467 bytes.
+  The prior installed binary and companion are preserved under the isolated
+  directory as `previous-installed-FB37EA36.*`. The installed artifact passes
+  the tagged-enum integration wrapper at
+  `.tmp/self_hosted/mixed_arity_enum/run.w6LODi`: ten positive execution legs
+  include the actual public `pgy --emit-c/--emit-llvm` routes with native retry
+  excluded; all 33 negative admissions require exit 1, an owned diagnostic and
+  no output artifact. Installed logical-record payload, Option match, and the
+  source active-variant gate (5 positive flows / 21 counterexamples) also pass.
+- Full source-MIR producer parity and the resumed MIR-consumer fixed point now
+  PASS. Original `driver_bootstrap.sh` session `13894` reached gen2 compilation
+  and bounded gen2 execution, then its handle disappeared; no matching runner
+  or child remained. Its terminal exit code/cause was not observed. Do not call
+  that original invocation an uninterrupted PASS or restart it from the seed.
+  Both full MIR files are 285,158,614 bytes with SHA-256 `21028F98...F174CAE`.
+  The seed C also exactly matches the first installed source artifact.
+  `.tmp/self_hosted/driver/bootstrap/resume_fixed_point_20260905.sh` pinned
+  source graph, runtime headers, codegen seed, full MIR, gen2 C and binary;
+  it reran bounded gen2 execution, generated gen3 from the same MIR, compared
+  through the existing artifact owner, and wrote/validated the canonical
+  `driver_gen2.fixed-point.receipt`. This continuation exited 0 within its
+  300-second budget. Both generated C files are 11,830,379 bytes with SHA-256
+  `2B2C53E1...773D16C7`; source graph is `33aa5c4f...f468b`.
+- The uninstalled bootstrap binary first refused a public source request
+  because it had no companion machine manifest. The existing receipt-bound
+  installer then created a complete isolated installation, which passed the
+  10-positive/33-negative gate at `run.qbCdiG`. The same fixed-point binary was
+  adopted into `bin/pgy-self-driver.exe` through that installer, not rebuilt
+  from native driver source. Its prior installed binary/manifest are preserved
+  as `previous-installed-182738CF.*` under
+  `.tmp/self_hosted/compiler/fixed_point_20260905/`. Installed tagged-enum
+  integration, including public C/LLVM and all 33 diagnostic refusals, passes
+  at `run.y72hyq`; logical-record payload, Option match and source active-variant
+  5-positive/21-negative gates also pass on this installed fixed-point driver.
+- Complete component inventory now PASS: session `22863` exited 0 after
+  161.278 seconds at the enum integration boundary, with 2,331 line-cap
+  requests, 970 function extractions and 674 adjacent reuses. This one-off
+  complete integration used a 300-second observation budget; the separate
+  60-second full-inventory latency target remains UNMET. Earlier 60-second
+  invocations timed out, and full session `51375` failed after 202.005 seconds
+  on a real stale cap (516/490), not an observation failure.
+  The checker batches line counts and directory regex scans, retains the
+  original function extractor, reuses adjacent identical selections, and
+  replaces per-file match-pattern grep processes with two scoped scans.
+  Its focused mechanics gate passes, including malformed/missing inputs and
+  strict duplicate limits. The obsolete callable `ReadyWithFacts` assertion
+  was replaced by the existing `ReadyWithReferencedEnum` consumer and old-name
+  rejection in both consumer and owner. No compiler source changed in this
+  checker repair; the installed binary/manifest hashes remain unchanged.
+- Reviewed enum size caps keep existing responsibilities together: ordered
+  match rows 140->170, exact local types 155->165, expression admission
+  490->520 (actual 516), scoped match operands 90->115 (111), and expression
+  identity readiness 80->110 (109). The focused identity gate's stale leaf
+  cap 50 is replaced by the already existing component limit 55 (actual 52).
+  All four overlapping scalar caps now derive from
+  `tests/self_hosted/parity/scalar_program_owner_caps.tsv`; missing, duplicate,
+  malformed or tighter cap rows are tested through the actual consumer.
+  Its focused identity gate passes. No semantic admission was weakened or
+  compiler function split merely to fit a physical cap.
+- Last observed SoT edge (88/185, 55/32/1), keyword registry, documentation,
+  source-scan and hard self-host gates pass. The full compiler-world gate also
+  passes in its 300-second focused execution budget; it includes TestHarness
+  compilation/execution and world AST production. The tagged-enum wrapper
+  retains one Clang target-triple override warning. Exact dirty-tree CI,
+  commit and push remain unperformed.
+- The reached Platform full `role_operator_dispatch` canonicalization blocker
+  has a Pergyra fix included in the current installed gen2 above; remote closure
+  remains pending. The reconstruction
+  path `EmitRoleImplBlocks(for_type) -> routine self_type -> ptype = self_type`
+  replaced an admitted null receiver type with the role target type. Removing
+  that override and its unused arguments from the three existing tree emitters
+  preserves `MirRoutineHeaderFacts.param_types`; the signature owner still
+  rejects typed or late `self`. No source-admission rule was relaxed.
+  Isolated test-profile candidate
+  `.tmp/self_hosted/compiler/role_receiver_20260905/pgy-self-driver.exe` has
+  SHA-256 `5F317A7C621C5459B8E703663A71FB6F7B8B098C3DF4B19FB08488008AE615A8`,
+  built by the existing Pergyra-seed installer (session `33887`, exit 0).
+  The focused `role_receiver_canonicalization_owner.sh` failed on installed
+  `D0BD8E17` and passed on this candidate: native/self canonical MIR, exact
+  execution `123`, and typed/late receiver artifact-free refusals
+  (`run.ohXcU9`). Before the documentation request, the role-operator wrapper,
+  role-override replacement and canonical identity-epoch gates also passed
+  on `5F317A7C`; wrapper child evidence is `run.AXHznJ`.
+  At that candidate checkpoint the installed driver was still `D0BD8E17`.
+  Its fixed-point receipt covers the earlier graph, not the receiver
+  source delta. The mixed-arity 10-positive/33-negative regression also passes
+  on this candidate (`run.aqYYuk`). The current-graph build, fixed point and
+  receipt-bound installation are now complete above; publication remains pending.
+  The other observed Platform full failures are native JSON diagnostic count
+  drift (Linux/macOS: Intent clause plus task-lifecycle errors), missing `git`
+  in Windows MSYS2, and semantic fixture count 115 versus shell constant 114
+  (Linux/Windows). The Windows dependency is now repaired locally: its job
+  explicitly installs MSYS2 `git`, and `self_host_ci_profile_smoke.sh` guards
+  that exact job's package list. The new assertion failed on the old workflow;
+  after the package addition the complete profile passed under 60 seconds.
+  This is not a remote Windows rerun result. The complete native JSON gate now
+  passes after requiring both exact owned diagnostics instead of one. The
+  semantic CLI transports the existing Pergyra-owned frontier, and the shell
+  rejects malformed/missing/mismatched values without a new count authority.
+  The manifest C executable is reused for C verdicts, not compiled twice.
+  The component latency target also
+  remains open; no new worker/cache or larger default timeout was introduced.
+- The semantic parity run then exposed a real auxiliary `CheckBody` omission:
+  indexed default-parameter writes reported `ok` although production typed
+  admission already rejected them. The consumer now uses existing operator
+  positions and whole-expression grouping to reach
+  `SemanticCollectionMutationError`; no parameter-mode policy moved. Grouped
+  receivers and comment trivia were independently reviewed and reproduced
+  before correction. Current focused probe `run.QZi11k` passes rejected writes
+  and accepted comparisons, `inout`, local/shadowing, strings and partial
+  grouping. Nested assignment expressions remain outside this bounded repair.
+  First complete semantic parity (`54964`) passed 115 C and 115 LLVM verdicts.
+  Final-source session `63651` passed 115 C verdicts and completed the LLVM
+  build, but terminated with exit 124 at 300 seconds before the LLVM loop
+  completed. No matching compiler process remained. Bounded continuation
+  `23707` pinned completed C `3DA250BF`, LLVM `4F643403`, comparator `A1229605`
+  and actual gate `CCD370DC`, then reused its manifest/verdict consumers without
+  rebuilding. All 115 LLVM verdicts and both comment refusals in both binaries
+  pass at `semantic_receiver_integration_20260905/resume-llvm.uxncYz`.
+  Source graph before/after is exactly
+  `4eb52dba14ca46b039d05206604a219bd9407e0652c5f56f27418b5341a54534`.
+  This is resumed verification, not an uninterrupted PASS for `63651`.
+  Complete component inventory `12826` passes in 252.418 seconds: 2,331 cap
+  requests, 972 function extractions and 674 reuses. This remains structural
+  evidence; the separate 60-second latency target is still unmet. The original
+  probe build handle `24851` disappeared; saved emitted C under the task-owned
+  `pgy-9b97ea70/` compiled/executed successfully, and later fresh invocations
+  passed. That original invocation itself has no observed terminal result.
+- The latest explicit subagent request is AUDIT COMPLETE in
+  `docs/agent_work_directives/ci_semantic_integration_review_2026-09-05.md`.
+  The two reports found grouped-target/trivia coverage and a missing canonical
+  inline-header input; primary reproduced and repaired both. Complete border,
+  focused normalization, source-scan and documentation gates pass. The source
+  scan record pins the new operator hash separately from historical performance
+  figures; no new performance measurement is claimed. The keyword occurrence
+  inventory was regenerated by its existing owner and its full gate passes.
+  SoT edge remains 88/185, CLOSED=55 BRIDGE=32 ACTIVE=1. Existing no-Python JSON
+  and literal-line include-checker limits are recorded, not hidden. The older
+  `D0BD8E17` receipt and isolated `5F317A7C` do not certify these final source
+  changes; the newly installed `7928ED6B` binds the current graph instead.
+  Index stays empty and all edits remain uncommitted; remote CI has not been
+  rerun. Next integration falsifier: the same receiver/enum production fixtures
+  and reached JSON/frontier/Windows dependency assertions in an authorized
+  exact-revision Platform full run after scoped dirty-tree review. Local green
+  is not that remote verdict. Resolve the low-space boundary before another
+  large local shard; no cleanup or publication is delegated to an agent.
+  Do not claim a new hard-substitution numerator for the auxiliary tool fix.
+- Objective: carry the declaration-owned variant arity and payload binding
+  identities through one target-neutral GraphPlan to C and LLVM. Priority is
+  enum/variant identity, exact payload arity/types, branch-scoped bindings,
+  artifact-free missing-fact failure, then patch size. The fact owner is
+  `DirectMirScalarProgramReferencedEnumFact`, derived from admitted MIR
+  declarations; GraphPlan admission is the last semantic consumer, and target
+  emitters consume its validated projection.
+- Forbidden fallback: enum/variant fixture spellings, a second enum inventory,
+  rendered-source recovery, unchecked payload reads, backend-local match
+  semantics, C-output round-trips, or native retry. Focused verification must
+  preserve exact `75`, `12`, `0` through installed source and direct C/LLVM and
+  reject missing or inconsistent variant/payload/binding facts without output.
+- Installed DRV-2 is SHA-256
+  `7928ED6BE2D38A9C36FF6B09BA3F1BFCDAB3D4FEDD0B5CC006506F3788BBACFB`
+  (6,711,675 bytes), matching the gen2 binary in
+  `.tmp/self_hosted/driver/enum_receiver_integration_20260905/driver_gen2.fixed-point.receipt`.
+  Explicit fixed-point adoption deliberately removes ordinary source-build
+  cache/output receipts; the fixed-point receipt owns this build evidence.
+  Concurrent work has rebuilt native `pgy` to SHA-256
+  `0F9F4F30255D6850B5A773E21D5815F776B305E5C01A7A2C3DF6D373BB15A29E`;
+  this local oracle is not the binary recorded by the preceding CI checkpoint.
+  Its observed runtime output is local evidence only.
+- The previously staged other-task native/parser/runtime/Makefile repair is
+  now published in `f34355b3`; there is no staged set to preserve or commit.
+  Remaining other-session dirty paths include `caf_probe_tmp.pgy`, concurrency
+  review/example documents (`docs/204_concurrency_direction_pscc_review.md`,
+  `docs/concurrency/Main.md`, `docs/concurrency/advanced_examples.md` and
+  `docs/audits/2026-09-05_concurrency_review_reconciliation.md`), async/example
+  gates, plus eight parallel-case `expected.stdout`
+  artifacts. Their review is now authorized by the explicit integration request.
+  The bounded native example gate passed 16 positive and 10 negative legs in
+  `.tmp/concurrency_examples.bhvG0K/`; this is not self-host substitution.
+  The prior blocked-state recheck observed other-session changes in
+  `src/parser/parser_async.c`, `tests/cases/sea_execution_lanes/expected_lanes.txt`
+  and `tests/sea_execution_lane_golden_smoke.sh`. They are now published in
+  `b4d22cf2`, not part of this task's dirty publication scope. The resumed turn
+  inspected and tested that committed delta without editing its sources.
+  Formerly excluded paths were opened for review by the latest user request.
+  Architecture notes remain references: historical counts and reported upstream
+  investigation dates are distinguished from current verified evidence.
+  `examples/raid_graph_fsm/results.txt` has line-ending-only worktree noise.
+  Root `pgy-80135c2c/`, `pgy-91d769ec/` and `pgy-9b97ea70/` hold compiler-generated
+  C/MIR outputs, preserved and narrowly ignored rather than published. The
+  scratch `caf_probe_tmp.pgy` is preserved outside the source commit.
+  No progress percentage or SoT status is promoted by discovery. Module Build
+  remains post-self-host.
+- A broader README link inspection also found an existing Korean README
+  relative target `docs/20_compiler_pipeline_guide.md` resolving under `docs/`
+  twice. The user-authorized integration corrects this exact relative href;
+  the scoped check is not a claim that all older README links are green.
+
+## Published self-host context — source payload-enum active-variant integration
 
 - Exact executable checkpoint is
   `506c25272637203ee6bb8a0f6b9462d2a6f226fd`, repairing the published
@@ -92,10 +531,9 @@ percentage by themselves.
   `63bed984` records the exact current set/file hashes and explicitly retains
   the old performance figures as unremeasured; its focused source-scan gate is
   green locally.
-- The active next action is the exact documentation checkpoint, one push, and
-  replacement exact-head CI. Do not open affine-Future, Zone spawn ABI, root-JSON,
-  duplicate InstructionId, Module Build, or another SoT seam before that
-  publication evidence. Those independent reds remain read-only in
+- Publication checkpoint `bf8b33d0` completed exact run `33922587191`, 30/30
+  green in 33m20s. The publication lease is closed. Independent affine-Future,
+  Zone spawn ABI, root-JSON, and duplicate InstructionId findings remain in
   `docs/audits/2026-09-05_counterexample_attack_results.md`.
 - The delegated language-concept deletion/compression/local-reasoning audit is
   complete in `docs/audits/2026-09-05_concept_deletion_stress_matrix.md` and

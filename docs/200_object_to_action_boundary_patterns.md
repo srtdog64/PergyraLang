@@ -135,9 +135,11 @@ fact를 재추론하지 않는다. 특히 `ReceiverCarriage`를 일반 parameter
    layer다. `causes`는 effect identity에, link는 relation identity에 결속한다.
 6. `zone`은 admission/authority/resource lifetime과 topology를 소유한다. subject
    내부 상태 전이는 해당 subject action을 우회해 직접 쓰지 않는다.
-7. production에서 호출되는 action이 둘 이상이고 하나의 성공·실패·보상 목적이
-   생겼을 때만 `intent`를 추가한다. `world`는 그 실제 zone들을 한 선언·호출
-   그래프로 묶으며 C/LLVM별 복제본을 만들지 않는다.
+7. production의 한 목적에 participant/authority/boundary와 typed terminal,
+   dependency 또는 compensation 의무를 함께 귀속시켜 검사해야 할 때 `intent`를
+   추가한다. action이 하나여도 결과 귀속 의무가 있으면 유효하며, 여러 개라도
+   그런 checked bundle을 더하지 않으면 충분한 근거가 아니다. `world`는 그 실제
+   zone들을 한 선언·호출 그래프로 묶으며 C/LLVM별 복제본을 만들지 않는다.
 
 Self-host compiler도 이 규칙의 예외가 아니다. 모든 stage를 ceremonial
 subject/action/intent로 감싸는 것은 개사료가 아니다. 실제 C-owned 결정을 대신하는

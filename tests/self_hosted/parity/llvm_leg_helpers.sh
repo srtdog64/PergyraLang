@@ -48,7 +48,7 @@ pgy_selfhost_root_forward_slash() {
     # backslash-to-slash respelling matches the canonicalizer's own pass.
     local windows_root
     if declare -f pgy_path_for_windows_tool >/dev/null 2>&1; then
-        windows_root="$(pgy_path_for_windows_tool "$ROOT_DIR")"
+        windows_root="$(pgy_path_for_windows_tool "$ROOT_DIR")" || return $?
     else
         windows_root="$ROOT_DIR"
     fi
@@ -61,7 +61,7 @@ pgy_selfhost_normalize_text_artifact() {
     # ones, so source_module_path provenance is compared machine-independently:
     # strip the repo-root prefix from that one JSON field on both sides.
     local root_fwd
-    root_fwd="$(pgy_selfhost_root_forward_slash)"
+    root_fwd="$(pgy_selfhost_root_forward_slash)" || return $?
     tr -d '\r' | sed "s|\"source_module_path\":\"${root_fwd}/|\"source_module_path\":\"|g" | awk '
         { lines[NR] = $0 }
         END {
@@ -286,13 +286,33 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner() {
     local comparator_bin
     local expected_rel
     local actual_rel
+    local expected_input="$expected_file"
+    local actual_input="$actual_file"
+    local byte_compare_status=0
 
     pgy_selfhost_compile_backend_output_comparator "$label" "$build_dir"
     comparator_bin="$(pgy_selfhost_backend_output_comparator_bin "$build_dir")"
-    pgy_selfhost_normalize_text_artifact < "$expected_file" > "$expected_norm"
-    pgy_selfhost_normalize_text_artifact < "$actual_file" > "$actual_norm"
-    expected_rel="$(pgy_selfhost_path_relative_to_root "$expected_norm")"
-    actual_rel="$(pgy_selfhost_path_relative_to_root "$actual_norm")"
+    # Callers supply completed repo-root artifacts without concurrent writers.
+    # Identity selects transport only: the Pergyra owner still decides parity.
+    # On this path its provenance/counts describe originals, not normalized copies.
+    cmp -s -- "$expected_file" "$actual_file" || byte_compare_status=$?
+    if [[ "$byte_compare_status" -eq 1 ]]; then
+        if ! pgy_selfhost_normalize_text_artifact < "$expected_file" > "$expected_norm"; then
+            echo "[$label] expected artifact normalization failed" >&2
+            exit 1
+        fi
+        if ! pgy_selfhost_normalize_text_artifact < "$actual_file" > "$actual_norm"; then
+            echo "[$label] actual artifact normalization failed" >&2
+            exit 1
+        fi
+        expected_input="$expected_norm"
+        actual_input="$actual_norm"
+    elif [[ "$byte_compare_status" -ne 0 ]]; then
+        echo "[$label] artifact input comparison failed (cmp exit $byte_compare_status)" >&2
+        exit 1
+    fi
+    expected_rel="$(pgy_selfhost_path_relative_to_root "$expected_input")" || exit 1
+    actual_rel="$(pgy_selfhost_path_relative_to_root "$actual_input")" || exit 1
 
     if ! (cd "$ROOT_DIR" && "$comparator_bin" "$expected_rel" "$actual_rel" 0 2 "$artifact_kind" \
         >"$cmp_out" 2>"$cmp_err"); then

@@ -1,4 +1,4 @@
-// One-payload enum match normalized into a typed tag comparison and binding.
+// Declaration-arity enum match normalized into a tag test and exact local span.
 
 import "direct_mir_scalar_program_expression_mutation_owner.pgy";
 import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
@@ -11,6 +11,7 @@ func DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
     ref instruction: JsonObjectFactTable, expression_row: Int,
     global_row: Int, local_offset: Int,
     ref signature: DirectMirRoutineSignatureFact,
+    ref index: MirRoutineFactIndex,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref enum_fact: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarProgramExpressionSet {
@@ -25,12 +26,26 @@ func DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
     if !facts.valid || expression_row < 0 ||
         expression_row + 1 != ArrayLength(facts.graph_starts) ||
         !match_fact.valid || match_fact.pattern_count != 1 ||
-        match_fact.variant == "" || match_fact.binding_count != 1 ||
-        match_fact.binding_type_count != 1 ||
-        match_fact.pattern != Concat(match_fact.variant, Concat(
-            "(", Concat(match_fact.binding, ")"))) {
+        match_fact.binding_count != match_fact.binding_type_count {
         return invalid;
     }
+    let variant_name: String = match_fact.variant;
+    if match_fact.binding_count == 0 && variant_name == "" {
+        variant_name = match_fact.pattern;
+    }
+    if variant_name == "" { return invalid; }
+    let expected_pattern: String = variant_name;
+    if match_fact.binding_count > 0 {
+        expected_pattern = Concat(expected_pattern, "(");
+        let ordinal: Int = 0;
+        while ordinal < match_fact.binding_count {
+            if ordinal > 0 { expected_pattern = Concat(expected_pattern, ", "); }
+            expected_pattern = Concat(expected_pattern, match_fact.bindings[ordinal]);
+            ordinal = ordinal + 1;
+        }
+        expected_pattern = Concat(expected_pattern, ")");
+    }
+    if match_fact.pattern != expected_pattern { return invalid; }
     let value_node: Int = facts.graph_roots[expression_row];
     if value_node < facts.graph_starts[expression_row] ||
         value_node >= facts.graph_starts[expression_row] +
@@ -43,25 +58,40 @@ func DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
         enum_fact, type_name);
     let variant_row: Int =
         DirectMirScalarProgramReferencedEnumVariantRow(
-            enum_fact, type_name, match_fact.variant);
+            enum_fact, type_name, variant_name);
     if enum_row < 0 || enum_fact.payload_flags[enum_row] != 1 ||
-        variant_row < 0 ||
-        enum_fact.variant_param_counts[variant_row] != 1 ||
-        enum_fact.variant_param_types[
-            enum_fact.variant_param_type_starts[variant_row]] !=
-                match_fact.binding_type {
+        variant_row < 0 || enum_fact.variant_param_counts[variant_row] !=
+            match_fact.binding_count {
         return invalid;
     }
-    let identity: String = SelfMirLocalRef(
-        "destructure", signature.source_syntax_id, global_row);
-    let binding_local: Int = DirectMirScalarCfgLocalIdentityRow(
-        locals.local_ref_value_ids, identity);
-    if binding_local < 0 || binding_local >= ArrayLength(locals.local_names) ||
-        locals.local_names[binding_local] != match_fact.binding ||
-        locals.local_ref_kinds[binding_local] !=
-            DirectMirScalarCfgLocalRefMatchBinding() {
-        return invalid;
+    let binding_local: Int = -1;
+    let binding: Int = 0;
+    while binding < match_fact.binding_count {
+        let source_row: Int = MirMatchBindingSourceRowAtOrigin(
+            index.match_binding_origins, global_row, binding);
+        if source_row < 0 || match_fact.binding_types[binding] !=
+                enum_fact.variant_param_types[
+                    enum_fact.variant_param_type_starts[variant_row] + binding] ||
+            index.source_local_types[source_row] != match_fact.binding_types[binding] {
+            return invalid;
+        }
+        let identity: String = SelfMirLocalRef(
+            "destructure", signature.source_syntax_id, source_row);
+        let local_row: Int = DirectMirScalarCfgLocalIdentityRow(
+            locals.local_ref_value_ids, identity);
+        if local_row < 0 || local_row >= ArrayLength(locals.local_names) ||
+            locals.local_names[local_row] != match_fact.bindings[binding] ||
+            locals.local_ref_syntax_ids[local_row] != source_row ||
+            locals.local_ref_kinds[local_row] !=
+                DirectMirScalarCfgLocalRefMatchBinding() {
+            return invalid;
+        }
+        if binding == 0 { binding_local = local_row; }
+        if local_row != binding_local + binding { return invalid; }
+        binding = binding + 1;
     }
+    let stored_binding: Int = -1;
+    if binding_local >= 0 { stored_binding = binding_local + local_offset; }
     let graph_counts: Array<Int> = facts.graph_counts;
     let graph_roots: Array<Int> = facts.graph_roots;
     let kinds: Array<Int> = facts.node_kinds;
@@ -80,7 +110,7 @@ func DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
         literals, callables, runtime_ids,
         DirectMirScalarProgramExprPayloadEnumMatch(),
         CompilerAbiLayoutBoolTypeName(), value_node, -1,
-        binding_local + local_offset, -1,
+        stored_binding, -1,
         variant_row - enum_fact.variant_starts[enum_row], "", -1, -1);
     ArraySet(graph_counts, expression_row,
         facts.graph_counts[expression_row] + 1);

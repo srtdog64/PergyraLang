@@ -30,7 +30,14 @@ func DirectMirScalarCfgScopedMatchBindingLocalOperandRow(
         if local_refs.local_ref_kinds[row] ==
                 DirectMirScalarCfgLocalRefMatchBinding() &&
             local_refs.local_names[row] == node_text {
-            let match_instruction: Int = local_refs.local_ref_syntax_ids[row] - index.instruction_facts.global_start;
+            let source_row: Int = local_refs.local_ref_syntax_ids[row];
+            if source_row < index.declared_source_local_count ||
+                source_row >= ArrayLength(index.match_binding_origins.instruction_global_rows) {
+                return -1;
+            }
+            let match_instruction: Int =
+                index.match_binding_origins.instruction_global_rows[source_row] -
+                    index.instruction_facts.global_start;
             let match_block: Int = DirectMirScalarCfgInstructionBlockAt(
                 index, match_instruction);
             if match_block < 0 || match_block >=
@@ -43,6 +50,8 @@ func DirectMirScalarCfgScopedMatchBindingLocalOperandRow(
                 if selected < 0 {
                     selected = row;
                     selected_scope = scope;
+                } else if selected_scope == scope {
+                    return -1;
                 } else if MirRoutineBlockDominates(
                         index, selected_scope, scope) &&
                     selected_scope != scope {
@@ -74,6 +83,17 @@ func DirectMirScalarCfgLeafOrScopedMatchBindingOperandFromOwners(
             use_facts, global_row, use_row, instruction_row, node, node_text,
             value_names, local_refs, wire, wire_expr0_carriage);
     if operand.valid {
+        // A unique name or explicit LocalRef selects a candidate, not a scope
+        // proof. Match payloads remain confined to their owning true arm.
+        if operand.local_row >= 0 && operand.local_row <
+                ArrayLength(local_refs.local_ref_kinds) &&
+            local_refs.local_ref_kinds[operand.local_row] ==
+                DirectMirScalarCfgLocalRefMatchBinding() &&
+            DirectMirScalarCfgScopedMatchBindingLocalOperandRow(
+                index, local_refs, instruction_row, node_text) !=
+                    operand.local_row {
+            return DirectMirScalarCfgLeafOperand(false, -1, -1, 0);
+        }
         let use_block: Int = DirectMirScalarCfgInstructionBlockAt(
             index, instruction_row);
         if DirectMirScalarCfgLeafOperandLatestValueReady(
@@ -82,6 +102,7 @@ func DirectMirScalarCfgLeafOrScopedMatchBindingOperandFromOwners(
         }
         return DirectMirScalarCfgLeafOperand(false, -1, -1, 0);
     }
+    if wire.required { return operand; }
     let scoped_local: Int =
         DirectMirScalarCfgScopedMatchBindingLocalOperandRow(
             index, local_refs, instruction_row, node_text);

@@ -234,7 +234,7 @@ func EmitRoleDecl(ref routines: MirProgramRoutineIndex, decl_start: Int,
                     json, decl_start, decl_end, role_name
                 ),
                 EmitRoleImplBlocks(routines, decl_start, decl_end,
-                    role_name, for_type, expression_order, abi_validation)
+                    role_name, expression_order, abi_validation)
             )
         )
     );

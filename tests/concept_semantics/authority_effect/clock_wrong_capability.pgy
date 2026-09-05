@@ -1,0 +1,7 @@
+func Stamp() -> Int with caps random with effects nondeterministic {
+    return Now();
+}
+
+func Main() -> Void {
+    let stamp: Int = Stamp();
+}

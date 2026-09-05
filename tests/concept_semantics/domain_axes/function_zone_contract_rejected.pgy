@@ -1,0 +1,25 @@
+subject Counter {
+    let mut count: Int;
+
+    func Advance(self) -> Int
+        within CounterZone
+        authorized by self
+    {
+        self.count = self.count + 1;
+        return self.count;
+    }
+}
+
+zone CounterZone {
+    subject slot counter: Counter
+    authority counter
+
+    func Tick(self) -> Int {
+        return self.counter.Advance();
+    }
+}
+
+func Main() -> Void {
+    let counter_zone = CounterZone(Counter(1));
+    Log(counter_zone.Tick());
+}

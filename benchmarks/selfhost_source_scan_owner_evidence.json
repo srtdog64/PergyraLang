@@ -18,6 +18,15 @@
     "measured_at": "2026-08-09",
     "owner_set_sha256": "5B6DFCD460486EDB9B6AEDCCE0ACCE0F15BA73ACBD543B9EA01E1B926671AEA9"
   },
+  "current_operator_owner_hashes": {
+    "observed_at": "2026-09-05",
+    "source_revision": "f34355b37dbd9e86ef574399e895a78fd41dd0a3+dirty",
+    "note": "Top-level assignment and index-opening positions share the existing byte scanner; comments delegate to the existing text-scan owner. The focused semantic_index_mutation_owner gate passed on the current emitted source at run.HCT7HL. Historical performance figures below are retained evidence, not remeasured performance for this source change.",
+    "owner_set_sha256": "A9F618E36E44C6BA9B0920FD08B1D455EBCF3FDBAD07D3EB6B2AB7C50ED9FB49",
+    "owner_files_sha256": {
+      "src/self_hosted/semantic/expression_operator_fact_owner.pgy": "BEB6270B654C8BB060B299371339EBC3598CEFAF15533624C71A3F5EA62373E8"
+    }
+  },
   "current_callable_owner_hashes": {
     "measured_at": "2026-09-05",
     "source_revision": "95148fdc",

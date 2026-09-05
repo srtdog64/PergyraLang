@@ -1,0 +1,10 @@
+subject Player {}
+effect Marked for bearer: Player {}
+
+zone Battle {
+    subject slot player: Player
+    effect slot mark: Marked
+    apply mark to player
+}
+
+func Main() -> Void {}

@@ -14,6 +14,50 @@ Status: canonical design and authoring guidance
 world, zone, subject, ability, effect, object/tobject 경계를 그 목적에서 역산한다.
 이는 현재 컴파일러가 선언을 자동 생성한다는 뜻이 아니다.
 
+## Intent의 정적 identity
+
+> **Intent는 ‘프로그래머의 의도’를 주석처럼 표현하는 것이 아니라, 여러 compiler fact가 동일한 목적에서 발생했다는 귀속 관계를 보존하는 정적 identity다.**
+
+이 문장에서 목적은 컴파일러가 자연어를 읽고 추측하는 의도가 아니다.
+소스에 선언된 Intent와 그 계약이 귀속 경계를 정한다. Intent는 그 경계를
+여러 의미 축에 걸쳐 유지하는 **source-level binder**다. 정적 identity는
+선언과 검증된 관계의 식별이지, 목적 이름 문자열이나 실행 시점 객체의 주소가 아니다.
+
+- **fact 소유권과 목적 귀속은 다르다.** participant, coordination, authority,
+  effect, Zone boundary, compensation, terminal 등의 사실은 각 semantic
+  owner가 판정한다. Intent가 그 owner를 대체하거나, 목적 선언만으로 권한과
+  효과의 증거를 만들어서는 안 된다. Intent는 이 사실들이 어느 목적의 계약에
+  속하는지 결속한다. 축별 소유권은 [키워드 직교성](42_keyword_orthogonality.md),
+  fact 분해는 [Intent 축 강화](173_intent_axis_strengthening.md)를 따른다.
+- **같은 값은 같은 귀속의 증거가 아니다.** typed step이 산출한 payload를
+  terminal이 운반해야 한다면, 같은 타입·값의 새 payload를 만드는 것으로
+  그 관계를 대체할 수 없다. step·outcome·terminal의 선언 및 binding identity를
+  통해 해당 계약을 검사해야 한다. 이는 일반 값의 복사·재구성을 금지하는 규칙이 아니다.
+- **귀속 보존은 풍부한 증거의 영구 보관을 뜻하지 않는다.** 각 fact는 마지막
+  정당한 소비자까지 필요한 identity와 검증된 관계를 보존한다. 그 뒤에는 해당
+  owner의 계약에 따라 compact fact/receipt로 압축하거나 소거할 수 있다.
+  runtime trace가 필요하면 그 소비자가 요구하는 projection을 남기며,
+  AST/HIR 전체나 거대한 단일 Intent fact를 끝까지 운반하지 않는다.
+
+Intent를 정당화하는 것은 action 수가 아니라 **목적에 귀속되어 검사되는 계약**이다.
+단일 action에도 typed outcome과 terminal 사이에 이 의무가 있을 수 있다.
+반대로 그런 의무 없이 계산과 값만 있다면 `func`/`struct`가 맞다.
+
+이 구분은 [기계층](semantics/proofs/MachineLayerCore.md)에서도 유지된다.
+Intent 안의 기계 연산을 어느 목적에 귀속할지는 Intent 계약의 문제이고,
+그 주소에 접촉할 권한·lease·접근 모드가 성립하는지는 기계층의 별도 문제다.
+목적 identity가 물리 주소나 접근 증거를 대신하지 않는다.
+
+**구현 범위 기록 — 2026-09-05:**
+[삭제·대체 테스트](../tests/concept_semantics/intent/terminal_substitution_smoke.sh)는
+Intent와 `func + match`가 같은 결과값·호출 횟수를 내면서도, typed Intent의
+terminal에서 payload를 새로 구성하면 native/self source 의미 검사가 거절함을
+확인했다. 이는 이 입력에서 귀속 계약이 값 동등성보다 강하다는 증거이지,
+모든 구문 조합에 대한 비표현성 정리는 아니다. 정상 typed Intent의 self-source
+MIR에서 `intent_execution` v3 plan이 빠지는 생산 경계는 아직 열려 있다.
+구체적 owner·경로·반례는 [실행 감사](audits/2026-09-05_intent_graph_semantic_audit.md)를
+참조한다. 이 정의 자체로 self-host closure나 새 구현 rung을 선언하지 않는다.
+
 ---
 
 ## 왜 Intent가 1차인가
@@ -866,10 +910,20 @@ Macro Intent (1-3개)
               └── Function (계산/변환/유틸)
 ```
 
+아래 개수는 구성 규모를 설명하는 예시이지 admission 규칙이나 분할 할당량이 아니다.
+
 **규칙:**
+
 - Macro는 Meso를 오케스트레이션만 한다 (직접 행동 안 함)
 - Meso는 독립 실행 가능해야 한다 (재사용성)
-- Micro는 보상(compensate)이 필요할 때만 Intent로, 아니면 Function으로
+- Micro도 한 목적에 묶인 terminal 결과 귀속, authority/boundary, compensation
+  등의 의무를 compiler가 함께 검사해야 할 때 Intent로 쓴다. 보상 유무와
+  action/step 개수는 단독 판정 기준이 아니다. 그런 의무를 더하지 않는 계산이나
+  호출 wrapper는 `func` 또는 `action`에 남긴다.
+
+단일 action에서도 승인된 outcome payload를 같은 값의 새 receipt로 바꾸면
+typed terminal이 거절하는 [삭제·대체 실행 사례](audits/2026-09-05_intent_graph_semantic_audit.md)가
+있다. 결과값·호출 횟수의 동치와 목적별 귀속 보장의 동치를 구별한다.
 
 ---
 
@@ -927,7 +981,9 @@ intent RunGameLoop(world: GameWorld)
 }
 ```
 
-**검사:** step이 10개 이상이거나 step body가 20줄 이상이면 쪼갤 것.
+**검사:** step 수와 body 길이는 검토 신호이지 자동 분할 기준이 아니다.
+독립 목적·실패/보상 경계·소유 책임이 섞였는지 먼저 확인한다. 하나의 checked
+bundle을 나누어 귀속 증거를 잃거나 다시 조립해야 한다면, 줄 수만으로 쪼개지 않는다.
 
 ### 3. Intent가 상태 머신이 된 경우
 

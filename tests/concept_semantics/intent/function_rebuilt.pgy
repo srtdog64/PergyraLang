@@ -1,0 +1,17 @@
+import "terminal_fixture.pgy";
+
+// This is ordinary legal value reconstruction. It preserves this program's
+// output, but does not promise identity with the action's admitted payload.
+func Deliver(worker: AuditWorker, succeed: Bool) -> AuditPurposeOutcome {
+    let outcome: AuditActionOutcome = worker.Read(succeed);
+    match outcome {
+        case AuditAccepted(receipt): return AuditDelivered(AuditReceipt(7));
+        case AuditDeclined(problem): return AuditRejected(problem);
+    }
+}
+
+func Main() -> Void {
+    let worker = AuditWorker(0);
+    Observe(Deliver(worker, true), worker);
+    Observe(Deliver(worker, false), worker);
+}

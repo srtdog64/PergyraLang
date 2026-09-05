@@ -270,6 +270,33 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             }
         }
         let stmt_end: Int = FindStatementEnd(content, i, end);
+        if (StringLength(asn_name) > 0 && CharAt(content, asn_after) == "[") ||
+            CharAt(content, i) == "(" {
+            let statement_operators: SemanticTopLevelOperatorFacts =
+                SemanticTopLevelOperatorFactsFromExpression(
+                    Substring(content, i, stmt_end - i)
+                );
+            if statement_operators.assignment_index >= 0 {
+                let target: String = SemanticStripOuterParens(
+                    Substring(content, i, statement_operators.assignment_index)
+                );
+                let target_operators: SemanticTopLevelOperatorFacts =
+                    SemanticTopLevelOperatorFactsFromExpression(target);
+                if target_operators.index_open_index > 0 {
+                    let receiver_text: String = SemanticStripOuterParens(
+                        Substring(target, 0, target_operators.index_open_index)
+                    );
+                    let receiver: String = SemanticReadIdent(receiver_text, 0, cursor);
+                    if SkipWhitespaceAndComments(receiver_text, cursor[0]) ==
+                        StringLength(receiver_text) {
+                        let mutation_error: String = SemanticCollectionMutationError(
+                            "ArraySet", receiver, names, types, modes, internal_caller_ready
+                        );
+                        if mutation_error != "" { return mutation_error; }
+                    }
+                }
+            }
+        }
         let stmt_call_error: String = CheckCall(Substring(content, i, stmt_end - i), names, types, modes, func_names, func_rets, func_params, internal_caller_ready);
         if StringLength(stmt_call_error) > 0 {
             return stmt_call_error;

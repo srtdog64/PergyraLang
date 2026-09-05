@@ -19,6 +19,29 @@ DOC="$ROOT_DIR/docs/154_border_registry.md"
 
 fail() { echo "[border-registry] FAIL: $*" >&2; exit 1; }
 
+check_runtime_twin_include_boundary() {
+    local runtime_dir="$1" input hits status
+    local inline_inputs=("$runtime_dir/pgy_runtime.h" "$runtime_dir/"*inline*.h)
+    local extern_input="$runtime_dir/pgy_runtime_lib_authority_file_core.h"
+    local inline_twin="$runtime_dir/pgy_runtime_panic_checked_inline.h"
+    for input in "${inline_inputs[@]}" "$inline_twin" "$extern_input"; do
+        [[ -f "$input" ]] || fail "missing runtime twin input: $input"
+    done
+    if hits="$(grep -lE '^[[:space:]]*#[[:space:]]*include[[:space:]]*[<"][^">]*authority_file_core\.h[">]' "${inline_inputs[@]}" 2>&1)"; then
+        fail "inline twin includes the extern twin: $hits"
+    else
+        status=$?
+        [[ "$status" -eq 1 ]] || fail "cannot inspect inline twin includes: $hits"
+    fi
+    if hits="$(grep -nE '^[[:space:]]*#[[:space:]]*include[[:space:]]*[<"][^">]*panic_checked_inline\.h[">]' "$extern_input" 2>&1)"; then
+        fail "extern twin includes the inline twin: $hits"
+    else
+        status=$?
+        [[ "$status" -eq 1 ]] || fail "cannot inspect extern twin includes: $hits"
+    fi
+}
+
+bash "$ROOT_DIR/tests/border_registry_checker_smoke.sh"
 [ -f "$DOC" ] || fail "missing docs/154_border_registry.md"
 
 # --- backend border: transpiler_* and llvm_* never include each other ----
@@ -41,6 +64,7 @@ hits="$(grep -rlE '#include "\.\./(codegen|semantic|parser)' "$SRC/runtime" 2>/d
 bad="$(grep -rho '#include "../semantic/[^"]*"' "$SRC/parser" \
     | sort -u \
     | grep -v '"../semantic/diag_codes.h"' \
+    | grep -Fv '"../semantic/callable_contract_vocabulary.h"' \
     | grep -v '"../semantic/type_system.h"' || true)"
 [ -z "$bad" ] || fail "parser -> semantic crossing outside registered faces: $bad"
 
@@ -53,12 +77,7 @@ bad="$(grep -rho '#include "../semantic/[^"]*"' "$SRC/codegen" \
 [ -z "$bad" ] || fail "codegen -> semantic crossing outside registered faces: $bad"
 
 # --- runtime twin border -----------------------------------------------------
-hits="$(grep -l 'authority_file_core' "$SRC/runtime/pgy_runtime.h" \
-    "$SRC/runtime/"*inline*.h 2>/dev/null || true)"
-[ -z "$hits" ] || fail "inline twin chain references the extern twin: $hits"
-if grep -q 'panic_checked_inline' "$SRC/runtime/authority_file_core.h" 2>/dev/null; then
-    fail "extern twin includes the inline twin"
-fi
+check_runtime_twin_include_boundary "$SRC/runtime"
 
 # --- AIR border: codegen must not read verification-only IR -----------------
 # AIR headers live at src/compiler/air*.h (air.h, air_internal.h, ...).
@@ -67,6 +86,7 @@ hits="$(grep -rl '#include "\.\./compiler/air' "$SRC/codegen" 2>/dev/null || tru
 
 # --- registry text stays honest ---------------------------------------------
 grep -Fq "사인된 face" "$DOC" || fail "docs/154 lost the registered-face table"
+grep -Fq '`callable_contract_vocabulary.h`' "$DOC" || fail "docs/154 lost the callable vocabulary face"
 grep -Fq "B-2" "$DOC" || fail "docs/154 lost the rung ladder"
 
 echo "[border-registry] all crossings registered (backend/stage/twin/AIR faces clean)"

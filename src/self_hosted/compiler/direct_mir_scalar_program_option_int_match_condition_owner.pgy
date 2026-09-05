@@ -14,6 +14,7 @@ func DirectMirScalarProgramOptionIntMatchConditionFromInstruction(
     ref instruction: JsonObjectFactTable, expression_row: Int,
     global_row: Int, local_offset: Int,
     ref signature: DirectMirRoutineSignatureFact,
+    ref index: MirRoutineFactIndex,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref option_int_abi: DirectMirOptionMatchAbiFact
 ) -> DirectMirScalarProgramExpressionSet {
@@ -46,18 +47,21 @@ func DirectMirScalarProgramOptionIntMatchConditionFromInstruction(
     if match_fact.variant == "Some" {
         if match_fact.binding_count != 1 ||
             match_fact.binding_type_count != 1 ||
-            match_fact.binding_type != CompilerAbiLayoutIntTypeName() ||
+            match_fact.binding_types[0] != CompilerAbiLayoutIntTypeName() ||
             match_fact.pattern != Concat(match_fact.variant, Concat(
-                "(", Concat(match_fact.binding, ")"))) {
+                "(", Concat(match_fact.bindings[0], ")"))) {
             return invalid;
         }
+        let source_row: Int = MirMatchBindingSourceRowAtOrigin(
+            index.match_binding_origins, global_row, 0);
         let identity: String = SelfMirLocalRef(
-            "destructure", signature.source_syntax_id, global_row);
+            "destructure", signature.source_syntax_id, source_row);
         binding_local = DirectMirScalarCfgLocalIdentityRow(
             locals.local_ref_value_ids, identity);
         if binding_local < 0 ||
             binding_local >= ArrayLength(locals.local_names) ||
-            locals.local_names[binding_local] != match_fact.binding ||
+            locals.local_names[binding_local] != match_fact.bindings[0] ||
+            locals.local_ref_syntax_ids[binding_local] != source_row ||
             locals.local_ref_kinds[binding_local] !=
                 DirectMirScalarCfgLocalRefMatchBinding() {
             return invalid;

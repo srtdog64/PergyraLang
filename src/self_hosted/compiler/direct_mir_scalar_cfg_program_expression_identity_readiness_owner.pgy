@@ -9,6 +9,35 @@ import "direct_mir_scalar_program_array_string_literal_parameter_carriage_owner.
 import "direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy";
 func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarCfgGraphPlan, ref facts: DirectMirScalarProgramExpressionSet, node: Int, routine: Int, graph_start: Int) -> Bool {
     let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprPayloadEnumMatch() {
+        let left: Int = facts.node_lefts[node];
+        if left < graph_start || left >= node { return false; }
+        let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(
+            plan.program.referenced_enum, facts.node_types[left]);
+        let ordinal: Int = facts.node_member_ordinals[node];
+        if enum_row < 0 || ordinal < 0 || ordinal >=
+                plan.program.referenced_enum.variant_counts[enum_row] { return false; }
+        let variant: Int = plan.program.referenced_enum.variant_starts[enum_row] + ordinal;
+        let arity: Int = plan.program.referenced_enum.variant_param_counts[variant];
+        let binding: Int = facts.node_local_rows[node];
+        if arity == 0 { return binding == -1; }
+        let start: Int = plan.routines.local_starts[routine];
+        let end: Int = start + plan.routines.local_counts[routine];
+        if binding < start || arity < 0 || binding > end - arity { return false; }
+        let parameter: Int = 0;
+        while parameter < arity {
+            let local_row: Int = binding + parameter;
+            if plan.local_ref_kinds[local_row] != DirectMirScalarCfgLocalRefMatchBinding() ||
+                plan.local_types[local_row] != plan.program.referenced_enum.variant_param_types[
+                    plan.program.referenced_enum.variant_param_type_starts[variant] + parameter] ||
+                plan.local_ref_syntax_ids[local_row] !=
+                    plan.local_ref_syntax_ids[binding] + parameter {
+                return false;
+            }
+            parameter = parameter + 1;
+        }
+        return true;
+    }
     if kind == DirectMirScalarProgramExprLocal() {
         let local_start: Int = plan.routines.local_starts[routine]; let local_end: Int = local_start + plan.routines.local_counts[routine];
         return facts.node_local_rows[node] >= local_start && facts.node_local_rows[node] < local_end &&

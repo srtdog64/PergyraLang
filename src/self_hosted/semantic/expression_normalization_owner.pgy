@@ -39,25 +39,28 @@ func SemanticTrimSourceReuse(expr: String) -> String {
 func SemanticStripOuterParens(expr: String) -> String {
     let text: String = SemanticTrimSourceReuse(expr);
     let keep_scanning: Bool = true;
-    while keep_scanning && StringLength(text) >= 2 &&
-        SourceByteAt(text, StringLength(text), 0) == SourceByteOf("(") {
+    while keep_scanning && StringLength(text) >= 2 {
+        let open: Int = SkipWhitespaceAndComments(text, 0);
+        if SourceByteAt(text, StringLength(text), open) != SourceByteOf("(") {
+            break;
+        }
         let depth: Int = 0;
         let close: Int = -1;
-        let i: Int = 0;
+        let i: Int = open;
         while i < StringLength(text) && close < 0 {
             let c: Int = SourceByteAt(text, StringLength(text), i);
             if c == SourceByteOf("\"") {
-                i = i + 1;
-                while i < StringLength(text) &&
-                    SourceByteAt(text, StringLength(text), i) !=
-                        SourceByteOf("\"") {
-                    if SourceByteAt(text, StringLength(text), i) ==
-                        SourceByteOf("\\") {
-                        i = i + 1;
-                    }
-                    i = i + 1;
-                }
-                i = i + 1;
+                i = SkipQuotedString(text, i, StringLength(text));
+                continue;
+            }
+            if c == SourceByteOf("/") &&
+                SourceByteAt(text, StringLength(text), i + 1) == SourceByteOf("/") {
+                i = SkipLineComment(text, i, StringLength(text));
+                continue;
+            }
+            if c == SourceByteOf("/") &&
+                SourceByteAt(text, StringLength(text), i + 1) == SourceByteOf("*") {
+                i = SkipBlockComment(text, i, StringLength(text));
                 continue;
             }
             if c == SourceByteOf("(") {
@@ -70,11 +73,12 @@ func SemanticStripOuterParens(expr: String) -> String {
             }
             i = i + 1;
         }
-        if close != StringLength(text) - 1 {
+        if close < 0 ||
+            SkipWhitespaceAndComments(text, close + 1) != StringLength(text) {
             keep_scanning = false;
         } else {
-            let inner_start: Int = 1;
-            let inner_end: Int = StringLength(text) - 1;
+            let inner_start: Int = open + 1;
+            let inner_end: Int = close;
             while inner_start < inner_end && SourceByteIsWhitespace(
                 SourceByteAt(text, StringLength(text), inner_start)
             ) {

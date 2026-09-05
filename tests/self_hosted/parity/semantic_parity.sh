@@ -13,6 +13,7 @@ if ! command -v dirname >/dev/null 2>&1 \
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+bash "$ROOT_DIR/tests/self_hosted/parity/semantic_fixture_frontier_owner.sh"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
@@ -32,6 +33,8 @@ if [[ ! -x "$PGY" ]]; then
     echo "[self-host-parity:semantic] missing compiler binary: $PGY" >&2
     exit 1
 fi
+
+PGY_BIN="$PGY" bash "$ROOT_DIR/tests/self_hosted/parity/semantic_index_mutation_owner.sh"
 
 PGY_EXPECTS_WINDOWS_PATHS=0
 if pgy_binary_expects_windows_paths "$PGY"; then
@@ -66,6 +69,18 @@ DIAGNOSTIC_RENDERER_OWNER=""
 SEMANTIC_SOURCE_DIR=""
 
 SOURCE_PAIRS=()
+
+check_semantic_fixture_frontier() {
+    local frontier="$1"
+    if [[ ! "$frontier" =~ ^[1-9][0-9]*$ ]]; then
+        echo "[self-host-parity:semantic] malformed owner fixture frontier: $frontier" >&2
+        return 1
+    fi
+    if [[ "${#SOURCE_PAIRS[@]}" != "$frontier" ]]; then
+        echo "[self-host-parity:semantic] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != owner $frontier" >&2
+        return 1
+    fi
+}
 
 compare_semantic_verdict_with_owner() {
     local backend="$1"
@@ -217,18 +232,29 @@ compile_semantic_backend() {
     local native_subject=""
     [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
     echo "[self-host-parity:semantic] compiling semantic backend=$backend..."
-    (cd "$ROOT_DIR" && "$PGY" \
+    if ! (cd "$ROOT_DIR" && "$PGY" \
         "$PERGYRA_TOOL_ARG" \
         --backend="$backend" $native_subject \
-        -o "$(semantic_compiler_path "$tool_bin")" >/dev/null)
+        -o "$(semantic_compiler_path "$tool_bin")" >"$tool_bin.compile.out"); then
+        cat "$tool_bin.compile.out" >&2
+        return 1
+    fi
 }
 
 read_semantic_fixture_manifest() {
     local manifest_bin="$PERGYRA_TOOL_BUILD_DIR/main_manifest.exe"
     local line
+    local frontier_count
 
     compile_semantic_backend c "$manifest_bin"
     SEMANTIC_OWNER_BIN="$manifest_bin"
+    # The Pergyra diagnostic owner owns the declared fixture frontier. Import
+    # support modules are not verdict fixtures; do not recover it by file count.
+    if ! frontier_count="$(cd "$ROOT_DIR" && "$manifest_bin" --fixture-frontier-count)"; then
+        echo "[self-host-parity:semantic] fixture frontier emission failed" >&2
+        exit 1
+    fi
+    frontier_count="${frontier_count%$'\r'}"
     if ! (cd "$ROOT_DIR" && "$manifest_bin" --fixture-manifest >"$SEMANTIC_FIXTURE_MANIFEST_FILE"); then
         echo "[self-host-parity:semantic] fixture manifest emission failed" >&2
         exit 1
@@ -271,10 +297,7 @@ read_semantic_fixture_manifest() {
         SOURCE_PAIRS+=("$line")
     done <"$SEMANTIC_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#SOURCE_PAIRS[@]}" -ne 114 ]]; then
-        echo "[self-host-parity:semantic] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 114" >&2
-        exit 1
-    fi
+    check_semantic_fixture_frontier "$frontier_count"
 }
 
 run_semantic_backend() {
@@ -367,8 +390,13 @@ done
 
 BACKENDS="${PGY_SELFHOST_SEMANTIC_BACKENDS:-c llvm}"
 for backend in $BACKENDS; do
-    tool_bin="$PERGYRA_TOOL_BUILD_DIR/main_${backend}.exe"
-    compile_semantic_backend "$backend" "$tool_bin"
+    if [[ "$backend" == c ]]; then
+        tool_bin="$SEMANTIC_OWNER_BIN"
+        echo "[self-host-parity:semantic] reusing the C manifest-owner executable for verdicts"
+    else
+        tool_bin="$PERGYRA_TOOL_BUILD_DIR/main_${backend}.exe"
+        compile_semantic_backend "$backend" "$tool_bin"
+    fi
     run_semantic_backend "$backend" "$tool_bin"
 done
 

@@ -6,7 +6,403 @@ This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
-## ACTIVE publication lease — source payload-enum active-variant proof
+## ACTIVE implementation lease — mixed-arity tagged-enum callable projection
+
+### Reached bootstrap comparison objective
+
+- Objective: avoid materializing two normalized copies of already identical
+  full-source MIR, the exact operation that exhausted D: in bootstrap `29499`.
+- Priority: unchanged parity semantics and the Pergyra verdict owner, explicit
+  input/normalization failure, then bounded disk/memory use. Raw byte identity
+  may select input transport only; it must never return parity success itself.
+- Owners: `pgy_selfhost_normalize_text_artifact` retains provenance/CR/trailing-
+  empty-line normalization; the Pergyra backend-output comparator retains the
+  final artifact-kind, projection and line-comparison verdict. The existing
+  file-comparison function owns whether materialization is necessary.
+- Last consumer: unchanged `driver_bootstrap.sh` file-pair comparisons, including
+  the full-MIR producer and gen2/gen3 fixed-point checks.
+- Forbidden paths: shell-only green, native retry, new normalization tolerance,
+  guessed success after I/O failure, fixture-name routing, a compiler cache,
+  or deletion of existing large artifacts without the pending authorization.
+- Edit scope: the existing file-comparison function and explicit normalization
+  preparation failure guards in `llvm_leg_helpers.sh`, its focused
+  transport/negative gate, the existing comparator parity parent, the reached
+  component cmp-placement ratchet and its mechanics tests, and navigation/
+  evidence docs. No compiler source/installed driver changes.
+- Gate: observe identical-input copy creation on the old function, then retain
+  the real Pergyra comparator on identical/nonidentical and refusal cases.
+  Finally compare the existing 285,190,841-byte MIR pair once through that same
+  function, proving zero normalized copies without rebuilding/re-emitting MIR.
+
+Execution status: user-authorized integration ACTIVE. The explicit 2026-09-05
+request grants primary integration of other-session changes and publication
+of the reviewed work, followed by exact-revision CI. Previous approval-only
+blocking is historical. Primary reviews/stages by responsibility and excludes
+generated compiler outputs from source publication; no indiscriminate add-all
+or artifact deletion is implied. No second compiler implementation rung opens.
+
+Two bounded review scopes are recorded in
+`docs/agent_work_directives/integrated_publication_review_2026-09-05.md`.
+Agents own only their separate reports; primary owns all integration edits,
+Git operations and CI dispatch. The app's current task inventory showed no
+other active PergyraLang task in its returned recent set.
+
+Reached bootstrap transport remains locally VERIFIED, publication pending.
+HEAD remains `b4d22cf2`; no compiler source or installed binary changed
+in this slice. Old identical-input materialization was RED (`run.FEbn0y`).
+Final transport gate independently PASS (22 cases, `run.MbqSpI`); the existing
+C/LLVM comparator parent PASS (`15801`, `transport-integration.F7bbEG`). The
+same function accepted the preserved full-MIR pair in `full-mir.cee6AL`, with
+zero normalized copies and both input hashes unchanged. About 544 MiB of new
+copies were avoided, not reclaimed. A full bootstrap was not rerun.
+
+The component inventory's blanket cmp ban was observed RED and narrowed to
+the named transport function, with six focused checker-mechanics refusals.
+Independent mechanics PASS; complete component integration `59600` PASS in
+188 seconds. The 60-second latency target remains unmet. Both bounded review
+lanes are AUDIT COMPLETE under
+`docs/agent_work_directives/bootstrap_artifact_comparison_review_2026-09-05.md`.
+They changed only their reports; primary integrated source, gates and evidence.
+Primary retains the single enum/receiver publication lease. No SoT status or
+substitution count is advanced by this harness correction.
+
+The preceding native integration followed another task's published await/SEA
+change. Local main and origin/main match; regular CI `33949336474` was SUCCESS,
+but the exact-commit query returned no Platform full run. Neither result covers
+this task's unpublished dirty implementation. The resumed goal made concrete
+local integration progress. The latest explicit user request now resolves
+publication authority; automatic goal continuation alone did not grant it.
+
+The Makefile linked isolated native `2E0468AA` (4,675,871 bytes) under
+`.tmp/native_await_integration_20260905/`, reusing current objects and leaving
+shared native `0F9F4F30` and installed self-driver `7928ED6B` unchanged.
+SEA lane golden PASS (8 boundaries), full JSON diagnostics `53469` PASS, and
+native/self receiver canonicalization/refusals `run.8vND9C` PASS. Receipt
+revalidation `71072` confirms the unchanged Pergyra graph still binds the
+installed fixed-point driver. No bootstrap rerun or remote dirty-tree verdict
+is inferred. Normal sandbox exec/file-connector failures were tool availability
+issues; approved exec read/build/test calls succeeded.
+
+Publication is now authorized, with about 88 MiB free at integration start.
+No existing artifact deletion is needed for the scoped commit. Original MIR,
+normalized duplicates and receipt inputs remain untouched. Other-task parser/SEA-golden
+paths are committed now and excluded from this task's dirty publication scope.
+The index remains empty.
+
+The preceding explicit subagent request completed two bounded review lanes under
+`docs/agent_work_directives/ci_semantic_integration_review_2026-09-05.md`:
+semantic indexed-write ownership/negative cases and reached CI assertions.
+Agents write only their separate audit reports. Primary retains all compiler,
+gate integration, build, and navigation edits; no parallel implementation rung
+or publication authority is delegated.
+
+Current execution step is completed current-source bootstrap and installation,
+not a live build. Primary's Pergyra-seed candidate `27082FE0` (`25867`) passed
+receiver and tagged-enum/mixed-arity 10/33 gates (`11551`). Original bootstrap
+`29499` then exited 2 while copying full MIR for normalization (`No space left
+on device`). Both complete 285,190,841-byte MIR artifacts are identical
+`9C254AF4...CA4A008`; the existing Pergyra comparator accepted the originals
+directly. Continuation `98439` pinned source/runtime/seed/full and bounded MIR,
+started only at canonical `gen2_emit`, and completed with exit 0. Gen2/gen3 C
+are identical `09C337AB` (11,831,156 bytes); the existing receipt owner validated
+release gen2 `7928ED6B` against current source graph `4eb52dba...1a54534`.
+This is composed/resumed fixed-point evidence, not a PASS for `29499`.
+
+Isolated receipt-bound installation `34504` and receiver/enum gate `21616`
+passed. Primary hash-verified and backed up installed `D0BD8E17` and its manifest
+under `.tmp/self_hosted/compiler/enum_receiver_fixed_point_20260905/` as
+`previous-installed-D0BD8E17.*`, then the existing installer adopted `7928ED6B`
+into `bin/pgy-self-driver.exe` (`71986`, exit 0). Installed regression `80192`
+passed receiver, tagged-enum/mixed-arity 10/33, Option match and source
+active-variant 5/21. Adjacent payload match-binding C/LLVM parity and negatives
+also printed terminal PASS in a fresh bounded rerun after the earlier tool
+result was not observed. Native `0F9F4F30`, manifest `0A83B0DB` and isolated
+`5F317A7C` are unchanged. No integration runner remains active.
+Final installed/current-source receipt revalidation `53633`, documentation
+quality, scoped UTF-8/whitespace, SoT edge and keyword registry all pass.
+The SoT census remains 88/185, CLOSED=55 BRIDGE=32 ACTIVE=1.
+
+Follow-up integration review made bounded verification progress: installed
+role-operator wrapper `41232` passed exact C/LLVM `123`, six metamorphic cases,
+27 negative inputs on both targets and the receiver child (`run.G7zIXQ`).
+Artifacts are under `driver/role_operator_installed_20260905/`. CI profile
+`34620` passed, and the new focused tests were traced into their existing
+parent gates. No compiler source or installed binary changed in this review.
+
+D: has about 95 MiB free. No broad cleanup, relocation or disk allowance
+increase was performed; another large producer/normalization shard requires
+resolving storage scope first. Primary retains the scoped dirty-tree integration
+review and authorized exact-revision publication/CI boundary. No commit, push
+or new remote CI result is claimed. No source edit, second implementation rung,
+or agent implementation was opened during this bootstrap/installation step.
+The earlier duplicate-MIR deletion request is not part of this publication;
+the inputs remain preserved. Publication follows the user's explicit request,
+not an authorization inferred from automatic goal continuation.
+
+The user additionally requested machine-layer documentation and subagent
+verification. Two independent read-only source reviews are AUDIT COMPLETE in
+`docs/agent_work_directives/machine_layer_documentation_review_2026-09-05.md`.
+They edited only their separate audit reports; primary integrated both READMEs,
+the Intent ownership explanation and the existing machine-layer overview.
+Documentation quality, native machine pipeline and rebuilt manifest-probe gates
+PASS; Rocq was not on the configured PATH, so no proof rerun is claimed.
+The documentation-only border run initially failed at the already-committed
+parser vocabulary include. The later reached CI integration registered that
+exact existing face and repaired the runtime-twin checker; the full border gate
+now passes. This later repair remains distinct from the documentation scope.
+This did not open a second compiler implementation lane or transfer the
+enum/receiver lease. Compiler binaries were not changed by documentation work.
+
+The user separately reopened a bounded language-axis audit. Its three
+independent report/test scopes are declared, and now AUDIT COMPLETE, in
+`docs/agent_work_directives/intent_and_language_axes_semantic_audit_2026-09-05.md`.
+Those agents did not edit this implementation rung, semantic owners, or shared
+integration files. Primary integration is recorded in
+`docs/audits/2026-09-05_language_axes_semantic_integration.md`: four supported
+regression lanes PASS; separate source-admission gate RED (9/9 unmet claims).
+Primary owns the audit integration, canonical Intent wording corrections, and
+generated keyword occurrence inventory refresh. No parallel source fix is open.
+The later user-requested static-identity definition is now in both READMEs and
+docs/01, with docs/173 clarification and a documentation wording guard. This is
+definition/ownership documentation, not an Intent implementation lease.
+
+- Discovery base: `bf8b33d078b27c41cc6cdb7ffed2e8fa5c62ef22`, remotely green in
+  run `33922587191` (30/30). The primary task owns the reached direct-MIR
+  enum projection, its installed integration gate, and the active handoff.
+- Objective and priority: preserve declaration identity and exact arity/types
+  across zero-, one-, and two-payload variants, then carry scoped match
+  bindings through one GraphPlan before C/LLVM projection. The existing
+  `DirectMirScalarProgramReferencedEnumFact` owns variant/payload facts;
+  GraphPlan admission is their last semantic consumer. No second inventory,
+  source-text recovery, backend-local semantics, or native retry is allowed.
+- Integration input is the existing
+  `tests/cases/backend_compare/enum_match_payload_basic/main.pgy`, whose native
+  C output is `75`, `12`, `0`. Discovery's installed source-LLVM failed at the
+  zero-payload `Empty` constructor (`leaf-operand`, row 10, node 0). Current
+  installed public source and direct-MIR C/LLVM execute this input correctly;
+  integration/bootstrap evidence is still required before publication closure.
+- Local delta: declaration arities, ordered binding types and instruction/ordinal
+  origins now reach scoped local identities and both target projections. The
+  final callable validator consumes the referenced-enum owner, not its old
+  payload-free subset. Isolated candidate `B88813B7` passed ten positive
+  general/source/direct C/LLVM execution legs and nine negative C/LLVM pairs.
+  `cross-arm-binding-use` still passed direct C admission; it was not executed.
+  The reached scope correction checks true-arm dominance even for a unique
+  name or explicit LocalRef candidate and forbids name recovery after required
+  wire failure. Candidate `83BAB404` passes the integration wrapper, including
+  mixed `String, Int` payloads and 11 general/C/LLVM mutation triples. Adjacent
+  logical-record and Option match gates pass. The final native-parser variable
+  correction is included in installed release/O3 driver `182738CF` (6,719,467
+  bytes), built using the normal compiler/bootstrap directory. Primary owns
+  this installed binary swap;
+  its prior binary/manifest are preserved as `previous-installed-FB37EA36.*`
+  in the isolated directory. Installed public/direct/general parity, all 33
+  owned diagnostic refusals, logical-record/Option match and source active-
+  variant 5/21 gates pass. Full source-MIR producer parity and resumed
+  `gen2 == gen3` fixed point now pass. Original session `13894` disappeared
+  after gen2 build/preflight with no live child and no observed terminal code.
+  The bounded continuation pinned the completed artifacts and unchanged
+  source/runtime graph, used the same full MIR, and validated the canonical
+  fixed-point receipt; it did not restart the seed. Receipt-bound gen2 binary
+  `D0BD8E17` passed an isolated installed public gate and became the production
+  installation at that checkpoint (now superseded by `7928ED6B`). Primary owned
+  that swap; `182738CF` and its
+  manifest are preserved under `compiler/fixed_point_20260905/`. Installed
+  tagged-enum integration and mixed-arity 10/33, logical-record/Option match,
+  and source active-variant 5/21 pass. Full component inventory now passes
+  after the checker integration below; its 60-second latency target remains
+  unmet. The whole compiler-world contract passes with the
+  focused 300-second budget appropriate to its TestHarness build/execution
+  and world AST production; its earlier 60-second attempt was misclassified
+  as static-only. SoT, keyword, documentation,
+  source-scan and hard self-host gates pass with unchanged census/status.
+- Edit scope: reached Pergyra enum/GraphPlan owners, a focused parity gate and
+  its existing integration wrapper, and these navigation/progress documents.
+  Other-session native/compiler/parser/runtime/Makefile work and all protected
+  user paths remain outside this lease. No parallel implementation track is
+  opened. Static gates use the 60-second budget, focused execution five
+  minutes. Component-checker process-launch reduction is implemented as
+  bounded per-run batching/reuse, not a compiler cache or another compiler
+  implementation lane. A 100-count probe measured awk 4.342 seconds versus
+  builtin read 1.413 seconds on the same 172-line source; only the complete
+  integration observation below owns the actual full-gate verdict.
+
+- Reached verification objective card (current HEAD `f34355b3`): retain the
+  component inventory's complete assertion set while removing repeated shell
+  process launches. Priority is identical missing-file/cap/function-residue
+  rejection, then one-run bounded reuse and elapsed time. Existing cap call
+  sites own each path/limit; the existing function extractor owns the selected
+  source span. The final inventory verdict and require/reject predicates are
+  their last consumers. Batch line-count requests and reuse only an adjacent
+  identical function selection; do not alter compiler sources, cap values as
+  a performance shortcut,
+  extraction rules, or allow missing inputs. Verify checker edge cases first,
+  then the unchanged full inventory under 60 seconds. This is integration work
+  on the enum lease, not a successor compiler implementation rung.
+
+- The complete integration observation (session `51375`) terminated with exit 1
+  after 202.005 seconds, at the shared expression-admission cap (516/490).
+  This is a real assertion failure, not another observation timeout. Inspection
+  found three stale shared caps for the reached enum delta: admission 516/490,
+  scoped match operand 111/90 and expression identity readiness 109/80. Their
+  existing responsibilities are unchanged: zero constructors/formal identity,
+  true-arm dominance and exact routine/local origins respectively. Review sets
+  their shared limits to 520/115/110, below the general 600-line owner ceiling;
+  no compiler split, fallback or semantic assertion removal is authorized.
+  The focused identity gate additionally found its stale leaf cap 52/50;
+  the existing component cap 55 now resides in the shared table. Four scalar
+  consumers derive their caps there instead of maintaining a second numeric
+  list. Focused tests exercise actual missing/duplicate/malformed/tighter-cap
+  refusal. They and the full expression-identity gate pass.
+- Complete integration session `22863` is terminal PASS, exit 0 in 161.278
+  seconds: 2,331 cap requests, 970 function extractions, 674 adjacent reuses.
+  Full functional validation and the still-unmet 60-second latency target are
+  separate verdicts. Compiler source and installed `D0BD8E17` binary/manifest
+  were not changed by the checker repair. Current `main` and remote `main`
+  are `f34355b3`, with an empty index; this lease is still uncommitted.
+  Regular CI `33937067537` passes; Platform full `33937079231` fails seven jobs.
+  Its receiver canonicalization failure is reproduced on the installed driver
+  (`role_operator_dispatch`, node 8, `receiver_source_parameter_shape`). The
+  precise MIR-to-AST parameter producer is the next integration investigation;
+  no source receiver rule has been relaxed. Other observed CI failures are
+  diagnostic-count drift, Windows `git` absence, and semantic count 115/114.
+  These are not parallel implementation assignments; the local dependency
+  repair is recorded below.
+
+- Reached CI dependency repair: `platform-full-windows` must install `git`
+  inside its MSYS2 environment because the platform contract runs Git-based
+  scope tests. The job's package list owns availability; the profile gate is
+  its last verification consumer. Do not depend on host PATH leakage, skip the
+  Git test or weaken its assertions. Observe the new dependency assertion fail
+  on the current workflow, then add the package and run the complete profile
+  gate within 60 seconds. This changes CI wiring only, not the compiler rung.
+  Result: the new assertion failed on the old package list, then the complete
+  profile passed after the `git` addition (session `15162`, exit 0). The change
+  is local/unpublished; the recorded remote Windows job is still failed.
+- Fresh canonicalization evidence in `.tmp/self_hosted/role_receiver.qd9CyD/`
+  pins native `0F9F4F30` and installed `D0BD8E17`. Native MIR production has
+  0 errors/0 warnings, then oracle canonicalization reproduces the receiver
+  refusal. Self source MIR production exits 0, but self canonicalization has
+  a distinct missing/invalid expression-graph refusal. Both are diagnostic
+  stdout, not canonical MIR. The common cause is unproven; the first tracing
+  boundary remains the receiver's MIR-to-AST producer. Documentation, SoT
+  (88/185, 55/32/1) and keyword gates pass without a status/percentage promotion.
+
+- Receiver canonicalization objective card: preserve the admitted parameter's
+  explicit type or type absence through MIR-to-AST reconstruction. The reached
+  old path is `EmitRoleImplBlocks(for_type) -> routine self_type -> ptype =
+  self_type`; it invents a typed source receiver rejected by the signature
+  owner. Priority is receiver/declaration identity and source shape, then
+  target ABI and unchanged behavior. `MirRoutineHeaderFacts.param_types` owns
+  this projection input; `SemanticAstFunctionSignatureFactsFromArtifact` is
+  the last source-shape consumer. Remove the role-target-to-parameter override
+  and its now-unused arguments; do not relax the untyped/first receiver rule,
+  substitute a fixture name, or reconstruct another type from role text.
+  Edit scope is the existing routine/declaration tree emitters and focused
+  canonicalization/receiver gates. Verify fresh native and self MIR round trips,
+  exact role execution, typed/late receiver refusal, then the installed enum
+  integration. Build an isolated Pergyra-seed candidate before any installation;
+  the current installed fixed-point driver remains unchanged during this edit.
+  Result before the machine-layer documentation request: candidate `5F317A7C`
+  was built by the Pergyra seed (session `33887`, exit 0); both canonical routes,
+  exact `123` execution and typed/late receiver refusals PASS. Role-operator,
+  role-override and canonical identity-epoch gates also PASS. Its companion
+  installation is isolated under `compiler/role_receiver_20260905/`.
+  Installed `D0BD8E17` was unchanged at that checkpoint, and its earlier receipt
+  did not certify the changed graph. The later candidate regression, current-
+  graph fixed point and installation are recorded above; publication is pending.
+
+- Receiver-candidate checkpoint: isolated `5F317A7C` passed the enum
+  10-positive/33-negative gate at `run.aqYYuk`; the installed driver was still
+  `D0BD8E17` then. The preceding documentation turn was progress,
+  not a verified wait or a no-progress turn.
+- Reached semantic-parity manifest objective card: remove the shell's stale
+  `114` authority while retaining the existing declared fixture frontier.
+  `SemanticVerdictPayloadFixtureFrontierCount` already owns `115`; the source
+  tree has 115 verdict fixtures plus one import-support module, so a recursive
+  file count is not its substitute. Priority is the Pergyra-owned frontier,
+  exact parsed-manifest count, explicit malformed/missing-output rejection,
+  then patch size. The semantic tool CLI transports that existing value and
+  `semantic_parity.sh` is its last orchestration consumer. No source-text
+  extraction, new numeric fallback, relaxed fixture count, or new fixture
+  inventory is allowed. Scope is the existing test-tool CLI, parity consumer
+  and a focused transport/negative gate; compiler semantic policy is unchanged.
+  Integration gate: semantic parity with the Pergyra-built tool, first C then
+  the existing LLVM leg, within the five-minute focused budget.
+- Reached JSON diagnostic objective card: the exact native fixture reports
+  both Intent control-transfer rejection and an unowned spawn handle at 11:13.
+  The two existing semantic owners in `type_checker_intent_control.c` and
+  `type_checker_future_lifecycle.c` own those independent diagnostics. The JSON
+  test is the last schema consumer. Preserve both exact codes, layers, hints,
+  source location and nonzero rejection; do not suppress either diagnostic or
+  accept an arbitrary nonempty error list. Baseline session `59166` reproduced
+  the stale one-diagnostic assertion. Only that test expectation changes.
+- Reached border-registry objective card: register the already-established
+  parser consumer of the callable-contract vocabulary, not a new semantic
+  dependency. `docs/semantics/callable_contract_vocabulary.md` explicitly
+  assigns clause membership and canonical spelling to the `.def` owner;
+  `parser_decl_clause.c` and `ast_print.c` consume its public header for those
+  facts. Priority is one vocabulary, exact registered include face, then the
+  existing unknown-face rejection. Add only that header to docs/154 and its
+  executable registry; no wildcard face, parser-local table, header relocation
+  or semantic implementation change. Verify the complete border gate and the
+  existing callable-vocabulary parity/negative gate within focused budgets.
+  The next baseline failure is a comment-only twin filename reference, and
+  the reverse test silently queried the obsolete `authority_file_core.h`.
+  Runtime files stay unchanged: the actual include predicate now owns strict
+  input existence and rejects real cross-includes; its negative self-test
+  distinguishes comments and both missing-input directions. This repairs the
+  reached checker rather than deleting an explanatory runtime comment.
+- Reached semantic-tool indexed-assignment objective card: production candidate
+  `5F317A7C` rejects `bad_value_param_array_index_assign` with the exact existing
+  `value_param_collection_mutation` receipt, while the separately compiled
+  semantic tool reports `Status: ok`. `CheckBody` recognizes only bare-name
+  assignment and skips the indexed form. Preserve the current parameter-mode
+  environment and delegate the verdict to `SemanticCollectionMutationError`,
+  the same owner used by typed AST assignment. The existing top-level operator
+  fact owner supplies the assignment position; do not add a body-local mode
+  table, fixture-name branch, or a second bracket/operator scan. Comments and
+  `==` are not assignment evidence. Verify rejected default-parameter index
+  writes and accepted reads/comparisons/inout/local shadowing before rerunning
+  semantic parity. This is the reached CI tool consumer, not a new semantic
+  policy or a new hard-substitution percentage.
+
+- Agent integration narrowed the same target-normalization consumer: a grouped
+  receiver first reproduced a focused RED, then the shared operator positions
+  and existing parenthesis normalizer restored its binding identity. The
+  follow-up `(xs /* ) */)[0]` and `(xs) /* gap */ [0]` both produced `Status: ok`
+  in the freshly compiled semantic tool, so this was not only a source guess.
+  `SemanticStripOuterParens` owns whole-expression grouping; its scan must use
+  the existing string/comment skipper and permit trailing trivia only, never
+  remove partial grouping in `(xs) + 2`. Primary owns this reached correction
+  and its controls. Nested assignment expressions remain outside this bounded
+  top-level statement repair. The first complete parity invocation (session
+  `54964`) passed 115 C and 115 LLVM verdicts before this final trivia change;
+  current-source parity must be rerun, not inferred from that earlier result.
+
+- The two latest agent audits are complete. Primary reproduced and closed the
+  exact canonical-inline-missing checker case; the agent independently reran
+  all six mechanics cases. Primary also corrected comment-aware whole-expression
+  grouping through the existing text-scan owner; focused `run.QZi11k` passes and
+  the source reviewer found no further blocking issue in this bounded slice.
+  Current-source session `63651` passed C 115 and built LLVM, but reached the
+  300-second limit (exit 124) before completing LLVM verdicts. With no compiler
+  child remaining, continuation `23707` pinned both binaries, comparator and
+  actual gate, reused its consumers, and passed LLVM 115 plus both comment
+  refusals in both binaries. Source graph stayed `4eb52dba...1a54534` before/after.
+  This is resumed verification, not a PASS for the timed-out invocation.
+  Complete component inventory `12826` passed in 252.418 seconds with 2,331
+  cap requests, 972 extractions and 674 reuses; the 60-second target stays unmet.
+  Native/installed/candidate binary hashes are unchanged. The source-scan record
+  separates the changed operator hash from retained historical measurements.
+  Normalization, source-scan, documentation, regenerated keyword and full border
+  gates pass. SoT remains 88/185, CLOSED=55 BRIDGE=32 ACTIVE=1. No build/test
+  runner from this session remains active. Primary's next step is an isolated
+  current-source driver build and receiver/enum production regression before
+  current-graph fixed-point/installation evidence. No index, publication, remote
+  CI or progress-status change occurred.
+
+## DONE publication lease — source payload-enum active-variant proof
 
 - Exact executable checkpoint is
   `506c25272637203ee6bb8a0f6b9462d2a6f226fd`, repairing published checkpoint
@@ -88,8 +484,9 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
   end of the preparation contract. Evidence checkpoint
   `63bed984af9f1b5324dc505b45fcebf6920697f7` updates only exact current hashes,
   retains the historical performance observations as unremeasured, and passes
-  `tests/self_host_source_scan_owner_smoke.sh` locally. Replacement exact-head
-  CI remains publication work.
+  `tests/self_host_source_scan_owner_smoke.sh` locally. Publication checkpoint
+  `bf8b33d0` then completed exact run `33922587191`, 30/30 green in 33m20s,
+  closing this lease.
 
 ## DONE implementation lease — direct-MIR tagged-enum payload program
 

@@ -13,12 +13,25 @@ func DirectMirScalarProgramLeafIdentityFactFromOwners(
     bound_locals: Array<Int>,
     text: String,
     binding_kind: Int,
+    binding_syntax_id: Int,
     binding_ordinal: Int,
-    parameter_count: Int
+    parameter_names: Array<String>,
+    parameter_syntax_ids: Array<Int>
 ) -> DirectMirScalarProgramLeafIdentityFact {
+    let parameter_count: Int = ArrayLength(parameter_names);
     if ArrayLength(bound_texts) != ArrayLength(bound_locals) ||
-        parameter_count < 0 {
+        parameter_count != ArrayLength(parameter_syntax_ids) {
         return DirectMirScalarProgramLeafIdentityFact(false, -1, -1);
+    }
+    let parameter_ordinal: Int = -1;
+    if binding_kind == SemanticExpressionBindingFormalParameter() {
+        if binding_ordinal < 0 || binding_ordinal >= parameter_count ||
+            binding_syntax_id <= 0 ||
+            parameter_syntax_ids[binding_ordinal] != binding_syntax_id ||
+            parameter_names[binding_ordinal] != text {
+            return DirectMirScalarProgramLeafIdentityFact(false, -1, -1);
+        }
+        parameter_ordinal = binding_ordinal;
     }
     let bound_local: Int = -1;
     let row: Int = 0;
@@ -32,11 +45,6 @@ func DirectMirScalarProgramLeafIdentityFactFromOwners(
             bound_local = bound_locals[row];
         }
         row = row + 1;
-    }
-    let parameter_ordinal: Int = -1;
-    if binding_kind == SemanticExpressionBindingFormalParameter() &&
-        binding_ordinal >= 0 && binding_ordinal < parameter_count {
-        parameter_ordinal = binding_ordinal;
     }
     return DirectMirScalarProgramLeafIdentityFact(
         true, bound_local, parameter_ordinal

@@ -394,7 +394,7 @@ func EmitRegion(ref index: MirRoutineFactIndex,
 func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int,
-    routine_indent: String, self_type: String, callable_kind: String,
+    routine_indent: String, callable_kind: String,
     contract_rows: String, observe_fact_index: Bool,
     observe_focused_routine: Bool,
     inout expression_order: MirStructuredExpressionEmissionOrder,
@@ -544,9 +544,6 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
             param_prefix = "ref ";
         }
         let rendered_name: String = Concat(param_prefix, pname);
-        if StringLength(ptype) == 0 && pname == "self" && StringLength(self_type) > 0 {
-            ptype = self_type;
-        }
         if StringLength(ptype) > 0 {
             ArrayPush(chunks, Concat(item_pad, Concat(rendered_name, Concat(": ", Concat(ptype, "\n")))));
         } else {
@@ -584,7 +581,7 @@ func EmitRoutineTreeAtRowWithExpressionOrder(
     inout abi_validation: MirAbiLayoutValidationSession
 ) -> String {
     return EmitRoutineTreeWithContractAtRowWithExpressionOrder(
-        routines, routine_row, routine_indent, "", "function", "",
+        routines, routine_row, routine_indent, "function", "",
         observe_fact_index, observe_focused_routine, expression_order,
         abi_validation
     );

@@ -275,13 +275,19 @@ authority/projection uses. That is not yet three materially unrelated cases in
 which the full binder is necessary. The honest verdict is `CONDITIONAL`:
 
 ```text
-Use intent only when one purpose identity must own at least one genuinely
-cross-step obligation (dependency, typed terminal routing, compensation,
-cross-intent conflict, or purpose-bound trace) while binding the relevant
-participant/boundary/authority/effect facts.
+Use intent when one purpose identity must bind a compiler-checked bundle of
+participant/boundary/authority/effect facts and outcome or coordination
+obligations. Exact typed terminal attribution can justify a single step;
+cross-step dependency or compensation is not a necessary condition.
 
 Otherwise use func or action.
 ```
+
+Follow-up correction (2026-09-05): the original wording required a genuinely
+cross-step obligation. The later [executed one-step substitution audit](2026-09-05_intent_graph_semantic_audit.md)
+distinguishes exact admitted terminal payload from same-valued reconstruction
+without a predecessor edge. The wording above reflects that new evidence;
+the original audit did not execute this later experiment.
 
 One action is neither automatic rejection nor automatic acceptance; the test
 is whether removing the binder loses a compiler-checked bundle. Purpose naming

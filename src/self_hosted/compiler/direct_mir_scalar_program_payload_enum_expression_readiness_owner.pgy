@@ -1,4 +1,4 @@
-// Expression-shape and declaration joins for tagged one-payload enums.
+// Expression-shape and declaration joins for tagged payload enums.
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
@@ -14,7 +14,9 @@ func DirectMirScalarProgramPayloadEnumExpressionNodeReady(
                 expressions, node);
         let nary: Bool = DirectMirScalarProgramNaryOperandEntry(
             expressions.nary_operands, node) >= 0;
-        if ArrayLength(arguments) == 0 { return Some(false); }
+        if ArrayLength(arguments) == 0 &&
+            (nary || expressions.node_lefts[node] != -1 ||
+             expressions.node_rights[node] != -1) { return Some(false); }
         if expressions.node_types[node] == "" ||
             (nary && (expressions.node_lefts[node] != -1 ||
                 expressions.node_rights[node] != -1)) ||
@@ -54,7 +56,7 @@ func DirectMirScalarProgramPayloadEnumExpressionNodeReady(
             CompilerAbiLayoutBoolTypeName() && left >= 0 && left < node &&
         expressions.node_types[left] != "" &&
         expressions.node_rights[node] == -1 &&
-        expressions.node_local_rows[node] >= 0 &&
+        expressions.node_local_rows[node] >= -1 &&
         expressions.node_parameter_ordinals[node] == -1 &&
         expressions.node_member_ordinals[node] >= 0 &&
         expressions.node_literals[node] == "" &&
@@ -104,7 +106,9 @@ func DirectMirScalarProgramReferencedEnumReadyForExpressions(
                 return false;
             }
             let variant: Int = fact.variant_starts[enum_row] + ordinal;
-            if fact.variant_param_counts[variant] != 1 {
+            let arity: Int = fact.variant_param_counts[variant];
+            if (arity == 0 && expressions.node_local_rows[node] != -1) ||
+                (arity > 0 && expressions.node_local_rows[node] < 0) {
                 return false;
             }
         } else if kind == DirectMirScalarProgramExprPayloadEnumMember() {

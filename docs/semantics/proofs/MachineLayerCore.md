@@ -14,13 +14,94 @@ hardware-declaration adequacy witness; the live compiler bridge below currently
 targets the abstract `DeviceSlot` runtime contract, not physical MMIO or a
 silicon-specific memory model.
 
-The current bridge does claim the abstract compiler/codegen path from Pergyra
-source through RIR/MIR/AIR to C, LLVM, and self-hosted contact projections. It
-does not yet claim refinement to live board/MMU behavior: the default host-sim
-declaration is not live board/MMU evidence. Non-host target declarations carry a
+The current bridge carries explicit machine facts through RIR/MIR and uses
+separate AIR verification before C, LLVM, and the reached self-hosted contact
+projections. It does not yet claim refinement to live board/MMU behavior:
+the default host-sim declaration is not live board/MMU evidence.
+Non-host target declarations carry a
 required runtime-provider bit through the verified plan; generated
 C/LLVM/self-host startup fails closed
 until an embedder binds the board/MMU provider.
+
+## Public meaning and purpose attribution
+
+**Region is address evidence. Possession of an address does not authorize contact.**
+
+The source-level [Intent identity](../../01_intent_first_design.md) attributes
+facts to a declared purpose. Machine admission answers a different question:
+whether this operation may contact this declared range with the required
+authority, live lease and mode. An Intent neither owns all of those facts nor
+creates their evidence. When an operation belongs to an Intent, purpose
+attribution and machine admission must both retain their existing owners.
+This does not require wrapping every value computation or device call in a new
+Intent, or carrying rich evidence beyond its last legitimate consumer.
+
+Three boundaries must not be conflated:
+
+| Boundary | Current meaning | Not a completion claim |
+| --- | --- | --- |
+| Formal `Grant` / `Region` / `contact_step` | Declared range, derived address evidence, conditional abstract contact transition | Not beta-stable `Grant`/`Region` source syntax or actual MMIO |
+| Live `DeviceSlot<T>` bridge | Five explicit contact families carried through compiler owners | Not every operation in the richer formal `ContactOp` model |
+| Runtime mapping provider | Embedder acceptance of declared base, size and mode | Not an implementation of device loads/stores or proof that silicon matches the declaration |
+
+### Current compiler flow, not an AIR lowering pipeline
+
+The native CPU-family bridge has the following ownership shape. Arrows into
+AIR are verification inputs, not executable lowering outputs:
+
+```text
+source -> HIR/DIR/RIR -> MIR owner facts --------------------------+
+              |             |                                    |
+              +-----------> AIR verification -> certificate       |
+                                                   |             |
+                   MIR + target/manifest owners -> planner        |
+                                                   |             |
+                                              verified plan      |
+                                                   |             |
+                                                   +----> C / LLVM
+                                                              |
+                                                 runtime mapping admission
+                                                              |
+                                                 host-sim device operations
+```
+
+**AIR is verification-only; backends do not lower or read AIR directly.**
+The planner consumes the certificate and owned facts; backends consume MIR
+and derived plan rows. The [machine-neutral contract](../18_machine_neutral_compute.md)
+describes the longer-term projection boundary, not an implemented tensor/NPU
+or dataflow backend. A self-hosted compiler is another consumer, not a third
+hardware target. Reached self-host routes need their own executable evidence;
+native C/LLVM parity alone cannot certify every public self-host entrypoint.
+
+At this checkpoint, `PgyVerifiedProjectionPlanRow` has the Intent observability
+axis and carries the machine manifest fingerprints, selected grant shape and
+provider-required bit. Spawn-lane and parallel-capture plans are separate row
+families in the [same header](../../../src/compiler/verified_projection_plan.h),
+not proof that one general projection planner is finished. These fingerprints
+bind declared identities; they do not prove physical hardware adequacy.
+
+Backend builtin-name dispatch still exists. The narrower implemented contract
+is that dispatch cannot replace the required MIR machine fact and bound
+projection row: missing or inconsistent owner evidence is rejected. Do not
+summarize this as removal of every source-name dispatch from every backend.
+
+The default physical declaration is
+`pergyra.machine-declaration.host-sim.v1`, target `host-sim-device`, board
+`host-sim-board`, grant `device-slot0`, base `0x10000000`, size `0x1000`, mode
+`volatile`. These are values owned by the
+[native manifest](../../../src/compiler/machine_layer_manifest.c), not constants
+for downstream consumers to copy. The
+[runtime provider](../../../src/runtime/pgy_runtime_machine_layer_inline.h)
+accepts or rejects the window; it does not map that address into device storage.
+The current DeviceSlot runtime reads/writes a simulated `value` guarded by
+`claimed` state. A real board provider and device-operation refinement remain
+separate work, even when mapping admission succeeds.
+
+The 2026-09-05 assessment was reconciled against source in separate
+[pipeline](../../audits/2026-09-05_machine_layer_pipeline_review.md) and
+[formal-model](../../audits/2026-09-05_machine_layer_formal_review.md) reviews.
+These reports record observations and corrections, not new semantic owners,
+proof certificates or self-host closure status.
 
 ## The design boundary
 
@@ -46,9 +127,12 @@ place : Region -> TypeLayout -> option Slot
 ```
 
 `TypeLayout` carries nominal type identity, ABI size, and ABI alignment.
-`place` proves that a plain typed cell fits a valid region and preserves that
-identity in the resulting `Slot`. It is an upper-layer bridge to `Slot`, not
-the operation that touches a device or memory bus.
+`place` checks plain mode, size fit and alignment; it does not establish
+`region_valid` by itself. `place_grounds_slot` requires that separate premise
+to prove grounding in a declared grant, while layout identity is preserved in
+the resulting `Slot`. This core's `Slot` is a type/base/size/mode/provenance
+placement record, not the complete language Slot ownership/generation model.
+It is an upper-layer bridge, not a device or memory-bus operation.
 
 Actual contact is explicit:
 
@@ -74,6 +158,15 @@ grant provenance, and operation value/observation to the trace. Concrete loads,
 stores, device side effects, cache/TLB behavior, DMA, and ordering are backend
 refinement obligations; they are not silently implied by a range proof.
 
+Addresses here are mathematical naturals and writes update a base-addressed
+abstract cell. This is not a byte-width, machine-integer overflow, or real
+memory-model proof; the range/contact predicates do not exclude zero-extent
+regions. The separate
+[`ResourceMachineBridge.v`](ResourceMachineBridge.v) proves a minimal
+resource-authority/placement-binding contract, with positive extent as its
+`MachineWitness`. It does not instantiate or compose `contact_step` into a
+whole resource-to-hardware refinement theorem.
+
 ## What is proved
 
 All theorems are constructive. The file adds no Coq axiom and no `Admitted`.
@@ -83,7 +176,7 @@ All theorems are constructive. The file adds no Coq axiom and no `Admitted`.
 | `grant_yields_valid_region` | A declared grant yields a region inside that grant. |
 | `carve_preserves_validity` | A successful sub-range carve preserves grant grounding. |
 | `carve_disjoint` | Non-overlapping carve offsets produce disjoint ranges. |
-| `place_grounds_slot` | A plain `TypeLayout` placement preserves provenance and bounds. |
+| `place_grounds_slot` | Given `region_valid`, a successful plain `TypeLayout` placement preserves provenance and bounds. |
 | `place_preserves_layout_identity` | A successful placement preserves nominal type identity from the layout record. |
 | `chain_grant_carve_place_grounded` | The grant -> carve -> plain-slot bridge stays grounded. |
 | `place_rejects_volatile` / `place_rejects_atomic` | Plain `Slot` placement cannot cross MMIO/atomic modes. |
@@ -163,6 +256,8 @@ surface:
   and access mode), and AIR copies and revalidates those values instead of
   reconstructing them from the grant name or a backend default;
 - AIR publishes validated `machine_layer_sites` for the lowering operations;
+  this manifest/site check validates carried authority/lease requirements,
+  not by itself every concrete program authority or lease obligation;
 - each MIR/AIR machine site carries the physical grant identity, and the native
   manifest owner rejects a site whose grant is absent, unknown, non-adequate,
   or not the declared volatile device window;
@@ -312,7 +407,7 @@ This core does not yet prove:
   that provider, but this repository cannot invent a board's MMU truth;
 - physical compiler/codegen refinement from the abstract contact transition to
   a board/MMIO/device declaration agreed with a live target; the current
-  source -> RIR -> MIR -> AIR -> C/LLVM/self-host bridge is live for the
+  RIR/MIR owner-fact bridge with separate AIR verification is live for the
   abstract `DeviceSlot<T>` contract plus a checked declaration, and the
   provider-required bit is carried to startup; an embedder still supplies the
   board/linker/bootloader truth source.

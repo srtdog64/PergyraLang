@@ -1,0 +1,8 @@
+// Source substitution: keep the operation grant, remove the effect assertion.
+func Stamp() -> Int with caps clock {
+    return Now();
+}
+
+func Main() -> Void {
+    let stamp: Int = Stamp();
+}

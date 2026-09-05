@@ -212,4 +212,8 @@ if [[ "$MISS_JSON" != "$EXPECTED_MISS_JSON" ]]; then
     exit 1
 fi
 
+# Exercise bootstrap file-pair transport with the already-built Pergyra verdict
+# owner; this gate does not compile another comparator or change its semantics.
+bash "$ROOT_DIR/tests/self_hosted/parity/text_artifact_file_comparison_owner.sh" "$ARG_BIN"
+
 echo "[self-host-parity:backend-output-comparator] rung-2 parity ok (expected-json clean; mismatch rc=1; missing-input rc=1; $LLVM_BACKEND_LABEL)"
