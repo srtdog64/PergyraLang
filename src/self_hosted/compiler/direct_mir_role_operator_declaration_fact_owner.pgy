@@ -8,6 +8,7 @@ import "../air/mir_cfg_identity_owner.pgy";
 
 struct DirectMirRoleOperatorMethodDeclarationFact {
     let valid: Bool;
+    let source_syntax_id: Int;
     let name: String;
     let rhs_name: String;
     let rhs_type: String;
@@ -38,7 +39,7 @@ func DirectMirRoleOperatorMethodDeclarationFromTable(
 ) -> DirectMirRoleOperatorMethodDeclarationFact {
     let invalid: DirectMirRoleOperatorMethodDeclarationFact =
         DirectMirRoleOperatorMethodDeclarationFact(
-            false, "", "", "", ""
+            false, 0, "", "", "", ""
         );
     let name: Option<String> = MirObjectUniqueStringFactAtBounds(
         method.json, method.start, method.end, "name"
@@ -52,12 +53,16 @@ func DirectMirRoleOperatorMethodDeclarationFromTable(
     let params: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
         method, "params"
     );
+    let method_id: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        method.json, method.start, method.end, "source_syntax_id"
+    );
     let contract: MirDeclarationMethodContractFact =
         MirDeclarationMethodContractFactFromBounds(
             method.json, method.start, method.end
         );
     if !JsonObjectFactTableReady(method) ||
-        JsonObjectFactCount(method) != 5 || !IsSome(name) ||
+        JsonObjectFactCount(method) != 6 || !IsSome(name) ||
+        !IsSome(method_id) || !MirProgramDeclarationFieldIdentityPositiveDecimal(UnwrapOption(method_id)) ||
         UnwrapOption(name) != expected_name || !IsSome(return_type) ||
         UnwrapOption(return_type) == "" || !IsSome(callable_kind) ||
         UnwrapOption(callable_kind) != "function" || !contract.valid ||
@@ -91,7 +96,7 @@ func DirectMirRoleOperatorMethodDeclarationFromTable(
         return invalid;
     }
     return DirectMirRoleOperatorMethodDeclarationFact(
-        true, UnwrapOption(name), UnwrapOption(rhs_name),
+        true, ToInt(UnwrapOption(method_id)), UnwrapOption(name), UnwrapOption(rhs_name),
         UnwrapOption(rhs_type), UnwrapOption(return_type)
     );
 }
@@ -232,6 +237,7 @@ func DirectMirRoleOperatorDeclarationFactFromAdmitted(
             ability_method_row, target.method_name
         );
     if !role_method.valid || !ability_method.valid ||
+        role_method.source_syntax_id == ability_method.source_syntax_id ||
         role_method.rhs_type != ability_method.rhs_type ||
         role_method.return_type != ability_method.return_type {
         Die("direct MIR role operator method declarations disagree");

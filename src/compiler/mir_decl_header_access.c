@@ -374,6 +374,12 @@ mir_decl_method_name(const MIRDeclMethod *method)
     return method != NULL ? method->name : NULL;
 }
 
+uint32_t
+mir_decl_method_source_syntax_id(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->source_syntax_id : 0;
+}
+
 size_t
 mir_decl_method_param_count(const MIRDeclMethod *method)
 {

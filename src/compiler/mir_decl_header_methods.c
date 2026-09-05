@@ -74,6 +74,7 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
         return;
 
     meta->name = ast_declaration_name(method);
+    meta->source_syntax_id = ast_node_stable_id(method);
     meta->params = ast_func_params(method, &meta->param_count);
     meta->return_type = ast_func_return_type(method);
     mir_decl_method_metadata_capture_type_names(meta);

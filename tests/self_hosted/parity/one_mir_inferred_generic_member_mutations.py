@@ -77,6 +77,10 @@ def specialization_tuples(document, self_owned):
 
 if mode == "compare":
     oracle = json.loads(target.read_text(encoding="utf-8"))
+    # Raw formal IDs belong to different producer arenas (e.g. 8/9 vs 33/34).
+    # Keep every ID: compare the existing canonical owner's admitted rows.
+    canonical_self = json.loads(pathlib.Path(sys.argv[4]).read_text(encoding="utf-8"))
+    canonical_native = json.loads(pathlib.Path(sys.argv[5]).read_text(encoding="utf-8"))
     if declaration_shape(baseline) != declaration_shape(oracle, native=True):
         raise RuntimeError("native/self member nominal semantics drifted")
     for name in ("Echo", "Main"):
@@ -84,6 +88,10 @@ if mode == "compare":
         right = routine(oracle, name)
         for key in ("name", "kind", "receiver_carriage", "generics",
                     "params", "return", "source_locals"):
+            if key == "params":
+                if routine(canonical_self, name)[key] != routine(canonical_native, name)[key]:
+                    raise RuntimeError(f"canonical {name} parameter identity drifted")
+                continue
             if left[key] != right[key]:
                 raise RuntimeError(f"native/self {name} {key} drifted")
         if left.get("owner", "") != right.get("owner", ""):

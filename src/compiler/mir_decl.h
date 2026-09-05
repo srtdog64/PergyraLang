@@ -28,6 +28,7 @@ typedef struct
 {
     const char *owner_name;
     const char *name;
+    uint32_t    source_syntax_id;
     FuncParam **params;
     char      **param_type_names;
     size_t      param_count;

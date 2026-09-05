@@ -294,6 +294,8 @@ mir_json_emit_decl_methods(FILE *out,
         mir_json_emit_decl_method_contract(out, method);
         if (include_params)
             mir_json_emit_decl_method_params(out, method);
+        fprintf(out, ",\"source_syntax_id\":%u",
+                mir_decl_method_source_syntax_id(method));
         fputc('}', out);
     }
     fputc(']', out);

@@ -266,7 +266,7 @@ for input in "$WORK"/*.negative.json; do
     reject_mir "$input"
     negative_count=$((negative_count + 1))
 done
-[[ "$negative_count" -eq 12 ]] || fail "expected 12 MIR negatives, got $negative_count"
+[[ "$negative_count" -eq 14 ]] || fail "expected 14 MIR negatives, got $negative_count"
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-c-artifact-verified \
     "$SOURCE_REL" "$WORK_REL/direct-source.c") \
@@ -361,4 +361,4 @@ reject_source native-bad-c "$WORK/native-bad.c" "$PGY" --native-pipeline \
 reject_source native-bad-llvm "$WORK/native-bad.ll" "$PGY" --native-pipeline \
     "$BAD_REL" --emit-llvm -o "$WORK_REL/native-bad.ll"
 
-echo "[$LABEL] PASS: AST/MIR parity; 8 role C/LLVM runtime legs + 3 receiver runtimes + 14 source negatives; 3 receiver runtimes and typed/late self artifact-free negatives; 3 permutations + 12 MIR negatives"
+echo "[$LABEL] PASS: AST/MIR parity; 8 role C/LLVM runtime legs + 3 receiver runtimes + 14 source negatives; 3 receiver runtimes and typed/late self artifact-free negatives; 3 permutations + 14 MIR negatives"

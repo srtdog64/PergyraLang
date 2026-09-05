@@ -1,6 +1,6 @@
 # macOS checker mutation portability
 
-Status: LOCAL REPAIR VERIFIED — NATIVE RECHECK/PUBLICATION PENDING
+Status: REPAIR PUBLISHED / NATIVE MACOS AND REGULAR CI VERIFIED
 
 Base: `5653165b7b372a84622ee5837e9375c0828fecd6`, main and origin/main.
 Regular CI `33984709173` completed FAILURE, 29/30 passed; watch `71941`
@@ -69,5 +69,16 @@ passed all 23 push steps, full driver gen2 == gen3 (177,559 lines), installed
 CLI/transaction gates and all three policy-corpus sources passed. No watcher
 remains live from it; the reviewed mutation repair can now be published.
 
-Original compiler outputs, preserved root scratch, IO policy and pending
-storage/worktree authorization remain unchanged.
+Publication/recheck: final local component/profile/docs/syntax checks passed
+(`35121`), as did exact staged-path, UTF-8 and whitespace validation. The six
+reviewed paths were committed/pushed as
+`91119c45683c10efdccaad18c95fdc2a9ebf0d41`. New regular CI `33987047080`
+targets that SHA and completed SUCCESS, 30/30; watch `87947` ended exit 0.
+Native macOS job `101362486942`
+passed component mechanics at 19:25:46 UTC, size-policy mechanics at 19:25:48,
+and all nine push steps at 19:27:15. This closes the reached native mutation
+failure, not the separate ability compiler bug or whole integration objective.
+
+Original compiler outputs and IO policy were unchanged by this checker scope.
+The later user-authorized bounded cleanup resolved storage separately; see the
+active handoff. Do not revive this directive's original pending-storage state.

@@ -163,8 +163,8 @@ for input in "$WORK"/*.negative.json; do
     reject_case "$input"
     negative_count=$((negative_count + 1))
 done
-[[ "$negative_count" -eq 27 ]] ||
-    fail "expected 27 negative cases, got $negative_count"
+[[ "$negative_count" -eq 30 ]] ||
+    fail "expected 30 negative cases, got $negative_count"
 PGY_SELF_DRIVER_BIN="$DRIVER" bash \
     "$ROOT_DIR/tests/self_hosted/parity/role_receiver_canonicalization_owner.sh"
 echo "[$LABEL] exact C/LLVM 123, 6 metamorphic cases, and $negative_count negatives ok"

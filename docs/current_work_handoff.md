@@ -20,16 +20,101 @@ percentage by themselves.
 
 ## Active self-host context — mixed-arity tagged-enum callable projection
 
-- Latest published HEAD: `5653165b7b372a84622ee5837e9375c0828fecd6`, on main
-  and origin/main. The six reviewed fast-macOS step/profile/navigation paths
+- Current primary implementation scope is
+  `docs/agent_work_directives/ability_declaration_identity_carriage_2026-09-06.md`
+  on base `16b2f894cec5e0478639d68e89a6fb98e9168dea`. Its final local candidate
+  is `.tmp/self_hosted/compiler/ability_identity_final_20260906/pgy-self-driver.exe`,
+  SHA-256 `7E702159EC2BA7CF182B521370099782BA936396AF1EA1A2A1DA26520F13D92F`,
+  graph `485cef989a5226acad669b5e318730dbd59f7a075a8ffe1366d48dfe32ea555c`.
+  Pergyra-seed build/source smoke passed (`c717f0`). Seven source/MIR programs
+  passed the hard parent (`1022ce`): the ability fixture executes 12, with nine
+  exact refusals and three runtime controls. Canonical/generic epochs passed
+  (`ffcf9e`), role override passed isolated installed-layout C/LLVM/runtime and
+  14 MIR negatives (`9d397e`), erasure/role-operator C/LLVM and 28/30 negatives
+  passed (`b736b5`), and native MIR unit execution passed 162/162 (`c00522`).
+  SoT edge, protocol and docs gates passed (`e5cb04`); counts remain 88/185 and
+  CLOSED55/BRIDGE32/ACTIVE1. All compiler outputs stay isolated under `.tmp/`;
+  shared installed binaries and original counterexamples are preserved.
+- Broader direct-MIR inferred/constructed generic-member gates remain RED.
+  Both valid-input identity refusals also reproduce on preserved pre-repair
+  driver `1AAFC7D7` (`b7b5a3`, `1efd4a`); their old/current MIR differs only in
+  the new method ID column (`518c6a`). Inputs are in
+  `.tmp/self_hosted/driver/ability_identity_prior_inferred/` and the
+  `ability_identity_final_inferred/` / `ability_identity_final_constructed/`
+  sibling directories. The next falsifier is the unchanged
+  `src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy` against
+  `DirectMirInferredGenericMemberProgramIdentityReady`; identify its first
+  missing declaration/graph fact before editing or opening another lane.
+  The companion constructed-member, enum same-name and guarded-return findings
+  remain OPEN. No full Platform rerun or current-source fixed point is claimed.
+- Verification checkpoint before publication: HEAD/origin `16b2f894`, index
+  empty, 43 tracked changes and five untracked task paths. The source/test/doc
+  repair and prior receiver/deletion review are ready for scoped publication;
+  neither fixture count nor restored execution changes hard-substitution 75%.
+- CI reconciliation supersedes the older pending statements below: regular
+  `33987047080` completed SUCCESS, 30/30 on `91119c45`; watch `87947` ended
+  exit 0. Regular `33989459465` completed SUCCESS, 30/30 on exact `16b2f894`
+  (`3727cb`). No watcher is live. These runs predate the local compiler repair;
+  Platform full `33979255563` remains the older FAILURE, 10/13. Do not dispatch
+  a new full matrix until the focused consumer migration is green.
+
+- Latest observed repository and origin/main HEAD is now
+  `16b2f894cec5e0478639d68e89a6fb98e9168dea`: the separate task committed the
+  manual word-deletion matrix, 104 fixtures, runner and README (107 paths).
+  No compiler source or installed binary changed in that commit. Primary
+  verified 35 experiments / 104 records per pipeline / 34 stored outcome
+  differences and independently reproduced 22 outcomes for three experiments
+  (`6bf836`). The earlier lack of durable fixtures/runtime records is superseded
+  for these shapes; the intake now links the exact follow-up and runner limits.
+  Runner exit zero is not a regression-oracle PASS; whole-language equivalence,
+  word removal, CI completion and self-host substitution are not implied.
+  Index is empty; the local source/test/doc patch and both side-review audits
+  remain uncommitted. The next executable owner remains
+  the ability-ID seam below, not an extra implementation track for every matrix row.
+- Follow-up receiver/surface proposal was reviewed without implementation in
+  `docs/audits/2026-09-06_class_receiver_surface_review.md`. Eight class
+  `inout self` probes show native C losing mutation, native LLVM missing the
+  copy-out boundary and both public routes missing parser `parameter_kind`
+  (`e1dbda`). A native parallel control accepts without unsafe and refuses with
+  an empty unsafe block before MIR publication (`fe0ee4`); the global no-op
+  premise is false. The execution audit now qualifies that row and its runner's
+  non-asserting exit zero. No word, compiler owner or new implementation rung
+  changed. These additional review documents remain local and uncommitted.
+- Storage blocker cleared on user request to leave about 20 GB free on D:.
+  On `91119c45683c10efdccaad18c95fdc2a9ebf0d41`, the bounded cleanup removed
+  1,715 old generated files only under `.tmp/` (17,536,029,946 logical bytes,
+  16.332 GiB), then stopped at 21,475,581,952 bytes free (20.001 GiB).
+  Only runs whose latest file predates 2026-09-01 were eligible. Source,
+  documents, logs, receipts, installed binaries, current bootstrap roots and
+  open counterexamples were excluded. SHA-256 checks before/after matched
+  for all 14 named installed/candidate/seed/MIR/fixed-point evidence files.
+  Cleanup result `79e84b` passed; manifest/result/count reconciliation `fe9f1f`
+  confirmed 1,715 rows and no target outside `.tmp/`. Local records are
+  `.tmp/storage_cleanup_20260906/plan.json`, `deleted.jsonl`,
+  `protected-before.json` and `result.json`. Deletion bypassed the recycle bin;
+  the old generated files are not recoverable from Git. No disk relocation,
+  IO-policy override, compiler source edit, rebuild or new substitution is
+  implied. Resume the same ability-ID owner seam; do not ask again for a C:
+  worktree merely because the superseded storage stall below is mentioned.
+  Index remains empty, with seven pre-existing tracked documentation paths
+  dirty and the language-word deletion intake audit untracked. The former
+  root scratch was already absent at cleanup preflight; this cleanup never
+  targeted it or any other path outside `.tmp/`.
+- Prior CI-repair publication: `91119c45683c10efdccaad18c95fdc2a9ebf0d41`.
+  The six reviewed macOS mutation/directive/navigation paths
   were committed and pushed; tracked state was clean immediately afterward.
-  `caf_probe_tmp.pgy` remains untracked and untouched. The subsequent local
-  delta is the reached macOS mutation repair, four navigation documents and
-  its new unnumbered directive. New regular CI
-  `33984709173` completed FAILURE on this SHA, 29/30 passed. Watch `71941`
+  The earlier scratch was untouched by publication. The subsequent local
+  delta is documentation only: publication/CI navigation and the user-requested
+  concept-deletion intake/audit-method correction. New regular CI `33987047080`
+  targets this exact SHA and completed SUCCESS, 30/30; watch `87947` ended
+  exit 0. Its log is `.tmp/ci_verification/33987047080.watch.log`.
+  Native macOS `101362486942` passed both actual checker mechanics and all
+  nine push steps. No whole-run success is inferred from this job.
+  Prior regular CI `33984709173` completed FAILURE on exact `5653165b`,
+  29/30 passed. Watch `71941`
   completed exit 1; its log is `.tmp/ci_verification/33984709173.watch.log`.
   No watcher or job remains live from this run. Only the known macOS checker
-  mutation failed, so the reviewed local repair can now be published.
+  mutation failed; its reviewed repair is now published and native-verified.
   Prior regular CI `33982549234` completed SUCCESS, 30/30, on exact revision
   `61f923165553d25af3d17cd9ba14ad30b486486c`; watch `73619` completed exit 0.
   Its log remains `.tmp/ci_verification/33982549234.watch.log`; no watcher is
@@ -38,10 +123,10 @@ percentage by themselves.
   known RED on the reached valid ability source/MIR. Its identity repair and
   a current-source build must precede the next full matrix. Both agents have
   finished their bounded scopes and hold no edit leases.
-- Implementation continuation is BLOCKED on the repeatedly unanswered
-  storage/worktree choice, not on a new semantic conclusion. D: has only
-  10,285,056 bytes free; no IO-policy override, storage relocation or artifact
-  deletion is authorized. The full self-host/bootstrap/SoT objective is not
+- The earlier 9,527,296-byte storage stall is superseded by the authorized
+  bounded cleanup above. No IO-policy override or storage relocation was used.
+  The ability compiler counterexample still needs a current-source build;
+  the full self-host/bootstrap/SoT objective is not
   complete. CI `33984709173` is terminal: 29 passed and one known macOS
   failure. Linux `101356033837` passed all 23 push steps. Full driver
   `101356033806` passed gen2 == gen3 (177,559 lines), installed-driver
@@ -49,11 +134,12 @@ percentage by themselves.
   Codegen `101356033820` passed gen2 == gen3
   (76,777 lines); Windows `101356033849` passed all eight push steps. These
   waits do not advance compiler substitution. Both the watch and remote
-  verdict are reconciled; publication of the verified mutation repair is no
-  longer waiting on CI. Then resume the ability-ID owner
-  seam with a storage-safe current-source build. Index is empty; five tracked
-  paths and the new mutation directive are local, with the separate root
-  scratch untracked and excluded. No source owner or installed binary changed.
+  verdict are reconciled. The repair passed final component/profile/docs/syntax
+  checks (`35121`) and staged UTF-8/whitespace before publication. Resume the
+  ability-ID owner seam with a storage-safe current-source build. Index is
+  empty; subsequent documentation-only changes and the new audit remain local,
+  with the separate root scratch untracked and excluded. No source owner or
+  installed binary changed.
 - Published fast-macOS coverage repair: prior job `101350275135` passed seven native
   push steps but ran neither repaired checker, so it does not validate the
   Bash/BWK correction. The existing two mechanics gates are now scheduled
@@ -79,16 +165,29 @@ percentage by themselves.
   CLI/transaction gates and all three policy-corpus sources (3 in_subset,
   0 out_of_subset). These are exact-revision remote results, not a local
   installation or resolution of the separate ability compiler counterexample.
-- Reached local mutation repair: see
+- Published mutation repair: see
   `docs/agent_work_directives/macos_checker_mutation_portability_2026-09-06.md`.
   One portable AWK insertion replaces the GNU-specific sed form, preserving
   exactly the same five-line early-success mutant. Old/new byte equality,
   exactly one inserted row, the full actual component mechanics, CI profile,
   syntax and documentation gates passed (`82951`). Independent read-only
   review found no further adjacent defect and confirmed the exact exit 1 /
-  `retired term: return 0` check remains intact. Native recheck and publication
-  are pending; all agent leases are closed. Run `33984709173` has finished
-  and its remaining bootstrap/integration evidence is reconciled.
+  `retired term: return 0` check remains intact. Native macOS `101362486942`
+  passed component mechanics, size-policy mechanics and all nine push steps
+  on `91119c45`. All agent leases are closed. The rest of new CI `33987047080`
+  completed SUCCESS, 30/30; prior `33984709173` is fully reconciled.
+- Separate user-requested evidence intake:
+  `docs/audits/2026-09-06_language_word_deletion_intake.md` reopens all 146
+  words/contexts and previous KEEP-CORE hypotheses without changing language
+  semantics or the executable rung. Six installed-native MIR/admission checks
+  (`a134ca`) revalidated where facts, exact versus rebuilt Intent receipt,
+  ordinary function reconstruction, and the accepted Zone-copy counterexample.
+  Native/LSP hashes match the earlier side report; its in-memory LSP batches
+  were not replayed as such. The subsequent committed 35/104 execution matrix
+  and 22 primary rechecks are recorded at the top of this card. Ordinary library encodings are valid
+  candidates, not automatically excluded as renamed concepts. Runtime and
+  self-host equivalence remain OPEN. This intake is local documentation and
+  does not authorize storage relocation or another compiler implementation lane.
 - Published second-round repair: `da818c3df133c23572486872e4114d594f981890`
   on main and origin/main. All nine reviewed test/doc inputs were committed and
   pushed; tracked state was clean immediately afterward, with only preserved
@@ -171,7 +270,7 @@ percentage by themselves.
   `docs/agent_work_directives/reached_ci_publication_failures_2026-09-05.md`.
   The production entry remains public source -> Pergyra self-driver -> shared
   GraphPlan; no native retry or second executable rung was added.
-- Current isolated candidate:
+- Previous isolated enum candidate:
   `.tmp/self_hosted/compiler/enum_local_admission_20260905/pgy-self-driver.exe`,
   7,044,001 bytes, SHA-256
   `1AAFC7D7F031424B75F7BE1737BA088B501A021154204864B1EB286B76642BA6`,
@@ -212,7 +311,7 @@ percentage by themselves.
   is rejected on both direct targets with exact exit 1/code 103 and no output
   (`guarded-exhaustive-projection.ZjKsEh`). Both original MIR hashes remain
   unchanged; valid-input refusals are bugs, not semantic negative PASS evidence.
-- Next falsifier: publish/recheck the one-line macOS mutation repair, then close the reached
+- Previous ability falsifier (now repaired by the final candidate above): close the reached
   declaration-only ability identity gap with
   a storage-safe current-source compiler build. Both prior runs are reconciled:
   regular `33979208920` SUCCESS, Platform `33979255563` FAILURE 10/13.
@@ -224,16 +323,18 @@ percentage by themselves.
   findings remain OPEN; this harness work does not fix them.
   Do not restart a live runner because an observation times out.
   Final local profile/documentation checks passed (`15523`); strict UTF-8 and
-  staged whitespace passed for the preceding 35 publication paths. No storage
-  cleanup is authorized here; latest D: free space is 10,285,056 bytes.
-  Preserve all original MIR/fixed-point inputs and untracked `caf_probe_tmp.pgy`.
+  staged whitespace passed for the preceding 35 publication paths. The older
+  9,527,296-byte storage observation and pending authorization were superseded
+  by the bounded cleanup at the top of this card. Preserve the active original
+  MIR/fixed-point inputs and any user-owned scratch; they are not cleanup targets.
   C: has free temporary storage, but a bounded absolute-output attempt was
   rejected at artifact `begin-temp` by the existing default IO path policy.
   No IO override, alternate transport, copy, move, or deletion followed that
   refusal. The empty task directory is
   `C:/Users/user/AppData/Local/Temp/pergyra-enum-closure-20260906-3708ab3d0d764d77a879ac63b663b5d2`.
-  Large local build continuation needs a user-approved storage/worktree choice;
-  current remote CI and small in-repo observations remain available.
+  The user subsequently chose bounded in-repo reclamation, which reached the
+  20 GiB free-space target. Large local build continuation no longer needs that
+  unanswered storage/worktree choice; no resumed build has yet been run.
   Census 88/185, CLOSED55/BRIDGE32/ACTIVE1 and hard substitution 75% are unchanged.
 
 ## Historical archive boundary — earlier checkpoints, not the active queue

@@ -140,6 +140,12 @@ is complete; its reached mutation repair has a separate bounded directive:
 `docs/agent_work_directives/macos_checker_mutation_portability_2026-09-06.md`.
 No compiler source changed. No watcher remains live from this run.
 
+The bounded mutation follow-up is published as `91119c45`. Native macOS job
+`101362486942` in new regular CI `33987047080` passed both actual checker
+mechanics and all nine push steps. That regular run completed SUCCESS, 30/30;
+watch `87947` ended exit 0. The separate directive records publication evidence.
+Neither native-checker success nor this report closes the ability-ID compiler gap.
+
 ## Constraints and handoff
 
 Use apply_patch. No agent builds a compiler, installs tools, changes workflows

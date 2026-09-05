@@ -285,6 +285,7 @@ func SelfMirJsonDeclaration(
                 "params", SelfMirJsonDeclarationMethodParams(rows, row)
             ));
         }
+        ArrayPush(method, JsonEmitFieldRaw("source_syntax_id", ToString(rows.method_source_syntax_ids[row])));
         ArrayPush(methods, JsonEmitObject(method));
         method_i = method_i + 1;
     }

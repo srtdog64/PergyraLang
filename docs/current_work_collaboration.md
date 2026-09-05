@@ -10,26 +10,66 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ### Reached publication failures — one primary integration owner
 
-Latest publication is `5653165b7b372a84622ee5837e9375c0828fecd6`, main and
-origin/main, containing the six reviewed fast-macOS step/profile/navigation
+Primary now owns the bounded compiler implementation scope in
+`docs/agent_work_directives/ability_declaration_identity_carriage_2026-09-06.md`.
+It closes the same reached ability-ID seam, with no parallel implementation
+lanes. The earlier checker-only/storage-blocked directives are historical, not
+a ban on this user-authorized continuation after storage reclamation.
+
+Local implementation verification is complete on candidate `7E702159` / graph
+`485cef98`: seven-case hard parent, exact ability ID failures/controls,
+canonical/generic epoch, isolated installed-layout role override, erasure and
+role-operator C/LLVM gates, native MIR units 162/162, and SoT/protocol/docs gates.
+Publication is pending; 43 tracked changes/five new task paths are local and
+the index is empty. Primary retains integration/publication ownership.
+The next verification frontier is the pre-existing inferred generic-member
+direct-MIR identity refusal. Its constructed companion also refuses with the
+prior driver, and the old/new carriers differ only by method IDs. Name the
+first missing owner fact before a successor edit; do not start parallel lanes.
+
+Latest observed repository/origin/main HEAD is
+`16b2f894cec5e0478639d68e89a6fb98e9168dea`, containing the separate task's
+107-path manual word-deletion matrix/fixture publication, not compiler edits.
+Primary reconciled 35 experiments, 104 records per pipeline and 34 stored
+outcome differences, then independently reproduced 22 outcomes (`6bf836`).
+The intake/README distinguish this evidence from the older in-memory LSP report
+and from an assertion gate; no extra implementation lane or CI job was opened.
+
+Prior CI-repair publication is `91119c45683c10efdccaad18c95fdc2a9ebf0d41`,
+containing the six reviewed macOS mutation/directive/navigation
 paths. Tracked state was clean after push apart from the preserved untracked
-scratch. The subsequent local delta is the reached component-mutation repair,
-four navigation documents and its new unnumbered directive.
-Regular CI `33984709173` completed FAILURE, 29/30 passed on the new SHA.
+scratch. Subsequent local changes are documentation only: publication/CI
+navigation and the user-requested concept-deletion intake/method correction.
+Regular CI `33987047080` completed SUCCESS, 30/30; watch `87947` ended exit 0.
+Regular `33989459465` also completed SUCCESS, 30/30 on exact `16b2f894`.
+Neither run includes the current local method-ID implementation; no watcher is
+live and the full Platform result remains the older FAILURE, 10/13.
+Prior regular CI `33984709173` completed FAILURE, 29/30 passed on `5653165b`.
 Watch `71941` completed exit 1; no second watcher or restart is needed.
 Prior regular CI `33982549234` completed SUCCESS, 30/30 on exact
 revision `61f923165553d25af3d17cd9ba14ad30b486486c`; watch `73619`
 completed exit 0. Do not restart it or dispatch a duplicate full matrix while the
-unchanged ability compiler counterexample is already RED. The next compiler
-edit loop still needs the pending storage/worktree choice.
+unchanged ability compiler counterexample is already RED. The storage decision
+for the next compiler edit loop is now resolved by bounded in-repo cleanup.
 
-The compiler implementation is BLOCKED on that repeatedly unanswered choice:
-latest D: free space is 10,285,056 bytes. No new compiler or agent edit lease
-opens. The run/watch is now terminal (29 passed, only known macOS failure).
+The user requested about 20 GB free on D:. On the same HEAD, primary removed
+1,715 generated files from pre-September runs under `.tmp/`, totaling
+17,536,029,946 logical bytes, and stopped at 21,475,581,952 free bytes
+(20.001 GiB). Source, documents, logs, receipts, installed binaries, current
+bootstrap roots and open counterexamples were excluded. All 14 named protected
+binary/MIR/fixed-point hashes matched before and after (`79e84b`); the deletion
+receipt reconciles all 1,715 files and has no target outside `.tmp/` (`fe9f1f`).
+The manifest, permanent-deletion log and result are retained under
+`.tmp/storage_cleanup_20260906/`. The storage blocker is cleared; there was no
+C: relocation, IO-policy override, compiler source edit or resumed build.
+The existing seven tracked documentation paths remain dirty, the language-word
+intake audit is untracked, and the index is empty. The earlier root scratch was
+absent before cleanup, not removed by it. No new agent implementation lane opens.
+The prior run/watch is terminal (29 passed, only known macOS failure).
 Linux passed all 23 steps; full driver fixed point, installed CLI/transaction
-gates and all three policy sources passed. Publish the verified mutation
-repair after this terminal reconciliation; the compiler rebuild still awaits
-the pending user approval.
+gates and all three policy sources passed. The verified mutation repair was
+published after this terminal reconciliation; the same ability-ID seam remains
+the next compiler edit/rebuild target, now without the prior storage-choice block.
 The overall self-host/bootstrap/SoT objective remains incomplete.
 
 Primary completed its bounded edit lease on `scripts/ci_push_macos_steps.sh`
@@ -51,9 +91,20 @@ The reached follow-up scope is
 Primary replaced only that GNU-specific mutation construction. Old/new bytes,
 the full actual component checker and profile/docs/syntax passed (`82951`).
 `semantic_index_review` completed a read-only review, confirmed the unchanged
-exact refusal and found no adjacent issue; its lease is closed. This local
-repair is not published or native-verified. The previous CI is now terminal,
-so publication is unblocked; no full matrix or compiler implementation track opens.
+exact refusal and found no adjacent issue; its lease is closed. Final local
+component/profile/docs/syntax checks passed (`35121`); the scoped publication
+then passed native macOS mechanics/all nine steps on `91119c45`. The new full
+run remains live; no Platform full matrix or compiler implementation track opens.
+
+The earlier side's user-requested concept-deletion handoff is preserved separately in
+`docs/audits/2026-09-06_language_word_deletion_intake.md`. Primary rechecked six
+existing sources through installed native MIR/admission without output files
+(`a134ca`), not the reported in-memory LSP batches. The subsequent 35/104
+durable execution matrix and 22 primary runtime rechecks are recorded above;
+they do not establish whole-language runtime/self-host equivalence.
+The earlier automatic exclusion of ordinary library encodings is corrected;
+all 146 words/contexts remain experiment candidates. No agent edit lease,
+literal keyword deletion, SoT progress change or storage authority is implied.
 
 The second-round nine-file repair is committed and pushed as
 `da818c3df133c23572486872e4114d594f981890`. Tracked state was clean afterward;

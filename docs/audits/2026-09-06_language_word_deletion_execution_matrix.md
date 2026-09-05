@@ -17,6 +17,13 @@ not own language semantics, a registry row, self-host progress or the next
 compiler rung. Equal stdout for one pair is evidence about that pair, not a
 theorem about the word.
 
+Follow-up qualification: the [value-receiver/surface review](2026-09-06_class_receiver_surface_review.md)
+independently tests explicit class `inout self` and falsifies a global no-op
+interpretation of row 26. Native unsafe blocks record an effect and are rejected
+in parallel bodies; equal output of the original sequential pair remains true.
+The runner below collects observations but does not compare them to a baseline;
+exit zero alone is not evidence that earlier recorded outcomes reproduced.
+
 ## 1. Method
 
 Fixtures: `tests/concept_semantics/word_deletion/cases/<experiment>/`, 35
@@ -180,7 +187,7 @@ the pipeline outcomes; `SAME`/`DIFF` compare `orig` and `subst` stdout.
 | 23 | `extern "c"` | SAME vs the `Now()` builtin | not compiled | no same-guarantee replacement found for an arbitrary C symbol; the builtin only covers this one |
 | 24 | `as` | `subst` fails: no Float/Int conversion builtin (`ToInt` takes a string) | same | no replacement found for numeric casts |
 | 25 | `slot`, `own`, `ref` | SAME; borrow after `Release` rejected; the value-typed rewrite accepts the same order | not compiled | behavior replaceable, guarantee lost: no use-after-release check without slots |
-| 26 | `unsafe { }` | SAME | not compiled (parse error) | spelling removable today: a lexical marker with no semantic effect in this pair (`docs/204` risk 6) |
+| 26 | `unsafe { }` | SAME | not compiled (parse error) | equal sequential output only; the follow-up parallel refusal disproves a global no-op/removable verdict |
 | 27 | `loop { }` | SAME vs `while true` | not compiled | spelling removable: the parser desugars it to `while true` |
 | 28 | `exclusive;` `priority:` `rollback:` `retry` `timeout` | SAME with all three headers dropped in a single intent; see 2.4 | headers not compiled | headers: unverified (their meaning is conflict between intents, not tested); `retry`/`timeout`/`backoff`: dead surface |
 | 29 | `with effects` | SAME with the clause dropped; declared `remote` while body derives `nondeterministic` rejected | not compiled | declared upper bound, like `caps` |
@@ -199,7 +206,8 @@ this matrix and inherit nothing from being listed near a verified word.
 
 | Verdict | Words | Case |
 | --- | --- | --- |
-| spelling removable, same fact retained | `loop`; one of `move`/`transfer`; two of `guard`/`expect`/`post`; `where` when `using` is present; local `mut`; `unsafe` (today) | 27, 09, 12, 08, 05, 26 |
+| spelling removable, same fact retained in the tested shape | `loop`; one of `move`/`transfer`; two of `guard`/`expect`/`post`; `where` when `using` is present; local `mut` | 27, 09, 12, 08, 05 |
+| behavior replaceable in one sequential pair; unsafe effect/parallel rejection differs | `unsafe` | 26 and the follow-up parallel control |
 | dead surface (parser or checker refuses every use) | `timeout`, `backoff`, `retry` | 28 |
 | declared upper bound, inferable when omitted | `caps`, `effects`, `nondeterministic`, `remote` (the two effect names executed) | 15, 29 |
 | no same-guarantee replacement found | `match`, `case`, `default`; `extern`; `as`; `authority`; `dyn`, `bind` (open dispatch) | 04, 23, 24, 17, 22 |
@@ -236,5 +244,8 @@ PGY_EXTRA_FLAGS=--native-pipeline PGY_RESULTS=native.json \
 ```
 
 Both commands need `bin/pgy` and, for the first, the installed self-host
-driver. They are manual entry points, not CI jobs. A green run means the
-recorded outcomes reproduce; it does not mean a word is safe to delete.
+driver. They are manual entry points, not CI jobs. Exit zero means collection
+finished, not that the recorded outcomes reproduced: the runner has no baseline
+comparison. Inspect compile/run outcomes separately, reject timeout or missing
+artifact observations as verification failures, and compare against the recorded
+results before claiming reproduction. It does not mean a word is safe to delete.

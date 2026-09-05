@@ -145,6 +145,9 @@ def main() -> int:
         "impl-method-count": lambda d: declaration(d, "role")["impls"][0].update(
             method_count=0
         ),
+        "missing-ability-method-id": lambda d: declaration(d, "ability")["methods"][0].pop("source_syntax_id"),
+        "zero-ability-method-id": lambda d: declaration(d, "ability")["methods"][0].update(source_syntax_id=0),
+        "duplicate-method-id": lambda d: declaration(d, "ability")["methods"][0].update(source_syntax_id=declaration(d, "role")["methods"][0]["source_syntax_id"]),
         "role-method-name": lambda d: declaration(d, "role")["methods"][0].update(
             name="Sub"
         ),

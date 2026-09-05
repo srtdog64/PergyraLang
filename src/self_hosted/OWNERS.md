@@ -1023,11 +1023,18 @@ inventory must not become a second fact-family owner registry.
   MIR instruction graph decoding, canonical identity-epoch consumption, and
   reconstructed-artifact NodeId binding.
 - `src/self_hosted/mir_lower/expression_identity_epoch_owner.pgy` -- one exact
-  producer-routine/parameter SyntaxNodeId to reconstructed canonical
+  producer-routine/parameter/declaration-method SyntaxNodeId to reconstructed canonical
   SyntaxNodeId join by routine kind, module, owner, name, parameter ordinal,
   and parameter name. Persisted call-target and callee-binding rows consume
   this map atomically; numeric equality, offset inference, and dual-epoch reads
-  are forbidden.
+  are forbidden. MIR declaration methods carry the signature owner's positive
+  `method_source_syntax_ids` through `methods[].source_syntax_id`. A runtime
+  method declaration must agree with its routine's exact mapping; declaration-
+  only ability/extern members extend that map without borrowing an
+  implementation's identity. Missing, duplicate and crossed-owner IDs refuse
+  graph admission; generic-default substitution stays with the signature owner.
+  Direct-MIR paths that do not rebuild an AST consume the same declaration ID
+  through `program_routine_receiver_identity_owner.pgy` at routine-index capture.
 - `src/self_hosted/mir_lower/expression_graph_instruction_policy_owner.pgy` --
   persisted MIR expression-graph slot requirements by instruction shape; this
   policy does not own or duplicate the program graph.

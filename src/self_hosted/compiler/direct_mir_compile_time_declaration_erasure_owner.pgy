@@ -186,7 +186,11 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
         MirDeclarationMethodContractFactFromBounds(
             method.json, method.start, method.end
         );
-    if !JsonObjectFactTableReady(method) || JsonObjectFactCount(method) != 5 ||
+    let method_id: Option<String> = MirObjectUniqueNumberFactAtBounds(
+        method.json, method.start, method.end, "source_syntax_id"
+    );
+    if !JsonObjectFactTableReady(method) || JsonObjectFactCount(method) != 6 ||
+        !IsSome(method_id) || !MirProgramDeclarationFieldIdentityPositiveDecimal(UnwrapOption(method_id)) ||
         !IsSome(method_name) || UnwrapOption(method_name) == "" ||
         !IsSome(return_type) || UnwrapOption(return_type) != "Int" ||
         !IsSome(callable_kind) || UnwrapOption(callable_kind) != "function" ||
@@ -233,6 +237,7 @@ func DirectMirCompileTimeDeclarationErasureFactFromAdmitted(
     semantic_hash = DirectMirCfgHashString(
         semantic_hash, UnwrapOption(method_name)
     );
+    semantic_hash = DirectMirCfgHashInt(semantic_hash, ToInt(UnwrapOption(method_id)));
     semantic_hash = DirectMirCfgHashString(
         semantic_hash, UnwrapOption(return_type)
     );

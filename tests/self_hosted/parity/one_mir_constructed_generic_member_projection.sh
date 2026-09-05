@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_pipeline_step_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 LABEL="self-host-one-mir-constructed-generic-member"
@@ -105,7 +106,9 @@ rm -f "$MIR" "$NATIVE_MIR"
 (cd "$ROOT_DIR" && "$DRIVER_BIN" --emit-mir-json-verified "$(root_relative "$SOURCE")" -o "$(root_relative "$MIR")") || fail "source-to-MIR rejected constructed member fixture"
 mir_digest="$(hash_file "$MIR")"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$(pgy_path_for_compiler "$PGY" "$SOURCE")" >"$NATIVE_MIR") || fail "native MIR oracle rejected constructed member fixture"
-"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_constructed_generic_member_mutations.py" "$MIR" "$NATIVE_MIR" compare || fail "native/self constructed member semantic parity drifted"
+pgy_selfhost_driver_rung2_canonicalize 0 "$DRIVER_BIN" --canonicalize-mir-json "$(root_relative "$MIR")" "$WORK_DIR/self.canonical.json"
+pgy_selfhost_driver_rung2_canonicalize 0 "$DRIVER_BIN" --canonicalize-oracle-mir-json "$(root_relative "$NATIVE_MIR")" "$WORK_DIR/native.canonical.json"
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_constructed_generic_member_mutations.py" "$MIR" "$NATIVE_MIR" compare "$WORK_DIR/self.canonical.json" "$WORK_DIR/native.canonical.json" || fail "native/self constructed member semantic parity drifted"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_constructed_generic_member_mutations.py" "$MIR" "$WORK_DIR"
 
 project "$MIR" c "$WORK_DIR/baseline.c"

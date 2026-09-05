@@ -1,9 +1,88 @@
 # Ability declaration identity lost at MIR reconstruction
 
-Status: OPEN — valid-input refusal, not a passing semantic negative.
+Status: REPAIRED in the isolated 2026-09-06 candidate; publication, shared
+installation and full-bootstrap evidence are separate. The original refusal
+below remains historical evidence, not the current result.
 
 Observed base: `da818c3df133c23572486872e4114d594f981890`.
 This audit is evidence/navigation, not a semantic owner or completion claim.
+
+## Executed repair on base 16b2f894
+
+The semantic signature ID now survives MIR method rows and both serializers.
+Canonical rebinding admits declaration-only ability/extern callables; runtime
+declarations must agree with their routine ID at the common routine-index
+boundary, including direct-MIR routes. Strict method schemas were migrated;
+compile-time erasure checks and hashes the signature identity. No target-ID
+zeroing, implementation substitution, numeric offset, or name fallback exists.
+Raw generic `T` stays raw; its default remains owned by the signature facts.
+
+Current isolated pair:
+
+- `.tmp/self_hosted/compiler/ability_identity_final_20260906/pgy-self-driver.exe`
+  SHA-256 `7E702159EC2BA7CF182B521370099782BA936396AF1EA1A2A1DA26520F13D92F`;
+- source graph `485cef989a5226acad669b5e318730dbd59f7a075a8ffe1366d48dfe32ea555c`;
+- sibling native `pgy.exe` SHA-256
+  `30F4130B8856B1EBEB54870619BB1BECEED4AD0B8F959CF5145EEC1765FA03C8`.
+
+Pergyra-seed build and source smoke passed (`c717f0`). The existing hard parent
+passed seven selected source/MIR programs (`1022ce`), including unchanged
+ability execution 12, nine exact ID refusals and three runtime controls.
+The controls cover declaration order, coherent ID rekeying, and same-named
+methods on distinct abilities (12/16). Three runtime-ID mutations now refuse
+at common machine admission, while six declaration/call mutations refuse at
+canonical graph admission; the gate requires the exact applicable diagnostic,
+exit 1 and no successful MIR payload.
+
+Further observed gates:
+
+- canonical identity and generic specialization epoch: PASS (`ffcf9e`);
+- isolated installed-layout role override: AST/MIR parity, C/LLVM execution,
+  three permutations, 14 MIR negatives and source/receiver checks PASS
+  (`9d397e`); shared `bin/` was not changed;
+- declaration erasure: C/LLVM output 7/73 and 28 negatives PASS (`b736b5`);
+- role operator: C/LLVM output 123, six metamorphic controls and 30 negatives,
+  plus receiver canonicalization PASS (`b736b5`);
+- native MIR unit executable: 162 passed, zero failed (`c00522`). This is the
+  unit binary, not every additional smoke attached to `make test-mir`.
+
+The original failing MIR hash remains
+`4D3272D17090008C8AB6B354315372B13C6FB2EEDF09F39CAD2FB366A5969602`.
+Initial build setup failures (mixed absolute path at artifact `begin-temp`,
+then an unconfigured isolated launcher) were not semantic negatives. The
+builder subsequently used the same in-repo target through its existing relative
+path flow; no IO policy override or shared installation was introduced.
+
+## Broader findings not repaired by this slice
+
+The inferred and constructed generic-member direct-MIR gates remain RED at
+`direct MIR ... generic member identity is invalid`. Current failures are
+`b7366b` / `76eb8a`; the unchanged pre-repair driver `1AAFC7D7` reproduces both
+on the same source programs (`b7b5a3`, `1efd4a`). Original-producer MIR is kept
+under `.tmp/self_hosted/driver/ability_identity_prior_inferred/`; current inputs
+are under `ability_identity_final_inferred/` and
+`ability_identity_final_constructed/` in the same driver workspace root.
+These are valid-input bugs, not successful negative tests or proof of full
+consumer correctness.
+The full parsed old/current carriers compare equal after removing only the
+new method-ID column in memory (`518c6a`); no source, stored MIR or compiler
+input was changed by that comparison.
+
+Their earlier comparison also equated raw formal IDs from different producer
+arenas (self 8/9 versus native 33/34). The existing canonical owner produces
+equal complete parameter rows (`2da32e`). The comparison now consumes those
+admitted rows without deleting identity keys; raw input still feeds direct
+backend execution. That checker repair does not conceal the subsequent real
+direct-MIR refusal.
+In-memory mechanics (`912aca`) separately changed a canonical formal ID in
+each comparator's actual input; both raised the exact parameter-identity
+diagnostic. These are comparator controls, not compiler execution evidence.
+
+Regular CI `33987047080` (`91119c45`) and `33989459465` (`16b2f894`) both
+completed 30/30 SUCCESS before this local source repair. Platform full remains
+the older 10/13 FAILURE; no current-source fixed point or full-matrix green is
+claimed. This is an executable regression repair, not new hard-substitution
+credit or a SoT registry status promotion.
 
 ## Executed evidence
 
@@ -74,7 +153,7 @@ Independent read-only review confirmed two additional constraints:
   to conceal this distinction. Preserve module/owner/method attribution and
   let the existing type owner govern that relationship.
 
-## Required continuation
+## Required continuation at the original observation
 
 Keep one integration rung. Preserve declaration-only callable identity from
 the existing semantic signature owner through MIR declaration carriage and the

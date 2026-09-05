@@ -307,6 +307,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             "driver-rung2:$backend:$base:mir-run" "$BUILD_DIR" \
             "$BUILD_DIR/${base}.oracle.run" \
             "$BUILD_DIR/${base}_${backend}.mir.run" "run_output"
+        pgy_selfhost_verify_driver_rung2_ability_identity_epoch \
+            "$backend" "$base" "$self_mir_json" "$driver_bin"
         mir_baseline="$BUILD_DIR/${base}.mir.baseline.c"
         if [[ ! -f "$mir_baseline" ]]; then
             cp "$actual" "$mir_baseline"

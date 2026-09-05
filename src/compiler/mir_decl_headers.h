@@ -105,6 +105,7 @@ const char *mir_decl_header_event_param_name(const MIRDeclHeader *header,
 const char *mir_decl_header_event_param_type_name(const MIRDeclHeader *header,
                                                   size_t index);
 const char *mir_decl_method_name(const MIRDeclMethod *method);
+uint32_t mir_decl_method_source_syntax_id(const MIRDeclMethod *method);
 size_t mir_decl_method_param_count(const MIRDeclMethod *method);
 FuncParam *mir_decl_method_param(const MIRDeclMethod *method, size_t index);
 const char *mir_decl_method_param_type_name(const MIRDeclMethod *method,

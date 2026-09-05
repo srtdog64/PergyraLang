@@ -123,10 +123,10 @@ func DirectMirRoleOverrideDeclarationMethodName(
     let params: JsonArrayObjectFactTable =
         JsonObjectFactArrayObjectTable(method, "params");
     let parameter_shape: Bool = !JsonObjectFactHasField(method, "params");
-    let expected_count: Int = 4;
+    let expected_count: Int = 5;
     if role_owned {
         parameter_shape = DirectMirExactObjectArrayCount(params, 0);
-        expected_count = 5;
+        expected_count = 6;
     }
     if !JsonObjectFactTableReady(method) ||
         JsonObjectFactCount(method) != expected_count || !IsSome(name) ||

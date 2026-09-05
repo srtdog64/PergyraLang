@@ -67,6 +67,14 @@ emit("role-routine-owner", "negative", lambda d: routine(
 emit("role-method-name", "negative", lambda d: declaration(
     d, "role"
 )["methods"][0].__setitem__("name", "Other"))
+emit("missing-method-source-id", "negative", lambda d: declaration(
+    d, "role"
+)["methods"][0].pop("source_syntax_id"))
+emit("crossed-method-source-id", "negative", lambda d: declaration(
+    d, "role"
+)["methods"][0].__setitem__(
+    "source_syntax_id", routine(d, "OverrideTarget")["source_syntax_id"]
+))
 emit("direct_override_as_ability_impl", "negative", lambda d: declaration(
     d, "role"
 ).__setitem__("impls", [{

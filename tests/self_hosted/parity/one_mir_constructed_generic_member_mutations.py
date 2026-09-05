@@ -109,6 +109,10 @@ def specialization_tuples(document, self_owned):
 
 if mode == "compare":
     oracle = json.loads(target.read_text(encoding="utf-8"))
+    # Compare formal SyntaxNodeIds only after the owned cross-epoch join;
+    # do not strip identity keys or mistake producer allocation for semantics.
+    canonical_self = json.loads(pathlib.Path(sys.argv[4]).read_text(encoding="utf-8"))
+    canonical_native = json.loads(pathlib.Path(sys.argv[5]).read_text(encoding="utf-8"))
     if declaration_shape(baseline) != declaration_shape(oracle):
         raise RuntimeError("native/self declaration semantics drifted")
     for name in ("Wrap", "Echo", "Main"):
@@ -116,6 +120,10 @@ if mode == "compare":
         right = routine(oracle, name)
         for key in ("name", "kind", "receiver_carriage", "generics",
                     "params", "return", "source_locals"):
+            if key == "params":
+                if routine(canonical_self, name)[key] != routine(canonical_native, name)[key]:
+                    raise RuntimeError(f"canonical {name} parameter identity drifted")
+                continue
             if left[key] != right[key]:
                 raise RuntimeError(f"native/self {name} {key} drifted")
         if left.get("owner", "") != right.get("owner", ""):

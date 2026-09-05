@@ -144,6 +144,10 @@ func BuildMirProgramRoutineIndexFromTable(
             CaptureMirProgramRoutineReceiverIdentity(
                 declarations, routine_kind, owner, source_syntax_id,
                 receiver_carriage, source_syntax_ids);
+        if routine_kind == "method" && !MirProgramRoutineMethodDeclarationIdentityReady(
+            json, declarations, receiver_identity.owner_declaration_row,
+            routine_name, source_syntax_id
+        ) { valid = false; }
         if routine_kind == "" || routine_name == "" ||
             source_module_path == "" ||
             !receiver_identity.valid {

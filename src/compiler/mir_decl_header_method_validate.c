@@ -22,6 +22,15 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
     for (size_t i = 0; i < header->method_metadata_count; i++) {
         const MIRDeclMethod *method = &header->method_metadata[i];
 
+        if (method->source_syntax_id == 0) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] has no source identity",
+                    header_index, i);
+            }
+            return false;
+        }
+
         if (method->owner_name == NULL
             || header->name == NULL
             || strcmp(method->owner_name, header->name) != 0) {
@@ -54,6 +63,7 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                 return false;
             }
             if (routine->kind != MIR_SCOPE_METHOD
+                || routine->source_syntax_id != method->source_syntax_id
                 || method->name == NULL
                 || routine->name == NULL
                 || strcmp(method->name, routine->name) != 0

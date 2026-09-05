@@ -84,6 +84,7 @@ func SelfMirDeclarationRowsReady(ref rows: SelfMirDeclarationRows) -> Bool {
         ArrayLength(rows.field_names) !=
             ArrayLength(rows.field_source_syntax_ids) ||
         ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) ||
+        ArrayLength(rows.method_names) != ArrayLength(rows.method_source_syntax_ids) ||
         ArrayLength(rows.method_names) != ArrayLength(rows.method_is_actions) ||
         ArrayLength(rows.method_names) !=
             ArrayLength(rows.method_requires_starts) ||
@@ -235,6 +236,13 @@ func SelfMirDeclarationRowsReady(ref rows: SelfMirDeclarationRows) -> Bool {
     let effect_cursor: Int = 0;
     i = 0;
     while i < ArrayLength(rows.method_names) {
+        if rows.method_source_syntax_ids[i] <= 0 { return false; }
+        let previous_method: Int = 0;
+        while previous_method < i {
+            if rows.method_source_syntax_ids[previous_method] ==
+                rows.method_source_syntax_ids[i] { return false; }
+            previous_method = previous_method + 1;
+        }
         if rows.method_param_starts[i] != method_param_cursor ||
             rows.method_param_counts[i] < 0 ||
             rows.method_requires_starts[i] != requires_cursor ||

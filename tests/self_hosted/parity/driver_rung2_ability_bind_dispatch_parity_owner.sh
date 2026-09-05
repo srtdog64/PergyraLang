@@ -77,3 +77,67 @@ pgy_selfhost_verify_driver_rung2_ability_bind_dispatch_emitted_c() {
     }
     return 0
 }
+
+# Called after the existing parent has executed and compared the valid input.
+pgy_selfhost_verify_driver_rung2_ability_identity_epoch() {
+    local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
+    [[ "$base" == generic_default_ability_bind_dispatch ]] || return 0
+    local python_bin work="$BUILD_DIR/${base}_${backend}.identity"
+    python_bin="$(command -v python3 || command -v python)"
+    "$python_bin" "$ROOT_DIR/tests/self_hosted/parity/ability_declaration_identity_mutations.py" \
+        "$self_mir_json" "$work"
+    local name status actual err expected_diagnostic
+    for name in missing-ability-id zero-ability-id negative-ability-id \
+        string-ability-id unknown-target duplicate-id crossed-owner-ids \
+        missing-runtime-id unknown-runtime-id; do
+        status=0
+        expected_diagnostic='CODEGEN ERROR: MIR instruction expression graph is missing or invalid'
+        case "$name" in
+            crossed-owner-ids|missing-runtime-id|unknown-runtime-id)
+                expected_diagnostic='MIR-LOWER ERROR: MIR machine-layer facts are missing or invalid' ;;
+        esac
+        actual="$work/$name.out"; err="$work/$name.err"
+        (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$work/$name.mir.json")" \
+            >"$actual" 2>"$err") || status=$?
+        if [[ "$status" -ne 1 ]] || ! grep -Fq "$expected_diagnostic" \
+            "$actual" "$err" || grep -Fq '"schema":"pgy.mir.v1"' "$actual"; then
+            echo "[self-host-parity:ability-identity] wrong refusal: $name status=$status" >&2
+            cat "$actual" "$err" >&2
+            exit 1
+        fi
+    done
+    for name in declarations-reordered ability-rekeyed; do
+        actual="$work/$name.c"; err="$work/$name.err"
+        (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$work/$name.mir.json")" \
+            >"$actual" 2>"$err") || {
+            cat "$actual" "$err" >&2; exit 1;
+        }
+        pgy_selfhost_driver_rung2_compile_emitted 0 "$actual" \
+            "$work/$name.exe" "$work/$name.cc.log" || {
+            cat "$work/$name.cc.log" >&2; exit 1;
+        }
+        "$work/$name.exe" | tr -d '\r' >"$work/$name.run"
+        [[ "$(<"$work/$name.run")" == 12 ]] || {
+            echo "[self-host-parity:ability-identity] valid control drifted: $name" >&2
+            exit 1
+        }
+    done
+    actual="$work/distinct-owners.c"; err="$work/distinct-owners.err"
+    (cd "$ROOT_DIR" && "$driver_bin" \
+        tests/self_hosted/parity/fixture/ability_method_identity_distinct_owners.pgy \
+        --emit-c-verified >"$actual" 2>"$err") || {
+        cat "$actual" "$err" >&2; exit 1;
+    }
+    pgy_selfhost_driver_rung2_compile_emitted 0 "$actual" \
+        "$work/distinct-owners.exe" "$work/distinct-owners.cc.log" || {
+        cat "$work/distinct-owners.cc.log" >&2; exit 1;
+    }
+    "$work/distinct-owners.exe" | tr -d '\r' >"$work/distinct-owners.run"
+    [[ "$(<"$work/distinct-owners.run")" == $'12\n16' ]] || {
+        echo '[self-host-parity:ability-identity] same-name owners were conflated' >&2
+        exit 1
+    }
+    echo "[self-host-parity:ability-identity] $backend nine refusals and three runtime controls passed"
+}

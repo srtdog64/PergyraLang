@@ -11,7 +11,7 @@ pgy_selfhost_verify_driver_rung2_generic_multi_bound_defaults() {
 
     for fact in \
         '"name":"Packable","source_syntax_id":10,' \
-        '"fields":[],"methods":[{"name":"Accept","return":"Void","callable_kind":"function","contract":{"requires":[],"within":null,"causes":null,"authorized_by":[],"caps_present":false,"caps":[],"effects_present":false,"effects":[]},"params":[{"name":"value","type":"T"}]}],"generic_params":[{"name":"T","constraint":"Comparable + Cloneable","default_type":"Item"}]' \
+        '"fields":[],"methods":[{"name":"Accept","return":"Void","callable_kind":"function","contract":{"requires":[],"within":null,"causes":null,"authorized_by":[],"caps_present":false,"caps":[],"effects_present":false,"effects":[]},"params":[{"name":"value","type":"T"}],"source_syntax_id":12}],"generic_params":[{"name":"T","constraint":"Comparable + Cloneable","default_type":"Item"}]' \
         '"name":"ItemComparable","source_syntax_id":6,' \
         '"fields":[],"methods":[],"for_type":"Item","impls":[{"ability":{"base":"Comparable","actuals":[]},"method_start":0,"method_count":0}]' \
         '"name":"ItemCloneable","source_syntax_id":8,' \

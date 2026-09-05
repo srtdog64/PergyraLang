@@ -24,20 +24,17 @@ func SelfMirDeclarationsFromAnalysis(
     let method_starts: Array<Int> = rows.method_starts;
     let method_counts: Array<Int> = rows.method_counts;
     let method_names: Array<String> = rows.method_names;
+    let method_source_syntax_ids: Array<Int> = rows.method_source_syntax_ids;
     let method_returns: Array<String> = rows.method_returns;
     let method_is_actions: Array<Int> = rows.method_is_actions;
     let method_requires_starts: Array<Int> = rows.method_requires_starts;
     let method_requires_counts: Array<Int> = rows.method_requires_counts;
     let method_requires_names: Array<String> = rows.method_requires_names;
-    let method_within_zone_names: Array<String> =
-        rows.method_within_zone_names;
+    let method_within_zone_names: Array<String> = rows.method_within_zone_names;
     let method_causes_names: Array<String> = rows.method_causes_names;
-    let method_authorized_by_starts: Array<Int> =
-        rows.method_authorized_by_starts;
-    let method_authorized_by_counts: Array<Int> =
-        rows.method_authorized_by_counts;
-    let method_authorized_by_names: Array<String> =
-        rows.method_authorized_by_names;
+    let method_authorized_by_starts: Array<Int> = rows.method_authorized_by_starts;
+    let method_authorized_by_counts: Array<Int> = rows.method_authorized_by_counts;
+    let method_authorized_by_names: Array<String> = rows.method_authorized_by_names;
     let method_caps_present: Array<Int> = rows.method_caps_present;
     let method_cap_starts: Array<Int> = rows.method_cap_starts;
     let method_cap_counts: Array<Int> = rows.method_cap_counts;
@@ -149,6 +146,7 @@ func SelfMirDeclarationsFromAnalysis(
             if analysis.signatures.owner_names[signature_i] ==
                 analysis.constructors.names[i] {
                 ArrayPush(method_names, analysis.signatures.names[signature_i]);
+                ArrayPush(method_source_syntax_ids, analysis.signatures.function_node_ids[signature_i]);
                 ArrayPush(
                     method_returns,
                     analysis.signatures.return_types[signature_i]
@@ -246,6 +244,7 @@ func SelfMirDeclarationsFromAnalysis(
                 return SelfMirDeclarationRowsEmpty();
             }
             ArrayPush(method_names, analysis.signatures.names[signature_i]);
+            ArrayPush(method_source_syntax_ids, method_node_id);
             ArrayPush(
                 method_returns,
                 SelfMirDeclarationRawReturnType(
@@ -379,6 +378,7 @@ func SelfMirDeclarationsFromAnalysis(
             }
             let signature_i: Int = UnwrapOption(signature_i_opt);
             ArrayPush(method_names, analysis.signatures.names[signature_i]);
+            ArrayPush(method_source_syntax_ids, method_node_id);
             ArrayPush(
                 method_returns,
                 SelfMirDeclarationRawReturnType(artifact, method_node_id)
@@ -514,6 +514,7 @@ func SelfMirDeclarationsFromAnalysis(
                     ArrayPush(
                         method_names, analysis.signatures.names[signature_i]
                     );
+                    ArrayPush(method_source_syntax_ids, member_node);
                     ArrayPush(
                         method_returns,
                         SelfMirDeclarationRawReturnType(artifact, member_node)
@@ -574,9 +575,8 @@ func SelfMirDeclarationsFromAnalysis(
         target_types, uses_pointer_self,
         field_starts, field_counts,
         field_names, field_kinds, field_types, field_source_syntax_ids,
-        method_starts, method_counts,
-        method_names, method_returns,
-        method_is_actions,
+        method_starts, method_counts, method_names, method_source_syntax_ids,
+        method_returns, method_is_actions,
         method_requires_starts, method_requires_counts, method_requires_names,
         method_within_zone_names, method_causes_names,
         method_authorized_by_starts, method_authorized_by_counts,

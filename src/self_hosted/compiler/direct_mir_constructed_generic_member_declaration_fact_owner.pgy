@@ -154,7 +154,7 @@ func DirectMirConstructedGenericMemberDeclarationFactAtDocument(
             MirDeclarationMethodContractFactFromBounds(
                 json, method.start, method.end
             );
-        if JsonObjectFactCount(method) != 4 || !IsSome(method_name) ||
+        if JsonObjectFactCount(method) != 5 || !IsSome(method_name) ||
             !IsSome(method_return) || !IsSome(callable_kind) ||
             UnwrapOption(callable_kind) != "function" ||
             !DirectMirInferredGenericMemberEmptyFunctionContractReady(

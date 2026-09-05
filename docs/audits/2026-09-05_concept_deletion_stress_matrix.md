@@ -12,18 +12,30 @@ gates remain authoritative.
 
 ## Method and evidence labels
 
+2026-09-06 method correction: all verdicts below, including `KEEP-CORE`, are
+reopened as bounded hypotheses for the
+[full-vocabulary experiment](2026-09-06_language_word_deletion_intake.md).
+The historical "recreates the concept" arguments identify retained facts;
+they do not by themselves exclude an implementation with ordinary libraries.
+Single-step Intent can also carry checked attribution; step/action count alone
+does not determine whether a purpose qualifies.
+
 Deleting a spelling and deleting a semantic coordinate are different tests.
 For every candidate this audit asks both questions:
 
 1. If the surface spelling disappears but its fact is derived elsewhere, what
    is lost?
 2. If the underlying fact and owner disappear, can the remaining Pergyra
-   concepts distinguish the same good and bad programs without recreating the
-   deleted concept or introducing a second authority?
+   types, functions, generics and libraries distinguish the same good and bad
+   programs, with their costs and any newly required compiler rules explicit?
 
-A substitution fails when it must add the deleted concept's hidden state,
-identity, graph, or admission rule under another name. That is a rename, not a
-deletion. It also fails when two neighbors both start owning the same verdict.
+Storing the same state, identity, receipt or graph in ordinary language values
+does not automatically invalidate a substitution. Compare the static and
+runtime guarantees, error/cleanup phases and costs first. Requiring a new
+compiler admission rule, plugin or hidden semantic oracle is a different
+intervention from a library encoding. A duplicate compiler authority is not
+permitted, but an ordinary data representation must not be rejected merely
+because it retains information needed to express the behavior.
 
 Evidence is labelled as follows:
 
@@ -42,7 +54,7 @@ The verdict vocabulary is:
 - `CONDITIONAL`: valid only when a stated bundle threshold is met; simpler uses
   should lower to existing concepts.
 
-## Result
+## Historical bounded result — replacement search reopened
 
 | Concept | Distinguishing fact lost on deletion | Can current neighbors substitute? | Verdict |
 | --- | --- | --- | --- |
@@ -60,8 +72,8 @@ Zone       -> keep the named execution/authority/resource boundary
 Capability -> keep the fine-grained grant/effect bound
 Scope      -> keep the semantic boundary, do not add a generic keyword merely
               to name it
-Intent     -> keep only as a cross-axis workflow binder; demote ornamental
-              one-step/trace-only uses to action or func
+Intent     -> test checked cross-axis purpose attribution; one step may qualify
+              and trace-only decoration is not enough
 ```
 
 This does **not** reintroduce a fixed universal lifecycle. `Slot` owns dynamic

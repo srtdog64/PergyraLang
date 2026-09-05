@@ -1,0 +1,36 @@
+subject SharedBag {
+    let item: Int;
+}
+
+ability FirstWriter<T = Int> {
+    func Put(self, value: T) -> Int;
+}
+
+ability SecondWriter<T = Int> {
+    func Put(self, value: T) -> Int;
+}
+
+role FirstBuffer for SharedBag {
+    impl ability FirstWriter {
+        func Put(self, value: Int) -> Int { return value + 5; }
+    }
+}
+
+role SecondBuffer for SharedBag {
+    impl ability SecondWriter {
+        func Put(self, value: Int) -> Int { return value + 9; }
+    }
+}
+
+party DualStorage {
+    dyn role slot first: FirstWriter
+    dyn role slot second: SecondWriter
+}
+
+func Main() -> Void {
+    let storage: DualStorage = DualStorage();
+    bind storage.first = FirstBuffer;
+    bind storage.second = SecondBuffer;
+    Log(storage.first.Put(7));
+    Log(storage.second.Put(7));
+}

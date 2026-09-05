@@ -76,6 +76,19 @@ array tails, missing structure, corrupted counts, and invalid rows. This row
 stays `BRIDGE`: direct routine-emission field consumers and full gen2 emission
 remain open.
 
+Declaration method rows carry positive `methods[].source_syntax_id` from the
+semantic callable identity, in both native and self-host serializers. The
+canonical expression epoch joins declaration-only ability/extern signatures by
+module, owner and method; runtime declarations must agree with the already
+admitted routine ID. An absent ID is not a legacy/name fallback, and an ability
+signature is not interchangeable with its implementation. The focused
+`driver_rung2_ability_bind_dispatch_parity_owner.sh` gate owns executable
+carriage/refusal evidence; this extension does not change the registry's
+`BRIDGE` status or establish installed-driver/full-bootstrap completion.
+Direct-MIR routine-index capture also requires the exact method-declaration
+ID join before backend selection. Compile-time erasure admits the positive
+signature ID and includes it in its semantic receipt hash.
+
 `domain_runtime_assignments` is present only when at least one participant-role
 or projection-member fact exists. When present, it has exactly three keys:
 `program_syntax_id`, `participant_roles`, and `projection_members`. The consumer

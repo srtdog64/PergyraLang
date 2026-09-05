@@ -118,5 +118,5 @@ compile_run llvm "$WORK/literal-73.llvm" 73 literal-73-llvm
 
 negative_count=0
 for input in "$WORK"/*.negative.json; do reject_case "$input"; negative_count=$((negative_count + 1)); done
-[[ "$negative_count" -eq 25 ]] || fail "expected 25 negative cases, got $negative_count"
+[[ "$negative_count" -eq 28 ]] || fail "expected 28 negative cases, got $negative_count"
 echo "[$LABEL] ability exact 7, zero-decl/rename/display equality, literal 73, and $negative_count negatives ok"
