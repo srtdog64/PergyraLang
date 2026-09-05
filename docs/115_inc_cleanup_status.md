@@ -425,7 +425,12 @@ in `src/codegen/llvm_decl_routines.c` at 106 LOC, so
   `pgy_runtime_lib_array_map_exports.h`, and
   `pgy_runtime_lib_io_string_exports.h`. The split owners are 161, 84, 239, and
   296 LOC respectively and preserve the existing LLVM-linkable ABI symbol
-  names. `compiler_runtime_cache_is_fresh(...)` also tracks each leaf owner so
+  names. On 2026-09-05 the io/string owner, which had grown to 618 LOC once
+  `Print` moved behind the runtime `io_write` gate, was split again: the io
+  ABI stays in `pgy_runtime_lib_io_string_exports.h` (377 LOC) and the core
+  string ABI (`StringContains` through `pgy_string_equals`) moved to
+  `pgy_runtime_lib_string_exports.h` (248 LOC), included from the io owner
+  so the shared `pgy_runtime_lib_strdup` stays visible. No symbol changed. `compiler_runtime_cache_is_fresh(...)` also tracks each leaf owner so
   cached LLVM runtime objects cannot miss a split-header edit. Verified with
   `make pgy`, `make test-abi`,
   `make production-header-size-test-smoke`, and `make backend-inc-size-test-smoke`.
@@ -1304,7 +1309,7 @@ production .inc under src/codegen  = 0
 production .inc under src/compiler = 0
 production .inc under src/semantic = 0
 test .inc under src/tests          = 0
-test case includes under src/tests = 143 .cases.h files
+test case includes under src/tests = 145 .cases.h files
 ```
 
 Empty include sentinels are rejected:
@@ -1315,7 +1320,7 @@ make inc-sentinel-test-smoke
 
 This gate rejects any `.inc` file under `src`, rejects `.cases.h` fragments
 outside `src/tests`, rejects empty test case include fragments, and caps the
-test fragment inventory at the current 143 files unless
+test fragment inventory at the current 145 files unless
 `PGY_MAX_TEST_CASE_INCLUDES` is deliberately raised with this ledger. There is
 also a usage check: `.cases.h` can only be included by the dedicated test
 harnesses, every include must resolve under `src/tests`, and every `.cases.h`
@@ -1350,6 +1355,21 @@ transition-plan execution and crosswired-plan rejection regressions. Keeping
 this transition owner separate from the preceding MIR lowering fragment keeps
 both files below the test-fragment size cap and preserves a focused failure
 boundary; the inventory increase does not relax the production include ban.
+
+The 144th fragment is
+`src/tests/mir/test_mir_inventory_identity.cases.h` (commit `c363a94a`). It
+owns the MIR routine inventory source-identity lookup. The cap was raised to
+144 in the same commit without this ledger entry.
+
+The 145th fragment is
+`src/tests/semantic/test_semantic_structured_spawn.cases.h` (commit
+`cf66092b`). It owns the structured spawn lifecycle regressions: a live named
+Future at scope exit is rejected, and the affine flow rules are checked per
+handle. That commit landed the fragment without raising the cap, so
+`inc-sentinel-test-smoke` was red on every full Linux run from 2026-09-03
+until the cap was raised to 145 here on 2026-09-05. Keeping the lifecycle
+owner separate from the broad semantic suites preserves one failure owner;
+the inventory increase does not relax the production include ban.
 
 Owner-size policy is separate from the `.inc` gate:
 

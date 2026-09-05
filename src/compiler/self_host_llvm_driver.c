@@ -3,6 +3,7 @@
 #include "compiler_process.h"
 #include "path_utils.h"
 #include "self_host_artifact_process_owner.h"
+#include "self_host_child_io_authority.h"
 #include "self_host_driver.h"
 
 #include <stdio.h>
@@ -43,6 +44,12 @@ driver_materialize_self_host_llvm_artifact(
     intent_argv[3] = "-o";
     intent_argv[4] = llvm_output_path;
     intent_argv[5] = NULL;
+    /* Every other self-host child launcher grants the child the right to
+     * read the source named on pgy's own command line. Without it an
+     * absolute source path is denied inside the driver, which maps the
+     * denial to an empty read and exits 1 with no diagnostic, so a semantic
+     * rejection never reaches the caller on the LLVM leg. */
+    driver_authorize_self_host_child_io();
     rc = driver_run_self_host_artifact_process(
         intent_argv, verbose, emit_json_diagnostic);
     if (rc != 0) {

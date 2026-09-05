@@ -4057,7 +4057,10 @@ grep -Fq "llvm_stdlib_error_value" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scala
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
 grep -Fq "could not lower runtime call arguments" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 grep -Fq "could not lower string argument" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
-grep -Fq "could not lower print argument" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+# Print is a runtime call gated by io_write (0c6e9902), not a printf special
+# case; the table row is the pin and the old special-op must not return.
+grep -Fq '{ "Print", "stdlib io", "pgy_print", 1 }' "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+! grep -Fq "LLVM_STDLIB_IO_SPECIAL_PRINT" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 grep -Fq "could not lower sleep duration argument" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 grep -Fq "stdlib string" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 grep -Fq "stdlib file" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"

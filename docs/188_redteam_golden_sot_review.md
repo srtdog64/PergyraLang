@@ -101,6 +101,13 @@ EXPECT_STR_CONTAINS로 5줄 pin: `pgy_parallel_chunk_count(_pj_n_`,
 + stderr에 해당 warn 존재 assert. PGY_WORKERS 무효값 warn도 같은
 witness에 동승 가능.
 
+**착지(2026-09-05)**: `tests/parallel_pool_inactive_witness_smoke.sh`.
+`pgy_pool_init` 없이 `pgy_spawn`을 호출해 결과 15를 받으면서 stderr에
+`worker pool inactive; task runs inline (serial).`가 정확히 1회 찍히는지,
+`PGY_WORKERS=abc`가 warn 뒤 하드웨어 기본값으로 떨어지고 `PGY_WORKERS=3`은
+침묵하는지, live pool에서는 같은 spawn이 warn 없이 끝나는지를 본다. warn을
+주석으로 바꾼 mutant는 `saw 0`으로 빨개진다.
+
 ### R6. [SoT 이중화 · 소형] BLOCKED_TICK 가드 매크로가 두 채널 헤더에 중복 + 선점-정의에 열림
 
 `PGY_CHANNEL_BLOCKED_TICK`의 `#ifndef` 가드 블록이
@@ -155,7 +162,7 @@ R2가 보여줬듯 아무도 안 돌리는 사이 main이 빨개질 수 있다.
 | R2 | SoT pin | ✅ 수리 (`ae7a8eb3`) | 안정-식별자 pin + 등록 3점(OWNERS/contract-smoke/artifact-kind) + comparator 편입, 게이트 GREEN |
 | R3 | 의미 드리프트 | ✅ 판정+골든 (`8e5a798f`) | 판정 D: SPAWN=생성 태스크 수; charge/ceiling 양면 pin 게이트 GREEN |
 | R4 | 골든 공백 | ✅ 수리 (`431cfcb2`) | 방출-형태 골든 14 pin(c 9+llvm 5) GREEN |
-| R5 | 골든 공백 | ✅ 부분수리 (`431cfcb2`) | PGY_WORKERS warn pin 착지; pool-inactive warn은 런타임 유닛 후보로 잔존 |
+| R5 | 골든 공백 | ✅ 수리 (`431cfcb2`, 2026-09-05) | PGY_WORKERS warn pin 착지; pool-inactive warn은 `tests/parallel_pool_inactive_witness_smoke.sh`가 실제 cext 런타임 객체에 링크한 하네스로 stderr 1회 발생·결과값 보존·live pool 침묵을 증언한다 (`parallel-production-contract-test-smoke` 소속) |
 | R6 | SoT 중복 | ✅ 수리 (`9b3412ca`) | 단일 홈(channel_status.h) + 선점-정의 #error |
 | R7 | 잔차 검증 | 이상 없음 | 보상 degrade 3경로 전부 관측 가능 |
 | R8 | 프로세스 SoT | ✅ 등재 | docs/185 §6b: 측정 원장 canon 규칙 |

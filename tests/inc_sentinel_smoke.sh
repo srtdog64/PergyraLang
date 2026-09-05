@@ -3,11 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Test fragments are capped separately from production source. The current
-# count is intentional: 144 owned fragments exist at HEAD and are split along
+# count is intentional: 145 owned fragments exist at HEAD and are split along
 # test-family boundaries to keep every .cases.h file below the 699 LOC gate
 # enforced by test_inc_size_smoke.sh.  Raise this only with a new named test
 # boundary; ordinary growth moves a whole case into an existing fragment.
-MAX_TEST_CASE_INCLUDES="${PGY_MAX_TEST_CASE_INCLUDES:-144}"
+MAX_TEST_CASE_INCLUDES="${PGY_MAX_TEST_CASE_INCLUDES:-145}"
 violations=()
 
 cd "$ROOT_DIR"

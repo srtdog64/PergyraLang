@@ -182,12 +182,14 @@ driver_run_pkg_init(int argc, char *argv[])
     } else {
         m = fopen("main.pgy", "wb");
         if (m != NULL) {
+            /* The scaffold must be formatter-clean: `pgy fmt --check` on a
+             * fresh package is part of the package gate, and the Pergyra
+             * formatter ends a file at the last token's newline. */
             fprintf(m,
                 "func Main() -> Void\n"
                 "{\n"
                 "    Log(\"Hello, %s!\");\n"
-                "}\n"
-                "\n",
+                "}\n",
                 name);
             fclose(m);
             printf("pgy init: created main.pgy\n");

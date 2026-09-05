@@ -194,6 +194,7 @@ concat_runtime_text "$llvm_text" \
     "src/runtime/pgy_runtime_lib_array_map_exports.h" \
     "src/runtime/pgy_runtime_lib_array_set_exports.h" \
     "src/runtime/pgy_runtime_lib_io_string_exports.h" \
+    "src/runtime/pgy_runtime_lib_string_exports.h" \
     "src/runtime/pgy_runtime_lib_string_split_exports.h" \
     "src/runtime/pgy_runtime_lib_std_exports.h" \
     "src/runtime/pgy_runtime_lib_channel_quantum_exports.h" \
@@ -209,6 +210,7 @@ concat_runtime_text "$llvm_string_text" \
     "src/runtime/pgy_runtime_lib_array_map_exports.h" \
     "src/runtime/pgy_runtime_lib_array_set_exports.h" \
     "src/runtime/pgy_runtime_lib_io_string_exports.h" \
+    "src/runtime/pgy_runtime_lib_string_exports.h" \
     "src/runtime/pgy_runtime_lib_string_split_exports.h" \
     "src/runtime/pgy_runtime_lib_std_exports.h" \
     "src/runtime/pgy_runtime_lib_channel_quantum_exports.h"
@@ -516,7 +518,7 @@ for term in \
     "if (new_len > old_len)" \
     "result_len = source_len" \
     "if (la > ((size_t)-1) - lb || la + lb > ((size_t)-1) - 1)"; do
-    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h" ||
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_string_exports.h" ||
         fail "LLVM string helper missing overflow/lifetime guard: $term"
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_string_builtin_inline.h" ||
         fail "inline string helper missing overflow/lifetime guard: $term"
