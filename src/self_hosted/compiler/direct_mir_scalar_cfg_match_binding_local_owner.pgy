@@ -33,10 +33,13 @@ func DirectMirScalarCfgAppendMatchBindingLocals(
         if global < 0 || global >= ArrayLength(
                 admitted.routines.instruction_source_types) ||
             admitted.routines.instruction_source_types[global] !=
-                "AST_MATCH_CASE" || index.match_binding_origins.binding_ordinals[row] < 0 ||
-            MirMatchBindingSourceRowAtOrigin(
-                index.match_binding_origins,
-                global, index.match_binding_origins.binding_ordinals[row]) != row {
+                "AST_MATCH_CASE" || index.match_binding_origins.binding_ordinals[row] < 0 {
+            return false;
+        }
+        let source_row: Option<Int> = MirMatchBindingSourceRowAtOrigin(
+            index.match_binding_origins,
+            global, index.match_binding_origins.binding_ordinals[row]);
+        if !IsSome(source_row) || UnwrapOption(source_row) != row {
             return false;
         }
         let name: String = index.source_local_names[row];

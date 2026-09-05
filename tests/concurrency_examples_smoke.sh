@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# User-requested advanced-example verification, not self-host substitution.
+# Subject of this gate: native concurrency example execution and semantic
+# rejection across C/LLVM, not self-host substitution.
 # Reuse canonical fixtures/goldens. Compile and execute each positive once per
 # backend; negatives must fail in source semantics without an artifact.
 PGY_NATIVE_PIPELINE=1

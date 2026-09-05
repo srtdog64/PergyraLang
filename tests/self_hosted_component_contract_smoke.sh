@@ -253,6 +253,7 @@ run_regex_scope_checks() {
 
 check_match_pattern_consumer_placement() {
     local term matches scan_status source
+    [[ -d "$SELF_HOST_DIR" ]] || fail "match-case placement scan failed: missing input directory: $SELF_HOST_DIR"
     for term in 'AstMatchCasePatternFactFromText(' \
             'AstMatchCasePatternFactFromReadyArtifact('; do
         if matches="$(grep -rFl --include='*.pgy' -- "$term" "$SELF_HOST_DIR")"; then
@@ -393,6 +394,14 @@ require_max_lines() {
     LINE_CAP_REQUESTS+=("$cap"$'\t'"$rel")
 }
 
+require_responsibility_owner_max_lines() {
+    local rel="$1" cap
+    cap="$(awk -v root="$ROOT_DIR" -v mode=lookup -v owner="$rel" \
+        -f "$ROOT_DIR/tests/self_hosted_owner_size_policy.awk")" ||
+        fail "missing or invalid responsibility size authority: $rel"
+    require_max_lines "$rel" "$cap"
+}
+
 run_line_cap_checks() {
     # Call sites still own every individual limit, including duplicate paths.
     # Keep awk record-count semantics for empty/unterminated/CRLF/NUL input;
@@ -465,22 +474,16 @@ require_stage_owner_line_cap() {
     while IFS= read -r file; do
         rel="${file#"$ROOT_DIR/"}"
         cap=600
-        if [[ "$rel" == "src/self_hosted/codegen/emission/stmt_emit.pgy" ]]; then
-            # Lexical statement ownership now includes hidden zone-resource
-            # cleanup across normal/return/loop exits. Splitting that CFG state
-            # would create a second statement-control owner.
-            cap=800
+        if [[ "$rel" == "src/self_hosted/codegen/emission/stmt_emit.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_enum_payload_variant_provenance_verdict_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/ast_statement_fact_owner.pgy" ||
+              "$rel" == "src/self_hosted/semantic/diagnostic_owner.pgy" ]]; then
+            require_responsibility_owner_max_lines "$rel"
+            require_text "src/self_hosted/OWNERS.md" "$rel"
+            continue
         elif [[ "$rel" == "src/self_hosted/codegen/type_facts/type_env.pgy" ]]; then
             cap=640
-        elif [[ "$rel" == "src/self_hosted/semantic/diagnostic_owner.pgy" ]]; then
-            # One renderer owns the stable diagnostic reason/fix vocabulary.
-            # Splitting it would create a second rendering authority.
-            cap=660
-        elif [[ "$rel" == "src/self_hosted/semantic/ast_enum_payload_variant_provenance_verdict_owner.pgy" ]]; then
-            # The bounded Known/Unproven transfer, structured joins, and final
-            # payload admission are one semantic authority.  A split would
-            # make two owners independently decide active-variant truth.
-            cap=1450
         fi
         require_max_lines "$rel" "$cap"
         require_text "src/self_hosted/OWNERS.md" "$rel"
@@ -6120,7 +6123,7 @@ require_file "src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" "func SemanticAstAssignmentFactsMatchArtifact"
 require_file "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" 600
+require_responsibility_owner_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "func SemanticAstAssignmentTypeFactsMatchArtifact"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     'import "collection_mutation_policy_owner.pgy";'
@@ -6135,7 +6138,7 @@ reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "Check
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/semantic/ast_statement_fact_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_statement_fact_owner.pgy" 600
+require_responsibility_owner_max_lines "src/self_hosted/semantic/ast_statement_fact_owner.pgy"
 require_file "src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" "func SemanticAstExpressionVerdictFromPayload"
@@ -7916,10 +7919,12 @@ while IFS='|' read -r composite_intent_owner composite_intent_cap; do
 done <<'COMPOSITE_INTENT_OWNERS'
 direct_mir_composite_intent_program_route_fact_owner.pgy|170
 direct_mir_composite_intent_program_graph_fact_owner.pgy|350
-direct_mir_composite_intent_program_plan_owner.pgy|900
-direct_mir_composite_intent_program_llvm_emission_owner.pgy|860
 direct_mir_composite_intent_program_projection_owner.pgy|40
 COMPOSITE_INTENT_OWNERS
+require_responsibility_owner_max_lines \
+    "src/self_hosted/compiler/direct_mir_composite_intent_program_plan_owner.pgy"
+require_responsibility_owner_max_lines \
+    "src/self_hosted/compiler/direct_mir_composite_intent_program_llvm_emission_owner.pgy"
 while IFS='|' read -r nested_intent_owner nested_intent_cap; do
     require_file "src/self_hosted/compiler/$nested_intent_owner"
     require_max_lines \
@@ -17116,7 +17121,7 @@ require_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
     "bootstrap refusal was not a controlled CODEGEN ERROR"
 reject_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
     "__CHUNK_STATUS__"
-require_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" 600
+require_responsibility_owner_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "target_type_names: Array<String>;"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
@@ -24740,8 +24745,9 @@ require_text "Makefile" \
     "self-host-one-mir-role-operator-projection-test-smoke:"
 require_text ".github/workflows/self_host_parity.yml" \
     "self-host-one-mir-role-operator-projection-test-smoke"
+require_responsibility_owner_max_lines \
+    "src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy"
 for role_override_owner_cap in \
-    direct_mir_role_override_program_identity_owner.pgy:800 \
     direct_mir_role_override_plan_owner.pgy:120 \
     direct_mir_role_override_target_projection_owner.pgy:110 \
     direct_mir_role_override_emission_owner.pgy:220; do
@@ -26079,11 +26085,11 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_llvm_emission_owner.pgy" 220
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" 135
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" 140
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy" 210
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_local_emission_owner.pgy" 215
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy" 120

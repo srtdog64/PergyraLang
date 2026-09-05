@@ -50,8 +50,8 @@ func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
                     logical_record, local_types[row]) ||
                  DirectMirScalarProgramLogicalRecordOptionTypeReady(
                     logical_record, local_types[row]) ||
-                 DirectMirScalarProgramPayloadEnumTypeReady(
-                    referenced_enum, local_types[row])) {
+                 DirectMirScalarProgramReferencedEnumRow(
+                    referenced_enum, local_types[row]) >= 0) {
                 found = source; break;
             }
             source = source + 1;

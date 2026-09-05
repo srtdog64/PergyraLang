@@ -52,8 +52,10 @@ func DirectMirScalarProgramOptionIntMatchConditionFromInstruction(
                 "(", Concat(match_fact.bindings[0], ")"))) {
             return invalid;
         }
-        let source_row: Int = MirMatchBindingSourceRowAtOrigin(
+        let source_row_opt: Option<Int> = MirMatchBindingSourceRowAtOrigin(
             index.match_binding_origins, global_row, 0);
+        if !IsSome(source_row_opt) { return invalid; }
+        let source_row: Int = UnwrapOption(source_row_opt);
         let identity: String = SelfMirLocalRef(
             "destructure", signature.source_syntax_id, source_row);
         binding_local = DirectMirScalarCfgLocalIdentityRow(

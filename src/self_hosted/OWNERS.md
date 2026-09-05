@@ -1094,6 +1094,10 @@ inventory must not become a second fact-family owner registry.
   for match pattern arrays consumed during graph reconstruction.
 - `src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy` -- validates
   carried match binding/type rows and admits them into the routine-local view.
+  Exact instruction/payload-ordinal lookup returns `Option<Int>`: row zero is
+  present, while absence, duplicate origins, invalid queries, and misaligned
+  origin arrays are absent. Local and Option/tagged-enum consumers check
+  presence before using the row; neither a sentinel nor a name lookup owns it.
 - `src/self_hosted/mir_lower/iteration_type_fact_owner.pgy` -- validates the
   routine-owned MIR iteration rows and admits Array/List foreach reconstruction
   only when binding, iterable, and element types agree.
@@ -2724,17 +2728,25 @@ inventory must not become a second fact-family owner registry.
   phi, and operation facts. It must observe every definition of one local and
   reject missing or conflicting concrete types; source-local inventory consumes
   this completed type plan rather than selecting a first definition.
+  Both payload-free and payload-bearing nominal locals consume the sealed
+  referenced-enum identity; an enum is not relabeled as Int for admission.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_local_inventory_owner.pgy` --
   exact source-local multiset admission after LocalRef normalization and value
   type consensus. An inferred Option source row may consume only the same local's
   resolved canonical Option type; names, routine identity, and source spelling
   are not type fallbacks.
+  Enum source-local and resolved types must remain exactly equal and present
+  in the same referenced-enum fact consumed by the value-type plan.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy`
   -- exact persisted-graph admission for String literals, direct `Concat`, and
   typed String `Log`; display `expr0` and call spelling are not fallback facts.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy` --
   post-issue consistency for local/result types, String operation operands,
   foreach element receipts, and the selected concat ABI identity.
+  Final enum-local readiness consumes the same referenced-enum owner, including
+  payload-free locals. C/LLVM local emitters require the admitted payload-free
+  ordinal representation and reject unrepresented types instead of defaulting
+  an arbitrary local to integer storage.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_graph_identity_owner.pgy` --
   stable digest construction and immutable digest replacement for that plan.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_operand_shape_owner.pgy` --

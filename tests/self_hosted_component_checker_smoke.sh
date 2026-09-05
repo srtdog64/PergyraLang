@@ -157,6 +157,24 @@ expect_rejection statement-text-parse 'text parse escaped its HIR owner' \
 SELF_HOST_DIR="$ROOT_DIR/absent-placement"
 expect_rejection missing-placement-root 'placement scan failed' check_match_pattern_consumer_placement
 
+# A filtered recursive scan may report no matches before opening a missing
+# operand. Root validity belongs to the checker, not to grep's filter order.
+check_placement_with_scan_status() (
+    local placement_scan_status="$1"
+    grep() { return "$placement_scan_status"; }
+    check_match_pattern_consumer_placement
+)
+expect_rejection filtered-missing-placement-root 'placement scan failed' \
+    check_placement_with_scan_status 1
+SELF_HOST_DIR="$ROOT_DIR/empty.txt"
+expect_rejection nondirectory-placement-root 'placement scan failed' \
+    check_match_pattern_consumer_placement
+SELF_HOST_DIR="$ROOT_DIR/empty-placement"
+mkdir -p "$SELF_HOST_DIR"
+check_match_pattern_consumer_placement
+expect_rejection placement-scan-error 'placement scan failed' \
+    check_placement_with_scan_status 2
+
 mkdir -p "$ROOT_DIR/regex-a" "$ROOT_DIR/regex-b"
 printf '%s\n' 'allowed call' >"$ROOT_DIR/regex-a/main.pgy"
 printf '%s\n' 'retired_token' >"$ROOT_DIR/regex-a/ignored.txt"

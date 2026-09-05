@@ -67,9 +67,11 @@ func DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(
     let binding_local: Int = -1;
     let binding: Int = 0;
     while binding < match_fact.binding_count {
-        let source_row: Int = MirMatchBindingSourceRowAtOrigin(
+        let source_row_opt: Option<Int> = MirMatchBindingSourceRowAtOrigin(
             index.match_binding_origins, global_row, binding);
-        if source_row < 0 || match_fact.binding_types[binding] !=
+        if !IsSome(source_row_opt) { return invalid; }
+        let source_row: Int = UnwrapOption(source_row_opt);
+        if match_fact.binding_types[binding] !=
                 enum_fact.variant_param_types[
                     enum_fact.variant_param_type_starts[variant_row] + binding] ||
             index.source_local_types[source_row] != match_fact.binding_types[binding] {

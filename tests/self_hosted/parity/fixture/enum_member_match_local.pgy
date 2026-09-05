@@ -1,0 +1,36 @@
+enum Signal {
+    Off,
+    On
+}
+
+enum OtherSignal {
+    Disabled,
+    Enabled
+}
+
+struct Reading {
+    signal: Signal;
+    weight: Int;
+}
+
+func EnumMemberScore(reading: Reading) -> Int {
+    match reading.signal {
+        case Off: return 0;
+        case On: return reading.weight;
+    }
+}
+
+// Keep Signal referenced independently of the materialized match local. A
+// local-type mutation must not remove Signal from the admitted enum inventory.
+func OtherMark(signal: OtherSignal, expected: Signal) -> Int {
+    match signal {
+        case Disabled: return 1;
+        case Enabled: return 3;
+    }
+}
+
+func Main() -> Void {
+    Log(EnumMemberScore(Reading(Signal.On, 22)));
+    Log(EnumMemberScore(Reading(Signal.Off, 99)));
+    Log(OtherMark(OtherSignal.Enabled, Signal.On));
+}

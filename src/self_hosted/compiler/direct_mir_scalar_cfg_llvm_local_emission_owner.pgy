@@ -147,9 +147,13 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
                 llvm_type));
             output = Concat(output,
                 " zeroinitializer, ptr %pgy.local.");
-        } else { output = Concat(output,
+        } else if plan.local_types[row] == CompilerAbiLayoutIntTypeName() ||
+                plan.local_types[row] == CompilerAbiLayoutLongTypeName() ||
+                DirectMirScalarProgramPayloadFreeEnumTypeReady(
+                    plan.program.payload_free_enum, plan.local_types[row]) {
+            output = Concat(output,
             " = alloca i64, align 8\n  store i64 0, ptr %pgy.local."
-        ); }
+        ); } else { Die("direct MIR LLVM local has no admitted type representation"); }
         output = Concat(output, ToString(row));
         if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
             output = Concat(output, ", align 1\n");

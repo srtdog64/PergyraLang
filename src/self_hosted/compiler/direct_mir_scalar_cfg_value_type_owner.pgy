@@ -108,8 +108,8 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
                 logical_record, type_name) &&
             !DirectMirScalarProgramLogicalRecordOptionTypeReady(
                 logical_record, type_name) &&
-            !DirectMirScalarProgramPayloadEnumTypeReady(
-                referenced_enum, type_name) {
+            DirectMirScalarProgramReferencedEnumRow(
+                referenced_enum, type_name) < 0 {
             return invalid;
         }
         let parameter_type: String = DirectMirRoutineLocalParameterTypeAtName(

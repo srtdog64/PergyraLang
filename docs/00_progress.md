@@ -1,6 +1,24 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-09-05
+마지막 업데이트: 2026-09-06
+
+통합 변경은 `918a7c98e541771fab542713262b643d375d51c0`으로 커밋·푸시했다.
+일반 CI `33966684805`는 29/30, Platform full `33966692630`은 8/13 job이
+통과했지만 두 run의 최종 결과는 실패다. 실패 로그에 맞춘 compiler/test/doc
+수정이 현재 dirty 상태다. match origin은 `Option<Int>`로 옮겼고, payload-free
+enum 로컬의 명목 타입을 값·로컬·최종 plan 검사까지 보존했다. 격리 후보
+`1AAFC7D7`에서 SEA C/LLVM 각각 35/35, Option 양쪽 투영과 7개 변이 쌍이
+통과했다. 전체 구조 검사, 크기 정책, likeness 23/23, keyword·subject·CI profile도
+통과했다. 독립 리뷰가 잡은 음성 검사 허점도 보강했다. 독립 enum 참조와 JSON
+재직렬화 양성 대조군을 유지하고, 로컬/정의 검사에 실제 도달한 거절 6건과 앞단
+선언 삭제 거절 2건을 나눠 검증했다. 최종 확장 gate와 native spawn C/LLVM도
+통과했다. 다른 enum의 같은 variant
+이름으로 일반 MIR 재구성이 실패하는 반례는 별도 OPEN 문서에 보존했다.
+공유 설치 driver `7928ED6B`는 이전 graph에 남아 있으며, 이번 수정의 전체 고정점·
+원격 green은 아직 아니다. SoT census `55/32/1`, 통합 83%, hard replacement 75%는
+유지한다. 생성 C/MIR와 임시 `caf_probe_tmp.pgy`는 삭제·출판하지 않았다.
+
+아래는 이전 checkpoint의 이력이다. 재개 작업은 handoff 맨 위 카드만 따른다.
 
 최신 확인한 공개 checkpoint는 `b4d22cf2c6e68fcbd42a1ce4a44444de0e7899fa`이며
 로컬 main과 origin/main이 일치한다. 다른 세션이 native `await` 노드의 위치 정보와

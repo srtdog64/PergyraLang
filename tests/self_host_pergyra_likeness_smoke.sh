@@ -384,7 +384,11 @@ SENTINEL_MAX=23
 # canonical owned-sequence shape and contextual builtin signature facts.
 # 4518 -> 4519 (2026-08-30): the contextual constructor input is carried as an
 # explicit Option<String> fact so C and LLVM do not infer an anonymous layout.
-RESULT_USE_MIN=4519
+# 4519 -> 4768 (2026-09-05): reconcile the accumulated typed-owner surface and
+# require the new exact match-origin lookup to return Option<Int>, including
+# absent/ambiguous results. The sentinel ceiling remains 23; it is not raised
+# to accommodate the two out-of-band returns found by publication CI.
+RESULT_USE_MIN=4768
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

@@ -72,7 +72,12 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             output = Concat(output,
                 DirectMirScalarProgramCPayloadEnumTypeName(
                     plan.program.referenced_enum, plan.local_types[row]));
-        } else { output = Concat(output, int_c_type); }
+        } else if DirectMirScalarProgramPayloadFreeEnumTypeReady(
+                plan.program.payload_free_enum, plan.local_types[row]) {
+            output = Concat(output, CompilerAbiLayoutPayloadFreeEnumCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutIntTypeName() {
+            output = Concat(output, int_c_type);
+        } else { Die("direct MIR C local has no admitted type representation"); }
         output = Concat(output, " pgy_local_");
         output = Concat(output, ToString(row));
         let zero_aggregate: Bool =

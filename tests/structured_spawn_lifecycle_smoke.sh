@@ -7,6 +7,14 @@ set -euo pipefail
 PGY_NATIVE_PIPELINE=1
 export PGY_NATIVE_PIPELINE
 
+# This is a prerequisite of memory-concurrency-model-test-smoke and consumes
+# that parent's backend profile. Direct runs retain C+LLVM coverage by default.
+BACKENDS="${PGY_MEMORY_CONCURRENCY_BACKENDS-c llvm}"
+case "$BACKENDS" in
+    c|llvm|'c llvm'|'llvm c') ;;
+    *) echo "[structured-spawn] invalid memory-concurrency backend profile: $BACKENDS" >&2; exit 1 ;;
+esac
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/portable_process_helpers.sh"
@@ -74,7 +82,7 @@ done
 
 parallel_double_source="$ROOT_DIR/tests/cases/structured_spawn_lifecycle/negative_parallel_double_join.pgy"
 parallel_double_arg="$(pgy_path_for_compiler "$PGY" "$parallel_double_source")"
-for backend in c llvm; do
+for backend in $BACKENDS; do
     parallel_double_out="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/negative_parallel_double_join_${backend}.bin")"
     parallel_double_log="$WORK_DIR/negative_parallel_double_join_${backend}.log"
     if "$PGY" "$parallel_double_arg" --backend="$backend" --error-format=json \
@@ -100,8 +108,9 @@ for backend in c llvm; do
 done
 
 # `own` transfer crosses a function ABI boundary. Compile and execute the
-# local and remote handle cases with both production backends so MIR type-name
-# carriage cannot silently regress to the former AST-only registry path.
+# local and remote handle cases with every selected production backend so MIR
+# type-name carriage cannot silently regress to the former AST-only registry
+# path. Each backend must match the exact golden, including C-only CI runs.
 backend_transfer_cases=(
     positive_own_transfer
     positive_own_remote_transfer
@@ -110,7 +119,13 @@ backend_transfer_cases=(
 for case_name in "${backend_transfer_cases[@]}"; do
     source="$ROOT_DIR/tests/cases/structured_spawn_lifecycle/${case_name}.pgy"
     source_arg="$(pgy_path_for_compiler "$PGY" "$source")"
-    for backend in c llvm; do
+    case "$case_name" in
+        positive_own_transfer) printf '1\n' >"$WORK_DIR/${case_name}.expected" ;;
+        positive_own_remote_transfer) printf '11\n' >"$WORK_DIR/${case_name}.expected" ;;
+        positive_own_mixed_transfer) printf '3\n11\n' >"$WORK_DIR/${case_name}.expected" ;;
+        *) echo "[structured-spawn] missing exact output owner: $case_name" >&2; exit 1 ;;
+    esac
+    for backend in $BACKENDS; do
         binary="$WORK_DIR/${case_name}_${backend}.exe"
         binary_arg="$(pgy_path_for_compiler "$PGY" "$binary")"
         if ! "$PGY" "$source_arg" --backend="$backend" -o "$binary_arg" \
@@ -140,27 +155,14 @@ for case_name in "${backend_transfer_cases[@]}"; do
         fi
         tr -d '\r' <"$WORK_DIR/${case_name}_${backend}.run" \
             >"$WORK_DIR/${case_name}_${backend}.normalized"
+        if ! cmp -s "$WORK_DIR/${case_name}.expected" \
+            "$WORK_DIR/${case_name}_${backend}.normalized"; then
+            echo "[structured-spawn] unexpected $backend runtime output: $case_name" >&2
+            diff -u "$WORK_DIR/${case_name}.expected" \
+                "$WORK_DIR/${case_name}_${backend}.normalized" >&2 || true
+            exit 1
+        fi
     done
-    if ! cmp -s "$WORK_DIR/${case_name}_c.normalized" \
-        "$WORK_DIR/${case_name}_llvm.normalized"; then
-        echo "[structured-spawn] C/LLVM output mismatch: $case_name" >&2
-        diff -u "$WORK_DIR/${case_name}_c.normalized" \
-            "$WORK_DIR/${case_name}_llvm.normalized" >&2 || true
-        exit 1
-    fi
-    case "$case_name" in
-        positive_own_transfer) printf '1\n' >"$WORK_DIR/${case_name}.expected" ;;
-        positive_own_remote_transfer) printf '11\n' >"$WORK_DIR/${case_name}.expected" ;;
-        positive_own_mixed_transfer) printf '3\n11\n' >"$WORK_DIR/${case_name}.expected" ;;
-        *) echo "[structured-spawn] missing exact output owner: $case_name" >&2; exit 1 ;;
-    esac
-    if ! cmp -s "$WORK_DIR/${case_name}.expected" \
-        "$WORK_DIR/${case_name}_c.normalized"; then
-        echo "[structured-spawn] unexpected runtime output: $case_name" >&2
-        diff -u "$WORK_DIR/${case_name}.expected" \
-            "$WORK_DIR/${case_name}_c.normalized" >&2 || true
-        exit 1
-    fi
 done
 
 negative_cases=(
@@ -181,7 +183,7 @@ negative_cases=(
 for case_name in "${negative_cases[@]}"; do
     source="$ROOT_DIR/tests/cases/structured_spawn_lifecycle/${case_name}.pgy"
     source_arg="$(pgy_path_for_compiler "$PGY" "$source")"
-    for backend in c llvm; do
+    for backend in $BACKENDS; do
         output_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/${case_name}_${backend}.bin")"
         log="$WORK_DIR/${case_name}_${backend}.log"
         if "$PGY" "$source_arg" --backend="$backend" --error-format=json \
@@ -216,7 +218,7 @@ use_after_cases=(
 for case_name in "${use_after_cases[@]}"; do
     source="$ROOT_DIR/tests/cases/structured_spawn_lifecycle/${case_name}.pgy"
     source_arg="$(pgy_path_for_compiler "$PGY" "$source")"
-    for backend in c llvm; do
+    for backend in $BACKENDS; do
         output_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/${case_name}_${backend}.bin")"
         log="$WORK_DIR/${case_name}_${backend}.log"
         if "$PGY" "$source_arg" --backend="$backend" --error-format=json \
@@ -250,7 +252,7 @@ done
 
 repeated_source="$ROOT_DIR/tests/cases/structured_spawn_lifecycle/negative_repeated_unavailable_use.pgy"
 repeated_arg="$(pgy_path_for_compiler "$PGY" "$repeated_source")"
-for backend in c llvm; do
+for backend in $BACKENDS; do
     repeated_out="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/negative_repeated_unavailable_use_${backend}.bin")"
     repeated_log="$WORK_DIR/negative_repeated_unavailable_use_${backend}.log"
     if "$PGY" "$repeated_arg" --backend="$backend" --error-format=json \
@@ -281,4 +283,4 @@ for backend in c llvm; do
     fi
 done
 
-echo "[structured-spawn] affine completion handles are joined or explicitly transferred"
+echo "[structured-spawn] affine completion handles are joined or explicitly transferred (backends: $BACKENDS)"

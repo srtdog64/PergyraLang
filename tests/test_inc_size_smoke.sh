@@ -5,10 +5,17 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LIMIT="${TEST_CASE_INCLUDE_MAX_LINES:-699}"
 PRODUCTION_LIMIT="${PRODUCTION_OWNER_MAX_LINES:-699}"
 SELF_HOSTED_OWNER_LIMIT="${SELF_HOSTED_OWNER_MAX_LINES:-699}"
+SELF_HOSTED_OWNER_EXPLICIT=0
+[[ -z "${SELF_HOSTED_OWNER_MAX_LINES+x}" ]] || SELF_HOSTED_OWNER_EXPLICIT=1
 SELF_HOSTED_TOOL_LIMIT="${SELF_HOSTED_TOOL_MAX_LINES:-999}"
-SEMANTIC_DIAGNOSTIC_OWNER_LIMIT="${SEMANTIC_DIAGNOSTIC_OWNER_MAX_LINES:-650}"
+SEMANTIC_DIAGNOSTIC_OWNER_CAP="$(awk -v root="$ROOT_DIR" -v mode=lookup \
+    -v owner=src/self_hosted/semantic/diagnostic_owner.pgy \
+    -f "$ROOT_DIR/tests/self_hosted_owner_size_policy.awk")"
+SEMANTIC_DIAGNOSTIC_OWNER_LIMIT="${SEMANTIC_DIAGNOSTIC_OWNER_MAX_LINES:-$SEMANTIC_DIAGNOSTIC_OWNER_CAP}"
 LEGACY_HELPER_PATHS="$ROOT_DIR/tests/fixtures/legacy_production_helper_paths.txt"
 HELPER_LIMIT="${HELPER_OWNER_MAX_LINES:-500}"
+
+bash "$ROOT_DIR/tests/self_hosted_owner_size_policy_smoke.sh"
 
 grep -Fq "Helper-layer escalation rule" "$ROOT_DIR/TODO.md"
 grep -Fq "\`_helpers\` is not an ownership model" "$ROOT_DIR/TODO.md"
@@ -218,7 +225,10 @@ if [[ -n "$production_violations" ]]; then
     exit 1
 fi
 
-self_hosted_owner_violations="$(
+# The same exact-path responsibility owner used by the component contract
+# supersedes the generic/semantic defaults. No local copy of its limits lives
+# here. Unregistered owners retain 699/599 and explicit narrower ceilings apply.
+(
     cd "$ROOT_DIR"
     find src/self_hosted -type f -name '*.pgy' \
         ! -path '*/fixture/*' \
@@ -227,15 +237,11 @@ self_hosted_owner_violations="$(
         ! -path 'src/self_hosted/tools/*' \
         -print0 \
         | xargs -0 wc -l \
-        | awk -v limit="$SELF_HOSTED_OWNER_LIMIT" \
-            '$2 != "total" && $1 > limit { print }'
-)"
-
-if [[ -n "$self_hosted_owner_violations" ]]; then
-    echo "self-hosted production owner size violations; limit is ${SELF_HOSTED_OWNER_LIMIT} LOC:" >&2
-    echo "$self_hosted_owner_violations" >&2
-    exit 1
-fi
+        | awk -v root="$ROOT_DIR" -v mode=scan \
+            -v general_limit="$SELF_HOSTED_OWNER_LIMIT" -v semantic_limit=599 \
+            -v general_explicit="$SELF_HOSTED_OWNER_EXPLICIT" \
+            -f "$ROOT_DIR/tests/self_hosted_owner_size_policy.awk"
+)
 
 self_hosted_tool_violations="$(
     cd "$ROOT_DIR"
@@ -253,14 +259,9 @@ fi
 
 semantic_owner_violations="$(
     cd "$ROOT_DIR"
-    {
-        find src/semantic -maxdepth 1 -type f \
-            \( -name '*.c' -o -name '*.h' \) -exec wc -l {} +
-        find src/self_hosted/semantic -maxdepth 1 -type f \
-            -name '*.pgy' -exec wc -l {} +
-    } \
-        | awk \
-            '$2 != "total" && $2 != "src/self_hosted/semantic/diagnostic_owner.pgy" && $1 > 599 { print }'
+    find src/semantic -maxdepth 1 -type f \
+        \( -name '*.c' -o -name '*.h' \) -exec wc -l {} + \
+        | awk '$2 != "total" && $1 > 599 { print }'
 )"
 
 if [[ -n "$semantic_owner_violations" ]]; then
@@ -365,4 +366,4 @@ if [[ -n "$helper_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] production C/H and Pergyra owners <= ${PRODUCTION_LIMIT}/${SELF_HOSTED_OWNER_LIMIT} LOC hard caps; semantic and MIR type/declaration owners <= 599 LOC (diagnostic vocabulary owner <= ${SEMANTIC_DIAGNOSTIC_OWNER_LIMIT}); tools <= ${SELF_HOSTED_TOOL_LIMIT} LOC; legacy helper paths are shrink-only and <= ${HELPER_LIMIT} LOC; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] production C/H <= ${PRODUCTION_LIMIT} LOC; Pergyra default ${SELF_HOSTED_OWNER_LIMIT} with shared responsibility caps; semantic default and MIR type/declaration <= 599 LOC (diagnostic vocabulary <= ${SEMANTIC_DIAGNOSTIC_OWNER_LIMIT}); tools <= ${SELF_HOSTED_TOOL_LIMIT}; shrink-only helpers <= ${HELPER_LIMIT}; test includes <= ${LIMIT}"

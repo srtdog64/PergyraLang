@@ -3,20 +3,24 @@
 
 pgy_selfhost_class_array_reject_mutation() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
-    local label="$5" from="$6" to="$7" diagnostic="$8" mutated
+    local label="$5" from="$6" to="$7" diagnostic mutated status=0
+    shift 7
     mutated="$BUILD_DIR/${base}_${backend}.${label}.mir.json"
     pgy_replace_first_literal "$self_mir_json" "$mutated" "$from" "$to"
-    if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+    (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$mutated")" \
-        >"$mutated.out" 2>"$mutated.err"); then
-        echo "[self-host-parity:driver-rung2] $backend class/array mutation accepted: $label" >&2
+        >"$mutated.out" 2>"$mutated.err") || status=$?
+    if [[ "$status" -ne 1 ]]; then
+        echo "[self-host-parity:driver-rung2] $backend class/array mutation did not reject with exit 1: $label (exit $status)" >&2
         exit 1
     fi
-    grep -Fq "$diagnostic" "$mutated.err" "$mutated.out" || {
-        echo "[self-host-parity:driver-rung2] $backend class/array diagnostic drifted: $label" >&2
-        cat "$mutated.out" "$mutated.err" >&2
-        exit 1
-    }
+    for diagnostic in "$@"; do
+        grep -Fq -- "$diagnostic" "$mutated.err" "$mutated.out" || {
+            echo "[self-host-parity:driver-rung2] $backend class/array diagnostic drifted: $label ($diagnostic)" >&2
+            cat "$mutated.out" "$mutated.err" >&2
+            exit 1
+        }
+    done
 }
 
 pgy_selfhost_class_array_reject_missing_target() {
@@ -104,8 +108,11 @@ pgy_selfhost_verify_driver_rung2_class_array_composition() {
         mutation_from="$(grep -Eo '"name":"rates","source_syntax_id":[1-9][0-9]*,"type":"Array<Int>","carriage":"value"' \
             "$self_mir_json" | head -n 1)"
         mutation_to="${mutation_from/\"type\":\"Array<Int>\"/\"type\":\"Array<String>\"}"
+        # The resolved target is a member, not a free function. The semantic
+        # call-target owner preserves that diagnostic identity and its types.
         pgy_selfhost_class_array_reject_mutation "$backend" "$base" "$self_mir_json" "$driver_bin" \
             array-element-type "$mutation_from" "$mutation_to" \
-            "Code: call_arg_type_mismatch"
+            "Code: member_call_arg_type_mismatch" \
+            "- func: bag.Worth" "- expected: Int" "- actual: String"
     fi
 }

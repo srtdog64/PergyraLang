@@ -1,0 +1,39 @@
+import "../../../../src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy";
+
+func RequireBindingOrigin(label: String, actual: Option<Int>, expected: Option<Int>) -> Void {
+    if IsSome(actual) == IsSome(expected) {
+        if !IsSome(actual) { return; }
+        if UnwrapOption(actual) == UnwrapOption(expected) { return; }
+    }
+    Log(label);
+    Exit(1);
+}
+
+func Main() -> Void {
+    let rows: Array<Int> = [7, 7, 9];
+    let ordinals: Array<Int> = [0, 1, 0];
+    let origins: MirMatchBindingOrigins = MirMatchBindingOrigins(rows, ordinals);
+    RequireBindingOrigin("row-zero-is-present", MirMatchBindingSourceRowAtOrigin(origins, 7, 0), Some(0));
+    RequireBindingOrigin("payload-ordinal", MirMatchBindingSourceRowAtOrigin(origins, 7, 1), Some(1));
+    RequireBindingOrigin("instruction-identity", MirMatchBindingSourceRowAtOrigin(origins, 9, 0), Some(2));
+    RequireBindingOrigin("missing-instruction", MirMatchBindingSourceRowAtOrigin(origins, 8, 0), None);
+    RequireBindingOrigin("missing-ordinal", MirMatchBindingSourceRowAtOrigin(origins, 7, 2), None);
+    RequireBindingOrigin("negative-instruction", MirMatchBindingSourceRowAtOrigin(origins, -1, 0), None);
+    RequireBindingOrigin("negative-ordinal", MirMatchBindingSourceRowAtOrigin(origins, 7, -1), None);
+    let empty_rows: Array<Int> = [];
+    let empty: MirMatchBindingOrigins = MirMatchBindingOrigins(empty_rows, empty_rows);
+    RequireBindingOrigin("empty-owner", MirMatchBindingSourceRowAtOrigin(empty, 7, 0), None);
+    let duplicate_rows: Array<Int> = [7, 7];
+    let duplicate_ordinals: Array<Int> = [0, 0];
+    let duplicate: MirMatchBindingOrigins = MirMatchBindingOrigins(duplicate_rows, duplicate_ordinals);
+    RequireBindingOrigin("duplicate-origin", MirMatchBindingSourceRowAtOrigin(duplicate, 7, 0), None);
+    let two_rows: Array<Int> = [7, 9];
+    let one_ordinal: Array<Int> = [0];
+    let missing_ordinal: MirMatchBindingOrigins = MirMatchBindingOrigins(two_rows, one_ordinal);
+    RequireBindingOrigin("missing-ordinal-column", MirMatchBindingSourceRowAtOrigin(missing_ordinal, 7, 0), None);
+    let one_row: Array<Int> = [7];
+    let two_ordinals: Array<Int> = [0, 1];
+    let missing_instruction: MirMatchBindingOrigins = MirMatchBindingOrigins(one_row, two_ordinals);
+    RequireBindingOrigin("missing-instruction-column", MirMatchBindingSourceRowAtOrigin(missing_instruction, 7, 0), None);
+    Log("match binding origin owner: ok");
+}

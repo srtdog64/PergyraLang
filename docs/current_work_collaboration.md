@@ -1,12 +1,39 @@
 # Current Work Collaboration Ledger
 
-Updated: 2026-09-05 (Asia/Seoul)
+Updated: 2026-09-06 (Asia/Seoul)
 
 This file coordinates concurrent Codex work. It is not semantic authority and
 does not prove completion. Current source, the SoT registries, executable gates,
 and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ## ACTIVE implementation lease — mixed-arity tagged-enum callable projection
+
+### Reached publication failures — one primary integration owner
+
+Published base is `918a7c98e541771fab542713262b643d375d51c0`. Regular CI
+`33966684805` finished FAILURE with 29/30 passed; Platform full `33966692630`
+finished FAILURE with 8/13 passed. Primary owns the dirty compiler/test/doc
+repair, staging, commit/push and exact-revision dispatch. Generated C/MIR and
+the scratch `caf_probe_tmp.pgy` remain preserved and excluded.
+
+The objective, independent scopes and source-growth explanations are in
+`docs/agent_work_directives/reached_ci_publication_failures_2026-09-05.md`.
+Both review lanes are AUDIT COMPLETE and hold no compiler or publication lease.
+The final review found an enum-negative confounder (loss of the only Signal
+reference). The corrected reference/control/diagnostic gate now passes
+(`85024`, `run.qXP0DI`): six actual local/definition refusals and two separately
+identified earlier declaration-route refusals. The reviewer independently
+confirmed the owner-stage evidence; no generic refusal is called local proof.
+Current candidate `1AAFC7D7` passes actual SEA C/LLVM and Option-match execution.
+Installed `7928ED6B` and its older fixed-point receipt are not current-source
+evidence. See the top handoff card for exact graph, gates and next falsifier.
+
+The older checkpoints below are dated execution evidence. Their
+pre-publication empty-index/unpublished statements are historical now; neither
+the new commit nor the audit count promotes the 55/32/1 SoT census or 75% hard
+replacement score by itself.
+
+## Historical archive — no active edit leases below this boundary
 
 ### Reached bootstrap comparison objective
 

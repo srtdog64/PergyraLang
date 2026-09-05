@@ -1,6 +1,6 @@
 # Current Work Handoff
 
-Updated: 2026-09-05 (Asia/Seoul)
+Updated: 2026-09-06 (Asia/Seoul)
 
 This file is a resume snapshot, not semantic authority. Verify it against the
 current source, `git status --short --branch`, the SoT registries, the named
@@ -20,6 +20,72 @@ percentage by themselves.
 
 ## Active self-host context — mixed-arity tagged-enum callable projection
 
+- Published base: `918a7c98e541771fab542713262b643d375d51c0` on main and
+  origin/main. Regular CI `33966684805` completed FAILURE (29/30 jobs passed);
+  Platform full `33966692630` completed FAILURE (8/13 passed). Both target
+  that exact SHA. Bootstrap, Rocq9, backend shards, and parser/semantic/codegen
+  platform parity passed; preparation, core platform and driver assertions did
+  not. The present source/test/doc repair is dirty and not covered by those
+  results. Integration, scoped commit/push and CI dispatch are user-authorized.
+- Active owner slice: `MirMatchBindingOrigins` now returns an exact optional
+  row, not -1. Materialized payload-free enum locals retain nominal identity
+  through value-type admission, source-local inventory and final typed-plan
+  readiness. C/LLVM local emitters reject unknown representations. See
+  `src/self_hosted/OWNERS.md` and
+  `docs/agent_work_directives/reached_ci_publication_failures_2026-09-05.md`.
+  The production entry remains public source -> Pergyra self-driver -> shared
+  GraphPlan; no native retry or second executable rung was added.
+- Current isolated candidate:
+  `.tmp/self_hosted/compiler/enum_local_admission_20260905/pgy-self-driver.exe`,
+  7,044,001 bytes, SHA-256
+  `1AAFC7D7F031424B75F7BE1737BA088B501A021154204864B1EB286B76642BA6`,
+  source graph `6bbeb7206ad331585d44fdc62b9be72a629a3a3ef3165cc2f9cd382a83659f2c`.
+  Genuine Pergyra-seed build `50548` passed. SEA lane C 35/35, LLVM 35/35,
+  cross-backend comparison and missing-term negatives passed (`27223`).
+  Adjacent Option match C/LLVM and seven mutation pairs passed. Shared installed
+  `7928ED6B` remains on the preceding graph: no current-graph installed-driver
+  or full fixed-point success is claimed for this dirty source.
+- CI harness repair: existing C-only spawn profile is forwarded by Makefile;
+  placement checks reject a missing/non-directory source root; native examples
+  declare their subject; class/array mutation requires the owned member-call
+  diagnostic and exact exit 1. The two-fixture driver parent passed (`61006`).
+  Eight existing responsibility caps are shared unchanged by both size gates.
+  Three small local/Option consumer caps explicitly accommodate new rejection
+  branches; the sentinel ceiling remains 23 (observed 23/23).
+- Full structural inventory passed (`22994`: 2,331 caps, 973 extractions,
+  677 reuses) under a 300-second integration budget; its 60-second latency
+  target remains open. Size, likeness, keyword, subject and CI-profile gates
+  passed (`76753`). The tightened enum gate passed (`85024`, `run.qXP0DI`):
+  three sources each execute through general MIR-C, direct C/LLVM and public
+  source C/LLVM; unchanged JSON roundtrip also executes on both targets. The
+  origin lookup probe and 33 existing mixed-payload refusals pass. Six new
+  local-type/definition refusals require their actual owner stages; declaration
+  deletion's two earlier generic refusals are counted separately. Independent
+  review confirmed the former reference-loss confounder is removed. Native
+  structured-spawn default C+LLVM also passed (`94527`), complementing the
+  earlier C-only execution. Documentation and SoT edge gates passed (`38850`).
+  None of this proves remote green or advances substitution percentages.
+- Open counterexample: duplicate variant names across distinct enums lose
+  nominal context in general MIR reconstruction. Exact source and retained
+  failure are in
+  `docs/audits/2026-09-05_enum_variant_name_reconstruction_counterexample.md`.
+  Do not silently promote its bounded distinct-name regression into a fix.
+- Next falsifier: publish the reviewed repair, then run
+  regular CI and Platform full at that exact revision. No storage cleanup is
+  authorized or needed here; approximately 28 MiB free was last observed.
+  Preserve all original MIR/fixed-point inputs and untracked `caf_probe_tmp.pgy`.
+  Census 88/185, CLOSED55/BRIDGE32/ACTIVE1 and hard substitution 75% are unchanged.
+
+## Historical archive boundary — earlier checkpoints, not the active queue
+
+- Final local publication checks: fixed-point receipt and CI profile PASS
+  (`21019`); documentation, SoT edge, keyword inventory, runtime-twin border,
+  component checker mechanics, semantic frontier and changed-shell syntax PASS
+  (`59948`). Strict UTF-8 and staged whitespace passed for the publication set.
+  Independent native concurrency examples passed 16 C/LLVM executions and 10
+  artifact-free refusals; both review lanes are AUDIT COMPLETE. These gates
+  do not replace remote CI or promote SoT/substitution percentages. All original
+  receipt/MIR evidence is preserved; about 85 MiB free was observed before push.
 - Publication authorization RESOLVED by the user's explicit 2026-09-05 request
   to take over other-session changes and continue all work. Primary now owns
   integration review, scoped commits/push and exact-revision CI verification,

@@ -57,13 +57,27 @@ compile_run() {
     }
 }
 
-for input in callable mixed; do
+# A typed Option probe distinguishes missing/ambiguous lookup from present row
+# zero. It imports the production owner; no test-local lookup substitutes for it.
+printf 'match binding origin owner: ok\n' >"$WORK/origin.expected"
+if ! "$DRIVER" --emit-c-artifact-verified \
+    tests/self_hosted/parity/fixture/match_binding_origin_owner_probe.pgy \
+    "$WORK_REL/origin.c" >"$WORK/origin.emit.out" 2>"$WORK/origin.emit.err"; then
+    cat "$WORK/origin.emit.out" "$WORK/origin.emit.err" >&2
+    fail "typed match binding origin probe failed source admission"
+fi
+compile_run "$WORK/origin.c" c "$WORK/origin.expected"
+
+for input in callable mixed enum-local; do
     if [[ "$input" == callable ]]; then
         source_rel="tests/cases/backend_compare/enum_match_payload_basic/main.pgy"
         printf '75\n12\n0\n' >"$WORK/$input.expected"
-    else
+    elif [[ "$input" == mixed ]]; then
         source_rel="tests/self_hosted/fixtures/direct_mir_payload_enum_mixed_arity.pgy"
         printf '0\n7\n26\n246\n5\n10\n0\n' >"$WORK/$input.expected"
+    else
+        source_rel="tests/self_hosted/parity/fixture/enum_member_match_local.pgy"
+        printf '22\n0\n3\n' >"$WORK/$input.expected"
     fi
     mir_rel="$WORK_REL/$input.mir.json"
     "$DRIVER" --emit-mir-json-verified "$source_rel" -o "$mir_rel" \
@@ -75,7 +89,8 @@ for input in callable mixed; do
     mir_hash="$(sha256sum "$ROOT_DIR/$mir_rel" | awk '{print $1}')"
     "$DRIVER" --mir-json "$mir_rel" >"$WORK/$input.general.c" \
         2>"$WORK/$input.general.err" || {
-        cat "$WORK/$input.general.err" >&2; fail "$input general MIR consumer";
+        cat "$WORK/$input.general.c" "$WORK/$input.general.err" >&2
+        fail "$input general MIR consumer";
     }
     compile_run "$WORK/$input.general.c" c "$WORK/$input.expected"
     for backend in c llvm; do
@@ -102,6 +117,53 @@ for input in callable mixed; do
     done
     [[ "$mir_hash" == "$(sha256sum "$ROOT_DIR/$mir_rel" | awk '{print $1}')" ]] ||
         fail "$input MIR changed during consumption"
+done
+
+# Prove that the mutator's JSON transport alone remains executable.
+roundtrip_rel="$WORK_REL/enum-local-roundtrip.mir.json"
+python -B tests/self_hosted/parity/enum_member_match_local_mutations.py \
+    "$WORK/enum-local.mir.json" enum-local-roundtrip "$ROOT_DIR/$roundtrip_rel"
+for backend in c llvm; do
+    artifact_rel="$WORK_REL/enum-local-roundtrip.$backend"
+    "$DRIVER" "--mir-json-backend=$backend" "$roundtrip_rel" -o "$artifact_rel" \
+        >"$ROOT_DIR/$artifact_rel.out" 2>"$ROOT_DIR/$artifact_rel.err" || {
+        cat "$ROOT_DIR/$artifact_rel.out" "$ROOT_DIR/$artifact_rel.err" >&2
+        fail "enum-local unchanged JSON transport failed $backend admission"
+    }
+    compile_run "$ROOT_DIR/$artifact_rel" "$backend" "$WORK/enum-local.expected"
+done
+
+for mutation in enum-local-unknown-type enum-local-erased-type enum-local-other-enum enum-local-missing-declaration; do
+    case "$mutation" in
+        enum-local-unknown-type)
+            admission_diagnostic='routine admission stage is invalid: stage=local_inventory ordinal=1' ;;
+        enum-local-erased-type|enum-local-other-enum)
+            admission_diagnostic='program expression admission is invalid: stage=admitted-type'
+            ;;
+        enum-local-missing-declaration)
+            # Declaration removal declines the scalar route before local
+            # admission. This proves only pre-output refusal, not the local
+            # identity owner; the terminal currently hides that route receipt.
+            admission_diagnostic='direct MIR three-routine structural shape is unsupported' ;;
+    esac
+    mutated_rel="$WORK_REL/$mutation.mir.json"
+    python -B tests/self_hosted/parity/enum_member_match_local_mutations.py \
+        "$WORK/enum-local.mir.json" "$mutation" "$ROOT_DIR/$mutated_rel"
+    for backend in c llvm; do
+        output_rel="$WORK_REL/rejected-$mutation.$backend"
+        if "$DRIVER" "--mir-json-backend=$backend" "$mutated_rel" -o "$output_rel" \
+            >"$ROOT_DIR/$output_rel.out" 2>"$ROOT_DIR/$output_rel.err"; then
+            fail "$backend accepted $mutation"
+        else
+            rejection_status=$?
+        fi
+        [[ "$rejection_status" == 1 ]] || fail "$backend/$mutation abnormal exit $rejection_status"
+        grep -Fq 'CODEGEN ERROR:' "$ROOT_DIR/$output_rel.out" \
+            "$ROOT_DIR/$output_rel.err" || fail "$backend/$mutation lost its admission diagnostic"
+        grep -Fq "$admission_diagnostic" "$ROOT_DIR/$output_rel.out" \
+            "$ROOT_DIR/$output_rel.err" || fail "$backend/$mutation did not reach its expected admission boundary"
+        [[ ! -e "$ROOT_DIR/$output_rel" ]] || fail "$backend published $mutation artifact"
+    done
 done
 
 for mutation in missing-binding-type missing-type-field wrong-binding-type swapped-binding-types \
@@ -156,4 +218,4 @@ for mutation in missing-binding-type missing-type-field wrong-binding-type swapp
         [[ ! -e "$ROOT_DIR/$output_rel" ]] || fail "$backend published $mutation artifact"
     done
 done
-echo "[$LABEL] public source + one MIR general/C/LLVM, mixed types/arities, scoped negatives: PASS ($WORK_REL)"
+echo "[$LABEL] public source + one MIR general/C/LLVM, roundtrip controls, six enum-local owner refusals, two declaration-route refusals, mixed scoped negatives: PASS ($WORK_REL)"

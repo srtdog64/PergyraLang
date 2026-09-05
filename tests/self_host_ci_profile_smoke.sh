@@ -581,6 +581,18 @@ for required in \
     fi
 done
 
+spawn_recipe="$(sed -n \
+    '/^structured-spawn-lifecycle-test-smoke:/,/^async-model-positioning-test-smoke:/p' \
+    "$MAKEFILE")"
+for required in \
+    'PGY_MEMORY_CONCURRENCY_BACKENDS="$${PGY_MEMORY_CONCURRENCY_BACKENDS:-$(MEMORY_CONCURRENCY_BACKENDS)}"' \
+    'tests/structured_spawn_lifecycle_smoke.sh'; do
+    if ! grep -Fq "$required" <<<"$spawn_recipe"; then
+        echo "[self-host-ci-profile] structured spawn prerequisite lost platform backend profile: $required" >&2
+        exit 1
+    fi
+done
+
 exhaustive_recipe="$(
     sed -n \
         '/^self-host-preparation-exhaustive-parity-test-smoke:/,/^self-host-runtime-boundary-parity-test-smoke:/p' \

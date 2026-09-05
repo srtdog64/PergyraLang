@@ -2620,6 +2620,7 @@ memory-concurrency-model-test-smoke: ownership-relocation-cleanup-contract-test-
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/memory_concurrency_model_smoke.sh
 
 structured-spawn-lifecycle-test-smoke: $(PGY)
+	PGY_MEMORY_CONCURRENCY_BACKENDS="$${PGY_MEMORY_CONCURRENCY_BACKENDS:-$(MEMORY_CONCURRENCY_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/structured_spawn_lifecycle_smoke.sh
 
 async-model-positioning-test-smoke:

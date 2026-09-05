@@ -1,0 +1,16 @@
+# Responsibility-specific limits moved unchanged from the component contract.
+# These are exact paths, not basename/glob exemptions from size checks.
+# Lexical statement control and hidden zone-resource cleanup share one owner.
+src/self_hosted/codegen/emission/stmt_emit.pgy|800
+# Known/Unproven transfer, structured joins and payload admission share truth.
+src/self_hosted/semantic/ast_enum_payload_variant_provenance_verdict_owner.pgy|1450
+# Existing statement/assignment artifact issuers each have an explicit 600 cap.
+src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy|600
+src/self_hosted/semantic/ast_statement_fact_owner.pgy|600
+# One renderer owns the stable diagnostic reason/fix vocabulary.
+src/self_hosted/semantic/diagnostic_owner.pgy|660
+# Composite intent admission and LLVM projection remain distinct bounded owners.
+src/self_hosted/compiler/direct_mir_composite_intent_program_plan_owner.pgy|900
+src/self_hosted/compiler/direct_mir_composite_intent_program_llvm_emission_owner.pgy|860
+# Receiver identity is one authority; the separate family aggregate stays 1250.
+src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy|800
