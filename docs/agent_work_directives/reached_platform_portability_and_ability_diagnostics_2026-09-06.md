@@ -126,6 +126,20 @@ require exit 1 and preserve first-compilation ordering. Native macOS remains
 unverified; no compiler source or timeout changed. The current published CI
 has completed SUCCESS, 30/30, so publication of this bounded repair is unblocked.
 
+Publication: the six reviewed step/profile/navigation paths passed final
+profile/docs/syntax/UTF-8/whitespace checks (`59711`) and were committed/pushed
+as `5653165b7b372a84622ee5837e9375c0828fecd6`. Regular CI `33984709173`
+completed FAILURE, 29/30 passed on that exact SHA; watch `71941` completed
+exit 1. Linux passed all 23 push steps, full driver fixed point and installed
+CLI/policy gates passed. Only native macOS job
+`101356033822` failed 1/9 steps: the shared size-policy mechanics passed, but
+the component checker reached a GNU-specific sed insertion in its final
+transport mutation. Its earlier empty-array controls completed before that
+construction error. All other eight steps passed. The scheduling edit lease
+is complete; its reached mutation repair has a separate bounded directive:
+`docs/agent_work_directives/macos_checker_mutation_portability_2026-09-06.md`.
+No compiler source changed. No watcher remains live from this run.
+
 ## Constraints and handoff
 
 Use apply_patch. No agent builds a compiler, installs tools, changes workflows

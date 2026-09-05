@@ -241,7 +241,8 @@ sed 's/0 2/0 1/' "$transport_baseline" >"$transport_file"
 expect_rejection missing-artifact-owner-call 'missing term:' check_transport_snapshot
 sed '/    cmp -s/d' "$transport_baseline" >"$transport_file"
 expect_rejection missing-artifact-byte-precheck 'missing term:' check_transport_snapshot
-sed '2i\    return 0' "$transport_baseline" >"$transport_file"
+# Keep the same early-success mutant without GNU sed's one-line i extension.
+awk 'NR == 2 { print "    return 0" } { print }' "$transport_baseline" >"$transport_file"
 expect_rejection artifact-shell-early-success 'retired term: return 0' check_transport_snapshot
 sed 's/^pgy_selfhost_compare_expected_text_artifact_file_with_owner/Other/' \
     "$transport_baseline" >"$transport_file"

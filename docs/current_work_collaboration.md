@@ -10,25 +10,50 @@ and `docs/current_work_handoff.md` remain authoritative in that order.
 
 ### Reached publication failures — one primary integration owner
 
-Latest publication is `61f923165553d25af3d17cd9ba14ad30b486486c`, main and
-origin/main, containing the reviewed 12-file checker/diagnostic/evidence set.
-Tracked state was clean after push apart from the preserved untracked scratch;
-the subsequent publication/CI navigation refresh and bounded fast-macOS
-step/profile repair are local only. Regular CI
-`33982549234` completed SUCCESS, 30/30 on this exact SHA; watch `73619`
+Latest publication is `5653165b7b372a84622ee5837e9375c0828fecd6`, main and
+origin/main, containing the six reviewed fast-macOS step/profile/navigation
+paths. Tracked state was clean after push apart from the preserved untracked
+scratch. The subsequent local delta is the reached component-mutation repair,
+four navigation documents and its new unnumbered directive.
+Regular CI `33984709173` completed FAILURE, 29/30 passed on the new SHA.
+Watch `71941` completed exit 1; no second watcher or restart is needed.
+Prior regular CI `33982549234` completed SUCCESS, 30/30 on exact
+revision `61f923165553d25af3d17cd9ba14ad30b486486c`; watch `73619`
 completed exit 0. Do not restart it or dispatch a duplicate full matrix while the
 unchanged ability compiler counterexample is already RED. The next compiler
 edit loop still needs the pending storage/worktree choice.
 
-Primary has a bounded edit lease on `scripts/ci_push_macos_steps.sh` and
-`tests/self_host_ci_profile_smoke.sh`: execute the two existing checker
+The compiler implementation is BLOCKED on that repeatedly unanswered choice:
+latest D: free space is 10,285,056 bytes. No new compiler or agent edit lease
+opens. The run/watch is now terminal (29 passed, only known macOS failure).
+Linux passed all 23 steps; full driver fixed point, installed CLI/transaction
+gates and all three policy sources passed. Publish the verified mutation
+repair after this terminal reconciliation; the compiler rebuild still awaits
+the pending user approval.
+The overall self-host/bootstrap/SoT objective remains incomplete.
+
+Primary completed its bounded edit lease on `scripts/ci_push_macos_steps.sh`
+and `tests/self_host_ci_profile_smoke.sh`: execute the two existing checker
 mechanics gates early on macOS, without duplicating full preparation or a
 compiler build. The objective/evidence is in the third-round directive below.
 Old-list rejection (`19312`), actual two-checker dispatch (`47595`), profile
 and six exact-checker negative controls (`40183`) passed locally. Native macOS
-is still pending. The published CI is terminal, including full driver
+job `101356033822` failed 1/9 steps: shared size mechanics and the other seven
+steps passed, but BSD sed rejected the component test's early-success mutant
+construction. The prior CI is terminal, including full driver
 gen2 == gen3 (177,559 lines), installed-driver CLI/transaction gates and all
-three policy sources. Publication of this additional repair is now unblocked.
+three policy sources. Final profile/docs/syntax/UTF-8/whitespace checks passed
+(`59711`) before the scoped commit and push. No compiler implementation lease
+was opened by this CI scheduling repair.
+
+The reached follow-up scope is
+`docs/agent_work_directives/macos_checker_mutation_portability_2026-09-06.md`.
+Primary replaced only that GNU-specific mutation construction. Old/new bytes,
+the full actual component checker and profile/docs/syntax passed (`82951`).
+`semantic_index_review` completed a read-only review, confirmed the unchanged
+exact refusal and found no adjacent issue; its lease is closed. This local
+repair is not published or native-verified. The previous CI is now terminal,
+so publication is unblocked; no full matrix or compiler implementation track opens.
 
 The second-round nine-file repair is committed and pushed as
 `da818c3df133c23572486872e4114d594f981890`. Tracked state was clean afterward;
